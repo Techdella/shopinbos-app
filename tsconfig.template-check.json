@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [
+    "src/app/api/ai/store-builder/route.ts",
+    "src/app/api/ai/store-editor/route.ts",
+    "src/app/api/store/templates/route.ts",
+    "src/app/api/store/templates/apply/route.ts",
+    "src/app/api/store/editor/route.ts",
+    "src/app/api/store/editor/publish/route.ts",
+    "src/app/builder/page.tsx",
+    "src/app/builder/templates/page.tsx",
+    "src/app/builder/editor/page.tsx",
+    "src/app/s/[slug]/StorefrontClient.tsx",
+    "src/components/builder/ChipBuilder.tsx",
+    "src/components/builder/TemplateGallery.tsx",
+    "src/components/builder/StoreEditor.tsx",
+    "src/components/storefront/TemplateStorefrontSurface.tsx",
+    "src/lib/store-templates/**/*.ts",
+    "src/lib/workspace.ts"
+  ]
+}

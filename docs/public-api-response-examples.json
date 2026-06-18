@@ -1,0 +1,201 @@
+{
+  "products": {
+    "list": {
+      "data": [
+        {
+          "id": "sprd_ankara_001",
+          "name": "Premium Ankara Fabric Bundle",
+          "slug": "premium-ankara-fabric-bundle",
+          "description": "Wholesale ankara fabric bundle for boutiques and online sellers.",
+          "images": ["https://cdn.shopinbos.com/products/ankara-bundle.jpg"],
+          "wholesalePrice": 8500,
+          "wholesalePriceTo": 12000,
+          "suggestedRetailPrice": 16500,
+          "currency": "NGN",
+          "moq": 20,
+          "stockQuantity": 420,
+          "dropshipAvailable": true,
+          "bulkOrderAvailable": true,
+          "sampleAvailable": true,
+          "deliveryRegions": ["Lagos", "Abuja", "Port Harcourt"],
+          "processingTime": "2 business days",
+          "trendScore": 92.4,
+          "supplier": {
+            "id": "sup_lagos_fabrics",
+            "businessName": "Lagos Fabric Works",
+            "displayName": "Lagos Fabric Works",
+            "slug": "lagos-fabric-works",
+            "country": "Nigeria",
+            "city": "Lagos",
+            "rating": 4.8,
+            "trustScore": 91,
+            "logoUrl": "https://cdn.shopinbos.com/suppliers/lagos-fabric-works.png"
+          },
+          "category": {
+            "id": "cat_ankara",
+            "name": "Ankara & Fabrics",
+            "slug": "ankara-fabrics"
+          }
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "totalPages": 1,
+        "hasNextPage": false,
+        "hasPreviousPage": false
+      }
+    },
+    "detail": {
+      "data": {
+        "id": "sprd_ankara_001",
+        "name": "Premium Ankara Fabric Bundle",
+        "slug": "premium-ankara-fabric-bundle",
+        "description": "Wholesale ankara fabric bundle for boutiques and online sellers.",
+        "images": ["https://cdn.shopinbos.com/products/ankara-bundle.jpg"],
+        "wholesalePrice": 8500,
+        "wholesalePriceTo": 12000,
+        "suggestedRetailPrice": 16500,
+        "currency": "NGN",
+        "moq": 20,
+        "stockQuantity": 420,
+        "dropshipAvailable": true,
+        "bulkOrderAvailable": true,
+        "sampleAvailable": true,
+        "deliveryRegions": ["Lagos", "Abuja", "Port Harcourt"],
+        "processingTime": "2 business days",
+        "trendScore": 92.4,
+        "supplier": {
+          "id": "sup_lagos_fabrics",
+          "businessName": "Lagos Fabric Works",
+          "displayName": "Lagos Fabric Works",
+          "slug": "lagos-fabric-works",
+          "country": "Nigeria",
+          "city": "Lagos",
+          "rating": 4.8,
+          "trustScore": 91,
+          "logoUrl": "https://cdn.shopinbos.com/suppliers/lagos-fabric-works.png"
+        },
+        "category": {
+          "id": "cat_ankara",
+          "name": "Ankara & Fabrics",
+          "slug": "ankara-fabrics"
+        }
+      }
+    }
+  },
+  "suppliers": {
+    "list": {
+      "data": [
+        {
+          "id": "sup_lagos_fabrics",
+          "businessName": "Lagos Fabric Works",
+          "displayName": "Lagos Fabric Works",
+          "slug": "lagos-fabric-works",
+          "description": "Verified wholesale fabric supplier serving fashion sellers.",
+          "logoUrl": "https://cdn.shopinbos.com/suppliers/lagos-fabric-works.png",
+          "bannerUrl": "https://cdn.shopinbos.com/suppliers/lagos-fabric-works-banner.jpg",
+          "country": "Nigeria",
+          "city": "Lagos",
+          "businessType": "wholesaler",
+          "categories": ["ankara-fabrics", "fashion-clothing"],
+          "rating": 4.8,
+          "ratingCount": 126,
+          "trustScore": 91,
+          "responseTimeLabel": "Replies within 2 hours"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "totalPages": 1,
+        "hasNextPage": false,
+        "hasPreviousPage": false
+      }
+    }
+  },
+  "logisticsPartners": {
+    "list": {
+      "data": [
+        {
+          "id": "log_swiftlane",
+          "companyName": "SwiftLane Logistics",
+          "displayName": "SwiftLane Logistics",
+          "slug": "swiftlane-logistics",
+          "description": "Same-day and interstate delivery partner for marketplace sellers.",
+          "logoUrl": "https://cdn.shopinbos.com/logistics/swiftlane.png",
+          "country": "Nigeria",
+          "city": "Lagos",
+          "coverageZones": ["Ikeja", "Lekki", "Victoria Island", "Surulere"],
+          "vehicleTypes": ["Bike", "Van"],
+          "deliveryTypes": ["Same-day", "Next-day", "Interstate"],
+          "pricingModel": "distance_based",
+          "basePrice": 2500,
+          "estimatedSpeed": "Same day in Lagos",
+          "rating": 4.7,
+          "ratingCount": 84,
+          "reliabilityScore": 93
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "totalPages": 1,
+        "hasNextPage": false,
+        "hasPreviousPage": false
+      }
+    }
+  },
+  "categories": {
+    "list": {
+      "data": [
+        {
+          "id": "cat_ankara",
+          "name": "Ankara & Fabrics",
+          "slug": "ankara-fabrics",
+          "description": "Ankara, kente, aso-oke, and African fabric suppliers.",
+          "imageUrl": "https://cdn.shopinbos.com/categories/ankara.jpg",
+          "parentId": null,
+          "sortOrder": 8
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "totalPages": 1,
+        "hasNextPage": false,
+        "hasPreviousPage": false
+      }
+    }
+  },
+  "ctaLinks": {
+    "sellerAddProduct": {
+      "label": "Add to my store",
+      "href": "https://app.shopinbos.com/signup?intent=add&productSlug=premium-ankara-fabric-bundle&source=wordpress"
+    },
+    "sellerDropship": {
+      "label": "Start dropshipping",
+      "href": "https://app.shopinbos.com/login?intent=dropship&productSlug=premium-ankara-fabric-bundle&source=wordpress"
+    },
+    "sellerRequestSupplierQuote": {
+      "label": "Request supplier quote",
+      "href": "https://app.shopinbos.com/login?intent=request_quote&productSlug=premium-ankara-fabric-bundle&supplierSlug=lagos-fabric-works&source=wordpress"
+    },
+    "supplierViewProducts": {
+      "label": "Manage supplier products",
+      "href": "https://app.shopinbos.com/supplier/login?intent=view_products&supplierSlug=lagos-fabric-works&source=wordpress"
+    },
+    "logisticsBookDelivery": {
+      "label": "Book delivery",
+      "href": "https://app.shopinbos.com/login?intent=book_delivery&logisticsSlug=swiftlane-logistics&source=wordpress"
+    },
+    "logisticsPartnerSignup": {
+      "label": "Become a logistics partner",
+      "href": "https://app.shopinbos.com/logistics/signup?intent=connect_logistics&logisticsSlug=swiftlane-logistics&source=wordpress"
+    }
+  }
+}

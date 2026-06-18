@@ -1,0 +1,65 @@
+import { NextRequest } from "next/server";
+import { withSeller } from "@/lib/auth/middleware";
+import { db } from "@/lib/db/client";
+import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
+import { StoreProductCreateSchema } from "@/lib/schemas";
+import type { AuthUser } from "@/lib/auth/types";
+
+export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
+  const sp = req.nextUrl.searchParams;
+  const { page, limit, skip } = parsePagination(sp);
+
+  const store = await db.store.findUnique({ where: { userId: user.id } });
+  if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
+
+  const [total, products] = await Promise.all([
+    db.storeProduct.count({ where: { storeId: store.id } }),
+    db.storeProduct.findMany({
+      where: { storeId: store.id },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      select: {
+        id: true, name: true, description: true, images: true,
+        retailPrice: true, costPrice: true, currency: true,
+        margin: true, fulfillmentType: true, status: true,
+        createdAt: true, updatedAt: true,
+        supplierProduct: {
+          select: { id: true, name: true, slug: true, supplier: { select: { id: true, displayName: true } } },
+        },
+      },
+    }),
+  ]);
+
+  return okList(products, { page, limit, total });
+});
+
+export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
+  const body = await req.json().catch(() => null);
+  const parsed = StoreProductCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const store = await db.store.findUnique({ where: { userId: user.id } });
+  if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
+
+  const { retailPrice, costPrice, variants, ...rest } = parsed.data;
+  const margin = costPrice && retailPrice > costPrice
+    ? Math.round(((retailPrice - costPrice) / retailPrice) * 100)
+    : null;
+
+  const product = await db.storeProduct.create({
+    data: {
+      ...rest,
+      storeId: store.id,
+      userId: user.id,
+      retailPrice,
+      costPrice,
+      margin,
+      variants: variants && variants.length > 0 ? (variants as any) : undefined,
+    },
+  });
+
+  return ok(product, 201);
+});

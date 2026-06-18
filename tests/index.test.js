@@ -1,0 +1,754 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const workspaceRoot = path.resolve(__dirname, "..");
+const read = (relativePath) => fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8");
+const exists = (relativePath) => fs.existsSync(path.join(workspaceRoot, relativePath));
+
+test("public marketplace contract constants stay locked for WordPress consumers", () => {
+  const contract = require(path.join(workspaceRoot, "src/lib/public-marketplace-contract.js"));
+
+  assert.deepEqual(contract.PUBLIC_API_ALLOWED_ORIGINS, [
+    "https://shopinbos.com",
+    "https://www.shopinbos.com",
+    "http://localhost:3000",
+    "http://localhost:8080",
+  ]);
+  assert.deepEqual(contract.PUBLIC_API_ALLOWED_METHODS, ["GET", "OPTIONS"]);
+  assert.deepEqual(contract.PUBLIC_API_ALLOWED_HEADERS, ["Content-Type"]);
+  assert.equal(contract.PUBLIC_API_BASE_PATH, "/api/v1/public");
+  assert.equal(contract.PUBLIC_API_LEGACY_BASE_PATH, "/api/public");
+  assert.equal(contract.PUBLIC_LIST_CACHE, "public, max-age=300, stale-while-revalidate=600");
+  assert.equal(contract.PUBLIC_DETAIL_CACHE, "public, max-age=600, stale-while-revalidate=1200");
+});
+
+test("versioned public marketplace routes mirror the legacy API for marketing clients", () => {
+  const routePairs = [
+    ["src/app/api/v1/public/health/route.ts", "@/app/api/public/health/route"],
+    ["src/app/api/v1/public/categories/route.ts", "@/app/api/public/categories/route"],
+    ["src/app/api/v1/public/categories/[slug]/route.ts", "@/app/api/public/categories/[slug]/route"],
+    ["src/app/api/v1/public/products/route.ts", "@/app/api/public/products/route"],
+    ["src/app/api/v1/public/products/search/route.ts", "@/app/api/public/products/search/route"],
+    ["src/app/api/v1/public/products/trending/route.ts", "@/app/api/public/products/trending/route"],
+    ["src/app/api/v1/public/products/category/[categorySlug]/route.ts", "@/app/api/public/products/category/[categorySlug]/route"],
+    ["src/app/api/v1/public/products/[slug]/route.ts", "@/app/api/public/products/[slug]/route"],
+    ["src/app/api/v1/public/suppliers/route.ts", "@/app/api/public/suppliers/route"],
+    ["src/app/api/v1/public/suppliers/search/route.ts", "@/app/api/public/suppliers/search/route"],
+    ["src/app/api/v1/public/suppliers/[slug]/route.ts", "@/app/api/public/suppliers/[slug]/route"],
+    ["src/app/api/v1/public/logistics/partners/route.ts", "@/app/api/public/logistics/partners/route"],
+    ["src/app/api/v1/public/logistics/partners/search/route.ts", "@/app/api/public/logistics/partners/search/route"],
+    ["src/app/api/v1/public/logistics/partners/[slug]/route.ts", "@/app/api/public/logistics/partners/[slug]/route"],
+    ["src/app/api/v1/public/store/[slug]/route.ts", "@/app/api/public/store/[slug]/route"],
+    ["src/app/api/v1/public/store/[slug]/checkout/route.ts", "@/app/api/public/store/[slug]/checkout/route"],
+  ];
+
+  routePairs.forEach(([routePath, legacyModule]) => {
+    assert.ok(exists(routePath), `${routePath} should exist`);
+    assert.match(read(routePath), new RegExp(legacyModule.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  });
+});
+
+test("intent routing keeps WordPress handoff flows inside the right app surfaces", () => {
+  const routing = require(path.join(workspaceRoot, "src/lib/intent-routing.js"));
+
+  assert.equal(
+    routing.getContinuationPath({
+      role: "seller",
+      intent: "book_delivery",
+      logisticsSlug: "swift-courier",
+      source: "wordpress",
+    }),
+    "/home/logistics?intent=book_delivery&logisticsSlug=swift-courier&source=wordpress",
+  );
+
+  assert.equal(
+    routing.getContinuationPath({
+      role: "logistics_partner",
+      intent: "book_delivery",
+      logisticsSlug: "swift-courier",
+    }),
+    "/logistics/bookings?intent=book_delivery&logisticsSlug=swift-courier",
+  );
+
+  assert.equal(
+    routing.getContinuationPath({
+      role: "supplier",
+      intent: "view_products",
+      supplierSlug: "andes-cacao",
+    }),
+    "/supplier/products?intent=view_products&supplierSlug=andes-cacao",
+  );
+
+  assert.equal(
+    routing.sanitizeNextPath("https://app.shopinbos.com/marketplace?intent=add", "https://app.shopinbos.com"),
+    "/marketplace?intent=add",
+  );
+  assert.equal(routing.sanitizeNextPath("https://evil.example/marketplace", "https://app.shopinbos.com"), null);
+  assert.equal(routing.sanitizeNextPath("/home/settings", "https://app.shopinbos.com"), "/home/settings");
+});
+
+test("seller nav targets and role namespaces resolve to real pages", () => {
+  const navText = read("src/lib/nav.ts");
+  const requiredPages = [
+    "src/app/home/logistics/page.tsx",
+    "src/app/home/payments/page.tsx",
+    "src/app/home/payouts/page.tsx",
+    "src/app/home/inventory/page.tsx",
+    "src/app/home/invoices/page.tsx",
+    "src/app/home/reviews/page.tsx",
+    "src/app/home/apps/page.tsx",
+    "src/app/home/marketing/page.tsx",
+    "src/app/home/discounts/page.tsx",
+    "src/app/home/automations/page.tsx",
+    "src/app/home/dropship/page.tsx",
+    "src/app/home/customers/page.tsx",
+    "src/app/home/insights/page.tsx",
+    "src/app/home/settings/page.tsx",
+    "src/app/seller/inventory/page.tsx",
+    "src/app/seller/invoices/page.tsx",
+    "src/app/seller/reviews/page.tsx",
+    "src/app/seller/apps/page.tsx",
+    "src/app/supplier/dashboard/page.tsx",
+    "src/app/supplier/onboarding/page.tsx",
+    "src/app/supplier/products/page.tsx",
+    "src/app/supplier/products/new/page.tsx",
+    "src/app/supplier/products/[id]/edit/page.tsx",
+    "src/app/supplier/orders/page.tsx",
+    "src/app/supplier/quote-requests/page.tsx",
+    "src/app/supplier/profile/page.tsx",
+    "src/app/supplier/analytics/page.tsx",
+    "src/app/logistics/dashboard/page.tsx",
+    "src/app/logistics/onboarding/page.tsx",
+    "src/app/logistics/profile/page.tsx",
+    "src/app/logistics/coverage/page.tsx",
+    "src/app/logistics/pricing/page.tsx",
+    "src/app/logistics/bookings/page.tsx",
+    "src/app/logistics/quotes/page.tsx",
+    "src/app/logistics/analytics/page.tsx",
+    "src/app/admin/dashboard/page.tsx",
+    "src/app/admin/suppliers/page.tsx",
+    "src/app/admin/supplier-products/page.tsx",
+    "src/app/admin/logistics-partners/page.tsx",
+    "src/app/admin/categories/page.tsx",
+    "src/app/admin/marketplace/page.tsx",
+    "src/app/admin/settings/page.tsx",
+  ];
+
+  requiredPages.forEach((pagePath) => {
+    assert.ok(exists(pagePath), `${pagePath} should exist`);
+  });
+
+  assert.match(navText, /href: "\/home\/logistics"/);
+  assert.match(navText, /href: "\/home\/payments"/);
+  assert.match(navText, /href: "\/home\/inventory"/);
+  assert.match(navText, /href: "\/home\/invoices"/);
+  assert.match(navText, /href: "\/home\/reviews"/);
+  assert.doesNotMatch(navText, /href: "\/home\/apps"/);
+  assert.match(navText, /href: "\/home\/marketing"/);
+  assert.match(navText, /href: "\/home\/customers"/);
+  assert.match(navText, /href: "\/home\/insights"/);
+  assert.match(navText, /href: "\/home\/settings"/);
+  assert.doesNotMatch(navText, /href: "\/logistics"(?!\/)/);
+  assert.doesNotMatch(navText, /href: "\/settings"(?!\/)/);
+});
+
+test("docs and public routes describe the WordPress sync contract", () => {
+  const openApi = read("docs/openapi.yaml");
+  const syncContract = read("SHOPINBOS_APP_SYNC.md");
+
+  [
+    "src/app/api/public/health/route.ts",
+    "src/app/api/v1/public/health/route.ts",
+    "src/app/api/public/products/search/route.ts",
+    "src/app/api/v1/public/products/search/route.ts",
+    "src/app/api/public/suppliers/search/route.ts",
+    "src/app/api/v1/public/suppliers/search/route.ts",
+    "src/app/api/public/logistics/partners/search/route.ts",
+    "src/app/api/v1/public/logistics/partners/search/route.ts",
+    "src/app/api/docs/route.ts",
+  ].forEach((routePath) => {
+    assert.ok(exists(routePath), `${routePath} should exist`);
+  });
+
+  assert.match(openApi, /x-canonical-base-path: \/api\/v1\/public/);
+  assert.match(openApi, /x-legacy-base-path: \/api\/public/);
+  assert.match(openApi, /\/api\/v1\/public\/health:/);
+  assert.match(openApi, /\/api\/v1\/public\/products\/search:/);
+  assert.match(openApi, /\/api\/v1\/public\/suppliers\/search:/);
+  assert.match(openApi, /\/api\/v1\/public\/logistics\/partners\/search:/);
+  assert.match(openApi, /\/api\/public\/health:/);
+  assert.match(openApi, /\/api\/public\/products\/search:/);
+  assert.match(openApi, /\/api\/public\/suppliers\/search:/);
+  assert.match(openApi, /\/api\/public\/logistics\/partners\/search:/);
+  assert.match(openApi, /required: \[data, pagination\]/);
+  assert.match(openApi, /Pagination:\s*\n\s*type: object/);
+  assert.match(openApi, /totalPages:/);
+  assert.match(openApi, /hasNextPage:/);
+  assert.match(openApi, /https:\/\/shopinbos\.com/);
+  assert.match(syncContract, /WordPress is a read-only client/);
+  assert.match(syncContract, /GET \/api\/v1\/public\/health/);
+  assert.match(syncContract, /GET \/api\/public\/health/);
+});
+
+test("legacy pages redirect to canonical namespaces", () => {
+  assert.match(read("src/app/supplier/quotes/page.tsx"), /redirect\("\/supplier\/quote-requests"\)/);
+  assert.match(read("src/app/logistics/settings/page.tsx"), /redirect\("\/logistics\/profile"\)/);
+  assert.match(read("src/app/admin/catalog/page.tsx"), /redirect\("\/admin\/supplier-products"\)/);
+  assert.match(read("src/app/admin/logistics/page.tsx"), /redirect\("\/admin\/logistics-partners"\)/);
+  assert.match(read("src/app/admin/orders/page.tsx"), /requireRole\(\["admin"\]/);
+  assert.match(read("src/app/admin/users/page.tsx"), /requireRole\(\["admin"\]/);
+});
+
+test("supplier portal has payout recipients, public profiles, and message preferences", () => {
+  const schema = read("prisma/schema.prisma");
+  const supplierSettings = read("src/app/supplier/settings/page.tsx");
+  const payments = read("src/app/actions/payments.ts");
+  const supplierActions = read("src/app/actions/supplier.ts");
+  const messages = read("src/app/api/conversations/[id]/messages/route.ts");
+  const suppliersPage = read("src/app/suppliers/[slug]/page.tsx");
+  const marketplaceSuppliers = read("src/app/marketplace/suppliers/page.tsx");
+
+  assert.match(schema, /model SupplierPayoutAccount/);
+  assert.match(schema, /paystackRecipientCode/);
+  assert.match(schema, /model NotificationPreference/);
+  assert.match(schema, /@@unique\(\[userId, eventKey\]\)/);
+
+  assert.match(payments, /export async function linkSupplierPaystackRecipient/);
+  assert.match(payments, /https:\/\/api\.paystack\.co\/transferrecipient/);
+  assert.match(payments, /verificationStatus: recipient\.status/);
+
+  assert.match(supplierActions, /export async function saveSupplierNotificationPreferences/);
+  assert.match(supplierSettings, /Message notifications/);
+  assert.match(supplierSettings, /messageEmail/);
+  assert.match(supplierSettings, /messageSms/);
+
+  assert.match(messages, /notifyMessageRecipient/);
+  assert.match(messages, /sendEmail/);
+  assert.match(messages, /sendSms/);
+  assert.match(messages, /eventKey:\s*"message_received"/);
+
+  assert.match(suppliersPage, /export async function generateMetadata/);
+  assert.match(suppliersPage, /verificationStatus: "verified"/);
+  assert.match(suppliersPage, /Request quote/);
+  assert.match(marketplaceSuppliers, /href=\{`\/suppliers\/\$\{s\.slug\}`\}/);
+  assert.match(marketplaceSuppliers, /<ChatButton contactId=\{s\.id\}/);
+});
+
+test("admin actions cover moderation, trend control, and category management", () => {
+  const adminActions = read("src/app/actions/admin.ts");
+
+  assert.match(adminActions, /export async function updateSupplierVerification/);
+  assert.match(adminActions, /export async function updateLogisticsVerification/);
+  assert.match(adminActions, /export async function updateSupplierProductStatus/);
+  assert.match(adminActions, /export async function updateSupplierProductTrend/);
+  assert.match(adminActions, /export async function upsertCategory/);
+  assert.match(adminActions, /invalidatePublicMarketplaceCache/);
+});
+
+test("onboarding memory is durable and shared with Rex builder", () => {
+  const memory = read("src/lib/onboarding-memory.ts");
+  const workspace = read("src/lib/workspace.ts");
+  const storeRoute = read("src/app/api/app/store/route.ts");
+  const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
+  const onboardingCss = read("src/app/globals.css");
+  const schema = read("prisma/schema.prisma");
+  const schemas = read("src/lib/schemas/index.ts");
+  const supplierOnboardingRoute = read("src/app/api/supplier/onboarding/route.ts");
+  const logisticsOnboardingRoute = read("src/app/api/logistics/onboarding/route.ts");
+  const storeRouteApp = read("src/app/api/app/store/route.ts");
+  const supplierOnboardingComponent = read("src/components/onboarding/SupplierOnboarding.tsx");
+  const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
+  const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
+  const builder = read("src/components/builder/ChipBuilder.tsx");
+  const builderPage = read("src/app/builder/page.tsx");
+  const templatesPage = read("src/app/builder/templates/page.tsx");
+  const templateGallery = read("src/components/builder/TemplateGallery.tsx");
+
+  assert.match(memory, /export interface StoreOnboardingMemory/);
+  assert.match(memory, /businessDescription\?: string/);
+  assert.match(memory, /documentNotes\?: string/);
+  assert.match(workspace, /onboardingMemory\?: StoreOnboardingMemory/);
+  assert.match(workspace, /mergeOnboardingMemory\(parsed\.onboardingMemory, patch\.onboardingMemory\)/);
+  assert.match(storeRoute, /mergeBrandSettings\(store\.brandSettings, body\[key\]/);
+
+  assert.match(onboarding, /syncOnboardingMemoryToStore/);
+  assert.match(onboarding, /\/api\/ai\/onboarding-rex/);
+  assert.match(onboarding, /\/api\/ai\/transcribe/);
+  assert.match(onboarding, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(onboarding, /documentNames/);
+  assert.match(onboarding, /\["Meet Rex", "Name your store", "What you sell", "Build path"\]/);
+  assert.match(onboarding, /const sellerStepsTotal = 10/);
+  assert.match(onboarding, /Step 1 of \{sellerStepsTotal\}/);
+  assert.match(onboarding, /onboardingState: "LIVE"/);
+  assert.match(onboarding, /firstDashboardVisitComplete: true/);
+  assert.doesNotMatch(onboarding, /Step 1 of 5/);
+  assert.doesNotMatch(onboarding, /\/seller\/store\/builder/);
+  assert.match(onboarding, /Build completely with Rex/);
+  assert.match(onboarding, /Start from a template/);
+  assert.match(onboarding, /\/api\/ai\/store-builder/);
+  assert.match(onboarding, /shopinbos-builder-progress/);
+  assert.match(onboarding, /Set up payments/);
+  assert.match(onboarding, /Pick logistics/);
+  assert.match(onboarding, /Launch/);
+  assert.match(onboarding, /forcedRole/);
+  assert.match(supplierOnboardingComponent, /export function SupplierOnboarding/);
+  assert.match(supplierOnboardingComponent, /Submit for admin review/);
+  assert.match(onboarding, /LogisticsOnboardingStage/);
+  assert.match(onboarding, /Where do you ride\?/);
+  assert.match(supplierOnboardingComponent, /Verify your business/);
+  assert.match(supplierOnboardingComponent, /\/api\/supplier\/onboarding/);
+  assert.match(onboarding, /\/api\/logistics\/onboarding/);
+  assert.match(supplierOnboardingComponent, /manual admin verification/);
+  assert.match(onboarding, /Save progress/);
+  assert.match(onboardingCss, /\.onb-step-header/);
+  assert.match(onboardingCss, /\.phone-mini/);
+  assert.match(onboardingCss, /\.steps \.s\.on/);
+  assert.match(schema, /verificationDocuments\s+Json/);
+  assert.match(schema, /coverageMap\s+Json/);
+  assert.match(schemas, /SupplierOnboardingSchema/);
+  assert.match(schemas, /LogisticsOnboardingSchema/);
+  assert.match(supplierOnboardingRoute, /withSupplier/);
+  assert.match(supplierOnboardingRoute, /verificationDocuments/);
+  assert.match(supplierOnboardingRoute, /onboardingState/);
+  assert.match(logisticsOnboardingRoute, /withLogistics/);
+  assert.match(logisticsOnboardingRoute, /coverageMap/);
+  assert.match(logisticsOnboardingRoute, /onboardingState/);
+  assert.match(storeRouteApp, /"onboardingState"/);
+  assert.match(storeRouteApp, /"firstDashboardVisitComplete"/);
+  assert.match(supplierOnboarding, /initialSupplier/);
+  assert.match(logisticsOnboarding, /forcedRole="logistics_partner"/);
+
+  assert.match(builderPage, /onboardingMemory=\{workspace\.settings\.onboardingMemory \?\? null\}/);
+  assert.match(builderPage, /params\?\.mode === "rex" \? "products" : undefined/);
+  assert.match(builder, /readLocalOnboardingMemory/);
+  assert.match(builder, /buildBrandContext/);
+  assert.match(builder, /businessDescription/);
+  assert.match(builder, /Do not ask the same setup questions again|what I remember/);
+  assert.match(builder, /real products and product images/);
+
+  assert.match(templatesPage, /initialCategory=\{workspace\.settings\.onboardingMemory\?\.category\}/);
+  assert.match(templateGallery, /initialCategory/);
+  assert.match(templateGallery, /text\.includes\("food"\)/);
+  assert.match(templateGallery, /TEMPLATE_ID_TO_IMAGE/);
+  assert.match(templateGallery, /Or let Rex build one/);
+});
+
+test("auth experience keeps each portal focused and conversational", () => {
+  const auth = read("src/components/auth/AuthExperience.tsx");
+  const serverAuth = read("src/lib/server-auth.ts");
+  const authMiddleware = read("src/lib/auth/middleware.ts");
+  const appUser = read("src/lib/auth/app-user.ts");
+  const portalRoutes = read("src/lib/portal-routes.ts");
+  const onboardingPage = read("src/app/onboarding/page.tsx");
+
+  assert.match(auth, /Create account and meet Rex/);
+  assert.match(auth, /A few answers, then Rex takes it from there/);
+  assert.match(auth, /Sign in to pick up your products, orders, payments, and store setup/);
+  assert.match(auth, /Sign in to manage your products, quotes, orders, and payouts/);
+  assert.match(auth, /Sign in to manage your routes, coverage, pricing, and bookings/);
+  assert.match(auth, /signInWithPassword/);
+  assert.match(auth, /current-password/);
+  assert.match(auth, /Email me a sign-in code instead/);
+  assert.doesNotMatch(auth, /portalRoles\.map/);
+  assert.doesNotMatch(auth, /Rex AI setup memory/);
+  assert.match(auth, /phone/);
+  assert.match(auth, /Check your email to confirm it, then sign in to continue onboarding/);
+  assert.match(auth, /This account is registered as/);
+  assert.match(serverAuth, /ensureAppUserForSupabaseUser\(\{/);
+  assert.match(serverAuth, /expectedRole/);
+  assert.match(authMiddleware, /ensureAppUserForSupabaseUser/);
+  assert.match(authMiddleware, /allowedRoles\?\.length === 1/);
+  assert.match(appUser, /appUserInputFromSupabaseUser/);
+  assert.match(appUser, /db\.supplier\.upsert/);
+  assert.match(appUser, /db\.logisticsPartner\.upsert/);
+  assert.match(portalRoutes, /supplier:[\s\S]*onboarding: "\/supplier\/onboarding"/);
+  assert.match(portalRoutes, /logistics_partner:[\s\S]*onboarding: "\/logistics\/onboarding"/);
+  assert.match(onboardingPage, /params\.role === "supplier"/);
+  assert.match(onboardingPage, /portalOnboardingPath\("supplier"\)/);
+});
+
+test("inner portal pages use the mockup-style operational shell", () => {
+  const rolePage = read("src/components/role/RolePage.tsx");
+  const payments = read("src/app/home/payments/page.tsx");
+  const logistics = read("src/app/home/logistics/page.tsx");
+
+  assert.match(rolePage, /Shop focus/);
+  assert.match(rolePage, /Factory focus/);
+  assert.match(rolePage, /Ops focus/);
+  assert.match(rolePage, /MetricTile/);
+  assert.match(rolePage, /Search this list/);
+  assert.match(rolePage, /dBtn-mint/);
+
+  assert.match(payments, /Shopinbos handles checkout/);
+  assert.match(payments, /Available balance/);
+  assert.match(payments, /Recent payouts/);
+  assert.match(payments, /How checkout works/);
+
+  assert.match(logistics, /Logistics Desk/);
+  assert.match(logistics, /Available partners/);
+  assert.match(logistics, /Quote requests/);
+  assert.match(logistics, /Peggy compares reliability/);
+});
+
+test("supplier product pages provide a full submit and edit workflow", () => {
+  const products = read("src/app/supplier/products/page.tsx");
+  const newProduct = read("src/app/supplier/products/new/page.tsx");
+  const editProduct = read("src/app/supplier/products/[id]/edit/page.tsx");
+  const form = read("src/components/supplier/SupplierProductForm.tsx");
+  const actions = read("src/app/actions/supplier.ts");
+  const prismaConfig = read("prisma.config.ts");
+  const sync = read("SHOPINBOS_APP_SYNC.md");
+
+  assert.match(products, /Draft complete products/);
+  assert.match(products, /href=\{`\/supplier\/products\/\$\{row\.id\}\/edit`\}/);
+  assert.match(newProduct, /SupplierProductForm/);
+  assert.match(newProduct, /createSupplierProduct/);
+  assert.match(editProduct, /updateSupplierProduct/);
+  assert.match(form, /Save draft/);
+  assert.match(form, /send to review/);
+  assert.match(form, /Tier pricing/);
+  assert.match(form, /Image URLs/);
+  assert.match(actions, /export async function createSupplierProduct/);
+  assert.match(actions, /export async function updateSupplierProduct/);
+  assert.match(actions, /SupplierProductCreateSchema/);
+  assert.match(prismaConfig, /loadEnv\(\{ path: "\.env\.local", override: true \}\)/);
+  assert.match(sync, /Build supplier product creation\/editing as a full workflow/);
+});
+
+test("supplier and logistics onboarding require manual verification before platform use", () => {
+  const roleQueries = read("src/lib/role-queries.ts");
+  const authSync = read("src/app/api/auth/sync-user/route.ts");
+  const appUser = read("src/lib/auth/app-user.ts");
+  const supplierRoute = read("src/app/api/supplier/onboarding/route.ts");
+  const logisticsRoute = read("src/app/api/logistics/onboarding/route.ts");
+  const supplierDashboard = read("src/app/supplier/dashboard/page.tsx");
+  const logisticsDashboard = read("src/app/logistics/dashboard/page.tsx");
+  const adminSuppliers = read("src/app/admin/suppliers/page.tsx");
+  const adminLogistics = read("src/app/admin/logistics-partners/page.tsx");
+
+  assert.match(roleQueries, /ensureSupplierAccess/);
+  assert.match(roleQueries, /ensureLogisticsAccess/);
+  assert.match(roleQueries, /verificationStatus !== "verified"/);
+  assert.match(authSync, /ensureAppUserForSupabaseUser/);
+  assert.match(appUser, /verificationStatus: "unverified"/);
+  assert.match(appUser, /onboardingState: \{ source: "signup", completed: false \}/);
+  assert.match(supplierRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
+  assert.match(logisticsRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
+  assert.match(supplierDashboard, /ensureSupplierAccess\(supplier\)/);
+  assert.match(logisticsDashboard, /ensureLogisticsAccess\(partner\)/);
+  assert.match(adminSuppliers, /Onboarding/);
+  assert.match(adminSuppliers, /submitted/);
+  assert.match(adminLogistics, /Onboarding/);
+  assert.match(adminLogistics, /draft/);
+});
+
+test("supplier and logistics starter limits are enforced and shown in billing UI", () => {
+  const supplierActions = read("src/app/actions/supplier.ts");
+  const logisticsActions = read("src/app/actions/logistics.ts");
+  const planLimits = read("src/lib/plan-limits.ts");
+  const schema = read("prisma/schema.prisma");
+  const supplierProductsRoute = read("src/app/api/supplier/products/route.ts");
+  const logisticsRoute = read("src/app/api/logistics/onboarding/route.ts");
+  const logisticsProfileRoute = read("src/app/api/logistics/profile/route.ts");
+  const supplierNew = read("src/app/supplier/products/new/page.tsx");
+  const supplierProfile = read("src/app/supplier/profile/page.tsx");
+  const logisticsProfile = read("src/app/logistics/profile/page.tsx");
+  const logisticsCouriers = read("src/app/logistics/couriers/page.tsx");
+  const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
+
+  assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 20/);
+  assert.match(planLimits, /LOGISTICS_FREE_ROUTE_LIMIT = 4/);
+  assert.match(planLimits, /LOGISTICS_FREE_TEAM_MEMBER_LIMIT = 1/);
+  assert.match(schema, /model LogisticsTeamMember/);
+  assert.match(schema, /@@unique\(\[logisticsPartnerId, email\]\)/);
+  assert.match(supplierActions, /productCount >= SUPPLIER_FREE_PRODUCT_LIMIT/);
+  assert.match(supplierActions, /Billing%20%26%20Plan&limit=products/);
+  assert.match(supplierProductsRoute, /VERIFICATION_REQUIRED/);
+  assert.match(supplierProductsRoute, /productCount >= SUPPLIER_FREE_PRODUCT_LIMIT/);
+  assert.match(supplierProductsRoute, /PLAN_LIMIT/);
+  assert.match(logisticsActions, /zoneCount > LOGISTICS_FREE_ROUTE_LIMIT/);
+  assert.match(logisticsActions, /teamMemberCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT/);
+  assert.match(logisticsActions, /export async function addLogisticsTeamMember/);
+  assert.match(logisticsActions, /export async function updateLogisticsTeamMemberStatus/);
+  assert.match(logisticsActions, /Billing%20%26%20Plan&limit=routes/);
+  assert.match(logisticsActions, /Billing%20%26%20Plan&limit=team/);
+  assert.match(logisticsRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
+  assert.match(logisticsProfileRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
+  assert.match(logisticsCouriers, /addLogisticsTeamMember/);
+  assert.match(logisticsCouriers, /Starter logistics includes 1 active team member/);
+  assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
+  assert.match(supplierNew, /Starter product limit reached/);
+  assert.match(supplierProfile, /Supplier listing is free for the first 20 products/);
+  assert.match(logisticsProfile, /Starter includes 4 active routes and 1 team member/);
+  assert.match(onboarding, /completed: payload\.completed \?\? true/);
+});
+
+test("supplier quote and order pages support response and fulfilment workflows", () => {
+  const quotes = read("src/app/supplier/quote-requests/page.tsx");
+  const orders = read("src/app/supplier/orders/page.tsx");
+  const actions = read("src/app/actions/supplier.ts");
+  const sync = read("SHOPINBOS_APP_SYNC.md");
+
+  assert.match(quotes, /respondToSupplierQuote/);
+  assert.match(quotes, /Rex reply pad/);
+  assert.match(quotes, /Send quote/);
+  assert.match(quotes, /Quote health/);
+  assert.match(quotes, /name="intent" value="reject"/);
+
+  assert.match(orders, /updateSupplierOrderStatus/);
+  assert.match(orders, /Fulfilment controls/);
+  assert.match(orders, /Ship today queue/);
+  assert.match(orders, /Tracking code/);
+  assert.match(orders, /supplierOrderStatuses/);
+
+  assert.match(actions, /export async function respondToSupplierQuote/);
+  assert.match(actions, /QuoteResponseSchema/);
+  assert.match(actions, /status: "rejected"/);
+  assert.match(actions, /export async function updateSupplierOrderStatus/);
+  assert.match(actions, /OrderStatusUpdateSchema/);
+  assert.match(sync, /\[x\] Build supplier quote response and order management flows/);
+});
+
+test("logistics pages support quote, booking, coverage, and pricing workflows", () => {
+  const quotes = read("src/app/logistics/quotes/page.tsx");
+  const bookings = read("src/app/logistics/bookings/page.tsx");
+  const coverage = read("src/app/logistics/coverage/page.tsx");
+  const pricing = read("src/app/logistics/pricing/page.tsx");
+  const actions = read("src/app/actions/logistics.ts");
+  const schemas = read("src/lib/schemas/index.ts");
+  const sync = read("SHOPINBOS_APP_SYNC.md");
+
+  assert.match(quotes, /respondToDeliveryQuote/);
+  assert.match(quotes, /Rex route quote pad/);
+  assert.match(quotes, /Send quote/);
+  assert.match(quotes, /name="intent" value="reject"/);
+
+  assert.match(bookings, /updateDeliveryBookingStatus/);
+  assert.match(bookings, /Dispatch controls/);
+  assert.match(bookings, /Tracking code/);
+  assert.match(bookings, /Estimated delivery/);
+
+  assert.match(coverage, /updateLogisticsCoverage/);
+  assert.match(coverage, /Coverage editor/);
+  assert.match(coverage, /Coverage map rows/);
+  assert.match(pricing, /updateLogisticsPricing/);
+  assert.match(pricing, /Pricing editor/);
+  assert.match(pricing, /Public preview/);
+
+  assert.match(actions, /export async function updateLogisticsCoverage/);
+  assert.match(actions, /export async function updateLogisticsPricing/);
+  assert.match(actions, /DeliveryQuoteResponseSchema/);
+  assert.match(actions, /BookingStatusUpdateSchema/);
+  assert.match(schemas, /LogisticsCoverageUpdateSchema/);
+  assert.match(schemas, /LogisticsPricingUpdateSchema/);
+  assert.match(sync, /\[x\] Build logistics bookings, quotes, pricing, and coverage management flows/);
+});
+
+test("portal namespaces have shared empty, loading, and error states", () => {
+  const states = read("src/components/role/PortalStates.tsx");
+  const rolePage = read("src/components/role/RolePage.tsx");
+  const sync = read("SHOPINBOS_APP_SYNC.md");
+
+  [
+    "src/app/home/loading.tsx",
+    "src/app/home/error.tsx",
+    "src/app/seller/loading.tsx",
+    "src/app/seller/error.tsx",
+    "src/app/supplier/loading.tsx",
+    "src/app/supplier/error.tsx",
+    "src/app/logistics/loading.tsx",
+    "src/app/logistics/error.tsx",
+  ].forEach((filePath) => {
+    assert.ok(exists(filePath), `${filePath} should exist`);
+  });
+
+  assert.match(states, /export function PortalLoadingState/);
+  assert.match(states, /export function PortalErrorState/);
+  assert.match(states, /unstable_retry/);
+  assert.match(states, /Opening your shop workspace/);
+  assert.match(states, /Preparing your supplier desk/);
+  assert.match(states, /Preparing your route desk/);
+  assert.match(rolePage, /We will surface the next item here when it arrives/);
+  assert.match(rolePage, /Icon name="list"/);
+  assert.match(sync, /\[x\] Add empty, loading, and error states across seller, supplier, and logistics portals/);
+});
+
+test("marketing website handoff docs include fetch examples and response shapes", () => {
+  const guide = read("docs/marketing-site-integration.md");
+  const examples = JSON.parse(read("docs/public-api-response-examples.json"));
+  const sync = read("SHOPINBOS_APP_SYNC.md");
+
+  assert.match(guide, /https:\/\/app\.shopinbos\.com\/api\/v1\/public/);
+  assert.match(guide, /shopinbosFetch/);
+  assert.match(guide, /\/products\/trending/);
+  assert.match(guide, /\/suppliers/);
+  assert.match(guide, /\/logistics\/partners/);
+  assert.match(guide, /shopinbosAppLink/);
+  assert.match(guide, /intent: "add"/);
+  assert.match(guide, /intent: "book_delivery"/);
+  assert.match(guide, /\/supplier\/signup/);
+  assert.match(guide, /\/logistics\/signup/);
+
+  assert.ok(examples.products.list.data[0].slug);
+  assert.ok(examples.suppliers.list.data[0].slug);
+  assert.ok(examples.logisticsPartners.list.data[0].slug);
+  assert.ok(examples.categories.list.data[0].slug);
+  assert.ok(examples.ctaLinks.sellerAddProduct.href.includes("intent=add"));
+  assert.ok(examples.ctaLinks.logisticsBookDelivery.href.includes("intent=book_delivery"));
+  assert.match(sync, /\[x\] Add a small marketing-site integration guide with example fetch calls/);
+  assert.match(sync, /\[x\] Add API response examples for products, suppliers, logistics partners, categories, and CTA links/);
+});
+
+test("WordPress CTA links preserve intents and land on authenticated completion surfaces", () => {
+  const routing = require(path.join(workspaceRoot, "src/lib/intent-routing.js"));
+  const examples = JSON.parse(read("docs/public-api-response-examples.json"));
+  const completionRoutes = [
+    "src/app/api/app/store-products/add-from-supplier/route.ts",
+    "src/app/api/app/dropship/start/route.ts",
+    "src/app/api/app/wholesale/request/route.ts",
+    "src/app/api/app/supplier-quotes/request/route.ts",
+    "src/app/api/app/logistics/quotes/request/route.ts",
+    "src/app/api/app/logistics/bookings/route.ts",
+    "src/app/api/app/logistics/preferred-partner/route.ts",
+  ];
+
+  completionRoutes.forEach((routePath) => {
+    assert.ok(exists(routePath), `${routePath} should exist`);
+  });
+
+  const ctas = examples.ctaLinks;
+  const addUrl = new URL(ctas.sellerAddProduct.href);
+  const quoteUrl = new URL(ctas.sellerRequestSupplierQuote.href);
+  const supplierUrl = new URL(ctas.supplierViewProducts.href);
+  const deliveryUrl = new URL(ctas.logisticsBookDelivery.href);
+  const logisticsSignupUrl = new URL(ctas.logisticsPartnerSignup.href);
+
+  [addUrl, quoteUrl, supplierUrl, deliveryUrl, logisticsSignupUrl].forEach((url) => {
+    assert.equal(url.searchParams.get("source"), "wordpress");
+  });
+
+  assert.equal(addUrl.pathname, "/signup");
+  assert.equal(addUrl.searchParams.get("intent"), "add");
+  assert.equal(
+    routing.getContinuationPath({
+      role: "seller",
+      intent: addUrl.searchParams.get("intent"),
+      productSlug: addUrl.searchParams.get("productSlug"),
+      source: "wordpress",
+    }),
+    "/marketplace?intent=add&productSlug=premium-ankara-fabric-bundle&source=wordpress",
+  );
+
+  assert.equal(quoteUrl.searchParams.get("intent"), "request_quote");
+  assert.equal(
+    routing.getContinuationPath({
+      role: "seller",
+      intent: quoteUrl.searchParams.get("intent"),
+      productSlug: quoteUrl.searchParams.get("productSlug"),
+      supplierSlug: quoteUrl.searchParams.get("supplierSlug"),
+      source: "wordpress",
+    }),
+    "/marketplace?intent=request_quote&productSlug=premium-ankara-fabric-bundle&supplierSlug=lagos-fabric-works&source=wordpress",
+  );
+
+  assert.equal(supplierUrl.pathname, "/supplier/login");
+  assert.equal(
+    routing.getContinuationPath({
+      role: "supplier",
+      intent: supplierUrl.searchParams.get("intent"),
+      supplierSlug: supplierUrl.searchParams.get("supplierSlug"),
+      source: "wordpress",
+    }),
+    "/supplier/products?intent=view_products&supplierSlug=lagos-fabric-works&source=wordpress",
+  );
+
+  assert.equal(deliveryUrl.searchParams.get("intent"), "book_delivery");
+  assert.equal(
+    routing.getContinuationPath({
+      role: "seller",
+      intent: deliveryUrl.searchParams.get("intent"),
+      logisticsSlug: deliveryUrl.searchParams.get("logisticsSlug"),
+      source: "wordpress",
+    }),
+    "/home/logistics?intent=book_delivery&logisticsSlug=swiftlane-logistics&source=wordpress",
+  );
+
+  assert.equal(logisticsSignupUrl.pathname, "/logistics/signup");
+  assert.equal(
+    routing.getContinuationPath({
+      role: "logistics_partner",
+      intent: logisticsSignupUrl.searchParams.get("intent"),
+      logisticsSlug: logisticsSignupUrl.searchParams.get("logisticsSlug"),
+      source: "wordpress",
+    }),
+    "/logistics/profile?intent=connect_logistics&logisticsSlug=swiftlane-logistics&source=wordpress",
+  );
+});
+
+test("auth sync preserves an existing portal role on login", () => {
+  const syncUser = read("src/app/api/auth/sync-user/route.ts");
+
+  assert.match(syncUser, /const role = existingUser\?\.role \?\? requestedRole/);
+  assert.match(syncUser, /return NextResponse\.json\(\{ data: \{ id: user\.id, role: user\.role \} \}\)/);
+});
+
+test("proxy keeps auth cookies and sends protected portals to their own login", () => {
+  const proxy = read("src/proxy.ts");
+  const portalRoutes = read("src/lib/portal-routes.ts");
+  const guestGuard = proxy.indexOf("if (matchesRoute(pathname, GUEST_ROUTES))");
+  const authGuard = proxy.indexOf("if (!authenticated && matchesRoute(pathname, AUTH_ROUTES))");
+
+  assert.ok(guestGuard > -1, "guest route guard should exist");
+  assert.ok(authGuard > -1, "protected route guard should exist");
+  assert.ok(guestGuard < authGuard, "guest routes must be handled before broad protected prefixes");
+  assert.match(proxy, /"\/supplier\/signup"/);
+  assert.match(proxy, /"\/logistics\/signup"/);
+  assert.match(proxy, /createServerClient/);
+  assert.match(proxy, /getLoginPath/);
+  assert.match(proxy, /isKnownAppHost/);
+  assert.match(proxy, /LOCAL_APP_HOSTS/);
+  assert.match(proxy, /hasSupabaseAuthCookie/);
+  assert.match(proxy, /portalLoginPath\(portalRoleFromPath\(pathname\)\)/);
+  assert.match(proxy, /portalDashboardPath\(role\)/);
+  assert.match(portalRoutes, /login: "\/supplier\/login"/);
+  assert.match(portalRoutes, /login: "\/logistics\/login"/);
+});
+
+test("Rex AI routes use OpenAI for onboarding chat, transcription, palettes, and builder", () => {
+  const onboardingRex = read("src/app/api/ai/onboarding-rex/route.ts");
+  const transcribe = read("src/app/api/ai/transcribe/route.ts");
+  const palette = read("src/app/api/ai/generate-palette/route.ts");
+  const storeBuilder = read("src/app/api/ai/store-builder/route.ts");
+
+  assert.match(onboardingRex, /new OpenAI/);
+  assert.match(onboardingRex, /gpt-5\.4-mini/);
+  assert.match(onboardingRex, /memoryPatch/);
+  assert.match(transcribe, /gpt-4o-mini-transcribe/);
+  assert.match(palette, /openai\.responses\.create/);
+  assert.match(storeBuilder, /openai\.responses\.create/);
+  assert.match(storeBuilder, /OPENAI_API_KEY or ANTHROPIC_API_KEY/);
+});
+
+test("seller goals and product variants keep scoped production behavior", () => {
+  const goals = read("src/lib/goals/visibility.ts");
+  const schemas = read("src/lib/schemas/index.ts");
+  const productForm = read("src/app/products/new/NewProductForm.tsx");
+  const productDetail = read("src/app/s/[slug]/product/[productId]/ProductDetailClient.tsx");
+  const homeApps = read("src/app/home/apps/page.tsx");
+
+  assert.match(goals, /export function canViewGoal/);
+  assert.match(goals, /assigneeIds\?\.includes\(viewer\.id\)/);
+  assert.match(goals, /mentioned\(kr\.title, viewer\)/);
+  assert.match(goals, /mentioned\(kr\.description, viewer\)/);
+
+  assert.match(schemas, /customFields: z\.array/);
+  assert.match(schemas, /images: z\.array\(z\.string\(\)\)\.default\(\[\]\)/);
+  assert.match(productForm, /uploadVariantImages/);
+  assert.match(productForm, /Create category/);
+  assert.match(productForm, /peggy-1\.png/);
+  assert.match(productDetail, /Variant details/);
+  assert.match(productDetail, /selectedVariantFields/);
+  assert.match(homeApps, /redirect\("\/home\/marketing"\)/);
+});

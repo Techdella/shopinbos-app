@@ -1,0 +1,53 @@
+{
+  "name": "shopinbos2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "node --max-old-space-size=4096 .\\node_modules\\typescript\\bin\\tsc --noEmit",
+    "test": "node --test tests/index.test.js",
+    "templates:import": "node .\\scripts\\import-store-templates.mjs",
+    "prisma:generate": "prisma generate",
+    "predev": "prisma generate",
+    "prebuild": "prisma generate",
+    "postinstall": "prisma generate",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.0",
+    "@paystack/inline-js": "^2.22.9",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@sentry/nextjs": "^10.54.0",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.3",
+    "@types/papaparse": "^5.5.2",
+    "@vercel/analytics": "^2.0.1",
+    "clsx": "^2.1.1",
+    "flutterwave-react-v3": "^1.3.3",
+    "html-to-image": "^1.11.13",
+    "jose": "^6.2.3",
+    "next": "16.2.4",
+    "openai": "^6.36.0",
+    "papaparse": "^5.5.3",
+    "pg": "^8.16.3",
+    "prisma": "^7.8.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "resend": "^6.12.4",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

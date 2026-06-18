@@ -1,0 +1,1564 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Run: npx tsx prisma/seed.ts
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  seller
+  supplier
+  logistics_partner
+  admin
+}
+
+enum VerificationStatus {
+  unverified
+  pending
+  verified
+  rejected
+  suspended
+}
+
+enum BusinessType {
+  manufacturer
+  wholesaler
+  importer
+  dropshipper
+}
+
+enum ProductStatus {
+  draft
+  pending_review
+  published
+  unpublished
+  rejected
+}
+
+enum ProductVisibility {
+  hidden
+  storefront
+  featured
+  collection_only
+}
+
+enum SalesChannel {
+  website
+  instagram
+  whatsapp
+  marketplace
+  all
+}
+
+enum InventoryType {
+  seller
+  dropshipping
+  source_on_demand
+  print_on_demand
+  digital
+}
+
+enum ProductSourceType {
+  imported
+  local
+  supplier
+  dropship
+  seller
+  manufactured
+  digital
+}
+
+enum FulfillmentType {
+  merchant_fulfilled
+  dropship
+  wholesale_stocked
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  refunded
+}
+
+enum RetailOrderStatus {
+  pending
+  awaiting_payment
+  paid
+  processing
+  packed
+  shipped
+  delivered
+  returned
+  cancelled
+  refunded
+  partially_refunded
+}
+
+enum QuoteStatus {
+  pending
+  responded
+  accepted
+  rejected
+  expired
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  picked_up
+  in_transit
+  delivered
+  failed
+  cancelled
+}
+
+enum ShippingType {
+  flat_rate
+  weight_based
+  zone_based
+  free_shipping
+  conditional
+  distance_based
+  hybrid
+}
+
+enum CheckoutLayout {
+  single_page
+  multi_step
+  accordion
+  minimal
+  express
+  mobile
+}
+
+enum ProductPageVariant {
+  shopify
+  amazon
+  luxury
+  minimal
+  marketplace
+  fashion
+  mobile_first
+}
+
+// ─── Core User ────────────────────────────────────────────────────────────────
+
+model User {
+  id                 String             @id @default(cuid())
+  supabaseId         String             @unique
+  name               String
+  email              String             @unique
+  phone              String?
+  role               Role
+  country            String?
+  city               String?
+  avatarUrl          String?
+  aiCredits          Int                @default(5)
+  verificationStatus VerificationStatus @default(unverified)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  store           Store?
+  supplier        Supplier?
+  logisticsPartner LogisticsPartner?
+
+  // Seller actions
+  storeProducts     StoreProduct[]
+  dropshipAsseller   DropshipRelationship[] @relation("SellerDropship")
+  quoteRequestsSent  SupplierQuoteRequest[] @relation("SellerQuotes")
+  wholesaleOrders    WholesaleOrder[]       @relation("SellerWholesale")
+  deliveryQuotes     DeliveryQuoteRequest[]
+  deliveryBookings   DeliveryBooking[]
+  logisticsReviews   LogisticsReview[]
+  notifications      Notification[]
+  notificationPreferences NotificationPreference[]
+
+  // Conversations
+  conversationsAs1 Conversation[] @relation("ConversationParticipant1")
+  conversationsAs2 Conversation[] @relation("ConversationParticipant2")
+  messagesSent     Message[]
+
+  @@index([email])
+  @@index([supabaseId])
+  @@index([role])
+}
+
+// ─── Store ────────────────────────────────────────────────────────────────────
+
+model Store {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  name                       String
+  slug                       String   @unique
+  description                String?
+  logoUrl                    String?
+  country                    String
+  city                       String?
+  currency                   String   @default("NGN")
+  brandSettings              Json     @default("{}")
+  customDomain               String?
+  status                     String   @default("active")
+  onboardingState            String?
+  firstDashboardVisitComplete Boolean  @default(false)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id])
+  storeProducts StoreProduct[]
+  pages         StorePage[]
+  retailOrders  RetailOrder[]
+  productReviews ProductReview[]
+  visitors       StoreVisitor[]
+  wishlistItems  StoreWishlistItem[]
+  formSubmissions StoreFormSubmission[]
+  abandonedCartEvents AbandonedCartEvent[]
+  collections    Collection[]
+  shippingZones  ShippingZone[]
+  checkoutConfig CheckoutConfig?
+  productPageTemplates ProductPageTemplate[]
+  activityEvents ActivityEvent[]
+  smartAlertRules SmartAlertRule[]
+  healthSnapshots StoreHealthSnapshot[]
+  subscribers    Subscriber[]
+  customerSegments CustomerSegment[]
+  storeForms     StoreForm[]
+  liveChatConfig LiveChatConfig?
+  abandonedCartConfig AbandonedCartConfig?
+  emailTemplates EmailTemplate[]
+  broadcastCampaigns BroadcastCampaign[]
+  automations    AutomationRule[]
+
+  @@index([slug])
+  @@index([userId])
+}
+
+// ─── Store Page ───────────────────────────────────────────────────────────────
+
+model StorePage {
+  id               String    @id @default(cuid())
+  storeId          String
+  type             String    // home | products | about | contact | faq | blog | custom
+  title            String
+  slug             String
+  content          Json      @default("{}")       // published content snapshot
+  draftContent     Json?                          // in-progress edits (seo, nav, etc.)
+  publishedContent Json?                          // last published snapshot before live
+  isPublished      Boolean   @default(false)      // shortcut for status === "published"
+  status           String    @default("draft")    // "draft" | "published" | "hidden" | "scheduled" | "archived"
+  publishAt        DateTime?
+  archivedAt       DateTime?
+  order            Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@unique([storeId, slug])
+}
+
+model StoreVisitor {
+  id          String   @id @default(cuid())
+  storeId     String
+  visitorKey  String
+  email       String?
+  name        String?
+  phone       String?
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+  wishlistItems StoreWishlistItem[]
+  formSubmissions StoreFormSubmission[]
+  abandonedCartEvents AbandonedCartEvent[]
+
+  @@unique([storeId, visitorKey])
+  @@index([storeId, email])
+}
+
+model StoreWishlistItem {
+  id        String   @id @default(cuid())
+  storeId   String
+  visitorId String
+  productId String
+  createdAt DateTime @default(now())
+
+  store   Store @relation(fields: [storeId], references: [id])
+  visitor StoreVisitor @relation(fields: [visitorId], references: [id])
+  product StoreProduct @relation(fields: [productId], references: [id])
+
+  @@unique([visitorId, productId])
+  @@index([storeId])
+  @@index([productId])
+}
+
+model StoreFormSubmission {
+  id        String   @id @default(cuid())
+  storeId   String
+  visitorId String?
+  type      String   @default("contact")
+  name      String?
+  email     String?
+  phone     String?
+  message   String?
+  payload   Json     @default("{}")
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+
+  store   Store @relation(fields: [storeId], references: [id])
+  visitor StoreVisitor? @relation(fields: [visitorId], references: [id])
+
+  @@index([storeId, createdAt])
+  @@index([email])
+}
+
+// ─── Supplier ─────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  businessName       String
+  slug               String             @unique
+  displayName        String
+  businessType       BusinessType
+  country            String
+  city               String
+  address            String?
+  description        String?
+  logoUrl            String?
+  bannerUrl          String?
+  categories         String[]
+  verificationDocuments Json               @default("[]")
+  onboardingState    Json               @default("{}")
+  blogPosts          Json               @default("[]")
+  verificationStatus VerificationStatus @default(pending)
+  trustScore         Int                @default(0)
+  rating             Float              @default(0)
+  ratingCount        Int                @default(0)
+  responseTime       String?
+  responseTimeLabel  String?
+  whatsappNumber     String?
+  website            String?
+  status             String             @default("active")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user             User                   @relation(fields: [userId], references: [id])
+  products         SupplierProduct[]
+  dropships        DropshipRelationship[] @relation("SupplierDropship")
+  quoteRequests    SupplierQuoteRequest[] @relation("SupplierQuotes")
+  wholesaleOrders  WholesaleOrder[]       @relation("SupplierWholesale")
+  payoutAccount    SupplierPayoutAccount?
+  teamMembers      SupplierTeamMember[]
+  reviews          SupplierReview[]
+
+  @@index([slug])
+  @@index([country, city])
+  @@index([verificationStatus])
+}
+
+model SupplierPayoutAccount {
+  id                        String   @id @default(cuid())
+  supplierId                String   @unique
+  bankName                  String
+  bankCode                  String?
+  accountNumberMask         String
+  accountName               String
+  paystackRecipientCode     String?
+  paystackRecipientId       String?
+  verificationStatus        String   @default("pending")
+  providerResponse          Json     @default("{}")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@index([verificationStatus])
+}
+
+model SupplierReview {
+  id              String   @id @default(cuid())
+  supplierId      String
+  reviewerId      String
+  targetId        String
+  targetRole      String   // "seller" | "logistics_partner" | "supplier"
+  interactionType String   // "wholesale_order" | "delivery_booking"
+  interactionId   String
+  rating          Int      // 1-5
+  title           String   @default("")
+  comment         String?
+  reply           String?  // response from the reviewed party
+  repliedAt       DateTime?
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([supplierId, interactionId, reviewerId])
+  @@index([supplierId])
+  @@index([reviewerId])
+  @@index([targetId])
+}
+
+model SupplierTeamMember {
+  id                 String   @id @default(cuid())
+  supplierId         String
+  name               String
+  email              String
+  phone              String?
+  role               String   @default("manager")
+  status             String   @default("active")
+  invitedAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([supplierId, email])
+  @@index([supplierId])
+  @@index([status])
+}
+
+// ─── Category ─────────────────────────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  parentId    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+
+  supplierProducts SupplierProduct[]
+  storeProducts    StoreProduct[]
+
+  @@index([slug])
+}
+
+// ─── Supplier Product ─────────────────────────────────────────────────────────
+
+model SupplierProduct {
+  id                    String        @id @default(cuid())
+  supplierId            String
+  name                  String
+  slug                  String        @unique
+  description           String
+  categoryId            String
+  images                String[]
+  wholesalePrice        Float
+  wholesalePriceTo      Float?
+  suggestedRetailPrice  Float
+  currency              String        @default("NGN")
+  moq                   Int           @default(1)
+  stockQuantity         Int           @default(0)
+  pricingTiers          Json          @default("[]")
+  dropshipAvailable     Boolean       @default(false)
+  bulkOrderAvailable    Boolean       @default(true)
+  sampleAvailable       Boolean       @default(false)
+  deliveryRegions       String[]
+  processingTime        String?
+  trendScore            Float         @default(0)
+  status                ProductStatus @default(draft)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  category      Category       @relation(fields: [categoryId], references: [id])
+  storeProducts StoreProduct[]
+  dropships     DropshipRelationship[]
+  quoteRequests SupplierQuoteRequest[]
+  wholesales    WholesaleOrder[]
+
+  @@index([supplierId])
+  @@index([categoryId])
+  @@index([slug])
+  @@index([status])
+  @@index([trendScore(sort: Desc)])
+}
+
+// ─── Store Product ────────────────────────────────────────────────────────────
+
+model StoreProduct {
+  id                String          @id @default(cuid())
+  storeId           String
+  userId            String
+  supplierProductId String?
+  name              String
+  description       String?
+  longDescription   String?
+  specifications    Json            @default("[]")
+  faqs              Json            @default("[]")
+  careInstructions  String?
+  shippingInfo      String?
+  returnPolicy      String?
+  warranty          String?
+  supportInfo       String?
+  sku               String?
+  barcode           String?
+  images            String[]
+  videoUrl          String?
+  has360View        Boolean         @default(false)
+  retailPrice       Float
+  costPrice         Float?
+  compareAtPrice    Float?
+  currency          String          @default("NGN")
+  margin            Float?
+  weight            Float?
+  weightUnit        String          @default("kg")
+  dimensions        Json?           // { length, width, height, unit }
+  fulfillmentType   FulfillmentType @default(merchant_fulfilled)
+  status            String          @default("draft")
+  visibility        ProductVisibility @default(hidden)
+  salesChannel      SalesChannel    @default(website)
+  inventoryType     InventoryType   @default(seller)
+  sourceType        ProductSourceType? // tracks original source
+  categoryId        String?
+  variants          Json?
+  tags              String[]
+  featured          Boolean         @default(false)
+  sortOrder         Int             @default(0)
+
+  // Inventory tracking
+  currentStock      Int             @default(0)
+  reservedStock     Int             @default(0)
+  soldStock         Int             @default(0)
+  incomingStock     Int             @default(0)
+  damagedStock      Int             @default(0)
+  lowStockThreshold Int             @default(10)
+
+  // Product page builder
+  pageLayout        Json            @default("{}")
+  pageVariant       ProductPageVariant @default(shopify)
+  descriptionBuilder Json           @default("{}")
+  enabledModules    String[]        @default([]) // which page modules are on
+
+  // SEO & marketing
+  seoTitle          String?
+  seoDescription    String?
+  marketingCopy     String?
+  socialMediaCopy   String?
+
+  // Supplier sync info
+  supplierStock     Int?            @default(0)
+  supplierLastSync  DateTime?
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  store           Store            @relation(fields: [storeId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  supplierProduct SupplierProduct? @relation(fields: [supplierProductId], references: [id])
+  dropship        DropshipRelationship?
+  reviews         ProductReview[]
+  wishlistItems   StoreWishlistItem[]
+  collections     CollectionProduct[]
+  stockMovements  StockMovement[]
+  productSources  ProductSource[]
+
+  @@index([storeId])
+  @@index([supplierProductId])
+  @@index([categoryId])
+  @@index([sku])
+  @@index([status])
+  @@index([visibility])
+  @@index([featured])
+}
+
+// ─── Collection ───────────────────────────────────────────────────────────────
+
+model Collection {
+  id          String   @id @default(cuid())
+  storeId     String
+  name        String
+  slug        String
+  description String?
+  imageUrl    String?
+  type        String   @default("manual") // manual | auto
+  rules       Json     @default("{}")     // auto-collection rules
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store    Store              @relation(fields: [storeId], references: [id])
+  products CollectionProduct[]
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+}
+
+model CollectionProduct {
+  id           String   @id @default(cuid())
+  collectionId String
+  productId    String
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  collection Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  product    StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, productId])
+  @@index([collectionId])
+  @@index([productId])
+}
+
+// ─── Dropship Relationship ────────────────────────────────────────────────────
+
+model DropshipRelationship {
+  id                String   @id @default(cuid())
+  sellerId          String
+  storeId           String
+  supplierId        String
+  supplierProductId String
+  storeProductId    String   @unique
+  status            String   @default("active")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  seller          User            @relation("SellerDropship", fields: [sellerId], references: [id])
+  supplier        Supplier        @relation("SupplierDropship", fields: [supplierId], references: [id])
+  supplierProduct SupplierProduct @relation(fields: [supplierProductId], references: [id])
+  storeProduct    StoreProduct    @relation(fields: [storeProductId], references: [id])
+
+  @@index([sellerId])
+  @@index([supplierId])
+}
+
+// ─── Supplier Quote Request ───────────────────────────────────────────────────
+
+model SupplierQuoteRequest {
+  id                String      @id @default(cuid())
+  sellerId          String
+  supplierId        String
+  supplierProductId String
+  quantity          Int
+  destination       String
+  notes             String?
+  status            QuoteStatus @default(pending)
+  quotedPrice       Float?
+  supplierResponse  String?
+  expiresAt         DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  seller          User            @relation("SellerQuotes", fields: [sellerId], references: [id])
+  supplier        Supplier        @relation("SupplierQuotes", fields: [supplierId], references: [id])
+  supplierProduct SupplierProduct @relation(fields: [supplierProductId], references: [id])
+
+  @@index([sellerId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+// ─── Wholesale Order ──────────────────────────────────────────────────────────
+
+model WholesaleOrder {
+  id                String      @id @default(cuid())
+  sellerId          String
+  supplierId        String
+  supplierProductId String
+  quantity          Int
+  unitPrice         Float
+  totalPrice        Float
+  currency          String      @default("NGN")
+  deliveryAddress   String
+  notes             String?
+  status            OrderStatus @default(pending)
+  trackingCode      String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  seller          User            @relation("SellerWholesale", fields: [sellerId], references: [id])
+  supplier        Supplier        @relation("SupplierWholesale", fields: [supplierId], references: [id])
+  supplierProduct SupplierProduct @relation(fields: [supplierProductId], references: [id])
+
+  @@index([sellerId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+// ─── Logistics Partner ────────────────────────────────────────────────────────
+
+model LogisticsPartner {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  companyName        String
+  slug               String             @unique
+  displayName        String
+  country            String
+  city               String
+  address            String?
+  description        String?
+  logoUrl            String?
+  bannerUrl          String?
+  coverageZones      String[]
+  coverageMap        Json               @default("{}")
+  vehicleTypes       String[]
+  deliveryTypes      String[]
+  onboardingState    Json               @default("{}")
+  blogPosts          Json               @default("[]")
+  pricingModel       String             @default("fixed")
+  basePrice          Float              @default(0)
+  estimatedSpeed     String?
+  reliabilityScore   Int                @default(0)
+  rating             Float              @default(0)
+  ratingCount        Int                @default(0)
+  verificationStatus VerificationStatus @default(pending)
+  whatsappNumber     String?
+  status             String             @default("active")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user           User                   @relation(fields: [userId], references: [id])
+  quoteRequests  DeliveryQuoteRequest[]
+  bookings       DeliveryBooking[]
+  teamMembers    LogisticsTeamMember[]
+  payoutAccount  LogisticsPayoutAccount?
+  reviews        LogisticsReview[]
+
+  @@index([slug])
+  @@index([country, city])
+}
+
+model LogisticsReview {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  reviewerId         String
+  bookingId          String?   @unique
+  rating             Int       @default(5) // 1-5
+  comment            String?
+  response           String?   // partner reply
+  respondedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+  reviewer         User             @relation(fields: [reviewerId], references: [id])
+  booking          DeliveryBooking? @relation(fields: [bookingId], references: [id])
+
+  @@index([logisticsPartnerId])
+  @@index([reviewerId])
+}
+
+model LogisticsTeamMember {
+  id                 String           @id @default(cuid())
+  logisticsPartnerId String
+  name               String
+  email              String
+  phone              String?
+  role               String           @default("dispatcher")
+  status             String           @default("active")
+  invitedAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+
+  @@unique([logisticsPartnerId, email])
+  @@index([logisticsPartnerId])
+  @@index([status])
+}
+
+// ─── Logistics Payout Account ─────────────────────────────────────────────────
+
+model LogisticsPayoutAccount {
+  id                        String   @id @default(cuid())
+  logisticsPartnerId        String   @unique
+  provider                  String   @default("flutterwave") // flutterwave | paystack
+  bankName                  String
+  bankCode                  String?
+  accountNumberMask         String
+  accountName               String
+  recipientCode             String?  // Flutterwave transfer recipient code
+  recipientId               String?  // Flutterwave or Paystack recipient ID
+  verificationStatus        String   @default("pending")
+  providerResponse          Json     @default("{}")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+
+  @@index([logisticsPartnerId])
+  @@index([verificationStatus])
+}
+
+// ─── Platform Fee Config ─────────────────────────────────────────────────────
+
+model PlatformFeeConfig {
+  id        String @id @default(cuid())
+  active    Boolean @default(true)
+  rate      Float   @default(1.5) // percentage
+  bearer    String  @default("seller") // seller | supplier | logistics_partner
+  minFee    Float   @default(0)
+  maxFee    Float   @default(0) // 0 = no max
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Delivery Quote Request ───────────────────────────────────────────────────
+
+model DeliveryQuoteRequest {
+  id                 String      @id @default(cuid())
+  sellerId           String
+  logisticsPartnerId String
+  pickupLocation     String
+  destination        String
+  packageDetails     Json
+  preferredDate      DateTime?
+  status             QuoteStatus @default(pending)
+  quotedPrice        Float?
+  partnerResponse    String?
+  expiresAt          DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  seller           User             @relation(fields: [sellerId], references: [id])
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+
+  @@index([sellerId])
+  @@index([logisticsPartnerId])
+}
+
+// ─── Delivery Booking ─────────────────────────────────────────────────────────
+
+model DeliveryBooking {
+  id                 String        @id @default(cuid())
+  sellerId           String
+  logisticsPartnerId String
+  orderId            String?
+  pickupLocation     String
+  destination        String
+  packageDetails     Json
+  deliveryFee        Float
+  currency           String        @default("NGN")
+  status             BookingStatus @default(pending)
+  platformFee        Float         @default(0)
+  feeBearer          String        @default("seller") // seller | supplier | logistics_partner
+  netAmount          Float         @default(0)
+  trackingCode       String?       @unique
+  estimatedDelivery  DateTime?
+  deliveredAt        DateTime?
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  seller           User             @relation(fields: [sellerId], references: [id])
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+  review           LogisticsReview?
+
+  @@index([sellerId])
+  @@index([logisticsPartnerId])
+  @@index([trackingCode])
+  @@index([status])
+}
+
+// ─── Shipping Zone ────────────────────────────────────────────────────────────
+
+model ShippingZone {
+  id        String      @id @default(cuid())
+  storeId   String
+  name      String
+  type      ShippingType @default(flat_rate)
+  regions   String[]     // delivery regions
+  rates     Json         @default("[]") // array of rate tiers
+  sortOrder Int          @default(0)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([storeId, active])
+}
+
+// ─── Checkout Configuration ───────────────────────────────────────────────────
+
+model CheckoutConfig {
+  id             String        @id @default(cuid())
+  storeId        String        @unique
+  layout         CheckoutLayout @default(multi_step)
+  enabledModules String[]      @default(["customer_details","shipping_address","delivery_method","payment_method","order_summary"])
+  moduleOrder    String[]      @default(["customer_details","shipping_address","delivery_method","coupon","order_notes","payment_method","order_summary"])
+  requirePhone   Boolean       @default(false)
+  enableNotes    Boolean       @default(true)
+  enableGiftNote Boolean       @default(false)
+  enableCoupon   Boolean       @default(true)
+  enableUpsells  Boolean       @default(false)
+  enableTrustBadges Boolean    @default(true)
+  upsellProducts String[]      @default([])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+}
+
+// ─── Product Page Template ────────────────────────────────────────────────────
+
+model ProductPageTemplate {
+  id          String             @id @default(cuid())
+  storeId     String
+  name        String
+  variant     ProductPageVariant @default(shopify)
+  config      Json               @default("{}") // enabled modules, layout options
+  isDefault   Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+}
+
+// ─── Product Source ───────────────────────────────────────────────────────────
+
+model ProductSource {
+  id             String     @id @default(cuid())
+  productId      String
+  sourceType     ProductSourceType
+  sourceId       String?    // supplierId, manufacturerId, etc
+  sourceName     String?
+  sourceUrl      String?
+  importedFrom   String?    // country of origin
+  supplierSku    String?
+  supplierPrice  Float?
+  leadTime       String?
+  moq            Int?
+  notes          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  product StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([sourceType])
+}
+
+// ─── Notification ──────────────────────────────────────────────────────────────
+
+enum NotificationType {
+  order
+  payout
+  peggy
+  marketplace
+  system
+  inventory
+  logistics
+  products
+  customers
+  suppliers
+  store_builder
+  marketing
+  rexai
+  checkout
+  category
+  health
+  activity
+  dropshipping
+}
+
+enum NotificationPriority {
+  critical
+  warning
+  info
+  success
+}
+
+enum NotificationChannel {
+  in_app
+  email
+  sms
+  whatsapp
+  push
+  browser
+}
+
+enum DigestFrequency {
+  immediate
+  hourly
+  daily
+  weekly
+  disabled
+}
+
+model Notification {
+  id          String              @id @default(cuid())
+  userId      String
+  type        NotificationType
+  priority    NotificationPriority @default(info)
+  title       String
+  description String
+  link        String?
+  actionLabel String?
+  actionUrl   String?
+  imageUrl    String?
+  metadata    Json                @default("{}")
+  read        Boolean             @default(false)
+  readAt      DateTime?
+  scheduledFor DateTime?
+  channel     NotificationChannel @default(in_app)
+  createdAt   DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, type])
+  @@index([userId, priority])
+  @@index([userId, read])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model NotificationPreference {
+  id              String          @id @default(cuid())
+  userId          String
+  role            Role
+  eventKey        String
+  category        NotificationType
+  inApp           Boolean         @default(true)
+  email           Boolean         @default(false)
+  sms             Boolean         @default(false)
+  whatsapp        Boolean         @default(false)
+  push            Boolean         @default(false)
+  browser         Boolean         @default(false)
+  digestFrequency DigestFrequency @default(immediate)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, eventKey, category])
+  @@index([userId])
+  @@index([role])
+  @@index([category])
+}
+
+// ─── Activity Event ───────────────────────────────────────────────────────────
+
+model ActivityEvent {
+  id          String   @id @default(cuid())
+  storeId     String
+  userId      String
+  type        String   // order_created | product_published | inventory_updated | etc
+  title       String
+  description String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([storeId, createdAt(sort: Desc)])
+  @@index([userId])
+  @@index([type])
+}
+
+// ─── Smart Alert Rule ─────────────────────────────────────────────────────────
+
+model SmartAlertRule {
+  id             String    @id @default(cuid())
+  storeId        String
+  name           String
+  description    String?
+  trigger        String    // low_stock | order_stuck | category_empty | conversion_drop | no_orders
+  condition      Json      @default("{}") // threshold values, time windows
+  actionType     String    @default("notification") // notification | email | both
+  actionConfig   Json      @default("{}") // template, channels
+  active         Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([storeId, active])
+  @@index([trigger])
+}
+
+// ─── Store Health Score Snapshot ───────────────────────────────────────────────
+
+model StoreHealthSnapshot {
+  id              String   @id @default(cuid())
+  storeId         String
+  score           Int      @default(0) // 0-100
+  factors         Json     @default("{}") // { inventory: 80, orders: 75, payments: 90, ... }
+  recommendations Json     @default("[]") // [{ action, label, link, impact }]
+  createdAt       DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([storeId, createdAt(sort: Desc)])
+}
+
+// ─── Conversation / Messaging ────────────────────────────────────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participant1Id String
+  participant2Id String
+
+  participant1 User @relation("ConversationParticipant1", fields: [participant1Id], references: [id])
+  participant2 User @relation("ConversationParticipant2", fields: [participant2Id], references: [id])
+
+  messages Message[]
+
+  @@unique([participant1Id, participant2Id])
+  @@index([participant1Id])
+  @@index([participant2Id])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  text           String
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt(sort: Asc)])
+}
+
+// ─── Discount / Promotion ──────────────────────────────────────────────────────
+
+enum DiscountType {
+  percentage
+  fixed_amount
+  free_shipping
+  bogo
+}
+
+enum DiscountStatus {
+  draft
+  scheduled
+  active
+  expired
+  disabled
+}
+
+model Discount {
+  id          String         @id @default(cuid())
+  storeId     String
+  name        String
+  code        String
+  type        DiscountType
+  value       Float          // percentage value (e.g. 25) or fixed amount
+  minOrder    Float?         @default(0)
+  maxUses     Int?           @default(0)     // 0 = unlimited
+  usedCount   Int            @default(0)
+  startsAt    DateTime?
+  expiresAt   DateTime?
+  status      DiscountStatus @default(draft)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([storeId, code])
+  @@index([storeId])
+  @@index([code])
+  @@index([status])
+}
+
+// ─── Coupon Code ───────────────────────────────────────────────────────────────
+
+enum CouponStatus {
+  active
+  used
+  expired
+  disabled
+}
+
+model Coupon {
+  id          String        @id @default(cuid())
+  storeId     String
+  code        String        @unique
+  type        DiscountType
+  value       Float
+  minOrder    Float?        @default(0)
+  maxUses     Int?          @default(1)
+  usedCount   Int           @default(0)
+  expiresAt   DateTime?
+  status      CouponStatus  @default(active)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([storeId])
+  @@index([code])
+  @@index([status])
+}
+
+// ─── Subscriber ────────────────────────────────────────────────────────────────
+
+enum SubscriberSource {
+  newsletter_form
+  checkout_optin
+  customer_account
+  lead_magnet
+  popup
+  landing_page
+  manual_import
+  csv_upload
+  api
+  order
+}
+
+enum SubscriberStatus {
+  active
+  unsubscribed
+  bounced
+  spam
+}
+
+model Subscriber {
+  id             String           @id @default(cuid())
+  storeId        String
+  email          String
+  name           String?
+  phone          String?
+  country        String?
+  source         SubscriberSource @default(newsletter_form)
+  status         SubscriberStatus @default(active)
+  tags           String[]
+  metadata       Json             @default("{}")
+  lastOpenedAt   DateTime?
+  lastClickedAt  DateTime?
+  lastPurchasedAt DateTime?
+  totalSpent     Float            @default(0)
+  orderCount     Int              @default(0)
+  unsubscribedAt DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, email])
+  @@index([storeId])
+  @@index([storeId, status])
+  @@index([storeId, createdAt(sort: Desc)])
+}
+
+// ─── Customer Segment ─────────────────────────────────────────────────────────
+
+model CustomerSegment {
+  id          String   @id @default(cuid())
+  storeId     String
+  name        String
+  description String?
+  type        String   @default("manual") // manual | auto
+  rules       Json     @default("{}")     // filter criteria for auto segments
+  subscriberCount Int  @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, name])
+  @@index([storeId])
+}
+
+// ─── Store Form ────────────────────────────────────────────────────────────────
+
+enum FormType {
+  newsletter
+  contact
+  lead
+  custom
+  request_quote
+  waitlist
+  product_inquiry
+  wholesale_inquiry
+  support
+  popup
+}
+
+model StoreForm {
+  id          String   @id @default(cuid())
+  storeId     String
+  type        FormType @default(contact)
+  name        String
+  fields      Json     @default("[]")    // [{ key, type, label, required, options }]
+  design      Json     @default("{}")    // { style, colors, buttonText }
+  actions     Json     @default("[]")    // [{ type: "email"|"subscriber"|"redirect"|"notification", config }]
+  isPopup     Boolean  @default(false)
+  popupConfig Json     @default("{}")    // { timing, pages, frequency, devices, exitIntent }
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([storeId, active])
+}
+
+// ─── Live Chat Config ─────────────────────────────────────────────────────────
+
+model LiveChatConfig {
+  id               String  @id @default(cuid())
+  storeId          String  @unique
+  mode             String  @default("contact_form") // contact_form | whatsapp | messaging | multiple
+  whatsappNumber   String?
+  whatsappGreeting String? @default("Hello! How can we help you today?")
+  whatsappPosition String  @default("right") // left | right
+  whatsappColor    String  @default("#25D366")
+  showOnMobile     Boolean @default(true)
+  showOnDesktop    Boolean @default(true)
+  businessHours    Json    @default("{}")
+  contactEmail     String?
+  contactPhone     String?
+  customLink       String?
+  widgetStyle      String  @default("bubble") // bubble | bar | drawer | center | help
+  greeting         String? @default("Hi there! Need help?")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+}
+
+// ─── Abandoned Cart Config ─────────────────────────────────────────────────────
+
+model AbandonedCartConfig {
+  id              String   @id @default(cuid())
+  storeId         String   @unique
+  enabled         Boolean  @default(true)
+  firstReminderAfter  Int  @default(60)     // minutes
+  secondReminderAfter Int  @default(1440)   // minutes (24h)
+  thirdReminderAfter  Int  @default(4320)   // minutes (72h)
+  discountPercent  Float   @default(0)
+  sendEmail        Boolean @default(true)
+  emailTemplateId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+}
+
+// ─── Email Template ────────────────────────────────────────────────────────────
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  storeId   String
+  name      String
+  subject   String
+  bodyHtml  String   @default("")
+  category  String   @default("general") // order, marketing, newsletter
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([category])
+}
+
+// ─── Automation Rule ───────────────────────────────────────────────────────────
+
+enum AutomationTrigger {
+  welcome_email
+  order_placed
+  order_shipped
+  order_delivered
+  payment_received
+  abandoned_checkout
+  new_customer
+  post_purchase
+  review_request
+  win_back
+  birthday
+  low_stock
+}
+
+enum AutomationActionType {
+  send_email
+  send_notification
+  update_discount
+  add_tag
+  add_segment
+}
+
+model AutomationRule {
+  id          String               @id @default(cuid())
+  storeId     String
+  name        String
+  description String               @default("")
+  trigger     AutomationTrigger
+  actionType  AutomationActionType @default(send_email)
+  actionConfig Json                 @default("{}") // { templateId, subject, body, channel }
+  delayMinutes Int                 @default(0)     // delay before triggering
+  active      Boolean              @default(true)
+  lastTriggeredAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([trigger])
+}
+
+// ─── Broadcast Campaign ────────────────────────────────────────────────────────
+
+enum CampaignStatus {
+  draft
+  scheduled
+  sending
+  sent
+  cancelled
+}
+
+model BroadcastCampaign {
+  id              String         @id @default(cuid())
+  storeId         String
+  name            String
+  subject         String
+  preheader       String?
+  bodyHtml        String         @default("")
+  templateId      String?        // FK to EmailTemplate
+  senderName      String?
+  senderEmail     String?
+  replyTo         String?
+  campaignType    String         @default("newsletter") // newsletter | promotion | product_launch | sale | announcement | abandoned_cart | welcome | custom
+  recipientFilter Json           @default("[]") // JSON array of filters
+  segmentId       String?        // FK to CustomerSegment
+  status          CampaignStatus @default(draft)
+  sentCount       Int            @default(0)
+  deliveredCount  Int            @default(0)
+  openCount       Int            @default(0)
+  clickCount      Int            @default(0)
+  unsubscribeCount Int           @default(0)
+  bounceCount     Int            @default(0)
+  revenueGenerated Float         @default(0)
+  conversionCount Int            @default(0)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([status])
+}
+
+// ─── Retail Order ─────────────────────────────────────────────────────────────
+
+model RetailOrder {
+  id              String            @id @default(cuid())
+  storeId         String
+  orderNumber     String            @unique
+  buyerEmail      String
+  buyerName       String
+  buyerPhone      String?
+  deliveryAddress Json              @default("{}")
+  items           Json              @default("[]")
+  subtotal        Float             @default(0)
+  shippingFee     Float             @default(0)
+  total           Float             @default(0)
+  currency        String            @default("NGN")
+  status          RetailOrderStatus @default(pending)
+  paystackRef     String?
+  paystackStatus  String?           @default("pending")
+  notes           String?
+  discountCode    String?
+  discountAmount  Float?            @default(0)
+  trackingCode    String?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([buyerEmail])
+  @@index([status])
+  @@index([paystackRef])
+}
+
+model AbandonedCartEvent {
+  id        String   @id @default(cuid())
+  storeId   String
+  visitorId String?
+  email     String
+  name      String?
+  items     Json     @default("[]")
+  subtotal  Float    @default(0)
+  currency  String   @default("NGN")
+  status    String   @default("triggered")
+  createdAt DateTime @default(now())
+
+  store   Store @relation(fields: [storeId], references: [id])
+  visitor StoreVisitor? @relation(fields: [visitorId], references: [id])
+
+  @@index([storeId, createdAt])
+  @@index([email])
+}
+
+// ─── Product Reviews ──────────────────────────────────────────────────────────
+
+enum ReviewStatus {
+  approved
+  pending
+  rejected
+}
+
+model ProductReview {
+  id            String       @id @default(cuid())
+  storeId       String
+  productId     String
+  orderId       String
+  buyerName     String
+  buyerEmail    String
+  rating        Int          // 1–5
+  title         String       @default("")
+  body          String       @default("")
+  images        String[]     @default([])
+  status        ReviewStatus @default(pending)
+  sellerReply   String?      @default("")
+  repliedAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  store   Store       @relation(fields: [storeId], references: [id])
+  product StoreProduct @relation(fields: [productId], references: [id])
+
+  @@index([storeId])
+  @@index([productId])
+  @@index([status])
+}
+
+// ─── Stock Movement ───────────────────────────────────────────────────────────
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  storeId   String
+  productId String
+  change    Int
+  type      String   @default("addition") // addition | removal | adjustment | return | damaged
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  product StoreProduct @relation(fields: [productId], references: [id])
+
+  @@index([storeId])
+  @@index([productId])
+}

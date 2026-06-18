@@ -1,0 +1,514 @@
+{
+  "generatedAt": "2026-06-15T15:54:31.792Z",
+  "outputRoot": "public/store-templates",
+  "templates": [
+    {
+      "slug": "template-100-list",
+      "sourceName": "100-template-list-1.0.zip",
+      "publicPath": "/store-templates/template-100-list",
+      "mainPage": "/store-templates/template-100-list/100-template-list-1.0/64 gentelella/production/index.html",
+      "previewImage": "/store-templates/template-100-list/100-template-list-1.0/63 Spectral/images/banner.jpg",
+      "pageCount": 84,
+      "assetCount": 900,
+      "cssCount": 25,
+      "jsCount": 544,
+      "imageCount": 131,
+      "pages": [
+        "100-template-list-1.0/60 MeatKing/index.html",
+        "100-template-list-1.0/61 Mamma-s-Kitchen/index.html",
+        "100-template-list-1.0/61 Mamma-s-Kitchen/php/ajax_menu.html",
+        "100-template-list-1.0/62 Twenty/contact.html",
+        "100-template-list-1.0/62 Twenty/index.html",
+        "100-template-list-1.0/62 Twenty/left-sidebar.html",
+        "100-template-list-1.0/62 Twenty/no-sidebar.html",
+        "100-template-list-1.0/62 Twenty/right-sidebar.html",
+        "100-template-list-1.0/63 Spectral/elements.html",
+        "100-template-list-1.0/63 Spectral/generic.html",
+        "100-template-list-1.0/63 Spectral/index.html",
+        "100-template-list-1.0/64 gentelella/documentation/index.html",
+        "100-template-list-1.0/64 gentelella/documentation/index_cn.html",
+        "100-template-list-1.0/64 gentelella/production/calendar.html",
+        "100-template-list-1.0/64 gentelella/production/chartjs.html",
+        "100-template-list-1.0/64 gentelella/production/chartjs2.html",
+        "100-template-list-1.0/64 gentelella/production/contacts.html",
+        "100-template-list-1.0/64 gentelella/production/e_commerce.html",
+        "100-template-list-1.0/64 gentelella/production/echarts.html",
+        "100-template-list-1.0/64 gentelella/production/fixed_footer.html",
+        "100-template-list-1.0/64 gentelella/production/fixed_sidebar.html",
+        "100-template-list-1.0/64 gentelella/production/form.html",
+        "100-template-list-1.0/64 gentelella/production/form_advanced.html",
+        "100-template-list-1.0/64 gentelella/production/form_buttons.html",
+        "100-template-list-1.0/64 gentelella/production/form_upload.html",
+        "100-template-list-1.0/64 gentelella/production/form_validation.html",
+        "100-template-list-1.0/64 gentelella/production/form_wizards.html",
+        "100-template-list-1.0/64 gentelella/production/general_elements.html",
+        "100-template-list-1.0/64 gentelella/production/glyphicons.html",
+        "100-template-list-1.0/64 gentelella/production/icons.html",
+        "100-template-list-1.0/64 gentelella/production/inbox.html",
+        "100-template-list-1.0/64 gentelella/production/index.html",
+        "100-template-list-1.0/64 gentelella/production/index2.html",
+        "100-template-list-1.0/64 gentelella/production/index3.html",
+        "100-template-list-1.0/64 gentelella/production/invoice.html",
+        "100-template-list-1.0/64 gentelella/production/level2.html",
+        "100-template-list-1.0/64 gentelella/production/login.html",
+        "100-template-list-1.0/64 gentelella/production/map.html",
+        "100-template-list-1.0/64 gentelella/production/media_gallery.html",
+        "100-template-list-1.0/64 gentelella/production/morisjs.html"
+      ]
+    },
+    {
+      "slug": "minishop",
+      "sourceName": "minishop-1.0.0.zip",
+      "publicPath": "/store-templates/minishop",
+      "mainPage": "/store-templates/minishop/minishop-1.0.0/index.html",
+      "previewImage": "/store-templates/minishop/minishop-1.0.0/images/product-1.jpg",
+      "pageCount": 10,
+      "assetCount": 210,
+      "cssCount": 19,
+      "jsCount": 17,
+      "imageCount": 42,
+      "pages": [
+        "minishop-1.0.0/about.html",
+        "minishop-1.0.0/blog-single.html",
+        "minishop-1.0.0/blog.html",
+        "minishop-1.0.0/cart.html",
+        "minishop-1.0.0/checkout.html",
+        "minishop-1.0.0/contact.html",
+        "minishop-1.0.0/fonts/flaticon/font/flaticon.html",
+        "minishop-1.0.0/index.html",
+        "minishop-1.0.0/product-single.html",
+        "minishop-1.0.0/shop.html"
+      ]
+    },
+    {
+      "slug": "furnish",
+      "sourceName": "furnish-1.0.0.zip",
+      "publicPath": "/store-templates/furnish",
+      "mainPage": "/store-templates/furnish/furnish-1.0.0/src/index.html",
+      "previewImage": "/store-templates/furnish/furnish-1.0.0/src/assets/images/product-img-1.jpg",
+      "pageCount": 5,
+      "assetCount": 41,
+      "cssCount": 0,
+      "jsCount": 4,
+      "imageCount": 20,
+      "pages": [
+        "furnish-1.0.0/src/about.html",
+        "furnish-1.0.0/src/contact.html",
+        "furnish-1.0.0/src/index.html",
+        "furnish-1.0.0/src/products.html",
+        "furnish-1.0.0/src/testimonials.html"
+      ]
+    },
+    {
+      "slug": "footwear",
+      "sourceName": "footwear-1.0.0.zip",
+      "publicPath": "/store-templates/footwear",
+      "mainPage": "/store-templates/footwear/footwear-1.0.0/index.html",
+      "previewImage": "/store-templates/footwear/footwear-1.0.0/images/about.jpg",
+      "pageCount": 11,
+      "assetCount": 929,
+      "cssCount": 14,
+      "jsCount": 19,
+      "imageCount": 40,
+      "pages": [
+        "footwear-1.0.0/about.html",
+        "footwear-1.0.0/add-to-wishlist.html",
+        "footwear-1.0.0/cart.html",
+        "footwear-1.0.0/checkout.html",
+        "footwear-1.0.0/contact.html",
+        "footwear-1.0.0/fonts/flaticon/font/flaticon.html",
+        "footwear-1.0.0/index.html",
+        "footwear-1.0.0/men.html",
+        "footwear-1.0.0/order-complete.html",
+        "footwear-1.0.0/product-detail.html",
+        "footwear-1.0.0/women.html"
+      ]
+    },
+    {
+      "slug": "karma",
+      "sourceName": "karma-1.0.0.zip",
+      "publicPath": "/store-templates/karma",
+      "mainPage": "/store-templates/karma/karma-1.0.0/index.html",
+      "previewImage": "/store-templates/karma/karma-1.0.0/img/banner/banner-bg.jpg",
+      "pageCount": 13,
+      "assetCount": 330,
+      "cssCount": 33,
+      "jsCount": 45,
+      "imageCount": 192,
+      "pages": [
+        "karma-1.0.0/Karma Shop-doc/index.html",
+        "karma-1.0.0/blog.html",
+        "karma-1.0.0/cart.html",
+        "karma-1.0.0/category.html",
+        "karma-1.0.0/checkout.html",
+        "karma-1.0.0/confirmation.html",
+        "karma-1.0.0/contact.html",
+        "karma-1.0.0/elements.html",
+        "karma-1.0.0/index.html",
+        "karma-1.0.0/login.html",
+        "karma-1.0.0/single-blog.html",
+        "karma-1.0.0/single-product.html",
+        "karma-1.0.0/tracking.html"
+      ]
+    },
+    {
+      "slug": "bookly",
+      "sourceName": "Bookly-1.0.0.zip",
+      "publicPath": "/store-templates/bookly",
+      "mainPage": "/store-templates/bookly/Bookly-1.0.0/index.html",
+      "previewImage": "/store-templates/bookly/Bookly-1.0.0/images/banner-image-bg-1.jpg",
+      "pageCount": 1,
+      "assetCount": 85,
+      "cssCount": 2,
+      "jsCount": 3,
+      "imageCount": 78,
+      "pages": [
+        "Bookly-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "malefashion",
+      "sourceName": "malefashion-master.zip",
+      "publicPath": "/store-templates/malefashion",
+      "mainPage": "/store-templates/malefashion/malefashion-master/index.html",
+      "previewImage": "/store-templates/malefashion/malefashion-master/img/product-sale.png",
+      "pageCount": 10,
+      "assetCount": 141,
+      "cssCount": 8,
+      "jsCount": 10,
+      "imageCount": 76,
+      "pages": [
+        "malefashion-master/about.html",
+        "malefashion-master/blog-details.html",
+        "malefashion-master/blog.html",
+        "malefashion-master/checkout.html",
+        "malefashion-master/contact.html",
+        "malefashion-master/index.html",
+        "malefashion-master/main.html",
+        "malefashion-master/shop-details.html",
+        "malefashion-master/shop.html",
+        "malefashion-master/shopping-cart.html"
+      ]
+    },
+    {
+      "slug": "ogani",
+      "sourceName": "ogani-master.zip",
+      "publicPath": "/store-templates/ogani",
+      "mainPage": "/store-templates/ogani/ogani-master/index.html",
+      "previewImage": "/store-templates/ogani/ogani-master/img/product/product-1.jpg",
+      "pageCount": 9,
+      "assetCount": 127,
+      "cssCount": 8,
+      "jsCount": 8,
+      "imageCount": 67,
+      "pages": [
+        "ogani-master/blog-details.html",
+        "ogani-master/blog.html",
+        "ogani-master/checkout.html",
+        "ogani-master/contact.html",
+        "ogani-master/index.html",
+        "ogani-master/main.html",
+        "ogani-master/shop-details.html",
+        "ogani-master/shop-grid.html",
+        "ogani-master/shoping-cart.html"
+      ]
+    },
+    {
+      "slug": "organic",
+      "sourceName": "organic-1.0.0.zip",
+      "publicPath": "/store-templates/organic",
+      "mainPage": "/store-templates/organic/organic-1.0.0/index.html",
+      "previewImage": "/store-templates/organic/organic-1.0.0/images/banner-1.jpg",
+      "pageCount": 1,
+      "assetCount": 77,
+      "cssCount": 3,
+      "jsCount": 4,
+      "imageCount": 68,
+      "pages": [
+        "organic-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "ministore",
+      "sourceName": "MiniStore-1.0.0.zip",
+      "publicPath": "/store-templates/ministore",
+      "mainPage": "/store-templates/ministore/MiniStore-1.0.0/index.html",
+      "previewImage": "/store-templates/ministore/MiniStore-1.0.0/images/banner-image.png",
+      "pageCount": 1,
+      "assetCount": 60,
+      "cssCount": 3,
+      "jsCount": 5,
+      "imageCount": 51,
+      "pages": [
+        "MiniStore-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "furni",
+      "sourceName": "furni-1.0.0.zip",
+      "publicPath": "/store-templates/furni",
+      "mainPage": "/store-templates/furni/furni-1.0.0/index.html",
+      "previewImage": "/store-templates/furni/furni-1.0.0/images/product-1.png",
+      "pageCount": 9,
+      "assetCount": 50,
+      "cssCount": 3,
+      "jsCount": 3,
+      "imageCount": 32,
+      "pages": [
+        "furni-1.0.0/about.html",
+        "furni-1.0.0/blog.html",
+        "furni-1.0.0/cart.html",
+        "furni-1.0.0/checkout.html",
+        "furni-1.0.0/contact.html",
+        "furni-1.0.0/index.html",
+        "furni-1.0.0/services.html",
+        "furni-1.0.0/shop.html",
+        "furni-1.0.0/thankyou.html"
+      ]
+    },
+    {
+      "slug": "cycle",
+      "sourceName": "Cycle-1.0.0.zip",
+      "publicPath": "/store-templates/cycle",
+      "mainPage": "/store-templates/cycle/Cycle-1.0.0/index.html",
+      "previewImage": "/store-templates/cycle/Cycle-1.0.0/images/about-bg.png",
+      "pageCount": 5,
+      "assetCount": 74,
+      "cssCount": 20,
+      "jsCount": 13,
+      "imageCount": 24,
+      "pages": [
+        "Cycle-1.0.0/about.html",
+        "Cycle-1.0.0/contact.html",
+        "Cycle-1.0.0/cycle.html",
+        "Cycle-1.0.0/index.html",
+        "Cycle-1.0.0/news.html"
+      ]
+    },
+    {
+      "slug": "waggy",
+      "sourceName": "waggy-1.0.0.zip",
+      "publicPath": "/store-templates/waggy",
+      "mainPage": "/store-templates/waggy/waggy-1.0.0/index.html",
+      "previewImage": "/store-templates/waggy/waggy-1.0.0/images/banner-img.png",
+      "pageCount": 1,
+      "assetCount": 106,
+      "cssCount": 19,
+      "jsCount": 11,
+      "imageCount": 52,
+      "pages": [
+        "waggy-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "foodmart",
+      "sourceName": "FoodMart-1.0.0.zip",
+      "publicPath": "/store-templates/foodmart",
+      "mainPage": "/store-templates/foodmart/FoodMart-1.0.0/index.html",
+      "previewImage": "/store-templates/foodmart/FoodMart-1.0.0/images/banner-image-1.jpg",
+      "pageCount": 1,
+      "assetCount": 70,
+      "cssCount": 3,
+      "jsCount": 4,
+      "imageCount": 61,
+      "pages": [
+        "FoodMart-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "hexashop",
+      "sourceName": "hexashop-1.0.0.zip",
+      "publicPath": "/store-templates/hexashop",
+      "mainPage": "/store-templates/hexashop/hexashop-1.0.0/index.html",
+      "previewImage": "/store-templates/hexashop/hexashop-1.0.0/assets/images/left-banner-image.jpg",
+      "pageCount": 5,
+      "assetCount": 81,
+      "cssCount": 6,
+      "jsCount": 15,
+      "imageCount": 42,
+      "pages": [
+        "hexashop-1.0.0/about.html",
+        "hexashop-1.0.0/contact.html",
+        "hexashop-1.0.0/index.html",
+        "hexashop-1.0.0/products.html",
+        "hexashop-1.0.0/single-product.html"
+      ]
+    },
+    {
+      "slug": "eflyer",
+      "sourceName": "eflyer-master.zip",
+      "publicPath": "/store-templates/eflyer",
+      "mainPage": "/store-templates/eflyer/eflyer-master/index.html",
+      "previewImage": "/store-templates/eflyer/eflyer-master/images/banner-bg.png",
+      "pageCount": 4,
+      "assetCount": 70,
+      "cssCount": 20,
+      "jsCount": 13,
+      "imageCount": 20,
+      "pages": [
+        "eflyer-master/electronic.html",
+        "eflyer-master/fashion.html",
+        "eflyer-master/index.html",
+        "eflyer-master/jewellery.html"
+      ]
+    },
+    {
+      "slug": "famms",
+      "sourceName": "famms-1.0.0.zip",
+      "publicPath": "/store-templates/famms",
+      "mainPage": "/store-templates/famms/famms-1.0.0/index.html",
+      "previewImage": "/store-templates/famms/famms-1.0.0/images/slider-bg.jpg",
+      "pageCount": 6,
+      "assetCount": 39,
+      "cssCount": 4,
+      "jsCount": 4,
+      "imageCount": 18,
+      "pages": [
+        "famms-1.0.0/about.html",
+        "famms-1.0.0/blog_list.html",
+        "famms-1.0.0/contact.html",
+        "famms-1.0.0/index.html",
+        "famms-1.0.0/product.html",
+        "famms-1.0.0/testimonial.html"
+      ]
+    },
+    {
+      "slug": "stylish",
+      "sourceName": "stylish-1.0.0.zip",
+      "publicPath": "/store-templates/stylish",
+      "mainPage": "/store-templates/stylish/stylish-1.0.0/index.html",
+      "previewImage": "/store-templates/stylish/stylish-1.0.0/images/banner-image3.jpg",
+      "pageCount": 1,
+      "assetCount": 72,
+      "cssCount": 2,
+      "jsCount": 3,
+      "imageCount": 65,
+      "pages": [
+        "stylish-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "freshshop",
+      "sourceName": "freshshop-master.zip",
+      "publicPath": "/store-templates/freshshop",
+      "mainPage": "/store-templates/freshshop/freshshop-master/index.html",
+      "previewImage": "/store-templates/freshshop/freshshop-master/images/banner-01.jpg",
+      "pageCount": 10,
+      "assetCount": 115,
+      "cssCount": 14,
+      "jsCount": 16,
+      "imageCount": 61,
+      "pages": [
+        "freshshop-master/about.html",
+        "freshshop-master/cart.html",
+        "freshshop-master/checkout.html",
+        "freshshop-master/contact-us.html",
+        "freshshop-master/gallery.html",
+        "freshshop-master/index.html",
+        "freshshop-master/my-account.html",
+        "freshshop-master/shop-detail.html",
+        "freshshop-master/shop.html",
+        "freshshop-master/wishlist.html"
+      ]
+    },
+    {
+      "slug": "kaira",
+      "sourceName": "kaira-1.0.0.zip",
+      "publicPath": "/store-templates/kaira",
+      "mainPage": "/store-templates/kaira/kaira-1.0.0/index.html",
+      "previewImage": "/store-templates/kaira/kaira-1.0.0/images/banner-image-1.jpg",
+      "pageCount": 1,
+      "assetCount": 83,
+      "cssCount": 4,
+      "jsCount": 5,
+      "imageCount": 72,
+      "pages": [
+        "kaira-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "caraft",
+      "sourceName": "caraft-1.0.0.zip",
+      "publicPath": "/store-templates/caraft",
+      "mainPage": "/store-templates/caraft/caraft-1.0.0/index.html",
+      "previewImage": "/store-templates/caraft/caraft-1.0.0/images/banner-bg.png",
+      "pageCount": 5,
+      "assetCount": 82,
+      "cssCount": 20,
+      "jsCount": 13,
+      "imageCount": 32,
+      "pages": [
+        "caraft-1.0.0/category.html",
+        "caraft-1.0.0/clients.html",
+        "caraft-1.0.0/contact.html",
+        "caraft-1.0.0/index.html",
+        "caraft-1.0.0/products.html"
+      ]
+    },
+    {
+      "slug": "mellow",
+      "sourceName": "mellow-1.0.0.zip",
+      "publicPath": "/store-templates/mellow",
+      "mainPage": "/store-templates/mellow/mellow-1.0.0/index.html",
+      "previewImage": "/store-templates/mellow/mellow-1.0.0/images/slider-image.jpg",
+      "pageCount": 1,
+      "assetCount": 47,
+      "cssCount": 3,
+      "jsCount": 4,
+      "imageCount": 38,
+      "pages": [
+        "mellow-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "booksaw",
+      "sourceName": "booksaw-1.0.0.zip",
+      "publicPath": "/store-templates/booksaw",
+      "mainPage": "/store-templates/booksaw/booksaw-1.0.0/index.html",
+      "previewImage": "/store-templates/booksaw/booksaw-1.0.0/images/main-banner1.jpg",
+      "pageCount": 1,
+      "assetCount": 67,
+      "cssCount": 4,
+      "jsCount": 6,
+      "imageCount": 50,
+      "pages": [
+        "booksaw-1.0.0/index.html"
+      ]
+    },
+    {
+      "slug": "the-plaza",
+      "sourceName": "theplaza-1.0.0.zip",
+      "publicPath": "/store-templates/the-plaza",
+      "mainPage": "/store-templates/the-plaza/theplaza-1.0.0/index.html",
+      "previewImage": "/store-templates/the-plaza/theplaza-1.0.0/img/slider-img.png",
+      "pageCount": 6,
+      "assetCount": 76,
+      "cssCount": 5,
+      "jsCount": 8,
+      "imageCount": 50,
+      "pages": [
+        "theplaza-1.0.0/cart.html",
+        "theplaza-1.0.0/categorie.html",
+        "theplaza-1.0.0/checkout.html",
+        "theplaza-1.0.0/contact.html",
+        "theplaza-1.0.0/index.html",
+        "theplaza-1.0.0/product.html"
+      ]
+    },
+    {
+      "slug": "bloom",
+      "sourceName": "bloomtpl-1.0.0.zip",
+      "publicPath": "/store-templates/bloom",
+      "mainPage": null,
+      "previewImage": "/store-templates/bloom/bloomtpl-1.0.0/public/images/NoImage.jpg",
+      "pageCount": 0,
+      "assetCount": 42,
+      "cssCount": 1,
+      "jsCount": 1,
+      "imageCount": 1,
+      "pages": []
+    }
+  ],
+  "missing": [],
+  "failed": []
+}

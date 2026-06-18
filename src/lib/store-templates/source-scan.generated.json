@@ -1,0 +1,240 @@
+{
+  "generatedAt": "2026-05-07T21:19:54.415Z",
+  "sources": [
+    {
+      "sourcePath": "/store-templates/generated/shopinbos-boutique",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-03-20T13:02:09.408Z"
+    },
+    {
+      "sourcePath": "/store-templates/generated/happy-box",
+      "exists": true,
+      "kind": "directory",
+      "updatedAt": "2026-05-07T19:02:30.785Z",
+      "previewEntries": [
+        "Happy box"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/bloom",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:13:36.504Z",
+      "previewEntries": [
+        "bloomtpl-1.0.0/",
+        "bloomtpl-1.0.0/.github/",
+        "bloomtpl-1.0.0/.github/workflows/",
+        "bloomtpl-1.0.0/.github/workflows/action.yml",
+        "bloomtpl-1.0.0/.gitignore",
+        "bloomtpl-1.0.0/README.md",
+        "bloomtpl-1.0.0/app/",
+        "bloomtpl-1.0.0/app/cart/",
+        "bloomtpl-1.0.0/app/cart/page.tsx",
+        "bloomtpl-1.0.0/app/contact/",
+        "bloomtpl-1.0.0/app/contact/page.tsx",
+        "bloomtpl-1.0.0/app/globals.css"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/kaira/kaira-1.0.0/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:16:13.740Z",
+      "previewEntries": [
+        "kaira-1.0.0/",
+        "kaira-1.0.0/css/",
+        "kaira-1.0.0/css/ajax-loader.gif",
+        "kaira-1.0.0/css/normalize.css",
+        "kaira-1.0.0/css/swiper-bundle.min.css",
+        "kaira-1.0.0/css/vendor.css",
+        "kaira-1.0.0/images/",
+        "kaira-1.0.0/images/arct-icon.png",
+        "kaira-1.0.0/images/banner-image-1.jpg",
+        "kaira-1.0.0/images/banner-image-2.jpg",
+        "kaira-1.0.0/images/banner-image-3.jpg",
+        "kaira-1.0.0/images/banner-image-4.jpg"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/foodmart/FoodMart-1.0.0/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:16:58.615Z",
+      "previewEntries": [
+        "FoodMart-1.0.0/",
+        "FoodMart-1.0.0/css/",
+        "FoodMart-1.0.0/css/ajax-loader.gif",
+        "FoodMart-1.0.0/css/normalize.css",
+        "FoodMart-1.0.0/css/vendor.css",
+        "FoodMart-1.0.0/images/",
+        "FoodMart-1.0.0/images/ad-bg-pattern.png",
+        "FoodMart-1.0.0/images/ad-image-1.png",
+        "FoodMart-1.0.0/images/ad-image-2.png",
+        "FoodMart-1.0.0/images/ad-image-3.png",
+        "FoodMart-1.0.0/images/ad-image-4.png",
+        "FoodMart-1.0.0/images/app-store.jpg"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/famms/famms-1.0.0/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:18:22.835Z",
+      "previewEntries": [
+        "famms-1.0.0/",
+        "famms-1.0.0/.DS_Store",
+        "famms-1.0.0/.gitattributes",
+        "famms-1.0.0/about.html",
+        "famms-1.0.0/blog_list.html",
+        "famms-1.0.0/contact.html",
+        "famms-1.0.0/css/",
+        "famms-1.0.0/css/bootstrap.css",
+        "famms-1.0.0/css/font-awesome.min.css",
+        "famms-1.0.0/css/responsive.css",
+        "famms-1.0.0/css/style.css",
+        "famms-1.0.0/css/style.css.map"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/freshshop/freshshop-master/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:20:24.717Z",
+      "previewEntries": [
+        "freshshop-master/",
+        "freshshop-master/about.html",
+        "freshshop-master/cart.html",
+        "freshshop-master/checkout.html",
+        "freshshop-master/contact-us.html",
+        "freshshop-master/css/",
+        "freshshop-master/css/all.css",
+        "freshshop-master/css/animate.css",
+        "freshshop-master/css/baguetteBox.min.css",
+        "freshshop-master/css/bootsnav.css",
+        "freshshop-master/css/bootstrap-select.css",
+        "freshshop-master/css/bootstrap.min.css"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/generated/electro",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:15:56.967Z",
+      "previewEntries": [
+        "Electro-Bootstrap-1.0.0/",
+        "Electro-Bootstrap-1.0.0/404.html",
+        "Electro-Bootstrap-1.0.0/LICENSE.txt",
+        "Electro-Bootstrap-1.0.0/READ-ME.txt",
+        "Electro-Bootstrap-1.0.0/README.md",
+        "Electro-Bootstrap-1.0.0/bestseller.html",
+        "Electro-Bootstrap-1.0.0/cart.html",
+        "Electro-Bootstrap-1.0.0/cheackout.html",
+        "Electro-Bootstrap-1.0.0/contact.html",
+        "Electro-Bootstrap-1.0.0/css/",
+        "Electro-Bootstrap-1.0.0/css/bootstrap.min.css",
+        "Electro-Bootstrap-1.0.0/css/style.css"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/furnish/furnish-1.0.0/src/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:14:50.525Z",
+      "previewEntries": [
+        "furnish-1.0.0/",
+        "furnish-1.0.0/.DS_Store",
+        "furnish-1.0.0/.github/",
+        "furnish-1.0.0/.github/workflows/",
+        "furnish-1.0.0/.github/workflows/action.yml",
+        "furnish-1.0.0/.gitignore",
+        "furnish-1.0.0/README.md",
+        "furnish-1.0.0/package-lock.json",
+        "furnish-1.0.0/package.json",
+        "furnish-1.0.0/src/",
+        "furnish-1.0.0/src/about.html",
+        "furnish-1.0.0/src/assets/"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/booksaw/booksaw-1.0.0/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:17:08.826Z",
+      "previewEntries": [
+        "booksaw-1.0.0/",
+        "booksaw-1.0.0/css/",
+        "booksaw-1.0.0/css/ajax-loader.gif",
+        "booksaw-1.0.0/css/normalize.css",
+        "booksaw-1.0.0/css/vendor.css",
+        "booksaw-1.0.0/icomoon/",
+        "booksaw-1.0.0/icomoon/Read Me.txt",
+        "booksaw-1.0.0/icomoon/fonts/",
+        "booksaw-1.0.0/icomoon/fonts/icomoon.eot",
+        "booksaw-1.0.0/icomoon/fonts/icomoon.svg",
+        "booksaw-1.0.0/icomoon/fonts/icomoon.ttf",
+        "booksaw-1.0.0/icomoon/fonts/icomoon.woff"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/bookly/Bookly-1.0.0/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:17:17.592Z",
+      "previewEntries": [
+        "Bookly-1.0.0/",
+        "Bookly-1.0.0/css/",
+        "Bookly-1.0.0/css/ajax-loader.gif",
+        "Bookly-1.0.0/css/vendor.css",
+        "Bookly-1.0.0/images/",
+        "Bookly-1.0.0/images/banner-image-bg-1.jpg",
+        "Bookly-1.0.0/images/banner-image-bg-2.jpg",
+        "Bookly-1.0.0/images/banner-image-bg.jpg",
+        "Bookly-1.0.0/images/banner-image.png",
+        "Bookly-1.0.0/images/banner-image1.png",
+        "Bookly-1.0.0/images/banner-image2.png",
+        "Bookly-1.0.0/images/banner-image3.png"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/waggy/waggy-1.0.0/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:17:28.418Z",
+      "previewEntries": [
+        "waggy-1.0.0/",
+        "waggy-1.0.0/assets/",
+        "waggy-1.0.0/assets/vendor/",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.css",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.css.map",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.min.css",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.min.css.map",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.rtl.css",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.rtl.css.map",
+        "waggy-1.0.0/assets/vendor/bootstrap-5.1.3/css/bootstrap-grid.rtl.min.css"
+      ]
+    },
+    {
+      "sourcePath": "/store-templates/ogani/ogani-master/index.html",
+      "exists": true,
+      "kind": "file",
+      "updatedAt": "2026-05-07T20:19:07.985Z",
+      "previewEntries": [
+        "ogani-master/",
+        "ogani-master/Source/",
+        "ogani-master/Source/OwlCarousel2-2.3.4.zip",
+        "ogani-master/Source/SlickNav-master.zip",
+        "ogani-master/Source/bootstrap-4.4.1-dist.zip",
+        "ogani-master/Source/font-awesome-4.7.0.zip",
+        "ogani-master/Source/jquery-nice-select-1.1.0.zip",
+        "ogani-master/Source/jquery-ui-1.12.1.zip",
+        "ogani-master/Source/sass.zip",
+        "ogani-master/blog-details.html",
+        "ogani-master/blog.html",
+        "ogani-master/checkout.html"
+      ]
+    }
+  ]
+}

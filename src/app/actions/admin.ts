@@ -1,0 +1,351 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
+import { db } from "@/lib/db/client";
+import { requireRole } from "@/lib/server-auth";
+
+const VerificationStatusSchema = z.enum(["unverified", "pending", "verified", "rejected", "suspended"]);
+const ProductStatusSchema = z.enum(["draft", "pending_review", "published", "unpublished", "rejected"]);
+
+function getRedirectPath(formData: FormData, fallback: string) {
+  const value = String(formData.get("redirectTo") || fallback);
+  return value.startsWith("/") ? value : fallback;
+}
+
+function cleanValue(value: FormDataEntryValue | null) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
+function toSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function revalidateAdminPaths(...paths: string[]) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/dashboard");
+  for (const path of paths) {
+    revalidatePath(path);
+  }
+}
+
+async function requireAdmin() {
+  return requireRole(["admin"], "/admin/login");
+}
+
+export async function updateSupplierVerification(formData: FormData) {
+  await requireAdmin();
+  const supplierId = formData.get("supplierId");
+  const status = formData.get("status");
+  const trustScore = formData.get("trustScore");
+
+  const parsed = z.object({
+    supplierId: z.string().min(1),
+    status: VerificationStatusSchema,
+  }).safeParse({ supplierId, status });
+
+  if (!parsed.success) redirect(getRedirectPath(formData, "/admin/suppliers"));
+
+  const parsedTrustScore = z.coerce.number().int().min(0).max(100).safeParse(trustScore);
+
+  const supplier = await db.supplier.update({
+    where: { id: parsed.data.supplierId },
+    data: {
+      verificationStatus: parsed.data.status,
+      status: parsed.data.status === "suspended" ? "suspended" : "active",
+      ...(parsedTrustScore.success ? { trustScore: parsedTrustScore.data } : {}),
+    },
+    select: { slug: true },
+  }).catch(() => null);
+
+  if (supplier) {
+    invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+    revalidateAdminPaths("/admin/suppliers", "/admin/marketplace");
+  }
+
+  redirect(getRedirectPath(formData, "/admin/suppliers"));
+}
+
+export async function updateLogisticsVerification(formData: FormData) {
+  await requireAdmin();
+  const logisticsPartnerId = formData.get("logisticsPartnerId");
+  const status = formData.get("status");
+  const reliabilityScore = formData.get("reliabilityScore");
+
+  const parsed = z.object({
+    logisticsPartnerId: z.string().min(1),
+    status: VerificationStatusSchema,
+  }).safeParse({ logisticsPartnerId, status });
+
+  if (!parsed.success) redirect(getRedirectPath(formData, "/admin/logistics-partners"));
+
+  const parsedScore = z.coerce.number().int().min(0).max(100).safeParse(reliabilityScore);
+
+  const partner = await db.logisticsPartner.update({
+    where: { id: parsed.data.logisticsPartnerId },
+    data: {
+      verificationStatus: parsed.data.status,
+      status: parsed.data.status === "suspended" ? "suspended" : "active",
+      ...(parsedScore.success ? { reliabilityScore: parsedScore.data } : {}),
+    },
+    select: { slug: true },
+  }).catch(() => null);
+
+  if (partner) {
+    invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
+    revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");
+  }
+
+  redirect(getRedirectPath(formData, "/admin/logistics-partners"));
+}
+
+export async function updateSupplierProductStatus(formData: FormData) {
+  await requireAdmin();
+  const productId = formData.get("productId");
+  const status = formData.get("status");
+
+  const parsed = z.object({
+    productId: z.string().min(1),
+    status: ProductStatusSchema,
+  }).safeParse({ productId, status });
+
+  if (!parsed.success) redirect(getRedirectPath(formData, "/admin/supplier-products"));
+
+  const product = await db.supplierProduct.update({
+    where: { id: parsed.data.productId },
+    data: { status: parsed.data.status },
+    select: {
+      slug: true,
+      supplier: { select: { slug: true } },
+      category: { select: { slug: true } },
+    },
+  }).catch(() => null);
+
+  if (product) {
+    invalidatePublicMarketplaceCache({
+      productSlug: product.slug,
+      supplierSlug: product.supplier.slug,
+      categorySlug: product.category.slug,
+    });
+    revalidateAdminPaths("/admin/supplier-products", "/admin/marketplace");
+  }
+
+  redirect(getRedirectPath(formData, "/admin/supplier-products"));
+}
+
+export async function updateSupplierProductTrend(formData: FormData) {
+  await requireAdmin();
+  const productId = formData.get("productId");
+  const trendScore = formData.get("trendScore");
+
+  const parsedId = z.string().min(1).safeParse(productId);
+  const parsedScore = z.coerce.number().int().min(0).max(1000).safeParse(trendScore);
+
+  if (!parsedId.success || !parsedScore.success) redirect(getRedirectPath(formData, "/admin/supplier-products"));
+
+  const product = await db.supplierProduct.update({
+    where: { id: parsedId.data },
+    data: { trendScore: parsedScore.data },
+    select: {
+      slug: true,
+      supplier: { select: { slug: true } },
+      category: { select: { slug: true } },
+    },
+  }).catch(() => null);
+
+  if (product) {
+    invalidatePublicMarketplaceCache({
+      productSlug: product.slug,
+      supplierSlug: product.supplier.slug,
+      categorySlug: product.category.slug,
+    });
+    revalidateAdminPaths("/admin/supplier-products", "/admin/marketplace");
+  }
+
+  redirect(getRedirectPath(formData, "/admin/supplier-products"));
+}
+
+export async function upsertCategory(formData: FormData) {
+  await requireAdmin();
+  const name = cleanValue(formData.get("name"));
+
+  const parsed = z.object({
+    name: z.string().min(1).max(120),
+    slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/).optional(),
+    description: z.string().max(500).nullable().optional(),
+    imageUrl: z.string().max(500).nullable().optional(),
+    parentId: z.string().nullable().optional(),
+    sortOrder: z.coerce.number().int().min(0).max(10000).default(0),
+  }).safeParse({
+    name,
+    slug: cleanValue(formData.get("slug")),
+    description: cleanValue(formData.get("description")),
+    imageUrl: cleanValue(formData.get("imageUrl")),
+    parentId: cleanValue(formData.get("parentId")),
+    sortOrder: formData.get("sortOrder"),
+  });
+
+  const redirectTo = getRedirectPath(formData, "/admin/categories");
+  if (!parsed.success) redirect(redirectTo);
+
+  const redirectTarget = getRedirectPath(formData, "/admin/categories");
+  const data = parsed.data;
+  const slug = data.slug || toSlug(data.name);
+
+  const categoryId = cleanValue(formData.get("categoryId"));
+  const existing = categoryId
+    ? await db.category.findUnique({ where: { id: categoryId }, select: { slug: true } })
+    : null;
+
+  const category = categoryId
+    ? await db.category.update({
+        where: { id: categoryId },
+        data: {
+          name: data.name,
+          slug,
+          description: formData.has("description") ? data.description : undefined,
+          imageUrl: formData.has("imageUrl") ? data.imageUrl : undefined,
+          parentId: data.parentId ?? undefined,
+          sortOrder: data.sortOrder,
+        },
+        select: { slug: true },
+      }).catch(() => null)
+    : await db.category.create({
+        data: {
+          name: data.name,
+          slug,
+          description: data.description ?? undefined,
+          imageUrl: data.imageUrl ?? undefined,
+          parentId: data.parentId ?? undefined,
+          sortOrder: data.sortOrder,
+        },
+        select: { slug: true },
+      }).catch(() => null);
+
+  if (category) {
+    if (existing?.slug) {
+      invalidatePublicMarketplaceCache({ categorySlug: existing.slug });
+    }
+    invalidatePublicMarketplaceCache({ categorySlug: category.slug });
+    revalidateAdminPaths("/admin/categories", "/admin/marketplace");
+  }
+
+  redirect(redirectTarget);
+}
+
+export async function updateUserVerification(formData: FormData) {
+  await requireAdmin();
+  const userId = formData.get("userId");
+  const status = formData.get("status");
+
+  const parsed = z.object({
+    userId: z.string().min(1),
+    status: VerificationStatusSchema,
+  }).safeParse({ userId, status });
+
+  if (!parsed.success) redirect(getRedirectPath(formData, "/admin/dashboard"));
+
+  await db.user.update({
+    where: { id: parsed.data.userId },
+    data: { verificationStatus: parsed.data.status },
+  }).catch(() => null);
+
+  revalidateAdminPaths("/admin/dashboard");
+  redirect(getRedirectPath(formData, "/admin/dashboard"));
+}
+
+// ─── Bulk Moderation Actions ───────────────────────────────────────────────
+
+export async function bulkUpdateSupplierProductStatus(formData: FormData) {
+  await requireAdmin();
+  const ids = formData.getAll("productIds").map(String).filter(Boolean);
+  const status = formData.get("status");
+
+  const parsedStatus = ProductStatusSchema.safeParse(status);
+  if (ids.length === 0 || !parsedStatus.success) redirect(getRedirectPath(formData, "/admin/supplier-products"));
+
+  await db.supplierProduct.updateMany({
+    where: { id: { in: ids } },
+    data: { status: parsedStatus.data },
+  }).catch(() => null);
+
+  const updated = await db.supplierProduct.findMany({
+    where: { id: { in: ids } },
+    select: { slug: true, supplier: { select: { slug: true } }, category: { select: { slug: true } } },
+  });
+
+  for (const product of updated) {
+    invalidatePublicMarketplaceCache({
+      productSlug: product.slug,
+      supplierSlug: product.supplier.slug,
+      categorySlug: product.category.slug,
+    });
+  }
+
+  revalidateAdminPaths("/admin/supplier-products", "/admin/marketplace");
+  redirect(getRedirectPath(formData, "/admin/supplier-products"));
+}
+
+export async function bulkUpdateSupplierVerification(formData: FormData) {
+  await requireAdmin();
+  const ids = formData.getAll("supplierIds").map(String).filter(Boolean);
+  const status = formData.get("status");
+
+  const parsedStatus = VerificationStatusSchema.safeParse(status);
+  if (ids.length === 0 || !parsedStatus.success) redirect(getRedirectPath(formData, "/admin/suppliers"));
+
+  await db.supplier.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      verificationStatus: parsedStatus.data,
+      status: parsedStatus.data === "suspended" ? "suspended" : "active",
+    },
+  }).catch(() => null);
+
+  const updated = await db.supplier.findMany({
+    where: { id: { in: ids } },
+    select: { slug: true },
+  });
+
+  for (const supplier of updated) {
+    invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+  }
+
+  revalidateAdminPaths("/admin/suppliers", "/admin/marketplace");
+  redirect(getRedirectPath(formData, "/admin/suppliers"));
+}
+
+export async function bulkUpdateLogisticsVerification(formData: FormData) {
+  await requireAdmin();
+  const ids = formData.getAll("logisticsPartnerIds").map(String).filter(Boolean);
+  const status = formData.get("status");
+
+  const parsedStatus = VerificationStatusSchema.safeParse(status);
+  if (ids.length === 0 || !parsedStatus.success) redirect(getRedirectPath(formData, "/admin/logistics-partners"));
+
+  await db.logisticsPartner.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      verificationStatus: parsedStatus.data,
+      status: parsedStatus.data === "suspended" ? "suspended" : "active",
+    },
+  }).catch(() => null);
+
+  const updated = await db.logisticsPartner.findMany({
+    where: { id: { in: ids } },
+    select: { slug: true },
+  });
+
+  for (const partner of updated) {
+    invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
+  }
+
+  revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");
+  redirect(getRedirectPath(formData, "/admin/logistics-partners"));
+}

@@ -1,0 +1,642 @@
+openapi: 3.1.0
+info:
+  title: Shopinbos Public Marketplace API
+  version: 1.0.0
+  description: >
+    Read-only public API for WordPress and other safe marketplace clients. New
+    clients should use the canonical /api/v1/public namespace; /api/public is
+    retained as a legacy compatibility alias. The Shopinbos app database
+    remains the source of truth.
+x-canonical-base-path: /api/v1/public
+x-legacy-base-path: /api/public
+servers:
+  - url: https://app.shopinbos.com
+    description: Production app
+  - url: http://localhost:3000
+    description: Local Next.js app
+tags:
+  - name: Health
+  - name: Products
+  - name: Suppliers
+  - name: Logistics
+  - name: Categories
+paths:
+  /api/v1/public/health:
+    $ref: "#/paths/~1api~1public~1health"
+
+  /api/v1/public/products:
+    $ref: "#/paths/~1api~1public~1products"
+
+  /api/v1/public/products/search:
+    $ref: "#/paths/~1api~1public~1products~1search"
+
+  /api/v1/public/products/trending:
+    $ref: "#/paths/~1api~1public~1products~1trending"
+
+  /api/v1/public/products/category/{categorySlug}:
+    $ref: "#/paths/~1api~1public~1products~1category~1{categorySlug}"
+
+  /api/v1/public/products/{slug}:
+    $ref: "#/paths/~1api~1public~1products~1{slug}"
+
+  /api/v1/public/suppliers:
+    $ref: "#/paths/~1api~1public~1suppliers"
+
+  /api/v1/public/suppliers/search:
+    $ref: "#/paths/~1api~1public~1suppliers~1search"
+
+  /api/v1/public/suppliers/{slug}:
+    $ref: "#/paths/~1api~1public~1suppliers~1{slug}"
+
+  /api/v1/public/logistics/partners:
+    $ref: "#/paths/~1api~1public~1logistics~1partners"
+
+  /api/v1/public/logistics/partners/search:
+    $ref: "#/paths/~1api~1public~1logistics~1partners~1search"
+
+  /api/v1/public/logistics/partners/{slug}:
+    $ref: "#/paths/~1api~1public~1logistics~1partners~1{slug}"
+
+  /api/v1/public/categories:
+    $ref: "#/paths/~1api~1public~1categories"
+
+  /api/v1/public/categories/{slug}:
+    $ref: "#/paths/~1api~1public~1categories~1{slug}"
+
+  /api/public/health:
+    get:
+      tags: [Health]
+      summary: Public API health check
+      responses:
+        "200":
+          description: API status
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/public/products:
+    get:
+      tags: [Products]
+      summary: List published marketplace products
+      description: Returns only published products whose suppliers are verified and active.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [trending, newest, margin, price_low, price_high, moq_low]
+            default: trending
+        - name: category
+          in: query
+          schema: { type: string }
+          description: Category slug.
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: minPrice
+          in: query
+          schema: { type: number }
+        - name: maxPrice
+          in: query
+          schema: { type: number }
+        - name: dropship
+          in: query
+          schema: { type: boolean }
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 200 }
+          description: Case-insensitive product name search.
+      responses:
+        "200":
+          $ref: "#/components/responses/ProductList"
+
+  /api/public/products/search:
+    get:
+      tags: [Products]
+      summary: Search published products
+      description: Alias of /api/public/products using the q filter.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          $ref: "#/components/responses/ProductList"
+
+  /api/public/products/trending:
+    get:
+      tags: [Products]
+      summary: List trending published products
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+      responses:
+        "200":
+          $ref: "#/components/responses/ProductList"
+
+  /api/public/products/category/{categorySlug}:
+    get:
+      tags: [Products]
+      summary: List published products in a category
+      parameters:
+        - name: categorySlug
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [trending, newest, margin, price_low, price_high, moq_low]
+            default: trending
+      responses:
+        "200":
+          $ref: "#/components/responses/ProductList"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/public/products/{slug}:
+    get:
+      tags: [Products]
+      summary: Get a published product by slug
+      description: Slugs are stable after publishing. Slug alias support is not modeled yet; see SHOPINBOS_APP_SYNC.md.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Product detail
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=600, stale-while-revalidate=1200
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Product"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/public/suppliers:
+    get:
+      tags: [Suppliers]
+      summary: List verified active suppliers
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [trust_score, rating, newest, name]
+            default: trust_score
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: businessType
+          in: query
+          schema:
+            type: string
+            enum: [manufacturer, wholesaler, importer, dropshipper]
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          $ref: "#/components/responses/SupplierList"
+
+  /api/public/suppliers/search:
+    get:
+      tags: [Suppliers]
+      summary: Search verified active suppliers
+      description: Alias of /api/public/suppliers using the q filter.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          $ref: "#/components/responses/SupplierList"
+
+  /api/public/suppliers/{slug}:
+    get:
+      tags: [Suppliers]
+      summary: Get a verified active supplier by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Supplier detail
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=600, stale-while-revalidate=1200
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Supplier"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/public/logistics/partners:
+    get:
+      tags: [Logistics]
+      summary: List verified active logistics partners
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [reliability, rating, newest, price_low, price_high]
+            default: reliability
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: zone
+          in: query
+          schema: { type: string }
+        - name: vehicleType
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          $ref: "#/components/responses/LogisticsList"
+
+  /api/public/logistics/partners/search:
+    get:
+      tags: [Logistics]
+      summary: Search verified active logistics partners
+      description: Alias of /api/public/logistics/partners using the q filter.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          $ref: "#/components/responses/LogisticsList"
+
+  /api/public/logistics/partners/{slug}:
+    get:
+      tags: [Logistics]
+      summary: Get a verified active logistics partner by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Logistics partner detail
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=600, stale-while-revalidate=1200
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LogisticsPartner"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/public/categories:
+    get:
+      tags: [Categories]
+      summary: List marketplace categories
+      parameters:
+        - name: rootOnly
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          $ref: "#/components/responses/CategoryList"
+
+  /api/public/categories/{slug}:
+    get:
+      tags: [Categories]
+      summary: Get category detail by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Category detail
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=600, stale-while-revalidate=1200
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Category"
+        "404":
+          $ref: "#/components/responses/Error"
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    ProductList:
+      description: Paginated product list
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: public, max-age=300, stale-while-revalidate=600
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, pagination]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+              pagination:
+                $ref: "#/components/schemas/Pagination"
+    SupplierList:
+      description: Paginated supplier list
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: public, max-age=300, stale-while-revalidate=600
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, pagination]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+              pagination:
+                $ref: "#/components/schemas/Pagination"
+    LogisticsList:
+      description: Paginated logistics partner list
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: public, max-age=300, stale-while-revalidate=600
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, pagination]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LogisticsPartner"
+              pagination:
+                $ref: "#/components/schemas/Pagination"
+    CategoryList:
+      description: Category list
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: public, max-age=300, stale-while-revalidate=600
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, pagination]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+              pagination:
+                $ref: "#/components/schemas/Pagination"
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    Pagination:
+      type: object
+      required: [page, limit, total, totalPages, hasNextPage, hasPreviousPage]
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+        hasNextPage: { type: boolean }
+        hasPreviousPage: { type: boolean }
+    Product:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        images:
+          type: array
+          items: { type: string }
+        wholesalePrice: { type: number }
+        wholesalePriceTo: { type: [number, "null"] }
+        suggestedRetailPrice: { type: number }
+        currency: { type: string, example: NGN }
+        moq: { type: integer }
+        stockQuantity: { type: integer }
+        dropshipAvailable: { type: boolean }
+        bulkOrderAvailable: { type: boolean }
+        sampleAvailable: { type: boolean }
+        deliveryRegions:
+          type: array
+          items: { type: string }
+        processingTime: { type: [string, "null"] }
+        trendScore: { type: number }
+        supplier:
+          $ref: "#/components/schemas/SupplierSummary"
+        category:
+          $ref: "#/components/schemas/CategorySummary"
+    Supplier:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string }
+        businessName: { type: string }
+        displayName: { type: string }
+        slug: { type: string }
+        description: { type: [string, "null"] }
+        logoUrl: { type: [string, "null"] }
+        bannerUrl: { type: [string, "null"] }
+        country: { type: string }
+        city: { type: string }
+        businessType:
+          type: string
+          enum: [manufacturer, wholesaler, importer, dropshipper]
+        categories:
+          type: array
+          items: { type: string }
+        rating: { type: number }
+        ratingCount: { type: integer }
+        trustScore: { type: integer }
+        responseTimeLabel: { type: [string, "null"] }
+    SupplierSummary:
+      type: object
+      properties:
+        id: { type: string }
+        businessName: { type: string }
+        displayName: { type: string }
+        slug: { type: string }
+        country: { type: string }
+        city: { type: string }
+        rating: { type: number }
+        trustScore: { type: integer }
+        logoUrl: { type: [string, "null"] }
+    LogisticsPartner:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string }
+        companyName: { type: string }
+        displayName: { type: string }
+        slug: { type: string }
+        description: { type: [string, "null"] }
+        logoUrl: { type: [string, "null"] }
+        country: { type: string }
+        city: { type: string }
+        coverageZones:
+          type: array
+          items: { type: string }
+        vehicleTypes:
+          type: array
+          items: { type: string }
+        deliveryTypes:
+          type: array
+          items: { type: string }
+        pricingModel: { type: string }
+        basePrice: { type: number }
+        estimatedSpeed: { type: [string, "null"] }
+        rating: { type: number }
+        ratingCount: { type: integer }
+        reliabilityScore: { type: integer }
+    Category:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: [string, "null"] }
+        imageUrl: { type: [string, "null"] }
+        parentId: { type: [string, "null"] }
+        sortOrder: { type: integer }
+    CategorySummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+    HealthResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [status, service, version, readOnly, timestamp]
+          properties:
+            status: { type: string, enum: [ok] }
+            service: { type: string }
+            version: { type: string }
+            readOnly: { type: boolean }
+            timestamp: { type: string, format: date-time }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+x-cors:
+  allowedOrigins:
+    - https://shopinbos.com
+    - https://www.shopinbos.com
+    - http://localhost:3000
+    - http://localhost:8080
+  allowedMethods: [GET, OPTIONS]
+  blockedOriginBehavior: Unknown origins receive no Access-Control-Allow-Origin header.
+x-security:
+  publicDataOnly: >
+    Public endpoints must not expose private user data, order data, quote data,
+    admin notes, contact details, bank details, KYC data, or unpublished records.

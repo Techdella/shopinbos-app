@@ -1,0 +1,330 @@
+"use server";
+
+import {
+  getAnthropicClient,
+  getOpenAIClient,
+  PEGGY_CLAUDE_MODEL,
+  PEGGY_OPENAI_MODEL,
+} from "@/lib/ai/client";
+import { db } from "@/lib/db/client";
+import { requireRole } from "@/lib/server-auth";
+import { getSellerWorkspace } from "@/lib/workspace";
+
+function fmtMoney(amount: number, currency = "NGN") {
+  return `${currency} ${amount.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
+}
+
+function orderItemCount(items: unknown) {
+  return Array.isArray(items) ? items.length : 0;
+}
+
+async function buildSellerSnapshot(userId: string) {
+  const workspace = await getSellerWorkspace(userId);
+  const store = workspace?.store ?? null;
+
+  const retailOrders = store
+    ? await db.retailOrder.findMany({
+        where: { storeId: store.id },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      })
+    : [];
+
+  const unreadMessages = await db.message.count({
+    where: {
+      read: false,
+      senderId: { not: userId },
+      conversation: {
+        OR: [{ participant1Id: userId }, { participant2Id: userId }],
+      },
+    },
+  });
+
+  const paidStatuses = ["paid", "processing", "shipped", "delivered"];
+  const revenue = retailOrders
+    .filter((order) => paidStatuses.includes(order.status))
+    .reduce((sum, order) => sum + Number(order.total), 0);
+
+  const products = workspace?.storeProducts ?? [];
+  const publishedProducts = products.filter((product) => ["published", "active"].includes(product.status));
+  const lowStockProducts = products.filter((product) => {
+    const stock = product.supplierProduct?.stockQuantity;
+    return typeof stock === "number" && stock > 0 && stock <= 5;
+  });
+
+  return {
+    store: store
+      ? {
+          id: store.id,
+          name: store.name,
+          slug: store.slug,
+          status: store.status,
+          currency: store.currency,
+          customDomain: store.customDomain,
+        }
+      : null,
+    products: {
+      total: products.length,
+      published: publishedProducts.length,
+      drafts: products.filter((product) => product.status === "draft").length,
+      lowStock: lowStockProducts.length,
+      recent: products.slice(0, 8).map((product) => ({
+        name: product.name,
+        status: product.status,
+        price: fmtMoney(Number(product.retailPrice), product.currency),
+        fulfillmentType: product.fulfillmentType,
+        supplier: product.supplierProduct?.supplier?.displayName ?? null,
+        stock: product.supplierProduct?.stockQuantity ?? null,
+      })),
+    },
+    orders: {
+      total: retailOrders.length,
+      revenue: fmtMoney(revenue, store?.currency ?? "NGN"),
+      pending: retailOrders.filter((order) => order.status === "pending").length,
+      processing: retailOrders.filter((order) => order.status === "processing").length,
+      shipped: retailOrders.filter((order) => order.status === "shipped").length,
+      recent: retailOrders.slice(0, 8).map((order) => ({
+        orderNumber: order.orderNumber,
+        buyerName: order.buyerName,
+        total: fmtMoney(Number(order.total), order.currency),
+        status: order.status,
+        itemCount: orderItemCount(order.items),
+        createdAt: order.createdAt.toISOString(),
+      })),
+    },
+    sourcing: {
+      wholesaleOrders: (workspace?.wholesaleOrders ?? []).map((order) => ({
+        product: order.supplierProduct.name,
+        supplier: order.supplier.displayName,
+        quantity: order.quantity,
+        status: order.status,
+        total: fmtMoney(Number(order.totalPrice), order.currency),
+      })),
+      recommendedProducts: (workspace?.trendingProducts ?? []).map((product) => ({
+        name: product.name,
+        supplier: product.supplier.displayName,
+        category: product.category.name,
+        wholesalePrice: fmtMoney(Number(product.wholesalePrice), product.currency),
+        suggestedRetailPrice: fmtMoney(Number(product.suggestedRetailPrice), product.currency),
+        stock: product.stockQuantity,
+        dropshipAvailable: product.dropshipAvailable,
+      })),
+      suppliers: (workspace?.suppliers ?? []).map((supplier) => ({
+        name: supplier.displayName,
+        city: supplier.city,
+        country: supplier.country,
+        rating: supplier.rating,
+        trustScore: supplier.trustScore,
+      })),
+    },
+    logistics: {
+      bookings: (workspace?.deliveryBookings ?? []).map((booking) => ({
+        partner: booking.logisticsPartner.displayName,
+        destination: booking.destination,
+        status: booking.status,
+        trackingCode: booking.trackingCode,
+        fee: fmtMoney(Number(booking.deliveryFee), booking.currency),
+      })),
+      quoteRequests: (workspace?.deliveryQuotes ?? []).map((quote) => ({
+        partner: quote.logisticsPartner.displayName,
+        destination: quote.destination,
+        status: quote.status,
+        quotedPrice: quote.quotedPrice ? fmtMoney(Number(quote.quotedPrice)) : null,
+      })),
+      partners: (workspace?.logisticsPartners ?? []).map((partner) => ({
+        name: partner.displayName,
+        city: partner.city,
+        zones: partner.coverageZones,
+        reliabilityScore: partner.reliabilityScore,
+        rating: partner.rating,
+      })),
+    },
+    messages: {
+      unread: unreadMessages,
+    },
+  };
+}
+
+function greetingFor(name: string, snapshot: Awaited<ReturnType<typeof buildSellerSnapshot>>) {
+  const firstName = name.split(" ")[0] || "there";
+  return `Hi ${firstName}. I am Peggy. I can see ${snapshot.store?.name ?? "your store"} has ${snapshot.products.total} product${snapshot.products.total === 1 ? "" : "s"}, ${snapshot.orders.total} recent order${snapshot.orders.total === 1 ? "" : "s"}, ${snapshot.sourcing.recommendedProducts.length} sourcing option${snapshot.sourcing.recommendedProducts.length === 1 ? "" : "s"}, and ${snapshot.logistics.partners.length} logistics partner${snapshot.logistics.partners.length === 1 ? "" : "s"} available. Ask me about orders, product pages, import/export, sourcing, supplier chats, or delivery status.`;
+}
+
+function sellerSystemPrompt(snapshot: Awaited<ReturnType<typeof buildSellerSnapshot>>, assistantName: "Peggy" | "Rex") {
+  return `You are ${assistantName}, a practical AI commerce assistant for Shopinbos.
+Use only the live workspace data below when discussing store status, product pages, orders, import/export, sourcing, supplier chats, and logistics.
+If a user asks for data that is not present, say what is missing and point them to the relevant app area instead of inventing it.
+Keep replies concise, operational, and specific. Use plain app paths when useful: /products, /products/import, /home/orders, /marketplace, /home/logistics, /home/peggy.
+
+Live workspace snapshot:
+${JSON.stringify(snapshot, null, 2)}`;
+}
+
+export async function getSuggestions() {
+  const user = await requireRole(["seller", "logistics_partner"], "/login");
+  const name = user.name.split(" ")[0] || "there";
+  const rexSuggestions: string[] = [];
+  const peggySuggestions: string[] = [];
+
+  if (user.role === "logistics_partner") {
+    const { getLogisticsWorkspace } = await import("@/lib/workspace");
+    const workspace = await getLogisticsWorkspace(user.id);
+
+    if (workspace) {
+      if (workspace.metrics.pendingQuoteCount > 0) {
+        rexSuggestions.push("Review pending quote requests");
+      }
+      if (workspace.metrics.activeBookingCount > 0) {
+        rexSuggestions.push("Track active deliveries");
+      }
+      rexSuggestions.push("Update my coverage zones");
+      rexSuggestions.push("Review my pricing");
+    } else {
+      rexSuggestions.push("Complete my onboarding");
+      rexSuggestions.push("Set up coverage zones");
+      rexSuggestions.push("Add vehicle types");
+      rexSuggestions.push("Set delivery pricing");
+    }
+
+    if (rexSuggestions.length < 2) {
+      rexSuggestions.push("View my dashboard", "Check my earnings");
+    }
+
+    return { name, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: [] };
+  }
+
+  const snapshot = await buildSellerSnapshot(user.id);
+
+  if (snapshot.products.total === 0) {
+    rexSuggestions.push("Add my first products");
+    rexSuggestions.push("Set up my store pages");
+  } else {
+    if (snapshot.products.drafts > 0) {
+      rexSuggestions.push("Publish my draft products");
+    }
+    if (snapshot.products.lowStock > 0) {
+      rexSuggestions.push("Review low stock items");
+    }
+    rexSuggestions.push("Update my hero section");
+    rexSuggestions.push("Edit product descriptions");
+  }
+
+  if (snapshot.orders.pending > 0) {
+    peggySuggestions.push("Check my pending orders");
+  }
+  if (snapshot.orders.processing > 0 || snapshot.orders.shipped > 0) {
+    peggySuggestions.push("Track my active orders");
+  }
+  if (snapshot.products.lowStock > 0) {
+    peggySuggestions.push("Which products need restocking?");
+  }
+  if (snapshot.sourcing.recommendedProducts.length > 0) {
+    peggySuggestions.push("What should I source next?");
+  }
+  if (snapshot.messages.unread > 0) {
+    peggySuggestions.push("Check my unread messages");
+  }
+  if (snapshot.logistics.bookings.length > 0 || snapshot.logistics.quoteRequests.length > 0) {
+    peggySuggestions.push("What is my logistics status?");
+  }
+
+  if (rexSuggestions.length < 2) {
+    rexSuggestions.push("Draft a product description", "Write marketing copy", "Add a new page", "Edit my hero section");
+  }
+  if (peggySuggestions.length < 2) {
+    peggySuggestions.push("How are my orders doing?", "Which products need attention?", "What should I source next?", "What is my logistics status?", "Help me prepare a product CSV import");
+  }
+
+  return { name, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: peggySuggestions.slice(0, 5) };
+}
+
+export async function getPeggyData() {
+  const user = await requireRole(["seller"], "/login");
+  const status = await buildSellerSnapshot(user.id);
+  const storeName = status.store?.name ?? "Your Store";
+  const storeSlug = status.store?.slug ?? "";
+  return {
+    userName: user.name,
+    storeName,
+    storeSlug,
+    status,
+    greeting: greetingFor(user.name, status),
+  };
+}
+
+export async function askPeggy(message: string, _storeContext?: string) {
+  try {
+    const user = await requireRole(["seller"], "/login");
+    const snapshot = await buildSellerSnapshot(user.id);
+    const system = sellerSystemPrompt(snapshot, "Peggy");
+
+    const anthropic = getAnthropicClient();
+    if (anthropic) {
+      const response = await anthropic.messages.create({
+        model: PEGGY_CLAUDE_MODEL,
+        max_tokens: 1600,
+        system,
+        messages: [{ role: "user", content: message }],
+      });
+      const text = response.content[0]?.type === "text" ? response.content[0].text : "";
+      return { text };
+    }
+
+    const openai = getOpenAIClient();
+    if (openai) {
+      const response = await openai.responses.create({
+        model: PEGGY_OPENAI_MODEL,
+        input: [
+          { role: "system", content: system },
+          { role: "user", content: message },
+        ],
+      });
+      return { text: response.output_text ?? "" };
+    }
+
+    return { error: "AI assistant is not available right now. Configure OPENAI_API_KEY or ANTHROPIC_API_KEY." };
+  } catch (error) {
+    console.error("Peggy AI error:", error);
+    return { error: "Something went wrong. Please try again in a moment." };
+  }
+}
+
+export async function askRex(message: string) {
+  try {
+    const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
+    const sellerSnapshot = user.role === "seller" ? await buildSellerSnapshot(user.id) : null;
+    const system =
+      user.role === "seller"
+        ? sellerSystemPrompt(sellerSnapshot!, "Rex")
+        : `You are Rex, Shopinbos' AI operations assistant. The current user role is ${user.role}. Give practical guidance for their dashboard and do not invent live numbers when no snapshot is available.`;
+
+    const openai = getOpenAIClient();
+    if (openai) {
+      const response = await openai.responses.create({
+        model: process.env.OPENAI_REX_ASSISTANT_MODEL ?? PEGGY_OPENAI_MODEL,
+        input: [
+          { role: "system", content: system },
+          { role: "user", content: message },
+        ],
+      });
+      return { text: response.output_text ?? "" };
+    }
+
+    const anthropic = getAnthropicClient();
+    if (anthropic) {
+      const response = await anthropic.messages.create({
+        model: PEGGY_CLAUDE_MODEL,
+        max_tokens: 1600,
+        system,
+        messages: [{ role: "user", content: message }],
+      });
+      const text = response.content[0]?.type === "text" ? response.content[0].text : "";
+      return { text };
+    }
+
+    return { error: "Rex needs OPENAI_API_KEY or ANTHROPIC_API_KEY configured before he can answer with live AI." };
+  } catch (error) {
+    console.error("Rex AI error:", error);
+    return { error: "Rex could not answer right now. Please try again." };
+  }
+}
