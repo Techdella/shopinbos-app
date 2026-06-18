@@ -24,9 +24,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shopinbos",
-  description: "Your AI-powered commerce OS",
-  icons: [{ rel: "icon", url: "/brand/logos/shopinbos-logo-dark.png" }],
+  title: {
+    default: "Shopinbos",
+    template: "%s | Shopinbos",
+  },
+  description: "AI commerce operating system for African businesses. Build your store, source products, and grow with AI.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com"),
+  // icon.tsx and apple-icon.tsx in this directory are picked up automatically
 };
 
 export default function RootLayout({
