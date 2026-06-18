@@ -69,7 +69,7 @@ function getMiddlewareSubdomainSlug(hostHeader: string | null | undefined) {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const hostname = req.headers.get("host") ?? "";
+  const hostname = normalizeMiddlewareDomain(req.headers.get("host") ?? "");
 
   // ─── Rate limiting (API mutations) ──────────────────────────────────────────
   if (MUTATION_METHODS.has(req.method) && pathname.startsWith("/api/")) {
@@ -108,11 +108,11 @@ export function middleware(req: NextRequest) {
   }
 
   // Determine the canonical app host and root domain from env
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "shopinbos.com";
+  const rootDomain = getMiddlewareRootDomain();
   let appHost = "";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "";
   try {
-    appHost = new URL(appUrl).hostname;
+    appHost = normalizeMiddlewareDomain(new URL(appUrl).hostname);
   } catch {
     // fallback: treat localhost as app host
   }
@@ -120,7 +120,8 @@ export function middleware(req: NextRequest) {
   const isAppHost =
     !hostname ||
     hostname === appHost ||
-    hostname.startsWith("localhost");
+    hostname.startsWith("localhost") ||
+    hostname.endsWith(".vercel.app");
 
   const isRootDomain =
     hostname === rootDomain ||
