@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 
@@ -45,6 +45,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  useEffect(() => {
+    function handleToast(event: Event) {
+      const custom = event as CustomEvent<{ message?: string; variant?: ToastVariant }>;
+      addToast(custom.detail?.message ?? "Done", custom.detail?.variant ?? "info");
+    }
+
+    window.addEventListener("shopinbos:toast", handleToast);
+    return () => window.removeEventListener("shopinbos:toast", handleToast);
+  }, [addToast]);
 
   return (
     <ToastContext.Provider value={{ toast: addToast }}>

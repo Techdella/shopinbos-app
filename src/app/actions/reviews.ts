@@ -3,6 +3,7 @@
 import { db } from "@/lib/db/client";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/server-auth";
+import { getSellerWorkspace } from "@/lib/workspace";
 
 export async function respondToReview(formData: FormData) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
@@ -39,4 +40,64 @@ export async function getReviewMetrics(logisticsPartnerId: string) {
   const responded = reviews.filter((r) => r.response).length;
 
   return { reviews, total, avgRating, distribution, responded };
+}
+
+async function requireSellerStoreId() {
+  const user = await requireRole(["seller"], "/login");
+  const workspace = await getSellerWorkspace(user.id);
+  const storeId = workspace?.store?.id;
+  if (!storeId) throw new Error("Store not found");
+  return storeId;
+}
+
+export async function ensureReviewTable() {
+  return;
+}
+
+export async function moderateReview(formData: FormData) {
+  const storeId = await requireSellerStoreId();
+  const id = String(formData.get("id") || "").trim();
+  const status = String(formData.get("status") || "").trim();
+
+  if (!id || !["approved", "pending", "rejected"].includes(status)) {
+    return;
+  }
+
+  await db.productReview.updateMany({
+    where: { id, storeId },
+    data: { status: status as "approved" | "pending" | "rejected" },
+  });
+
+  revalidatePath("/home/reviews");
+}
+
+export async function replyToReview(formData: FormData) {
+  const storeId = await requireSellerStoreId();
+  const id = String(formData.get("id") || "").trim();
+  const reply = String(formData.get("reply") || "").trim();
+
+  if (!id) return;
+
+  await db.productReview.updateMany({
+    where: { id, storeId },
+    data: {
+      sellerReply: reply,
+      repliedAt: reply ? new Date() : null,
+    },
+  });
+
+  revalidatePath("/home/reviews");
+}
+
+export async function deleteReview(formData: FormData) {
+  const storeId = await requireSellerStoreId();
+  const id = String(formData.get("id") || "").trim();
+
+  if (!id) return;
+
+  await db.productReview.deleteMany({
+    where: { id, storeId },
+  });
+
+  revalidatePath("/home/reviews");
 }
