@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/server-auth";
 import { RolePage, formatDate } from "@/components/role/RolePage";
 import { StatusPill } from "@/components/ops/OpsPrimitives";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
-import type { VerificationDoc } from "@/app/actions/verification";
+import type { VerificationDoc } from "@/lib/verification-utils";
 import { notFound } from "next/navigation";
 
 export default async function AdminSupplierDetailPage(props: { params: Promise<{ id: string }> }) {

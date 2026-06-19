@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAdmin } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import type { AuthUser } from "@/lib/auth/types";
-import type { VerificationDoc } from "@/app/actions/verification";
+import type { VerificationDoc } from "@/lib/verification-utils";
 import { revalidatePath } from "next/cache";
 
 export const GET = withAdmin(async (_req: NextRequest, { user, params }: { user: AuthUser; params: { id: string } }) => {

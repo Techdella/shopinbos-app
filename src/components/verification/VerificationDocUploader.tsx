@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import type { VerificationDoc, DocType } from "@/app/actions/verification";
+import type { VerificationDoc, DocType } from "@/lib/verification-utils";
 
 interface DocConfig {
   type: DocType;

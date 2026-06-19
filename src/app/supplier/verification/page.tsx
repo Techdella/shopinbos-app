@@ -12,7 +12,7 @@ import {
   type DocType,
   type TrustScoreBreakdownItem,
   supplierDocTypes,
-} from "@/app/actions/verification";
+} from "@/lib/verification-utils";
 
 interface SupplierData {
   id: string;

@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import type { VerificationDoc } from "@/app/actions/verification";
+import type { VerificationDoc } from "@/lib/verification-utils";
 
 interface AdminDocumentViewerProps {
   role: "supplier" | "logistics_partner";

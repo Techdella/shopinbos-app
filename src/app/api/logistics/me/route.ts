@@ -3,7 +3,7 @@ import { withLogistics } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
-import { computeTrustScore, getTrustScoreBreakdown, type VerificationDoc } from "@/app/actions/verification";
+import { computeTrustScore, getTrustScoreBreakdown, type VerificationDoc } from "@/lib/verification-utils";
 
 export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const [partner, dbUser] = await Promise.all([

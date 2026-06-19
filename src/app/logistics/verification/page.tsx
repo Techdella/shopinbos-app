@@ -12,7 +12,7 @@ import {
   type DocType,
   type TrustScoreBreakdownItem,
   logisticsDocTypes,
-} from "@/app/actions/verification";
+} from "@/lib/verification-utils";
 
 interface PartnerData {
   id: string;

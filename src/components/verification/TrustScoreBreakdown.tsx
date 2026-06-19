@@ -1,6 +1,6 @@
 "use client";
 
-import type { TrustScoreBreakdownItem } from "@/app/actions/verification";
+import type { TrustScoreBreakdownItem } from "@/lib/verification-utils";
 
 interface TrustScoreBreakdownProps {
   items: TrustScoreBreakdownItem[];
