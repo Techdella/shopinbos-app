@@ -5,6 +5,21 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Prevent Node.js-only packages from being bundled into the client bundle
+  serverExternalPackages: ["@anthropic-ai/sdk", "openai", "@prisma/client", "prisma"],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Stub out Node.js built-in modules that leak into client bundles via SDK imports
+      const nodeBuiltins = ["fs", "path", "os", "crypto", "stream", "buffer", "util", "url", "http", "https", "net", "tls", "child_process", "worker_threads", "process", "events", "assert", "string_decoder", "querystring", "zlib", "readline"];
+      config.resolve.fallback = { ...config.resolve.fallback };
+      config.resolve.alias = { ...config.resolve.alias };
+      for (const mod of nodeBuiltins) {
+        config.resolve.fallback[mod] = false;
+        config.resolve.alias[`node:${mod}`] = false;
+      }
+    }
+    return config;
+  },
   async headers() {
     return [
       {
