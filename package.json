@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "typecheck": "node --max-old-space-size=4096 .\\node_modules\\typescript\\bin\\tsc --noEmit",
     "test": "node --test tests/index.test.js",
