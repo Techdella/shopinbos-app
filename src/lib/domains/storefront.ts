@@ -4,7 +4,7 @@ export interface StorefrontStoreRef {
 }
 
 function getAppUrl() {
-  const fallback = "http://localhost:3000";
+  const fallback = "https://app.shopinbos.com";
   const raw = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? fallback;
 
   try {

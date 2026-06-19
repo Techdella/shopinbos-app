@@ -10,8 +10,7 @@ interface CorsOptions {
 const PUBLIC_API_ALLOWED_ORIGINS = [
   "https://shopinbos.com",
   "https://www.shopinbos.com",
-  "http://localhost:3000",
-  "http://localhost:8080",
+  "https://app.shopinbos.com",
 ];
 
 const PUBLIC_API_ALLOWED_METHODS = ["GET", "OPTIONS"];

@@ -54,7 +54,7 @@ function mdToHtml(md: string): string {
 }
 
 async function fetchStore(slug: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
   const res = await fetch(`${baseUrl}/api/public/store/${slug}`, { cache: "no-store" });
   if (!res.ok) return null;
   const json = await res.json();

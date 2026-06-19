@@ -1,9 +1,11 @@
+const PROD_URL = "https://app.shopinbos.com";
+
 const publicEnv = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? PROD_URL,
   marketplaceApiUrl:
-    process.env.NEXT_PUBLIC_MARKETPLACE_API_URL ?? `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/public`,
+    process.env.NEXT_PUBLIC_MARKETPLACE_API_URL ?? `${process.env.NEXT_PUBLIC_APP_URL ?? PROD_URL}/api/public`,
 };
 
 export function getPublicEnv() {
