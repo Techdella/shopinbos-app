@@ -21,11 +21,16 @@ const LEGAL_PAGE_TYPES = new Set(["privacy-policy", "terms-and-conditions", "coo
 
 function getPageStatusBadge(isPublished: boolean, storeIsLive: boolean): { label: string; variant: "mint" | "warn" | "ghost" } {
   if (!storeIsLive) return { label: "Draft · Store Not Live", variant: "warn" };
-  if (isPublished) return { label: "Published", variant: "mint" };
+  if (isPublished) return { label: "Live", variant: "mint" };
   return { label: "Draft", variant: "warn" };
 }
 
-export default async function PagesPage() {
+type PagesPageProps = { searchParams?: Promise<{ drafts?: string }> };
+
+export default async function PagesPage({ searchParams }: PagesPageProps) {
+  const params = await searchParams;
+  const showDrafts = params?.drafts === "1";
+
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
   const storeName = workspace?.store?.name ?? "Your Store";
@@ -34,7 +39,10 @@ export default async function PagesPage() {
 
   const pages = workspace?.store
     ? await db.storePage.findMany({
-        where: { storeId: workspace.store.id },
+        where: {
+          storeId: workspace.store.id,
+          ...(showDrafts ? {} : { isPublished: true }),
+        },
         orderBy: { updatedAt: "desc" },
       })
     : [];
@@ -56,11 +64,20 @@ export default async function PagesPage() {
       <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
         <PageHead
           title="Pages"
-          sub={`${websitePages.length} ${websitePages.length === 1 ? "page" : "pages"} · ${publishedCount} published ${storeIsLive ? "" : "(store not live)"}`}
+          sub={`${websitePages.length} ${showDrafts ? "" : "published "}${websitePages.length === 1 ? "page" : "pages"}${!storeIsLive ? " · Store not live" : ""}`}
           actions={
-            <Link href="/home/editor" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-              <Icon name="plus" size={14} /> Add page
-            </Link>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Link
+                href={showDrafts ? "/home/pages" : "/home/pages?drafts=1"}
+                className="dbtn dBtn-ghost"
+                style={{ textDecoration: "none", fontSize: 12.5 }}
+              >
+                {showDrafts ? "Hide drafts" : "Show drafts"}
+              </Link>
+              <Link href="/home/editor" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
+                <Icon name="plus" size={14} /> Add page
+              </Link>
+            </div>
           }
         />
 

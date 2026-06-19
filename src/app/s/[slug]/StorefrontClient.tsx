@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { CartDrawer } from "./CartDrawer";
@@ -152,17 +152,17 @@ function VelourStorefront({
   });
 
   return (
-    <div className="velour-store" style={{ minHeight: "100vh", background: "#faf8f5", color: "#0c0c0c" }}>
+    <div className="velour-store">
       <style>{`
         .velour-store,*{box-sizing:border-box}
-        .velour-store{--ink:#0c0c0c;--ink2:#2a2a2a;--ink3:#6a6a6a;--ink4:#a8a8a8;--cream:#faf8f5;--cream2:#f3efe9;--cream3:#e8e2d9;--gold:#c9a96e;--gold2:#b8924e;--white:#fff;--bd:#e8e2d9;--err:#c0392b;--ok:#2d7a4f;--r:6px;font-family:'DM Sans',system-ui,sans-serif}
+        .velour-store{--ink:#0c0c0c;--ink2:#2a2a2a;--ink3:#6a6a6a;--ink4:#a8a8a8;--cream:#faf8f5;--cream2:#f3efe9;--cream3:#e8e2d9;--gold:#c9a96e;--gold2:#b8924e;--white:#fff;--bd:#e8e2d9;--err:#c0392b;--ok:#2d7a4f;--r:6px;min-height:100vh;background:#faf8f5;color:#0c0c0c;font-family:'DM Sans',system-ui,sans-serif}
         .velour-store button{font-family:inherit;cursor:pointer}
         .velour-store img{display:block;width:100%;object-fit:cover}
         .velour-ann{background:var(--ink);color:white;text-align:center;padding:9px 20px;font-size:12px;letter-spacing:.08em}
         .velour-ann span{color:var(--gold)}
         .velour-nav{background:white;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:20}
         .velour-nav-inner{max-width:1320px;margin:0 auto;padding:0 32px;height:68px;display:flex;align-items:center}
-        .velour-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:.12em;flex:1}
+        .velour-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:.12em;flex:1;background:none;border:0;text-align:left}
         .velour-logo span{color:var(--gold)}
         .velour-links{display:flex;gap:36px;justify-content:center;flex:2}
         .velour-link{font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);background:none;border:0;position:relative}
@@ -233,6 +233,10 @@ function VelourStorefront({
         .velour-ft-copy{font-size:13px;color:rgba(255,255,255,.55);line-height:1.7;max-width:320px}.velour-ft-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;color:var(--gold)}
         .velour-ft-link{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:11px}.velour-footer-bottom{display:flex;justify-content:space-between;gap:24px;padding-top:22px;color:rgba(255,255,255,.45);font-size:12px}
         .velour-payments{display:flex;gap:7px;flex-wrap:wrap}.velour-pay{border:1px solid rgba(255,255,255,.18);border-radius:3px;padding:4px 8px;font-size:10px;color:rgba(255,255,255,.55)}
+        .velour-empty-products{grid-column:1 / -1;padding:42px 24px;border:1px solid var(--bd);border-radius:6px;background:white;text-align:center}
+        .velour-empty-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;color:var(--ink);margin-bottom:8px}
+        .velour-empty-copy{margin:0 auto;max-width:460px;color:var(--ink3);line-height:1.6}
+        .velour-product-link{text-decoration:none;color:inherit;display:block}
         @media(max-width:900px){.velour-nav-inner{padding:0 18px}.velour-links{display:none}.velour-hero{height:auto;grid-template-columns:1fr}.velour-hero-left{min-height:640px;padding:48px 28px}.velour-h1{font-size:52px}.velour-hero-right{display:none}.velour-section{padding:58px 20px}.velour-section-head{display:block}.velour-collections,.velour-products,.velour-story-inner,.velour-footer-grid{grid-template-columns:1fr}.velour-coll,.velour-coll.tall{min-height:420px}.velour-footer-bottom{display:block}.velour-products{gap:22px}}
         ${isMobile ? ".velour-store .velour-links{display:none}.velour-store .velour-hero{grid-template-columns:1fr;height:auto}.velour-store .velour-hero-left{min-height:640px;padding:48px 28px}.velour-store .velour-h1{font-size:50px}.velour-store .velour-hero-right{display:none}.velour-store .velour-products,.velour-store .velour-collections,.velour-store .velour-story-inner,.velour-store .velour-footer-grid{grid-template-columns:1fr}.velour-store .velour-section-head{display:block}" : ""}
       `}</style>
@@ -240,7 +244,7 @@ function VelourStorefront({
       <div className="velour-ann">FREE LAGOS DELIVERY ON ORDERS OVER <span>N50,000</span> - NEW SEASON LIVE</div>
       <nav className="velour-nav">
         <div className="velour-nav-inner">
-          <button className="velour-logo" style={{ background: "none", border: 0, textAlign: "left" }}>{brand}<span>.</span></button>
+          <button className="velour-logo">{brand}<span>.</span></button>
           <div className="velour-links">
             {["Home", "Shop", "About", "Journal", "Contact"].map((item, index) => (
               <button className={`velour-link ${index === 0 ? "on" : ""}`} key={item}>{item}</button>
@@ -310,15 +314,15 @@ function VelourStorefront({
         </div>
         <div className="velour-products">
           {products.length === 0 ? (
-            <div style={{ gridColumn: "1 / -1", padding: "42px 24px", border: "1px solid var(--bd)", borderRadius: 6, background: "white", textAlign: "center" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 32, color: "var(--ink)", marginBottom: 8 }}>Products coming soon</div>
-              <p style={{ margin: "0 auto", maxWidth: 460, color: "var(--ink3)", lineHeight: 1.6 }}>This store is published, but products have not been added yet. Please check back shortly.</p>
+            <div className="velour-empty-products">
+              <div className="velour-empty-title">Products coming soon</div>
+              <p className="velour-empty-copy">This store is published, but products have not been added yet. Please check back shortly.</p>
             </div>
           ) : products.slice(0, 8).map((product, index) => {
             const isSale = index % 3 === 0;
             return (
               <article className="velour-product" key={product.id}>
-                <Link href={previewMode ? "#" : getPublicStorefrontPath(storeBasePath, `/product/${product.id}`)} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+                <Link href={previewMode ? "#" : getPublicStorefrontPath(storeBasePath, `/product/${product.id}`)} className="velour-product-link">
                 <div className="velour-product-img">
                   <img src={productImage(product, index)} alt={product.name} />
                   <div className={`velour-badge ${isSale ? "sale" : "new"}`}>{isSale ? "SALE" : "NEW"}</div>
@@ -533,6 +537,7 @@ export function StorefrontClient({
   selectedSectionId,
   onSelectSection,
 }: Props) {
+  const templateRootRef = useRef<HTMLDivElement>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
@@ -568,8 +573,14 @@ export function StorefrontClient({
     });
   }
 
+  useEffect(() => {
+    if (templateRootRef.current) {
+      templateRootRef.current.style.background = snapshot.themeTokens.paperBg;
+    }
+  }, [snapshot.themeTokens.paperBg]);
+
   return (
-    <div style={{ minHeight: "100vh", background: snapshot.themeTokens.paperBg }}>
+    <div ref={templateRootRef} className="template-store-root">
       <TemplateStorefrontSurface
         store={store}
         snapshot={snapshot}

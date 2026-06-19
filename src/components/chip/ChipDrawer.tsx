@@ -13,7 +13,7 @@ const STORAGE_KEY = "rex_chip_dismissed";
 
 export function ChipDrawer({
   tone = "assistant",
-  message = "I noticed two orders are stuck at the depot. Want me to call Velo and reroute?",
+  message,
 }: ChipDrawerProps) {
   const { openDrawer } = useRexDrawer();
   const [dismissed, setDismissed] = useState(true);
@@ -28,7 +28,7 @@ export function ChipDrawer({
     localStorage.setItem(STORAGE_KEY, "true");
   }
 
-  if (dismissed) return null;
+  if (dismissed || !message?.trim()) return null;
 
   return (
     <div className="fixed right-7 bottom-7 flex flex-col items-end gap-3 z-50 pointer-events-none">

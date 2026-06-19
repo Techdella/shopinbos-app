@@ -147,7 +147,31 @@ async function buildSellerSnapshot(userId: string) {
 
 function greetingFor(name: string, snapshot: Awaited<ReturnType<typeof buildSellerSnapshot>>) {
   const firstName = name.split(" ")[0] || "there";
-  return `Hi ${firstName}. I am Peggy. I can see ${snapshot.store?.name ?? "your store"} has ${snapshot.products.total} product${snapshot.products.total === 1 ? "" : "s"}, ${snapshot.orders.total} recent order${snapshot.orders.total === 1 ? "" : "s"}, ${snapshot.sourcing.recommendedProducts.length} sourcing option${snapshot.sourcing.recommendedProducts.length === 1 ? "" : "s"}, and ${snapshot.logistics.partners.length} logistics partner${snapshot.logistics.partners.length === 1 ? "" : "s"} available. Ask me about orders, product pages, import/export, sourcing, supplier chats, or delivery status.`;
+  const storeName = snapshot.store?.name ?? "your store";
+  const urgent: string[] = [];
+
+  if (snapshot.orders.pending > 0) {
+    urgent.push(`${snapshot.orders.pending} pending order${snapshot.orders.pending === 1 ? "" : "s"} waiting to be fulfilled`);
+  }
+  if (snapshot.products.lowStock > 0) {
+    urgent.push(`${snapshot.products.lowStock} product${snapshot.products.lowStock === 1 ? "" : "s"} running low on stock`);
+  }
+  if (snapshot.messages.unread > 0) {
+    urgent.push(`${snapshot.messages.unread} unread message${snapshot.messages.unread === 1 ? "" : "s"} from suppliers or logistics`);
+  }
+  if (snapshot.products.drafts > 0) {
+    urgent.push(`${snapshot.products.drafts} draft product${snapshot.products.drafts === 1 ? "" : "s"} not yet published`);
+  }
+
+  if (urgent.length > 0) {
+    return `Hi ${firstName}. Here is what needs your attention in ${storeName} today:\n\n${urgent.map((item, i) => `${i + 1}. ${item}`).join("\n")}\n\nAsk me about any of these, or anything else about orders, products, sourcing, or logistics.`;
+  }
+
+  if (snapshot.products.total === 0) {
+    return `Hi ${firstName}. ${storeName} is set up but you have not added any products yet. I can help you import a product list, source from verified suppliers, or write product descriptions. Where would you like to start?`;
+  }
+
+  return `Hi ${firstName}. ${storeName} looks good today — ${snapshot.products.published} active product${snapshot.products.published === 1 ? "" : "s"}, ${snapshot.orders.total} recent order${snapshot.orders.total === 1 ? "" : "s"}, and ${snapshot.sourcing.recommendedProducts.length} sourcing suggestion${snapshot.sourcing.recommendedProducts.length === 1 ? "" : "s"} waiting. What would you like to work on?`;
 }
 
 function sellerSystemPrompt(snapshot: Awaited<ReturnType<typeof buildSellerSnapshot>>, assistantName: "Peggy" | "Rex") {

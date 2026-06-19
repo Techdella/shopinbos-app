@@ -459,7 +459,27 @@ export async function saveStoreSeoSettings(formData: FormData) {
     },
   });
 
-  redirect("/seller/store/settings?tab=seo&saved=true");
+  redirect("/home/seo?saved=1");
+}
+
+export async function saveStoreIntegrationSettings(formData: FormData) {
+  const user = await getSellerUserOrThrow();
+  const store = await db.store.findUnique({ where: { userId: user.id } });
+  if (!store) redirect("/builder?firstRun=1");
+
+  const googleAnalyticsId = String(formData.get("googleAnalyticsId") || "").trim();
+  const gaSiteVerification = String(formData.get("gaSiteVerification") || "").trim();
+
+  await db.store.update({
+    where: { id: store.id },
+    data: {
+      brandSettings: mergeBrandSettings(store.brandSettings, {
+        integrations: { googleAnalyticsId, gaSiteVerification },
+      }),
+    },
+  });
+
+  redirect("/home/seo?saved=1&tab=integrations");
 }
 
 export async function saveStoreNavigationSettings(formData: FormData) {
@@ -479,7 +499,7 @@ export async function saveStoreNavigationSettings(formData: FormData) {
     },
   });
 
-  redirect("/seller/store/settings?tab=navigation&saved=true");
+  redirect("/home/navigation?saved=1");
 }
 
 export async function saveStoreLegalSettings(formData: FormData) {
@@ -501,7 +521,7 @@ export async function saveStoreLegalSettings(formData: FormData) {
     },
   });
 
-  redirect("/seller/store/settings?tab=legal&saved=true");
+  redirect("/home/legal?saved=1");
 }
 
 export async function saveStoreCartSettings(formData: FormData) {
@@ -611,4 +631,35 @@ export async function inviteTeamMember(formData: FormData) {
   });
 
   redirect("/home/settings?tab=Team&invited=1");
+}
+
+export async function saveStoreTaxSettings(formData: FormData) {
+  const user = await getSellerUserOrThrow();
+  const store = await db.store.findUnique({ where: { userId: user.id } });
+  if (!store) redirect("/onboarding?role=seller");
+
+  const vatEnabled = formData.get("vatEnabled") === "on";
+  const vatRate = Math.min(100, Math.max(0, Number(formData.get("vatRate") || 7.5)));
+  const vatInclusive = formData.get("vatInclusive") === "inclusive";
+  const vatNumber = String(formData.get("vatNumber") || "").trim();
+  const tinNumber = String(formData.get("tinNumber") || "").trim();
+  const showTaxOnReceipts = formData.get("showTaxOnReceipts") === "on";
+
+  await db.store.update({
+    where: { id: store.id },
+    data: {
+      brandSettings: mergeBrandSettings(store.brandSettings, {
+        taxConfig: {
+          vatEnabled,
+          vatRate,
+          vatInclusive,
+          vatNumber,
+          tinNumber,
+          showTaxOnReceipts,
+        },
+      }),
+    },
+  });
+
+  redirect("/home/taxes?saved=1");
 }

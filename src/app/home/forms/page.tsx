@@ -65,16 +65,16 @@ export default async function SellerFormSubmissionsPage() {
         </section>
 
         <section className="card overflow-hidden">
-          <div className="p-4 border-b" style={{ borderColor: "var(--line)" }}>
+          <div className="p-4 border-b border-line">
             <h2 className="text-base font-semibold m-0">Recent submissions</h2>
           </div>
           {submissions.length === 0 ? (
             <div className="p-8 text-center text-muted">No form submissions yet.</div>
           ) : (
-            <div className="divide-y" style={{ borderColor: "var(--line)" }}>
+            <div className="divide-y border-line">
               {submissions.map((submission) => (
                 <article key={submission.id} className="p-4 flex gap-4 items-start">
-                  <div className="h-10 w-10 rounded-full grid place-items-center shrink-0" style={{ background: "var(--teal-50)", color: "var(--teal-700)" }}>
+                  <div className="h-10 w-10 rounded-full grid place-items-center shrink-0 lead-icon-teal">
                     <Icon name={submission.type === "newsletter" ? "mail" : "message"} size={17} />
                   </div>
                   <div className="min-w-0 flex-1">

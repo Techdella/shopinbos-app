@@ -135,7 +135,7 @@ export default async function SellerMessagesPage() {
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="page-stack">
         <PageHead
           title="Messages"
           sub={conversations.length > 0 ? `${conversations.length} supplier and logistics conversations - ${unreadCount} unread` : "Message suppliers and logistics vendors directly"}

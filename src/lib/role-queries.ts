@@ -34,10 +34,8 @@ export function isProPlan(user: { aiCredits?: number | null }) {
 
 export function ensureSupplierAccess(supplier: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(supplier)) redirect("/supplier/onboarding");
-  if (supplier.verificationStatus !== "verified") redirect("/supplier/verification");
 }
 
 export function ensureLogisticsAccess(partner: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
-  if (partner.verificationStatus !== "verified") redirect("/logistics/verification");
 }

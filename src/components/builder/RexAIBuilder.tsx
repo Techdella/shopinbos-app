@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { StorefrontClient } from "@/app/s/[slug]/StorefrontClient";
 import { mascotPaths } from "@/lib/brand";
@@ -13,6 +13,7 @@ import {
   type TemplatePageSeed,
   type TemplatePageType,
 } from "@/lib/store-templates";
+import { type StoreConfig } from "@/lib/ai/client";
 
 type EditorEnvelope = {
   seller?: {
@@ -113,12 +114,14 @@ const rexToolInfo: Record<RexToolId, { title: string; eyebrow: string; descripti
 
 export function RexAIBuilder() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [envelope, setEnvelope] = useState<EditorEnvelope | null>(null);
   const [draft, setDraft] = useState<StoreEditorSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPage, setSelectedPage] = useState("home");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
+  const [publishedStoreUrl, setPublishedStoreUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Rex AI states
@@ -187,6 +190,7 @@ export function RexAIBuilder() {
   // Load store and template draft state
   useEffect(() => {
     let cancelled = false;
+    const fromOnboarding = searchParams.get("onboarding") === "true";
 
     async function load() {
       try {
@@ -210,9 +214,14 @@ export function RexAIBuilder() {
           setRexMessages([
             {
               role: "assistant",
-              content: `Hi ${sellerName}! I am Rex, your AI store builder. I can build sections, write copy, generate product layouts and redesign ${json.data.store.name}. What would you like to create today?`,
+              content: fromOnboarding
+                ? `Hi ${sellerName}! I brought in your onboarding memory. I can now build the complete editable store for ${json.data.store.name}: pages, products, cart, checkout, blog, FAQ, and launch sections.`
+                : `Hi ${sellerName}! I am Rex, your AI store builder. I can build sections, write copy, generate product layouts and redesign ${json.data.store.name}. What would you like to create today?`,
             },
           ]);
+          if (fromOnboarding) {
+            window.localStorage.removeItem("shopinbos:first-run-walkthrough:seller");
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -223,7 +232,7 @@ export function RexAIBuilder() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [searchParams]);
 
   const currentPage: TemplatePageSeed | null = useMemo(() => {
     return draft?.pages.find((page) => page.pageType === selectedPage) ?? draft?.pages[0] ?? null;
@@ -410,7 +419,7 @@ export function RexAIBuilder() {
     await saveSnapshot(next, "Image applied to selected page.");
   }
 
-  // Ask Rex to update the editable store draft.
+  // Ask Rex to update the editable store draft (streaming store-builder).
   async function sendRexPrompt(prompt: string) {
     if (!prompt.trim() || !draft) return;
     if (/(full|complete|entire|all pages|checkout|cart|wishlist|categories|product page)/i.test(prompt)) {
@@ -420,71 +429,89 @@ export function RexAIBuilder() {
       return;
     }
 
-    setRexMessages((prev) => [...prev, { role: "user", content: prompt }]);
+    const userMessage = { role: "user" as const, content: prompt };
+    setRexMessages((prev) => [...prev, userMessage]);
     setRexBusy(true);
 
+    // Placeholder assistant bubble that streams in
+    const placeholderIdx = rexMessages.length + 1;
+    setRexMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
     try {
-      const aiResponse = await fetch("/api/ai/store-editor", {
+      const res = await fetch("/api/ai/store-builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt,
-          pageType: selectedPage,
-          templateId: envelope?.template?.templateId,
-          brandSettings: envelope?.store.brandSettings,
-          store: envelope?.store
-            ? {
-                name: envelope.store.name,
-                description: envelope.store.description,
-                slug: envelope.store.slug,
-                city: envelope.store.city,
-                country: envelope.store.country,
-                currency: envelope.store.currency,
-                products: envelope.store.storeProducts.map((product) => ({
-                  id: product.id,
-                  name: product.name,
-                  description: product.description,
-                  price: product.retailPrice,
-                  currency: product.currency,
-                  hasImages: product.images.length > 0,
-                })),
-              }
-            : undefined,
+          messages: [...rexMessages, userMessage].map((m) => ({ role: m.role, content: m.content })),
+          brandContext: {
+            businessDescription: envelope?.store.description,
+            category: undefined,
+          },
+          templateContext: envelope?.template ? {
+            templateId: envelope.template.templateId,
+            templateName: envelope.template.templateName,
+          } : undefined,
         }),
       });
-      const aiJson = (await aiResponse.json()) as { data?: { ops?: unknown[] } };
 
-      if (Array.isArray(aiJson.data?.ops)) {
-        const patchResponse = await fetch("/api/store/editor", {
+      if (!res.ok || !res.body) {
+        throw new Error("Stream unavailable");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantText = "";
+      let pendingConfig: StoreConfig | null = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const chunk = JSON.parse(line) as { type: string; content?: unknown };
+            if (chunk.type === "token" && typeof chunk.content === "string") {
+              assistantText += chunk.content;
+              setRexMessages((prev) => prev.map((m, i) => i === placeholderIdx ? { ...m, content: assistantText } : m));
+            } else if (chunk.type === "store_config") {
+              pendingConfig = chunk.content as StoreConfig;
+            } else if (chunk.type === "chips" && Array.isArray(chunk.content)) {
+              // chips shown as quick-starts — for now just update message
+            }
+          } catch { /* partial JSON line */ }
+        }
+      }
+
+      // Finalize message
+      if (!assistantText) {
+        setRexMessages((prev) => prev.map((m, i) => i === placeholderIdx ? { ...m, content: "Done! Check the preview for updates." } : m));
+      }
+
+      // If Rex returned a store config, apply it to the draft
+      if (pendingConfig && draft) {
+        const patchRes = await fetch("/api/store/editor", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ops: aiJson.data.ops }),
+          body: JSON.stringify({ storeConfig: pendingConfig }),
         });
-        const patchJson = (await patchResponse.json()) as { data?: { draft?: StoreEditorSnapshot | null } };
+        const patchJson = (await patchRes.json()) as { data?: { draft?: StoreEditorSnapshot | null } };
         if (patchJson.data?.draft) {
           setDraft(patchJson.data.draft);
-          setRexMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: "I've successfully applied the requested changes to your storefront!" },
-          ]);
-          showToast("Store redesigned! Review changes in live preview.");
-        } else {
-          setRexMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: "I generated the adjustments, but couldn't write them to draft." },
-          ]);
+          setHasChanges(true);
+          showToast("Rex updated your store! Review in the preview.");
         }
-      } else {
-        setRexMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "I couldn't generate suitable changes. Try clarifying your prompt!" },
-        ]);
       }
     } catch {
-      setRexMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "There was an error connecting to Rex. Please try again." },
-      ]);
+      setRexMessages((prev) => prev.map((m, i) =>
+        i === placeholderIdx
+          ? { ...m, content: "Rex had trouble connecting. Check that your AI API keys are configured and try again." }
+          : m,
+      ));
     } finally {
       setRexBusy(false);
       setRexPrompt("");
@@ -501,7 +528,9 @@ export function RexAIBuilder() {
       if (json.data) {
         setEnvelope((prev) => (prev ? { ...prev, published: json.data?.published ?? prev.published } : prev));
         setHasChanges(false);
-        showToast("Changes applied successfully to your live store!");
+        const storeSlug = json.data.store?.slug ?? envelope?.store?.slug;
+        if (storeSlug) setPublishedStoreUrl(`/s/${storeSlug}`);
+        else showToast("Changes applied successfully to your live store!");
       }
     } catch {
       showToast("Error applying changes.");
@@ -615,9 +644,9 @@ export function RexAIBuilder() {
     return (
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           inset: 0,
-          zIndex: 30,
+          zIndex: 9999,
           background: "#EEF3F8",
           overflowY: "auto",
           padding: "22px 26px 42px",
@@ -1008,20 +1037,64 @@ export function RexAIBuilder() {
     );
   }
 
-  if (loading || !envelope?.store || !draft) {
+  if (loading) {
     return (
       <div
         style={{
           minHeight: "100vh",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           background: "#0D1B35",
           color: "white",
           fontFamily: "var(--sans)",
+          gap: 14,
         }}
       >
-        Loading Rex AI workspace...
+        <div style={{ width: 44, height: 44, background: "#0FA493", borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22 }}>✦</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>Loading Rex AI workspace…</div>
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,.45)" }}>Connecting to your store</div>
+      </div>
+    );
+  }
+
+  if (!envelope?.store || !draft) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0D1B35",
+          color: "white",
+          fontFamily: "var(--sans)",
+          gap: 16,
+          textAlign: "center",
+          padding: 24,
+        }}
+      >
+        <div style={{ width: 52, height: 52, background: "rgba(232,97,74,.2)", border: "1px solid rgba(232,97,74,.4)", borderRadius: 16, display: "grid", placeItems: "center", fontSize: 24 }}>⚠</div>
+        <div style={{ fontSize: 17, fontWeight: 700 }}>Rex couldn&apos;t connect to your store</div>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,.55)", maxWidth: 380, lineHeight: 1.6 }}>
+          Your store workspace couldn&apos;t be loaded. This usually means your store isn&apos;t set up yet, or there was a temporary connection issue.
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button
+            onClick={() => { setLoading(true); window.location.reload(); }}
+            style={{ background: "#0FA493", color: "white", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => router.push("/onboarding?role=seller")}
+            style={{ background: "rgba(255,255,255,.1)", color: "white", border: "1px solid rgba(255,255,255,.15)", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Set up store
+          </button>
+        </div>
       </div>
     );
   }
@@ -2171,6 +2244,78 @@ export function RexAIBuilder() {
           }}
         >
           {toastMessage}
+        </div>
+      )}
+
+      {/* ── Publish success modal ── */}
+      {publishedStoreUrl && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(14,42,56,0.82)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: 24,
+              padding: "40px 36px",
+              maxWidth: 420,
+              width: "100%",
+              textAlign: "center",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.28)",
+            }}
+          >
+            <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
+            <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, color: "var(--ink-900, #0e2a38)" }}>
+              Your store is live!
+            </h2>
+            <p style={{ margin: "0 0 24px", fontSize: 14, color: "var(--ink-500, #6e6e68)", lineHeight: 1.5 }}>
+              Your changes are now visible to shoppers. Share your store link to start getting customers.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <a
+                href={publishedStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  padding: "12px 20px",
+                  borderRadius: 999,
+                  background: "var(--mint, #73D8C8)",
+                  color: "var(--navy, #0e2a38)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: "none",
+                  cursor: "pointer",
+                }}
+              >
+                View live store →
+              </a>
+              <button
+                type="button"
+                onClick={() => setPublishedStoreUrl(null)}
+                style={{
+                  padding: "12px 20px",
+                  borderRadius: 999,
+                  background: "transparent",
+                  border: "1px solid var(--ink-200, #e0dfdb)",
+                  color: "var(--ink-700, #2e2e2a)",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Continue editing
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

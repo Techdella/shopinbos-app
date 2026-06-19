@@ -66,13 +66,27 @@ export function appUserInputFromSupabaseUser(user: SupabaseUser): AppUserInput {
 export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   const email = input.email.toLowerCase();
   const fullName = input.fullName || displayNameFromEmail(email);
-  const existingUser = await db.user.findUnique({
+
+  // First check by supabaseId, then fall back to email (handles supabaseId mismatches
+  // that occur when an account is recreated or provisioned externally with a different ID)
+  let existingUser = await db.user.findUnique({
     where: { supabaseId: input.supabaseId },
     select: { id: true, role: true },
   });
 
+  if (!existingUser) {
+    const byEmail = await db.user.findUnique({
+      where: { email },
+      select: { id: true, role: true },
+    });
+    if (byEmail) {
+      // Fix the stale supabaseId so future lookups hit the fast path
+      await db.user.update({ where: { id: byEmail.id }, data: { supabaseId: input.supabaseId } });
+      existingUser = byEmail;
+    }
+  }
+
   const requestedRole = normalizeRole(input.role);
-  const requestedAdmin = requestedRole === "admin";
   const canUseAdminRole = existingUser?.role === "admin" || adminInviteEmails().includes(email);
   const role = resolveRole(existingUser?.role, requestedRole, canUseAdminRole);
 

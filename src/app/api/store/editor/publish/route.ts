@@ -66,6 +66,7 @@ export const POST = withSeller(async (_req: NextRequest, { user }) => {
     await db.store.update({
       where: { id: store.id },
       data: {
+        status: "active",
         brandSettings: {
           ...nextSettings,
           editor: {
@@ -141,6 +142,7 @@ export const POST = withSeller(async (_req: NextRequest, { user }) => {
   await db.store.update({
     where: { id: store.id },
     data: {
+      status: "active",
       brandSettings: nextSettings as unknown as Prisma.InputJsonValue,
     },
   });

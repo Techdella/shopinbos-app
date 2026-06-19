@@ -22,8 +22,8 @@ export function getOpenAIClient(): OpenAI | null {
 }
 
 export const CHIP_MODEL = "claude-sonnet-4-6";
-export const REX_OPENAI_MODEL = process.env.OPENAI_REX_MODEL ?? "gpt-5.4-mini";
-export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.OPENAI_REX_MODEL ?? "gpt-5.4-mini";
+export const REX_OPENAI_MODEL = process.env.OPENAI_REX_MODEL ?? "gpt-4o-mini";
+export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.OPENAI_REX_MODEL ?? "gpt-4o-mini";
 export const PEGGY_CLAUDE_MODEL = process.env.ANTHROPIC_PEGGY_MODEL ?? process.env.ANTHROPIC_MODEL ?? CHIP_MODEL;
 
 export interface StoreConfig {

@@ -1,80 +1,266 @@
-import Link from "next/link";
-import { requireRole } from "@/lib/server-auth";
-import { getLogisticsPartnerForUser } from "@/lib/role-queries";
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
-import { Icon } from "@/components/ui";
-import type { IconName } from "@/components/ui/Icon";
-import { redirect } from "next/navigation";
+import { PageHead, Icon } from "@/components/ui";
+import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
+import { VerificationProgress } from "@/components/verification/VerificationProgress";
+import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
+import { VerificationBadge } from "@/components/verification/VerificationBadge";
+import {
+  type VerificationDoc,
+  type DocType,
+  type TrustScoreBreakdownItem,
+  logisticsDocTypes,
+} from "@/app/actions/verification";
+
+interface PartnerData {
+  id: string;
+  displayName: string;
+  companyName: string;
+  city?: string;
+  country?: string;
+  verificationStatus: string;
+  trustScore: number;
+  reliabilityScore: number;
+  slug: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  verificationDocuments: VerificationDoc[];
+}
+
+interface UserData {
+  name: string;
+  email: string;
+  avatarUrl?: string;
+}
+
+interface TrustData {
+  items: TrustScoreBreakdownItem[];
+  total: number;
+  level: string;
+  nextLevel: string;
+  nextLevelAt: number;
+}
 
 export const dynamic = "force-dynamic";
 
-export default async function LogisticsVerificationPage() {
-  const user = await requireRole(["logistics_partner"], "/logistics/login");
-  const partner = await getLogisticsPartnerForUser(user);
-  if (!partner) redirect("/logistics/onboarding");
-  if (partner.verificationStatus === "verified") redirect("/logistics/dashboard");
+export default function LogisticsVerificationPage() {
+  const [partner, setPartner] = useState<PartnerData | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [documents, setDocuments] = useState<VerificationDoc[]>([]);
+  const [trustData, setTrustData] = useState<TrustData | null>(null);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const messageMap: Record<string, { title: string; desc: string; icon: IconName }> = {
-    pending: {
-      title: "Verification pending",
-      desc: "Your logistics profile is under review by our admin team. You will get full access to your dashboard, bookings, quotes, and billing once verified. This usually takes 1-2 business days.",
-      icon: "clock",
-    },
-    rejected: {
-      title: "Verification rejected",
-      desc: "Your profile did not pass verification. Please check your onboarding details and ensure all required documents are correct, then resubmit.",
-      icon: "warn",
-    },
-    unverified: {
-      title: "Complete your onboarding",
-      desc: "You need to complete the onboarding process before your profile can be verified by our admin team.",
-      icon: "flag",
-    },
-  };
+  const fetchData = useCallback(async () => {
+    try {
+      const r = await fetch("/api/logistics/me");
+      if (!r.ok) throw new Error("Unable to load verification data.");
+      const d = await r.json();
+      const payload = d.data ?? d;
+      if (!payload.partner || !payload.user) throw new Error("Details not returned.");
+      setPartner(payload.partner);
+      setUser(payload.user);
+      setDocuments(payload.partner.verificationDocuments ?? []);
+      if (payload.trustBreakdown) setTrustData(payload.trustBreakdown);
+    } catch (err: any) {
+      setError(err.message || "Unable to load verification.");
+    }
+  }, []);
 
-  const status = partner.verificationStatus;
-  const msg = messageMap[status] ?? messageMap.unverified;
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleUpload = useCallback(async (type: DocType, file: File) => {
+    setMessage("");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("docType", type);
+    try {
+      const r = await fetch("/api/logistics/verification/upload", { method: "POST", body: formData });
+      const result = await r.json();
+      if (!result.success) { setMessage(result.error ?? "Upload failed"); return; }
+      setMessage("Document uploaded successfully.");
+      fetchData();
+    } catch { setMessage("Upload failed."); }
+  }, [fetchData]);
+
+  const handleDelete = useCallback(async (docId: string) => {
+    setMessage("");
+    try {
+      const r = await fetch("/api/logistics/verification/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId }),
+      });
+      const result = await r.json();
+      if (!result.success) { setMessage(result.error ?? "Delete failed"); return; }
+      setMessage("Document removed.");
+      fetchData();
+    } catch { setMessage("Delete failed."); }
+  }, [fetchData]);
+
+  const handleSubmit = useCallback(async () => {
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const r = await fetch("/api/logistics/verification/submit", { method: "POST" });
+      const result = await r.json();
+      if (!result.success) { setMessage(result.error ?? "Submit failed"); setSubmitting(false); return; }
+      setMessage("Verification submitted for review.");
+      fetchData();
+    } catch { setMessage("Submit failed."); }
+    finally { setSubmitting(false); }
+  }, [fetchData]);
+
+  if (error) {
+    return (
+      <div style={{ display: "grid", placeItems: "center", height: "100vh", color: "var(--danger)" }}>{error}</div>
+    );
+  }
+
+  if (!partner || !user) {
+    return (
+      <div style={{ display: "grid", placeItems: "center", height: "100vh", color: "var(--ink-400)" }}>Loading...</div>
+    );
+  }
+
+  const isVerified = partner.verificationStatus === "verified";
+  const isPending = partner.verificationStatus === "pending";
+
+  const progressSteps = [
+    { label: "Account setup", done: true },
+    { label: "Business profile", done: Boolean(partner.companyName && partner.city) },
+    { label: "Documents uploaded", done: documents.some((d) => d.status === "uploaded" || d.status === "submitted") },
+    { label: "Verification submitted", done: isPending || isVerified },
+    { label: "ShopinBos review", done: isPending || isVerified },
+    { label: "Verification approved", done: isVerified },
+  ];
+
+  const badgeTier = isVerified
+    ? trustData?.level.toLowerCase().includes("platinum") ? "platinum"
+      : trustData?.level.toLowerCase().includes("gold") ? "gold"
+      : trustData?.level.toLowerCase().includes("silver") ? "silver"
+      : "bronze"
+    : "none";
 
   return (
     <AppFrame
-      role="logistics_partner"
-      storeName={partner.displayName}
+        role="logistics_partner"
+        storeName={partner.displayName}
       storeSlug={`${partner.city ?? "Lagos"} · Fleet`}
       storeInitial={partner.displayName.charAt(0).toUpperCase()}
       userName={user.name}
       userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
+      verificationStatus={partner.verificationStatus}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18, alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-        <div className="card" style={{ padding: 40, maxWidth: 520, textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: status === "rejected" ? "var(--danger-bg)" : "var(--amber-100)", display: "grid", placeItems: "center", margin: "0 auto 16px" }}>
-            <Icon name={msg.icon} size={24} color={status === "rejected" ? "var(--danger)" : "var(--amber-700)"} />
-          </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>{msg.title}</h1>
-          <p style={{ fontSize: 13.5, color: "var(--ink-600)", lineHeight: 1.6, margin: "0 0 24px" }}>{msg.desc}</p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            {status === "rejected" || status === "unverified" ? (
-              <Link href="/logistics/onboarding" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-                <Icon name="edit" size={14} /> Complete onboarding
-              </Link>
-            ) : (
-              <Link href="/logistics/profile" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-                <Icon name="shop" size={14} /> View profile
-              </Link>
-            )}
-            <Link href="/logistics/profile" className="dbtn dBtn-ghost" style={{ textDecoration: "none" }}>
-              <Icon name="settings" size={14} /> Profile settings
-            </Link>
-          </div>
-          {status === "pending" && (
-            <div style={{ marginTop: 20, padding: "12px 16px", background: "var(--ink-50)", borderRadius: 10, fontSize: 12.5, color: "var(--ink-600)", lineHeight: 1.5 }}>
-              <strong>What happens next?</strong><br />
-              Once verified, you will unlock: Dashboard with live ops · Booking management · Quote responses · Billing & payouts · Team management · Public marketplace listing
+        <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
+          <PageHead
+            title="Verification"
+            sub={`${partner.displayName} — ${isVerified ? "Verified" : partner.verificationStatus}`}
+            actions={
+              isVerified && trustData ? (
+                <VerificationBadge tier={badgeTier} trustScore={trustData.total} verificationStatus={partner.verificationStatus} size="md" />
+              ) : undefined
+            }
+          />
+
+          {message && (
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: message.includes("fail") || message.includes("error") ? "var(--danger-bg)" : "var(--teal-50)", border: `1px solid ${message.includes("fail") || message.includes("error") ? "var(--danger)" : "var(--teal-200)"}`, color: message.includes("fail") || message.includes("error") ? "var(--danger)" : "var(--teal-800)", fontSize: 13 }}>
+              {message}
             </div>
           )}
+
+          {isVerified ? (
+            <div className="card" style={{ padding: 24, background: "linear-gradient(135deg, #d1fae5, #b9e9d4)", border: "none" }}>
+              <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+                <div style={{ width: 62, height: 62, borderRadius: 18, background: "var(--success)", color: "white", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <Icon name="check" size={32} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "var(--font-accent)", fontSize: 26, fontWeight: 400, lineHeight: 1.1, color: "var(--success)" }}>
+                    Verified logistics partner
+                  </div>
+                  <div style={{ fontSize: 13.5, color: "var(--ink-700)", marginTop: 5 }}>
+                    Approved by ShopinBos — Trust score <strong>{trustData?.total ?? partner.reliabilityScore}/100</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="card" style={{ padding: 24, background: "linear-gradient(135deg, var(--amber-50), #fdecd4)", border: "1px solid var(--amber-200)" }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <div style={{ width: 50, height: 50, borderRadius: 14, background: "var(--amber-100)", color: "var(--amber-700)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <Icon name="clock" size={24} />
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-accent)", fontSize: 22, fontWeight: 400, color: "var(--amber-700)" }}>
+                    {isPending ? "Under review" : "Verification pending"}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--ink-600)", marginTop: 3 }}>
+                    {isPending
+                      ? "Your documents are being reviewed by the ShopinBos team."
+                      : "Upload your documents below to get verified."
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18 }}>
+            <div className="card" style={{ padding: 18 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Documents required</div>
+              <VerificationDocUploader
+                role="logistics_partner"
+                docs={documents}
+                docConfigs={logisticsDocTypes}
+                onUpload={handleUpload}
+                onDelete={handleDelete}
+                readOnly={isVerified}
+              />
+              {!isVerified && !isPending && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  style={{
+                    marginTop: 16,
+                    padding: "10px 20px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "var(--teal-600)",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: submitting ? "wait" : "pointer",
+                    width: "100%",
+                  }}
+                >
+                  {submitting ? "Submitting..." : "Submit for admin review"}
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <VerificationProgress steps={progressSteps} />
+              {trustData && (
+                <div className="card" style={{ padding: 18 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Trust score breakdown</div>
+                  <TrustScoreBreakdown
+                    items={trustData.items}
+                    total={trustData.total}
+                    level={trustData.level}
+                    nextLevel={trustData.nextLevel}
+                    nextLevelAt={trustData.nextLevelAt}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </AppFrame>
+      </AppFrame>
   );
 }

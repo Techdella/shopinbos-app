@@ -52,7 +52,7 @@ const categoryOptions = [
 const DOCUMENTS: Document[] = [
   { id: "registration", name: "Business Name registration or CAC certificate", type: "registration", status: "pending", notes: "Upload your BN registration or CAC certificate." },
   { id: "owner", name: "Owner NIN", type: "identity", status: "pending", notes: "NIN slip or NIN-backed identity document." },
-  { id: "factory", name: "Factory or product warehouse photo", type: "factory", status: "pending", notes: "Required photo of your factory, workshop, or product warehouse." },
+  { id: "product-images", name: "Product images", type: "product-images", status: "pending", notes: "At least 5 images showing your products (min 5, max 20)." },
   { id: "tax", name: "Tax identification", type: "tax", status: "optional", notes: "Optional - upload your TIN certificate or tax document." },
   { id: "bank", name: "Bank account proof", type: "bank", status: "optional", notes: "Optional - upload bank proof that matches the business name." },
 ];
@@ -65,7 +65,7 @@ const documentFindingsData = [
   ["Address", "Waiting for upload"],
 ];
 
-const requiredDocumentTypes = new Set<Document["type"]>(["registration", "identity", "factory"]);
+const requiredDocumentTypes = new Set<Document["type"]>(["registration", "identity", "product-images"]);
 
 function isDocumentComplete(doc: Document) {
   return doc.status === "read" || doc.status === "uploaded";

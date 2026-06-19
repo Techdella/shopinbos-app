@@ -40,44 +40,10 @@ function fmtCurrency(amount: number, currency = "NGN") {
   return new Intl.NumberFormat("en-NG", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
-const placeholderData: AnalyticsData = {
-  totalSubscribers: 1248,
-  emailsSent: 28530,
-  openRate: 24.6,
-  clickRate: 4.2,
-  revenueFromEmail: 4850000,
-  couponsUsed: 342,
-  abandonedCarts: 187,
-  formSubmissions: 563,
-  topCampaigns: [
-    { name: "Flash Sale Announcement", sent: 1240, opened: 372, clicked: 89, revenue: 890000 },
-    { name: "New Arrivals", sent: 1200, opened: 288, clicked: 72, revenue: 650000 },
-    { name: "Weekly Newsletter", sent: 1180, opened: 295, clicked: 53, revenue: 420000 },
-    { name: "Abandoned Cart Recovery", sent: 187, opened: 65, clicked: 22, revenue: 310000 },
-  ],
-  recentActivity: [
-    { type: "campaign", message: "Flash Sale campaign sent to 1,240 subscribers", timestamp: "2h ago" },
-    { type: "subscriber", message: "45 new subscribers from checkout", timestamp: "4h ago" },
-    { type: "form", message: "Newsletter popup collected 12 emails today", timestamp: "6h ago" },
-    { type: "coupon", message: "Coupon SAVE10 used 8 times", timestamp: "8h ago" },
-    { type: "campaign", message: "Weekly Newsletter opens up 15% from last week", timestamp: "1d ago" },
-  ],
-  subscriberGrowth: [
-    { month: "Jan", count: 800 },
-    { month: "Feb", count: 860 },
-    { month: "Mar", count: 920 },
-    { month: "Apr", count: 1010 },
-    { month: "May", count: 1100 },
-    { month: "Jun", count: 1248 },
-  ],
-  revenueOverTime: [
-    { month: "Jan", amount: 1200000 },
-    { month: "Feb", amount: 1500000 },
-    { month: "Mar", amount: 1800000 },
-    { month: "Apr", amount: 2100000 },
-    { month: "May", amount: 2500000 },
-    { month: "Jun", amount: 3000000 },
-  ],
+const EMPTY_DATA: AnalyticsData = {
+  totalSubscribers: 0, emailsSent: 0, openRate: 0, clickRate: 0,
+  revenueFromEmail: 0, couponsUsed: 0, abandonedCarts: 0, formSubmissions: 0,
+  topCampaigns: [], recentActivity: [], subscriberGrowth: [], revenueOverTime: [],
 };
 
 function ChartPlaceholder({ title, height = 180, children }: {
@@ -142,10 +108,10 @@ export default function MarketingAnalyticsPage() {
       const res = await fetch("/api/store/analytics/marketing");
       const json = await res.json();
       if (json.data) setData(json.data);
-      else setData(placeholderData);
+      else setData(EMPTY_DATA);
     } catch {
-      setData(placeholderData);
-      toast("Could not load analytics — showing sample data", "info");
+      setData(EMPTY_DATA);
+      toast("Could not load analytics", "error");
     } finally {
       setLoading(false);
     }
@@ -153,7 +119,7 @@ export default function MarketingAnalyticsPage() {
 
   useEffect(() => { void fetchAnalytics(); }, [fetchAnalytics]);
 
-  const d = data || placeholderData;
+  const d = data || EMPTY_DATA;
 
   return (
     <AppFrame role="seller">

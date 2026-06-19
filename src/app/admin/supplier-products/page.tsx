@@ -1,6 +1,7 @@
 import { updateSupplierProductStatus, updateSupplierProductTrend, bulkUpdateSupplierProductStatus } from "@/app/actions/admin";
 import { StatusPill } from "@/components/ops/OpsPrimitives";
 import { DataTable, RolePage, formatDate, formatMoney } from "@/components/role/RolePage";
+import { AutoSubmitSelect } from "@/components/ui/AutoSubmitSelect";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 
@@ -59,17 +60,16 @@ export default async function AdminSupplierProductsPage(props: { searchParams?: 
     >
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <form method="GET" className="flex flex-wrap items-center gap-2">
-          <select
+          <AutoSubmitSelect
             name="status"
             defaultValue={statusFilter ?? ""}
-            onChange={(e) => e.target.form?.requestSubmit()}
             className="rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-2 text-[13px] text-navy outline-none"
           >
             <option value="">All statuses</option>
             {productStatuses.map((s) => (
               <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
             ))}
-          </select>
+          </AutoSubmitSelect>
           <input
             name="q"
             type="search"

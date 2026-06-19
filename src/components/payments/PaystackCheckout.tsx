@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 
 declare global {
@@ -50,6 +50,12 @@ export function PaystackCheckoutButton({
 }: PaystackCheckoutProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!buttonRef.current || !style) return;
+    Object.assign(buttonRef.current.style, style);
+  }, [style]);
 
   const handlePayment = useCallback(() => {
     if (!PUBLIC_KEY) {
@@ -103,9 +109,9 @@ export function PaystackCheckoutButton({
 
   return (
     <button
+      ref={buttonRef}
       onClick={handlePayment}
       className={className ?? "btn btn-mint"}
-      style={style}
       disabled={disabled || loading}
     >
       {loading ? "Processing..." : (children ?? label)}

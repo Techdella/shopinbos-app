@@ -48,14 +48,20 @@ export async function POST(request: NextRequest) {
     claims.email?.split("@")[0]?.replace(/[._-]/g, " ") ||
     "Shopinbos User";
 
-  const existingUser = await db.user.findUnique({
+  const email = claims.email.toLowerCase();
+
+  // Check by supabaseId first, then fall back to email (handles account recreation / ID mismatch)
+  let existingUser = await db.user.findUnique({
     where: { supabaseId: claims.sub },
     select: { id: true, role: true },
   });
+  if (!existingUser) {
+    existingUser = await db.user.findUnique({ where: { email }, select: { id: true, role: true } }) ?? null;
+  }
+
   const requestedAdmin = requestedRole === "admin";
-  const email = claims.email.toLowerCase();
-  const canUseAdminRole = existingUser?.role === "admin" || adminInviteEmails().includes(email);
-  const role = existingUser?.role ?? requestedRole;
+  const isAdminInvite = adminInviteEmails().includes(email);
+  const canUseAdminRole = existingUser?.role === "admin" || isAdminInvite;
 
   if (requestedAdmin && !canUseAdminRole) {
     return NextResponse.json(
@@ -63,6 +69,10 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   }
+
+  // Admin invite emails always get admin role (even if JWT metadata says "seller")
+  const effectiveRequestedRole = isAdminInvite ? "admin" : requestedRole;
+  const role = existingUser?.role === "admin" ? "admin" : (existingUser?.role ?? effectiveRequestedRole);
 
   void roleProvisioningDefaults;
   const user = await ensureAppUserForSupabaseUser({

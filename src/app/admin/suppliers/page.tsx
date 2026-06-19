@@ -1,6 +1,7 @@
 import { updateSupplierVerification, bulkUpdateSupplierVerification } from "@/app/actions/admin";
 import { StatusPill } from "@/components/ops/OpsPrimitives";
 import { DataTable, RolePage, formatDate } from "@/components/role/RolePage";
+import { AutoSubmitSelect } from "@/components/ui/AutoSubmitSelect";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 
@@ -67,17 +68,16 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
     >
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <form method="GET" className="flex flex-wrap items-center gap-2">
-          <select
+          <AutoSubmitSelect
             name="status"
             defaultValue={statusFilter ?? ""}
-            onChange={(e) => e.target.form?.requestSubmit()}
             className="rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-2 text-[13px] text-navy outline-none"
           >
             <option value="">All verification statuses</option>
             {verificationStatuses.map((s) => (
               <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
             ))}
-          </select>
+          </AutoSubmitSelect>
           <input
             name="q"
             type="search"
@@ -143,6 +143,17 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
           { label: "Status", value: (row) => <StatusPill status={row.status} /> },
           { label: "Products", value: (row) => row._count.products },
           { label: "Updated", value: (row) => formatDate(row.updatedAt) },
+          {
+            label: "Documents",
+            value: (row) => (
+              <a
+                href={`/admin/suppliers/${row.id}`}
+                className="rounded-[8px] border border-[var(--teal-200)] bg-[var(--teal-50)] px-3 py-1.5 text-[12px] font-semibold text-[var(--teal-700)] no-underline transition-colors hover:bg-[var(--teal-100)]"
+              >
+                View docs
+              </a>
+            ),
+          },
           {
             label: "Moderation",
             value: (row) => (

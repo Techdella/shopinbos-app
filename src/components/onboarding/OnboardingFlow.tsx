@@ -535,6 +535,11 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
     );
   }
 
+  function openFullRexBuilder() {
+    if (rexBuildStore) saveRexBuilderMemory(rexBuildStore);
+    router.push("/builder/rex?onboarding=true");
+  }
+
   async function buildStoreWithRex(tweak = "") {
     setBuildPath("rex");
     setRexBuildStatus("building");
@@ -1103,6 +1108,20 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
                       </div>
                     );
                   })}
+                </div>
+                <div className="card">
+                  <div className="mb-2 text-[13px] font-semibold text-[var(--ink-900)]">Continue in the full builder</div>
+                  <p className="m-0 text-[12px] leading-5 text-[var(--ink-500)]">
+                    Open Rex's full store builder with this onboarding memory to generate every editable page, product area, cart, checkout, and launch section.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openFullRexBuilder}
+                    className="btn btn-mint mt-3 w-full justify-center"
+                    disabled={rexBuildStatus === "building"}
+                  >
+                    Open full Rex builder <Icon name="arrow" size={13} />
+                  </button>
                 </div>
                 <div className="card">
                   <div className="mb-2 text-[13px] font-semibold text-[var(--ink-900)]">Ask Rex to tweak it</div>

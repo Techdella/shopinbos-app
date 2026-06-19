@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { GlobalTopBar } from "./GlobalTopBar";
 import { RexDrawerProvider } from "@/components/rex/RexDrawerContext";
+import { FirstRunWalkthrough } from "./FirstRunWalkthrough";
+import { AnnouncementBanner } from "@/components/verification/AnnouncementBanner";
 import type { Role } from "@/lib/nav";
 
 interface AppFrameProps {
@@ -19,6 +21,7 @@ interface AppFrameProps {
   chipRole?: string;
   chipTasks?: unknown[];
   chipMessage?: string;
+  verificationStatus?: string;
   children: ReactNode;
 }
 
@@ -37,6 +40,7 @@ export function AppFrame({
   chipRole: _chipRole,
   chipTasks: _chipTasks,
   chipMessage: _chipMessage,
+  verificationStatus,
   children,
 }: AppFrameProps) {
   const roleLabel =
@@ -50,7 +54,7 @@ export function AppFrame({
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--canvas)" }}>
-      <RexDrawerProvider>
+      <RexDrawerProvider chipMessage={_chipMessage}>
         <Sidebar
           role={role}
           storeName={storeName}
@@ -59,6 +63,7 @@ export function AppFrame({
           storeLogoUrl={storeLogoUrl}
           userName={userName}
         />
+        <FirstRunWalkthrough role={role} storeName={storeName} />
 
         <main className="flex-1 flex flex-col overflow-hidden min-w-0">
           <GlobalTopBar
@@ -69,6 +74,13 @@ export function AppFrame({
             role={roleLabel}
             searchPlaceholder={searchPlaceholder}
           />
+          {verificationStatus && role !== "seller" && role !== "admin" && (
+            <AnnouncementBanner
+              role={role === "logistics_partner" ? "logistics_partner" : "supplier"}
+              verificationStatus={verificationStatus}
+              displayName={storeName}
+            />
+          )}
           <div className="flex-1 overflow-y-auto" style={{ background: "var(--canvas)" }}>
             {children}
           </div>

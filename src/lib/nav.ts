@@ -20,13 +20,13 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
   seller: [
     {
       group: "website",
-      label: "Website",
+      label: "Store",
       items: [
+        { id: "home",       label: "Dashboard",   icon: "home",     href: "/home" },
         { id: "pages",      label: "Pages",       icon: "document", href: "/home/pages" },
-        { id: "navigation", label: "Navigation",  icon: "list",     href: "/seller/store/settings?tab=navigation" },
         { id: "blog",       label: "Blog",        icon: "edit",     href: "/home/cms" },
-        { id: "seo",        label: "SEO",         icon: "chart",    href: "/seller/store/settings?tab=seo" },
-        { id: "theme",      label: "Theme",       icon: "palette",  href: "/seller/store/builder" },
+        { id: "theme",      label: "Theme & Brand", icon: "palette", href: "/seller/store/builder" },
+        { id: "domain",     label: "Domain",      icon: "monitor",  href: "/home/domain" },
       ],
     },
     {
@@ -42,23 +42,19 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       group: "commerce",
       label: "Commerce",
       items: [
-        { id: "cart",        label: "Cart",        icon: "cart",    href: "/home/commerce/cart" },
-        { id: "checkout",    label: "Checkout",    icon: "cart",    href: "/home/checkout" },
-        { id: "wishlist",    label: "Wishlist",    icon: "heart",   href: "/seller/store/settings?tab=commerce" },
         { id: "orders",      label: "Orders",      icon: "cart",    href: "/home/orders" },
         { id: "customers",   label: "Customers",   icon: "users",   href: "/home/customers" },
+        { id: "inventory",   label: "Inventory",   icon: "box",     href: "/home/inventory" },
+        { id: "reviews",     label: "Reviews",     icon: "star",    href: "/home/reviews" },
       ],
     },
     {
       group: "operations",
       label: "Operations",
       items: [
-        { id: "inventory",   label: "Inventory",    icon: "box",        href: "/home/inventory" },
-        { id: "reviews",     label: "Reviews",      icon: "star",       href: "/home/reviews" },
         { id: "logistics",   label: "Logistics",    icon: "truck",      href: "/home/logistics" },
         { id: "messages",    label: "Messages",     icon: "message",    href: "/home/messages" },
         { id: "invoices",    label: "Invoices",     icon: "document",   href: "/home/invoices" },
-        { id: "forms",       label: "Forms",        icon: "mail",       href: "/home/forms" },
       ],
     },
     {
@@ -76,12 +72,13 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       group: "settings",
       label: "Settings",
       items: [
-        { id: "payments",    label: "Payments",      icon: "coin",      href: "/home/payments" },
-        { id: "shipping",    label: "Delivery",      icon: "truck",     href: "/home/shipping" },
-        { id: "taxes",       label: "Taxes",         icon: "percent",   href: "/home/taxes" },
-        { id: "notifications", label: "Notifications", icon: "bell",    href: "/home/notifications" },
-        { id: "legal",       label: "Legal Pages",   icon: "document",  href: "/seller/store/settings?tab=legal" },
-        { id: "settings",    label: "General",       icon: "settings",  href: "/home/settings" },
+        { id: "navigation",  label: "Navigation",   icon: "list",      href: "/home/navigation" },
+        { id: "seo",         label: "SEO",          icon: "chart",     href: "/home/seo" },
+        { id: "payments",    label: "Payments",     icon: "coin",      href: "/home/payments" },
+        { id: "shipping",    label: "Delivery",     icon: "truck",     href: "/home/shipping" },
+        { id: "taxes",       label: "Taxes",        icon: "percent",   href: "/home/taxes" },
+        { id: "legal",       label: "Legal Pages",  icon: "document",  href: "/home/legal" },
+        { id: "settings",    label: "General",      icon: "settings",  href: "/home/settings" },
       ],
     },
   ],
@@ -160,6 +157,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       group: "meta",
       label: "Meta",
       items: [
+        { id: "domain-partners", label: "Domain Partners", icon: "globe", href: "/admin/domain-partners" },
         { id: "settings", label: "Settings", icon: "settings", href: "/admin/settings" },
       ],
     },

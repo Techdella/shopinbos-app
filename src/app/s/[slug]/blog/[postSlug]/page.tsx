@@ -92,40 +92,40 @@ export default async function StoreBlogPostPage({ params }: Props) {
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), slug);
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px", fontFamily: "'DM Sans',system-ui,sans-serif" }}>
-      <Link href={`${storeBasePath}/blog`} style={{ color: "var(--teal-600)", fontSize: 14, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24 }}>
+    <div className="store-blog-post">
+      <Link href={`${storeBasePath}/blog`} className="store-blog-link store-blog-back">
         ← All posts
       </Link>
 
       <article>
-        <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em", margin: "0 0 8px", lineHeight: 1.2 }}>{post.title}</h1>
+        <h1 className="store-blog-title">{post.title}</h1>
 
-        <div style={{ display: "flex", gap: 12, fontSize: 13, color: "var(--ink-400)", marginBottom: 24 }}>
+        <div className="store-blog-meta">
           <span>{new Date(post.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
           <span>·</span>
           <span>{post.wordCount.toLocaleString()} words</span>
         </div>
 
         {post.excerpt && (
-          <p style={{ fontSize: 16, color: "var(--ink-500)", lineHeight: 1.6, margin: "0 0 24px", fontStyle: "italic" }}>{post.excerpt}</p>
+          <p className="store-blog-excerpt">{post.excerpt}</p>
         )}
 
         <div
-          style={{ fontSize: 15, lineHeight: 1.8, color: "var(--ink)", maxWidth: "100%" }}
+          className="store-blog-body"
           dangerouslySetInnerHTML={{ __html: mdToHtml(post.bodyMarkdown) }}
         />
 
         {(post.keywords ?? []).length > 0 && (
-          <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--line)", display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="store-blog-tags">
             {(post.keywords ?? []).map((kw, i) => (
-              <span key={i} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 999, background: "var(--teal-50)", color: "var(--teal-700)" }}>{kw}</span>
+              <span key={i} className="store-blog-tag">{kw}</span>
             ))}
           </div>
         )}
       </article>
 
-      <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
-        <Link href={`${storeBasePath}`} style={{ color: "var(--teal-600)", fontSize: 14, textDecoration: "none" }}>
+      <div className="store-blog-footer">
+        <Link href={`${storeBasePath}`} className="store-blog-link">
           ← Back to {store.name}
         </Link>
       </div>

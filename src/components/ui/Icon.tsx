@@ -15,7 +15,7 @@ export type IconName =
   | "heart" | "list" | "upload" | "link" | "tag2"
   | "document" | "mail" | "target" | "code" | "cards" | "message" | "grid" | "book"
   | "logout" | "arrowLeft"
-  | "copy" | "paperclip" | "moreHorizontal" | "chevRight" | "checkCircle";
+  | "copy" | "paperclip" | "moreHorizontal" | "chevRight" | "checkCircle" | "trash";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
@@ -116,6 +116,7 @@ const paths: Record<IconName, React.ReactNode> = {
   moreHorizontal: <><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></>,
   chevRight:  <><path d="M9 6l6 6-6 6"/></>,
   checkCircle: <><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></>,
+  trash:      <><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></>,
 };
 
 export function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.6, ...props }: IconProps) {

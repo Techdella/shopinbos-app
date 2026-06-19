@@ -8,7 +8,10 @@ export type StorageFolder =
   | "store-banners"
   | "supplier-logos"
   | "logistics-logos"
-  | "brand";
+  | "brand"
+  | "supplier-verifications"
+  | "logistics-verifications"
+  | "supplier-product-images";
 
 export interface UploadResult {
   path: string;

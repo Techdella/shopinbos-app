@@ -24,7 +24,7 @@ export function useRexDrawer() {
   return ctx;
 }
 
-export function RexDrawerProvider({ children }: { children: ReactNode }) {
+export function RexDrawerProvider({ children, chipMessage }: { children: ReactNode; chipMessage?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [initialMessage, setInitialMessage] = useState<string | undefined>();
 
@@ -46,7 +46,7 @@ export function RexDrawerProvider({ children }: { children: ReactNode }) {
         onClose={closeDrawer}
         initialMessage={initialMessage}
       />
-      <ChipDrawer />
+      <ChipDrawer message={chipMessage} />
     </RexDrawerContext.Provider>
   );
 }
