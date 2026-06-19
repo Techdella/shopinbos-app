@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
-import type { StoreConfig } from "@/lib/ai/client";
+import type { StoreConfig } from "@/lib/ai/store-types";
 import type { PreviewVariant } from "./StorePreview";
 
 interface LaunchSetupProps {

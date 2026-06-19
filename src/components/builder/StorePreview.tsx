@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import type { StoreConfig } from "@/lib/ai/client";
+import type { StoreConfig } from "@/lib/ai/store-types";
 
 export type PreviewVariant = "classic" | "bold" | "editorial" | "minimal";
 

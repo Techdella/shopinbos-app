@@ -11,7 +11,7 @@ import { PagesSetup, type SelectedPage } from "./PagesSetup";
 import { BuildProgress } from "./BuildProgress";
 import { DomainSetup } from "./DomainSetup";
 import { LaunchSetup } from "./LaunchSetup";
-import { DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/client";
+import { DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/store-types";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { snapshotToStoreConfig, type StoreEditorSnapshot } from "@/lib/store-templates";
 import {

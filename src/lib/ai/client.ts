@@ -1,6 +1,9 @@
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { STORE_TEMPLATE_MEMORY } from "@/lib/ai/store-design-memory";
+export type { StoreConfig } from "@/lib/ai/store-types";
+export { DEFAULT_STORE_CONFIG } from "@/lib/ai/store-types";
 
 let _anthropic: Anthropic | null = null;
 let _openai: OpenAI | null = null;
@@ -26,58 +29,6 @@ export const REX_OPENAI_MODEL = process.env.OPENAI_REX_MODEL ?? "gpt-4o-mini";
 export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.OPENAI_REX_MODEL ?? "gpt-4o-mini";
 export const PEGGY_CLAUDE_MODEL = process.env.ANTHROPIC_PEGGY_MODEL ?? process.env.ANTHROPIC_MODEL ?? CHIP_MODEL;
 
-export interface StoreConfig {
-  name: string;
-  slug: string;
-  tagline: string;
-  heroHeadline: string;
-  heroSubline: string;
-  heroCtaText: string;
-  logoUrl?: string | null;
-  palette: {
-    heroBg: string;
-    heroText: string;
-    accent: string;
-    ctaBg: string;
-    ctaText: string;
-    paperBg: string;
-  };
-  fontStyle: "fraunces" | "grotesk";
-  navLinks: string[];
-  products: Array<{
-    name: string;
-    subtitle: string;
-    price: string;
-    color: string;
-    imageUrl?: string;
-  }>;
-  changed: string[];
-}
-
-export const DEFAULT_STORE_CONFIG: StoreConfig = {
-  name: "Your Store",
-  slug: "your-store",
-  tagline: "Quality products, delivered.",
-  heroHeadline: "Tell Rex about your business.",
-  heroSubline: "He'll build your store in real time.",
-  heroCtaText: "Shop now",
-  palette: {
-    heroBg: "#0E2A38",
-    heroText: "#FAF7F1",
-    accent: "#73D8C8",
-    ctaBg: "#73D8C8",
-    ctaText: "#0E2A38",
-    paperBg: "#FAF7F1",
-  },
-  fontStyle: "fraunces",
-  navLinks: ["Products", "About", "Contact"],
-  products: [
-    { name: "Product One", subtitle: "Your first item", price: "â‚¦0", color: "#2E7E78" },
-    { name: "Product Two", subtitle: "Your second item", price: "â‚¦0", color: "#F2A93B" },
-    { name: "Product Three", subtitle: "Your third item", price: "â‚¦0", color: "#6B4F8A" },
-  ],
-  changed: [],
-};
 
 export const CHIP_SYSTEM_PROMPT = `You are Rex, the AI store builder for Shopinbos — Africa's AI commerce platform. You help entrepreneurs across Nigeria, Ghana, Kenya, and beyond build beautiful online stores through natural conversation.
 

@@ -13,7 +13,7 @@ import {
   type TemplatePageSeed,
   type TemplatePageType,
 } from "@/lib/store-templates";
-import { type StoreConfig } from "@/lib/ai/client";
+import type { StoreConfig } from "@/lib/ai/store-types";
 
 type EditorEnvelope = {
   seller?: {
