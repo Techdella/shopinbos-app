@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { Icon } from "@/components/ui/Icon";
 import { MascotAvatar } from "@/components/ui";
@@ -104,6 +105,20 @@ export default async function HomePage({
 }) {
   const { period = "30d" } = await searchParams;
   const user = await requireRole(["seller"], "/login");
+
+  // Resume mid-onboarding if the user hasn't finished setup
+  const onboardingStore = await db.store.findUnique({
+    where: { userId: user.id },
+    select: { onboardingState: true, firstDashboardVisitComplete: true },
+  });
+  if (!onboardingStore?.firstDashboardVisitComplete) {
+    const state = onboardingStore?.onboardingState;
+    if (!state || state === "NEW") redirect("/onboarding/path-picker");
+    if (state === "BUILDING_REX") redirect("/onboarding/rex");
+    if (state === "BUILDING_TEMPLATE") redirect("/builder/templates?onboarding=true");
+    // LIVE / SKIPPED / INCOMPLETE → fall through to dashboard
+  }
+
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
 

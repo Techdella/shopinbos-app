@@ -6,6 +6,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { StorefrontClient } from "@/app/s/[slug]/StorefrontClient";
 import { mascotPaths } from "@/lib/brand";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import {
   createBlankEditorSnapshot,
   createSectionFromLibrary,
@@ -121,6 +122,7 @@ export function RexAIBuilder() {
   const [selectedPage, setSelectedPage] = useState("home");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
+  const [launchPricing, setLaunchPricing] = useState<StoreLaunchPricing | null>(null);
   const [publishedStoreUrl, setPublishedStoreUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -524,7 +526,12 @@ export function RexAIBuilder() {
     setPublishing(true);
     try {
       const response = await fetch("/api/store/editor/publish", { method: "POST" });
-      const json = (await response.json()) as { data?: EditorEnvelope };
+      const json = (await response.json()) as { data?: EditorEnvelope; billing?: StoreLaunchPricing; error?: { message?: string } };
+      if (response.status === 402 && json.billing) {
+        setLaunchPricing(json.billing);
+        return;
+      }
+      if (!response.ok) throw new Error(json.error?.message ?? "Could not publish changes.");
       if (json.data) {
         setEnvelope((prev) => (prev ? { ...prev, published: json.data?.published ?? prev.published } : prev));
         setHasChanges(false);
@@ -1112,6 +1119,7 @@ export function RexAIBuilder() {
         overflow: "hidden",
       }}
     >
+      <StoreLaunchBillingModal open={Boolean(launchPricing)} pricing={launchPricing} onClose={() => setLaunchPricing(null)} />
       {/* ── Topbar ── */}
       <header
         style={{

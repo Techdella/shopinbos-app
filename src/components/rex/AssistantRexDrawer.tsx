@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { askRex, getSuggestions } from "@/app/actions/ai";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { Icon } from "@/components/ui/Icon";
@@ -8,6 +9,12 @@ import { Icon } from "@/components/ui/Icon";
 interface Message {
   role: "user" | "assistant";
   text: string;
+  actions?: Array<{
+    label: string;
+    href?: string;
+    prompt?: string;
+    icon: "check" | "eye" | "wand";
+  }>;
 }
 
 interface AssistantRexDrawerProps {
@@ -23,23 +30,77 @@ export function AssistantRexDrawer({
   initialMessage,
   userName,
 }: AssistantRexDrawerProps) {
+  const pathname = usePathname();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [suggestionChips, setSuggestionChips] = useState<string[]>([
-    "Draft a product description",
-    "Write marketing copy",
-    "Add a new page",
-    "Edit my hero section",
+    "Build my store",
+    "Create a landing page",
+    "Draft product descriptions",
+    "Help me upload products",
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const pageContext = {
+    path: pathname,
+    label: pathname.startsWith("/products")
+      ? "Products"
+      : pathname.includes("/builder") || pathname.includes("/editor")
+        ? "Store Builder"
+        : pathname.includes("/verification")
+          ? "Verification"
+          : pathname.includes("/orders")
+            ? "Orders"
+            : "Dashboard",
+  };
+
+  const messageFromResult = useCallback((result: Awaited<ReturnType<typeof askRex>>): Message => {
+    if ("error" in result && result.error) {
+      return { role: "assistant", text: result.error };
+    }
+
+    const meta = "meta" in result
+      ? result.meta as {
+          needsConfirmation?: boolean;
+          confirmationLabel?: string | null;
+          draftCreated?: boolean;
+          previewUrl?: string;
+          builderUrl?: string;
+        } | undefined
+      : undefined;
+    const actions: Message["actions"] = [];
+
+    if (meta?.needsConfirmation) {
+      actions.push({
+        label: meta.confirmationLabel || "Generate draft",
+        prompt: "Yes, generate the draft now.",
+        icon: "check",
+      });
+    }
+    if (meta?.draftCreated && meta.previewUrl) {
+      actions.push({ label: "Preview draft", href: meta.previewUrl, icon: "eye" });
+    }
+    if (meta?.draftCreated && meta.builderUrl) {
+      actions.push({ label: "Open builder", href: meta.builderUrl, icon: "wand" });
+    }
+
+    return {
+      role: "assistant",
+      text: ("text" in result && result.text) || "Rex could not answer that yet.",
+      actions,
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       const name = userName?.split(" ")[0] ?? "there";
       setMessages([
-        { role: "assistant", text: `Hi ${name}! I'm Rex. What would you like help with?` },
+        {
+          role: "assistant",
+          text: `Hi ${name}, I'm Rex. I can help set up your store, create landing pages, write product descriptions, upload products, connect logistics, and get your Shopinbos account ready.`,
+        },
       ]);
       setInput("");
       getSuggestions().then((s) => {
@@ -53,37 +114,47 @@ export function AssistantRexDrawer({
     if (initialMessage && isOpen && messages.length <= 1) {
       setMessages((prev) => [...prev, { role: "user", text: initialMessage }]);
       setIsLoading(true);
-      askRex(initialMessage).then((result) => {
+      askRex(initialMessage, pageContext).then((result) => {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", text: result.error ?? result.text ?? "Rex could not answer that yet." },
+          messageFromResult(result),
         ]);
       }).finally(() => setIsLoading(false));
     }
-  }, [initialMessage, isOpen]);
+  }, [initialMessage, isOpen, messageFromResult, messages.length, pageContext.label, pageContext.path]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    const cleanText = text.trim();
+    if (!cleanText || isLoading) return;
+
+    setMessages((prev) => [
+      ...prev.map((message) => ({
+        ...message,
+        actions: message.actions?.filter((action) => Boolean(action.href)),
+      })),
+      { role: "user", text: cleanText },
+    ]);
+    setIsLoading(true);
+
+    try {
+      const result = await askRex(cleanText, pageContext);
+      setMessages((prev) => [...prev, messageFromResult(result)]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, messageFromResult, pageContext.label, pageContext.path]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
-    setIsLoading(true);
-
-    try {
-      const result = await askRex(text);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: result.error ?? result.text ?? "Rex could not answer that yet." },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [input, isLoading]);
+    await sendMessage(text);
+  }, [input, isLoading, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -93,19 +164,8 @@ export function AssistantRexDrawer({
   };
 
   const handleSuggestionClick = useCallback(async (suggestion: string) => {
-    setMessages((prev) => [...prev, { role: "user", text: suggestion }]);
-    setIsLoading(true);
-
-    try {
-      const result = await askRex(suggestion);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: result.error ?? result.text ?? "Rex could not answer that yet." },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    await sendMessage(suggestion);
+  }, [sendMessage]);
 
   return (
     <>
@@ -127,8 +187,8 @@ export function AssistantRexDrawer({
           top: 0,
           right: 0,
           bottom: 0,
-          width: "40%",
-          minWidth: 360,
+          width: "min(100vw, 520px)",
+          minWidth: 0,
           maxWidth: 520,
           zIndex: 10000,
           background: "var(--paper, #fff)",
@@ -160,6 +220,7 @@ export function AssistantRexDrawer({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close Rex assistant"
             style={{
               width: 32, height: 32, borderRadius: 8, border: "none",
               background: "var(--ink-50, #F6F2E9)", cursor: "pointer",
@@ -180,17 +241,71 @@ export function AssistantRexDrawer({
             msg.role === "assistant" ? (
               <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <ChipAvatar mascot="rex" size={28} />
-                <div
-                  style={{
-                    maxWidth: "85%",
-                    padding: "10px 14px",
-                    borderRadius: "12px 12px 12px 4px",
-                    background: "var(--teal-50, #C7ECE3)",
-                    color: "var(--ink-800, #2A4148)",
-                    fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {msg.text}
+                <div style={{ maxWidth: "85%", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "12px 12px 12px 4px",
+                      background: "var(--teal-50, #C7ECE3)",
+                      color: "var(--ink-800, #2A4148)",
+                      fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {msg.text}
+                  </div>
+                  {msg.actions && msg.actions.length > 0 && (
+                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                      {msg.actions.map((action) =>
+                        action.href ? (
+                          <a
+                            key={`${action.label}-${action.href}`}
+                            href={action.href}
+                            style={{
+                              minHeight: 34,
+                              padding: "7px 11px",
+                              borderRadius: 7,
+                              background: "var(--teal-700, #087E73)",
+                              color: "#fff",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              textDecoration: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Icon name={action.icon} size={13} color="currentColor" />
+                            {action.label}
+                          </a>
+                        ) : (
+                          <button
+                            key={`${action.label}-${action.prompt}`}
+                            type="button"
+                            onClick={() => action.prompt && void sendMessage(action.prompt)}
+                            disabled={isLoading}
+                            style={{
+                              minHeight: 34,
+                              padding: "7px 11px",
+                              borderRadius: 7,
+                              border: "none",
+                              background: "var(--teal-700, #087E73)",
+                              color: "#fff",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              cursor: isLoading ? "not-allowed" : "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              opacity: isLoading ? 0.6 : 1,
+                            }}
+                          >
+                            <Icon name={action.icon} size={13} color="currentColor" />
+                            {action.label}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -305,6 +420,7 @@ export function AssistantRexDrawer({
             </div>
             <button
               onClick={handleSend}
+              aria-label="Send message to Rex"
               disabled={!input.trim() || isLoading}
               style={{
                 width: 40, height: 40, borderRadius: 10, border: "none",

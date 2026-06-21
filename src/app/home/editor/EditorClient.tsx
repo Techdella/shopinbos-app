@@ -10,6 +10,7 @@ import {
   type TemplateSectionNode,
 } from "@/lib/store-templates";
 import { SectionPreviewPopover } from "@/components/builder/SectionPreview";
+import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 
 type EditorEnvelope = {
   store: {
@@ -139,6 +140,7 @@ export function EditorClient() {
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [launchPricing, setLaunchPricing] = useState<StoreLaunchPricing | null>(null);
   const [rexPrompt, setRexPrompt] = useState("");
   const [rexBusy, setRexBusy] = useState(false);
   const [activeTool, setActiveTool] = useState("pages");
@@ -204,7 +206,12 @@ export function EditorClient() {
     setPublishing(true);
     try {
       const response = await fetch("/api/store/editor/publish", { method: "POST" });
-      const json = (await response.json()) as { data?: EditorEnvelope };
+      const json = (await response.json()) as { data?: EditorEnvelope; billing?: StoreLaunchPricing; error?: { message?: string } };
+      if (response.status === 402 && json.billing) {
+        setLaunchPricing(json.billing);
+        return;
+      }
+      if (!response.ok) throw new Error(json.error?.message ?? "Publish failed.");
       if (json.data) {
         setEnvelope((prev) => (prev ? { ...prev, published: json.data?.published ?? prev.published } : prev));
       }
@@ -366,6 +373,7 @@ export function EditorClient() {
         WebkitFontSmoothing: "antialiased",
       }}
     >
+      <StoreLaunchBillingModal open={Boolean(launchPricing)} pricing={launchPricing} onClose={() => setLaunchPricing(null)} />
       {/* ────────────────────────────────────────────── TOP BAR ────────────────────────────────────────────── */}
       <header
         style={{

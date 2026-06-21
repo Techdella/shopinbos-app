@@ -36,7 +36,6 @@ const SECTION_COLORS: Record<string, { primary: string; secondary: string; accen
   "cart-summary": { primary: "#4F46E5", secondary: "#EEF2FF", accent: "#A5B4FC" },
   "checkout-form": { primary: "#059669", secondary: "#ECFDF5", accent: "#6EE7B7" },
   "wishlist-grid": { primary: "#DB2777", secondary: "#FDF2F8", accent: "#F9A8D4" },
-  "contact-form": { primary: "#2563EB", secondary: "#EFF6FF", accent: "#93C5FD" },
   "default": { primary: "#6B7280", secondary: "#F3F4F6", accent: "#D1D5DB" },
 };
 

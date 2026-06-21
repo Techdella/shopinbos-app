@@ -6,9 +6,17 @@ import {
   PEGGY_CLAUDE_MODEL,
   PEGGY_OPENAI_MODEL,
 } from "@/lib/ai/client";
+import {
+  applyGuidedQuestionFallback,
+  buildRexCommerceSystemPrompt,
+  createRexDraftFromPlan,
+  getSavedRexAnswers,
+  parseRexStructuredResult,
+  saveRexAnswers,
+} from "@/lib/ai/rex-onboarding";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
+import { getSellerWorkspace, mergeBrandSettings } from "@/lib/workspace";
 
 function fmtMoney(amount: number, currency = "NGN") {
   return `${currency} ${amount.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
@@ -313,15 +321,25 @@ export async function askPeggy(message: string, _storeContext?: string) {
   }
 }
 
-export async function askRex(message: string) {
+export async function askRex(
+  message: string,
+  pageContext?: { path?: string; label?: string },
+) {
   try {
     const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
     const sellerSnapshot = user.role === "seller" ? await buildSellerSnapshot(user.id) : null;
-    const system =
-      user.role === "seller"
-        ? sellerSystemPrompt(sellerSnapshot!, "Rex")
-        : `You are Rex, Shopinbos' AI operations assistant. The current user role is ${user.role}. Give practical guidance for their dashboard and do not invent live numbers when no snapshot is available.`;
+    const savedAnswers = await getSavedRexAnswers(user.id);
+    const system = buildRexCommerceSystemPrompt({
+      user,
+      savedAnswers,
+      snapshot:
+        user.role === "seller"
+          ? sellerSnapshot
+          : { role: user.role, note: "Role-specific onboarding is active. No seller store snapshot is available for this role." },
+      pageContext,
+    });
 
+    let raw = "";
     const openai = getOpenAIClient();
     if (openai) {
       const response = await openai.responses.create({
@@ -331,22 +349,81 @@ export async function askRex(message: string) {
           { role: "user", content: message },
         ],
       });
-      return { text: response.output_text ?? "" };
+      raw = response.output_text ?? "";
+    } else {
+      const anthropic = getAnthropicClient();
+      if (anthropic) {
+        const response = await anthropic.messages.create({
+          model: PEGGY_CLAUDE_MODEL,
+          max_tokens: 1600,
+          system,
+          messages: [{ role: "user", content: message }],
+        });
+        raw = response.content[0]?.type === "text" ? response.content[0].text : "";
+      }
     }
 
-    const anthropic = getAnthropicClient();
-    if (anthropic) {
-      const response = await anthropic.messages.create({
-        model: PEGGY_CLAUDE_MODEL,
-        max_tokens: 1600,
-        system,
-        messages: [{ role: "user", content: message }],
+    if (!raw) {
+      return { error: "Rex needs OPENAI_API_KEY or ANTHROPIC_API_KEY configured before he can answer with live AI." };
+    }
+
+    const parsed = parseRexStructuredResult(raw);
+    if (!parsed) {
+      return { error: "Rex could not read the AI response. Please try again." };
+    }
+
+    if (parsed.answerWrites?.length) {
+      await saveRexAnswers({ user, writes: parsed.answerWrites });
+    }
+    if (user.role === "seller" && parsed.memoryPatch && Object.keys(parsed.memoryPatch).length > 0) {
+      const store = await db.store.findUnique({
+        where: { userId: user.id },
+        select: { id: true, brandSettings: true },
       });
-      const text = response.content[0]?.type === "text" ? response.content[0].text : "";
-      return { text };
+      if (store) {
+        await db.store.update({
+          where: { id: store.id },
+          data: {
+            brandSettings: mergeBrandSettings(store.brandSettings, {
+              onboardingMemory: parsed.memoryPatch,
+            }),
+          },
+        });
+      }
+    }
+    const refreshedAnswers = parsed.answerWrites?.length ? await getSavedRexAnswers(user.id) : savedAnswers;
+    const guided = applyGuidedQuestionFallback(parsed, refreshedAnswers);
+
+    if (guided.intent === "generate_store_draft" || guided.intent === "generate_landing_page_draft") {
+      if (user.role !== "seller") {
+        return {
+          text: "I can map that plan for your role, but full store drafts are only available from a seller workspace right now.",
+          meta: { intent: guided.intent },
+        };
+      }
+      const draft = await createRexDraftFromPlan({ user, result: guided, savedAnswers: refreshedAnswers });
+      const previewUrl = draft.homePageId ? `/preview/store/${draft.slug}/${draft.homePageId}` : `/builder/rex`;
+      return {
+        text: `${guided.reply}\n\nDraft created for ${draft.storeName}. Preview it at ${previewUrl} or continue editing in /builder/rex.`,
+        meta: {
+          intent: guided.intent,
+          draftCreated: true,
+          storeSlug: draft.slug,
+          previewUrl,
+          builderUrl: "/builder/rex",
+        },
+      };
     }
 
-    return { error: "Rex needs OPENAI_API_KEY or ANTHROPIC_API_KEY configured before he can answer with live AI." };
+    return {
+      text: guided.reply,
+      meta: {
+        intent: guided.intent,
+        nextQuestion: guided.nextQuestion ?? null,
+        needsConfirmation: Boolean(guided.needsConfirmation),
+        confirmationLabel: guided.confirmationLabel ?? null,
+      },
+    };
   } catch (error) {
     console.error("Rex AI error:", error);
     return { error: "Rex could not answer right now. Please try again." };

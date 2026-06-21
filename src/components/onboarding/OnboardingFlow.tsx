@@ -56,11 +56,26 @@ interface LogisticsCoverageZone {
 
 interface OnboardingFlowProps {
   initialUser?: InitialUser | null;
+  initialMemory?: StoreOnboardingMemory;
+  initialLaunchStatus?: string | null;
   forcedRole?: OnboardingRole;
+  launchPricing?: { total: number; deposit: number };
 }
 
 const ONBOARDING_CHAT_MEMORY_KEY = "shopinbos-onboarding-chat";
 const sellerStepsTotal = 10;
+const SELLER_STEP_LABELS = [
+  "Meet Rex",
+  "Name",
+  "Business",
+  "Build",
+  "Review",
+  "Products",
+  "Payments",
+  "Logistics",
+  "Domain",
+  "Launch",
+];
 
 const sellerTemplates = [
   {
@@ -188,23 +203,16 @@ function StepHeader({
 }
 
 function SellerPillSteps({ step }: { step: number }) {
-  const items = [
-    { label: "Meet Rex", max: 1 },
-    { label: "Set up shop", max: 3 },
-    { label: "Build", max: 5 },
-    { label: "Connect", max: 8 },
-    { label: "Go live", max: 10 },
-  ];
-
   return (
-    <div className="steps hidden lg:flex">
-      {items.map((item, index) => {
-        const active = step <= item.max && (index === 0 || step > items[index - 1].max);
-        const done = step > item.max;
+    <div className="steps hidden max-w-[720px] overflow-x-auto lg:flex" aria-label="Seller onboarding progress">
+      {SELLER_STEP_LABELS.map((label, index) => {
+        const number = index + 1;
+        const active = step === number;
+        const done = step > number;
         return (
-          <div key={item.label} className={`s ${active ? "on" : ""} ${done ? "done" : ""}`}>
-            <span className="n">{done ? <Icon name="check" size={11} /> : index + 1}</span>
-            {item.label}
+          <div key={label} className={`s shrink-0 ${active ? "on" : ""} ${done ? "done" : ""}`} aria-current={active ? "step" : undefined}>
+            <span className="n">{done ? <Icon name="check" size={11} /> : number}</span>
+            {label}
           </div>
         );
       })}
@@ -347,7 +355,7 @@ function RoleTopBar({ step, total }: { step: number; total: number }) {
   );
 }
 
-export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps) {
+export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus, forcedRole, launchPricing = { total: 8000, deposit: 4000 } }: OnboardingFlowProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { extractIntentParams, getContinuationPath } = intentRouting;
@@ -360,9 +368,7 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
   const [preferredName, setPreferredName] = useState(initialUser?.name ?? "");
   const [city, setCity] = useState(initialUser?.city ?? "Lagos");
   const [country, setCountry] = useState(initialUser?.country ?? "Nigeria");
-  const [businessDescription, setBusinessDescription] = useState(
-    "I make handmade leather sandals in Kano, using locally tanned hides. Mostly women's slip-ons in earth tones.",
-  );
+  const [businessDescription, setBusinessDescription] = useState("");
   const [storeName, setStoreName] = useState("");
   const [category, setCategory] = useState("Fashion & clothing");
   const [selectedCurrency, setSelectedCurrency] = useState("NGN Naira");
@@ -379,6 +385,7 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
   const [isRexThinking, setIsRexThinking] = useState(false);
   const [isSavingProgress, setIsSavingProgress] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [resumeReady, setResumeReady] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const storeCreatedRef = useRef(false);
@@ -388,9 +395,9 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
   const total = role === "seller" ? sellerTotal : roleTotal;
   const roleText = roleLabel(role);
   const template = selectedTemplate(templateId);
-  const resolvedStoreName = storeName.trim() || (role === "logistics_partner" ? "" : "Sahel Sole");
+  const resolvedStoreName = storeName.trim() || (role === "logistics_partner" ? "" : "Your Store");
   const storeSlug = slugify(resolvedStoreName);
-  const first = firstName(preferredName) || (role === "seller" ? "Aisha" : "Bukola");
+  const first = firstName(preferredName) || "there";
   const intentParams = extractIntentParams(searchParams);
 
   const sellerBaseSteps = ["Meet Rex", "Name your store", "What you sell", "Build path"];
@@ -406,19 +413,39 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
 
   useEffect(() => {
     const saved = window.localStorage.getItem(ONBOARDING_CHAT_MEMORY_KEY);
-    if (!saved) return;
+    let localMemory: (Partial<StoreOnboardingMemory> & {
+      step?: number;
+      buildPath?: BuildPath;
+      rexBuildStatus?: RexBuildStatus;
+      rexBuildMessage?: string;
+      rexBuildStore?: RexStoreConfig | null;
+    }) | undefined;
     try {
-      const memory = JSON.parse(saved) as Partial<StoreOnboardingMemory> & {
-        step?: number;
-        buildPath?: BuildPath;
-        rexBuildStatus?: RexBuildStatus;
-        rexBuildMessage?: string;
-        rexBuildStore?: RexStoreConfig | null;
-      };
+      localMemory = saved ? JSON.parse(saved) : undefined;
+    } catch {
+      localMemory = undefined;
+    }
+    const localTime = localMemory?.updatedAt ? Date.parse(localMemory.updatedAt) : 0;
+    const serverTime = initialMemory?.updatedAt ? Date.parse(initialMemory.updatedAt) : 0;
+    const memory = (localTime > serverTime ? localMemory : initialMemory) as (Partial<StoreOnboardingMemory> & {
+      step?: number;
+      buildPath?: BuildPath;
+      rexBuildStatus?: RexBuildStatus;
+      rexBuildMessage?: string;
+      rexBuildStore?: RexStoreConfig | null;
+    }) | undefined;
+    if (!memory) {
+      setResumeReady(true);
+      return;
+    }
+    try {
       if (memory.role && memory.role !== role) return;
       if (typeof memory.step === "number") setStep(Math.min(memory.step, role === "seller" ? sellerStepsTotal : roleTotal));
-      if (typeof memory.preferredName === "string") setPreferredName(memory.preferredName);
+      if (!initialUser?.name && typeof memory.preferredName === "string") setPreferredName(memory.preferredName);
       if (typeof memory.city === "string") setCity(memory.city);
+      if (typeof memory.country === "string") setCountry(memory.country);
+      if (typeof memory.currency === "string") setSelectedCurrency(memory.currency);
+      if (Array.isArray(memory.languages)) setSelectedLanguages(memory.languages);
       if (typeof memory.category === "string") setCategory(memory.category);
       if (typeof memory.businessDescription === "string") setBusinessDescription(memory.businessDescription);
       if (typeof memory.storeName === "string") setStoreName(memory.storeName);
@@ -430,9 +457,11 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
       if (typeof memory.rexBuildMessage === "string") setRexBuildMessage(memory.rexBuildMessage);
       if (memory.rexBuildStore) setRexBuildStore(memory.rexBuildStore);
     } catch {
-      // Ignore stale local onboarding state.
+      // Ignore malformed saved onboarding state.
+    } finally {
+      setResumeReady(true);
     }
-  }, [role, roleTotal]);
+  }, [initialMemory, initialUser?.name, role, roleTotal]);
 
   function buildOnboardingMemory(patch: Partial<StoreOnboardingMemory> = {}): StoreOnboardingMemory {
     return {
@@ -441,6 +470,9 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
       step,
       preferredName,
       city,
+      country,
+      currency: selectedCurrency,
+      languages: selectedLanguages,
       category,
       businessDescription,
       storeName: resolvedStoreName,
@@ -463,7 +495,17 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
       rexBuildStore,
     };
     window.localStorage.setItem(ONBOARDING_CHAT_MEMORY_KEY, JSON.stringify(memory));
-  }, [role, step, preferredName, city, category, businessDescription, storeName, templateId, buildPath, documentNotes, documentNames, rexBuildStatus, rexBuildMessage, rexBuildStore]);
+  }, [role, step, preferredName, city, country, selectedCurrency, selectedLanguages, category, businessDescription, storeName, templateId, buildPath, documentNotes, documentNames, rexBuildStatus, rexBuildMessage, rexBuildStore]);
+
+  useEffect(() => {
+    if (!resumeReady || role !== "seller") return;
+    const timer = window.setTimeout(() => {
+      void syncOnboardingMemoryToStore().catch(() => {
+        // Local storage remains available if the session expires mid-onboarding.
+      });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [resumeReady, role, step, preferredName, city, country, selectedCurrency, selectedLanguages, category, businessDescription, storeName, templateId, buildPath, documentNotes, documentNames]);
 
   async function readApiError(response: Response, fallback: string) {
     const data = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
@@ -489,6 +531,8 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
       name: resolvedStoreName,
       country,
       city,
+      currency: selectedCurrency,
+      status: "draft",
       onboardingState: buildPath === "template" ? "BUILDING_TEMPLATE" : "BUILDING_REX",
     };
   }
@@ -595,7 +639,14 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
         }
       }
 
-      const builtStore = finalStore ?? seed;
+      if (!finalStore) throw new Error("Rex did not return a complete store draft. Please try again.");
+      const builtStore = finalStore;
+      const draftResponse = await fetch("/api/store/editor", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hydrateFromStoreConfig: builtStore }),
+      });
+      if (!draftResponse.ok) throw new Error(await readApiError(draftResponse, "Rex built the design but could not save the draft."));
       setRexBuildStore(builtStore);
       saveRexBuilderMemory(builtStore);
       setRexBuildStatus("ready");
@@ -603,34 +654,34 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
       setRexTweak("");
       await syncOnboardingMemoryToStore({ buildPath: "rex", step: 5 });
     } catch (error) {
-      const fallback = seed;
-      setRexBuildStore(fallback);
-      saveRexBuilderMemory(fallback);
+      setRexBuildStore(null);
       setRexBuildStatus("error");
       setRexBuildMessage(error instanceof Error ? error.message : "Rex could not build this store right now.");
     }
   }
 
-  async function askRexAI() {
+  async function askRexAI(message = businessDescription, files: File[] = []) {
     setIsRexThinking(true);
     try {
+      const formData = new FormData();
+      formData.set("message", message);
+      formData.set("memory", JSON.stringify(buildOnboardingMemory()));
+      files.forEach((file) => formData.append("files", file));
       const response = await fetch("/api/ai/onboarding-rex", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: businessDescription,
-          memory: buildOnboardingMemory(),
-          documentNames,
-          documentText: documentNotes,
-        }),
+        body: formData,
       });
       if (!response.ok) throw new Error(await readApiError(response, "Rex could not read that yet."));
       const data = (await response.json().catch(() => null)) as { reply?: string; memoryPatch?: Partial<StoreOnboardingMemory> } | null;
       if (data?.memoryPatch?.category) setCategory(data.memoryPatch.category);
       if (data?.memoryPatch?.businessDescription) setBusinessDescription(data.memoryPatch.businessDescription);
+      if (data?.memoryPatch?.documentNames) setDocumentNames(data.memoryPatch.documentNames);
+      if (data?.memoryPatch?.documentNotes) setDocumentNotes(data.memoryPatch.documentNotes);
       setRexReply(data?.reply ?? "Got it. I will use this to shape the store name, template, products, and launch checklist.");
+      return true;
     } catch (error) {
       setRexReply(error instanceof Error ? error.message : "Rex could not respond right now.");
+      return false;
     } finally {
       setIsRexThinking(false);
     }
@@ -668,7 +719,10 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
         const response = await fetch("/api/ai/transcribe", { method: "POST", body: formData });
         if (!response.ok) throw new Error(await readApiError(response, "Rex could not transcribe the recording."));
         const data = (await response.json().catch(() => null)) as { text?: string } | null;
-        if (data?.text) setBusinessDescription(data.text);
+        if (data?.text) {
+          setBusinessDescription(data.text);
+          await askRexAI(data.text);
+        }
       } catch (error) {
         setRexReply(error instanceof Error ? error.message : "Rex could not transcribe the recording.");
       }
@@ -678,10 +732,13 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
     setIsRecording(true);
   }
 
-  function handleDocUpload(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleDocUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
     setDocumentNames(files.map((file) => file.name));
-    setDocumentNotes(files.map((file) => `[${file.name}: uploaded for Rex to remember during setup]`).join("\n"));
+    setRexReply(`Rex is reading ${files.length === 1 ? files[0].name : `${files.length} files`}...`);
+    await askRexAI(businessDescription || "Read these files and use the details to help build my store.", files);
+    event.target.value = "";
   }
 
   function saveAndExit() {
@@ -814,15 +871,15 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-[var(--ink-150)] pt-3">
                   <div className="flex flex-wrap items-center gap-3 text-[12px] text-[var(--ink-500)]">
                     <label className="btn-link cursor-pointer">
-                      <Icon name="image" size={13} /> Add a sketch or sample photo
-                      <input type="file" className="sr-only" multiple onChange={handleDocUpload} />
+                      <Icon name="image" size={13} /> Add images or a brief
+                      <input type="file" className="sr-only" multiple accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv" onChange={(event) => void handleDocUpload(event)} />
                     </label>
                     <button type="button" onClick={() => void toggleRecording()} className="btn-link">
                       <Icon name="phone" size={13} /> {isRecording ? "Stop recording" : "Say it instead"}
                     </button>
                   </div>
-                  <button type="button" onClick={() => { void askRexAI(); void goNext(storeProfilePatch()); }} className="btn btn-mint" disabled={isSavingProgress}>
-                    {isSavingProgress ? "Saving..." : "Build my shop"} <Icon name="sparkle" size={13} />
+                  <button type="button" onClick={async () => { if (await askRexAI()) await goNext(storeProfilePatch()); }} className="btn btn-mint" disabled={isSavingProgress || isRexThinking || !businessDescription.trim()}>
+                    {isRexThinking ? "Rex is reading..." : isSavingProgress ? "Saving..." : "Build my shop"} <Icon name="sparkle" size={13} />
                   </button>
                 </div>
               </div>
@@ -843,20 +900,15 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
 
             <div className="relative min-h-[520px]">
               <div className="relative text-center">
-                <MascotFigure role="seller" variant={0} className="mx-auto w-[360px]" priority />
+                <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="mx-auto w-[360px]" priority />
                 <div className="mx-auto -mt-5 max-w-[350px] rounded-[18px] border border-[var(--ink-100)] bg-[var(--paper)] px-5 py-4 text-left shadow-[var(--shd-md)]">
                   <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--teal-700)]">Rex - drafting</div>
                   <div className="text-[14px] leading-6 text-[var(--ink-800)]">
-                    Got it. I'm thinking warm earth palette, handcraft serif, and three product pages built around your story.
+                    {isRexThinking
+                      ? "I'm reading what you shared and shaping a store direction around it."
+                      : rexReply || `Tell me about ${resolvedStoreName === "Sahel Sole" ? "your business" : resolvedStoreName}, and I'll respond with a live store direction.`}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {["palette", "typography", "three products"].map((item) => (
-                      <span key={item} className="chip on text-[11px]">
-                        <Icon name="check" size={11} />
-                        {item}
-                      </span>
-                    ))}
-                  </div>
+                  {documentNames.length > 0 && <div className="mt-3 text-[11px] text-[var(--ink-500)]">Read: {documentNames.join(", ")}</div>}
                 </div>
               </div>
             </div>
@@ -991,7 +1043,7 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
                   <button
                     type="button"
                     onClick={() => {
-                      void finishOnboarding();
+                      saveAndExit();
                     }}
                     className="text-[13px] font-semibold text-[var(--ink-400)] underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--ink-600)]"
                   >
@@ -1008,7 +1060,7 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
           {step === 4 && buildPath === "rex" && (
             <div className="flex flex-1 items-center justify-center overflow-auto bg-[linear-gradient(180deg,#f5faf7,var(--canvas))] px-7 py-8">
               <div className="w-full max-w-[780px] text-center">
-                <MascotFigure role="seller" variant={0} className="mx-auto mb-6 w-[120px]" />
+                <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="mx-auto mb-6 w-[120px]" />
                 <h1 className="onb-title text-center">Tell me what you sell.<br /><em className="text-[var(--teal-700)]">In one sentence.</em></h1>
                 <p className="onb-sub mx-auto max-w-[540px]">The more specific, the better. Where you make it, who it's for, what makes it different. I'll do the rest.</p>
                 <div className="card mt-8 text-left" style={{ padding: 24, boxShadow: "var(--shd-lg)" }}>
@@ -1022,8 +1074,8 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-[var(--ink-150)] pt-4">
                     <div className="flex flex-wrap gap-4 text-[11.5px] text-[var(--ink-500)]">
                       <label className="btn-link cursor-pointer">
-                        <Icon name="image" size={13} /> Add a sample photo
-                        <input type="file" className="sr-only" multiple onChange={handleDocUpload} />
+                        <Icon name="image" size={13} /> Add images or a brief
+                        <input type="file" className="sr-only" multiple accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv" onChange={(event) => void handleDocUpload(event)} />
                       </label>
                       <button type="button" onClick={() => void askRexAI()} className="btn-link" disabled={isRexThinking}>
                         <Icon name="wand" size={13} /> {isRexThinking ? "Rex is thinking..." : "Pick a brand voice"}
@@ -1036,7 +1088,7 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
                         void buildStoreWithRex();
                       }}
                       className="btn btn-mint btn-lg"
-                      disabled={rexBuildStatus === "building"}
+                      disabled={rexBuildStatus === "building" || !businessDescription.trim()}
                     >
                       {rexBuildStatus === "building" ? "Building..." : "Build my shop"} <Icon name="sparkle" size={14} />
                     </button>
@@ -1156,6 +1208,10 @@ export function OnboardingFlow({ initialUser, forcedRole }: OnboardingFlowProps)
               template={template}
               storeName={resolvedStoreName}
               builtStore={rexBuildStore}
+              launchStatus={searchParams.get("launch")}
+              initialLaunchStatus={initialLaunchStatus}
+              launchError={searchParams.get("error")}
+              pricing={launchPricing}
               onDashboard={finishOnboarding}
             />
           )}
@@ -1211,7 +1267,7 @@ function PathCard({
     <div className="card relative overflow-hidden p-0" style={{ borderColor: featured ? "var(--teal-400)" : "var(--ink-100)", boxShadow: featured ? "var(--shd-pop)" : "var(--shd-xs)" }}>
       {featured && <div className="absolute right-3 top-3 z-10 rounded-full bg-[var(--teal-700)] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white">RECOMMENDED</div>}
       <div className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[linear-gradient(170deg,var(--teal-100),var(--teal-200)_70%,var(--teal-300))]">
-        {featured ? <MascotFigure role="seller" variant={0} className="w-[150px]" /> : <Icon name={icon} size={72} color={featured ? "var(--teal-700)" : "var(--ink-700)"} />}
+        {featured ? <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="w-[150px]" /> : <Icon name={icon} size={72} color={featured ? "var(--teal-700)" : "var(--ink-700)"} />}
         <div className="absolute bottom-3 left-3 rounded-full bg-[var(--paper)] px-3 py-1 text-[11px] font-bold text-[var(--teal-800)] shadow-[var(--shd-sm)]">{eyebrow}</div>
       </div>
       <div className="p-[22px]">
@@ -1486,20 +1542,59 @@ function LaunchStep({
   template,
   storeName,
   builtStore,
+  launchStatus,
+  initialLaunchStatus,
+  launchError,
+  pricing,
   onDashboard,
 }: {
   slug: string;
   template: (typeof sellerTemplates)[number];
   storeName: string;
   builtStore: RexStoreConfig | null;
+  launchStatus: string | null;
+  initialLaunchStatus?: string | null;
+  launchError: string | null;
+  pricing: { total: number; deposit: number };
   onDashboard: () => Promise<void> | void;
 }) {
+  const [billingOpen, setBillingOpen] = useState(false);
+  const [paymentOption, setPaymentOption] = useState<"full" | "installment">("full");
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paymentError, setPaymentError] = useState(launchError ?? "");
+  const isLive = launchStatus === "paid" || initialLaunchStatus === "active" || initialLaunchStatus === "published";
+  const balance = Math.max(0, pricing.total - pricing.deposit);
+  const money = (amount: number) => `NGN ${amount.toLocaleString("en-NG")}`;
+
+  async function startPayment() {
+    setPaymentBusy(true);
+    setPaymentError("");
+    try {
+      const response = await fetch("/api/billing/store-launch/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ option: paymentOption }),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        data?: { authorizationUrl?: string };
+        error?: { message?: string };
+      } | null;
+      if (!response.ok || !result?.data?.authorizationUrl) {
+        throw new Error(result?.error?.message ?? "Could not start Paystack checkout.");
+      }
+      window.location.assign(result.data.authorizationUrl);
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Could not start Paystack checkout.");
+      setPaymentBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-1 items-center justify-center overflow-auto bg-[linear-gradient(180deg,var(--teal-50),var(--canvas)_70%)] px-7 py-10">
       <div className="relative w-full max-w-[780px] text-center">
-        <MascotFigure role="seller" variant={0} className="mx-auto mb-3 w-[170px]" />
+        <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="mx-auto mb-3 w-[170px]" />
         <h1 className="m-0 font-display text-[54px] font-normal leading-none tracking-normal text-[var(--ink-900)]">
-          Your shop is <em className="text-[var(--teal-700)]">live.</em>
+          {isLive ? <>Your shop is <em className="text-[var(--teal-700)]">live.</em></> : <>Your shop is ready to <em className="text-[var(--teal-700)]">go live.</em></>}
         </h1>
         <div className="mb-7 mt-5 inline-flex items-center gap-2 rounded-full border border-[var(--teal-300)] bg-white px-4 py-2 font-mono text-[14px] text-[var(--teal-800)] shadow-[var(--shd-sm)]">
           <Icon name="globe" size={14} />
@@ -1509,7 +1604,13 @@ function LaunchStep({
         <div className="mx-auto mb-5 max-w-[360px]">
           <StorePhonePreview template={template} storeName={storeName} builtStore={builtStore} />
         </div>
-        <div className="card mb-5 text-left">
+        {!isLive && (
+          <div className="mb-5 rounded-[10px] border border-[var(--amber-200)] bg-[var(--amber-50)] px-4 py-3 text-left text-[12.5px] leading-5 text-[var(--amber-800)]">
+            Your draft is ready. Choose a billing option to publish it for customers.
+            {paymentError && <div className="mt-1 font-semibold text-[var(--rose-700)]">{paymentError}</div>}
+          </div>
+        )}
+        {isLive && <div className="card mb-5 text-left">
           <div className="onb-card-kicker mb-3 text-center">Quick wins - do these first</div>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
@@ -1530,18 +1631,75 @@ function LaunchStep({
               </div>
             ))}
           </div>
-        </div>
+        </div>}
         <div className="flex justify-center gap-2">
-          <button type="button" className="btn btn-ghost btn-lg">
-            <Icon name="eye" size={15} /> Visit my shop
-          </button>
-          <button type="button" onClick={() => void onDashboard()} className="btn btn-mint btn-lg">
-            Go to dashboard <Icon name="arrow" size={15} />
-          </button>
+          {isLive ? (
+            <>
+              <a href={`/s/${slug}`} className="btn btn-ghost btn-lg">
+                <Icon name="eye" size={15} /> Visit my shop
+              </a>
+              <button type="button" onClick={() => void onDashboard()} className="btn btn-mint btn-lg">
+                Go to dashboard <Icon name="arrow" size={15} />
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setBillingOpen(true)} className="btn btn-mint btn-lg">
+              <Icon name="coin" size={15} /> Go live
+            </button>
+          )}
         </div>
         <div className="mt-8 flex items-center justify-center gap-2 text-[12.5px] text-[var(--ink-500)]">
           <ChipAvatar mascot="peggy" size={26} /> Peggy is keeping an eye on things. Talk to her any time.
         </div>
+        {billingOpen && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4" role="presentation" onMouseDown={() => !paymentBusy && setBillingOpen(false)}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="launch-billing-title"
+              className="w-full max-w-[520px] rounded-[8px] bg-[var(--paper)] p-6 text-left shadow-[var(--shd-pop)]"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="onb-card-kicker">Store launch billing</div>
+                  <h2 id="launch-billing-title" className="mt-1 text-[24px] font-semibold text-[var(--ink-900)]">Choose how to pay</h2>
+                </div>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBillingOpen(false)} disabled={paymentBusy} aria-label="Close billing">
+                  <Icon name="x" size={15} />
+                </button>
+              </div>
+              <p className="mt-2 text-[13px] leading-5 text-[var(--ink-600)]">Pay securely with Paystack. Your store publishes only after the payment is verified.</p>
+              <div className="mt-5 grid gap-3">
+                {[
+                  { value: "full" as const, title: "Pay in full", price: `${money(pricing.total)} now`, body: "Clear the complete store launch fee today." },
+                  { value: "installment" as const, title: "Pay a fraction now", price: `${money(pricing.deposit)} now`, body: `Go live after the deposit. Pay the remaining ${money(balance)} by the end of this month.` },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPaymentOption(option.value)}
+                    className={`flex w-full items-start gap-3 rounded-[8px] border p-4 text-left ${paymentOption === option.value ? "border-[var(--teal-500)] bg-[var(--teal-50)]" : "border-[var(--ink-150)] bg-white"}`}
+                    aria-pressed={paymentOption === option.value}
+                  >
+                    <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${paymentOption === option.value ? "border-[var(--teal-600)]" : "border-[var(--ink-300)]"}`}>
+                      {paymentOption === option.value && <span className="h-2.5 w-2.5 rounded-full bg-[var(--teal-600)]" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center justify-between gap-2 text-[13.5px] font-semibold text-[var(--ink-900)]"><span>{option.title}</span><span>{option.price}</span></span>
+                      <span className="mt-1 block text-[12px] leading-5 text-[var(--ink-500)]">{option.body}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {paymentError && <div className="mt-3 text-[12px] font-semibold text-[var(--rose-700)]">{paymentError}</div>}
+              <button type="button" onClick={() => void startPayment()} disabled={paymentBusy} className="btn btn-mint mt-5 w-full justify-center">
+                {paymentBusy ? "Opening Paystack..." : `Continue with ${money(paymentOption === "full" ? pricing.total : pricing.deposit)}`}
+              </button>
+              <div className="mt-3 text-center text-[10.5px] text-[var(--ink-400)]">Payment is processed by Paystack. Shopinbos never receives your card details.</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

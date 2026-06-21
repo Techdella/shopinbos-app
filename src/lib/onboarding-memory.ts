@@ -35,6 +35,9 @@ export interface StoreOnboardingMemory {
   step?: number;
   preferredName?: string;
   city?: string;
+  country?: string;
+  currency?: string;
+  languages?: string[];
   category?: string;
   businessDescription?: string;
   storeName?: string;

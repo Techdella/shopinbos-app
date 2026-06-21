@@ -181,6 +181,8 @@ model User {
   logisticsReviews   LogisticsReview[]
   notifications      Notification[]
   notificationPreferences NotificationPreference[]
+  onboardingResponses OnboardingResponse[]
+  storeLaunchPayments StoreLaunchPayment[]
 
   // Conversations
   conversationsAs1 Conversation[] @relation("ConversationParticipant1")
@@ -236,6 +238,7 @@ model Store {
   emailTemplates EmailTemplate[]
   broadcastCampaigns BroadcastCampaign[]
   automations    AutomationRule[]
+  launchPayments StoreLaunchPayment[]
 
   @@index([slug])
   @@index([userId])
@@ -264,6 +267,50 @@ model StorePage {
 
   @@index([storeId])
   @@unique([storeId, slug])
+}
+
+model StoreLaunchPayment {
+  id               String   @id
+  userId           String   @map("user_id")
+  storeId          String   @map("store_id")
+  reference        String   @unique
+  paymentOption    String   @map("payment_option")
+  totalAmount      Int      @map("total_amount")
+  amountDue        Int      @map("amount_due")
+  amountPaid       Int      @default(0) @map("amount_paid")
+  balanceDue       Int      @map("balance_due")
+  currency         String   @default("NGN")
+  status           String   @default("initialized")
+  dueAt            DateTime? @map("due_at")
+  paidAt           DateTime? @map("paid_at")
+  providerResponse Json?    @map("provider_response")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@index([userId])
+  @@map("store_launch_payments")
+}
+
+model OnboardingResponse {
+  id             String   @id
+  userId         String   @map("user_id")
+  organizationId String?  @map("organization_id")
+  accountType    String?  @map("account_type")
+  questionKey    String   @map("question_key")
+  answer         Json
+  source         String   @default("rex")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionKey])
+  @@index([userId])
+  @@map("onboarding_responses")
 }
 
 model StoreVisitor {

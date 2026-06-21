@@ -164,6 +164,30 @@ async function syncSessionToApp(
   return body?.data?.role ?? null;
 }
 
+async function sendLoginCode(email: string) {
+  const response = await fetch("/api/auth/otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "send", email }),
+  });
+  const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+  if (!response.ok) throw new Error(body?.error?.message ?? "We could not send the sign-in code.");
+}
+
+async function verifyLoginCode(email: string, token: string) {
+  const response = await fetch("/api/auth/otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "verify", email, token }),
+  });
+  const body = (await response.json().catch(() => null)) as {
+    data?: { accessToken?: string | null };
+    error?: { message?: string };
+  } | null;
+  if (!response.ok) throw new Error(body?.error?.message ?? "We could not verify that code.");
+  return body?.data?.accessToken ?? null;
+}
+
 async function navigateTo(url: string) {
   const supabase = getSupabaseBrowserClient();
   if (supabase) {
@@ -242,6 +266,7 @@ export function AuthExperience({ role, mode }: AuthExperienceProps) {
     setMessage(null);
 
     startTransition(async () => {
+      try {
       if (previewMode) {
         setError("Sign in is not available in this preview yet. Please try the live Shopinbos app.");
         return;
@@ -282,12 +307,10 @@ export function AuthExperience({ role, mode }: AuthExperienceProps) {
           setError("Please enter your email.");
           return;
         }
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: { shouldCreateUser: false },
-        });
-        if (otpError) {
-          setError(otpError.message);
+        try {
+          await sendLoginCode(email);
+        } catch (otpError) {
+          setError(otpError instanceof Error ? otpError.message : "We could not send the sign-in code.");
           return;
         }
         setOtpStep("code");
@@ -301,17 +324,15 @@ export function AuthExperience({ role, mode }: AuthExperienceProps) {
           setError("Enter the 6-digit code from your email.");
           return;
         }
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          email,
-          token: otpCode,
-          type: "email",
-        });
-        if (verifyError) {
-          setError(verifyError.message);
+        let accessToken: string | null;
+        try {
+          accessToken = await verifyLoginCode(email, otpCode);
+        } catch (verifyError) {
+          setError(verifyError instanceof Error ? verifyError.message : "We could not verify that code.");
           return;
         }
-        const syncedRole = data.session?.access_token
-          ? await syncSessionToApp(data.session.access_token, { role })
+        const syncedRole = accessToken
+          ? await syncSessionToApp(accessToken, { role })
           : null;
         if (syncedRole && syncedRole !== role) {
           setError(`This account is registered as ${roleLabel(syncedRole)}. Use the ${roleLabel(syncedRole)} login route instead.`);
@@ -403,6 +424,14 @@ export function AuthExperience({ role, mode }: AuthExperienceProps) {
       setOtpCode("");
       setMessage("Check your email to confirm it, then sign in to continue onboarding.");
       startResendCooldown();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/fetch|network|connect/i.test(msg)) {
+          setError("Could not reach the authentication server. Check your internet connection and try again.");
+        } else {
+          setError(msg || "Something went wrong. Please try again.");
+        }
+      }
     });
   }
 
@@ -615,14 +644,10 @@ export function AuthExperience({ role, mode }: AuthExperienceProps) {
                       disabled={resendCooldown > 0 || isPending}
                       onClick={async () => {
                         setError(null);
-                        const supabase = getSupabaseBrowserClient();
-                        if (!supabase) return;
-                        const { error: resendError } = await supabase.auth.signInWithOtp({
-                          email,
-                          options: { shouldCreateUser: false },
-                        });
-                        if (resendError) {
-                          setError(resendError.message);
+                        try {
+                          await sendLoginCode(email);
+                        } catch (resendError) {
+                          setError(resendError instanceof Error ? resendError.message : "We could not resend the code.");
                           return;
                         }
                         setMessage("New code sent. Check your inbox.");

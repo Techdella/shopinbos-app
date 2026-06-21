@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
+import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -94,6 +95,11 @@ export async function POST(req: NextRequest) {
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
     if (ref) {
+      if (ref.startsWith("store-launch-")) {
+        await completeStoreLaunchPayment(ref).catch((error) => {
+          console.error("Store launch payment completion failed:", error);
+        });
+      }
       await db.retailOrder.updateMany({
         where: { id: ref },
         data: { status: "paid", paystackStatus: "success" },

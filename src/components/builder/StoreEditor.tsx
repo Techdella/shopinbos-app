@@ -6,6 +6,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SectionPreviewPopover } from "@/components/builder/SectionPreview";
+import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import {
   createBlankEditorSnapshot,
   createSectionFromLibrary,
@@ -638,6 +639,7 @@ export function StoreEditor({ initialRexOpen = false }: EditorProps) {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [launchPricing, setLaunchPricing] = useState<StoreLaunchPricing | null>(null);
   const [pages, setPages] = useState<Record<string, { title: string; secs: string[] }>>(() => {
     const p: Record<string, { title: string; secs: string[] }> = {};
     Object.keys(DEFAULT_PAGES).forEach(k => { p[k] = { ...DEFAULT_PAGES[k], secs: [] }; });
@@ -982,11 +984,22 @@ export function StoreEditor({ initialRexOpen = false }: EditorProps) {
     setPublishing(true);
     setPubStep(1);
     try {
-      await fetch("/api/store/editor/publish", { method: "POST" });
+      const response = await fetch("/api/store/editor/publish", { method: "POST" });
+      const json = await response.json().catch(() => null) as {
+        billing?: StoreLaunchPricing;
+        error?: { message?: string };
+      } | null;
+      if (response.status === 402 && json?.billing) {
+        setPubStep(0);
+        setModal("");
+        setLaunchPricing(json.billing);
+        return;
+      }
+      if (!response.ok) throw new Error(json?.error?.message ?? "Publish failed");
       setPubStep(2);
       setTimeout(() => setPubStep(3), 1200);
-    } catch { showToast("Publish failed", false); }
-    setPublishing(false);
+    } catch (error) { showToast(error instanceof Error ? error.message : "Publish failed", false); }
+    finally { setPublishing(false); }
   }, [showToast]);
 
   const startBlankStore = useCallback(async () => {
@@ -2347,6 +2360,7 @@ export function StoreEditor({ initialRexOpen = false }: EditorProps) {
       </div>
 
       {/* MODAL: Publish */}
+      <StoreLaunchBillingModal open={Boolean(launchPricing)} pricing={launchPricing} onClose={() => setLaunchPricing(null)} />
       <div className={`ovl${modal === "publish" ? " on" : ""}`} onClick={e => { if (e.target === e.currentTarget) setModal(""); }}>
         <div className="modal" style={{ maxWidth: 460 }}>
           <div className="mhd">

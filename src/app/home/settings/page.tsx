@@ -7,6 +7,7 @@ import { PageToast } from "@/components/PageToast";
 import Link from "next/link";
 import Image from "next/image";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
+import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
 import { db } from "@/lib/db/client";
 
@@ -30,6 +31,9 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   });
   const aiCredits = dbUser?.aiCredits ?? 5;
   const brandSettings = (workspace.store?.brandSettings ?? {}) as Record<string, any>;
+  const launchBilling = brandSettings.launchBilling && typeof brandSettings.launchBilling === "object"
+    ? brandSettings.launchBilling as { balanceDue?: number; dueAt?: string | null }
+    : null;
   const peggyPrefs = brandSettings.peggyPreferences ?? {};
   const savedCommStyle = peggyPrefs.communicationStyle ?? "Friendly";
   const savedDailyBrief = peggyPrefs.dailyBrief ?? "Morning only";
@@ -184,12 +188,15 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
             )}
 
             {activeTab === "Billing" && (
-              <SellerBillingSection
-                userEmail={user.email}
-                userName={user.name}
-                aiCredits={aiCredits}
-                productCount={workspace.storeProducts.length}
-              />
+              <>
+                <StoreLaunchBalanceCard balanceDue={Number(launchBilling?.balanceDue ?? 0)} dueAt={launchBilling?.dueAt} />
+                <SellerBillingSection
+                  userEmail={user.email}
+                  userName={user.name}
+                  aiCredits={aiCredits}
+                  productCount={workspace.storeProducts.length}
+                />
+              </>
             )}
 
             {activeTab === "Notifications" && (
