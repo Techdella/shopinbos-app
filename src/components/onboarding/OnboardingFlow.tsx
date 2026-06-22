@@ -175,12 +175,14 @@ function StepHeader({
   label,
   time,
   onSave,
+  saving,
 }: {
   step: number;
   total: number;
   label: string;
   time?: string;
   onSave: () => void;
+  saving?: boolean;
 }) {
   return (
     <div className="onb-step-header">
@@ -195,8 +197,8 @@ function StepHeader({
       </div>
       <div className="flex items-center gap-2">
         {time && <span className="hidden text-[11.5px] font-semibold text-[var(--ink-500)] sm:inline">~{time}</span>}
-        <button type="button" onClick={onSave} className="btn btn-ghost btn-sm">
-          Save & exit
+        <button type="button" onClick={onSave} disabled={saving} className="btn btn-ghost btn-sm">
+          {saving ? "Saving..." : "Save & exit"}
         </button>
       </div>
     </div>
@@ -744,7 +746,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
       setRexTweak("");
       await syncOnboardingMemoryToStore({ buildPath: "rex", step: 5 });
     } catch (error) {
-      setRexBuildStore(null);
+      // Don't clear the preview on failure — the seed or a partial build is still useful
       setRexBuildStatus("error");
       setRexBuildMessage(error instanceof Error ? error.message : "Rex could not build this store right now.");
     }
@@ -840,12 +842,12 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
           ? { onboardingState: "INCOMPLETE", firstDashboardVisitComplete: true }
           : {},
       );
-      router.push(role === "seller" ? "/home" : roleDestination(role));
-    } catch (error) {
-      setRexReply(error instanceof Error ? error.message : "Could not save progress.");
+    } catch {
+      // Progress save failed — navigate anyway so the button never appears broken
     } finally {
       setIsSavingProgress(false);
     }
+    router.push(role === "seller" ? "/home" : roleDestination(role));
   }
 
   async function finishOnboarding() {
@@ -1035,7 +1037,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
         </div>
       ) : (
         <>
-          <StepHeader step={step} total={sellerTotal} label={sellerSteps[Math.min(step - 1, sellerSteps.length - 1)]} time={step === 3 ? "pick one" : step >= 7 ? "1 min" : "2 min"} onSave={saveAndExit} />
+          <StepHeader step={step} total={sellerTotal} label={sellerSteps[Math.min(step - 1, sellerSteps.length - 1)]} time={step === 3 ? "pick one" : step >= 7 ? "1 min" : "2 min"} onSave={saveAndExit} saving={isSavingProgress} />
           {step === 2 && (
             <div className="flex flex-1 justify-center overflow-auto bg-[var(--canvas)] px-7 py-9">
               <div className="w-full max-w-[660px]">
@@ -1269,8 +1271,22 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                       <Icon name="refresh" size={12} /> {rexBuildStatus === "building" ? "Regenerating" : "Regenerate all"}
                     </button>
                   </div>
-                  <div className="grid min-h-[520px] place-items-center bg-[var(--ink-50)] p-8">
+                  <div className="relative grid min-h-[520px] place-items-center bg-[var(--ink-50)] p-8">
                     <StorePhonePreview template={template} storeName={resolvedStoreName} builtStore={rexBuildStore ?? buildRexStoreSeed()} device={previewDevice} />
+                    {rexBuildStatus === "building" && (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "rgba(14,42,56,0.55)", backdropFilter: "blur(4px)", borderRadius: 0 }}>
+                        <div style={{ display: "flex", gap: 7 }}>
+                          {[0, 1, 2, 3].map((i) => (
+                            <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--mint, #73D8C8)", display: "inline-block", animation: "rex-pulse 1.2s ease-in-out infinite", animationDelay: `${i * 0.18}s` }} />
+                          ))}
+                        </div>
+                        <p style={{ color: "#e2f6f3", fontSize: 13.5, fontWeight: 600, maxWidth: 260, textAlign: "center", lineHeight: 1.5, padding: "0 16px" }}>
+                          {rexBuildMessage
+                            ? rexBuildMessage.slice(-160)
+                            : "Rex is writing your store copy and building sections…"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1327,6 +1343,12 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
           )}
         </>
       )}
+      <style>{`
+        @keyframes rex-pulse {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(1); }
+          40% { opacity: 1; transform: scale(1.25); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -1874,21 +1896,35 @@ function SupplierOnboardingStage({
   const [accountName, setAccountName] = useState("");
 
   useEffect(() => {
+    // Hydrate from localStorage first (includes extra fields not in API schema)
+    try {
+      const local = JSON.parse(window.localStorage.getItem("supplier-onboarding") ?? "{}") as Record<string, unknown>;
+      if (local.displayName) setCompanyName(local.displayName as string);
+      if (local.description) setDescription(local.description as string);
+      if (local.country) setCountry(local.country as string);
+      if (local.city) setCity(local.city as string);
+      if (Array.isArray(local.categories)) setCategories(local.categories as string[]);
+      if (local.supplyType) setSupplyType(local.supplyType as string);
+      if (local.minOrderQty) setMinOrderQty(String(local.minOrderQty));
+      if (local.leadTimeDays) setLeadTimeDays(String(local.leadTimeDays));
+      if (local.deliveryAreas) setDeliveryAreas(local.deliveryAreas as string);
+      if (Array.isArray(local.logisticsCouriers)) setLogisticsCouriers(local.logisticsCouriers as string[]);
+      if (local.cacNumber) setCacNumber(local.cacNumber as string);
+      if (local.bankName) setBankName(local.bankName as string);
+      if (local.accountNumber) setAccountNumber(local.accountNumber as string);
+      if (local.accountName) setAccountName(local.accountName as string);
+    } catch { /* ignore */ }
+
     fetch("/api/supplier/onboarding")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then((json) => {
+        const data = json?.data ?? json;
         if (!data) return;
         if (data.displayName) setCompanyName(data.displayName);
         if (data.description) setDescription(data.description);
         if (data.country) setCountry(data.country);
         if (data.city) setCity(data.city);
         if (Array.isArray(data.categories)) setCategories(data.categories);
-        if (data.supplyType) setSupplyType(data.supplyType);
-        if (data.minOrderQty) setMinOrderQty(String(data.minOrderQty));
-        if (data.leadTimeDays) setLeadTimeDays(String(data.leadTimeDays));
-        if (data.deliveryAreas) setDeliveryAreas(data.deliveryAreas);
-        if (Array.isArray(data.logisticsCouriers)) setLogisticsCouriers(data.logisticsCouriers);
-        if (data.cacNumber) setCacNumber(data.cacNumber);
       })
       .catch(() => null);
   }, []);
@@ -1900,17 +1936,29 @@ function SupplierOnboardingStage({
     setLogisticsCouriers((prev) => prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]);
   }
 
+  function supplierPayload() {
+    return {
+      ...(companyName.trim().length >= 2 ? { displayName: companyName.trim() } : {}),
+      ...(description.trim() ? { description: description.trim() } : {}),
+      country, city, categories,
+      // Extra fields stored inside onboardingState JSON since schema doesn't have them
+      onboardingStatePatch: { supplyType, minOrderQty: Number(minOrderQty), leadTimeDays: Number(leadTimeDays), deliveryAreas, logisticsCouriers },
+    };
+  }
+
   async function handleNext() {
     setSaving(true);
+    const { onboardingStatePatch, ...rest } = supplierPayload();
     await fetch("/api/supplier/onboarding", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: companyName, description, country, city,
-        categories, supplyType, minOrderQty: Number(minOrderQty),
-        leadTimeDays: Number(leadTimeDays), deliveryAreas, logisticsCouriers,
-      }),
+      body: JSON.stringify({ ...rest }),
     }).catch(() => null);
+    // Also persist extra fields to localStorage so they survive page refresh
+    try {
+      const prev = JSON.parse(window.localStorage.getItem("supplier-onboarding") ?? "{}") as Record<string, unknown>;
+      window.localStorage.setItem("supplier-onboarding", JSON.stringify({ ...prev, ...onboardingStatePatch, displayName: companyName, description, country, city, categories, cacNumber, bankName, accountNumber, accountName }));
+    } catch { /* ignore */ }
     setSaving(false);
     await onNext();
   }
@@ -1919,9 +1967,9 @@ function SupplierOnboardingStage({
     setSaving(true);
     await onSubmit({
       displayName: companyName, description, country, city,
-      categories, supplyType, minOrderQty: Number(minOrderQty),
+      categories, cacNumber, bankName, accountNumber, accountName,
+      supplyType, minOrderQty: Number(minOrderQty),
       leadTimeDays: Number(leadTimeDays), deliveryAreas, logisticsCouriers,
-      cacNumber, bankName, accountNumber, accountName,
     });
     setSaving(false);
   }
@@ -2197,7 +2245,8 @@ function LogisticsOnboardingStage({
   useEffect(() => {
     fetch("/api/logistics/onboarding")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then((json) => {
+        const data = json?.data ?? json;
         if (!data) return;
         setCompanyName(data.displayName || data.companyName || "");
         setDescription(data.description || "");
@@ -2217,6 +2266,7 @@ function LogisticsOnboardingStage({
         if (data.basePrice) setBasePrice(data.basePrice);
         if (data.estimatedSpeed) setEstimatedSpeed(data.estimatedSpeed);
       })
+      .catch(() => null)
       .finally(() => setLoading(false));
   }, []);
 
