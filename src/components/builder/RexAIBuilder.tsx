@@ -161,6 +161,7 @@ export function RexAIBuilder() {
   // ── Unsaved changes guard ──
   const [hasChanges, setHasChanges] = useState(false);
   const [leaveDialog, setLeaveDialog] = useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const pendingNav = useRef<string | null>(null);
 
   function requestNavigate(dest: string) {
@@ -476,12 +477,12 @@ export function RexAIBuilder() {
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
-            const chunk = JSON.parse(line) as { type: string; content?: unknown };
-            if (chunk.type === "token" && typeof chunk.content === "string") {
-              assistantText += chunk.content;
+            const chunk = JSON.parse(line) as { type: string; text?: string; data?: unknown };
+            if (chunk.type === "token" && typeof chunk.text === "string") {
+              assistantText += chunk.text;
               setRexMessages((prev) => prev.map((m, i) => i === placeholderIdx ? { ...m, content: assistantText } : m));
-            } else if (chunk.type === "store_config") {
-              pendingConfig = chunk.content as StoreConfig;
+            } else if (chunk.type === "store") {
+              pendingConfig = chunk.data as StoreConfig;
             } else if (chunk.type === "chips" && Array.isArray(chunk.content)) {
               // chips shown as quick-starts — for now just update message
             }
@@ -676,7 +677,7 @@ export function RexAIBuilder() {
               <button type="button" onClick={() => setActiveTool(null)} style={secondaryButtonStyle}>
                 Back to live preview
               </button>
-              <button type="button" onClick={() => void applyChanges()} disabled={publishing} style={{ ...primaryButtonStyle, opacity: publishing ? 0.6 : 1 }}>
+              <button type="button" onClick={() => setPublishConfirmOpen(true)} disabled={publishing} style={{ ...primaryButtonStyle, opacity: publishing ? 0.6 : 1 }}>
                 {publishing ? "Applying..." : "Apply changes"}
               </button>
             </div>
@@ -1176,7 +1177,7 @@ export function RexAIBuilder() {
             Back to Editor
           </button>
           <button
-            onClick={() => void applyChanges()}
+            onClick={() => setPublishConfirmOpen(true)}
             disabled={publishing}
             style={{
               background: "var(--teal)",
@@ -2326,6 +2327,20 @@ export function RexAIBuilder() {
           </div>
         </div>
       )}
+
+      {/* ── Publish confirmation dialog ── */}
+      <ConfirmDialog
+        open={publishConfirmOpen}
+        title="Publish to your live store?"
+        message="Your changes will be visible to customers immediately. Make sure everything looks right in the preview first."
+        confirmLabel="Publish now"
+        cancelLabel="Go back"
+        variant="info"
+        icon="eye"
+        loading={publishing}
+        onConfirm={() => { setPublishConfirmOpen(false); void applyChanges(); }}
+        onCancel={() => setPublishConfirmOpen(false)}
+      />
 
       {/* ── Leave confirmation dialog ── */}
       <ConfirmDialog

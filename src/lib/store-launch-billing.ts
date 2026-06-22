@@ -75,8 +75,19 @@ export async function completeStoreLaunchPayment(reference: string) {
   const payment = await findStoreLaunchPayment(reference);
   if (!payment) throw new Error("Payment record was not found.");
 
-  // Idempotency guard: webhook and callback can fire concurrently for the same reference
+  // Webhooks and callbacks can arrive in either order. A previous attempt may have
+  // recorded the successful charge before publishing failed, so make publication
+  // retryable instead of leaving a paid store offline forever.
   if (payment.status === "paid" || payment.status === "settled") {
+    if (payment.payment_option !== "balance") {
+      const store = await db.store.findUnique({
+        where: { id: payment.store_id },
+        select: { status: true },
+      });
+      if (store && store.status !== "active" && store.status !== "published") {
+        await publishStoreDraft({ storeId: payment.store_id });
+      }
+    }
     return { payment, paidNgn: payment.amount_paid, balanceDue: payment.balance_due };
   }
 

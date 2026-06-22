@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
@@ -14,6 +14,7 @@ import { westAfricaCountries, deliveryScopeOptions, type DeliveryScope } from "@
 type OnboardingRole = Exclude<AuthRole, "admin">;
 type BuildPath = "rex" | "template" | "migrate";
 type RexBuildStatus = "idle" | "building" | "ready" | "error";
+type PreviewDevice = "phone" | "tablet" | "desktop";
 
 interface InitialUser {
   name: string | null;
@@ -264,41 +265,91 @@ function StorePhonePreview({
   template,
   storeName,
   builtStore,
+  device = "phone",
 }: {
   template: (typeof sellerTemplates)[number];
   storeName: string;
   builtStore?: RexStoreConfig | null;
+  device?: PreviewDevice;
 }) {
   const name = builtStore?.name || storeName || "sahel sole";
   const headline = builtStore?.heroHeadline || template.headline;
+  const subline = builtStore?.heroSubline || "Fast checkout, local delivery, and products picked for your customers.";
+  const cta = builtStore?.heroCtaText || "Shop now";
   const heroBg = builtStore?.palette.heroBg || template.palette[0];
   const heroText = builtStore?.palette.heroText || "#3a2614";
   const accent = builtStore?.palette.accent || template.accent;
+  const paperBg = builtStore?.palette.paperBg || "var(--paper)";
+  const navLinks = builtStore?.navLinks?.length ? builtStore.navLinks : DEFAULT_REX_STORE_CONFIG.navLinks;
   const products = builtStore?.products?.length ? builtStore.products : DEFAULT_REX_STORE_CONFIG.products;
+  const isPhone = device === "phone";
+  const outerClass = isPhone ? "phone-mini" : "";
+  const shellStyle = isPhone
+    ? undefined
+    : {
+        width: "min(100%, 1000px)",
+        aspectRatio: device === "tablet" ? "4 / 5" : "16 / 10",
+        margin: "0 auto",
+        padding: device === "tablet" ? 12 : 14,
+        borderRadius: device === "tablet" ? 26 : 18,
+        background: "#111",
+        boxShadow: "0 26px 60px rgba(15,25,22,0.18), inset 0 0 0 1px rgba(255,255,255,0.08)",
+      } satisfies CSSProperties;
+  const screenStyle = isPhone
+    ? undefined
+    : {
+        height: "100%",
+        overflow: "hidden",
+        borderRadius: device === "tablet" ? 20 : 12,
+        background: paperBg,
+      } satisfies CSSProperties;
 
   return (
-    <div className="phone-mini">
-      <div className="screen">
+    <div className={outerClass} style={shellStyle}>
+      <div className={isPhone ? "screen" : ""} style={screenStyle}>
         <div className="flex h-6 items-center justify-between px-3 text-[10px] font-semibold" style={{ background: heroBg, color: heroText }}>
           <span>9:41</span>
           <span>oo o</span>
         </div>
-        <div className="flex items-center justify-between px-4 py-3" style={{ background: heroBg, color: heroText }}>
+        <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ background: heroBg, color: heroText }}>
           <Icon name="list" size={16} color="currentColor" />
           <div className="font-display text-[15px] font-semibold italic">{name.toLowerCase()}</div>
+          {!isPhone && (
+            <div className="hidden flex-1 justify-center gap-4 text-[11px] font-semibold md:flex">
+              {navLinks.slice(0, 4).map((link) => <span key={link}>{link}</span>)}
+            </div>
+          )}
           <Icon name="bag" size={16} color="currentColor" />
         </div>
-        <div className="px-5 py-7" style={{ background: `linear-gradient(180deg, ${heroBg}, ${accent})`, color: heroText }}>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.12em] opacity-80">{template.meta.split(" - ")[0]} - Shopinbos</div>
-          <div className="font-display text-[30px] leading-none tracking-normal">{headline.split("\n")[0]}</div>
-          <button type="button" className="mt-5 rounded-full bg-white px-4 py-2 text-[11px] font-semibold text-[var(--ink-900)]">
-            Shop now
-          </button>
+        <div
+          className={isPhone ? "px-5 py-7" : "grid gap-5 px-7 py-8 md:grid-cols-[1.05fr_0.95fr] md:items-center"}
+          style={{ background: `linear-gradient(180deg, ${heroBg}, ${accent})`, color: heroText }}
+        >
+          <div>
+            <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.12em] opacity-80">{categoryFromTemplateMeta(template.meta)} - Shopinbos</div>
+            <div className={isPhone ? "font-display text-[30px] leading-none tracking-normal" : "font-display text-[46px] leading-none tracking-normal"}>
+              {headline.split("\n")[0]}
+            </div>
+            {!isPhone && <p className="mt-3 max-w-[430px] text-[13px] leading-5 opacity-85">{subline}</p>}
+            <button type="button" className="mt-5 rounded-full bg-white px-4 py-2 text-[11px] font-semibold text-[var(--ink-900)]">
+              {cta}
+            </button>
+          </div>
+          {!isPhone && (
+            <div className="grid grid-cols-2 gap-3">
+              {products.slice(0, 4).map((product, index) => (
+                <div key={`${product.name}-hero-${index}`} className="rounded-[14px] bg-white/90 p-2 text-[var(--ink-900)]">
+                  <div className="mb-2 aspect-[4/3] rounded-[10px]" style={{ background: product.color }} />
+                  <div className="truncate text-[11px] font-semibold">{product.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-3 bg-[var(--paper)] p-4">
-          {products.slice(0, 4).map((product, index) => (
+        <div className={isPhone ? "grid grid-cols-2 gap-3 p-4" : "grid grid-cols-4 gap-3 p-5"} style={{ background: paperBg }}>
+          {products.slice(0, isPhone ? 4 : 8).map((product, index) => (
             <div key={`${product.name}-${index}`} className="rounded-[12px] border border-[var(--ink-100)] bg-white p-2">
-              <div className="mb-2 h-16 rounded-[9px]" style={{ background: product.color }} />
+              <div className={isPhone ? "mb-2 h-16 rounded-[9px]" : "mb-2 aspect-square rounded-[9px]"} style={{ background: product.color }} />
               <div className="truncate text-[11px] font-semibold text-[var(--ink-900)]">{product.name}</div>
               <div className="mt-0.5 truncate text-[9.5px] text-[var(--ink-500)]">{product.price}</div>
             </div>
@@ -307,6 +358,10 @@ function StorePhonePreview({
       </div>
     </div>
   );
+}
+
+function categoryFromTemplateMeta(meta: string) {
+  return meta.split(" - ")[0] || "Store";
 }
 
 function TemplateCard({
@@ -382,6 +437,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
   const [rexBuildStore, setRexBuildStore] = useState<RexStoreConfig | null>(null);
   const [rexReply, setRexReply] = useState("");
   const [rexTweak, setRexTweak] = useState("");
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("phone");
   const [isRexThinking, setIsRexThinking] = useState(false);
   const [isSavingProgress, setIsSavingProgress] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -507,9 +563,37 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
     return () => window.clearTimeout(timer);
   }, [resumeReady, role, step, preferredName, city, country, selectedCurrency, selectedLanguages, category, businessDescription, storeName, templateId, buildPath, documentNotes, documentNames]);
 
+  async function parseApiJson<T>(response: Response, fallback: string): Promise<T> {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await response.text().catch(() => "");
+      if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+        throw new Error("Your session needs to be refreshed. Please sign in again, then continue onboarding.");
+      }
+      throw new Error(fallback);
+    }
+    const data = (await response.json().catch(() => null)) as T | null;
+    if (!data) throw new Error(fallback);
+    return data;
+  }
+
   async function readApiError(response: Response, fallback: string) {
-    const data = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+    const data = await parseApiJson<{ error?: { message?: string } }>(response, fallback).catch(() => null);
     return data?.error?.message ?? fallback;
+  }
+
+  function assertResponseKind(response: Response, expected: "json" | "ndjson", fallback: string) {
+    const contentType = response.headers.get("content-type") ?? "";
+    const valid = expected === "json"
+      ? contentType.includes("application/json")
+      : contentType.includes("application/x-ndjson") || contentType.includes("application/json");
+    if (!valid) {
+      throw new Error(
+        response.redirected
+          ? "Your session needs to be refreshed. Please sign in again, then continue onboarding."
+          : fallback,
+      );
+    }
   }
 
   async function syncOnboardingMemoryToStore(
@@ -588,9 +672,9 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
     setBuildPath("rex");
     setRexBuildStatus("building");
     setRexBuildMessage("");
-    setRexBuildStore(null);
 
     const seed = buildRexStoreSeed();
+    setRexBuildStore(seed);
     try {
       await ensureStore(resolvedStoreName);
       const prompt = [businessDescription, tweak.trim() ? `Requested tweak: ${tweak.trim()}` : ""].filter(Boolean).join("\n\n");
@@ -614,6 +698,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
         }),
       });
       if (!response.ok) throw new Error(await readApiError(response, "Rex could not start the store build."));
+      assertResponseKind(response, "ndjson", "Rex returned an unreadable store build response. Please try again.");
       if (!response.body) throw new Error("Rex did not return a build stream.");
 
       const reader = response.body.getReader();
@@ -629,7 +714,12 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
         buffer = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
-          const event = JSON.parse(line) as { type?: string; text?: string; data?: Partial<RexStoreConfig>; message?: string };
+          let event: { type?: string; text?: string; data?: Partial<RexStoreConfig>; message?: string };
+          try {
+            event = JSON.parse(line) as { type?: string; text?: string; data?: Partial<RexStoreConfig>; message?: string };
+          } catch {
+            throw new Error(line.trim().startsWith("<") ? "Your session needs to be refreshed. Please sign in again, then continue onboarding." : "Rex returned an unreadable store build response.");
+          }
           if (event.type === "token" && event.text) setRexBuildMessage((current) => `${current}${event.text}`);
           if (event.type === "store" && event.data) {
             finalStore = { ...seed, ...event.data };
@@ -672,7 +762,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
         body: formData,
       });
       if (!response.ok) throw new Error(await readApiError(response, "Rex could not read that yet."));
-      const data = (await response.json().catch(() => null)) as { reply?: string; memoryPatch?: Partial<StoreOnboardingMemory> } | null;
+      const data = await parseApiJson<{ reply?: string; memoryPatch?: Partial<StoreOnboardingMemory> }>(response, "Rex could not read that yet.");
       if (data?.memoryPatch?.category) setCategory(data.memoryPatch.category);
       if (data?.memoryPatch?.businessDescription) setBusinessDescription(data.memoryPatch.businessDescription);
       if (data?.memoryPatch?.documentNames) setDocumentNames(data.memoryPatch.documentNames);
@@ -718,7 +808,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
       try {
         const response = await fetch("/api/ai/transcribe", { method: "POST", body: formData });
         if (!response.ok) throw new Error(await readApiError(response, "Rex could not transcribe the recording."));
-        const data = (await response.json().catch(() => null)) as { text?: string } | null;
+        const data = await parseApiJson<{ text?: string }>(response, "Rex could not transcribe the recording.");
         if (data?.text) {
           setBusinessDescription(data.text);
           await askRexAI(data.text);
@@ -741,11 +831,21 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
     event.target.value = "";
   }
 
-  function saveAndExit() {
-    void syncOnboardingMemoryToStore().catch((error) => {
+  async function saveAndExit() {
+    setIsSavingProgress(true);
+    try {
+      await syncOnboardingMemoryToStore(
+        { completed: false },
+        role === "seller"
+          ? { onboardingState: "INCOMPLETE", firstDashboardVisitComplete: true }
+          : {},
+      );
+      router.push(role === "seller" ? "/home" : roleDestination(role));
+    } catch (error) {
       setRexReply(error instanceof Error ? error.message : "Could not save progress.");
-    });
-    router.push(role === "seller" ? "/home" : roleDestination(role));
+    } finally {
+      setIsSavingProgress(false);
+    }
   }
 
   async function finishOnboarding() {
@@ -832,6 +932,25 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
         onBack={goBack}
         onNext={async () => { setStep((current) => Math.min(current + 1, total)); }}
         onSubmit={submitLogisticsOnboarding}
+      />
+    );
+  }
+
+  if (role === "supplier") {
+    return (
+      <SupplierOnboardingStage
+        step={step}
+        total={total}
+        onBack={goBack}
+        onNext={async () => { setStep((current) => Math.min(current + 1, total)); }}
+        onSubmit={async (payload) => {
+          await fetch("/api/supplier/onboarding", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, completed: true }),
+          }).catch(() => null);
+          await finishOnboarding();
+        }}
       />
     );
   }
@@ -962,8 +1081,8 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                   <div className="field mt-5">
                     <span className="label">Settlement currency</span>
                     <div className="flex flex-wrap gap-1.5">
-                      {["NGN Naira", "GHS Cedi", "KES Shilling", "ZAR Rand", "USD"].map((currency, index) => (
-                        <button key={currency} type="button" className={`chip ${index === 0 ? "on" : ""}`}>
+                      {["NGN Naira", "GHS Cedi", "KES Shilling", "ZAR Rand", "USD"].map((currency) => (
+                        <button key={currency} type="button" onClick={() => setSelectedCurrency(currency)} className={`chip ${selectedCurrency === currency ? "on" : ""}`}>
                           {currency}
                         </button>
                       ))}
@@ -973,8 +1092,13 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                   <div className="field mt-5">
                     <span className="label">Languages your shop will serve</span>
                     <div className="flex flex-wrap gap-1.5">
-                      {languageOptions.map((language, index) => (
-                        <button key={language} type="button" className={`chip ${index < 2 ? "on" : ""}`}>
+                      {languageOptions.map((language) => (
+                        <button
+                          key={language}
+                          type="button"
+                          onClick={() => setSelectedLanguages((current) => current.includes(language) ? current.filter((item) => item !== language) : [...current, language])}
+                          className={`chip ${selectedLanguages.includes(language) ? "on" : ""}`}
+                        >
                           {language}
                         </button>
                       ))}
@@ -1108,7 +1232,16 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
           )}
 
           {step === 4 && buildPath !== "rex" && (
-            <TemplateGalleryStep templateId={templateId} setTemplateId={setTemplateId} setBuildPath={setBuildPath} goBack={goBack} goNext={goNext} disabled={isSavingProgress} />
+            <TemplateGalleryStep
+              templateId={templateId}
+              setTemplateId={setTemplateId}
+              setBuildPath={setBuildPath}
+              goBack={goBack}
+              goNext={goNext}
+              disabled={isSavingProgress}
+              storeName={resolvedStoreName}
+              draftStore={buildRexStoreSeed()}
+            />
           )}
 
           {step === 5 && (
@@ -1120,9 +1253,14 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                 <div className="card mt-5 overflow-hidden p-0">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ink-100)] bg-[var(--ink-50)] px-4 py-3">
                     <div className="flex gap-1.5">
-                      {["Phone", "Tablet", "Desktop"].map((view, index) => (
-                        <button key={view} type="button" className={`btn btn-sm ${index === 0 ? "btn-soft" : "btn-ghost"}`}>
-                          {view}
+                      {(["phone", "tablet", "desktop"] as PreviewDevice[]).map((device) => (
+                        <button
+                          key={device}
+                          type="button"
+                          onClick={() => setPreviewDevice(device)}
+                          className={`btn btn-sm ${previewDevice === device ? "btn-soft" : "btn-ghost"}`}
+                        >
+                          {device.charAt(0).toUpperCase() + device.slice(1)}
                         </button>
                       ))}
                     </div>
@@ -1132,7 +1270,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                     </button>
                   </div>
                   <div className="grid min-h-[520px] place-items-center bg-[var(--ink-50)] p-8">
-                    <StorePhonePreview template={template} storeName={resolvedStoreName} builtStore={rexBuildStore} />
+                    <StorePhonePreview template={template} storeName={resolvedStoreName} builtStore={rexBuildStore ?? buildRexStoreSeed()} device={previewDevice} />
                   </div>
                 </div>
               </div>
@@ -1145,55 +1283,27 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                         {rexBuildStatus === "ready" ? "Rex built your first draft." : rexBuildStatus === "error" ? "Rex needs another try." : "Rex is building your store."}
                       </div>
                       <div className="mt-1 text-[12px] leading-5 text-[var(--ink-500)]">
-                        {rexBuildStatus === "building" ? "Generating copy, sections, products, and a storefront config." : rexBuildMessage || "Your selected template and prompt are shaping the preview."}
+                        {rexBuildMessage || "Your live preview updates from the latest store details, files, voice notes, and Rex's generated draft."}
                       </div>
                     </div>
                   </div>
-                  {["Brand story", "Template fit", "Product seed", "Launch checklist"].map((item, index) => {
-                    const done = rexBuildStatus === "ready" || (rexBuildStatus === "building" && index < 2);
-                    return (
-                      <div key={item} className="flex items-center justify-between border-t border-[var(--ink-100)] py-3">
-                        <span className="text-[13px] font-semibold text-[var(--ink-800)]">{item}</span>
-                        <span className={`badge ${done ? "badge-success" : rexBuildStatus === "error" && index === 1 ? "badge-warn" : "badge-soft"}`}>
-                          {done ? "Done" : "Waiting"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="card">
-                  <div className="mb-2 text-[13px] font-semibold text-[var(--ink-900)]">Continue in the full builder</div>
-                  <p className="m-0 text-[12px] leading-5 text-[var(--ink-500)]">
-                    Open Rex's full store builder with this onboarding memory to generate every editable page, product area, cart, checkout, and launch section.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={openFullRexBuilder}
-                    className="btn btn-mint mt-3 w-full justify-center"
-                    disabled={rexBuildStatus === "building"}
-                  >
-                    Open full Rex builder <Icon name="arrow" size={13} />
-                  </button>
-                </div>
-                <div className="card">
-                  <div className="mb-2 text-[13px] font-semibold text-[var(--ink-900)]">Ask Rex to tweak it</div>
                   <textarea
                     className="ta"
-                    rows={4}
+                    rows={3}
                     value={rexTweak}
                     onChange={(event) => setRexTweak(event.target.value)}
-                    placeholder="Make it more premium, add a wholesale section, use warmer copy..."
+                    placeholder="Make the hero warmer, add wholesale bundles, use bolder colors..."
                   />
                   <button
                     type="button"
                     onClick={() => void buildStoreWithRex(rexTweak)}
-                    className="btn btn-mint mt-3 w-full justify-center"
-                    disabled={rexBuildStatus === "building"}
+                    className="btn btn-mint mt-3 w-full"
+                    disabled={rexBuildStatus === "building" || !rexTweak.trim()}
                   >
-                    {rexBuildStatus === "building" ? "Applying..." : "Apply tweak"} <Icon name="sparkle" size={13} />
+                    Apply tweak <Icon name="sparkle" size={13} />
                   </button>
                 </div>
-                <StepActions onBack={goBack} onNext={goNext} nextLabel="Continue" disabled={isSavingProgress} />
+                <StepActions onBack={goBack} onNext={async () => goNext(storeProfilePatch())} nextLabel="Continue" disabled={rexBuildStatus === "building" || isSavingProgress} />
               </aside>
             </div>
           )}
@@ -1288,6 +1398,8 @@ function TemplateGalleryStep({
   setBuildPath,
   goBack,
   goNext,
+  storeName,
+  draftStore,
   disabled = false,
 }: {
   templateId: string;
@@ -1295,9 +1407,12 @@ function TemplateGalleryStep({
   setBuildPath: (path: BuildPath) => void;
   goBack: () => void;
   goNext: () => Promise<void> | void;
+  storeName: string;
+  draftStore: RexStoreConfig;
   disabled?: boolean;
 }) {
   const template = selectedTemplate(templateId);
+  const [device, setDevice] = useState<PreviewDevice>("phone");
   return (
     <div className="grid flex-1 gap-6 overflow-auto bg-[var(--canvas)] px-7 py-7 xl:grid-cols-[1fr_380px]">
       <div>
@@ -1326,8 +1441,15 @@ function TemplateGalleryStep({
         <StepActions onBack={goBack} onNext={goNext} nextLabel="Use this template" disabled={disabled} />
       </div>
       <aside className="space-y-4">
-        <div className="card grid place-items-center bg-[var(--ink-50)]">
-          <StorePhonePreview template={template} storeName={template.name} />
+        <div className="card bg-[var(--ink-50)]">
+          <div className="mb-3 flex flex-wrap justify-center gap-1.5">
+            {(["phone", "tablet", "desktop"] as PreviewDevice[]).map((value) => (
+              <button key={value} type="button" onClick={() => setDevice(value)} className={`btn btn-sm ${device === value ? "btn-soft" : "btn-ghost"}`}>
+                {value.charAt(0).toUpperCase() + value.slice(1)}
+              </button>
+            ))}
+          </div>
+          <StorePhonePreview template={template} storeName={storeName} builtStore={draftStore} device={device} />
         </div>
         <div className="card bg-[linear-gradient(160deg,var(--teal-50),var(--paper))]">
           <div className="flex gap-3">
@@ -1704,6 +1826,335 @@ function LaunchStep({
     </div>
   );
 }
+
+// ─── Supplier Onboarding ────────────────────────────────────────────────────
+
+const SUPPLIER_CATEGORIES = [
+  "Fashion & Clothing", "Food & Beverages", "Electronics & Gadgets",
+  "Beauty & Personal Care", "Home & Furniture", "Health & Wellness",
+  "Agricultural Products", "Industrial & Manufacturing", "Books & Stationery",
+  "Sports & Fitness", "Baby & Kids", "Automotive", "Office Supplies", "Other",
+];
+
+const SUPPLY_TYPES = [
+  { id: "dropshipping", label: "Dropshipping", desc: "Sellers list your products; you ship directly to their buyers." },
+  { id: "wholesale", label: "Wholesale", desc: "Sell in bulk at negotiated prices to resellers." },
+  { id: "both", label: "Both", desc: "Offer both options to maximise reach." },
+];
+
+const SUPPLIER_STEPS = ["Profile", "Products", "Delivery", "Verification", "Review"];
+
+function SupplierOnboardingStage({
+  step,
+  total,
+  onBack,
+  onNext,
+  onSubmit,
+}: {
+  step: number;
+  total: number;
+  onBack: () => void;
+  onNext: () => Promise<void>;
+  onSubmit: (payload: Record<string, unknown>) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+  const [description, setDescription] = useState("");
+  const [country, setCountry] = useState("Nigeria");
+  const [city, setCity] = useState("Lagos");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [supplyType, setSupplyType] = useState<string>("both");
+  const [minOrderQty, setMinOrderQty] = useState("1");
+  const [leadTimeDays, setLeadTimeDays] = useState("3");
+  const [deliveryAreas, setDeliveryAreas] = useState("");
+  const [logisticsCouriers, setLogisticsCouriers] = useState<string[]>([]);
+  const [cacNumber, setCacNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+
+  useEffect(() => {
+    fetch("/api/supplier/onboarding")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (data.displayName) setCompanyName(data.displayName);
+        if (data.description) setDescription(data.description);
+        if (data.country) setCountry(data.country);
+        if (data.city) setCity(data.city);
+        if (Array.isArray(data.categories)) setCategories(data.categories);
+        if (data.supplyType) setSupplyType(data.supplyType);
+        if (data.minOrderQty) setMinOrderQty(String(data.minOrderQty));
+        if (data.leadTimeDays) setLeadTimeDays(String(data.leadTimeDays));
+        if (data.deliveryAreas) setDeliveryAreas(data.deliveryAreas);
+        if (Array.isArray(data.logisticsCouriers)) setLogisticsCouriers(data.logisticsCouriers);
+        if (data.cacNumber) setCacNumber(data.cacNumber);
+      })
+      .catch(() => null);
+  }, []);
+
+  function toggleCategory(cat: string) {
+    setCategories((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
+  }
+  function toggleCourier(name: string) {
+    setLogisticsCouriers((prev) => prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]);
+  }
+
+  async function handleNext() {
+    setSaving(true);
+    await fetch("/api/supplier/onboarding", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        displayName: companyName, description, country, city,
+        categories, supplyType, minOrderQty: Number(minOrderQty),
+        leadTimeDays: Number(leadTimeDays), deliveryAreas, logisticsCouriers,
+      }),
+    }).catch(() => null);
+    setSaving(false);
+    await onNext();
+  }
+
+  async function handleSubmit() {
+    setSaving(true);
+    await onSubmit({
+      displayName: companyName, description, country, city,
+      categories, supplyType, minOrderQty: Number(minOrderQty),
+      leadTimeDays: Number(leadTimeDays), deliveryAreas, logisticsCouriers,
+      cacNumber, bankName, accountNumber, accountName,
+    });
+    setSaving(false);
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "10px 12px", borderRadius: 10,
+    border: "1px solid var(--ink-200)", background: "var(--paper)",
+    fontSize: 13.5, color: "var(--ink-900)", outline: "none", boxSizing: "border-box",
+  };
+  const labelStyle: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: "var(--ink-600)", marginBottom: 5, display: "block" };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#FAF7F1" }}>
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 48px", borderBottom: "1px solid var(--ink-100)", background: "var(--paper)" }}>
+        <img src="/brand/logos/shopinbos-logo-dark.png" alt="Shopinbos" style={{ height: 26, width: "auto" }} />
+        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+          {SUPPLIER_STEPS.map((label, i) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, color: i + 1 === step ? "var(--teal-700)" : i + 1 < step ? "var(--teal-500)" : "var(--ink-400)", fontSize: 13, fontWeight: i + 1 === step ? 700 : 500 }}>
+              <span style={{ width: 22, height: 22, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontFamily: "monospace", background: i + 1 <= step ? "var(--teal-600)" : "var(--ink-150)", color: i + 1 <= step ? "white" : "var(--ink-400)" }}>{i + 1}</span>
+              {label}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--ink-500)" }}>Step {step} of {total}</div>
+      </header>
+
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "48px 24px" }}>
+        <div style={{ width: "100%", maxWidth: 640, background: "var(--paper)", borderRadius: 20, border: "1px solid var(--ink-100)", padding: "36px 40px" }}>
+
+          {/* Step 1 — Business Profile */}
+          {step === 1 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-600)", marginBottom: 8 }}>Supplier Onboarding · Step 1</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Tell us about your business</h2>
+              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>This will appear on your public supplier profile and help sellers find you.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Company / Business name</label>
+                  <input style={inputStyle} value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Eko Fabrics Limited" />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={labelStyle}>Country</label>
+                    <input style={inputStyle} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Nigeria" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>City</label>
+                    <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Lagos" />
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>What do you supply? (brief description)</label>
+                  <textarea
+                    style={{ ...inputStyle, minHeight: 88, resize: "vertical" } as React.CSSProperties}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. We supply premium ankara and aso-oke fabric to tailors and fashion brands across Nigeria."
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Product categories (select all that apply)</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                    {SUPPLIER_CATEGORIES.map((cat) => (
+                      <button key={cat} type="button" onClick={() => toggleCategory(cat)} style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 500, border: `1px solid ${categories.includes(cat) ? "var(--teal-600)" : "var(--ink-200)"}`, background: categories.includes(cat) ? "var(--teal-100)" : "transparent", color: categories.includes(cat) ? "var(--teal-800)" : "var(--ink-600)", cursor: "pointer" }}>
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end" }}>
+                <button type="button" onClick={handleNext} disabled={saving || !companyName.trim()} style={{ padding: "11px 28px", borderRadius: 999, background: "var(--teal-700)", color: "white", fontSize: 14, fontWeight: 700, border: "none", cursor: saving || !companyName.trim() ? "not-allowed" : "pointer", opacity: saving || !companyName.trim() ? 0.6 : 1 }}>
+                  {saving ? "Saving..." : "Continue →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2 — Product & Supply Settings */}
+          {step === 2 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-600)", marginBottom: 8 }}>Supplier Onboarding · Step 2</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Products & supply model</h2>
+              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>Help sellers understand how to work with you.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div>
+                  <label style={labelStyle}>How do you supply to sellers?</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
+                    {SUPPLY_TYPES.map((t) => (
+                      <label key={t.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${supplyType === t.id ? "var(--teal-600)" : "var(--ink-150)"}`, background: supplyType === t.id ? "var(--teal-50)" : "var(--paper)", cursor: "pointer" }}>
+                        <input type="radio" name="supplyType" value={t.id} checked={supplyType === t.id} onChange={() => setSupplyType(t.id)} style={{ marginTop: 2, accentColor: "var(--teal-600)" }} />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--ink-900)" }}>{t.label}</div>
+                          <div style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 2 }}>{t.desc}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={labelStyle}>Minimum order quantity (MOQ)</label>
+                    <input style={inputStyle} type="number" min="1" value={minOrderQty} onChange={(e) => setMinOrderQty(e.target.value)} placeholder="e.g. 10" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Lead time (days to dispatch)</label>
+                    <input style={inputStyle} type="number" min="1" value={leadTimeDays} onChange={(e) => setLeadTimeDays(e.target.value)} placeholder="e.g. 3" />
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: 32, display: "flex", justifyContent: "space-between" }}>
+                <button type="button" onClick={onBack} style={{ padding: "11px 24px", borderRadius: 999, background: "transparent", color: "var(--ink-600)", fontSize: 14, fontWeight: 600, border: "1px solid var(--ink-200)", cursor: "pointer" }}>← Back</button>
+                <button type="button" onClick={handleNext} disabled={saving} style={{ padding: "11px 28px", borderRadius: 999, background: "var(--teal-700)", color: "white", fontSize: 14, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Saving..." : "Continue →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 — Delivery */}
+          {step === 3 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-600)", marginBottom: 8 }}>Supplier Onboarding · Step 3</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Delivery coverage</h2>
+              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>Let sellers know where and how you can ship orders.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Delivery areas (states, regions, or nationwide)</label>
+                  <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" } as React.CSSProperties} value={deliveryAreas} onChange={(e) => setDeliveryAreas(e.target.value)} placeholder="e.g. Lagos, Abuja, Kano, Port Harcourt — nationwide delivery available via GIG logistics" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Logistics partners / couriers you work with</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                    {["GIG Logistics", "DHL", "Aramex", "Sendbox", "Kwik", "Topship", "Bolt Couriers", "Self-delivery"].map((name) => (
+                      <button key={name} type="button" onClick={() => toggleCourier(name)} style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 500, border: `1px solid ${logisticsCouriers.includes(name) ? "var(--teal-600)" : "var(--ink-200)"}`, background: logisticsCouriers.includes(name) ? "var(--teal-100)" : "transparent", color: logisticsCouriers.includes(name) ? "var(--teal-800)" : "var(--ink-600)", cursor: "pointer" }}>
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: 32, display: "flex", justifyContent: "space-between" }}>
+                <button type="button" onClick={onBack} style={{ padding: "11px 24px", borderRadius: 999, background: "transparent", color: "var(--ink-600)", fontSize: 14, fontWeight: 600, border: "1px solid var(--ink-200)", cursor: "pointer" }}>← Back</button>
+                <button type="button" onClick={handleNext} disabled={saving} style={{ padding: "11px 28px", borderRadius: 999, background: "var(--teal-700)", color: "white", fontSize: 14, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Saving..." : "Continue →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4 — Verification & Payout */}
+          {step === 4 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-600)", marginBottom: 8 }}>Supplier Onboarding · Step 4</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Verification & payouts</h2>
+              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>Provide your business registration and bank details for verification and payouts.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>CAC registration number (RC number)</label>
+                  <input style={inputStyle} value={cacNumber} onChange={(e) => setCacNumber(e.target.value)} placeholder="e.g. RC-1234567" />
+                </div>
+                <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--ink-50)", border: "1px solid var(--ink-150)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-900)", marginBottom: 12 }}>Bank account for payouts</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Bank name</label>
+                      <input style={inputStyle} value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Zenith Bank" />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div>
+                        <label style={labelStyle}>Account number</label>
+                        <input style={inputStyle} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="10-digit account number" maxLength={10} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Account name</label>
+                        <input style={inputStyle} value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Name on account" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--amber-50)", border: "1px solid var(--amber-200)", fontSize: 12.5, color: "var(--amber-800)", lineHeight: 1.5 }}>
+                  You will be asked to upload your CAC certificate, NAFDAC registration (if applicable), and a government-issued ID in the Verification section after onboarding.
+                </div>
+              </div>
+              <div style={{ marginTop: 32, display: "flex", justifyContent: "space-between" }}>
+                <button type="button" onClick={onBack} style={{ padding: "11px 24px", borderRadius: 999, background: "transparent", color: "var(--ink-600)", fontSize: 14, fontWeight: 600, border: "1px solid var(--ink-200)", cursor: "pointer" }}>← Back</button>
+                <button type="button" onClick={handleNext} disabled={saving} style={{ padding: "11px 28px", borderRadius: 999, background: "var(--teal-700)", color: "white", fontSize: 14, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Saving..." : "Continue →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5 — Review & Submit */}
+          {step === 5 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-600)", marginBottom: 8 }}>Supplier Onboarding · Step 5</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Review &amp; submit</h2>
+              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>Check your details before submitting. An admin will review your profile.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { label: "Company", value: companyName },
+                  { label: "Location", value: `${city}, ${country}` },
+                  { label: "Categories", value: categories.join(", ") || "—" },
+                  { label: "Supply model", value: supplyType },
+                  { label: "MOQ", value: minOrderQty },
+                  { label: "Lead time", value: `${leadTimeDays} days` },
+                  { label: "Delivery areas", value: deliveryAreas || "—" },
+                  { label: "CAC number", value: cacNumber || "—" },
+                  { label: "Bank", value: bankName ? `${bankName} · ${accountNumber}` : "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} style={{ display: "flex", gap: 12, padding: "10px 14px", borderRadius: 10, background: "var(--ink-50)", border: "1px solid var(--ink-100)" }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-500)", minWidth: 120 }}>{label}</span>
+                    <span style={{ fontSize: 13, color: "var(--ink-800)" }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 32, display: "flex", justifyContent: "space-between" }}>
+                <button type="button" onClick={onBack} style={{ padding: "11px 24px", borderRadius: 999, background: "transparent", color: "var(--ink-600)", fontSize: 14, fontWeight: 600, border: "1px solid var(--ink-200)", cursor: "pointer" }}>← Back</button>
+                <button type="button" onClick={handleSubmit} disabled={saving} style={{ padding: "11px 28px", borderRadius: 999, background: "var(--teal-700)", color: "white", fontSize: 14, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Submitting..." : "Submit for review →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Logistics Onboarding ────────────────────────────────────────────────────
 
 function LogisticsOnboardingStage({
   roleText,

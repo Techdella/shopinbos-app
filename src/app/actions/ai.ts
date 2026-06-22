@@ -192,23 +192,36 @@ Live workspace snapshot:
 ${JSON.stringify(snapshot, null, 2)}`;
 }
 
-export async function getSuggestions() {
-  const user = await requireRole(["seller", "logistics_partner"], "/login");
+export async function getSuggestions(pathname?: string) {
+  const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
   const name = user.name.split(" ")[0] || "there";
   const rexSuggestions: string[] = [];
   const peggySuggestions: string[] = [];
 
+  // Supplier role
+  if (user.role === "supplier") {
+    const greeting = `Hi ${name}, I'm Rex. I can help you set up your supplier profile, upload your product catalog, configure dropshipping or wholesale pricing, and get you ready for your first seller connections.`;
+    if (pathname?.includes("/products") || pathname?.includes("/catalog")) {
+      rexSuggestions.push("Write product descriptions for my catalog", "Help me bulk import products", "Suggest product categories", "Review my product images");
+    } else if (pathname?.includes("/settings") || pathname?.includes("/profile")) {
+      rexSuggestions.push("Update my supplier profile", "Configure wholesale pricing", "Set up dropshipping", "Connect logistics partners");
+    } else if (pathname?.includes("/verification")) {
+      rexSuggestions.push("What documents do I need to upload?", "Check my verification status", "Explain the verification process", "Help me prepare CAC documents");
+    } else {
+      rexSuggestions.push("Set up my product catalog", "Configure dropshipping options", "Connect with logistics partners", "Explain how wholesale pricing works");
+    }
+    return { name, greeting, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: [] };
+  }
+
+  // Logistics partner role
   if (user.role === "logistics_partner") {
+    const greeting = `Hi ${name}, I'm Rex. I can help you set up your logistics profile, configure delivery zones and pricing, manage your fleet, and connect with suppliers and sellers.`;
     const { getLogisticsWorkspace } = await import("@/lib/workspace");
     const workspace = await getLogisticsWorkspace(user.id);
 
     if (workspace) {
-      if (workspace.metrics.pendingQuoteCount > 0) {
-        rexSuggestions.push("Review pending quote requests");
-      }
-      if (workspace.metrics.activeBookingCount > 0) {
-        rexSuggestions.push("Track active deliveries");
-      }
+      if (workspace.metrics.pendingQuoteCount > 0) rexSuggestions.push("Review pending quote requests");
+      if (workspace.metrics.activeBookingCount > 0) rexSuggestions.push("Track active deliveries");
       rexSuggestions.push("Update my coverage zones");
       rexSuggestions.push("Review my pricing");
     } else {
@@ -218,56 +231,60 @@ export async function getSuggestions() {
       rexSuggestions.push("Set delivery pricing");
     }
 
-    if (rexSuggestions.length < 2) {
-      rexSuggestions.push("View my dashboard", "Check my earnings");
+    if (rexSuggestions.length < 2) rexSuggestions.push("View my dashboard", "Check my earnings");
+    return { name, greeting, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: [] };
+  }
+
+  // Seller role — page-specific suggestions take priority
+  const greeting = `Hi ${name}, I'm Rex. I can help you build your store, create landing pages, write product descriptions, upload products, connect logistics, and grow your business on Shopinbos.`;
+
+  if (pathname) {
+    const onEditor = pathname.includes("/editor") || pathname.includes("/builder");
+    const onProducts = pathname.includes("/products") || pathname.includes("/inventory");
+    const onOrders = pathname.includes("/orders");
+    const onSettings = pathname.includes("/settings");
+    const onMarketing = pathname.includes("/marketing");
+    const onVerification = pathname.includes("/verification");
+    const onShipping = pathname.includes("/shipping");
+
+    if (onEditor) {
+      rexSuggestions.push("Make my hero section more premium", "Improve my color palette", "Add a testimonials section", "Rewrite my homepage copy");
+    } else if (onProducts) {
+      rexSuggestions.push("Write product descriptions", "Suggest product categories", "Help me bulk import products", "Review my product images");
+    } else if (onOrders) {
+      rexSuggestions.push("Summarize my pending orders", "Draft a shipping update email", "Check my refund rate", "Which orders need attention?");
+    } else if (onSettings) {
+      rexSuggestions.push("Update my store settings", "Help me configure payments", "Set up my shipping zones", "Review my store profile");
+    } else if (onMarketing) {
+      rexSuggestions.push("Write a promotional email", "Create an Instagram caption", "Draft a WhatsApp broadcast", "Suggest a discount strategy");
+    } else if (onVerification) {
+      rexSuggestions.push("What documents do I need?", "Check my verification status", "Explain the CAC process", "Help me prepare my documents");
+    } else if (onShipping) {
+      rexSuggestions.push("Review my shipping zones", "Suggest courier partners", "Set competitive delivery prices", "Configure free shipping thresholds");
     }
-
-    return { name, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: [] };
   }
 
-  const snapshot = await buildSellerSnapshot(user.id);
-
-  if (snapshot.products.total === 0) {
-    rexSuggestions.push("Add my first products");
-    rexSuggestions.push("Set up my store pages");
-  } else {
-    if (snapshot.products.drafts > 0) {
-      rexSuggestions.push("Publish my draft products");
+  if (rexSuggestions.length === 0) {
+    const snapshot = await buildSellerSnapshot(user.id);
+    if (snapshot.products.total === 0) {
+      rexSuggestions.push("Add my first products", "Set up my store pages");
+    } else {
+      if (snapshot.products.drafts > 0) rexSuggestions.push("Publish my draft products");
+      if (snapshot.products.lowStock > 0) rexSuggestions.push("Review low stock items");
+      rexSuggestions.push("Update my hero section", "Edit product descriptions");
     }
-    if (snapshot.products.lowStock > 0) {
-      rexSuggestions.push("Review low stock items");
-    }
-    rexSuggestions.push("Update my hero section");
-    rexSuggestions.push("Edit product descriptions");
+    if (snapshot.orders.pending > 0) peggySuggestions.push("Check my pending orders");
+    if (snapshot.orders.processing > 0 || snapshot.orders.shipped > 0) peggySuggestions.push("Track my active orders");
+    if (snapshot.products.lowStock > 0) peggySuggestions.push("Which products need restocking?");
+    if (snapshot.sourcing.recommendedProducts.length > 0) peggySuggestions.push("What should I source next?");
+    if (snapshot.messages.unread > 0) peggySuggestions.push("Check my unread messages");
+    if (snapshot.logistics.bookings.length > 0 || snapshot.logistics.quoteRequests.length > 0) peggySuggestions.push("What is my logistics status?");
   }
 
-  if (snapshot.orders.pending > 0) {
-    peggySuggestions.push("Check my pending orders");
-  }
-  if (snapshot.orders.processing > 0 || snapshot.orders.shipped > 0) {
-    peggySuggestions.push("Track my active orders");
-  }
-  if (snapshot.products.lowStock > 0) {
-    peggySuggestions.push("Which products need restocking?");
-  }
-  if (snapshot.sourcing.recommendedProducts.length > 0) {
-    peggySuggestions.push("What should I source next?");
-  }
-  if (snapshot.messages.unread > 0) {
-    peggySuggestions.push("Check my unread messages");
-  }
-  if (snapshot.logistics.bookings.length > 0 || snapshot.logistics.quoteRequests.length > 0) {
-    peggySuggestions.push("What is my logistics status?");
-  }
+  if (rexSuggestions.length < 2) rexSuggestions.push("Draft a product description", "Write marketing copy", "Add a new page", "Edit my hero section");
+  if (peggySuggestions.length < 2) peggySuggestions.push("How are my orders doing?", "Which products need attention?", "What should I source next?", "What is my logistics status?", "Help me prepare a product CSV import");
 
-  if (rexSuggestions.length < 2) {
-    rexSuggestions.push("Draft a product description", "Write marketing copy", "Add a new page", "Edit my hero section");
-  }
-  if (peggySuggestions.length < 2) {
-    peggySuggestions.push("How are my orders doing?", "Which products need attention?", "What should I source next?", "What is my logistics status?", "Help me prepare a product CSV import");
-  }
-
-  return { name, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: peggySuggestions.slice(0, 5) };
+  return { name, greeting, rexSuggestions: rexSuggestions.slice(0, 4), peggySuggestions: peggySuggestions.slice(0, 5) };
 }
 
 export async function getPeggyData() {

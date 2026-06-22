@@ -44,7 +44,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
         store_id: store.id,
         store_name: store.name,
         user_id: user.id,
-        balance_due: 0,
+        balance_due: installment.balance_due,
       },
     });
     return NextResponse.json({ data: { authorizationUrl: payment.authorization_url, reference } });

@@ -98,6 +98,8 @@ export async function proxy(request: NextRequest) {
     }).catch(() => null);
 
     if (!appUser) return response;
+    const requestedRole = portalRoleFromPath(pathname);
+    if (appUser.role !== requestedRole) return response;
     return redirectTo(request, getRoleHome(appUser.role));
   }
 

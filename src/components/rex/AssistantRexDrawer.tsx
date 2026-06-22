@@ -95,20 +95,21 @@ export function AssistantRexDrawer({
 
   useEffect(() => {
     if (isOpen) {
-      const name = userName?.split(" ")[0] ?? "there";
-      setMessages([
-        {
-          role: "assistant",
-          text: `Hi ${name}, I'm Rex. I can help set up your store, create landing pages, write product descriptions, upload products, connect logistics, and get your Shopinbos account ready.`,
-        },
-      ]);
+      setMessages([{ role: "assistant", text: "..." }]);
       setInput("");
-      getSuggestions().then((s) => {
+      getSuggestions(pathname).then((s) => {
         if (s.rexSuggestions.length > 0) setSuggestionChips(s.rexSuggestions);
-      }).catch(() => {});
+        setMessages([{
+          role: "assistant",
+          text: s.greeting ?? `Hi ${userName?.split(" ")[0] ?? "there"}, I'm Rex. I can help set up your store, create landing pages, write product descriptions, upload products, connect logistics, and get your Shopinbos account ready.`,
+        }]);
+      }).catch(() => {
+        const name = userName?.split(" ")[0] ?? "there";
+        setMessages([{ role: "assistant", text: `Hi ${name}, I'm Rex. How can I help you today?` }]);
+      });
       setTimeout(() => inputRef.current?.focus(), 350);
     }
-  }, [isOpen, userName]);
+  }, [isOpen, userName, pathname]);
 
   useEffect(() => {
     if (initialMessage && isOpen && messages.length <= 1) {
