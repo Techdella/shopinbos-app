@@ -189,22 +189,12 @@ export default async function ProductsPage({
               return (
                 <Link key={p.id} href={`/products/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                   <div
-                    className="card overflow-hidden flex flex-col"
+                    className="card card-hover overflow-hidden flex flex-col"
                     style={{
                       padding: 0,
                       borderRadius: 14,
-                      border: "1px solid var(--ink-100)",
                       background: "var(--paper)",
                       cursor: "pointer",
-                      transition: "box-shadow 0.15s, border-color 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)";
-                      e.currentTarget.style.borderColor = "var(--teal-200)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = "none";
-                      e.currentTarget.style.borderColor = "var(--ink-100)";
                     }}
                   >
                     <div style={{ aspectRatio: "4/3", background: "var(--ink-50)", position: "relative", overflow: "hidden" }}>

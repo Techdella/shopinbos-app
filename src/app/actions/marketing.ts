@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { sendEmail } from "@/lib/notifications/resend";
+import { parseRecipientFilter, sendCampaign, type RecipientFilter } from "@/lib/campaigns/send";
+import { escapeHtml } from "@/lib/campaigns/render";
 
 async function getSellerStore() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -106,129 +108,79 @@ export async function toggleAutomationRule(formData: FormData) {
 
 // ─── Broadcast Campaigns ───────────────────────────────────────────────────────
 
-export async function saveBroadcastCampaign(formData: FormData) {
-  const { store } = await getSellerStore();
-  const id = formData.get("id") as string;
-  const name = formData.get("name") as string;
-  const subject = formData.get("subject") as string;
-  const bodyHtml = (formData.get("bodyHtml") as string) || "";
-  const templateId = (formData.get("templateId") as string) || null;
-  const scheduledAt = (formData.get("scheduledAt") as string) || null;
-  const status = (formData.get("status") as string) || "draft";
-  const rawFilter = formData.get("recipientFilter") as string;
-  const filterMode = formData.get("filterMode") as string;
-  let recipientFilter: string;
-  if (filterMode) {
-    const filterValue = parseFloat(formData.get("filterValue") as string) || 0;
-    const filterEmails = ((formData.get("filterEmails") as string) || "").split("\n").map((e) => e.trim()).filter(Boolean);
-    switch (filterMode) {
-      case "min_orders":
-        recipientFilter = JSON.stringify({ mode: "min_orders", value: filterValue });
-        break;
-      case "min_spend":
-        recipientFilter = JSON.stringify({ mode: "min_spend", value: filterValue });
-        break;
-      case "specific":
-        recipientFilter = JSON.stringify({ mode: "specific", emails: filterEmails });
-        break;
-      default:
-        recipientFilter = JSON.stringify({ mode: "all" });
-    }
-  } else {
-    recipientFilter = rawFilter || JSON.stringify({ mode: "all" });
-  }
+/** Parses a datetime-local value (no timezone) as Lagos time (WAT, UTC+1, no daylight saving). */
+function parseLagosDateTime(value: string | null): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value.length === 16 ? `${value}:00` : value}+01:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
+function recipientFilterFromForm(formData: FormData): RecipientFilter | null {
+  const filterMode = formData.get("filterMode") as string | null;
+  if (!filterMode) {
+    const raw = formData.get("recipientFilter") as string | null;
+    return raw ? parseRecipientFilter(raw) : null;
+  }
+  // Each radio option has its own value input, so read the one that belongs to the chosen mode.
+  switch (filterMode) {
+    case "min_orders":
+      return { mode: "min_orders", value: parseFloat(formData.get("minOrders") as string) || 1 };
+    case "min_spend":
+      return { mode: "min_spend", value: parseFloat(formData.get("minSpend") as string) || 0 };
+    case "specific":
+      return {
+        mode: "specific",
+        emails: ((formData.get("filterEmails") as string) || "").split(/[\n,]/).map((e) => e.trim()).filter(Boolean),
+      };
+    case "subscribers":
+      return { mode: "subscribers" };
+    default:
+      return { mode: "all" };
+  }
+}
+
+export async function saveBroadcastCampaign(formData: FormData): Promise<{ id?: string; error?: string }> {
+  const { store } = await getSellerStore();
+  const id = (formData.get("id") as string) || null;
+  const name = ((formData.get("name") as string) || "").trim();
+  const subject = ((formData.get("subject") as string) || "").trim();
   if (!name || !subject) return { error: "Name and subject are required" };
 
+  const scheduledAt = parseLagosDateTime(formData.get("scheduledAt") as string | null);
+  const filter = recipientFilterFromForm(formData);
+  const data = {
+    name,
+    subject,
+    bodyHtml: (formData.get("bodyHtml") as string) || "",
+    templateId: (formData.get("templateId") as string) || null,
+    scheduledAt,
+    // A future schedule queues the campaign for the scheduler; otherwise it stays a draft.
+    status: scheduledAt && scheduledAt > new Date() ? ("scheduled" as const) : ("draft" as const),
+    ...(filter ? { recipientFilter: filter } : {}),
+  };
+
   if (id) {
-    await db.$executeRawUnsafe(
-      `UPDATE "BroadcastCampaign" SET name = $1, subject = $2, "bodyHtml" = $3, "templateId" = $4, status = $5, "recipientFilter" = $6::json, "scheduledAt" = $7, "updatedAt" = NOW() WHERE id = $8 AND "storeId" = $9`,
-      name, subject, bodyHtml, templateId, status, recipientFilter, scheduledAt, id, store.id,
-    );
-  } else {
-    await db.$executeRawUnsafe(
-      `INSERT INTO "BroadcastCampaign" (id, "storeId", name, subject, "bodyHtml", "templateId", status, "recipientFilter", "scheduledAt") VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7::json, $8)`,
-      store.id, name, subject, bodyHtml, templateId, status, recipientFilter, scheduledAt,
-    );
+    const existing = await db.broadcastCampaign.findFirst({ where: { id, storeId: store.id }, select: { status: true } });
+    if (!existing) return { error: "Campaign not found" };
+    if (existing.status === "sent" || existing.status === "sending") return { error: "Sent campaigns can't be edited" };
+    await db.broadcastCampaign.update({ where: { id }, data });
+    return { id };
   }
+
+  const created = await db.broadcastCampaign.create({
+    data: { ...data, storeId: store.id, recipientFilter: filter ?? { mode: "all" } },
+    select: { id: true },
+  });
+  return { id: created.id };
 }
 
-type RecipientFilter =
-  | { mode: "all" }
-  | { mode: "min_orders"; value: number }
-  | { mode: "min_spend"; value: number }
-  | { mode: "specific"; emails: string[] };
-
-function parseFilter(raw: string | null): RecipientFilter {
-  if (!raw) return { mode: "all" };
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed === "object" && parsed !== null) return parsed as RecipientFilter;
-  } catch { /* fall through */ }
-  return { mode: "all" };
-}
-
-export async function sendBroadcastCampaign(formData: FormData) {
+export async function sendBroadcastCampaign(formData: FormData): Promise<{ sent?: number; failed?: number; error?: string }> {
   const { store } = await getSellerStore();
   const id = formData.get("id") as string;
   if (!id) return { error: "Campaign ID required" };
 
-  const campaign = await db.$queryRawUnsafe<Array<{ name: string; subject: string; bodyHtml: string; recipientFilter: string }>>(
-    `SELECT name, subject, "bodyHtml", "recipientFilter" FROM "BroadcastCampaign" WHERE id = $1 AND "storeId" = $2`,
-    id, store.id,
-  );
-
-  if (!campaign || campaign.length === 0) return { error: "Campaign not found" };
-
-  const c = campaign[0];
-  const filter = parseFilter(c.recipientFilter);
-
-  let buyers: Array<{ buyerEmail: string; buyerName: string }>;
-
-  if (filter.mode === "specific" && "emails" in filter && filter.emails.length > 0) {
-    const placeholders = filter.emails.map((_, i) => `$${i + 1}`).join(", ");
-    buyers = await db.$queryRawUnsafe<Array<{ buyerEmail: string; buyerName: string }>>(
-      `SELECT DISTINCT "buyerEmail", "buyerName" FROM "RetailOrder" WHERE "storeId" = $${filter.emails.length + 1} AND "buyerEmail" = ANY(ARRAY[${placeholders}])`,
-      ...filter.emails, store.id,
-    );
-  } else if (filter.mode === "min_orders" && "value" in filter && filter.value > 0) {
-    buyers = await db.$queryRawUnsafe<Array<{ buyerEmail: string; buyerName: string }>>(
-      `SELECT "buyerEmail", "buyerName" FROM "RetailOrder" WHERE "storeId" = $2 AND "buyerEmail" IS NOT NULL GROUP BY "buyerEmail", "buyerName" HAVING COUNT(*) >= $1`,
-      filter.value, store.id,
-    );
-  } else if (filter.mode === "min_spend" && "value" in filter && filter.value > 0) {
-    buyers = await db.$queryRawUnsafe<Array<{ buyerEmail: string; buyerName: string }>>(
-      `SELECT "buyerEmail", "buyerName" FROM "RetailOrder" WHERE "storeId" = $2 AND "buyerEmail" IS NOT NULL GROUP BY "buyerEmail", "buyerName" HAVING SUM(total) >= $1`,
-      filter.value, store.id,
-    );
-  } else {
-    buyers = await db.$queryRawUnsafe<Array<{ buyerEmail: string; buyerName: string }>>(
-      `SELECT DISTINCT "buyerEmail", "buyerName" FROM "RetailOrder" WHERE "storeId" = $1 AND "buyerEmail" IS NOT NULL`,
-      store.id,
-    );
-  }
-
-  let sentCount = 0;
-  for (const buyer of buyers) {
-    if (!buyer.buyerEmail) continue;
-    try {
-      await sendEmail({
-        to: [buyer.buyerEmail],
-        subject: c.subject,
-        html: c.bodyHtml.replace(/{{name}}/g, buyer.buyerName).replace(/{{store}}/g, store.name),
-      });
-      sentCount++;
-    } catch {
-      // skip failed sends
-    }
-  }
-
-  await db.$executeRawUnsafe(
-    `UPDATE "BroadcastCampaign" SET status = 'sent', "sentCount" = $1, "sentAt" = NOW(), "updatedAt" = NOW() WHERE id = $2 AND "storeId" = $3`,
-    sentCount, id, store.id,
-  );
-
-  return { sent: sentCount };
+  const result = await sendCampaign(store.id, id);
+  return result.ok ? { sent: result.sent, failed: result.failed } : { error: result.error };
 }
 
 export async function deleteBroadcastCampaign(formData: FormData) {
@@ -250,11 +202,12 @@ export async function testSendCampaign(formData: FormData) {
 
   if (!subject) return { error: "Subject is required" };
 
-  await sendEmail({
+  const result = await sendEmail({
     to: [user.email],
-    subject: `[TEST] ${subject}`,
-    html: bodyHtml.replace(/{{name}}/g, user.name).replace(/{{store}}/g, store.name),
+    subject: `[TEST] ${subject.replace(/{{\s*store\s*}}/g, store.name)}`,
+    html: bodyHtml.replace(/{{\s*name\s*}}/g, escapeHtml(user.name)).replace(/{{\s*store\s*}}/g, escapeHtml(store.name)),
   });
+  if (!result.success) return { error: result.message ?? "Test email could not be sent" };
 
   return { sent: true, to: user.email };
 }

@@ -23,7 +23,7 @@ const TOKENS = {
 const GUEST_PAGES = new Set(["/login", "/signup", "/supplier/login", "/supplier/signup", "/logistics/login", "/logistics/signup", "/admin/login", "/forgot-password", "/reset-password"]);
 
 // Public pages under portal prefixes: must render for signed-out visitors, not redirect to a portal login.
-const PUBLIC_PAGES = new Set(["/suppliers/[slug]", "/logistics/partners/[slug]"]);
+const PUBLIC_PAGES = new Set(["/suppliers/[slug]", "/logistics/partners/[slug]", "/email/unsubscribe/[token]"]);
 
 function authCookie(token) {
   const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
@@ -72,6 +72,8 @@ async function loadParams() {
   const order = store ? await one(`select id from "RetailOrder" where "storeId" = $1 limit 1`, [store.id]) : null;
   const collection = store ? await one(`select id from "Collection" where "storeId" = $1 limit 1`, [store.id]) : null;
   const category = await one(`select slug from "Category" order by "sortOrder" limit 1`);
+  const campaign = store ? await one(`select id from "BroadcastCampaign" where "storeId" = $1 limit 1`, [store.id]) : null;
+  const recipient = campaign ? await one(`select token from "CampaignRecipient" where "campaignId" = $1 limit 1`, [campaign.id]) : null;
   await client.end();
 
   return {
@@ -84,6 +86,8 @@ async function loadParams() {
     "/home/orders/[id]": order && { id: order.id },
     "/home/pages/[id]": storePage && { id: storePage.id },
     "/home/collections/[id]": collection && { id: collection.id },
+    "/home/marketing/campaigns/[id]": campaign && { id: campaign.id },
+    "/email/unsubscribe/[token]": recipient && { token: recipient.token },
     "/seller/store/builder/[storeId]": store && { storeId: store.id },
     "/seller/store/preview/[storeId]": store && { storeId: store.id },
     "/s/[slug]": store && { slug: store.slug },
@@ -106,7 +110,8 @@ async function check(url, role, results, requireOk = false) {
   try {
     const res = await fetch(`${BASE_URL}${url}`, { headers, redirect: "manual" });
     const body = res.status >= 300 && res.status < 400 ? "" : await res.text();
-    const marker = ERROR_MARKERS.find((m) => body.includes(m));
+    // Production builds stream server render errors as an error digest and render the boundary client-side.
+    const marker = ERROR_MARKERS.find((m) => body.includes(m)) ?? (/digest\\?":\\?"\d+/.test(body) ? "server render error (digest)" : undefined);
     const ok = res.status < 500 && !marker && (!requireOk || res.status === 200);
     results.push({ url, role: role ?? "guest", status: res.status, ok, note: marker ?? (res.headers.get("location") ? `→ ${res.headers.get("location")}` : "") });
   } catch (error) {

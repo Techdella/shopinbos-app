@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
+import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
@@ -50,6 +51,7 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
   const searchParams = useSearchParams();
   const cart = useCart(store.slug);
   const visitorKey = useStoreVisitor(store.slug);
+  const campaignToken = useCampaignAttribution(store.slug);
   const palette = store.brandSettings?.palette ?? {};
   const ctaBg = palette.ctaBg ?? "#73D8C8";
   const ctaText = palette.ctaText ?? "#0E2A38";
@@ -190,6 +192,7 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
           items: cart.items,
           paymentMethod: "inline",
           discountCode: appliedDiscount?.code || undefined,
+          campaignToken: campaignToken || undefined,
         }),
       });
 

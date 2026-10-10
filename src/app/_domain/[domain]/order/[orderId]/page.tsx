@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/client";
+import { updateOrderPayment } from "@/app/actions/payments";
 import { OrderConfirmation } from "@/app/s/[slug]/order/[orderId]/OrderConfirmation";
 import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
@@ -17,11 +18,10 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
   const storeRef = await getStoreByCustomDomain(domain);
   if (!storeRef) notFound();
 
+  // Paystack redirected here with a reference: confirm it with Paystack before marking the order paid.
+  // The reference is visible to the buyer, so it is never trusted on its own.
   if (reference) {
-    await db.retailOrder.updateMany({
-      where: { id: orderId, paystackRef: reference, status: "pending" },
-      data: { status: "paid", paystackStatus: "success" },
-    });
+    await updateOrderPayment(orderId, reference).catch(() => null);
   }
 
   const order = await db.retailOrder.findUnique({ where: { id: orderId } });

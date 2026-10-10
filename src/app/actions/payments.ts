@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { revalidatePath } from "next/cache";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import type { Prisma } from "@prisma/client";
+import { creditCampaignConversion } from "@/lib/campaigns/send";
 
 const PAYSTACK_BANK_CODES: Record<string, string> = {
   "Access Bank": "044",
@@ -96,19 +97,35 @@ async function createPaystackTransferRecipient(input: {
   };
 }
 
-export async function verifyPaystackPayment(reference: string): Promise<{
-  success: boolean;
-  data?: { amount: number; status: string; customer?: { email: string } };
-  error?: string;
-}> {
+interface PaystackTransaction {
+  amount: number;
+  status: string;
+  reference: string;
+  customer?: { email: string };
+  metadata?: { orderId?: string } | string | null;
+  plan?: string | { plan_code?: string } | null;
+  plan_object?: { plan_code?: string } | null;
+}
+
+// Paystack plan codes per upgrade, with the minimum amount (NGN) each must have charged.
+const UPGRADE_PLANS = {
+  seller_growth: { credits: 50, plans: { PLN_8ou289e71czicvm: 8000, PLN_q1k3ssxpx7rxxuz: 80000 } },
+  seller_pro: { credits: 200, plans: { PLN_2gph11w3yd0250y: 18000, PLN_9gma70ofldhbj4r: 180000 } },
+  supplier_max: { credits: 100, plans: { PLN_q78304vgj7p35o6: 25000 } },
+} as const;
+type UpgradeKey = keyof typeof UPGRADE_PLANS;
+
+async function fetchPaystackTransaction(reference: string): Promise<{ success: boolean; data?: PaystackTransaction; error?: string }> {
   const secret = process.env.PAYSTACK_SECRET_KEY ?? "";
   if (!secret || secret.includes("your_")) {
-    if (reference.startsWith("test-paystack-")) {
+    // Local development only: accept fake references so checkout can be exercised without Paystack keys.
+    if (process.env.NODE_ENV !== "production" && reference.startsWith("test-paystack-")) {
       return {
         success: true,
         data: {
           amount: 500000,
           status: "success",
+          reference,
           customer: { email: "test-buyer@shopinbos.com" },
         },
       };
@@ -125,10 +142,33 @@ export async function verifyPaystackPayment(reference: string): Promise<{
     if (!json.status) {
       return { success: false, error: json.message ?? "Paystack verification failed" };
     }
-    return { success: true, data: json.data };
+    return { success: true, data: json.data as PaystackTransaction };
   } catch {
     return { success: false, error: "Failed to verify payment with Paystack" };
   }
+}
+
+// Paystack returns metadata as an object, or as a JSON string when it was sent as one.
+function metadataOrderId(metadata: PaystackTransaction["metadata"]): string | undefined {
+  if (!metadata) return undefined;
+  if (typeof metadata === "string") {
+    try {
+      return (JSON.parse(metadata) as { orderId?: string }).orderId;
+    } catch {
+      return undefined;
+    }
+  }
+  return metadata.orderId;
+}
+
+// Public server action: only reports whether the payment succeeded, never the full transaction record.
+export async function verifyPaystackPayment(reference: string): Promise<{
+  success: boolean;
+  data?: { status: string };
+  error?: string;
+}> {
+  const result = await fetchPaystackTransaction(reference);
+  return result.success ? { success: true, data: { status: result.data!.status } } : { success: false, error: result.error };
 }
 
 export async function updateOrderPayment(
@@ -138,15 +178,29 @@ export async function updateOrderPayment(
   try {
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, buyerEmail: true },
+      select: { id: true, total: true, buyerEmail: true, status: true, paystackRef: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
     }
+    if (order.status !== "pending" && order.status !== "awaiting_payment") {
+      return order.paystackRef === reference ? { success: true } : { success: false, error: "Order is not awaiting payment" };
+    }
 
-    const verification = await verifyPaystackPayment(reference);
+    const verification = await fetchPaystackTransaction(reference);
     if (!verification.success || verification.data?.status !== "success") {
       return { success: false, error: verification.error ?? "Payment could not be verified" };
+    }
+
+    // A payment must belong to this order: redirect payments use the order id as reference,
+    // inline payments carry the order id in metadata.
+    const paidFor = metadataOrderId(verification.data.metadata) ?? verification.data.reference;
+    if (paidFor !== orderId) {
+      return { success: false, error: "Payment does not belong to this order" };
+    }
+    const reused = await db.retailOrder.findFirst({ where: { paystackRef: reference, id: { not: orderId } }, select: { id: true } });
+    if (reused) {
+      return { success: false, error: "Payment has already been applied to another order" };
     }
 
     const paidAmount = verification.data.amount / 100;
@@ -166,6 +220,7 @@ export async function updateOrderPayment(
         status: "paid",
       },
     });
+    await creditCampaignConversion(orderId).catch(() => null);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };
@@ -432,31 +487,56 @@ export async function linkFlutterwaveBankAccount(
   }
 }
 
-export async function upgradeUserToSupplierMax(reference: string): Promise<{ success: boolean; error?: string }> {
+async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: string[]): Promise<{ success: boolean; error?: string }> {
   try {
-    const verification = await verifyPaystackPayment(reference);
-    if (!verification.success) {
-      return { success: false, error: verification.error };
-    }
-
     const user = await getCurrentAppUser();
     if (!user) {
       return { success: false, error: "Not authenticated" };
     }
 
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        aiCredits: 100,
-      },
-    });
+    const verification = await fetchPaystackTransaction(reference);
+    const tx = verification.data;
+    if (!verification.success || !tx || tx.status !== "success") {
+      return { success: false, error: verification.error ?? "Payment could not be verified" };
+    }
 
-    revalidatePath("/supplier/profile");
-    revalidatePath("/supplier/dashboard");
+    const planCode = typeof tx.plan === "string" ? tx.plan : tx.plan?.plan_code ?? tx.plan_object?.plan_code;
+    const plans = UPGRADE_PLANS[upgrade].plans as Record<string, number>;
+    const minimum = planCode ? plans[planCode] : undefined;
+    if (minimum === undefined) {
+      return { success: false, error: "Payment is not for this plan" };
+    }
+    if (tx.amount / 100 < minimum) {
+      return { success: false, error: "Payment amount is less than the plan price" };
+    }
+    if (tx.customer?.email?.toLowerCase() !== user.email.toLowerCase()) {
+      return { success: false, error: "Payment was made by a different account" };
+    }
+
+    // Each payment can be redeemed once; the receipt's primary key is the Paystack reference.
+    try {
+      await db.$transaction([
+        db.paymentReceipt.create({
+          data: { reference, userId: user.id, purpose: upgrade, amount: tx.amount / 100, provider: "paystack" },
+        }),
+        db.user.update({ where: { id: user.id }, data: { aiCredits: UPGRADE_PLANS[upgrade].credits } }),
+      ]);
+    } catch (error) {
+      if ((error as { code?: string }).code === "P2002") {
+        return { success: false, error: "This payment has already been used" };
+      }
+      throw error;
+    }
+
+    for (const path of paths) revalidatePath(path);
     return { success: true };
   } catch (e) {
     return { success: false, error: String(e) };
   }
+}
+
+export async function upgradeUserToSupplierMax(reference: string): Promise<{ success: boolean; error?: string }> {
+  return applyPlanUpgrade(reference, "supplier_max", ["/supplier/profile", "/supplier/dashboard"]);
 }
 
 export async function upgradeUserToPro(reference: string): Promise<{ success: boolean; error?: string }> {
@@ -464,51 +544,9 @@ export async function upgradeUserToPro(reference: string): Promise<{ success: bo
 }
 
 export async function upgradeSellerToGrowth(reference: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const verification = await verifyPaystackPayment(reference);
-    if (!verification.success) {
-      return { success: false, error: verification.error };
-    }
-
-    const user = await getCurrentAppUser();
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    await db.user.update({
-      where: { id: user.id },
-      data: { aiCredits: 50 },
-    });
-
-    revalidatePath("/home/settings");
-    revalidatePath("/home");
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: String(e) };
-  }
+  return applyPlanUpgrade(reference, "seller_growth", ["/home/settings", "/home"]);
 }
 
 export async function upgradeSellerToMax(reference: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const verification = await verifyPaystackPayment(reference);
-    if (!verification.success) {
-      return { success: false, error: verification.error };
-    }
-
-    const user = await getCurrentAppUser();
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    await db.user.update({
-      where: { id: user.id },
-      data: { aiCredits: 200 },
-    });
-
-    revalidatePath("/home/settings");
-    revalidatePath("/home");
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: String(e) };
-  }
+  return applyPlanUpgrade(reference, "seller_pro", ["/home/settings", "/home"]);
 }

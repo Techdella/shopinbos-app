@@ -1,5 +1,7 @@
-// Minimal stand-in for Supabase Auth so the app can be smoke-tested against a local database.
-// Only GET /auth/v1/user is implemented; every other Supabase call gets an empty 404.
+// Minimal stand-ins for Supabase Auth and Resend so the app can be smoke-tested against a local database.
+// Supabase: only GET /auth/v1/user is implemented; every other Supabase call gets an empty 404.
+// Resend (set RESEND_BASE_URL=http://127.0.0.1:54321/resend): emails are recorded, never delivered,
+// and can be read back from GET /resend/__sent.
 import http from "node:http";
 
 export const SMOKE_USERS = {
@@ -28,9 +30,31 @@ export function supabaseUser(token) {
 
 const port = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 
+const sentEmails = [];
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => resolve(body ? JSON.parse(body) : null));
+  });
+}
+
 http
-  .createServer((req, res) => {
+  .createServer(async (req, res) => {
     res.setHeader("content-type", "application/json");
+    if (req.url?.startsWith("/resend/")) {
+      if (req.method === "GET" && req.url === "/resend/__sent") return res.end(JSON.stringify(sentEmails));
+      const payload = await readBody(req);
+      const emails = Array.isArray(payload) ? payload : [payload];
+      const ids = emails.map((email) => {
+        const id = `mock-${sentEmails.length + 1}`;
+        sentEmails.push({ id, ...email });
+        return { id };
+      });
+      res.end(JSON.stringify(req.url.startsWith("/resend/emails/batch") ? { data: ids } : ids[0]));
+      return;
+    }
     if (req.method === "GET" && req.url?.startsWith("/auth/v1/user")) {
       const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
       const user = supabaseUser(token);

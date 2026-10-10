@@ -226,6 +226,8 @@ body {
 .card { background: var(--paper); border: 1px solid var(--ink-100); border-radius: 16px; padding: 18px; box-shadow: var(--shd-xs); }
 .card.tight { padding: 14px; border-radius: 14px; }
 .card.flat  { box-shadow: none; }
+.card.card-hover { box-shadow: none; transition: box-shadow 0.15s, border-color 0.15s; }
+.card.card-hover:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-color: var(--teal-200); }
 
 /* Badges */
 .badge        { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; border: 1px solid transparent; }

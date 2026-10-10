@@ -10,12 +10,13 @@ interface Campaign {
   id: string;
   name: string;
   subject: string;
-  type: string;
+  campaignType: string;
   status: string;
   sentCount: number;
   openCount: number;
   clickCount: number;
-  revenue: number;
+  revenueGenerated: number;
+  conversionCount: number;
   scheduledAt: string | null;
   sentAt: string | null;
   createdAt: string;
@@ -69,7 +70,7 @@ export default function CampaignsPage() {
   const totalSent = campaigns.reduce((sum, c) => sum + (c.status === "sent" ? c.sentCount : 0), 0);
   const totalOpens = campaigns.reduce((sum, c) => sum + (c.status === "sent" ? c.openCount : 0), 0);
   const totalClicks = campaigns.reduce((sum, c) => sum + (c.status === "sent" ? c.clickCount || 0 : 0), 0);
-  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.revenue || 0), 0);
+  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.revenueGenerated || 0), 0);
   const openRate = totalSent > 0 ? Math.round((totalOpens / totalSent) * 100) : 0;
   const clickRate = totalOpens > 0 ? Math.round((totalClicks / totalOpens) * 100) : 0;
 
@@ -145,7 +146,7 @@ export default function CampaignsPage() {
                 {campaigns.map((c) => (
                   <tr key={c.id}>
                     <td style={{ fontWeight: 600 }}>{c.name}</td>
-                    <td><Badge variant="soft">{c.type || "broadcast"}</Badge></td>
+                    <td><Badge variant="soft">{(c.campaignType || "broadcast").replace(/_/g, " ")}</Badge></td>
                     <td style={{ fontSize: 12.5 }}>{c.sentCount}</td>
                     <td style={{ fontSize: 12.5 }}>{c.openCount}</td>
                     <td style={{ fontSize: 12.5 }}>{c.clickCount || 0}</td>

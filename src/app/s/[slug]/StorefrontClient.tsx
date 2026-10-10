@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { CartDrawer } from "./CartDrawer";
@@ -538,6 +539,8 @@ export function StorefrontClient({
   onSelectSection,
 }: Props) {
   const templateRootRef = useRef<HTMLDivElement>(null);
+  // Capture ?sib_c from email campaign links (no-op in the editor preview).
+  useCampaignAttribution(previewMode ? "" : store.slug);
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);

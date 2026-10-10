@@ -8,6 +8,7 @@ import { randomBytes } from "crypto";
 import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/notifications/resend";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { redemptionError } from "@/lib/discounts";
+import { validCampaignToken } from "@/lib/campaigns/send";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -36,6 +37,7 @@ const CheckoutSchema = z.object({
   notes: z.string().optional(),
   paymentMethod: z.enum(["redirect", "inline"]).optional(),
   discountCode: z.string().optional(),
+  campaignToken: z.string().max(64).optional(),
 });
 
 function generateOrderNumber(): string {
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid body"), CHECKOUT_CORS);
   }
 
-  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode } = parsed.data;
+  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode, campaignToken: rawCampaignToken } = parsed.data;
 
   const requestedQuantities = new Map<string, number>();
   for (const item of items) {
@@ -187,6 +189,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   const total = Math.max(0, subtotal - discountAmount) + shippingFee;
+  // Only keep attribution tokens issued by this store's campaigns.
+  const campaignToken = await validCampaignToken(store.id, rawCampaignToken);
   const orderNumber = generateOrderNumber();
 
   let order: Awaited<ReturnType<typeof db.retailOrder.create>>;
@@ -236,6 +240,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           shippingFee,
           total,
           discountCode: discountCode ?? null,
+          campaignToken,
           discountAmount,
           currency: store.currency,
           notes: notes ?? null,

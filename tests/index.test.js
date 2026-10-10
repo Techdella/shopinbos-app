@@ -784,11 +784,47 @@ test("public profiles under portal prefixes stay reachable for guests and other 
   const proxy = read("src/proxy.ts");
   const portalRoutes = read("src/lib/portal-routes.ts");
 
-  assert.match(proxy, /const PUBLIC_ROUTES = \["\/logistics\/partners"\]/);
+  assert.match(proxy, /const PUBLIC_ROUTES = \["\/logistics\/partners", "\/email"\]/);
   assert.match(proxy, /if \(matchesRoute\(pathname, PUBLIC_ROUTES\)\)/);
   // /suppliers/[slug] must not be caught by the /supplier portal gate.
   assert.doesNotMatch(proxy, /pathname\.startsWith\("\/supplier"\)/);
   assert.match(proxy, /matchesRoute\(pathname, \["\/supplier"\]\) && appUser\.role !== "supplier"/);
   assert.match(portalRoutes, /isUnder\(pathname, "\/supplier"\)/);
   assert.match(proxy, /_vercel/);
+});
+
+test("payments are verified with Paystack and bound to one order or plan", () => {
+  const payments = read("src/app/actions/payments.ts");
+  const orderPage = read("src/app/s/[slug]/order/[orderId]/page.tsx");
+  const domainOrderPage = read("src/app/_domain/[domain]/order/[orderId]/page.tsx");
+
+  // Confirmation pages must not mark orders paid from a URL parameter.
+  for (const page of [orderPage, domainOrderPage]) {
+    assert.doesNotMatch(page, /status: "paid"/);
+    assert.match(page, /updateOrderPayment\(orderId, reference\)/);
+  }
+  assert.match(payments, /Payment does not belong to this order/);
+  assert.match(payments, /Payment has already been applied to another order/);
+  assert.match(payments, /process\.env\.NODE_ENV !== "production" && reference\.startsWith\("test-paystack-"\)/);
+  // Plan upgrades: successful transaction, right plan, right amount, right payer, single use.
+  assert.match(payments, /tx\.status !== "success"/);
+  assert.match(payments, /Payment is not for this plan/);
+  assert.match(payments, /Payment amount is less than the plan price/);
+  assert.match(payments, /Payment was made by a different account/);
+  assert.match(payments, /db\.paymentReceipt\.create/);
+});
+
+test("campaigns send through Resend with tracking, suppression and attribution", () => {
+  const send = read("src/lib/campaigns/send.ts");
+  const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
+  const webhook = read("src/app/api/webhooks/paystack/route.ts");
+  const stubRoute = read("src/app/api/store/campaigns/[id]/send/route.ts");
+
+  assert.match(send, /status: \{ in: \["draft", "scheduled"\] \}/, "campaigns are claimed before sending");
+  assert.match(send, /status: \{ not: "active" \}/, "unsubscribed contacts are suppressed");
+  assert.match(send, /"List-Unsubscribe-Post": "List-Unsubscribe=One-Click"/);
+  assert.match(send, /extractCampaignLinks\(recipient\.campaign\.bodyHtml\)\.includes\(url\)/, "click tracking is not an open redirect");
+  assert.match(checkout, /validCampaignToken\(store\.id, rawCampaignToken\)/);
+  assert.match(webhook, /creditCampaignConversion\(ref\)/);
+  assert.match(stubRoute, /sendCampaign\(store\.id, params\.id\)/);
 });

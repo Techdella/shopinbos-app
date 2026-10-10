@@ -173,6 +173,7 @@ model User {
 
   // Seller actions
   storeProducts     StoreProduct[]
+  paymentReceipts   PaymentReceipt[]
   dropshipAsseller   DropshipRelationship[] @relation("SellerDropship")
   quoteRequestsSent  SupplierQuoteRequest[] @relation("SellerQuotes")
   wholesaleOrders    WholesaleOrder[]       @relation("SellerWholesale")
@@ -1501,7 +1502,8 @@ model BroadcastCampaign {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  store Store @relation(fields: [storeId], references: [id])
+  store      Store               @relation(fields: [storeId], references: [id])
+  recipients CampaignRecipient[]
 
   @@index([storeId])
   @@index([status])
@@ -1530,6 +1532,7 @@ model RetailOrder {
   discountAmount  Float?            @default(0)
   trackingCode    String?
   logisticsDetails Json?
+  campaignToken   String? // CampaignRecipient.token of the email that brought the buyer; credited once paid
   shippedAt       DateTime?
   deliveredAt     DateTime?
   createdAt       DateTime          @default(now())
@@ -1627,4 +1630,43 @@ model DomainPartner {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// One row per redeemed payment, so a Paystack reference can't unlock a plan twice.
+model PaymentReceipt {
+  reference String   @id
+  userId    String
+  purpose   String // seller_growth | seller_pro | supplier_max
+  amount    Float
+  provider  String   @default("paystack")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// One row per email a broadcast campaign sends. The token identifies the recipient in tracking links.
+model CampaignRecipient {
+  id          String    @id @default(cuid())
+  campaignId  String
+  storeId     String
+  email       String
+  name        String?
+  token       String    @unique
+  status      String    @default("queued") // queued | sent | failed
+  error       String?
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  convertedAt DateTime?
+  orderId     String?
+  revenue     Float     @default(0)
+  createdAt   DateTime  @default(now())
+
+  campaign BroadcastCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, email])
+  @@index([storeId])
+  @@index([campaignId, status])
 }

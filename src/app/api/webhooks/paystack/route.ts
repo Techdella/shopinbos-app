@@ -4,6 +4,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
+import { creditCampaignConversion } from "@/lib/campaigns/send";
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -104,42 +105,49 @@ export async function POST(req: NextRequest) {
         where: { id: ref },
         data: { status: "paid", paystackStatus: "success" },
       });
+      await creditCampaignConversion(ref).catch(() => null);
 
       const resendKey = process.env.RESEND_API_KEY;
-      if (resendKey && !resendKey.includes("your_")) {
-        const order = await db.retailOrder.findUnique({ where: { id: ref } });
-        if (order) {
-          const storeData = await db.store.findUnique({
-            where: { id: order.storeId },
-            select: { name: true, slug: true, customDomain: true },
-          });
+      // The order is already marked paid; a failure in the follow-up email must not 500 the webhook
+      // (Paystack would keep retrying an event that was processed).
+      try {
+        if (resendKey && !resendKey.includes("your_")) {
+          const order = await db.retailOrder.findUnique({ where: { id: ref } });
+          if (order) {
+            const storeData = await db.store.findUnique({
+              where: { id: order.storeId },
+              select: { name: true, slug: true, customDomain: true },
+            });
 
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${resendKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: process.env.RESEND_FROM_EMAIL ?? "Shopinbos <noreply@shopinbos.com>",
-              to: [order.buyerEmail],
-              subject: `Order Confirmed - ${order.orderNumber}`,
-              html: buildOrderConfirmationEmail(order, storeData),
-            }),
-          }).catch(() => null);
+            await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${resendKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: process.env.RESEND_FROM_EMAIL ?? "Shopinbos <noreply@shopinbos.com>",
+                to: [order.buyerEmail],
+                subject: `Order Confirmed - ${order.orderNumber}`,
+                html: buildOrderConfirmationEmail(order, storeData),
+              }),
+            }).catch(() => null);
 
-          Promise.allSettled([
-            triggerAutomations("payment_received", {
-              storeId: order.storeId,
-              storeName: storeData?.name ?? "Store",
-              buyerEmail: order.buyerEmail,
-              buyerName: order.buyerName,
-              orderNumber: order.orderNumber,
-              orderTotal: Number(order.total),
-              currency: order.currency,
-            }),
-          ]).catch(() => {});
+            Promise.allSettled([
+              triggerAutomations("payment_received", {
+                storeId: order.storeId,
+                storeName: storeData?.name ?? "Store",
+                buyerEmail: order.buyerEmail,
+                buyerName: order.buyerName,
+                orderNumber: order.orderNumber,
+                orderTotal: Number(order.total),
+                currency: order.currency,
+              }),
+            ]).catch(() => {});
+          }
         }
+      } catch (error) {
+        console.error("Paystack webhook follow-up failed:", error);
       }
     }
   }

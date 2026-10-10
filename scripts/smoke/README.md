@@ -13,6 +13,7 @@ npm run db:seed
 # 2. Build and start the app pointed at the mock auth server
 export NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321" NEXT_PUBLIC_SUPABASE_ANON_KEY=smoke SUPABASE_SERVICE_ROLE_KEY=smoke
 export SHOPINBOS_ADMIN_INVITE_EMAILS="admin@shopinbos.dev"
+export RESEND_API_KEY=smoke RESEND_BASE_URL="http://127.0.0.1:54321/resend"   # emails are captured, not sent
 node scripts/smoke/mock-supabase-auth.mjs &
 npm run build && npx next start -p 3100 &
 

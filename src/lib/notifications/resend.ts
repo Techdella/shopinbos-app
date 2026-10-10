@@ -47,6 +47,47 @@ export async function sendEmail(options: EmailOptions): Promise<EmailSendResult>
   return { success: true, id: data?.id };
 }
 
+export function isEmailConfigured() {
+  return Boolean(process.env.RESEND_API_KEY);
+}
+
+export function formatFromAddress(senderName?: string | null) {
+  if (!senderName) return DEFAULT_FROM;
+  // Keep the verified sending address; only the display name changes per store.
+  const address = DEFAULT_FROM.match(/<([^>]+)>/)?.[1] ?? DEFAULT_FROM;
+  return `${senderName.replace(/["<>]/g, "")} <${address}>`;
+}
+
+export interface BatchEmail {
+  to: string;
+  subject: string;
+  html: string;
+  from?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+}
+
+/** Sends up to 100 emails in one Resend call. Results are per message, in input order. */
+export async function sendEmailBatch(emails: BatchEmail[]): Promise<{ success: boolean; ids?: string[]; message?: string }> {
+  const resend = getResendClient();
+  if (!resend) return { success: false, message: "Resend API key not configured" };
+  if (emails.length === 0) return { success: true, ids: [] };
+  if (emails.length > 100) return { success: false, message: "Resend batches are limited to 100 emails" };
+
+  const { data, error } = await resend.batch.send(
+    emails.map((email) => ({
+      from: email.from ?? DEFAULT_FROM,
+      to: [email.to],
+      subject: email.subject,
+      html: email.html,
+      replyTo: email.replyTo,
+      headers: email.headers,
+    })),
+  );
+  if (error) return { success: false, message: error.message };
+  return { success: true, ids: (data?.data ?? []).map((item) => item.id) };
+}
+
 export async function sendOrderConfirmationEmail(
   to: string,
   orderNumber: string,
