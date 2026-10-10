@@ -48,6 +48,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "customers",   label: "Customers",   icon: "users",   href: "/home/customers" },
         { id: "inventory",   label: "Inventory",   icon: "box",     href: "/home/inventory" },
         { id: "reviews",     label: "Reviews",     icon: "star",    href: "/home/reviews" },
+        { id: "insights",    label: "Insights",    icon: "chart",   href: "/home/insights" },
       ],
     },
     {

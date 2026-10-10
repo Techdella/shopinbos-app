@@ -1,6 +1,16 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { config as loadEnv } from "dotenv";
 
-const db = new PrismaClient();
+// Shell variables win, then .env.local, then .env, so an explicit target is never overridden.
+loadEnv({ path: ".env.local" });
+loadEnv({ path: ".env" });
+
+const connectionString = process.env.DATABASE_URL ?? process.env.DIRECT_URL;
+if (!connectionString) throw new Error("Set DATABASE_URL (or DIRECT_URL) before seeding.");
+
+// Prisma 7 requires a driver adapter.
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
@@ -477,11 +487,50 @@ async function main() {
     create: { supabaseId: "seed-seller-001", name: "Chioma Eze", email: "chioma@shopinbos.dev", role: "seller", country: "Nigeria", city: "Lagos" },
   });
 
-  await db.store.upsert({
+  // The demo seller has finished onboarding so the dashboard, insights and storefront render with data.
+  const launched = { onboardingState: "LIVE", firstDashboardVisitComplete: true, status: "active" };
+  const store = await db.store.upsert({
     where: { userId: sellerUser.id },
-    update: { name: "Chioma's Collections", slug: "chiomasc", country: "Nigeria", city: "Lagos" },
-    create: { userId: sellerUser.id, name: "Chioma's Collections", slug: "chiomasc", country: "Nigeria", city: "Lagos", currency: "NGN" },
+    update: { name: "Chioma's Collections", slug: "chiomasc", country: "Nigeria", city: "Lagos", ...launched },
+    create: { userId: sellerUser.id, name: "Chioma's Collections", slug: "chiomasc", country: "Nigeria", city: "Lagos", currency: "NGN", ...launched },
   });
+
+  const demoProducts = [
+    { id: "seed-store-product-001", name: "Ankara Tote Bag", retailPrice: 18500, currentStock: 24 },
+    { id: "seed-store-product-002", name: "Shea Butter Glow Set", retailPrice: 9500, currentStock: 40 },
+  ];
+  for (const product of demoProducts) {
+    await db.storeProduct.upsert({
+      where: { id: product.id },
+      update: { name: product.name, retailPrice: product.retailPrice, currentStock: product.currentStock, status: "published" },
+      create: { ...product, storeId: store.id, userId: sellerUser.id, images: [], tags: [], status: "published", visibility: "storefront" },
+    });
+  }
+
+  const day = 86_400_000;
+  const demoOrders = [
+    { orderNumber: "SEED-1001", buyerEmail: "ada@example.com", buyerName: "Ada Obi", city: "Lagos", product: 0, qty: 2, daysAgo: 2, status: "delivered" },
+    { orderNumber: "SEED-1002", buyerEmail: "tunde@example.com", buyerName: "Tunde Bello", city: "Abuja", product: 1, qty: 1, daysAgo: 9, status: "shipped" },
+    { orderNumber: "SEED-1003", buyerEmail: "ada@example.com", buyerName: "Ada Obi", city: "Lagos", product: 1, qty: 3, daysAgo: 40, status: "paid" },
+    { orderNumber: "SEED-1004", buyerEmail: "kofi@example.com", buyerName: "Kofi Mensah", city: "Accra", product: 0, qty: 1, daysAgo: 1, status: "pending" },
+  ] as const;
+  for (const order of demoOrders) {
+    const product = demoProducts[order.product];
+    const subtotal = product.retailPrice * order.qty;
+    const data = {
+      storeId: store.id,
+      buyerEmail: order.buyerEmail,
+      buyerName: order.buyerName,
+      deliveryAddress: { street: "12 Market Road", city: order.city, country: "Nigeria" },
+      items: [{ productId: product.id, name: product.name, price: product.retailPrice, quantity: order.qty }],
+      subtotal,
+      shippingFee: 2500,
+      total: subtotal + 2500,
+      status: order.status,
+      createdAt: new Date(Date.now() - order.daysAgo * day),
+    };
+    await db.retailOrder.upsert({ where: { orderNumber: order.orderNumber }, update: data, create: { ...data, orderNumber: order.orderNumber } });
+  }
 
   console.log(`  ✓ Demo seller: Chioma Eze`);
 

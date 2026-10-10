@@ -148,6 +148,7 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
   assert.doesNotMatch(navText, /href: "\/home\/apps"/);
   assert.match(navText, /href: "\/home\/marketing\/campaigns"/);
   assert.match(navText, /href: "\/home\/customers"/);
+  assert.match(navText, /href: "\/home\/insights"/);
   assert.match(navText, /href: "\/home\/settings"/);
   assert.doesNotMatch(navText, /href: "\/logistics"(?!\/)/);
   assert.doesNotMatch(navText, /href: "\/settings"(?!\/)/);
@@ -767,4 +768,27 @@ test("launch QA regressions stay fixed", () => {
   assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
   assert.match(productsRoute, /\n\s+retailPrice,\n/);
   assert.match(nextConfig, /ignoreBuildErrors: false/);
+});
+
+test("seller insights are computed from real orders, not sample data", () => {
+  const page = read("src/app/home/insights/page.tsx");
+  const lib = read("src/lib/insights.ts");
+
+  assert.match(page, /computeSellerInsights\(orders\)/);
+  assert.doesNotMatch(page, /revenueData|hoursData|"Lagos"|"₦1\.62M"|Peggy chat/);
+  assert.match(lib, /export function computeSellerInsights/);
+  assert.match(lib, /Africa\/Lagos/);
+});
+
+test("public profiles under portal prefixes stay reachable for guests and other roles", () => {
+  const proxy = read("src/proxy.ts");
+  const portalRoutes = read("src/lib/portal-routes.ts");
+
+  assert.match(proxy, /const PUBLIC_ROUTES = \["\/logistics\/partners"\]/);
+  assert.match(proxy, /if \(matchesRoute\(pathname, PUBLIC_ROUTES\)\)/);
+  // /suppliers/[slug] must not be caught by the /supplier portal gate.
+  assert.doesNotMatch(proxy, /pathname\.startsWith\("\/supplier"\)/);
+  assert.match(proxy, /matchesRoute\(pathname, \["\/supplier"\]\) && appUser\.role !== "supplier"/);
+  assert.match(portalRoutes, /isUnder\(pathname, "\/supplier"\)/);
+  assert.match(proxy, /_vercel/);
 });

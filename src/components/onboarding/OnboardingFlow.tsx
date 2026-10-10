@@ -960,11 +960,11 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
   return (
     <div className="stage">
       {step === 1 ? (
-        <div className="flex h-full flex-col overflow-auto bg-[var(--canvas)] px-7 py-6">
-          <div className="mb-8 flex items-center justify-between">
+        <div className="flex h-full flex-col overflow-auto bg-[var(--canvas)] px-4 py-6 sm:px-7">
+          <div className="mb-8 flex items-center justify-between gap-3">
             <BrandLogo className="w-[140px]" priority />
-            <SellerPillSteps step={1} />
-            <div className="text-[13px] text-[var(--ink-500)]">Step 1 of {sellerStepsTotal} - ~2 min</div>
+            <div className="hidden md:block"><SellerPillSteps step={1} /></div>
+            <div className="shrink-0 text-[13px] text-[var(--ink-500)]">Step 1 of {sellerStepsTotal}<span className="hidden sm:inline"> - ~2 min</span></div>
           </div>
           <div className="mx-auto grid min-h-[calc(100vh-128px)] max-w-[1120px] grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
             <div>

@@ -42,7 +42,7 @@ Status: in progress, persistence wired.
 - [x] Connect supplier document upload metadata to private verification records.
 - [x] Connect logistics coverage-zone edits to private partner coverage records.
 - [x] Apply Phase 3 private onboarding fields to Supabase.
-- [ ] Browser-verify the onboarding screens at desktop and mobile widths.
+- [x] Browser-verify the onboarding screens at desktop and mobile widths.
 
 ### Phase 4 - Inner Portal Pages
 
@@ -75,11 +75,12 @@ Status: in progress.
 - [x] Add role-guard tests for every protected portal route.
 - [x] Run full typecheck (0 errors) and re-enable build-time type checking.
 - [ ] Apply `docs/migrations/2026-10-10-schema-alignment.sql` (staging first) and review the remaining Prisma/database drift.
-- [ ] Run route smoke checks and visual QA against a live database before launch handoff.
+- [x] Run route smoke checks against a local database: 204/204 pages and API routes pass for every role (`scripts/smoke/`).
+- [x] Visual QA of seller, supplier and logistics onboarding at 1440px and 390px; mobile overflow fixed on the path picker and Rex screen.
 
 ## Current Todos
 
-- [ ] Finish the onboarding visual QA pass against the supplied mockup screens.
+- [x] Finish the onboarding visual QA pass against the supplied mockup screens.
 - [x] Apply the private onboarding JSON fields to Supabase.
 - [x] Build the supplier product submit/edit workflow.
 - [x] Build the next supplier inner workflows: quote response and order fulfilment.

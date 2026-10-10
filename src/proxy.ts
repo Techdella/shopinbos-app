@@ -17,9 +17,11 @@ const GUEST_ROUTES = [
   "/admin/login",
 ];
 const AUTH_ROUTES = ["/home", "/onboarding", "/supplier", "/logistics", "/admin"];
+// Public pages that live under a portal prefix and must stay open to guests and other roles.
+const PUBLIC_ROUTES = ["/logistics/partners"];
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand|api/public|s/).*)"],
+  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand|api/public|s/).*)"],
 };
 
 function matchesRoute(pathname: string, routes: string[]) {
@@ -61,6 +63,10 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   if (!isKnownAppHost(hostnameFromHost(host))) {
+    return response;
+  }
+
+  if (matchesRoute(pathname, PUBLIC_ROUTES)) {
     return response;
   }
 
@@ -135,13 +141,13 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (pathname.startsWith("/supplier") && appUser.role !== "supplier") {
+  if (matchesRoute(pathname, ["/supplier"]) && appUser.role !== "supplier") {
     return redirectTo(request, getRoleHome(appUser.role));
   }
-  if (pathname.startsWith("/logistics") && appUser.role !== "logistics_partner") {
+  if (matchesRoute(pathname, ["/logistics"]) && appUser.role !== "logistics_partner") {
     return redirectTo(request, getRoleHome(appUser.role));
   }
-  if (pathname.startsWith("/admin") && appUser.role !== "admin") {
+  if (matchesRoute(pathname, ["/admin"]) && appUser.role !== "admin") {
     return redirectTo(request, getRoleHome(appUser.role));
   }
 
