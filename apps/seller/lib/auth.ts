@@ -11,7 +11,10 @@ const secureStorage = {
 export const auth = createMobileAuth({
   apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'https://app.shopinbos.com',
   supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
-  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+  supabaseAnonKey:
+    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+    '',
   storage: secureStorage,
 });
 

@@ -58,7 +58,7 @@ npx eas init                 # links the EAS project and writes its id into app.
 npx eas build --profile development --platform ios     # or android
 ```
 
-Set `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS env vars.
+Set `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` as EAS env vars.
 Phone sign-in on a dev build: `maestro test -e PHONE=… -e OTP=… .maestro/sign-in.yaml`.
 
 ## Storybook
