@@ -69,7 +69,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         minHeight: "100vh",
         background: T.canvas,
         color: T.text,
-        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+        fontFamily: "var(--font-sans)",
         overflow: "hidden",
       }}
     >
@@ -484,7 +484,7 @@ function PagesPanel({ pages }: { pages: PageRow[] }) {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: T.mintBg, color: T.mint, display: "grid", placeItems: "center" }}><Icon name={p.type === "home" ? "home" : "document"} size={15} color="currentColor" /></div>
             <div><div style={{ fontSize: 13.5, fontWeight: 700 }}>{p.title}</div><Badge color={statusColor(p.status)}>{p.status}</Badge></div>
           </div>
-          <span style={{ fontSize: 12.5, color: T.textSec, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>/{p.slug}</span>
+          <span style={{ fontSize: 12.5, color: T.textSec, fontFamily: "var(--font-mono)" }}>/{p.slug}</span>
           <span style={{ fontSize: 12.5, color: T.textSec }}>{p.type}</span>
           <span style={{ fontSize: 12.5, color: T.muted }}>{p.updated}</span>
           <span style={{ fontSize: 12.5, color: T.muted }}>{p.views ?? "-"}</span>

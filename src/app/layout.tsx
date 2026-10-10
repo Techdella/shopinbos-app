@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Fraunces, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, Fraunces, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClientLayout } from "@/components/ClientLayout";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+// Body/UI font. globals.css points --font-sans at this variable; without it
+// the app silently fell back to the system font.
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -18,7 +26,7 @@ const fraunces = Fraunces({
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -40,7 +48,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${fraunces.variable} ${jetbrainsMono.variable} h-full`}
+      className={`${spaceGrotesk.variable} ${plusJakarta.variable} ${fraunces.variable} ${jetbrainsMono.variable} h-full`}
     >
       <body className="min-h-full"><ClientLayout>{children}</ClientLayout><Analytics /></body>
     </html>
