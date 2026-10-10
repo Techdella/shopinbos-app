@@ -73,7 +73,9 @@ Status: in progress.
 - [x] Wire cache invalidation calls into public marketplace moderation paths.
 - [x] Expand admin moderation views with filters, bulk actions, and review notes.
 - [x] Add role-guard tests for every protected portal route.
-- [ ] Run full typecheck, route smoke checks, and visual QA before launch handoff.
+- [x] Run full typecheck (0 errors) and re-enable build-time type checking.
+- [ ] Apply `docs/migrations/2026-10-10-schema-alignment.sql` (staging first) and review the remaining Prisma/database drift.
+- [ ] Run route smoke checks and visual QA against a live database before launch handoff.
 
 ## Current Todos
 

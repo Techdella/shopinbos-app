@@ -767,6 +767,7 @@ model LogisticsPartner {
   rating             Float              @default(0)
   ratingCount        Int                @default(0)
   verificationStatus VerificationStatus @default(pending)
+  verificationDocuments Json            @default("[]")
   whatsappNumber     String?
   status             String             @default("active")
   createdAt          DateTime           @default(now())
@@ -1528,6 +1529,7 @@ model RetailOrder {
   discountCode    String?
   discountAmount  Float?            @default(0)
   trackingCode    String?
+  logisticsDetails Json?
   shippedAt       DateTime?
   deliveredAt     DateTime?
   createdAt       DateTime          @default(now())

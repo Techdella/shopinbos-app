@@ -41,12 +41,12 @@ const PAGE_ICONS: Record<string, IconName> = {
   blog: "document",
 };
 
-function getStatusBadge(status: PageStatus, storeIsLive: boolean): { label: string; variant: "mint" | "warn" | "ghost" | "danger" | "info" } {
+function getStatusBadge(status: PageStatus, storeIsLive: boolean): { label: string; variant: "mint" | "warn" | "soft" | "danger" | "info" } {
   if (!storeIsLive && status === "published") return { label: "Draft · Store Not Live", variant: "warn" };
   switch (status) {
     case "published": return { label: "Published", variant: "mint" };
     case "draft": return { label: "Draft", variant: "warn" };
-    case "hidden": return { label: "Hidden", variant: "ghost" };
+    case "hidden": return { label: "Hidden", variant: "soft" };
     case "scheduled": return { label: "Scheduled", variant: "info" };
     case "archived": return { label: "Archived", variant: "danger" };
     default: return { label: "Draft", variant: "warn" };

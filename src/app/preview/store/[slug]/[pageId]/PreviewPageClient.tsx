@@ -80,7 +80,8 @@ export function PreviewPageClient({ slug, pageId }: Props) {
 
   const draftContent = (page.draftContent ?? page.content ?? {}) as Record<string, unknown>;
   const sections = (draftContent.sections ?? []) as StoreEditorSnapshot["pages"][number]["sections"];
-  const seo = draftContent.seo as Record<string, string> | undefined;
+  const rawSeo = draftContent.seo as Record<string, string> | undefined;
+  const seo = rawSeo ? { metaTitle: rawSeo.metaTitle ?? "", metaDescription: rawSeo.metaDescription ?? "" } : undefined;
 
   if (sections.length === 0) {
     return (
@@ -145,7 +146,7 @@ export function PreviewPageClient({ slug, pageId }: Props) {
       </div>
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <StorefrontClient
-          store={store as Parameters<typeof StorefrontClient>[0]}
+          store={store as unknown as Parameters<typeof StorefrontClient>[0]["store"]}
           storeBasePath={storeBasePath}
           previewSnapshot={previewSnapshot}
           previewMode

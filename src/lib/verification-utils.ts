@@ -161,3 +161,7 @@ export function getTrustScoreBreakdown(params: {
     nextLevelAt: nextLevel?.min ?? clamped,
   };
 }
+
+export function parseVerificationDocs(value: unknown): VerificationDoc[] {
+  return Array.isArray(value) ? (value as VerificationDoc[]) : [];
+}

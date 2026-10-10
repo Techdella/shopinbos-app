@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";

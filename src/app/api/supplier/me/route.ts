@@ -3,7 +3,7 @@ import { withSupplier } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
-import { computeTrustScore, getTrustScoreBreakdown, type VerificationDoc } from "@/lib/verification-utils";
+import { computeTrustScore, getTrustScoreBreakdown, parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
 
 export const GET = withSupplier(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const [supplier, dbUser] = await Promise.all([
@@ -38,7 +38,7 @@ export const GET = withSupplier(async (_req: NextRequest, { user }: { user: Auth
 
   if (!supplier) return apiError("NOT_FOUND", "Supplier profile not found", 404);
 
-  const docs = (supplier.verificationDocuments as VerificationDoc[]) ?? [];
+  const docs = parseVerificationDocs(supplier.verificationDocuments);
   const productCount = await db.supplierProduct.count({ where: { supplierId: supplier.id } });
   const orderCount = await db.wholesaleOrder.count({ where: { supplierId: supplier.id } });
   const disputeCount = await db.supplierReview.count({

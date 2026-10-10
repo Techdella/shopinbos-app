@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import type { Prisma } from "@prisma/client";
 import { sendEmail } from "./resend";
 
 export interface CreateNotificationInput {
@@ -61,7 +62,7 @@ export async function createNotification(
       link: input.link,
       actionLabel: input.actionLabel,
       actionUrl: input.actionUrl,
-      metadata: input.metadata ?? {},
+      metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
     },
   });
 

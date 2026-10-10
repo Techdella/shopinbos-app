@@ -7,6 +7,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/notifications/resend";
 import { triggerAutomations } from "@/lib/automations/engine";
+import { redemptionError } from "@/lib/discounts";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -137,9 +138,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       (z) => z.regions.length === 0 || z.regions.some((r) => deliveryAddress.city.toLowerCase().includes(r.toLowerCase()) || deliveryAddress.state?.toLowerCase().includes(r.toLowerCase())),
     );
     if (matchingZone) {
-      const zoneRates = Array.isArray(matchingZone.rates) ? matchingZone.rates : [];
+      const zoneRates = (Array.isArray(matchingZone.rates) ? matchingZone.rates : []) as Array<{ min?: number; max?: number; price?: number }>;
       const matchedRate = zoneRates.find(
-        (r: { min?: number; max?: number; price: number }) => (!r.min || subtotal >= r.min) && (!r.max || subtotal <= r.max),
+        (r) => (!r.min || subtotal >= r.min) && (!r.max || subtotal <= r.max),
       );
       shippingFee = matchedRate?.price ?? 0;
     }
@@ -157,7 +158,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       where: { storeId_code: { storeId: store.id, code: discountCode.toUpperCase() } },
     });
 
-    if (discount && discount.status === "active") {
+    if (discount && !redemptionError(discount, subtotal)) {
       if (discount.type === "percentage") {
         discountAmount = subtotal * (discount.value / 100);
       } else if (discount.type === "fixed_amount") {
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       const coupon = await db.coupon.findUnique({
         where: { code: discountCode.toUpperCase() },
       });
-      if (coupon && coupon.status === "active" && coupon.storeId === store.id) {
+      if (coupon && coupon.storeId === store.id && !redemptionError(coupon, subtotal)) {
         if (coupon.type === "percentage") {
           discountAmount = subtotal * (coupon.value / 100);
         } else if (coupon.type === "fixed_amount") {

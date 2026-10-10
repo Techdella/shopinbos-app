@@ -65,7 +65,7 @@ export default async function TaxesPage({ searchParams }: TaxPageProps) {
                   Value Added Tax applied at checkout in {country}.
                 </p>
               </div>
-              <Badge variant={vatEnabled ? "mint" : "ghost"}>{vatEnabled ? "Enabled" : "Off"}</Badge>
+              <Badge variant={vatEnabled ? "mint" : "soft"}>{vatEnabled ? "Enabled" : "Off"}</Badge>
             </div>
 
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>

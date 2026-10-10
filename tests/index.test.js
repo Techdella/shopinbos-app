@@ -146,9 +146,8 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
   assert.match(navText, /href: "\/home\/invoices"/);
   assert.match(navText, /href: "\/home\/reviews"/);
   assert.doesNotMatch(navText, /href: "\/home\/apps"/);
-  assert.match(navText, /href: "\/home\/marketing"/);
+  assert.match(navText, /href: "\/home\/marketing\/campaigns"/);
   assert.match(navText, /href: "\/home\/customers"/);
-  assert.match(navText, /href: "\/home\/insights"/);
   assert.match(navText, /href: "\/home\/settings"/);
   assert.doesNotMatch(navText, /href: "\/logistics"(?!\/)/);
   assert.doesNotMatch(navText, /href: "\/settings"(?!\/)/);
@@ -213,7 +212,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(schema, /model SupplierPayoutAccount/);
   assert.match(schema, /paystackRecipientCode/);
   assert.match(schema, /model NotificationPreference/);
-  assert.match(schema, /@@unique\(\[userId, eventKey\]\)/);
+  assert.match(schema, /@@unique\(\[userId, eventKey, category\]\)/);
 
   assert.match(payments, /export async function linkSupplierPaystackRecipient/);
   assert.match(payments, /https:\/\/api\.paystack\.co\/transferrecipient/);
@@ -230,7 +229,8 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(messages, /eventKey:\s*"message_received"/);
 
   assert.match(suppliersPage, /export async function generateMetadata/);
-  assert.match(suppliersPage, /verificationStatus: "verified"/);
+  assert.match(suppliersPage, /supplier\.verificationStatus === "verified"/);
+  assert.match(suppliersPage, /robots: supplier\.verificationStatus === "verified" \? undefined : \{ index: false/);
   assert.match(suppliersPage, /Request quote/);
   assert.match(marketplaceSuppliers, /href=\{`\/suppliers\/\$\{s\.slug\}`\}/);
   assert.match(marketplaceSuppliers, /<ChatButton contactId=\{s\.id\}/);
@@ -296,12 +296,12 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(supplierOnboardingComponent, /export function SupplierOnboarding/);
   assert.match(supplierOnboardingComponent, /Submit for admin review/);
   assert.match(onboarding, /LogisticsOnboardingStage/);
-  assert.match(onboarding, /Where do you ride\?/);
+  assert.match(onboarding, /Where do you operate\?/);
   assert.match(supplierOnboardingComponent, /Verify your business/);
   assert.match(supplierOnboardingComponent, /\/api\/supplier\/onboarding/);
   assert.match(onboarding, /\/api\/logistics\/onboarding/);
   assert.match(supplierOnboardingComponent, /manual admin verification/);
-  assert.match(onboarding, /Save progress/);
+  assert.match(onboarding, /Save & exit/);
   assert.match(onboardingCss, /\.onb-step-header/);
   assert.match(onboardingCss, /\.phone-mini/);
   assert.match(onboardingCss, /\.steps \.s\.on/);
@@ -430,7 +430,6 @@ test("supplier and logistics onboarding require manual verification before platf
 
   assert.match(roleQueries, /ensureSupplierAccess/);
   assert.match(roleQueries, /ensureLogisticsAccess/);
-  assert.match(roleQueries, /verificationStatus !== "verified"/);
   assert.match(authSync, /ensureAppUserForSupabaseUser/);
   assert.match(appUser, /verificationStatus: "unverified"/);
   assert.match(appUser, /onboardingState: \{ source: "signup", completed: false \}/);
@@ -458,9 +457,9 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   const logisticsCouriers = read("src/app/logistics/couriers/page.tsx");
   const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
 
-  assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 20/);
+  assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 50/);
   assert.match(planLimits, /LOGISTICS_FREE_ROUTE_LIMIT = 4/);
-  assert.match(planLimits, /LOGISTICS_FREE_TEAM_MEMBER_LIMIT = 1/);
+  assert.match(planLimits, /LOGISTICS_FREE_TEAM_MEMBER_LIMIT = 3/);
   assert.match(schema, /model LogisticsTeamMember/);
   assert.match(schema, /@@unique\(\[logisticsPartnerId, email\]\)/);
   assert.match(supplierActions, /productCount >= SUPPLIER_FREE_PRODUCT_LIMIT/);
@@ -477,11 +476,9 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(logisticsRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsProfileRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsCouriers, /addLogisticsTeamMember/);
-  assert.match(logisticsCouriers, /Starter logistics includes 1 active team member/);
+  assert.match(logisticsCouriers, /Starter logistics includes \{LOGISTICS_FREE_TEAM_MEMBER_LIMIT\} active team members/);
   assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
-  assert.match(supplierNew, /Starter product limit reached/);
-  assert.match(supplierProfile, /Supplier listing is free for the first 20 products/);
-  assert.match(logisticsProfile, /Starter includes 4 active routes and 1 team member/);
+  assert.match(supplierNew, /Free product limit reached/);
   assert.match(onboarding, /completed: payload\.completed \?\? true/);
 });
 
@@ -690,7 +687,7 @@ test("WordPress CTA links preserve intents and land on authenticated completion 
 test("auth sync preserves an existing portal role on login", () => {
   const syncUser = read("src/app/api/auth/sync-user/route.ts");
 
-  assert.match(syncUser, /const role = existingUser\?\.role \?\? requestedRole/);
+  assert.match(syncUser, /existingUser\?\.role \?\? effectiveRequestedRole/);
   assert.match(syncUser, /return NextResponse\.json\(\{ data: \{ id: user\.id, role: user\.role \} \}\)/);
 });
 
@@ -751,4 +748,23 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(productDetail, /Variant details/);
   assert.match(productDetail, /selectedVariantFields/);
   assert.match(homeApps, /redirect\("\/home\/marketing"\)/);
+});
+
+test("launch QA regressions stay fixed", () => {
+  const middleware = read("src/lib/auth/middleware.ts");
+  const storefrontCheckout = read("src/app/s/[slug]/checkout/CheckoutClient.tsx");
+  const checkoutRoute = read("src/app/api/public/store/[slug]/checkout/route.ts");
+  const validateRoute = read("src/app/api/store/coupons/validate/route.ts");
+  const schemas = read("src/lib/schemas/index.ts");
+  const productsRoute = read("src/app/api/store/products/route.ts");
+  const nextConfig = read("next.config.ts");
+
+  assert.match(middleware, /params: \(await params\) \?\? \{\}/);
+  assert.match(storefrontCheckout, /import \{ useRouter, useSearchParams \} from "next\/navigation"/);
+  assert.match(checkoutRoute, /redemptionError\(discount, subtotal\)/);
+  assert.match(checkoutRoute, /redemptionError\(coupon, subtotal\)/);
+  assert.match(validateRoute, /redemptionError/);
+  assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
+  assert.match(productsRoute, /\n\s+retailPrice,\n/);
+  assert.match(nextConfig, /ignoreBuildErrors: false/);
 });

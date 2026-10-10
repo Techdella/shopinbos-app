@@ -96,7 +96,7 @@ export default function CheckoutPage() {
         : [...prev.enabledModules, moduleId];
       const order = prev.moduleOrder.filter((m) => m !== moduleId);
       const added = ALL_MODULES.filter((m) => enabled.includes(m.id));
-      const ordered = [...order, ...added.filter((a) => !order.includes(a.id))].map((id) => id);
+      const ordered = [...order, ...added.map((a) => a.id).filter((id) => !order.includes(id))];
       return { ...prev, enabledModules: enabled, moduleOrder: ordered };
     });
   }, []);

@@ -71,7 +71,7 @@ export function RexAICopywriter({ storeName, onResult }: RexAICopywriterProps) {
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teal-700)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{key}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {val.map((item: unknown, i: number) => {
-                    const text = typeof item === "string" ? item : (item as Record<string, unknown>)?.body ?? (item as Record<string, unknown>)?.headline ?? JSON.stringify(item, null, 2);
+                    const text = typeof item === "string" ? item : String((item as Record<string, unknown>)?.body ?? (item as Record<string, unknown>)?.headline ?? JSON.stringify(item, null, 2));
                     return (
                       <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
                         <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.5, padding: "8px 10px", background: "var(--ink-50)", borderRadius: 8, color: "var(--ink-800)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>

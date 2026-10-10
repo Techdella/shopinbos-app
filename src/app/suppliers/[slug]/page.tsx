@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const supplier = await db.supplier.findFirst({
     where: { slug, status: "active" },
-    select: { displayName: true, description: true, bannerUrl: true },
+    select: { displayName: true, description: true, bannerUrl: true, verificationStatus: true },
   });
 
   if (!supplier) return { title: "Supplier not found · Shopinbos" };
@@ -38,6 +38,8 @@ export async function generateMetadata({ params }: PageProps) {
       description: supplier.description ?? undefined,
       images: supplier.bannerUrl ? [supplier.bannerUrl] : undefined,
     },
+    // Unverified profiles are private previews and must not be indexed.
+    robots: supplier.verificationStatus === "verified" ? undefined : { index: false, follow: false },
   };
 }
 

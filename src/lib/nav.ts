@@ -1,9 +1,11 @@
+import type { IconName } from "@/components/ui/Icon";
+
 export type Role = "seller" | "supplier" | "logistics_partner" | "admin";
 
 export interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: IconName;
   href: string;
   badge?: string;
   accent?: boolean;

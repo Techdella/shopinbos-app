@@ -48,9 +48,10 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
   const supplier = await getSupplierForUser(user);
   const preference = await db.notificationPreference.findUnique({
     where: {
-      userId_eventKey: {
+      userId_eventKey_category: {
         userId: user.id,
         eventKey: "message_received",
+        category: "marketplace",
       },
     },
   });

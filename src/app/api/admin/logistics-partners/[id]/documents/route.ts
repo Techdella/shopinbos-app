@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAdmin } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
+import type { Prisma } from "@prisma/client";
 import type { AuthUser } from "@/lib/auth/types";
-import type { VerificationDoc } from "@/lib/verification-utils";
+import { parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
 import { revalidatePath } from "next/cache";
 
 export const GET = withAdmin(async (_req: NextRequest, { user, params }: { user: AuthUser; params: { id: string } }) => {
@@ -26,7 +27,7 @@ export const GET = withAdmin(async (_req: NextRequest, { user, params }: { user:
 
   return NextResponse.json({
     partner,
-    documents: (partner.verificationDocuments as VerificationDoc[]) ?? [],
+    documents: parseVerificationDocs(partner.verificationDocuments),
   });
 });
 
@@ -46,7 +47,7 @@ export const PATCH = withAdmin(async (req: NextRequest, { user, params }: { user
     return NextResponse.json({ error: "Logistics partner not found" }, { status: 404 });
   }
 
-  const docs: VerificationDoc[] = (partner.verificationDocuments as VerificationDoc[]) ?? [];
+  const docs: VerificationDoc[] = parseVerificationDocs(partner.verificationDocuments);
   const docIndex = docs.findIndex((d) => d.id === docId);
 
   if (docIndex === -1) {
@@ -62,7 +63,7 @@ export const PATCH = withAdmin(async (req: NextRequest, { user, params }: { user
 
   await db.logisticsPartner.update({
     where: { id: params.id },
-    data: { verificationDocuments: docs },
+    data: { verificationDocuments: docs as unknown as Prisma.InputJsonValue },
   });
 
   revalidatePath(`/admin/logistics-partners/${params.id}`);

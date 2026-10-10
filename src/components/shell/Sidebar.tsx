@@ -205,7 +205,7 @@ export function Sidebar({
                       className="w-[18px] h-[18px] flex items-center justify-center shrink-0"
                       style={{ color: active ? "var(--teal-700)" : "var(--ink-500)" }}
                     >
-                      <Icon name={item.icon as any} size={17} color="currentColor" />
+                      <Icon name={item.icon} size={17} color="currentColor" />
                     </span>
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (

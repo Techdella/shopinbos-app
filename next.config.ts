@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.localhost"],
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Prevent Node.js-only packages from being bundled into the client bundle
   serverExternalPackages: ["@anthropic-ai/sdk", "openai", "@prisma/client", "prisma"],
