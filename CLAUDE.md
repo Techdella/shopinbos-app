@@ -20,7 +20,7 @@ Your responsibility:
 Shopinbos is an AI commerce operating system for African businesses.
 
 Sellers can:
-- Build online stores with AI (Chip)
+- Build online stores with AI (Rex)
 - Discover supplier products in the marketplace
 - Add products to their store (dropship or wholesale)
 - Request quotes from suppliers
@@ -35,9 +35,9 @@ Sellers can:
 - **Database**: Supabase PostgreSQL via Prisma ORM
 - **Auth**: Supabase Auth (JWT with role metadata)
 - **Validation**: Zod
-- **Styling**: Tailwind v4 with design tokens (navy/mint/cream)
-- **Fonts**: Space Grotesk (display), Fraunces (accent), JetBrains Mono (data)
-- **AI**: OpenAI / Claude API for Chip assistant
+- **Styling**: Tailwind v4 + CSS variables (ink/teal scale, see Design System)
+- **Fonts**: Plus Jakarta Sans (body), Space Grotesk (display), Fraunces (accent), JetBrains Mono (data)
+- **AI**: Claude / OpenAI API for Rex (builder) and Peggy (assistant)
 
 ---
 
@@ -62,33 +62,46 @@ website
 
 ## Design System
 
-### Colors (Tailwind v4 @theme tokens)
+The live seller, supplier and admin UI uses the **ink/teal scale** defined in
+`:root` in `src/app/globals.css`. Use these for new UI. The older
+navy/mint/cream `@theme` tokens remain for legacy screens only.
 
-| Token              | Value     | Usage              |
-|--------------------|-----------|--------------------|
-| `--color-navy`     | `#0E2A38` | Sidebar, dark bg   |
-| `--color-mint`     | `#73D8C8` | Primary CTAs, Chip |
-| `--color-cream`    | `#F4F1EA` | Light bg           |
-| `--color-paper`    | `#FAF7F1` | Page bg            |
-| `--color-amber`    | `#F2A93B` | Warning, logistics |
-| `--color-coral`    | `#E86A4F` | Error, alert       |
-| `--color-teal`     | `#2E7E78` | Success, active    |
-| `--color-plum`     | `#6B4F8A` | Admin accent       |
-| `--color-muted`    | `#6E6E68` | Secondary text     |
+### Colors (CSS variables)
 
-### Fonts
+| Token | Value | Usage |
+|---|---|---|
+| `--teal-700` | `#16746b` | Primary buttons, active nav, links |
+| `--teal-900` | `#0c4a44` | Brand dark (matches shopinbos.com) |
+| `--teal-100` / `--teal-50` | `#e3f6f1` / `#f1faf7` | Soft fills, Peggy/Rex cards |
+| `--ink-900` | `#0f1916` | Primary text |
+| `--ink-500` | `#6b7672` | Secondary text |
+| `--ink-100` | `#eef0ed` | Card borders, dividers |
+| `--canvas` / `--paper` | `#f5f7f3` / `#ffffff` | Page / card background |
+| `--success` `--warning` `--danger` `--info` (+ `-bg`) | | Status badges |
+| `--amber-500` `--rose-500` `--berry-500` `--indigo-500` (+ `-100`) | | Category accents |
 
-- `font-display` → Space Grotesk  
-- `font-accent`  → Fraunces (italic for brand moments)
-- `font-mono`    → JetBrains Mono (labels, data, eyebrows)
+### Fonts (loaded with next/font in `src/app/layout.tsx`)
+
+- `--font-sans` → Plus Jakarta Sans (body/UI, via `--font-jakarta`)
+- `--font-display` → Space Grotesk (headings, big numbers)
+- `--font-accent` → Fraunces (money, brand moments)
+- `--font-mono` → JetBrains Mono (labels, data, eyebrows; via `--font-jetbrains`)
+
+Never reference a font by its literal family name — next/font hashes it.
 
 ### UI Conventions
 
-- Cards: `bg-white border border-navy/[0.06]` with `rounded-lg` (radius-lg = 18px)
-- Dark panels: `bg-navy text-cream` + `.dot-grid` overlay
-- Eyebrow: `font-mono text-[11px] tracking-[0.16em] uppercase text-teal-deep`
-- Page title: `font-display text-[30px] font-medium tracking-[-0.025em]`
-- Buttons: always `rounded-pill` (999px radius)
+- Cards: `.card` — white, `1px solid var(--ink-100)`, 16px radius, `var(--shd-xs)`
+- Buttons: `.btn` / `.dbtn` — 10px radius, teal-700 primary, ghost = white + ink-150 border
+- Tables: `.tbl` — uppercase 11.5px headers on `--ink-50`
+- Badges: `.badge` + `.badge-success|warn|danger|info|mint|soft`
+- Sidebar: 240px, white, ink-100 right border
+
+### AI assistants
+
+- **Rex** — builds things (store builder, onboarding). Mascot: mint dinosaur, `public/brand/mascots/rex-*.png`.
+- **Peggy** — runs the shop day to day (assistant, drafts, tips). Mascot: penguin, `public/brand/mascots/peggy-*.png`.
+- "Chip" is a retired name still present in some code (`/chip` route, `ChipAvatar`, `chipMode`). Don't use it in new UI copy.
 
 ---
 
@@ -144,7 +157,7 @@ Key vars:
 
 ## Database
 
-Schema defined in `prisma/schema.prisma`. 14 models.
+Schema defined in `prisma/schema.prisma` (56 models).
 
 ```bash
 npx prisma generate      # regenerate client
