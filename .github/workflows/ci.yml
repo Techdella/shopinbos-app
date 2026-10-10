@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm turbo run typecheck lint test
+
+  database:
+    name: Migrations and RLS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      CHECK_URL: postgresql://postgres:postgres@localhost:5432/migrate_check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations to an empty database and check for drift
+        run: |
+          psql "$ADMIN_URL" -c 'create database migrate_check'
+          psql "$CHECK_URL" -f packages/db/sql/supabase-stub.sql
+          DIRECT_URL="$CHECK_URL" DATABASE_URL="$CHECK_URL" pnpm --filter @shopinbos/db migrate:deploy
+          DIRECT_URL="$CHECK_URL" DATABASE_URL="$CHECK_URL" pnpm --filter @shopinbos/db migrate:check
+          DATABASE_URL="$CHECK_URL" pnpm --filter @shopinbos/db seed
+      - name: Cross-org RLS test
+        run: RLS_DATABASE_URL="$ADMIN_URL" pnpm test:rls
+
+  web:
+    name: Web build and e2e
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter=@shopinbos/web
+      - run: pnpm --filter @shopinbos/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @shopinbos/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/test-results
+
+  storybook:
+    name: Storybook
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @shopinbos/ui-web build-storybook
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/ui-web/storybook-static
+
+  deploy-storybook:
+    name: Deploy Storybook to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: storybook
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  mobile:
+    name: Mobile bundles
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [seller, riders, partners]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Bundle with Metro (catches broken imports before EAS)
+        working-directory: apps/${{ matrix.app }}
+        run: npx expo export --platform android --output-dir /tmp/export
+        env:
+          CI: 1
+          EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder

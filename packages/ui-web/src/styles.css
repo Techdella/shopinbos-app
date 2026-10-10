@@ -1,0 +1,26 @@
+/*
+ * Import from an app's global CSS after `@import 'tailwindcss';`:
+ *   @import '@shopinbos/ui-web/styles.css';
+ * It brings the tokens and tells Tailwind to scan the component sources.
+ */
+@import '@shopinbos/tokens/tokens.css';
+@source './';
+
+@keyframes sb-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sb-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

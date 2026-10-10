@@ -1,0 +1,18 @@
+{
+  "extends": "@shopinbos/config/tsconfig/react-library.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "e2e",
+    "*.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

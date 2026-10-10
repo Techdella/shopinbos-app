@@ -1,0 +1,21 @@
+{
+  "name": "@shopinbos/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./tokens.css",
+    "./mascots": "./src/mascots.ts",
+    "./assets/*": "./assets/*"
+  },
+  "scripts": {
+    "generate": "tsx scripts/write-css.ts",
+    "lint": "eslint src scripts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@shopinbos/config": "workspace:*"
+  }
+}

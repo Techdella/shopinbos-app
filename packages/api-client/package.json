@@ -1,0 +1,30 @@
+{
+  "name": "@shopinbos/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.tsx",
+    "./mobile": "./src/mobile.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@shopinbos/validation": "workspace:*",
+    "@supabase/supabase-js": "2.117.3"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@shopinbos/config": "workspace:*",
+    "@tanstack/react-query": "5.104.1",
+    "@types/react": "19.2.18",
+    "react": "19.2.3"
+  }
+}

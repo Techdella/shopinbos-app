@@ -1,0 +1,45 @@
+{
+  "name": "@shopinbos/ui-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "lint": "eslint src .storybook",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@shopinbos/tokens": "workspace:*",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.7.0"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@shopinbos/config": "workspace:*",
+    "@storybook/addon-a11y": "10.6.1",
+    "@storybook/addon-docs": "10.6.1",
+    "@storybook/react-vite": "10.6.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.2",
+    "jsdom": "30.1.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "storybook": "10.6.1",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.4"
+  }
+}

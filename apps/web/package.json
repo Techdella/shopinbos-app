@@ -1,0 +1,39 @@
+{
+  "name": "@shopinbos/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint src e2e",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@shopinbos/api-client": "workspace:*",
+    "@shopinbos/config": "workspace:*",
+    "@shopinbos/db": "workspace:*",
+    "@shopinbos/integrations": "workspace:*",
+    "@shopinbos/tokens": "workspace:*",
+    "@shopinbos/ui-web": "workspace:*",
+    "@shopinbos/validation": "workspace:*",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.117.3",
+    "@tanstack/react-query": "5.104.1",
+    "next": "16.4.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "server-only": "0.0.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "tailwindcss": "4.3.3"
+  }
+}

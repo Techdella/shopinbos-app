@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import '@shopinbos/ui-web/styles.css';
+@source '../';
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.bg-wash {
+  background-color: var(--color-canvas);
+  background-image: var(--sb-wash);
+}

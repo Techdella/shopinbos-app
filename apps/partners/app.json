@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Shopinbos Partners",
+    "slug": "shopinbos-partners",
+    "scheme": "shopinbos-partners",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.shopinbos.partners",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.shopinbos.partners",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#F6F5F9"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "backgroundColor": "#F6F5F9",
+          "imageWidth": 160
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "app": "PARTNERS"
+    }
+  }
+}

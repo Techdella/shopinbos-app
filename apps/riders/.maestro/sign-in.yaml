@@ -1,0 +1,14 @@
+# Phase 0 acceptance: sign in by phone on a dev build.
+# Needs a Supabase test phone number: maestro test -e PHONE=08000000001 -e OTP=123456 .maestro/sign-in.yaml
+appId: com.shopinbos.riders
+---
+- launchApp:
+    clearState: true
+- assertVisible: 'Sign in to ride'
+- tapOn: 'Phone number'
+- inputText: ${PHONE}
+- tapOn: 'Send my code'
+- tapOn: 'Code'
+- inputText: ${OTP}
+- tapOn: 'Continue'
+- assertVisible: 'Hi.*'
