@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Shopinbos",
+    "slug": "shopinbos-seller",
+    "scheme": "shopinbos-seller",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.shopinbos.seller",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.shopinbos.seller",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#F6F5F9"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "backgroundColor": "#F6F5F9",
+          "imageWidth": 160
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "app": "SELLER"
+    }
+  }
+}

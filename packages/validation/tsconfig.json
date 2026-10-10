@@ -1,0 +1,4 @@
+{
+  "extends": "@shopinbos/config/tsconfig/library.json",
+  "include": ["src"]
+}

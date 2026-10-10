@@ -1,0 +1,404 @@
+// Shopinbos schema v0 (SPEC 6.1–6.2, phase 0): identity, organisations, stores, brand kit, assets, domains.
+// Rules: cuid ids, createdAt/updatedAt everywhere, deletedAt on user-facing records,
+// money as Int kobo with a currency column, index every FK and list filter.
+// RLS policies live in sql/ and are applied by migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Own schema: the Supabase project also holds the legacy app's tables in `public` (ADR 0006).
+  schemas  = ["shopinbos"]
+}
+
+// ─── Identity and access (6.1) ────────────────────────────────────────────────
+
+enum Locale {
+  en
+  pcm
+  yo
+  ha
+  ig
+
+  @@schema("shopinbos")
+}
+
+enum OrgType {
+  SELLER
+  SUPPLIER
+  LOGISTICS
+  SOURCING_PARTNER
+  PLATFORM
+
+  @@schema("shopinbos")
+}
+
+enum KycStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+
+  @@schema("shopinbos")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  STAFF
+  DISPATCHER
+  RIDER
+  VIEWER
+
+  @@schema("shopinbos")
+}
+
+enum DeviceApp {
+  SELLER
+  RIDERS
+  PARTNERS
+
+  @@schema("shopinbos")
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+
+  @@schema("shopinbos")
+}
+
+enum KycKind {
+  BVN
+  NIN
+  CAC
+  ADDRESS
+  SELFIE
+
+  @@schema("shopinbos")
+}
+
+enum KycCheckStatus {
+  PENDING
+  PASSED
+  FAILED
+  ERROR
+
+  @@schema("shopinbos")
+}
+
+model User {
+  id         String    @id @default(cuid(2))
+  /// Supabase auth.users.id. Null for seeded users until they first sign in with the same phone or email.
+  supabaseId String?   @unique @db.Uuid
+  phone      String?   @unique
+  email      String?   @unique
+  name       String?
+  avatarUrl  String?
+  locale     Locale    @default(en)
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  memberships Membership[]
+  devices     Device[]
+  kycChecks   KycCheck[]
+  auditLogs   AuditLog[]
+
+  @@schema("shopinbos")
+}
+
+model Organization {
+  id        String    @id @default(cuid(2))
+  type      OrgType
+  name      String
+  kycStatus KycStatus @default(NONE)
+  kycLevel  Int       @default(0)
+  cacNumber String?
+  country   String    @default("NG")
+  state     String?
+  city      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships Membership[]
+  stores      Store[]
+  kycChecks   KycCheck[]
+  auditLogs   AuditLog[]
+
+  @@index([type])
+  @@index([kycStatus])
+  @@schema("shopinbos")
+}
+
+model Membership {
+  id          String         @id @default(cuid(2))
+  userId      String
+  orgId       String
+  role        MembershipRole
+  /// Permission keys such as "orders.write", "money.read" (see @shopinbos/validation PERMISSIONS).
+  permissions Json           @default("[]")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@index([role])
+  @@schema("shopinbos")
+}
+
+model Device {
+  id            String         @id @default(cuid(2))
+  userId        String
+  app           DeviceApp
+  platform      DevicePlatform
+  expoPushToken String         @unique
+  lastSeenAt    DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, app])
+  @@schema("shopinbos")
+}
+
+model KycCheck {
+  id        String         @id @default(cuid(2))
+  orgId     String?
+  userId    String?
+  kind      KycKind
+  provider  String
+  status    KycCheckStatus @default(PENDING)
+  reference String?
+  /// Redacted provider result. Never store raw BVN/NIN values.
+  result    Json?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([status])
+  @@schema("shopinbos")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid(2))
+  actorId   String?
+  orgId     String?
+  action    String
+  entity    String
+  entityId  String?
+  /// Redacted snapshots.
+  before    Json?
+  after     Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([orgId, createdAt])
+  @@index([entity, entityId])
+  @@schema("shopinbos")
+}
+
+// ─── Stores, brand, domains (6.2) ─────────────────────────────────────────────
+
+enum StoreStatus {
+  DRAFT
+  LIVE
+  PAUSED
+
+  @@schema("shopinbos")
+}
+
+enum LogoStyle {
+  editorial
+  monogram
+  bold
+  serif
+  uploaded
+
+  @@schema("shopinbos")
+}
+
+enum BrandSource {
+  REX
+  UPLOAD
+
+  @@schema("shopinbos")
+}
+
+enum AssetKind {
+  PRODUCT_PHOTO
+  LOGO
+  VIDEO
+  LABEL_PDF
+  QC_PHOTO
+  PROOF_PHOTO
+  DOC
+
+  @@schema("shopinbos")
+}
+
+enum GeneratedBy {
+  USER
+  REX
+  PEGGY
+  SYSTEM
+
+  @@schema("shopinbos")
+}
+
+enum DomainType {
+  SUBDOMAIN
+  CUSTOM
+  PURCHASED
+
+  @@schema("shopinbos")
+}
+
+enum DomainStatus {
+  PENDING_DNS
+  VERIFYING
+  ACTIVE
+  FAILED
+
+  @@schema("shopinbos")
+}
+
+enum DomainProviderKind {
+  VERCEL
+  CLOUDFLARE
+
+  @@schema("shopinbos")
+}
+
+model Store {
+  id                      String      @id @default(cuid(2))
+  orgId                   String
+  /// Unique, never a reserved subdomain (RESERVED_SUBDOMAINS in @shopinbos/config).
+  slug                    String      @unique
+  name                    String
+  tagline                 String?
+  status                  StoreStatus @default(DRAFT)
+  category                String?
+  currency                String      @default("NGN")
+  timezone                String      @default("Africa/Lagos")
+  /// Theme relations arrive in phase 1 (SPEC 6.3).
+  themeId                 String?
+  publishedThemeVersionId String?
+  /// Checkout and policy settings.
+  settings                Json        @default("{}")
+  codEnabled              Boolean     @default(true)
+  codMaxKobo              Int         @default(5000000)
+  whatsappNumber          String?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  deletedAt               DateTime?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  brandKit     BrandKit?
+  assets       Asset[]
+  domains      Domain[]
+
+  @@index([orgId])
+  @@index([status])
+  @@schema("shopinbos")
+}
+
+model BrandKit {
+  id              String      @id @default(cuid(2))
+  storeId         String      @unique
+  logoAssetId     String?
+  logoDarkAssetId String?
+  iconAssetId     String?
+  /// { bg, ink, accent, soft }
+  palette         Json        @default("{}")
+  headingFont     String?
+  bodyFont        String?
+  voice           String?
+  logoStyle       LogoStyle?
+  source          BrandSource @default(REX)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  store    Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  logo     Asset? @relation("BrandKitLogo", fields: [logoAssetId], references: [id], onDelete: SetNull)
+  logoDark Asset? @relation("BrandKitLogoDark", fields: [logoDarkAssetId], references: [id], onDelete: SetNull)
+  icon     Asset? @relation("BrandKitIcon", fields: [iconAssetId], references: [id], onDelete: SetNull)
+
+  @@index([logoAssetId])
+  @@index([logoDarkAssetId])
+  @@index([iconAssetId])
+  @@schema("shopinbos")
+}
+
+model Asset {
+  id          String      @id @default(cuid(2))
+  /// Owning store. Platform assets (theme previews) have no store.
+  storeId     String?
+  bucket      String
+  path        String
+  mime        String
+  width       Int?
+  height      Int?
+  bytes       Int?
+  kind        AssetKind
+  generatedBy GeneratedBy @default(USER)
+  bgRemoved   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  store            Store?     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  brandKitLogo     BrandKit[] @relation("BrandKitLogo")
+  brandKitLogoDark BrandKit[] @relation("BrandKitLogoDark")
+  brandKitIcon     BrandKit[] @relation("BrandKitIcon")
+
+  @@unique([bucket, path])
+  @@index([storeId, kind])
+  @@schema("shopinbos")
+}
+
+model Domain {
+  id            String             @id @default(cuid(2))
+  storeId       String
+  hostname      String             @unique
+  type          DomainType
+  status        DomainStatus       @default(PENDING_DNS)
+  provider      DomainProviderKind @default(VERCEL)
+  providerRef   String?
+  /// DNS records to show the seller.
+  verification  Json?
+  isPrimary     Boolean            @default(false)
+  sslStatus     String?
+  lastCheckedAt DateTime?
+  expiresAt     DateTime?
+  autoRenew     Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  deletedAt     DateTime?
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([status])
+  @@schema("shopinbos")
+}

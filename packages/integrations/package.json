@@ -1,0 +1,20 @@
+{
+  "name": "@shopinbos/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./otp": "./src/otp/index.ts",
+    "./webhooks": "./src/webhooks/standard-webhooks.ts",
+    "./ratelimit": "./src/ratelimit/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@shopinbos/config": "workspace:*"
+  }
+}

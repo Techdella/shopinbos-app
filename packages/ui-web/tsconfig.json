@@ -1,0 +1,5 @@
+{
+  "extends": "@shopinbos/config/tsconfig/react-library.json",
+  "compilerOptions": { "types": ["node", "@testing-library/jest-dom/vitest"] },
+  "include": ["src", ".storybook", "vitest.config.ts", "vitest.setup.ts"]
+}

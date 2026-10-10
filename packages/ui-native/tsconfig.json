@@ -1,0 +1,5 @@
+{
+  "extends": "@shopinbos/config/tsconfig/base.json",
+  "compilerOptions": { "jsx": "react-jsx", "lib": ["ES2023"], "types": [] },
+  "include": ["src"]
+}

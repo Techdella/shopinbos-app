@@ -1,0 +1,11 @@
+legacy/
+docs/SPEC.md
+pnpm-lock.yaml
+**/.next/
+**/dist/
+**/storybook-static/
+**/.expo/
+**/coverage/
+packages/db/prisma/migrations/
+packages/tokens/assets/
+packages/tokens/tokens.css

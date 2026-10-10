@@ -1,0 +1,31 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": [".env.example"],
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
+    "generate": {
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "storybook-static/**"],
+      "env": ["NEXT_PUBLIC_*", "DATABASE_URL", "DIRECT_URL", "SUPABASE_*", "SENTRY_*"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["generate"]
+    },
+    "lint": {
+      "dependsOn": ["generate"]
+    },
+    "typecheck": {
+      "dependsOn": ["generate"]
+    },
+    "test": {
+      "dependsOn": ["generate"],
+      "outputs": ["coverage/**"]
+    }
+  }
+}
