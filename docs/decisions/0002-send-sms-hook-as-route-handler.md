@@ -1,6 +1,6 @@
 # 0002 — Supabase Send SMS hook runs as a Next.js route, not an Edge Function
 
-- Status: proposed (owner to confirm; this touches auth)
+- Status: accepted (owner, 2026-10-10)
 - Date: 2026-10-10
 
 ## Context

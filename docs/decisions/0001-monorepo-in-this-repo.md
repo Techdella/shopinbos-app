@@ -1,6 +1,6 @@
 # 0001 — Build the new monorepo in `shopinbos-app`, keep the old app in `legacy/`
 
-- Status: proposed (owner to confirm)
+- Status: accepted (owner, 2026-10-10)
 - Date: 2026-10-10
 
 ## Context
@@ -16,7 +16,7 @@ pnpm workspace, ignored by lint, format and CI.
 
 ## Consequences
 
-- If the owner prefers the separate `Techdella/shopinbos` repo, this branch can be pushed there as-is.
+- The owner chose to keep building in `shopinbos-app`; there is no separate `Techdella/shopinbos` repo.
 - Production for the old app keeps deploying from `main` until this PR merges. Merging changes what
   the existing Vercel project builds: point that project's root at `apps/web` or create the new Vercel project first.
 - Delete `legacy/` once nothing in it is needed (ask the owner first).

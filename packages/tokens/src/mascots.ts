@@ -1,18 +1,24 @@
 /**
  * Rex (mint dinosaur, builds) and Peggy (penguin, runs the shop).
- * Files are 1024px copies of the old repo's public/brand/mascots. Resolve with your bundler,
- * e.g. `new URL(mascots.rex, import.meta.url)` or copy into an app's public folder.
+ * 1024px copies of the old repo's public/brand/mascots, named by pose:
+ *   rex-1 → rex-three-quarter, rex-2 → rex-side, rex-3 → rex-front
+ *   peggy-1 → peggy-side, peggy-2 → peggy-front, peggy-3 → peggy-three-quarter
+ * The spec's `peggy-wave` pose doesn't exist yet; `peggyWave` falls back to the three-quarter pose.
  */
 export const mascotFiles = {
-  'rex-1': 'assets/mascots/rex-1.png',
-  'rex-2': 'assets/mascots/rex-2.png',
-  'rex-3': 'assets/mascots/rex-3.png',
-  'peggy-1': 'assets/mascots/peggy-1.png',
-  'peggy-2': 'assets/mascots/peggy-2.png',
-  'peggy-3': 'assets/mascots/peggy-3.png',
+  'rex-front': 'assets/mascots/rex-front.png',
+  'rex-three-quarter': 'assets/mascots/rex-three-quarter.png',
+  'rex-side': 'assets/mascots/rex-side.png',
+  'peggy-front': 'assets/mascots/peggy-front.png',
+  'peggy-three-quarter': 'assets/mascots/peggy-three-quarter.png',
+  'peggy-side': 'assets/mascots/peggy-side.png',
 } as const;
 
+/** The spec's names (SPEC 5.4). */
 export const mascots = {
-  rex: mascotFiles['rex-1'],
-  peggy: mascotFiles['peggy-1'],
+  rex: mascotFiles['rex-front'],
+  rexSide: mascotFiles['rex-side'],
+  peggy: mascotFiles['peggy-front'],
+  /** TODO: replace when a waving Peggy is drawn. */
+  peggyWave: mascotFiles['peggy-three-quarter'],
 } as const;
