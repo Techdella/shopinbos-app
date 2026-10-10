@@ -15,6 +15,11 @@ $$;
 grant usage on schema auth to anon, authenticated;
 grant execute on function auth.uid() to anon, authenticated;
 
--- Supabase grants table access to client roles by default; RLS is what restricts rows.
+-- Supabase grants client roles access to public by default (legacy tables live there).
 grant usage on schema public to anon, authenticated;
 alter default privileges in schema public grant select on tables to anon, authenticated;
+
+-- A legacy table in public, to prove our migrations never touch it.
+create table if not exists public."User" (id text primary key, email text);
+insert into public."User" (id, email) values ('legacy_1', 'legacy@example.com') on conflict do nothing;
+grant select on public."User" to anon, authenticated;

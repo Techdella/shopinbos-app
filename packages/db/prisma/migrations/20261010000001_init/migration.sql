@@ -1,63 +1,63 @@
 -- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE SCHEMA IF NOT EXISTS "shopinbos";
 
 -- CreateEnum
-CREATE TYPE "Locale" AS ENUM ('en', 'pcm', 'yo', 'ha', 'ig');
+CREATE TYPE "shopinbos"."Locale" AS ENUM ('en', 'pcm', 'yo', 'ha', 'ig');
 
 -- CreateEnum
-CREATE TYPE "OrgType" AS ENUM ('SELLER', 'SUPPLIER', 'LOGISTICS', 'SOURCING_PARTNER', 'PLATFORM');
+CREATE TYPE "shopinbos"."OrgType" AS ENUM ('SELLER', 'SUPPLIER', 'LOGISTICS', 'SOURCING_PARTNER', 'PLATFORM');
 
 -- CreateEnum
-CREATE TYPE "KycStatus" AS ENUM ('NONE', 'PENDING', 'VERIFIED', 'REJECTED');
+CREATE TYPE "shopinbos"."KycStatus" AS ENUM ('NONE', 'PENDING', 'VERIFIED', 'REJECTED');
 
 -- CreateEnum
-CREATE TYPE "MembershipRole" AS ENUM ('OWNER', 'ADMIN', 'STAFF', 'DISPATCHER', 'RIDER', 'VIEWER');
+CREATE TYPE "shopinbos"."MembershipRole" AS ENUM ('OWNER', 'ADMIN', 'STAFF', 'DISPATCHER', 'RIDER', 'VIEWER');
 
 -- CreateEnum
-CREATE TYPE "DeviceApp" AS ENUM ('SELLER', 'RIDERS', 'PARTNERS');
+CREATE TYPE "shopinbos"."DeviceApp" AS ENUM ('SELLER', 'RIDERS', 'PARTNERS');
 
 -- CreateEnum
-CREATE TYPE "DevicePlatform" AS ENUM ('IOS', 'ANDROID', 'WEB');
+CREATE TYPE "shopinbos"."DevicePlatform" AS ENUM ('IOS', 'ANDROID', 'WEB');
 
 -- CreateEnum
-CREATE TYPE "KycKind" AS ENUM ('BVN', 'NIN', 'CAC', 'ADDRESS', 'SELFIE');
+CREATE TYPE "shopinbos"."KycKind" AS ENUM ('BVN', 'NIN', 'CAC', 'ADDRESS', 'SELFIE');
 
 -- CreateEnum
-CREATE TYPE "KycCheckStatus" AS ENUM ('PENDING', 'PASSED', 'FAILED', 'ERROR');
+CREATE TYPE "shopinbos"."KycCheckStatus" AS ENUM ('PENDING', 'PASSED', 'FAILED', 'ERROR');
 
 -- CreateEnum
-CREATE TYPE "StoreStatus" AS ENUM ('DRAFT', 'LIVE', 'PAUSED');
+CREATE TYPE "shopinbos"."StoreStatus" AS ENUM ('DRAFT', 'LIVE', 'PAUSED');
 
 -- CreateEnum
-CREATE TYPE "LogoStyle" AS ENUM ('editorial', 'monogram', 'bold', 'serif', 'uploaded');
+CREATE TYPE "shopinbos"."LogoStyle" AS ENUM ('editorial', 'monogram', 'bold', 'serif', 'uploaded');
 
 -- CreateEnum
-CREATE TYPE "BrandSource" AS ENUM ('REX', 'UPLOAD');
+CREATE TYPE "shopinbos"."BrandSource" AS ENUM ('REX', 'UPLOAD');
 
 -- CreateEnum
-CREATE TYPE "AssetKind" AS ENUM ('PRODUCT_PHOTO', 'LOGO', 'VIDEO', 'LABEL_PDF', 'QC_PHOTO', 'PROOF_PHOTO', 'DOC');
+CREATE TYPE "shopinbos"."AssetKind" AS ENUM ('PRODUCT_PHOTO', 'LOGO', 'VIDEO', 'LABEL_PDF', 'QC_PHOTO', 'PROOF_PHOTO', 'DOC');
 
 -- CreateEnum
-CREATE TYPE "GeneratedBy" AS ENUM ('USER', 'REX', 'PEGGY', 'SYSTEM');
+CREATE TYPE "shopinbos"."GeneratedBy" AS ENUM ('USER', 'REX', 'PEGGY', 'SYSTEM');
 
 -- CreateEnum
-CREATE TYPE "DomainType" AS ENUM ('SUBDOMAIN', 'CUSTOM', 'PURCHASED');
+CREATE TYPE "shopinbos"."DomainType" AS ENUM ('SUBDOMAIN', 'CUSTOM', 'PURCHASED');
 
 -- CreateEnum
-CREATE TYPE "DomainStatus" AS ENUM ('PENDING_DNS', 'VERIFYING', 'ACTIVE', 'FAILED');
+CREATE TYPE "shopinbos"."DomainStatus" AS ENUM ('PENDING_DNS', 'VERIFYING', 'ACTIVE', 'FAILED');
 
 -- CreateEnum
-CREATE TYPE "DomainProviderKind" AS ENUM ('VERCEL', 'CLOUDFLARE');
+CREATE TYPE "shopinbos"."DomainProviderKind" AS ENUM ('VERCEL', 'CLOUDFLARE');
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE "shopinbos"."User" (
     "id" TEXT NOT NULL,
     "supabaseId" UUID,
     "phone" TEXT,
     "email" TEXT,
     "name" TEXT,
     "avatarUrl" TEXT,
-    "locale" "Locale" NOT NULL DEFAULT 'en',
+    "locale" "shopinbos"."Locale" NOT NULL DEFAULT 'en',
     "lastSeenAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -67,11 +67,11 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Organization" (
+CREATE TABLE "shopinbos"."Organization" (
     "id" TEXT NOT NULL,
-    "type" "OrgType" NOT NULL,
+    "type" "shopinbos"."OrgType" NOT NULL,
     "name" TEXT NOT NULL,
-    "kycStatus" "KycStatus" NOT NULL DEFAULT 'NONE',
+    "kycStatus" "shopinbos"."KycStatus" NOT NULL DEFAULT 'NONE',
     "kycLevel" INTEGER NOT NULL DEFAULT 0,
     "cacNumber" TEXT,
     "country" TEXT NOT NULL DEFAULT 'NG',
@@ -85,11 +85,11 @@ CREATE TABLE "Organization" (
 );
 
 -- CreateTable
-CREATE TABLE "Membership" (
+CREATE TABLE "shopinbos"."Membership" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "orgId" TEXT NOT NULL,
-    "role" "MembershipRole" NOT NULL,
+    "role" "shopinbos"."MembershipRole" NOT NULL,
     "permissions" JSONB NOT NULL DEFAULT '[]',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -99,11 +99,11 @@ CREATE TABLE "Membership" (
 );
 
 -- CreateTable
-CREATE TABLE "Device" (
+CREATE TABLE "shopinbos"."Device" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "app" "DeviceApp" NOT NULL,
-    "platform" "DevicePlatform" NOT NULL,
+    "app" "shopinbos"."DeviceApp" NOT NULL,
+    "platform" "shopinbos"."DevicePlatform" NOT NULL,
     "expoPushToken" TEXT NOT NULL,
     "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -113,13 +113,13 @@ CREATE TABLE "Device" (
 );
 
 -- CreateTable
-CREATE TABLE "KycCheck" (
+CREATE TABLE "shopinbos"."KycCheck" (
     "id" TEXT NOT NULL,
     "orgId" TEXT,
     "userId" TEXT,
-    "kind" "KycKind" NOT NULL,
+    "kind" "shopinbos"."KycKind" NOT NULL,
     "provider" TEXT NOT NULL,
-    "status" "KycCheckStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "shopinbos"."KycCheckStatus" NOT NULL DEFAULT 'PENDING',
     "reference" TEXT,
     "result" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -129,7 +129,7 @@ CREATE TABLE "KycCheck" (
 );
 
 -- CreateTable
-CREATE TABLE "AuditLog" (
+CREATE TABLE "shopinbos"."AuditLog" (
     "id" TEXT NOT NULL,
     "actorId" TEXT,
     "orgId" TEXT,
@@ -147,13 +147,13 @@ CREATE TABLE "AuditLog" (
 );
 
 -- CreateTable
-CREATE TABLE "Store" (
+CREATE TABLE "shopinbos"."Store" (
     "id" TEXT NOT NULL,
     "orgId" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "tagline" TEXT,
-    "status" "StoreStatus" NOT NULL DEFAULT 'DRAFT',
+    "status" "shopinbos"."StoreStatus" NOT NULL DEFAULT 'DRAFT',
     "category" TEXT,
     "currency" TEXT NOT NULL DEFAULT 'NGN',
     "timezone" TEXT NOT NULL DEFAULT 'Africa/Lagos',
@@ -171,7 +171,7 @@ CREATE TABLE "Store" (
 );
 
 -- CreateTable
-CREATE TABLE "BrandKit" (
+CREATE TABLE "shopinbos"."BrandKit" (
     "id" TEXT NOT NULL,
     "storeId" TEXT NOT NULL,
     "logoAssetId" TEXT,
@@ -181,8 +181,8 @@ CREATE TABLE "BrandKit" (
     "headingFont" TEXT,
     "bodyFont" TEXT,
     "voice" TEXT,
-    "logoStyle" "LogoStyle",
-    "source" "BrandSource" NOT NULL DEFAULT 'REX',
+    "logoStyle" "shopinbos"."LogoStyle",
+    "source" "shopinbos"."BrandSource" NOT NULL DEFAULT 'REX',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -190,7 +190,7 @@ CREATE TABLE "BrandKit" (
 );
 
 -- CreateTable
-CREATE TABLE "Asset" (
+CREATE TABLE "shopinbos"."Asset" (
     "id" TEXT NOT NULL,
     "storeId" TEXT,
     "bucket" TEXT NOT NULL,
@@ -199,8 +199,8 @@ CREATE TABLE "Asset" (
     "width" INTEGER,
     "height" INTEGER,
     "bytes" INTEGER,
-    "kind" "AssetKind" NOT NULL,
-    "generatedBy" "GeneratedBy" NOT NULL DEFAULT 'USER',
+    "kind" "shopinbos"."AssetKind" NOT NULL,
+    "generatedBy" "shopinbos"."GeneratedBy" NOT NULL DEFAULT 'USER',
     "bgRemoved" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -210,13 +210,13 @@ CREATE TABLE "Asset" (
 );
 
 -- CreateTable
-CREATE TABLE "Domain" (
+CREATE TABLE "shopinbos"."Domain" (
     "id" TEXT NOT NULL,
     "storeId" TEXT NOT NULL,
     "hostname" TEXT NOT NULL,
-    "type" "DomainType" NOT NULL,
-    "status" "DomainStatus" NOT NULL DEFAULT 'PENDING_DNS',
-    "provider" "DomainProviderKind" NOT NULL DEFAULT 'VERCEL',
+    "type" "shopinbos"."DomainType" NOT NULL,
+    "status" "shopinbos"."DomainStatus" NOT NULL DEFAULT 'PENDING_DNS',
+    "provider" "shopinbos"."DomainProviderKind" NOT NULL DEFAULT 'VERCEL',
     "providerRef" TEXT,
     "verification" JSONB,
     "isPrimary" BOOLEAN NOT NULL DEFAULT false,
@@ -232,128 +232,128 @@ CREATE TABLE "Domain" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_supabaseId_key" ON "User"("supabaseId");
+CREATE UNIQUE INDEX "User_supabaseId_key" ON "shopinbos"."User"("supabaseId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+CREATE UNIQUE INDEX "User_phone_key" ON "shopinbos"."User"("phone");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_email_key" ON "shopinbos"."User"("email");
 
 -- CreateIndex
-CREATE INDEX "Organization_type_idx" ON "Organization"("type");
+CREATE INDEX "Organization_type_idx" ON "shopinbos"."Organization"("type");
 
 -- CreateIndex
-CREATE INDEX "Organization_kycStatus_idx" ON "Organization"("kycStatus");
+CREATE INDEX "Organization_kycStatus_idx" ON "shopinbos"."Organization"("kycStatus");
 
 -- CreateIndex
-CREATE INDEX "Membership_orgId_idx" ON "Membership"("orgId");
+CREATE INDEX "Membership_orgId_idx" ON "shopinbos"."Membership"("orgId");
 
 -- CreateIndex
-CREATE INDEX "Membership_role_idx" ON "Membership"("role");
+CREATE INDEX "Membership_role_idx" ON "shopinbos"."Membership"("role");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Membership_userId_orgId_key" ON "Membership"("userId", "orgId");
+CREATE UNIQUE INDEX "Membership_userId_orgId_key" ON "shopinbos"."Membership"("userId", "orgId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Device_expoPushToken_key" ON "Device"("expoPushToken");
+CREATE UNIQUE INDEX "Device_expoPushToken_key" ON "shopinbos"."Device"("expoPushToken");
 
 -- CreateIndex
-CREATE INDEX "Device_userId_app_idx" ON "Device"("userId", "app");
+CREATE INDEX "Device_userId_app_idx" ON "shopinbos"."Device"("userId", "app");
 
 -- CreateIndex
-CREATE INDEX "KycCheck_orgId_idx" ON "KycCheck"("orgId");
+CREATE INDEX "KycCheck_orgId_idx" ON "shopinbos"."KycCheck"("orgId");
 
 -- CreateIndex
-CREATE INDEX "KycCheck_userId_idx" ON "KycCheck"("userId");
+CREATE INDEX "KycCheck_userId_idx" ON "shopinbos"."KycCheck"("userId");
 
 -- CreateIndex
-CREATE INDEX "KycCheck_status_idx" ON "KycCheck"("status");
+CREATE INDEX "KycCheck_status_idx" ON "shopinbos"."KycCheck"("status");
 
 -- CreateIndex
-CREATE INDEX "AuditLog_actorId_idx" ON "AuditLog"("actorId");
+CREATE INDEX "AuditLog_actorId_idx" ON "shopinbos"."AuditLog"("actorId");
 
 -- CreateIndex
-CREATE INDEX "AuditLog_orgId_createdAt_idx" ON "AuditLog"("orgId", "createdAt");
+CREATE INDEX "AuditLog_orgId_createdAt_idx" ON "shopinbos"."AuditLog"("orgId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "AuditLog_entity_entityId_idx" ON "AuditLog"("entity", "entityId");
+CREATE INDEX "AuditLog_entity_entityId_idx" ON "shopinbos"."AuditLog"("entity", "entityId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Store_slug_key" ON "Store"("slug");
+CREATE UNIQUE INDEX "Store_slug_key" ON "shopinbos"."Store"("slug");
 
 -- CreateIndex
-CREATE INDEX "Store_orgId_idx" ON "Store"("orgId");
+CREATE INDEX "Store_orgId_idx" ON "shopinbos"."Store"("orgId");
 
 -- CreateIndex
-CREATE INDEX "Store_status_idx" ON "Store"("status");
+CREATE INDEX "Store_status_idx" ON "shopinbos"."Store"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "BrandKit_storeId_key" ON "BrandKit"("storeId");
+CREATE UNIQUE INDEX "BrandKit_storeId_key" ON "shopinbos"."BrandKit"("storeId");
 
 -- CreateIndex
-CREATE INDEX "BrandKit_logoAssetId_idx" ON "BrandKit"("logoAssetId");
+CREATE INDEX "BrandKit_logoAssetId_idx" ON "shopinbos"."BrandKit"("logoAssetId");
 
 -- CreateIndex
-CREATE INDEX "BrandKit_logoDarkAssetId_idx" ON "BrandKit"("logoDarkAssetId");
+CREATE INDEX "BrandKit_logoDarkAssetId_idx" ON "shopinbos"."BrandKit"("logoDarkAssetId");
 
 -- CreateIndex
-CREATE INDEX "BrandKit_iconAssetId_idx" ON "BrandKit"("iconAssetId");
+CREATE INDEX "BrandKit_iconAssetId_idx" ON "shopinbos"."BrandKit"("iconAssetId");
 
 -- CreateIndex
-CREATE INDEX "Asset_storeId_kind_idx" ON "Asset"("storeId", "kind");
+CREATE INDEX "Asset_storeId_kind_idx" ON "shopinbos"."Asset"("storeId", "kind");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Asset_bucket_path_key" ON "Asset"("bucket", "path");
+CREATE UNIQUE INDEX "Asset_bucket_path_key" ON "shopinbos"."Asset"("bucket", "path");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Domain_hostname_key" ON "Domain"("hostname");
+CREATE UNIQUE INDEX "Domain_hostname_key" ON "shopinbos"."Domain"("hostname");
 
 -- CreateIndex
-CREATE INDEX "Domain_storeId_idx" ON "Domain"("storeId");
+CREATE INDEX "Domain_storeId_idx" ON "shopinbos"."Domain"("storeId");
 
 -- CreateIndex
-CREATE INDEX "Domain_status_idx" ON "Domain"("status");
+CREATE INDEX "Domain_status_idx" ON "shopinbos"."Domain"("status");
 
 -- AddForeignKey
-ALTER TABLE "Membership" ADD CONSTRAINT "Membership_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."Membership" ADD CONSTRAINT "Membership_userId_fkey" FOREIGN KEY ("userId") REFERENCES "shopinbos"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Membership" ADD CONSTRAINT "Membership_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."Membership" ADD CONSTRAINT "Membership_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "shopinbos"."Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Device" ADD CONSTRAINT "Device_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."Device" ADD CONSTRAINT "Device_userId_fkey" FOREIGN KEY ("userId") REFERENCES "shopinbos"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KycCheck" ADD CONSTRAINT "KycCheck_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."KycCheck" ADD CONSTRAINT "KycCheck_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "shopinbos"."Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KycCheck" ADD CONSTRAINT "KycCheck_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."KycCheck" ADD CONSTRAINT "KycCheck_userId_fkey" FOREIGN KEY ("userId") REFERENCES "shopinbos"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."AuditLog" ADD CONSTRAINT "AuditLog_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "shopinbos"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."AuditLog" ADD CONSTRAINT "AuditLog_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "shopinbos"."Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Store" ADD CONSTRAINT "Store_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."Store" ADD CONSTRAINT "Store_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "shopinbos"."Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "BrandKit" ADD CONSTRAINT "BrandKit_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."BrandKit" ADD CONSTRAINT "BrandKit_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "shopinbos"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "BrandKit" ADD CONSTRAINT "BrandKit_logoAssetId_fkey" FOREIGN KEY ("logoAssetId") REFERENCES "Asset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."BrandKit" ADD CONSTRAINT "BrandKit_logoAssetId_fkey" FOREIGN KEY ("logoAssetId") REFERENCES "shopinbos"."Asset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "BrandKit" ADD CONSTRAINT "BrandKit_logoDarkAssetId_fkey" FOREIGN KEY ("logoDarkAssetId") REFERENCES "Asset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."BrandKit" ADD CONSTRAINT "BrandKit_logoDarkAssetId_fkey" FOREIGN KEY ("logoDarkAssetId") REFERENCES "shopinbos"."Asset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "BrandKit" ADD CONSTRAINT "BrandKit_iconAssetId_fkey" FOREIGN KEY ("iconAssetId") REFERENCES "Asset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."BrandKit" ADD CONSTRAINT "BrandKit_iconAssetId_fkey" FOREIGN KEY ("iconAssetId") REFERENCES "shopinbos"."Asset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Asset" ADD CONSTRAINT "Asset_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."Asset" ADD CONSTRAINT "Asset_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "shopinbos"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Domain" ADD CONSTRAINT "Domain_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "shopinbos"."Domain" ADD CONSTRAINT "Domain_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "shopinbos"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

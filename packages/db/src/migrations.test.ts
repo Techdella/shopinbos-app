@@ -13,15 +13,27 @@ describe('SQL sources match migrations', () => {
     expect(read(migration)).toBe(read(src));
   });
 
+  it('never touches the legacy public schema', () => {
+    for (const f of [
+      'prisma/migrations/20261010000001_init/migration.sql',
+      'sql/0002_rls.sql',
+      'sql/0003_storage.sql',
+    ]) {
+      expect(read(f), f).not.toMatch(/\bpublic\./i);
+      expect(read(f), f).not.toMatch(/in schema public/i);
+      expect(read(f), f).not.toMatch(/\bdrop\s+(table|schema|policy|function)/i);
+    }
+  });
+
   it('every table in the init migration has RLS enabled', () => {
     const tables = [
       ...read('prisma/migrations/20261010000001_init/migration.sql').matchAll(
-        /CREATE TABLE "(\w+)"/g,
+        /CREATE TABLE "shopinbos"\."(\w+)"/g,
       ),
     ].map((m) => m[1]);
     const rls = read('sql/0002_rls.sql');
     expect(tables.length).toBeGreaterThan(5);
     for (const t of tables)
-      expect(rls, t).toContain(`alter table "${t}" enable row level security`);
+      expect(rls, t).toContain(`alter table shopinbos."${t}" enable row level security`);
   });
 });

@@ -19,9 +19,10 @@ const userB = randomUUID();
 
 let client: pg.Client;
 
-function urlFor(db: string): string {
+function urlFor(db: string, schema?: string): string {
   const u = new URL(adminUrl!);
   u.pathname = `/${db}`;
+  if (schema) u.searchParams.set('schema', schema);
   return u.toString();
 }
 
@@ -54,9 +55,14 @@ describe.skipIf(!adminUrl)('row level security', () => {
 
     execFileSync('npx', ['prisma', 'migrate', 'deploy'], {
       cwd: root,
-      env: { ...process.env, DIRECT_URL: urlFor(dbName), DATABASE_URL: urlFor(dbName) },
+      env: {
+        ...process.env,
+        DIRECT_URL: urlFor(dbName, 'shopinbos'),
+        DATABASE_URL: urlFor(dbName, 'shopinbos'),
+      },
       stdio: 'pipe',
     });
+    await client.query('set search_path to shopinbos, public');
 
     await client.query(`
       insert into "User"(id, "supabaseId", phone, name, "updatedAt") values
@@ -141,11 +147,27 @@ describe.skipIf(!adminUrl)('row level security', () => {
     ).rejects.toThrow(/permission denied/);
   });
 
+  it('leaves the legacy public schema alone', async () => {
+    expect((await client.query('select id from public."User"')).rows).toEqual([{ id: 'legacy_1' }]);
+    expect(
+      (await client.query(`select to_regclass('public._prisma_migrations') as t`)).rows[0].t,
+    ).toBeNull();
+    await client.query('begin');
+    try {
+      await client.query('set local role anon');
+      expect(await count(client, 'select * from public."User"')).toBe(1);
+    } finally {
+      await client.query('rollback');
+    }
+  });
+
   it('anon reads nothing', async () => {
     await client.query('begin');
     try {
       await client.query('set local role anon');
-      await expect(client.query('select * from "Store"')).rejects.toThrow(/permission denied/);
+      await expect(client.query('select * from shopinbos."Store"')).rejects.toThrow(
+        /permission denied for schema/,
+      );
     } finally {
       await client.query('rollback');
     }

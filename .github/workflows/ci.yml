@@ -37,7 +37,8 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
-      CHECK_URL: postgresql://postgres:postgres@localhost:5432/migrate_check
+      CHECK_URL: postgresql://postgres:postgres@localhost:5432/migrate_check?schema=shopinbos
+      CHECK_DB: postgresql://postgres:postgres@localhost:5432/migrate_check
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -49,7 +50,7 @@ jobs:
       - name: Apply migrations to an empty database and check for drift
         run: |
           psql "$ADMIN_URL" -c 'create database migrate_check'
-          psql "$CHECK_URL" -f packages/db/sql/supabase-stub.sql
+          psql "$CHECK_DB" -f packages/db/sql/supabase-stub.sql
           DIRECT_URL="$CHECK_URL" DATABASE_URL="$CHECK_URL" pnpm --filter @shopinbos/db migrate:deploy
           DIRECT_URL="$CHECK_URL" DATABASE_URL="$CHECK_URL" pnpm --filter @shopinbos/db migrate:check
           DATABASE_URL="$CHECK_URL" pnpm --filter @shopinbos/db seed

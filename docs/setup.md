@@ -20,16 +20,20 @@ to the server log instead of sending it.
 
 ## Supabase
 
-1. Create the project in the region closest to Lagos (open question 9).
+Shopinbos uses the existing project **`zdnwdkykcqaarlpwqjow`**. It also holds the legacy app's tables in `public`.
+Everything new lives in the `shopinbos` schema (ADR 0006).
+
+1. **Back up the database first** (Database → Backups), then apply migrations with the direct connection:
+   `DIRECT_URL="postgresql://…:5432/postgres?schema=shopinbos" pnpm db:migrate`.
+   This creates the `shopinbos` schema, tables, RLS policies and the `sb-*` storage buckets, and touches nothing in `public`.
+   Then `pnpm db:seed` for the demo world (optional on production).
 2. **Auth → Providers → Phone:** on. The SMS provider doesn't matter, because the hook replaces it.
 3. **Auth → Hooks → Send SMS:** HTTPS, URL `https://app.shopinbos.com/api/auth/hooks/send-sms`.
    Generate the secret and set it as `SUPABASE_AUTH_HOOK_SECRET` in Vercel.
-4. **Auth → Providers → Email:** on. Edit the "Magic link" template so it sends the code, not a link:
-   `Your Shopinbos code is {{ .Token }}`.
+4. **Email codes:** the "Magic link" template must contain `{{ .Token }}` to send a code. It's shared with the legacy app,
+   so change it only when the legacy app no longer depends on magic links.
 5. **Auth → Phone → Test phone numbers:** add a test number and code for e2e (`E2E_TEST_PHONE`, `E2E_TEST_OTP`).
-6. Keep the default asymmetric JWT signing keys. The API verifies tokens against the project JWKS.
-7. Migrations: `DIRECT_URL=… pnpm db:migrate`. This creates the tables, the RLS policies (`packages/db/sql/0002_rls.sql`)
-   and the storage buckets (`0003_storage.sql`).
+6. The API verifies tokens with `supabase.auth.getClaims` (JWKS for asymmetric keys, with a server check for legacy HS256 keys).
 
 ## WhatsApp OTP (platform number)
 

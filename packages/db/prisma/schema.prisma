@@ -9,6 +9,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // Own schema: the Supabase project also holds the legacy app's tables in `public` (ADR 0006).
+  schemas  = ["shopinbos"]
 }
 
 // ─── Identity and access (6.1) ────────────────────────────────────────────────
@@ -19,6 +21,8 @@ enum Locale {
   yo
   ha
   ig
+
+  @@schema("shopinbos")
 }
 
 enum OrgType {
@@ -27,6 +31,8 @@ enum OrgType {
   LOGISTICS
   SOURCING_PARTNER
   PLATFORM
+
+  @@schema("shopinbos")
 }
 
 enum KycStatus {
@@ -34,6 +40,8 @@ enum KycStatus {
   PENDING
   VERIFIED
   REJECTED
+
+  @@schema("shopinbos")
 }
 
 enum MembershipRole {
@@ -43,18 +51,24 @@ enum MembershipRole {
   DISPATCHER
   RIDER
   VIEWER
+
+  @@schema("shopinbos")
 }
 
 enum DeviceApp {
   SELLER
   RIDERS
   PARTNERS
+
+  @@schema("shopinbos")
 }
 
 enum DevicePlatform {
   IOS
   ANDROID
   WEB
+
+  @@schema("shopinbos")
 }
 
 enum KycKind {
@@ -63,6 +77,8 @@ enum KycKind {
   CAC
   ADDRESS
   SELFIE
+
+  @@schema("shopinbos")
 }
 
 enum KycCheckStatus {
@@ -70,6 +86,8 @@ enum KycCheckStatus {
   PASSED
   FAILED
   ERROR
+
+  @@schema("shopinbos")
 }
 
 model User {
@@ -90,6 +108,8 @@ model User {
   devices     Device[]
   kycChecks   KycCheck[]
   auditLogs   AuditLog[]
+
+  @@schema("shopinbos")
 }
 
 model Organization {
@@ -113,6 +133,7 @@ model Organization {
 
   @@index([type])
   @@index([kycStatus])
+  @@schema("shopinbos")
 }
 
 model Membership {
@@ -132,6 +153,7 @@ model Membership {
   @@unique([userId, orgId])
   @@index([orgId])
   @@index([role])
+  @@schema("shopinbos")
 }
 
 model Device {
@@ -147,6 +169,7 @@ model Device {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, app])
+  @@schema("shopinbos")
 }
 
 model KycCheck {
@@ -168,6 +191,7 @@ model KycCheck {
   @@index([orgId])
   @@index([userId])
   @@index([status])
+  @@schema("shopinbos")
 }
 
 model AuditLog {
@@ -191,6 +215,7 @@ model AuditLog {
   @@index([actorId])
   @@index([orgId, createdAt])
   @@index([entity, entityId])
+  @@schema("shopinbos")
 }
 
 // ─── Stores, brand, domains (6.2) ─────────────────────────────────────────────
@@ -199,6 +224,8 @@ enum StoreStatus {
   DRAFT
   LIVE
   PAUSED
+
+  @@schema("shopinbos")
 }
 
 enum LogoStyle {
@@ -207,11 +234,15 @@ enum LogoStyle {
   bold
   serif
   uploaded
+
+  @@schema("shopinbos")
 }
 
 enum BrandSource {
   REX
   UPLOAD
+
+  @@schema("shopinbos")
 }
 
 enum AssetKind {
@@ -222,6 +253,8 @@ enum AssetKind {
   QC_PHOTO
   PROOF_PHOTO
   DOC
+
+  @@schema("shopinbos")
 }
 
 enum GeneratedBy {
@@ -229,12 +262,16 @@ enum GeneratedBy {
   REX
   PEGGY
   SYSTEM
+
+  @@schema("shopinbos")
 }
 
 enum DomainType {
   SUBDOMAIN
   CUSTOM
   PURCHASED
+
+  @@schema("shopinbos")
 }
 
 enum DomainStatus {
@@ -242,11 +279,15 @@ enum DomainStatus {
   VERIFYING
   ACTIVE
   FAILED
+
+  @@schema("shopinbos")
 }
 
 enum DomainProviderKind {
   VERCEL
   CLOUDFLARE
+
+  @@schema("shopinbos")
 }
 
 model Store {
@@ -279,6 +320,7 @@ model Store {
 
   @@index([orgId])
   @@index([status])
+  @@schema("shopinbos")
 }
 
 model BrandKit {
@@ -305,6 +347,7 @@ model BrandKit {
   @@index([logoAssetId])
   @@index([logoDarkAssetId])
   @@index([iconAssetId])
+  @@schema("shopinbos")
 }
 
 model Asset {
@@ -331,6 +374,7 @@ model Asset {
 
   @@unique([bucket, path])
   @@index([storeId, kind])
+  @@schema("shopinbos")
 }
 
 model Domain {
@@ -356,4 +400,5 @@ model Domain {
 
   @@index([storeId])
   @@index([status])
+  @@schema("shopinbos")
 }
