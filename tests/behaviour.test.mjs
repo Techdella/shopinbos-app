@@ -1163,3 +1163,18 @@ test("advanced builder: page list, insert options and apps follow the store's re
   assert.equal(schema.fieldVisible({ ...section, settings: {} }, eyebrow), true);
   assert.ok(schema.sectionSchema("hero-split", "classic").style.length > 0, "older templates keep background and spacing controls");
 });
+
+test("editor API copes with stores on Start blank (no template manifest)", () => {
+  // A blank or retired template id has no manifest; asserting one exists crashed /api/store/editor and the draft preview.
+  const route = readFileSync(new URL("../src/app/api/store/editor/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(route, /getTemplateManifest\([^)]*\)!/);
+  assert.match(route, /selectedManifest \? createSnapshotFromTemplate\(selectedManifest\)/);
+});
+
+test("theme root fills its container (a size container would otherwise collapse in flex layouts)", () => {
+  const look = readFileSync(new URL("../src/components/storefront/boutique/look.ts", import.meta.url), "utf8");
+  assert.match(look, /\.bq\{container-type:inline-size;container-name:bq;width:100%;min-width:0;/);
+  for (const file of ["../src/app/s/[slug]/preview/PreviewClient.tsx", "../src/app/s/[slug]/preview/PreviewFallbackClient.tsx", "../src/app/preview/store/[slug]/[pageId]/PreviewPageClient.tsx"]) {
+    assert.doesNotMatch(readFileSync(new URL(file, import.meta.url), "utf8"), /flex: 1, display: "flex", overflow: "hidden"/, `${file} gives the storefront full width`);
+  }
+});

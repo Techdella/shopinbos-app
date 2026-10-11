@@ -299,7 +299,8 @@ export function navColors(look: BoutiqueLook): Partial<ShopperNavColors> {
 
 /** Scoped CSS for the 2026 themes. Container queries, so editor phone previews lay out like real phones. */
 export const BOUTIQUE_CSS = `
-.bq{container-type:inline-size;container-name:bq;min-height:100%;-webkit-font-smoothing:antialiased}
+/* width:100% — a size container has no intrinsic width, so inside a flex row or any shrink-to-fit parent it would collapse. */
+.bq{container-type:inline-size;container-name:bq;width:100%;min-width:0;flex:1 1 auto;min-height:100%;-webkit-font-smoothing:antialiased}
 .bq *{box-sizing:border-box}
 .bq a{color:inherit;text-decoration:none}
 .bq :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--bq-accent);outline-offset:3px}

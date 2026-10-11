@@ -89,7 +89,7 @@ export function PreviewFallbackClient({ storeBasePath, slug }: PreviewFallbackCl
         </svg>
         <span>Preview Mode — draft store. Cart & checkout are active for testing.</span>
       </div>
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, width: "100%", minWidth: 0 }}>
         <StorefrontClient
           store={store}
           storeBasePath={storeBasePath}

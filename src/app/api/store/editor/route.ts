@@ -94,9 +94,9 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
 
   const brandSettings = ((store.brandSettings as Record<string, unknown>) ?? {}) as StoreBrandSettingsLike;
   const selectedTemplate = getCurrentTemplateMeta(brandSettings);
-  const fallbackDraft = selectedTemplate
-    ? createSnapshotFromTemplate(getTemplateManifest(selectedTemplate.templateId)!)
-    : null;
+  // "blank" (Start blank) and retired templates have no manifest: then the saved draft is the only source.
+  const selectedManifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
+  const fallbackDraft = selectedManifest ? createSnapshotFromTemplate(selectedManifest) : null;
   const envelope = buildEditorEnvelope(brandSettings, fallbackDraft);
   // The builder previews the store as shoppers see it: delivery promises, WhatsApp, collections and real reviews.
   const shopper = await loadShopperInfo(store.id, store.brandSettings, store.storeProducts);
@@ -127,9 +127,8 @@ export const PATCH = withSeller(async (req: NextRequest, { user }) => {
 
   const brandSettings = ((store.brandSettings as Record<string, unknown>) ?? {}) as StoreBrandSettingsLike;
   const selectedTemplate = getCurrentTemplateMeta(brandSettings);
-  const fallbackDraft = selectedTemplate
-    ? createSnapshotFromTemplate(getTemplateManifest(selectedTemplate.templateId)!)
-    : createBlankEditorSnapshot(store.name);
+  const selectedManifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
+  const fallbackDraft = selectedManifest ? createSnapshotFromTemplate(selectedManifest) : createBlankEditorSnapshot(store.name);
 
   let nextSettings = brandSettings;
   let draft = resolveDraftSnapshot(brandSettings, fallbackDraft);

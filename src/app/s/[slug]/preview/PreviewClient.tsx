@@ -73,7 +73,7 @@ export function PreviewClient({ store: initialStore, storeBasePath, slug }: Prev
           </a>
         )}
       </div>
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, width: "100%", minWidth: 0 }}>
         <StorefrontClient
           store={initialStore}
           storeBasePath={storeBasePath}

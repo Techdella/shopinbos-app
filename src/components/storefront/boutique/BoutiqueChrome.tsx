@@ -27,7 +27,7 @@ export function AnnouncementBar({ text, look }: { text: string | null; look: Bou
 function Logo({ store, logoText, look, onHome, centred }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean }) {
   return (
     <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: look.tokens.ink, cursor: "pointer" }} aria-label={`${store.name} home`}>
-      {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" /> : null}
+      {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
       <span className="truncate text-[22px] leading-none @3xl:text-[24px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>
         {logoText}
       </span>
