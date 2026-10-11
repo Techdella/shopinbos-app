@@ -7,6 +7,7 @@ import { Notice } from "@/components/app-ui";
 import { logisticsRouteLimitMessage } from "@/lib/plan-limits";
 import { KeyValue, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
 import { LogoUploadForm } from "./LogoUploadForm";
+import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { CoverImageUpload } from "./CoverImageUpload";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +83,13 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                 <div className="truncate text-[17px] font-extrabold">{partner.displayName}</div>
                 <div className="text-[13px] text-app-ink-soft">Logo and cover save as soon as you pick a picture.</div>
               </div>
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <CardHead title="Your photo" sub="Shows in the top bar, the menu and your messages with sellers." />
+            <div className="mt-4">
+              <IdentityImageUploader kind="avatar" initialUrl={user.avatarUrl ?? null} name={user.name} title="Your photo" hideTitle />
             </div>
           </Card>
 

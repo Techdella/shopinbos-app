@@ -8,7 +8,7 @@ import { NAV_BY_ROLE, type NavGroup, type NavItem, type Role } from "@/lib/nav";
 import { cx } from "@/components/app-ui";
 import { SignOutButton } from "./SignOutButton";
 import { SupportChatModal } from "./SupportChatModal";
-import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts } from "./useShellCounts";
+import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity } from "./useShellCounts";
 
 // App sidebar in the 2026 design (Seller app · web mockup): white rail, store card, orange "Add product",
 // grouped nav with an orange bar on the active item. On small screens it slides in from the top bar's menu button.
@@ -48,6 +48,8 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const [canHover, setCanHover] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
   const { prefs } = usePreferences();
+  // Store logo and the person's photo stay in step with uploads made anywhere in the app.
+  const me = useIdentity({ name: userName, logoUrl: storeLogoUrl });
 
   // Hover flyouts only where there's a mouse and room for the rail; touch screens expand submenus inline.
   useEffect(() => {
@@ -199,9 +201,9 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
       {role === "seller" && (
         <>
           <Link href="/home/settings" className="mb-2.5 flex min-h-[52px] items-center gap-2.5 rounded-[10px] bg-app-canvas px-2.5 text-app-ink no-underline">
-            {storeLogoUrl ? (
+            {me.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={storeLogoUrl} alt="" className="h-8 w-8 rounded-[10px] object-cover" />
+              <img src={me.logoUrl} alt="" className="h-8 w-8 rounded-[10px] object-cover" />
             ) : (
               <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-app-peach text-[14px] font-extrabold text-app-accent-ink">{initial}</span>
             )}
@@ -221,9 +223,14 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
 
       <div className="mt-3 flex items-center gap-1 border-t border-app-line pt-3">
         <Link href={PROFILE_HREF[role]} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-app-ink no-underline hover:bg-app-canvas">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-ink text-[12.5px] font-bold text-white">{(userName ?? "U").charAt(0).toUpperCase()}</span>
+          {me.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={me.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-ink text-[12.5px] font-bold text-white">{(me.name || "U").charAt(0).toUpperCase()}</span>
+          )}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-bold">{userName ?? "Your account"}</span>
+            <span className="block truncate text-[13px] font-bold">{me.name || "Your account"}</span>
             <span className="block text-[11px] text-app-ink-soft">{ROLE_LABEL[role]}</span>
           </span>
         </Link>

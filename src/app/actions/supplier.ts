@@ -302,29 +302,14 @@ export async function updateSupplierProfile(formData: FormData) {
   redirect("/supplier/profile?saved=true");
 }
 
-export async function uploadSupplierLogo(formData: FormData) {
-  const { user, supplier } = await getSupplierActor();
-  const file = formData.get("logo") as File | null;
-  if (!file) redirect("/supplier/profile?error=No+file+selected");
-
-  try {
-    const { uploadFileServer } = await import("@/lib/supabase/storage.server");
-    const { publicUrl } = await uploadFileServer("supplier-logos", file, `supplier-logos/${supplier.id}/${file.name}`);
-    await db.supplier.update({ where: { id: supplier.id }, data: { logoUrl: publicUrl } });
-  } catch {
-    redirect("/supplier/profile?error=Upload+failed");
-  }
-  redirect("/supplier/profile?saved=true");
-}
-
 export async function uploadSupplierCover(formData: FormData) {
   const { user, supplier } = await getSupplierActor();
   const file = formData.get("cover") as File | null;
   if (!file) redirect("/supplier/profile?error=No+file+selected");
 
   try {
-    const { uploadFileServer } = await import("@/lib/supabase/storage.server");
-    const { publicUrl } = await uploadFileServer("supplier-logos", file, `supplier-covers/${supplier.id}/${file.name}`);
+    const { uploadFileServer, uploadPath } = await import("@/lib/supabase/storage.server");
+    const { publicUrl } = await uploadFileServer("supplier-logos", file, uploadPath(`supplier-covers/${supplier.id}`, file));
     await db.supplier.update({ where: { id: supplier.id }, data: { bannerUrl: publicUrl } });
   } catch {
     redirect("/supplier/profile?error=Upload+failed");
@@ -338,8 +323,8 @@ export async function uploadSupplierPhoto(formData: FormData) {
   if (!file) redirect("/supplier/profile?error=No+file+selected");
 
   try {
-    const { uploadFileServer } = await import("@/lib/supabase/storage.server");
-    const { publicUrl } = await uploadFileServer("supplier-logos", file, `supplier-photos/${supplier.id}/${file.name}`);
+    const { uploadFileServer, uploadPath } = await import("@/lib/supabase/storage.server");
+    const { publicUrl } = await uploadFileServer("supplier-logos", file, uploadPath(`supplier-photos/${supplier.id}`, file));
     const state = typeof supplier.onboardingState === "object" && supplier.onboardingState ? { ...(supplier.onboardingState as Record<string, unknown>) } : {};
     const existingPhotos = Array.isArray(state.workshopPhotos) ? state.workshopPhotos : [];
     await db.supplier.update({

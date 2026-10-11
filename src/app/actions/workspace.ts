@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
-import { uploadFileServer } from "@/lib/supabase/storage.server";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -222,23 +221,6 @@ export async function updateSellerProfile(formData: FormData) {
   redirect("/home/settings?saved=true");
 }
 
-export async function uploadAvatar(formData: FormData) {
-  const user = await getSellerUserOrThrow();
-  const file = formData.get("avatar") as File | null;
-  if (!file) redirect("/home/profile?error=No+file+selected");
-
-  try {
-    const { publicUrl } = await uploadFileServer("avatars", file, `avatars/${user.id}/${file.name}`);
-    await db.user.update({
-      where: { id: user.id },
-      data: { avatarUrl: publicUrl },
-    });
-    redirect("/home/profile?saved=true");
-  } catch {
-    redirect("/home/profile?error=Upload+failed");
-  }
-}
-
 export async function markMarketplaceReviewed() {
   const user = await getSellerUserOrThrow();
   const store = await db.store.findUnique({ where: { userId: user.id } });
@@ -339,26 +321,6 @@ export async function savePeggyMemory(formData: FormData) {
   });
 
   redirect("/home/settings?tab=Peggy+%26+AI&saved=true");
-}
-
-export async function uploadStoreLogo(formData: FormData) {
-  const user = await getSellerUserOrThrow();
-  const file = formData.get("logo") as File | null;
-  if (!file) redirect("/home/settings?error=No+file+selected");
-
-  const store = await db.store.findUnique({ where: { userId: user.id } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  try {
-    const { publicUrl } = await uploadFileServer("brand", file, `logos/store/${store.id}/${file.name}`);
-    await db.store.update({
-      where: { id: store.id },
-      data: { logoUrl: publicUrl },
-    });
-    redirect("/home/settings?saved=true&tab=Store");
-  } catch {
-    redirect("/home/settings?error=Upload+failed&tab=Store");
-  }
 }
 
 export async function saveStoreSettings(formData: FormData) {

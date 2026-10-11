@@ -13,6 +13,7 @@ type ContactUser = {
   id: string;
   name: string;
   role: string;
+  avatarUrl: string | null;
 };
 
 function serializeConversation(
@@ -56,8 +57,8 @@ async function ensureConversation(currentUserId: string, contactUserId: string) 
     },
     update: {},
     include: {
-      participant1: { select: { id: true, name: true, role: true } },
-      participant2: { select: { id: true, name: true, role: true } },
+      participant1: { select: { id: true, name: true, avatarUrl: true, role: true } },
+      participant2: { select: { id: true, name: true, avatarUrl: true, role: true } },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -79,8 +80,8 @@ export default async function SellerMessagesPage() {
     },
     orderBy: { updatedAt: "desc" },
     include: {
-      participant1: { select: { id: true, name: true, role: true } },
-      participant2: { select: { id: true, name: true, role: true } },
+      participant1: { select: { id: true, name: true, avatarUrl: true, role: true } },
+      participant2: { select: { id: true, name: true, avatarUrl: true, role: true } },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,

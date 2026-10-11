@@ -7,7 +7,8 @@ import { AppPage, AssistantNote, Card, CardHead, FilterChips, Pill, PillLink, Sp
 import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
-import { SupplierCoverUpload, SupplierLogoUpload, SupplierPhotoUpload } from "@/components/supplier/SupplierProfileUploads";
+import { SupplierCoverUpload, SupplierPhotoUpload } from "@/components/supplier/SupplierProfileUploads";
+import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { VERIFICATION_LABEL, buttonClass, fieldClass, hintClass, labelClass, supplierFrame, textareaClass } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { isProPlan } from "@/lib/role-queries";
@@ -95,9 +96,21 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
                 <Card className="p-5 sm:p-6">
                   <CardHead title="Logo and cover" sub="Photos upload as soon as you pick them." />
                   <div className="mt-4"><SupplierCoverUpload bannerUrl={supplier.bannerUrl} /></div>
-                  <div className="mt-4 flex items-center gap-4">
-                    <SupplierLogoUpload logoUrl={supplier.logoUrl} displayName={supplier.displayName} />
-                    <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">A square logo works best. It shows on your products and in seller searches.</p>
+                  <div className="mt-4">
+                    <IdentityImageUploader
+                      kind="logo"
+                      initialUrl={supplier.logoUrl ?? null}
+                      name={supplier.displayName}
+                      title="Business logo"
+                      hint="A square logo works best. It shows on your products, your marketplace profile and in seller searches."
+                    />
+                  </div>
+                </Card>
+
+                <Card className="p-5 sm:p-6">
+                  <CardHead title="Your photo" sub="Shows in the top bar, the menu and your messages with sellers." />
+                  <div className="mt-4">
+                    <IdentityImageUploader kind="avatar" initialUrl={user.avatarUrl ?? null} name={user.name} title="Your photo" hideTitle />
                   </div>
                 </Card>
 

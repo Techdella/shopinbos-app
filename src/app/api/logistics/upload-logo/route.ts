@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     const file = formData.get("logo") as File | null;
     if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
 
-    const { uploadFileServer } = await import("@/lib/supabase/storage.server");
-    const { publicUrl } = await uploadFileServer("logistics-logos", file, `logos/${partner.id}/${file.name}`);
+    const { uploadFileServer, uploadPath } = await import("@/lib/supabase/storage.server");
+    const { publicUrl } = await uploadFileServer("logistics-logos", file, uploadPath(`logos/${partner.id}`, file));
 
     await db.logisticsPartner.update({ where: { id: partner.id }, data: { logoUrl: publicUrl } });
     return NextResponse.json({ url: publicUrl });

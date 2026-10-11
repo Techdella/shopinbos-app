@@ -38,6 +38,16 @@ export function supabaseUser(token) {
 const port = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 
 const sentEmails = [];
+// In-memory Supabase Storage: uploads, public reads and deletes, enough for photo/logo/document uploads.
+const storedFiles = new Map();
+
+function readRaw(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+  });
+}
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -50,6 +60,45 @@ function readBody(req) {
 http
   .createServer(async (req, res) => {
     res.setHeader("content-type", "application/json");
+    const storage = req.url?.match(/^\/storage\/v1\/object\/(public\/)?([^?]+)/);
+    if (storage) {
+      const key = decodeURIComponent(storage[2]);
+      if (req.method === "GET" && storage[1]) {
+        const file = storedFiles.get(key);
+        if (!file) {
+          res.statusCode = 404;
+          return res.end("{}");
+        }
+        res.setHeader("content-type", file.type);
+        return res.end(file.body);
+      }
+      if (req.method === "POST" || req.method === "PUT") {
+        const body = await readRaw(req);
+        if (req.method === "POST" && storedFiles.has(key) && req.headers["x-upsert"] !== "true") {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({ statusCode: "409", error: "Duplicate", message: "The resource already exists" }));
+        }
+        let type = req.headers["content-type"] ?? "application/octet-stream";
+        let content = body;
+        if (type.startsWith("multipart/form-data")) {
+          // supabase-js sends File/Blob bodies as form data with the file in an unnamed field.
+          const form = await new Response(body, { headers: { "content-type": type } }).formData();
+          const file = [...form.values()].find((value) => typeof value !== "string");
+          if (file) {
+            content = Buffer.from(await file.arrayBuffer());
+            type = file.type || "application/octet-stream";
+          }
+        }
+        storedFiles.set(key, { body: content, type });
+        return res.end(JSON.stringify({ Key: key, Id: key }));
+      }
+      if (req.method === "DELETE") {
+        const bucket = key.split("/")[0];
+        const { prefixes = [] } = JSON.parse((await readRaw(req)).toString() || "{}");
+        for (const prefix of prefixes) storedFiles.delete(`${bucket}/${prefix}`);
+        return res.end(JSON.stringify(prefixes.map((name) => ({ name }))));
+      }
+    }
     if (req.url?.startsWith("/resend/")) {
       if (req.method === "GET" && req.url === "/resend/__sent") return res.end(JSON.stringify(sentEmails));
       const payload = await readBody(req);

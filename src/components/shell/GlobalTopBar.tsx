@@ -10,7 +10,8 @@ import { NotificationsDrawer } from "./NotificationsDrawer";
 import { SearchModal } from "./SearchModal";
 import { ConversationsModal } from "./ConversationsModal";
 import { SignOutButton } from "./SignOutButton";
-import { TOGGLE_NAV_EVENT, useShellCounts } from "./useShellCounts";
+import { TOGGLE_NAV_EVENT, useIdentity, useShellCounts } from "./useShellCounts";
+import { initialsOf } from "@shared/identity-images";
 
 // Top bar in the 2026 design: page title, pill search ("/" to focus), Ask Peggy, notifications, account menu.
 
@@ -53,7 +54,10 @@ export function GlobalTopBar({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const counts = useShellCounts();
   const title = usePageTitle(role);
-  const initials = userInitials ?? userName.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+  // Photo and name follow uploads and profile edits made anywhere in the app (see useIdentity).
+  const me = useIdentity({ name: userName === "You" ? undefined : userName, avatarUrl });
+  const displayName = me.name || userName;
+  const initials = me.name ? initialsOf(me.name) : userInitials ?? initialsOf(userName);
   const unread = counts?.notifications ?? 0;
 
   useEffect(() => {
@@ -115,9 +119,9 @@ export function GlobalTopBar({
         </button>
         <div className="relative" ref={menuRef}>
           <button type="button" aria-label="Account" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="grid h-[42px] w-[42px] place-items-center overflow-hidden rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink">
-            {avatarUrl ? (
+            {me.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              <img src={me.avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
               initials
             )}
@@ -125,7 +129,7 @@ export function GlobalTopBar({
           {menuOpen && (
             <div className="absolute right-0 top-full z-50 mt-2 min-w-[220px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]">
               <div className="px-3 py-2">
-                <div className="truncate text-[14px] font-extrabold">{userName}</div>
+                <div className="truncate text-[14px] font-extrabold">{displayName}</div>
                 {email && <div className="truncate text-[12px] text-app-ink-soft">{email}</div>}
               </div>
               <Link href={PROFILE_HREF[role]} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-[13.5px] font-semibold text-app-ink no-underline hover:bg-app-canvas">

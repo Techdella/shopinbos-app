@@ -9,6 +9,7 @@ interface Participant {
   id: string;
   name: string;
   role: string;
+  avatarUrl?: string | null;
 }
 
 interface LastMessage {
@@ -45,7 +46,11 @@ function formatTime(iso: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function Avatar({ name, size = 32, role }: { name: string; size?: number; role?: string }) {
+function Avatar({ name, size = 32, role, url }: { name: string; size?: number; role?: string; url?: string | null }) {
+  if (url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />;
+  }
   const initials = name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
   const colors: Record<string, string[]> = {
     seller: ["#f15928", "#d24414"],
@@ -160,7 +165,7 @@ export function InboxClient({
                   background: activeConvId === conv.id ? "var(--teal-50)" : "transparent",
                 }}
               >
-                <Avatar name={other.name} role={other.role} />
+                <Avatar name={other.name} role={other.role} url={other.avatarUrl} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 4 }}>
                     <span style={{ fontWeight: isUnread ? 700 : 500, fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: isUnread ? "var(--ink-900)" : "var(--ink-700)" }}>
@@ -190,7 +195,7 @@ export function InboxClient({
         {activeConv && otherParticipant ? (
           <>
             <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--ink-100)", display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 13 }}>
-              <Avatar name={otherParticipant.name} size={30} role={otherParticipant.role} />
+              <Avatar name={otherParticipant.name} size={30} role={otherParticipant.role} url={otherParticipant.avatarUrl} />
               <div>
                 <div>{otherParticipant.name}</div>
                 <div style={{ fontSize: 10.5, color: "var(--ink-500)", fontWeight: 400, textTransform: "capitalize" }}>{otherParticipant.role.replace(/_/g, " ")}</div>

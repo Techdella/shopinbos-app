@@ -1,6 +1,7 @@
 // Behavioural tests for pure TypeScript helpers (Node strips the types natively).
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 const render = await import("../src/lib/campaigns/render.ts");
 const { redemptionError } = await import("../src/lib/discounts.ts");
@@ -761,4 +762,37 @@ test("storefront catalog helpers: real stock, variant groups and search", async 
   assert.deepEqual(catalog.searchProducts(products, "shirts").map((p) => p.id), ["1"]);
   assert.deepEqual(catalog.searchProducts(products, "  ").map((p) => p.id), ["1", "2"]);
   assert.deepEqual(catalog.productCategories(products), [{ slug: "shirts", name: "Shirts", imageUrl: null, count: 1 }]);
+});
+
+test("profile photos and logos: accepted files, initials and logo names per role", async () => {
+  const images = await import("../shared/identity-images.ts");
+  assert.equal(images.identityImageProblem({ type: "image/webp", size: 200_000 }), null);
+  assert.equal(images.identityImageProblem({ type: "image/png", size: images.IDENTITY_IMAGE_MAX_BYTES }), null);
+  assert.match(images.identityImageProblem({ type: "image/png", size: images.IDENTITY_IMAGE_MAX_BYTES + 1 }), /over 4 MB/);
+  assert.match(images.identityImageProblem({ type: "image/gif", size: 10 }), /JPG, PNG or WebP/);
+  assert.match(images.identityImageProblem({ type: "image/svg+xml", size: 10 }), /JPG, PNG or WebP/, "SVG can carry scripts, so it isn't accepted");
+  assert.match(images.identityImageProblem({ type: "image/jpeg", size: 0 }), /empty/);
+  assert.equal(images.initialsOf("Ada  Obi"), "AO");
+  assert.equal(images.initialsOf("chioma"), "C");
+  assert.equal(images.initialsOf(""), "?");
+  assert.equal(images.logoLabelFor("seller"), "Store logo");
+  assert.equal(images.logoLabelFor("supplier"), "Business logo");
+  assert.equal(images.logoLabelFor("logistics_partner"), "Company logo");
+  assert.equal(images.logoLabelFor("admin"), null);
+});
+
+test("photo and logo uploads go through one API and update the shell everywhere", () => {
+  const route = readFileSync(new URL("../src/app/api/app/me/images/route.ts", import.meta.url), "utf8");
+  assert.match(route, /export const POST = withAuth/);
+  assert.match(route, /export const DELETE = withAuth/);
+  const shell = readFileSync(new URL("../src/components/shell/useShellCounts.ts", import.meta.url), "utf8");
+  assert.match(shell, /export function broadcastIdentity/);
+  for (const file of ["../src/components/shell/GlobalTopBar.tsx", "../src/components/shell/Sidebar.tsx"]) {
+    assert.match(readFileSync(new URL(file, import.meta.url), "utf8"), /useIdentity\(/, `${file} follows photo/logo changes`);
+  }
+  const storage = readFileSync(new URL("../src/lib/supabase/storage.server.ts", import.meta.url), "utf8");
+  assert.match(storage, /export function uploadPath/);
+  for (const file of ["../src/app/actions/supplier.ts", "../src/app/actions/logistics.ts", "../src/app/api/logistics/upload-banner/route.ts"]) {
+    assert.doesNotMatch(readFileSync(new URL(file, import.meta.url), "utf8"), /\$\{file\.name\}/, `${file} never reuses the browser's file name`);
+  }
 });

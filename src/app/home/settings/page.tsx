@@ -1,9 +1,9 @@
 import { requireRole } from "@/lib/server-auth";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { getSellerWorkspace } from "@/lib/workspace";
-import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, uploadStoreLogo, closeStore, inviteTeamMember } from "@/app/actions/workspace";
+import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
+import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, closeStore, inviteTeamMember } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
-import Image from "next/image";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
 import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
@@ -76,24 +76,15 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               <>
                 <Card className="p-5">
                   <CardHead title="Store logo" />
-                  <div className="mt-4 flex flex-wrap items-center gap-4">
-                    {storeLogoUrl ? (
-                      <Image src={storeLogoUrl} alt="Store logo" width={64} height={64} className="h-16 w-16 rounded-[14px] border border-app-line object-cover" unoptimized />
-                    ) : (
-                      <span className="grid h-16 w-16 place-items-center rounded-[14px] border border-app-line bg-app-canvas text-[24px] font-extrabold">{storeName.charAt(0).toUpperCase()}</span>
-                    )}
-                    <form action={uploadStoreLogo} className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-                      <label htmlFor="logo" className="sr-only">Choose a logo image</label>
-                      <input
-                        id="logo"
-                        type="file"
-                        name="logo"
-                        accept="image/*"
-                        required
-                        className="min-w-0 flex-1 text-[13.5px] file:mr-3 file:min-h-[40px] file:cursor-pointer file:rounded-full file:border file:border-app-line file:bg-white file:px-4 file:text-[13.5px] file:font-bold"
-                      />
-                      <button type="submit" className={SUBMIT_INK}>Upload</button>
-                    </form>
+                  <div className="mt-4">
+                    <IdentityImageUploader
+                      kind="logo"
+                      initialUrl={storeLogoUrl ?? null}
+                      name={storeName}
+                      title="Store logo"
+                      hideTitle
+                      hint="Shows on your storefront, checkout, order pages, shipping labels and your menu. A square image works best."
+                    />
                   </div>
                 </Card>
 
@@ -179,7 +170,12 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                   <CardHead title="Team" sub="People who help run your store." className="px-5 pb-3 pt-5" />
                   <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
                     <li className="flex items-center gap-3 px-5 py-3.5">
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-ink text-[14px] font-extrabold text-white">{initials}</span>
+                      {user.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-ink text-[14px] font-extrabold text-white">{initials}</span>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14.5px] font-extrabold">{user.name}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">{user.email} · Owner</div>

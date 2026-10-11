@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
-import { updateSellerProfile, uploadAvatar } from "@/app/actions/workspace";
+import { updateSellerProfile } from "@/app/actions/workspace";
+import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { PageToast } from "@/components/PageToast";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, Pill, StatTile } from "@/components/app-kit";
@@ -16,7 +17,6 @@ export default async function SellerProfilePage() {
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store ?? null;
   const storeName = store?.name ?? "Your Store";
-  const initials = user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -38,27 +38,36 @@ export default async function SellerProfilePage() {
       <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="grid min-w-0 content-start gap-5">
           <Card className="flex flex-col items-center p-6 text-center">
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt="" className="h-20 w-20 rounded-full border border-app-line object-cover" />
-            ) : (
-              <span className="grid h-20 w-20 place-items-center rounded-full bg-app-ink text-[28px] font-extrabold text-white">{initials}</span>
-            )}
-            <h2 className="mb-0 mt-3 max-w-full truncate text-[18px] font-extrabold">{user.name}</h2>
+            <h2 className="m-0 max-w-full truncate text-[18px] font-extrabold">{user.name}</h2>
             <p className="mb-3 mt-0.5 max-w-full truncate text-[13.5px] text-app-ink-soft">{storeName} · Seller</p>
             <Pill tone={verified ? "success" : "muted"} dot>{verified ? "Verified seller" : "Not verified yet"}</Pill>
-
-            <form action={uploadAvatar} className="mt-5 grid w-full gap-3 border-t border-app-line pt-4">
-              <label htmlFor="avatar" className="text-[14px] font-bold">Change photo</label>
-              <input
-                id="avatar"
-                type="file"
-                name="avatar"
-                accept="image/*"
-                className="w-full min-w-0 text-[13px] file:mr-3 file:min-h-[40px] file:cursor-pointer file:rounded-full file:border file:border-app-line file:bg-white file:px-4 file:text-[13.5px] file:font-bold"
+            <div className="mt-5 w-full border-t border-app-line pt-4 text-left">
+              <IdentityImageUploader
+                kind="avatar"
+                initialUrl={user.avatarUrl ?? null}
+                name={user.name}
+                title="Your photo"
+                hint="Shows in the top bar, the menu, messages and your replies to reviews."
               />
-              <button type="submit" className={SUBMIT_INK}>Upload</button>
-            </form>
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <CardHead title="Store logo" sub="Shows on your storefront, checkout, order pages, shipping labels and your menu." />
+            <div className="mt-4">
+              {store ? (
+                <IdentityImageUploader
+                  kind="logo"
+                  initialUrl={store.logoUrl ?? null}
+                  name={storeName}
+                  title="Store logo"
+                  hideTitle
+                  hint="A square image works best, ideally 512 × 512 or larger. Transparent PNGs keep their background."
+                />
+              ) : (
+                <p className="m-0 text-[13.5px] text-app-ink-soft">Create your store first, then add its logo here.</p>
+              )}
+            </div>
           </Card>
 
           <Card className="p-5">
