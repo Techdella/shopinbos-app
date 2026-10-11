@@ -162,6 +162,9 @@ const apiChecks = [
   ["/api/store/automations", "seller"],
   ["/api/notifications", "seller"],
   ["/api/app/onboarding", "seller", true],
+  ["/api/app/dashboard", "seller", true],
+  ["/api/app/shell-counts", "seller", true],
+  ["/api/app/shell-counts", "supplier", true],
   ["/api/app/payout-bank", "seller", true],
   // A seller still in onboarding must reach the API, not be redirected to the onboarding page.
   ["/api/app/onboarding", "new_seller", true],

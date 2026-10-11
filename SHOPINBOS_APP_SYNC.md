@@ -111,6 +111,19 @@ Status: built against the 2026 app prototypes; web verified locally (route smoke
 - [ ] Next design phase: seller app dashboard (web and mobile), supplier / logistics onboarding restyle, then remove the legacy seller branch of `OnboardingFlow.tsx`.
 - [ ] Checkout does not read the payment-method preferences (`brandSettings.paymentConfig.methods`) yet.
 
+### Phase 9 - Seller Home Dashboard and App Shell (web + Expo)
+
+Status: built against the "Seller app · web" and "Seller app · iOS and Android" mockups; verified locally.
+
+- [x] App shell for every portal: new sidebar (store card, Add product, grouped nav, badges) and top bar (title, pill search, Ask Peggy, notifications with real unread state); slide-in menu on small screens.
+- [x] Seller nav per the mockup; extra existing pages under "More tools"; a test checks every nav link has a page.
+- [x] Seller home with real data (`src/lib/dashboard`): today's and this week's sales, orders, visitors, chats, Peggy's tasks, 14-day sales, checklist, latest orders, order channels, imports, best sellers. `GET /api/app/dashboard` serves the app.
+- [x] Order channel tracking (`RetailOrder.channel` from `?ref=` / `utm_source`) and a storefront visit beacon for "Visitors".
+- [x] Expo app: home, Products, Chats, Orders and More tabs, the orange "+" for adding products from photos, and native Ask Peggy (`POST /api/app/peggy`).
+- [ ] Apply `docs/migrations/2026-10-11-order-channel.sql` to the live database (needed before checkout writes `channel`).
+- [ ] Restyle inner seller pages (orders, products, customers…) to the new design; build Ads, Video studio, Affiliates and Labels and print, which the mockup's nav shows.
+- [ ] Bring the inbox to the app (needs buyer conversations, today only supplier/logistics messages and contact forms exist).
+
 ## Current Todos
 
 - [x] Finish the onboarding visual QA pass against the supplied mockup screens.

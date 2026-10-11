@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { ok, okList, apiError } from "@/lib/api/response";
+import { orderRow } from "@/lib/dashboard/compute";
 
 export const GET = withSeller(async (req, { user }) => {
   const url = new URL(req.url);
@@ -27,5 +28,9 @@ export const GET = withSeller(async (req, { user }) => {
     }),
   ]);
 
-  return okList(orders, { page, limit, total });
+  // `row` carries the plain-language stage and payment labels the apps show (same as the web dashboard).
+  return okList(
+    orders.map((order) => ({ ...order, row: orderRow({ ...order, total: Number(order.total) }) })),
+    { page, limit, total },
+  );
 });
