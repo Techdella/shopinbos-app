@@ -3,7 +3,7 @@ import { colors } from "@/theme";
 
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -17,6 +17,7 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   mic: () => <><Rect x="9" y="3" width="6" height="11" rx="3" /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>,
   receipt: () => <><Path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" /><Path d="M9 8h6M9 12h6" /></>,
   play: () => <Path d="M7 5l12 7-12 7V5z" />,
+  printer: () => <><Path d="M7 9V3h10v6" /><Path d="M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" /><Path d="M7 14h10v7H7z" /></>,
   megaphone: () => <><Path d="M4 10v4l11 5V5L4 10z" /><Path d="M15 9a3 3 0 0 1 0 6M7 14l1 5h3" /></>,
   sparkle: () => <Path d="M12 3l2.2 6.3L20 12l-5.8 2.7L12 21l-2.2-6.3L4 12l5.8-2.7z" />,
   truck: () => <><Path d="M3 6h11v10H3zM14 10h4l3 3v3h-7" /><Circle cx="7" cy="18" r="1.8" /><Circle cx="17" cy="18" r="1.8" /></>,

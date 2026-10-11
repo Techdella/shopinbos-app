@@ -23,8 +23,12 @@ const TRANSITIONS: Record<string, string[]> = {
   processing: ["packed", "cancelled"],
   packed:     ["shipped", "cancelled"],
   shipped:    ["delivered"],
-  pending:    ["cancelled"],
+  // Cash, transfer or POS received outside Paystack (e.g. a recorded sale or pay on delivery).
+  pending:          ["paid", "cancelled"],
+  awaiting_payment: ["paid", "cancelled"],
 };
+
+const ACTION_LABELS: Record<string, string> = { paid: "Mark as paid" };
 
 const LOGISTICS_OPTIONS = [
   { value: "personal", label: "Personal logistics", desc: "I will handle delivery myself" },
@@ -204,7 +208,7 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
               onClick={() => handleStatusClick(status)}
               disabled={loading !== null}
             >
-              {loading === status ? "Updating..." : status === "shipped" ? "Ship Order" : STATUS_LABELS[status] ?? status}
+              {loading === status ? "Updating..." : status === "shipped" ? "Ship Order" : ACTION_LABELS[status] ?? STATUS_LABELS[status] ?? status}
             </Btn>
           ))}
           {error && <p className="text-[12px] text-[var(--color-coral)] mt-1">{error}</p>}

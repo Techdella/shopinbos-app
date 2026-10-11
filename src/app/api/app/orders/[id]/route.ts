@@ -4,6 +4,8 @@ import { withSeller } from "@/lib/auth/middleware";
 import { ok, apiError } from "@/lib/api/response";
 import { z } from "zod";
 import { triggerAutomations } from "@/lib/automations/engine";
+import { orderRow } from "@/lib/dashboard/compute";
+import { statusWhenMarkedPaid } from "@shared/sales";
 
 const STATUS_EVENTS: Record<string, string> = {
   processing: "order_processing",
@@ -14,7 +16,9 @@ const STATUS_EVENTS: Record<string, string> = {
 };
 
 const UpdateSchema = z.object({
-  status: z.enum(["processing", "packed", "shipped", "delivered", "cancelled"]),
+  // "paid" is the seller confirming cash, transfer or POS for an unpaid order (e.g. a recorded sale).
+  status: z.enum(["paid", "processing", "packed", "shipped", "delivered", "cancelled"]),
+  paymentMethod: z.enum(["transfer", "cash", "pos"]).optional(),
   notes: z.string().optional(),
   trackingCode: z.string().optional(),
   logisticsType: z.enum(["personal", "network", "pickup"]).optional(),
@@ -30,7 +34,7 @@ export const GET = withSeller(async (req, { user, params }) => {
   const order = await db.retailOrder.findFirst({ where: { id, storeId: store.id } });
   if (!order) return apiError("NOT_FOUND", "Order not found", 404);
 
-  return ok(order);
+  return ok({ ...order, row: orderRow({ ...order, total: Number(order.total) }) });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {
@@ -47,6 +51,13 @@ export const PATCH = withSeller(async (req, { user, params }) => {
   if (!order) return apiError("NOT_FOUND", "Order not found", 404);
 
   const updateData: Record<string, unknown> = { status: parsed.data.status };
+  if (parsed.data.status === "paid") {
+    if (order.status !== "pending" && order.status !== "awaiting_payment") return apiError("BAD_REQUEST", "This order is already paid");
+    const status = statusWhenMarkedPaid(order.logisticsDetails);
+    updateData.status = status;
+    updateData.paymentMethod = parsed.data.paymentMethod ?? order.paymentMethod ?? "transfer";
+    if (status === "delivered") updateData.deliveredAt = new Date();
+  }
   if (parsed.data.notes) updateData.notes = parsed.data.notes;
   if (parsed.data.trackingCode) updateData.trackingCode = parsed.data.trackingCode;
   if (parsed.data.logisticsType) updateData.logisticsDetails = { type: parsed.data.logisticsType, ...(parsed.data.logisticsDetails || {}) };
@@ -73,5 +84,5 @@ export const PATCH = withSeller(async (req, { user, params }) => {
     ]).catch(() => {});
   }
 
-  return ok(updated);
+  return ok({ ...updated, row: orderRow({ ...updated, total: Number(updated.total) }) });
 });

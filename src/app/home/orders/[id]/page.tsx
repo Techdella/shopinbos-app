@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { FulfillmentPanel } from "./FulfillmentPanel";
+import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
+import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,9 +35,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         title={order.orderNumber}
         subtitle={`Placed by ${order.buyerName} · ${new Date(order.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}`}
         actions={
-          <Link href="/home/orders" className="no-underline">
-            <Btn variant="ghost" size="sm">← Back to orders</Btn>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/home/labels?orders=${order.id}`} className="no-underline">
+              <Btn variant="ghost" size="sm">Print label</Btn>
+            </Link>
+            <Link href="/home/orders" className="no-underline">
+              <Btn variant="ghost" size="sm">← Back to orders</Btn>
+            </Link>
+          </div>
         }
       />
 
@@ -64,10 +71,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <div className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--color-teal-deep)] mb-3">Customer</div>
               <div className="grid gap-1 text-[14px]">
                 <div><span className="text-[var(--color-muted)]">Name: </span><span className="font-semibold text-[var(--color-navy)]">{order.buyerName}</span></div>
-                <div><span className="text-[var(--color-muted)]">Email: </span><a href={`mailto:${order.buyerEmail}`} className="text-[var(--color-teal-deep)]">{order.buyerEmail}</a></div>
+                {order.buyerEmail && <div><span className="text-[var(--color-muted)]">Email: </span><a href={`mailto:${order.buyerEmail}`} className="text-[var(--color-teal-deep)]">{order.buyerEmail}</a></div>}
                 {order.buyerPhone && <div><span className="text-[var(--color-muted)]">Phone: </span><span className="text-[var(--color-navy)]">{order.buyerPhone}</span></div>}
               </div>
-              {address && (
+              {address?.street && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
                   <div className="font-mono text-[10px] tracking-[0.14em] uppercase text-[var(--color-muted)] mb-2">Delivery Address</div>
                   <div className="text-[14px] text-[var(--color-navy)]">
@@ -98,6 +105,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               {order.paystackRef && (
                 <div className="mt-3 text-[11px] text-[var(--color-muted)]">Ref: {order.paystackRef}</div>
+              )}
+              {(order.paymentMethod || order.channel) && (
+                <div className="mt-3 flex flex-col gap-1 text-[12px] text-[var(--color-muted)]">
+                  {order.paymentMethod && <div>Payment: {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</div>}
+                  {order.channel && <div>From: {CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel}</div>}
+                </div>
               )}
             </Card>
 

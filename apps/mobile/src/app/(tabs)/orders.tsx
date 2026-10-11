@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { Card, Chip, Notice, T } from "@/components/ui";
 import { TabScreen } from "@/components/TabScreen";
 import { fetchOrders, TONE_COLORS, type OrderRow } from "@/lib/dashboard";
-import { openWeb } from "@/lib/web";
+import { router, useFocusEffect } from "expo-router";
+import { PillButton } from "@/components/ui";
 import { colors } from "@/theme";
 
 const FILTERS = [
@@ -31,12 +32,15 @@ export default function Orders() {
     }
   }, [filter]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Reload when coming back from an order or a recorded sale.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   return (
-    <TabScreen title="Orders" refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}>
+    <TabScreen title="Orders" action={<PillButton title="Record sale" size="sm" onPress={() => router.push("/record-sale")} />} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
         {FILTERS.map((item) => <Chip key={item.key} label={item.label} on={filter === item.key} onPress={() => setFilter(item.key)} />)}
       </View>
@@ -44,7 +48,7 @@ export default function Orders() {
       {orders && !orders.length && <Card><T style={{ color: colors.inkSoft }}>No orders here yet.</T></Card>}
       <View style={{ gap: 10 }}>
         {orders?.map((order) => (
-          <Pressable key={order.id} accessibilityRole="button" onPress={() => void openWeb(`/home/orders/${order.id}`)} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12 }}>
+          <Pressable key={order.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/order/[id]", params: { id: order.id } })} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12 }}>
             {order.image ? (
               <Image source={{ uri: order.image }} style={{ width: 48, height: 48, borderRadius: 12 }} contentFit="cover" />
             ) : (

@@ -8,7 +8,7 @@ import { AppIcon, type AppIconName } from "@/components/icons";
 import { Card, Mascot, Notice, T, Wash } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { fetchDashboard, type Dashboard } from "@/lib/dashboard";
-import { openWeb } from "@/lib/web";
+import { openPath, openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
 // Seller home, following the "Seller app · iOS and Android" mockup.
@@ -22,12 +22,12 @@ const TASK_ICON: Record<Dashboard["tasks"][number]["icon"], AppIconName> = { cha
 
 const ACTIONS: Array<{ label: string; icon: AppIconName; run: () => unknown; primary?: boolean }> = [
   { label: "Add product", icon: "plus", run: () => router.push("/add-products"), primary: true },
-  { label: "Record sale", icon: "receipt", run: () => openWeb("/home/orders/new") },
+  { label: "Record sale", icon: "receipt", run: () => router.push("/record-sale") },
   { label: "Find stock", icon: "search", run: () => openWeb("/marketplace") },
-  { label: "Your store", icon: "store", run: () => openWeb("/home/editor") },
+  { label: "Make video", icon: "play", run: () => openWeb("/home/video") },
+  { label: "Labels", icon: "printer", run: () => openWeb("/home/labels") },
   { label: "Broadcast", icon: "megaphone", run: () => openWeb("/home/marketing/campaigns") },
   { label: "Ask Rex", icon: "sparkle", run: () => openWeb("/studio") },
-  { label: "Ask Peggy", icon: "chat", run: () => router.push("/peggy") },
   { label: "More", icon: "grid", run: () => router.push("/more") },
 ];
 
@@ -83,7 +83,7 @@ export default function Home() {
               <T style={{ color: colors.inkSoft, fontSize: 13 }}>{greeting()}</T>
               <T weight="extrabold" style={{ fontSize: 17 }} numberOfLines={1}>{firstName || " "}</T>
             </View>
-            <RoundButton icon="search" label="Search" onPress={() => void openWeb("/home/orders")} />
+            <RoundButton icon="search" label="Find an order" onPress={() => router.push("/orders")} />
             <RoundButton icon="bell" label="Notifications" onPress={() => void openWeb("/home/notifications")} dot={Boolean(data?.tasks.length)} />
           </View>
 
@@ -143,7 +143,7 @@ export default function Home() {
                   </View>
                 </View>
                 {data.tasks.map((task) => (
-                  <Pressable key={task.key} accessibilityRole="button" onPress={() => void openWeb(task.action?.href ?? task.href)} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 }}>
+                  <Pressable key={task.key} accessibilityRole="button" onPress={() => void openPath(task.action?.href ?? task.href)} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 }}>
                     {task.image ? <Image source={{ uri: task.image }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" /> : <AppIcon name={TASK_ICON[task.icon]} size={20} />}
                     <View style={{ flex: 1 }}>
                       <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{task.title}</T>
@@ -184,7 +184,7 @@ export default function Home() {
                     {item.done ? <T weight="extrabold" style={{ color: colors.success }}>✓</T> : <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.toggleOff }} />}
                     <T weight={item.done ? "regular" : "semibold"} style={{ flex: 1, fontSize: 15, color: item.done ? colors.inkSoft : colors.ink, textDecorationLine: item.done ? "line-through" : "none" }}>{item.label}</T>
                     {!item.done && (
-                      <Pressable accessibilityRole="button" onPress={() => void openWeb(item.href)} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 8 }}>
+                      <Pressable accessibilityRole="button" onPress={() => void openPath(item.href)} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 8 }}>
                         <T weight="extrabold" style={{ fontSize: 13 }}>Set up</T>
                       </Pressable>
                     )}

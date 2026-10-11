@@ -24,14 +24,16 @@ export default async function SellerCustomersPage() {
   const store = workspace?.store;
   const orders = store ? await db.retailOrder.findMany({
     where: { storeId: store.id }, orderBy: { createdAt: "desc" },
-    select: { id: true, buyerName: true, buyerEmail: true, total: true, createdAt: true, status: true },
+    select: { id: true, buyerName: true, buyerEmail: true, buyerPhone: true, total: true, createdAt: true, status: true },
   }) : [];
 
   const map = new Map<string, { name: string; email: string; orders: number; total: number; last: Date }>();
   for (const o of orders) {
-    const e = map.get(o.buyerEmail) ?? { name: o.buyerName, email: o.buyerEmail, orders: 0, total: 0, last: o.createdAt };
+    // Recorded sales may have no email: fall back to the phone, then the name.
+    const key = o.buyerEmail.trim().toLowerCase() || o.buyerPhone?.replace(/\D/g, "") || `name:${o.buyerName.trim().toLowerCase()}`;
+    const e = map.get(key) ?? { name: o.buyerName, email: o.buyerEmail || o.buyerPhone || "", orders: 0, total: 0, last: o.createdAt };
     e.orders++; e.total += Number(o.total); if (e.last < o.createdAt) e.last = o.createdAt;
-    map.set(o.buyerEmail, e);
+    map.set(key, e);
   }
   const customers = [...map.values()].sort((a, b) => b.last.getTime() - a.last.getTime());
 
