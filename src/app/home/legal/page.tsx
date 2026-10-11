@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead } from "@/components/ui";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, parseBrandSettings } from "@/lib/workspace";
 import { saveStoreLegalSettings } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, Card, CardHead, Pill } from "@/components/app-kit";
+import { FIELD_TEXTAREA, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
 
 export const dynamic = "force-dynamic";
 
@@ -12,25 +13,25 @@ const LEGAL_PAGES = [
   {
     key: "privacyPolicy",
     label: "Privacy policy",
-    help: "Explain what data you collect, how it's used, and how customers can request deletion.",
+    help: "What data you collect, how you use it, and how customers can ask you to delete it.",
     rows: 8,
   },
   {
     key: "terms",
     label: "Terms and conditions",
-    help: "Define the rules for using your store, payment obligations, and dispute resolution.",
+    help: "The rules for using your store, paying, and sorting out disputes.",
     rows: 8,
   },
   {
     key: "returnPolicy",
-    label: "Return & refund policy",
-    help: "State your return window, conditions for returns, and how refunds are processed.",
+    label: "Returns and refunds",
+    help: "How long customers have to return items, what you accept back, and how refunds work.",
     rows: 6,
   },
   {
     key: "shippingPolicy",
-    label: "Shipping policy",
-    help: "Describe your delivery zones, timelines, and how shipping costs are calculated.",
+    label: "Delivery policy",
+    help: "Where you deliver, how long it takes, and how delivery fees are worked out.",
     rows: 6,
   },
 ] as const;
@@ -47,47 +48,37 @@ export default async function LegalSettingsPage() {
     : {};
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store.name}
-      storeSlug={store.slug}
-      storeInitial={store.name?.[0]?.toUpperCase()}
-      storeLogoUrl={store.logoUrl}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Legal pages"
+      sub="These show as links in your store footer, each on its own page."
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageToast />
-        <PageHead
-          title="Legal pages"
-          sub="These appear as footer links and dedicated pages on your storefront."
-        />
-
-        <form action={saveStoreLegalSettings} style={{ maxWidth: 860, display: "flex", flexDirection: "column", gap: 16 }}>
-          {LEGAL_PAGES.map((page) => (
-            <div key={page.key} className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>{page.label}</h2>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-500)" }}>{page.help}</p>
-              </div>
-              <div className="field" style={{ margin: 0 }}>
+      <PageToast />
+      <form action={saveStoreLegalSettings} className="grid gap-5">
+        <div className="grid gap-5 2xl:grid-cols-2">
+          {LEGAL_PAGES.map((page) => {
+            const filled = Boolean(legal[page.key]?.trim());
+            return (
+              <Card key={page.key} className="min-w-0 p-5">
+                <CardHead title={<label htmlFor={page.key}>{page.label}</label>} sub={page.help} action={<Pill tone={filled ? "success" : "warning"}>{filled ? "Written" : "Empty"}</Pill>} />
                 <textarea
+                  id={page.key}
                   name={page.key}
-                  className="ta"
+                  className={`${FIELD_TEXTAREA} mt-4`}
                   rows={page.rows}
                   defaultValue={legal[page.key] ?? ""}
-                  placeholder={`Enter your ${page.label.toLowerCase()} here…`}
+                  placeholder={`Write your ${page.label.toLowerCase()} here`}
                 />
-              </div>
-            </div>
-          ))}
-
-          <div>
-            <button className="dbtn dBtn-mint" type="submit">Save legal pages</button>
-          </div>
-        </form>
-      </div>
-    </AppFrame>
+              </Card>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <AssistantNote who="peggy">Not sure what to write? Ask Peggy for a first draft, then check it fits how you run your business.</AssistantNote>
+          <button className={SUBMIT_ACCENT} type="submit">Save legal pages</button>
+        </div>
+      </form>
+    </SellerPage>
   );
 }

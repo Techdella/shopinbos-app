@@ -136,6 +136,11 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
     "src/app/admin/settings/page.tsx",
   ];
 
+  // Every sidebar link must open a real page.
+  for (const [, href] of navText.matchAll(/href: "([^"]+)"/g)) {
+    assert.ok(exists(`src/app${href}/page.tsx`), `nav link ${href} should have a page`);
+  }
+
   requiredPages.forEach((pagePath) => {
     assert.ok(exists(pagePath), `${pagePath} should exist`);
   });
@@ -390,14 +395,14 @@ test("inner portal pages use the mockup-style operational shell", () => {
   assert.match(rolePage, /dBtn-mint/);
 
   assert.match(payments, /Shopinbos handles checkout/);
-  assert.match(payments, /Available balance/);
-  assert.match(payments, /Recent payouts/);
-  assert.match(payments, /How checkout works/);
+  assert.match(payments, /Money in, last 30 days/);
+  assert.match(payments, /Latest payments/);
+  assert.match(payments, /How customers paid/);
 
-  assert.match(logistics, /Logistics Desk/);
-  assert.match(logistics, /Available partners/);
+  assert.match(logistics, /Book riders/);
+  assert.match(logistics, /Delivery partners/);
   assert.match(logistics, /Quote requests/);
-  assert.match(logistics, /Peggy compares reliability/);
+  assert.match(logistics, /QuoteRequestForm/);
 });
 
 test("supplier product pages provide a full submit and edit workflow", () => {
@@ -409,8 +414,8 @@ test("supplier product pages provide a full submit and edit workflow", () => {
   const prismaConfig = read("prisma.config.ts");
   const sync = read("SHOPINBOS_APP_SYNC.md");
 
-  assert.match(products, /Draft complete products/);
-  assert.match(products, /href=\{`\/supplier\/products\/\$\{row\.id\}\/edit`\}/);
+  assert.match(products, /send complete products to marketplace review/);
+  assert.match(products, /href=\{`\/supplier\/products\/\$\{product\.id\}\/edit`\}/);
   assert.match(newProduct, /SupplierProductForm/);
   assert.match(newProduct, /createSupplierProduct/);
   assert.match(editProduct, /updateSupplierProduct/);
@@ -497,16 +502,16 @@ test("supplier quote and order pages support response and fulfilment workflows",
   const sync = read("SHOPINBOS_APP_SYNC.md");
 
   assert.match(quotes, /respondToSupplierQuote/);
-  assert.match(quotes, /Rex reply pad/);
+  assert.match(quotes, /name="quotedPrice"/);
   assert.match(quotes, /Send quote/);
   assert.match(quotes, /Quote health/);
   assert.match(quotes, /name="intent" value="reject"/);
 
   assert.match(orders, /updateSupplierOrderStatus/);
-  assert.match(orders, /Fulfilment controls/);
-  assert.match(orders, /Ship today queue/);
+  assert.match(orders, /Mark shipped/);
+  assert.match(orders, /name="trackingCode"/);
   assert.match(orders, /Tracking code/);
-  assert.match(orders, /supplierOrderStatuses/);
+  assert.match(orders, /TO_SHIP/);
 
   assert.match(actions, /export async function respondToSupplierQuote/);
   assert.match(actions, /QuoteResponseSchema/);
@@ -526,21 +531,21 @@ test("logistics pages support quote, booking, coverage, and pricing workflows", 
   const sync = read("SHOPINBOS_APP_SYNC.md");
 
   assert.match(quotes, /respondToDeliveryQuote/);
-  assert.match(quotes, /Rex route quote pad/);
+  assert.match(quotes, /Price good until/);
   assert.match(quotes, /Send quote/);
   assert.match(quotes, /name="intent" value="reject"/);
 
   assert.match(bookings, /updateDeliveryBookingStatus/);
-  assert.match(bookings, /Dispatch controls/);
+  assert.match(bookings, /Update job/);
   assert.match(bookings, /Tracking code/);
   assert.match(bookings, /Estimated delivery/);
 
   assert.match(coverage, /updateLogisticsCoverage/);
-  assert.match(coverage, /Coverage editor/);
-  assert.match(coverage, /Coverage map rows/);
+  assert.match(coverage, /Edit coverage/);
+  assert.match(coverage, /name="coverageRows"/);
   assert.match(pricing, /updateLogisticsPricing/);
-  assert.match(pricing, /Pricing editor/);
-  assert.match(pricing, /Public preview/);
+  assert.match(pricing, /Edit pricing/);
+  assert.match(pricing, /What sellers see/);
 
   assert.match(actions, /export async function updateLogisticsCoverage/);
   assert.match(actions, /export async function updateLogisticsPricing/);
@@ -721,17 +726,16 @@ test("proxy keeps auth cookies and sends protected portals to their own login", 
   assert.match(portalRoutes, /login: "\/logistics\/login"/);
 });
 
-test("Rex AI routes use OpenAI for onboarding chat, transcription, palettes, and builder", () => {
+test("Rex AI routes use both providers (OpenAI and Claude) for onboarding chat, transcription, palettes, and builder", () => {
   const onboardingRex = read("src/app/api/ai/onboarding-rex/route.ts");
   const transcribe = read("src/app/api/ai/transcribe/route.ts");
   const palette = read("src/app/api/ai/generate-palette/route.ts");
   const storeBuilder = read("src/app/api/ai/store-builder/route.ts");
 
-  assert.match(onboardingRex, /new OpenAI/);
-  assert.match(onboardingRex, /gpt-5\.4-mini/);
+  assert.match(onboardingRex, /providerOrder\(\)/);
   assert.match(onboardingRex, /memoryPatch/);
   assert.match(transcribe, /gpt-4o-mini-transcribe/);
-  assert.match(palette, /openai\.responses\.create/);
+  assert.match(palette, /aiText\(/);
   assert.match(storeBuilder, /openai\.responses\.create/);
   assert.match(storeBuilder, /OPENAI_API_KEY or ANTHROPIC_API_KEY/);
 });

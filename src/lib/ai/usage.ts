@@ -1,0 +1,56 @@
+import "server-only";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db/client";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+// Daily limits for Rex and Peggy so a loop, a bot or one busy user can't run up the AI bill.
+// aiCredits is the plan tier elsewhere in the app (see plan-limits.ts), so it is read here, never spent.
+
+export type AiKind = "text" | "image" | "voice" | "build";
+
+const DAILY: Record<"starter" | "growth" | "pro", Record<AiKind, number>> = {
+  starter: { text: 60, image: 8, voice: 10, build: 6 },
+  growth: { text: 300, image: 40, voice: 40, build: 20 },
+  pro: { text: 1500, image: 150, voice: 150, build: 60 },
+};
+
+export function aiTier(aiCredits: number | null | undefined): keyof typeof DAILY {
+  const credits = aiCredits ?? 0;
+  return credits >= 100 ? "pro" : credits >= 50 ? "growth" : "starter";
+}
+
+export function dailyLimit(kind: AiKind, aiCredits: number | null | undefined) {
+  return DAILY[aiTier(aiCredits)][kind];
+}
+
+const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images", voice: "voiceovers", build: "store builds" };
+
+/**
+ * Checks and records one use. Returns a 429 response when over the limit (or bursting), else null.
+ * Recording happens up front so parallel requests can't all slip under the limit.
+ */
+export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<NextResponse | null> {
+  const burst = checkRateLimit(`ai:${kind}:${userId}`, { maxRequests: kind === "text" ? 20 : 6, windowMs: 60_000 });
+  if (!burst.allowed) {
+    return NextResponse.json({ error: { code: "RATE_LIMITED", message: "That's a lot at once. Wait a minute and try again." } }, { status: 429 });
+  }
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [user, used] = await Promise.all([
+      db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }),
+      db.aiUsage.aggregate({ where: { userId, kind, createdAt: { gte: since } }, _sum: { units: true } }),
+    ]);
+    const limit = dailyLimit(kind, user?.aiCredits);
+    if ((used._sum.units ?? 0) + units > limit) {
+      return NextResponse.json(
+        { error: { code: "AI_LIMIT", message: `You've used today's ${limit} ${KIND_WORD[kind]}. It resets over the next 24 hours, or upgrade your plan for more.` } },
+        { status: 429 },
+      );
+    }
+    await db.aiUsage.create({ data: { userId, kind, units } });
+  } catch (error) {
+    // Metering must never take Rex or Peggy down (e.g. before the table exists); the burst limit still applies.
+    console.error("[ai/usage] metering failed", error);
+  }
+  return null;
+}

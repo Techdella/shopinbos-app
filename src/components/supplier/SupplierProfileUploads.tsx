@@ -1,90 +1,93 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { uploadSupplierCover, uploadSupplierLogo, uploadSupplierPhoto } from "@/app/actions/supplier";
+import { Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 
-export function SupplierCoverUpload({ bannerUrl }: { bannerUrl: string | null }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+// Each picker uploads as soon as a file is chosen; the server action redirects back with ?saved or ?error.
+// No <form> wrappers, so these can sit next to (or inside) the profile form without nesting forms.
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files?.length) return;
-    const form = formRef.current;
-    if (!form) return;
-    const fd = new FormData(form);
-    fd.set("cover", e.target.files[0]);
-    await uploadSupplierCover(fd);
+function useUpload(field: string, action: (formData: FormData) => Promise<void>) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.set(field, file);
+    setBusy(true);
+    try {
+      await action(formData);
+    } finally {
+      setBusy(false);
+    }
   }
 
+  return { inputRef, busy, onChange, open: () => inputRef.current?.click() };
+}
+
+export function SupplierCoverUpload({ bannerUrl }: { bannerUrl: string | null }) {
+  const { inputRef, busy, onChange, open } = useUpload("cover", uploadSupplierCover);
+
   return (
-    <form ref={formRef} style={{ marginBottom: 14 }}>
-      <div style={{
-        height: 140, borderRadius: 12,
-        background: bannerUrl ? `url(${bannerUrl}) center/cover` : "linear-gradient(135deg, #D4A574, #6B4A2C 50%, #3a2614)",
-        position: "relative",
-      }}>
-        <button type="button" className="dbtn dBtn-ghost" style={{
-          position: "absolute", top: 10, right: 10, background: "rgba(255,255,255,0.9)", cursor: "pointer",
-        }} onClick={() => inputRef.current?.click()}>
-          <Icon name="upload" size={12} /> {bannerUrl ? "Change cover" : "Add cover"}
-        </button>
-        <input ref={inputRef} type="file" name="cover" accept="image/*" hidden onChange={handleFileChange} />
-      </div>
-    </form>
+    <div
+      className="relative h-[140px] overflow-hidden rounded-[18px] bg-app-canvas bg-cover bg-center sm:h-[180px]"
+      style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+    >
+      {!bannerUrl && <div className="grid h-full place-items-center text-[13.5px] text-app-ink-soft">No cover photo yet</div>}
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        className="absolute right-3 top-3 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink shadow-sm transition hover:border-app-line-strong disabled:opacity-60"
+      >
+        {busy ? <Spinner /> : <Icon name="upload" size={14} />} {bannerUrl ? "Change cover" : "Add cover"}
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" hidden onChange={onChange} aria-label="Cover photo" />
+    </div>
   );
 }
 
 export function SupplierLogoUpload({ logoUrl, displayName }: { logoUrl: string | null; displayName: string }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files?.length) return;
-    const form = formRef.current;
-    if (!form) return;
-    const fd = new FormData(form);
-    fd.set("logo", e.target.files[0]);
-    await uploadSupplierLogo(fd);
-  }
+  const { inputRef, busy, onChange, open } = useUpload("logo", uploadSupplierLogo);
+  const letters = displayName.split(/\s+/).filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <form ref={formRef} style={{ display: "contents" }}>
-      <button type="button" onClick={() => inputRef.current?.click()} style={{ cursor: "pointer", display: "block", background: "none", border: "none", padding: 0 }}>
-        <div style={{
-          width: 100, height: 100, borderRadius: 18,
-          background: logoUrl ? `url(${logoUrl}) center/cover` : "linear-gradient(135deg, var(--amber-500), var(--rose-500))",
-          display: "grid", placeItems: "center", color: "white",
-          fontFamily: "var(--font-accent)", fontWeight: 600, fontSize: 36,
-          position: "relative", overflow: "hidden",
-        }}>
-          {!logoUrl && displayName.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-        </div>
+    <>
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        aria-label={logoUrl ? "Change logo" : "Add logo"}
+        className="group relative grid h-[96px] w-[96px] shrink-0 place-items-center overflow-hidden rounded-[22px] border border-app-line bg-app-canvas bg-cover bg-center text-[30px] font-extrabold text-app-ink"
+        style={logoUrl ? { backgroundImage: `url(${logoUrl})` } : undefined}
+      >
+        {!logoUrl && letters}
+        <span className="absolute inset-x-0 bottom-0 flex h-7 items-center justify-center bg-app-ink/75 text-[11.5px] font-bold text-white">
+          {busy ? <Spinner /> : logoUrl ? "Change" : "Add logo"}
+        </span>
       </button>
-      <input ref={inputRef} type="file" name="logo" accept="image/*" hidden onChange={handleFileChange} />
-    </form>
+      <input ref={inputRef} type="file" accept="image/*" hidden onChange={onChange} aria-label="Logo" />
+    </>
   );
 }
 
 export function SupplierPhotoUpload() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files?.length) return;
-    const form = formRef.current;
-    if (!form) return;
-    const fd = new FormData(form);
-    fd.set("photo", e.target.files[0]);
-    await uploadSupplierPhoto(fd);
-  }
+  const { inputRef, busy, onChange, open } = useUpload("photo", uploadSupplierPhoto);
 
   return (
-    <form ref={formRef} style={{ display: "inline" }}>
-      <button type="button" className="dbtn dBtn-ghost" style={{ cursor: "pointer" }} onClick={() => inputRef.current?.click()}>
-        <Icon name="upload" size={12} /> Add photo
+    <>
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink transition hover:border-app-line-strong disabled:opacity-60"
+      >
+        {busy ? <Spinner /> : <Icon name="upload" size={14} />} Add photo
       </button>
-      <input ref={inputRef} type="file" name="photo" accept="image/*" hidden onChange={handleFileChange} />
-    </form>
+      <input ref={inputRef} type="file" accept="image/*" hidden onChange={onChange} aria-label="Workshop photo" />
+    </>
   );
 }

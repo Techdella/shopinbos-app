@@ -311,10 +311,10 @@ export async function uploadSupplierLogo(formData: FormData) {
     const { uploadFileServer } = await import("@/lib/supabase/storage.server");
     const { publicUrl } = await uploadFileServer("supplier-logos", file, `supplier-logos/${supplier.id}/${file.name}`);
     await db.supplier.update({ where: { id: supplier.id }, data: { logoUrl: publicUrl } });
-    redirect("/supplier/profile?saved=true");
   } catch {
     redirect("/supplier/profile?error=Upload+failed");
   }
+  redirect("/supplier/profile?saved=true");
 }
 
 export async function uploadSupplierCover(formData: FormData) {
@@ -326,10 +326,10 @@ export async function uploadSupplierCover(formData: FormData) {
     const { uploadFileServer } = await import("@/lib/supabase/storage.server");
     const { publicUrl } = await uploadFileServer("supplier-logos", file, `supplier-covers/${supplier.id}/${file.name}`);
     await db.supplier.update({ where: { id: supplier.id }, data: { bannerUrl: publicUrl } });
-    redirect("/supplier/profile?saved=true");
   } catch {
     redirect("/supplier/profile?error=Upload+failed");
   }
+  redirect("/supplier/profile?saved=true");
 }
 
 export async function uploadSupplierPhoto(formData: FormData) {
@@ -346,10 +346,10 @@ export async function uploadSupplierPhoto(formData: FormData) {
       where: { id: supplier.id },
       data: { onboardingState: { ...state, workshopPhotos: [...existingPhotos, publicUrl] } as any },
     });
-    redirect("/supplier/profile?saved=true");
   } catch {
     redirect("/supplier/profile?error=Upload+failed");
   }
+  redirect("/supplier/profile?saved=true");
 }
 
 export async function saveSupplierNotificationPreferences(formData: FormData) {

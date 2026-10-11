@@ -35,7 +35,12 @@ export const PATCH = withSeller(async (
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { costPrice, retailPrice, ...rest } = parsed.data;
+  // The update schema is the create schema made partial, and Zod still fills in defaults (images: [],
+  // faqs: []...) for missing keys. Only apply the fields the client actually sent.
+  const sent = new Set(body && typeof body === "object" ? Object.keys(body) : []);
+  const { costPrice, retailPrice, ...rest } = Object.fromEntries(
+    Object.entries(parsed.data).filter(([key]) => sent.has(key)),
+  ) as typeof parsed.data;
 
   const effectiveCost = costPrice ?? product.costPrice;
   const effectivePrice = retailPrice ?? product.retailPrice;

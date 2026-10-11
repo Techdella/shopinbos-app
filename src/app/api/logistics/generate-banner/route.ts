@@ -1,40 +1,30 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { requireRole } from "@/lib/server-auth";
+import { withLogistics } from "@/lib/auth/middleware";
+import { generateImage, ImageUnavailableError } from "@/lib/ai/images";
+import { meterAi } from "@/lib/ai/usage";
 
-export async function POST() {
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
+// Rex makes a wide banner for the partner's public page and saves it as the banner.
+export const POST = withLogistics(async (_req, { user }) => {
+  const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id }, select: { id: true, displayName: true, city: true, vehicleTypes: true } });
+  if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+
+  const limited = await meterAi(user.id, "image");
+  if (limited) return limited;
+
+  const city = partner.city || "Lagos";
+  const vehicles = partner.vehicleTypes?.length ? partner.vehicleTypes.join(", ") : "delivery bikes and vans";
+  const prompt = `Wide photographic banner for "${partner.displayName}", a delivery company in ${city}, Nigeria. ${vehicles} on a busy, sunny ${city} street, riders in branded jackets, warm golden-hour light, clean professional look. Leave calm space on the left for text. No words, letters or logos in the image.`;
+
   try {
-    const user = await requireRole(["logistics_partner"], "/logistics/login");
-    const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id } });
-    if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
-
-    const city = partner.city || "Lagos";
-    const displayName = partner.displayName;
-
-    const prompt = `Professional logistics company banner for "${displayName}" in ${city}. A delivery van on a modern city street, warm golden hour lighting, clean and professional look, 1200x400 pixels, text overlay area on the left.`;
-
-    const pingResult = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 100,
-        messages: [{ role: "user", content: "Generate a banner image: " + prompt }],
-      }),
-    }).catch(() => null);
-
-    if (!pingResult || !pingResult.ok) {
-      const placeholderUrl = `https://placehold.co/1200x400/3a4ba6/white?text=${encodeURIComponent(displayName + " · " + city)}`;
-      await db.logisticsPartner.update({ where: { id: partner.id }, data: { bannerUrl: placeholderUrl } });
-      return NextResponse.json({ url: placeholderUrl, note: "Rex AI unavailable — placeholder generated" });
-    }
-
-    return NextResponse.json({ url: null, note: "AI generation is not fully set up. Placeholder not applied." });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    const url = await generateImage({ prompt, size: "1536x1024", path: `banners/${user.id}/${Date.now()}` });
+    await db.logisticsPartner.update({ where: { id: partner.id }, data: { bannerUrl: url } });
+    return NextResponse.json({ url });
+  } catch (error) {
+    const status = error instanceof ImageUnavailableError ? 503 : 500;
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Couldn't make the banner" }, { status });
   }
-}
+});

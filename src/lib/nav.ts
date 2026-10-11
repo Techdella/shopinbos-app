@@ -8,80 +8,197 @@ export interface NavItem {
   icon: IconName;
   href: string;
   badge?: string;
+  /** Small label after the name, e.g. "AI" or "Web". */
+  tag?: string;
   accent?: boolean;
   isNew?: boolean;
+  /**
+   * Pages under this item. The sidebar shows them in a flyout on hover/focus (like Shopify and HubSpot) and
+   * inline under the item while you're on one of them, so the top level stays as short as the prototype.
+   */
+  children?: NavChild[];
+  /** Always shown; can't be switched off in "Customise your menu". */
+  core?: boolean;
+}
+
+export interface NavChild {
+  id: string;
+  label: string;
+  href: string;
 }
 
 export interface NavGroup {
   group: string;
   label?: string;
+  /** Starts collapsed unless the current page is inside it. */
+  collapsible?: boolean;
+  /** Pushed to the bottom of the sidebar. */
+  pinBottom?: boolean;
   items: NavItem[];
 }
 
 export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
+  // Seller nav is the 2026 "Seller app · web" prototype's list. Everything else is a submenu of the item it belongs to.
   seller: [
     {
-      group: "website",
+      group: "main",
+      items: [
+        { id: "home", label: "Home", icon: "home", href: "/home", core: true },
+        {
+          id: "orders", label: "Orders", icon: "package", href: "/home/orders", core: true,
+          children: [
+            { id: "orders-all", label: "All orders", href: "/home/orders" },
+            { id: "orders-new", label: "Record a sale", href: "/home/orders/new" },
+          ],
+        },
+        {
+          id: "inbox", label: "Inbox", icon: "chat", href: "/home/messages",
+          children: [
+            { id: "inbox-messages", label: "Messages", href: "/home/messages" },
+            { id: "inbox-forms", label: "Form messages", href: "/home/forms" },
+            { id: "inbox-chat", label: "Live chat", href: "/home/marketing/chat" },
+            { id: "inbox-notifications", label: "Notifications", href: "/home/notifications" },
+          ],
+        },
+        {
+          id: "products", label: "Products", icon: "bag", href: "/products", core: true,
+          children: [
+            { id: "products-all", label: "All products", href: "/products" },
+            { id: "products-new", label: "Add product", href: "/products/new" },
+            { id: "products-import", label: "Import", href: "/products/import" },
+            { id: "inventory", label: "Inventory", href: "/home/inventory" },
+            { id: "collections", label: "Collections", href: "/home/collections" },
+            { id: "categories", label: "Categories", href: "/home/categories" },
+          ],
+        },
+      ],
+    },
+    {
+      group: "sourcing",
+      label: "Sourcing",
+      items: [
+        {
+          id: "find-products", label: "Find products", icon: "search", href: "/marketplace",
+          children: [
+            { id: "find-products-all", label: "Products", href: "/marketplace" },
+            { id: "find-suppliers", label: "Suppliers", href: "/marketplace/suppliers" },
+            { id: "find-logistics", label: "Delivery companies", href: "/marketplace/logistics" },
+          ],
+        },
+        { id: "imports", label: "Imports", icon: "truck", href: "/home/dropship" },
+      ],
+    },
+    {
+      group: "people",
+      label: "People",
+      items: [
+        {
+          id: "customers", label: "Customers", icon: "users", href: "/home/customers",
+          children: [
+            { id: "customers-all", label: "All customers", href: "/home/customers" },
+            { id: "subscribers", label: "Subscribers", href: "/home/marketing/subscribers" },
+            { id: "segments", label: "Segments", href: "/home/marketing/segments" },
+          ],
+        },
+        { id: "reviews", label: "Reviews", icon: "star", href: "/home/reviews" },
+      ],
+    },
+    {
+      group: "store",
       label: "Store",
       items: [
-        { id: "home",       label: "Dashboard",   icon: "home",     href: "/home" },
-        { id: "pages",      label: "Pages",       icon: "document", href: "/home/pages" },
-        { id: "blog",       label: "Blog",        icon: "edit",     href: "/home/cms" },
-        { id: "theme",      label: "Theme & Brand", icon: "palette", href: "/seller/store/builder" },
-        { id: "domain",     label: "Domain",      icon: "monitor",  href: "/home/domain" },
-      ],
-    },
-    {
-      group: "catalog",
-      label: "Catalog",
-      items: [
-        { id: "products",    label: "Products",    icon: "box",     href: "/products" },
-        { id: "categories",  label: "Categories",  icon: "grid",    href: "/home/categories" },
-        { id: "collections", label: "Collections", icon: "layers",  href: "/home/collections" },
-      ],
-    },
-    {
-      group: "commerce",
-      label: "Commerce",
-      items: [
-        { id: "orders",      label: "Orders",      icon: "cart",    href: "/home/orders" },
-        { id: "customers",   label: "Customers",   icon: "users",   href: "/home/customers" },
-        { id: "inventory",   label: "Inventory",   icon: "box",     href: "/home/inventory" },
-        { id: "reviews",     label: "Reviews",     icon: "star",    href: "/home/reviews" },
-        { id: "insights",    label: "Insights",    icon: "chart",   href: "/home/insights" },
-      ],
-    },
-    {
-      group: "operations",
-      label: "Operations",
-      items: [
-        { id: "logistics",   label: "Logistics",    icon: "truck",      href: "/home/logistics" },
-        { id: "messages",    label: "Messages",     icon: "message",    href: "/home/messages" },
-        { id: "invoices",    label: "Invoices",     icon: "document",   href: "/home/invoices" },
+        {
+          id: "your-store", label: "Your store", icon: "shop", href: "/home/editor",
+          children: [
+            { id: "editor", label: "Edit your store", href: "/home/editor" },
+            { id: "pages", label: "Pages", href: "/home/pages" },
+            { id: "navigation", label: "Menus", href: "/home/navigation" },
+            { id: "blog", label: "Blog", href: "/home/cms" },
+            { id: "checkout", label: "Checkout", href: "/home/checkout" },
+            { id: "cart", label: "Cart", href: "/home/commerce/cart" },
+            { id: "seo", label: "SEO", href: "/home/seo" },
+            { id: "legal", label: "Legal pages", href: "/home/legal" },
+          ],
+        },
+        {
+          id: "rex-studio", label: "Rex Studio", icon: "sparkle", href: "/studio", tag: "AI",
+          children: [
+            { id: "studio-home", label: "Studio", href: "/studio" },
+            { id: "studio-images", label: "Images", href: "/studio/images" },
+            { id: "studio-logo", label: "Logo", href: "/studio/logo" },
+          ],
+        },
+        { id: "brand-kit", label: "Brand kit", icon: "tag", href: "/home/brand-kit" },
+        { id: "templates", label: "Templates", icon: "grid", href: "/builder/templates" },
+        { id: "domain", label: "Domain", icon: "globe", href: "/home/domain" },
+        { id: "builder", label: "Advanced builder", icon: "monitor", href: "/seller/store/builder", tag: "Web" },
       ],
     },
     {
       group: "marketing",
       label: "Marketing",
       items: [
-        { id: "campaigns",   label: "Campaigns",    icon: "megaphone",  href: "/home/marketing/campaigns" },
-        { id: "analytics",   label: "Analytics",    icon: "chart",      href: "/home/marketing/analytics" },
-        { id: "subscribers", label: "Subscribers",  icon: "users",      href: "/home/marketing/subscribers" },
-        { id: "mkt-forms",   label: "Forms & Popups", icon: "mail",     href: "/home/marketing/forms" },
-        { id: "chat",        label: "Live Chat",    icon: "message",    href: "/home/marketing/chat" },
+        {
+          id: "marketing", label: "Overview", icon: "chart", href: "/home/marketing",
+          children: [
+            { id: "marketing-overview", label: "Overview", href: "/home/marketing" },
+            { id: "campaigns", label: "Broadcasts", href: "/home/marketing/campaigns" },
+            { id: "automations", label: "Automations", href: "/home/automations" },
+            { id: "mkt-forms", label: "Forms and pop-ups", href: "/home/marketing/forms" },
+            { id: "marketing-analytics", label: "Marketing reports", href: "/home/marketing/analytics" },
+          ],
+        },
+        { id: "ads", label: "Ads", icon: "rocket", href: "/home/ads" },
+        { id: "video", label: "Video studio", icon: "play", href: "/home/video", tag: "AI" },
+        { id: "discounts", label: "Discounts", icon: "percent", href: "/home/discounts" },
+        { id: "affiliates", label: "Affiliates", icon: "link", href: "/home/affiliates" },
+        { id: "sell-everywhere", label: "Sell everywhere", icon: "globe", href: "/channels" },
       ],
     },
     {
-      group: "settings",
-      label: "Settings",
+      group: "run",
+      label: "Run",
       items: [
-        { id: "navigation",  label: "Navigation",   icon: "list",      href: "/home/navigation" },
-        { id: "seo",         label: "SEO",          icon: "chart",     href: "/home/seo" },
-        { id: "payments",    label: "Payments",     icon: "coin",      href: "/home/payments" },
-        { id: "shipping",    label: "Delivery",     icon: "truck",     href: "/home/shipping" },
-        { id: "taxes",       label: "Taxes",        icon: "percent",   href: "/home/taxes" },
-        { id: "legal",       label: "Legal Pages",  icon: "document",  href: "/home/legal" },
-        { id: "settings",    label: "General",      icon: "settings",  href: "/home/settings" },
+        {
+          id: "money", label: "Money", icon: "coin", href: "/home/payments", core: true,
+          children: [
+            { id: "payments", label: "Payments", href: "/home/payments" },
+            { id: "payouts", label: "Payouts", href: "/home/payouts" },
+            { id: "invoices", label: "Invoices", href: "/home/invoices" },
+            { id: "taxes", label: "Taxes", href: "/home/taxes" },
+          ],
+        },
+        {
+          id: "delivery", label: "Delivery", icon: "truck", href: "/home/logistics",
+          children: [
+            { id: "delivery-partners", label: "Delivery partners", href: "/home/logistics" },
+            { id: "shipping", label: "Shipping rates", href: "/home/shipping" },
+          ],
+        },
+        { id: "labels", label: "Labels and print", icon: "tag", href: "/home/labels" },
+        {
+          id: "reports", label: "Reports", icon: "chart", href: "/home/insights",
+          children: [
+            { id: "reports-sales", label: "Sales", href: "/home/insights" },
+            { id: "health", label: "Store health", href: "/home/health" },
+            { id: "activity", label: "Activity", href: "/home/activity" },
+          ],
+        },
+      ],
+    },
+    {
+      group: "footer",
+      pinBottom: true,
+      items: [
+        {
+          id: "settings", label: "Settings", icon: "settings", href: "/home/settings", core: true,
+          children: [
+            { id: "settings-store", label: "Store settings", href: "/home/settings" },
+            { id: "profile", label: "Your profile", href: "/home/profile" },
+            { id: "notification-prefs", label: "Notification settings", href: "/home/notifications/preferences" },
+            { id: "customise", label: "Customise your menu", href: "/home/features" },
+          ],
+        },
       ],
     },
   ],
@@ -89,83 +206,169 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
     {
       group: "main",
       items: [
-        { id: "dashboard",        label: "Dashboard",        icon: "home",    href: "/supplier/dashboard" },
-        { id: "products",         label: "My products",      icon: "box",     href: "/supplier/products" },
-        { id: "dropship-orders",  label: "Dropship orders",  icon: "package", href: "/supplier/orders" },
-        { id: "wholesale-orders", label: "Wholesale orders", icon: "truck",   href: "/supplier/wholesale" },
-        { id: "quote-requests",   label: "Quote requests",   icon: "chat",    href: "/supplier/quote-requests" },
-        { id: "inbox",            label: "Inbox",            icon: "message", href: "/supplier/inbox" },
-        { id: "buyers",           label: "Buyers",           icon: "users",   href: "/supplier/buyers" },
-        { id: "reviews",          label: "Reviews",          icon: "star",    href: "/supplier/reviews" },
+        { id: "dashboard", label: "Today", icon: "home", href: "/supplier/dashboard", core: true },
+        {
+          id: "orders", label: "Orders", icon: "package", href: "/supplier/orders", core: true,
+          children: [
+            { id: "dropship-orders", label: "Dropship orders", href: "/supplier/orders" },
+            { id: "wholesale-orders", label: "Wholesale orders", href: "/supplier/wholesale" },
+          ],
+        },
+        { id: "quote-requests", label: "Quote requests", icon: "chat", href: "/supplier/quote-requests" },
+        {
+          id: "products", label: "Products", icon: "bag", href: "/supplier/products", core: true,
+          children: [
+            { id: "products-all", label: "All products", href: "/supplier/products" },
+            { id: "products-new", label: "Add product", href: "/supplier/products/new" },
+          ],
+        },
+        { id: "inbox", label: "Inbox", icon: "message", href: "/supplier/inbox" },
       ],
     },
     {
-      group: "manage",
-      label: "Manage",
+      group: "business",
+      label: "Business",
       items: [
-        { id: "profile",      label: "Supplier profile", icon: "shop",      href: "/supplier/profile" },
-        { id: "verification", label: "Verification",     icon: "check",     href: "/supplier/verification" },
-        { id: "analytics",    label: "Analytics",        icon: "chart",     href: "/supplier/analytics" },
-        { id: "team",         label: "Team",             icon: "users",     href: "/supplier/team" },
-        { id: "payouts",      label: "Payouts",          icon: "bank",      href: "/supplier/payouts" },
-        { id: "settings",     label: "Settings",         icon: "settings",  href: "/supplier/settings" },
+        {
+          id: "buyers", label: "Buyers", icon: "users", href: "/supplier/buyers",
+          children: [
+            { id: "buyers-all", label: "Shops selling your products", href: "/supplier/buyers" },
+            { id: "reviews", label: "Reviews", href: "/supplier/reviews" },
+          ],
+        },
+        { id: "payouts", label: "Earnings", icon: "bank", href: "/supplier/payouts", core: true },
+        { id: "analytics", label: "Performance", icon: "chart", href: "/supplier/analytics" },
+        { id: "cms", label: "Blog", icon: "edit", href: "/supplier/cms" },
+      ],
+    },
+    {
+      group: "footer",
+      pinBottom: true,
+      items: [
+        {
+          id: "settings", label: "Settings", icon: "settings", href: "/supplier/settings", core: true,
+          children: [
+            { id: "settings-main", label: "Settings", href: "/supplier/settings" },
+            { id: "profile", label: "Company profile", href: "/supplier/profile" },
+            { id: "verification", label: "Verification", href: "/supplier/verification" },
+            { id: "team", label: "Team", href: "/supplier/team" },
+            { id: "customise", label: "Customise your menu", href: "/supplier/features" },
+          ],
+        },
       ],
     },
   ],
+  // Partners nav follows the 2026 "Shopinbos Partners · web dispatch console" prototype.
   logistics_partner: [
     {
       group: "main",
       items: [
-        { id: "dashboard", label: "Dashboard",       icon: "home",  href: "/logistics/dashboard" },
-        { id: "inbox",     label: "Inbox",            icon: "message", href: "/logistics/inbox" },
-        { id: "bookings",  label: "Bookings",        icon: "truck", href: "/logistics/bookings" },
-        { id: "reviews",   label: "Reviews",          icon: "star",  href: "/logistics/reviews" },
-        { id: "quotes",    label: "Quote requests",  icon: "chat",  href: "/logistics/quotes" },
-        { id: "couriers",  label: "Couriers",        icon: "users", href: "/logistics/couriers" },
-        { id: "coverage",  label: "Coverage map",    icon: "pin",   href: "/logistics/coverage" },
-        { id: "pricing",   label: "Pricing",         icon: "coin",  href: "/logistics/pricing" },
+        { id: "dashboard", label: "Today", icon: "home", href: "/logistics/dashboard", core: true },
+        {
+          id: "bookings", label: "Jobs", icon: "box", href: "/logistics/bookings", core: true,
+          children: [
+            { id: "jobs-all", label: "All jobs", href: "/logistics/bookings" },
+            { id: "quotes", label: "Quote requests", href: "/logistics/quotes" },
+            { id: "inbox", label: "Inbox", href: "/logistics/inbox" },
+          ],
+        },
+        { id: "couriers", label: "Riders", icon: "truck", href: "/logistics/couriers" },
+        { id: "cash", label: "Cash on delivery", icon: "card", href: "/logistics/cash" },
       ],
     },
     {
-      group: "manage",
-      label: "Manage",
+      group: "business",
+      label: "Business",
       items: [
-        { id: "profile",   label: "Company profile", icon: "shop",     href: "/logistics/profile" },
-        { id: "billing",   label: "Billing",         icon: "document",  href: "/logistics/billing" },
-        { id: "analytics", label: "Analytics",       icon: "chart",    href: "/logistics/analytics" },
-        { id: "payouts",   label: "Payouts",         icon: "bank",     href: "/logistics/payouts" },
-        { id: "settings",  label: "Settings",        icon: "settings", href: "/logistics/settings" },
+        {
+          id: "coverage", label: "Coverage and rates", icon: "pin", href: "/logistics/coverage",
+          children: [
+            { id: "coverage-areas", label: "Coverage", href: "/logistics/coverage" },
+            { id: "pricing", label: "Rates", href: "/logistics/pricing" },
+          ],
+        },
+        {
+          id: "payouts", label: "Earnings", icon: "chart", href: "/logistics/payouts", core: true,
+          children: [
+            { id: "earnings", label: "Earnings", href: "/logistics/payouts" },
+            { id: "billing", label: "Fees", href: "/logistics/billing" },
+          ],
+        },
+        {
+          id: "analytics", label: "Performance", icon: "star", href: "/logistics/analytics",
+          children: [
+            { id: "performance", label: "Performance", href: "/logistics/analytics" },
+            { id: "reviews", label: "Reviews", href: "/logistics/reviews" },
+          ],
+        },
+      ],
+    },
+    {
+      group: "setup",
+      label: "Setup",
+      items: [
+        { id: "connect", label: "Connect your system", icon: "link", href: "/logistics/connect" },
+        {
+          id: "profile", label: "Company", icon: "shop", href: "/logistics/profile", core: true,
+          children: [
+            { id: "company", label: "Company profile", href: "/logistics/profile" },
+            { id: "verification", label: "Verification", href: "/logistics/verification" },
+            { id: "cms", label: "Blog", href: "/logistics/cms" },
+            { id: "customise", label: "Customise your menu", href: "/logistics/features" },
+          ],
+        },
       ],
     },
   ],
   admin: [
     {
       group: "main",
-      items: [
-        { id: "dashboard", label: "Today", icon: "home", href: "/admin/dashboard" },
-      ],
+      items: [{ id: "dashboard", label: "Today", icon: "home", href: "/admin/dashboard", core: true }],
     },
     {
       group: "platform",
       label: "Platform",
       items: [
-        { id: "suppliers",          label: "Suppliers",   icon: "users",   href: "/admin/suppliers" },
-        { id: "supplier-products",  label: "Products",    icon: "bag",     href: "/admin/supplier-products" },
-        { id: "logistics-partners", label: "Logistics",   icon: "truck",   href: "/admin/logistics-partners" },
-        { id: "categories",         label: "Categories",  icon: "box",     href: "/admin/categories" },
-        { id: "marketplace",        label: "Marketplace", icon: "monitor", href: "/admin/marketplace" },
+        {
+          id: "suppliers", label: "Suppliers", icon: "users", href: "/admin/suppliers", core: true,
+          children: [
+            { id: "suppliers-all", label: "Suppliers", href: "/admin/suppliers" },
+            { id: "supplier-products", label: "Supplier products", href: "/admin/supplier-products" },
+          ],
+        },
+        { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
+        {
+          id: "marketplace", label: "Marketplace", icon: "monitor", href: "/admin/marketplace",
+          children: [
+            { id: "marketplace-sync", label: "Marketplace", href: "/admin/marketplace" },
+            { id: "categories", label: "Categories", href: "/admin/categories" },
+            { id: "domain-partners", label: "Domain partners", href: "/admin/domain-partners" },
+          ],
+        },
       ],
     },
     {
-      group: "meta",
-      label: "Meta",
-      items: [
-        { id: "domain-partners", label: "Domain Partners", icon: "globe", href: "/admin/domain-partners" },
-        { id: "settings", label: "Settings", icon: "settings", href: "/admin/settings" },
-      ],
+      group: "footer",
+      pinBottom: true,
+      items: [{ id: "settings", label: "Settings", icon: "settings", href: "/admin/settings", core: true }],
     },
   ],
 };
+
+/** Every page the nav links to (items and their submenus), for search and titles. */
+export function navLinks(role: Role): Array<{ id: string; label: string; href: string; parent?: string }> {
+  return NAV_BY_ROLE[role].flatMap((group) =>
+    group.items.flatMap((item) => [
+      { id: item.id, label: item.label, href: item.href },
+      ...(item.children ?? []).map((child) => ({ ...child, parent: item.label })),
+    ]),
+  );
+}
+
+/** Items a person may switch off in "Customise your menu" (everything except core items). */
+export function toggleableItems(role: Role) {
+  return NAV_BY_ROLE[role].flatMap((group) => group.items.filter((item) => !item.core).map((item) => ({ ...item, group: group.label ?? "" })));
+}
 
 export const ROLE_META: Record<
   Role,

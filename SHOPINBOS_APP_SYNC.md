@@ -111,6 +111,47 @@ Status: built against the 2026 app prototypes; web verified locally (route smoke
 - [ ] Next design phase: seller app dashboard (web and mobile), supplier / logistics onboarding restyle, then remove the legacy seller branch of `OnboardingFlow.tsx`.
 - [ ] Checkout does not read the payment-method preferences (`brandSettings.paymentConfig.methods`) yet.
 
+### Phase 9 - Seller Home Dashboard and App Shell (web + Expo)
+
+Status: built against the "Seller app · web" and "Seller app · iOS and Android" mockups; verified locally.
+
+- [x] App shell for every portal: new sidebar (store card, Add product, grouped nav, badges) and top bar (title, pill search, Ask Peggy, notifications with real unread state); slide-in menu on small screens.
+- [x] Seller nav per the mockup; extra existing pages under "More tools"; a test checks every nav link has a page.
+- [x] Seller home with real data (`src/lib/dashboard`): today's and this week's sales, orders, visitors, chats, Peggy's tasks, 14-day sales, checklist, latest orders, order channels, imports, best sellers. `GET /api/app/dashboard` serves the app.
+- [x] Order channel tracking (`RetailOrder.channel` from `?ref=` / `utm_source`) and a storefront visit beacon for "Visitors".
+- [x] Expo app: home, Products, Chats, Orders and More tabs, the orange "+" for adding products from photos, and native Ask Peggy (`POST /api/app/peggy`).
+- [x] Applied `docs/migrations/2026-10-11-order-channel.sql` to the live database (2026-10-11).
+- [ ] Restyle inner seller pages (orders, products, customers…) to the new design.
+- [x] Build Ads, Video studio, Affiliates and Labels and print (Phase 10).
+- [ ] Bring the inbox to the app (needs buyer conversations, today only supplier/logistics messages and contact forms exist).
+
+### Phase 10 - Seller Growth Tools, Record a Sale, App Handoff (web + Expo)
+
+Status: built and verified locally (production build, route smoke incl. write flows, Playwright walkthrough).
+
+- [x] Record a sale: `/home/orders/new` (web) and the app's "Record sale" screen, both `POST /api/app/orders` (`src/lib/orders/record-sale.ts`, rules in `shared/sales.ts`). Catalogue items lower stock; payment cash/transfer/POS/not paid; collected or to deliver; channel incl. "In person". `PATCH /api/app/orders/:id {status:"paid"}` marks unpaid orders paid.
+- [x] Native order details in the app (`/order/[id]`): mark paid, remind on WhatsApp, mark sent/delivered, cancel, call or WhatsApp the buyer; booking a rider and labels open the web.
+- [x] App → web handoff: the app opens web tools via `/auth/handoff#t=<access token>`, so sellers aren't asked to log in again. Only the access token is shared (the app keeps its refresh token), so the web session lasts up to an hour and each open starts a fresh one.
+- [x] Labels and print (`/home/labels`, `/home/labels/print`): 4×6 in or A4 (4 per page) labels with logo, address, pay-on-delivery amount and a tracking QR, plus packing slips.
+- [x] Affiliates (`/home/affiliates`, `/api/app/affiliates`): creator links `?aff=<code>`, credited at checkout for 30 days, commission on the item total after discounts, earned on delivery, marked paid by the seller.
+- [x] Ads (`/home/ads`, `/api/app/ads`, `/r/ad/<code>`): Peggy writes the ad; the seller runs it on Instagram/Facebook/TikTok/WhatsApp status with the tracking link; we count taps and orders (`?ad=` at checkout), take logged spend for cost per order, and flag no orders by day 2. We don't buy ads on the seller's behalf.
+- [x] Video studio (`/home/video`): photos → 9:16 reel rendered in the browser (canvas + MediaRecorder; MP4 where supported, else WebM), Peggy's captions/voiceover in English, Pidgin, Yorùbá or Hausa (`/api/ai/video-script`), OpenAI TTS voiceover (`/api/ai/voiceover`, needs `OPENAI_API_KEY`), save to the product's video.
+- [x] Fixed: `PATCH /api/store/products/:id` reset images, specs and FAQs to empty when a client sent only some fields (Zod defaults on a partial schema).
+- [x] Applied `docs/migrations/2026-10-11-growth-tools.sql` to the live database (2026-10-11).
+- [ ] Have a native speaker check the starter Yorùbá and Hausa reel lines in `shared/video.ts` (used when AI is unavailable).
+
+### Phase 11 - Every Page in the 2026 Look, Menu Hierarchy, Rex and Peggy Fully Wired
+
+Status: built and verified locally (production build, route smoke 247/247, 161 pages swept at 360/768/1440/2560px in Chromium with no overflow or errors, Playwright walkthrough).
+
+- [x] All signed-in pages (seller, supplier, logistics, admin) rebuilt to the prototype with real data, full-bleed, responsive; `.app-scope` remaps older tokens/classes; shared `src/components/app-kit`.
+- [x] Menu: prototype items at the top level, other pages in hover flyouts (inline on touch/when inside); "Customise your menu" (`/home/features`, `/supplier/features`, `/logistics/features`) switches features off per person (`User.preferences`).
+- [x] Guided walkthrough on the first visit to each portal's home (`GuidedTour`), replayable.
+- [x] AI: both providers with fallback (`src/lib/ai/text.ts`), models in `src/lib/ai/client.ts` (env-overridable), daily limits (`AiUsage`), image generation/editing fixed (`src/lib/ai/images.ts`), Peggy tool agent (`src/lib/ai/peggy`), Rex store builder (`src/lib/ai/rex`, `/api/ai/build-store`).
+- [x] Applied to the live database (2026-10-11): `2026-10-11-growth-tools.sql`, `2026-10-11-ai-usage.sql`, `2026-10-11-user-preferences.sql`.
+- [ ] Test Rex and Peggy against live keys (only typecheck/unit/smoke runs without keys were possible here).
+- [ ] Check in Safari and Firefox (only Chromium is available in the build environment).
+
 ## Current Todos
 
 - [x] Finish the onboarding visual QA pass against the supplied mockup screens.

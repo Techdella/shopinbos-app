@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { AppFrame } from "@/components/shell/AppFrame";
+import { TextLink } from "@/components/app-kit";
 import { PageDetailsClient } from "./PageDetailsClient";
 
 export const dynamic = "force-dynamic";
@@ -18,27 +18,23 @@ export default async function PageDetailPage({ params }: { params: Promise<{ id:
   if (!page) notFound();
 
   const storeName = workspace.store.name;
-  const storeSlug = workspace.store.slug ? `${workspace.store.slug}.shopinbos.shop` : undefined;
 
+  // The client renders the page heading itself because the title is editable there.
   return (
     <AppFrame
       role="seller"
       storeName={storeName}
-      storeSlug={storeSlug}
+      storeSlug={workspace.store.slug}
       storeInitial={storeName.charAt(0).toUpperCase()}
       storeLogoUrl={workspace.store.logoUrl}
       userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <Link href="/home/pages" style={{ color: "var(--ink-500)", fontSize: 13, textDecoration: "none", fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
-            ← Back to Pages
-          </Link>
+      <div className="w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10">
+        <div className="mb-4">
+          <TextLink href="/home/pages">← All pages</TextLink>
         </div>
-
         <PageDetailsClient
           page={JSON.parse(JSON.stringify(page))}
           storeId={workspace.store.id}

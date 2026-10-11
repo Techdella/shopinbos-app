@@ -1,41 +1,33 @@
-import Link from "next/link";
-import { AppFrame } from "@/components/shell/AppFrame";
+import type { Prisma, RetailOrderStatus } from "@prisma/client";
+import { AppPage, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, StageDot, Thumb } from "@/components/app-kit";
+import { Icon } from "@/components/ui/Icon";
+import { sellerFrame, timeAgo } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
+import { orderRow } from "@/lib/dashboard/compute";
+import { PAID_ORDER_STATUSES } from "@/lib/insights";
+import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
+import { naira } from "@shared/onboarding";
 
 export const dynamic = "force-dynamic";
 
-function fmtAgo(date: Date): string {
-  const diff = Date.now() - date.getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hr ago`;
-  const d = Math.floor(h / 24);
-  if (d === 1) return "Yesterday";
-  return `${d} days ago`;
-}
+const PAGE_SIZE = 100;
 
-function fmtMoney(n: number) {
-  return "₦" + n.toLocaleString("en-NG");
-}
-
-const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
-  pending:    { cls: "badge badge-warn",    label: "Pending pay" },
-  paid:       { cls: "badge badge-success", label: "Paid" },
-  processing: { cls: "badge badge-info",    label: "Processing" },
-  shipped:    { cls: "badge badge-info",    label: "Shipped" },
-  delivered:  { cls: "badge badge-success", label: "Delivered" },
-  cancelled:  { cls: "badge badge-soft",    label: "Cancelled" },
-  refunded:   { cls: "badge badge-soft",    label: "Refunded" },
-};
+const FILTERS: Array<{ key: string; label: string; statuses: RetailOrderStatus[] | null }> = [
+  { key: "all", label: "All", statuses: null },
+  { key: "needs_action", label: "Needs action", statuses: ["pending", "awaiting_payment", "paid", "processing", "packed"] },
+  { key: "to_send", label: "To send", statuses: ["paid", "processing", "packed"] },
+  { key: "on_the_way", label: "On the way", statuses: ["shipped"] },
+  { key: "delivered", label: "Delivered", statuses: ["delivered"] },
+  { key: "unpaid", label: "Unpaid", statuses: ["pending", "awaiting_payment"] },
+];
 
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>
+  searchParams: Promise<{ filter?: string; q?: string }>
 }) {
-  const { filter = "all" } = await searchParams;
+  const { filter: rawFilter, q: rawQuery } = await searchParams;
   const user = await requireRole(["seller"], "/login");
 
   const store = await db.store.findUnique({
@@ -43,155 +35,124 @@ export default async function OrdersPage({
     select: { id: true, name: true, currency: true, slug: true, logoUrl: true },
   });
 
-  const orders = store
-    ? await db.retailOrder.findMany({
-        where: { storeId: store.id },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      })
-    : [];
+  const filter = FILTERS.find((item) => item.key === rawFilter) ?? FILTERS[0];
+  const query = rawQuery?.trim() ?? "";
 
-  const totalRevenue = orders
-    .filter(o => ["paid", "processing", "shipped", "delivered"].includes(o.status))
-    .reduce((s, o) => s + Number(o.total), 0);
+  const where: Prisma.RetailOrderWhereInput = { storeId: store?.id ?? "__none__" };
+  if (filter.statuses) where.status = { in: filter.statuses };
+  if (query) {
+    where.OR = [
+      { orderNumber: { contains: query, mode: "insensitive" } },
+      { buyerName: { contains: query, mode: "insensitive" } },
+      { buyerEmail: { contains: query, mode: "insensitive" } },
+      { buyerPhone: { contains: query } },
+    ];
+  }
 
-  const needsAction = orders.filter(o => ["pending", "processing"].includes(o.status)).length;
-  const shipped     = orders.filter(o => o.status === "shipped").length;
-  const delivered   = orders.filter(o => o.status === "delivered").length;
+  const [orders, matching, byStatus, paidSales] = store
+    ? await Promise.all([
+        db.retailOrder.findMany({ where, orderBy: { createdAt: "desc" }, take: PAGE_SIZE }),
+        db.retailOrder.count({ where }),
+        db.retailOrder.groupBy({ by: ["status"], where: { storeId: store.id }, _count: { _all: true } }),
+        db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: [...PAID_ORDER_STATUSES] } }, _sum: { total: true } }),
+      ])
+    : [[], 0, [], null];
+
+  const statusCount = new Map(byStatus.map((row) => [row.status as string, row._count._all]));
+  const countFor = (statuses: RetailOrderStatus[] | null) =>
+    statuses ? statuses.reduce((sum, status) => sum + (statusCount.get(status) ?? 0), 0) : [...statusCount.values()].reduce((sum, count) => sum + count, 0);
+  const totalOrders = countFor(null);
+  const revenue = paidSales?._sum.total ?? 0;
+
+  const chipHref = (key: string) => {
+    const params = new URLSearchParams();
+    if (key !== "all") params.set("filter", key);
+    if (query) params.set("q", query);
+    const qs = params.toString();
+    return `/home/orders${qs ? `?${qs}` : ""}`;
+  };
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store?.name}
-      storeSlug={store?.slug}
-      storeInitial={store?.name?.[0]?.toUpperCase()}
-      storeLogoUrl={store?.logoUrl}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={sellerFrame(user, store)}
+      title="Orders"
+      sub={totalOrders > 0 ? `${totalOrders.toLocaleString("en-NG")} orders · ${naira(revenue)} in paid sales` : undefined}
+      actions={
+        <>
+          <a
+            href="/api/orders/export"
+            download
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
+          >
+            <Icon name="download" size={16} />
+            Export
+          </a>
+          <PillLink href="/home/orders/new" tone="accent" icon="plus">Record a sale</PillLink>
+        </>
+      }
+      toolbar={
+        <>
+          <FilterChips
+            items={FILTERS.map((item) => ({ label: item.label, href: chipHref(item.key), count: countFor(item.statuses), active: item.key === filter.key }))}
+          />
+          <SearchForm action="/home/orders" defaultValue={query} placeholder="Search name, phone or order no." keep={{ filter: filter.key === "all" ? undefined : filter.key }} />
+        </>
+      }
     >
-      <div className="flex-1 overflow-y-auto" style={{ padding: "24px 28px 40px", background: "var(--canvas)" }}>
-        {/* Page header */}
-        <div className="pg-hero">
-          <div>
-            <h1>Orders</h1>
-            <div className="pg-sub">
-              {orders.length} orders this month · {fmtMoney(totalRevenue)} revenue
-            </div>
-          </div>
-          <div className="pg-acts">
-            <Link href="/api/orders/export" className="dbtn dBtn-ghost dBtn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export
-            </Link>
-            <button className="dbtn dBtn-ghost dBtn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/></svg>
-              Saved views
-            </button>
-            <Link href="/home/orders/new" className="dbtn dBtn-mint dBtn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Manual order
-            </Link>
-          </div>
-        </div>
-
-        {/* Status filter tabs */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 16, padding: 5, background: "var(--paper)", border: "1px solid var(--ink-150)", borderRadius: 10, alignSelf: "flex-start", width: "fit-content" }}>
-          {[
-            { l: "All",          f: "all",          n: orders.length },
-            { l: "Needs action", f: "needs_action", n: needsAction,    color: "var(--warning)" },
-            { l: "Shipped",      f: "shipped",      n: shipped },
-            { l: "Delivered",    f: "delivered",    n: delivered },
-          ].map((t, i) => {
-            const active = filter === t.f;
-            return (
-              <Link key={i} href={`/home/orders?filter=${t.f}`}
-                style={{
-                  padding: "6px 12px", borderRadius: 7, border: "none", fontSize: 12.5, fontWeight: 600, textDecoration: "none",
-                  background: active ? "var(--teal-100)" : "transparent",
-                  color: active ? "var(--teal-800)" : (t as { l: string; f: string; n: number; color?: string }).color || "var(--ink-700)",
-                }}
-              >
-                {t.l}
-                <span style={{ marginLeft: 6, fontFamily: "var(--font-mono)", fontSize: 11, color: active ? "var(--teal-700)" : "var(--ink-400)" }}>{t.n}</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Orders table */}
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          {orders.length === 0 ? (
-            <div style={{ padding: 48, textAlign: "center" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
-              <div style={{ fontWeight: 600, fontSize: 16, color: "var(--ink-900)", marginBottom: 8 }}>No orders yet</div>
-              <div style={{ fontSize: 13, color: "var(--ink-500)" }}>
-                Share your store link to start getting customers.
-              </div>
-            </div>
-          ) : (
-            <>
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Customer</th>
-                    <th>Items</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Placed</th>
-                    <th style={{ width: 80 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => {
-                    const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE.pending;
-                    const itemCount = (order.items as unknown[]).length;
-                    return (
-                      <tr key={order.id}>
-                        <td>
-                          <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 12, color: "var(--teal-700)" }}>{order.orderNumber}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600, fontSize: 13 }}>{order.buyerName}</div>
-                          <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>{order.buyerEmail}</div>
-                        </td>
-                        <td style={{ fontSize: 12.5, color: "var(--ink-600)" }}>
-                          {itemCount} item{itemCount !== 1 ? "s" : ""}
-                        </td>
-                        <td>
-                          <span className="money" style={{ fontWeight: 600 }}>
-                            {fmtMoney(Number(order.total))}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={badge.cls}>
-                            <span className="badge-dot" />
-                            {badge.label}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: 11.5, color: "var(--ink-500)" }}>
-                          {fmtAgo(order.createdAt)}
-                        </td>
-                        <td>
-                          {!["delivered", "cancelled", "refunded"].includes(order.status) && (
-                            <Link href={`/home/orders/${order.id}`} style={{ textDecoration: "none" }}>
-                              <button className="dbtn dBtn-ghost dBtn-sm" style={{ padding: "4px 10px" }}>View</button>
-                            </Link>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <div style={{ padding: "12px 16px", borderTop: "1px solid var(--ink-100)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Showing {orders.length} orders</div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </AppFrame>
+      {totalOrders === 0 ? (
+        <EmptyState
+          icon="bag"
+          title="No orders yet"
+          action={<PillLink href="/home/orders/new" tone="ink" icon="plus">Record a sale</PillLink>}
+        >
+          Share your store link to start getting orders, or record a sale you made on WhatsApp, Instagram or in person.
+        </EmptyState>
+      ) : orders.length === 0 ? (
+        <EmptyState icon="search" title="No orders match" action={<PillLink href="/home/orders">Show all orders</PillLink>}>
+          {query ? `Nothing matches “${query}” in this view.` : "There are no orders in this view right now."}
+        </EmptyState>
+      ) : (
+        <>
+          <ListCard>
+            {orders.map((order) => {
+              const row = orderRow({ ...order, total: Number(order.total) });
+              const channel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
+              return (
+                <ListRow key={order.id} href={`/home/orders/${order.id}`}>
+                  <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
+                    <Thumb src={row.image} label={row.summary} />
+                    <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_120px_120px_110px_92px]">
+                      <div className="min-w-0">
+                        <div className="truncate text-[15px] font-extrabold">{row.buyer}</div>
+                        <div className="truncate text-[13px] text-app-ink-soft">
+                          {row.summary} · {order.orderNumber}
+                        </div>
+                      </div>
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 xl:contents">
+                        <StageDot tone={row.stage.tone}>{row.stage.label}</StageDot>
+                        <span>
+                          <Pill tone={row.payment.tone}>{row.payment.label}</Pill>
+                        </span>
+                        <span className="hidden truncate text-[13.5px] text-app-ink-soft xl:block">{channel ?? "—"}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-3 md:flex-col md:items-end md:gap-0.5 xl:contents">
+                        <span className="text-[15px] font-extrabold xl:text-right">{naira(row.total)}</span>
+                        <span className="text-[12.5px] text-app-ink-soft xl:text-right">
+                          <span className="xl:hidden">{channel ? `${channel} · ` : ""}</span>
+                          <time dateTime={order.createdAt.toISOString()}>{timeAgo(order.createdAt)}</time>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </ListRow>
+              );
+            })}
+          </ListCard>
+          <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
+            {matching > orders.length ? `Showing the latest ${orders.length} of ${matching.toLocaleString("en-NG")} orders.` : `${matching.toLocaleString("en-NG")} ${matching === 1 ? "order" : "orders"}`}
+          </p>
+        </>
+      )}
+    </AppPage>
   );
 }

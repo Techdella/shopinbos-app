@@ -5,6 +5,7 @@ import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import type { StoreConfig } from "@/lib/ai/store-types";
 import type { PreviewVariant } from "./StorePreview";
+import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 
 interface LaunchSetupProps {
   storeName: string;
@@ -35,8 +36,12 @@ export function LaunchSetup({
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [blockers, setBlockers] = useState<string[]>([]);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [launchPricing, setLaunchPricing] = useState<StoreLaunchPricing | null>(null);
+  const [liveSlug, setLiveSlug] = useState<string | null>(null);
 
-  const storeOrigin = buildStorefrontOrigin({ slug: storeSlug, customDomain });
+  const storeOrigin = buildStorefrontOrigin({ slug: liveSlug ?? storeSlug, customDomain });
   const storeUrl = storeOrigin.replace(/^https?:\/\//, "");
 
   const payoutHelp = useMemo(() => {
@@ -63,24 +68,16 @@ export function LaunchSetup({
 
     setIsSaving(true);
     setSaveError(null);
+    setBlockers([]);
 
     try {
+      // 1. Payment and delivery settings. The store's name and slug are left alone here.
       const response = await fetch("/api/app/store", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: storeConfig.name,
-          description: storeConfig.heroSubline,
-          logoUrl: storeConfig.logoUrl ?? undefined,
-          status: "active",
+          ...(storeConfig.logoUrl ? { logoUrl: storeConfig.logoUrl } : {}),
           brandSettings: {
-            tagline: storeConfig.tagline,
-            palette: storeConfig.palette,
-            fontStyle: storeConfig.fontStyle,
-            heroHeadline: storeConfig.heroHeadline,
-            heroSubline: storeConfig.heroSubline,
-            heroCtaText: storeConfig.heroCtaText,
-            navLinks: storeConfig.navLinks,
             layoutVariant,
             paymentConfig: {
               provider: paymentProvider,
@@ -95,14 +92,46 @@ export function LaunchSetup({
           },
         }),
       });
+      if (!response.ok) throw new Error("We could not save your payment and delivery settings right now.");
+      setSettingsSaved(true);
 
-      if (!response.ok) {
-        throw new Error("We could not save your launch settings right now.");
-      }
-
-      setSaved(true);
+      // 2. Publish the draft. The first launch needs the launch fee; the billing modal handles that.
+      await publish();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "We could not save your launch settings right now.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function publish() {
+    const response = await fetch("/api/store/editor/publish", { method: "POST" });
+    const json = (await response.json().catch(() => null)) as {
+      error?: { message?: string; blockers?: string[] };
+      billing?: StoreLaunchPricing;
+    } | null;
+    if (response.status === 402 && json?.billing) {
+      setLaunchPricing(json.billing);
+      return;
+    }
+    if (!response.ok) {
+      setBlockers(json?.error?.blockers ?? []);
+      throw new Error(json?.error?.message ?? "Your store couldn't be published yet.");
+    }
+    // The live address comes from the saved store, not the preview's suggested slug.
+    const editor = await fetch("/api/store/editor", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)).catch(() => null) as { data?: { store?: { slug?: string } } } | null;
+    if (editor?.data?.store?.slug) setLiveSlug(editor.data.store.slug);
+    setSaved(true);
+  }
+
+  async function retryPublish() {
+    setIsSaving(true);
+    setSaveError(null);
+    setBlockers([]);
+    try {
+      await publish();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Your store couldn't be published yet.");
     } finally {
       setIsSaving(false);
     }
@@ -173,8 +202,8 @@ export function LaunchSetup({
       >
         <ChipAvatar mascot="rex" size={32} />
         <p className="text-[13px] leading-6" style={{ color: "var(--color-navy)" }}>
-          Almost there! Let&apos;s set up how customers pay you, where payouts should land, and how you deliver orders.
-          You can always update these later in Settings.
+          Almost there. Set up how customers pay you, where payouts should land, and how you deliver orders, then
+          publish. Publishing makes your store visible to shoppers; the first launch has a one-time launch fee.
         </p>
       </div>
 
@@ -301,7 +330,7 @@ export function LaunchSetup({
         {shippingOption === "flat" && (
           <div className="mt-3 flex items-center gap-2">
             <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--color-muted)" }}>
-              â‚¦
+              ₦
             </span>
             <input
               value={flatRate}
@@ -317,21 +346,34 @@ export function LaunchSetup({
         )}
       </div>
 
+      <StoreLaunchBillingModal open={Boolean(launchPricing)} pricing={launchPricing} onClose={() => setLaunchPricing(null)} />
+
       {saveError && (
         <div className="rounded-[14px] border px-4 py-3 text-[12px]" style={{ borderColor: "rgb(232 106 79 / 0.3)", background: "rgb(232 106 79 / 0.08)", color: "#9F2D20" }}>
           {saveError}
+          {blockers.length > 1 && (
+            <ul className="mt-2 list-disc pl-4">
+              {blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {settingsSaved && !saved && launchPricing === null && !saveError && !isSaving && (
+        <div className="rounded-[14px] border px-4 py-3 text-[12px]" style={{ borderColor: "rgb(115 216 200 / 0.3)", background: "rgb(115 216 200 / 0.08)", color: "var(--color-navy)" }}>
+          Payment and delivery settings saved. Your store goes live once the launch fee is paid; then press &ldquo;Publish my store&rdquo; again.
         </div>
       )}
 
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={handleSave}
+          onClick={settingsSaved ? retryPublish : handleSave}
           disabled={isSaving || !paymentProvider || !shippingOption || !payoutReady}
           className="rounded-full px-6 py-3 text-[14px] font-semibold text-[var(--color-navy)] disabled:opacity-50"
           style={{ background: "var(--color-mint)" }}
         >
-          {isSaving ? "Saving..." : "Launch my store"}
+          {isSaving ? "Publishing..." : settingsSaved ? "Publish my store" : "Save and publish my store"}
         </button>
         <button type="button" onClick={onDone} className="text-[13px] text-[var(--color-muted)] underline">
           Finish later

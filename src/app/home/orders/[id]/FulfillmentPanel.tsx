@@ -1,13 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Btn } from "@/components/ui/Btn";
+import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 
 const STATUS_FLOW = ["pending", "paid", "processing", "packed", "shipped", "delivered"];
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  awaiting_payment: "Awaiting Payment",
+  pending: "Placed",
+  awaiting_payment: "Waiting for payment",
   paid: "Paid",
   processing: "Processing",
   packed: "Packed",
@@ -16,6 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
   returned: "Returned",
   refunded: "Refunded",
+  partially_refunded: "Partly refunded",
 };
 
 const TRANSITIONS: Record<string, string[]> = {
@@ -23,12 +24,23 @@ const TRANSITIONS: Record<string, string[]> = {
   processing: ["packed", "cancelled"],
   packed:     ["shipped", "cancelled"],
   shipped:    ["delivered"],
-  pending:    ["cancelled"],
+  // Cash, transfer or POS received outside Paystack (e.g. a recorded sale or pay on delivery).
+  pending:          ["paid", "cancelled"],
+  awaiting_payment: ["paid", "cancelled"],
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  paid: "Mark as paid",
+  processing: "Start processing",
+  packed: "Mark as packed",
+  shipped: "Ship order",
+  delivered: "Mark as delivered",
+  cancelled: "Cancel order",
 };
 
 const LOGISTICS_OPTIONS = [
-  { value: "personal", label: "Personal logistics", desc: "I will handle delivery myself" },
-  { value: "pickup", label: "Buyer pickup", desc: "Buyer will collect in person" },
+  { value: "personal", label: "I'll deliver it", desc: "You or your own rider takes it to the buyer" },
+  { value: "pickup", label: "Buyer pickup", desc: "The buyer collects it in person" },
 ];
 
 interface FulfillmentPanelProps {
@@ -45,11 +57,12 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
   const [showLogistics, setShowLogistics] = useState(false);
   const [logisticsType, setLogisticsType] = useState("personal");
   const [trackingInput, setTrackingInput] = useState(trackingCode ?? "");
-  const [showTrackingInput, setShowTrackingInput] = useState(false);
 
-  const currentIdx = STATUS_FLOW.indexOf(currentStatus);
+  // "awaiting_payment" sits at the same point in the flow as "pending".
+  const currentIdx = STATUS_FLOW.indexOf(currentStatus === "awaiting_payment" ? "pending" : currentStatus);
   const next = TRANSITIONS[currentStatus] ?? [];
   const isTerminal = ["delivered", "cancelled", "refunded", "returned"].includes(currentStatus);
+  const offFlow = currentIdx === -1;
 
   async function update(status: string, extra: Record<string, unknown> = {}) {
     setError(null);
@@ -65,7 +78,6 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
         setError(data.error?.message ?? "Failed to update order");
       } else {
         setShowLogistics(false);
-        setShowTrackingInput(false);
         router.refresh();
       }
     } catch {
@@ -95,52 +107,52 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Status Timeline */}
-      <div className="flex items-center gap-1">
-        {STATUS_FLOW.map((s, i) => {
-          const done = i <= currentIdx;
-          const active = i === currentIdx;
-          return (
-            <div key={s} className="flex items-center gap-1 flex-1 last:flex-none">
-              <div
-                className="h-2 w-full rounded-full transition-colors"
-                style={{
-                  background: done ? "var(--color-teal-deep)" : "rgba(14,42,56,0.08)",
-                  opacity: active ? 1 : done ? 0.7 : 0.4,
-                }}
-              />
-              {i < STATUS_FLOW.length - 1 && (
-                <div
-                  className="h-[2px] flex-1 transition-colors"
-                  style={{ background: done && i < currentIdx ? "var(--color-teal-deep)" : "rgba(14,42,56,0.08)" }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex justify-between text-[10px] font-mono tracking-[0.08em] text-[var(--color-muted)]">
-        {STATUS_FLOW.map((s) => (
-          <span key={s} style={{ fontWeight: currentStatus === s ? 700 : 400, color: currentStatus === s ? "var(--color-navy)" : undefined }}>
-            {STATUS_LABELS[s]}
-          </span>
-        ))}
-      </div>
+    <div className="grid gap-4">
+      {/* Where the order is in the flow */}
+      {offFlow ? (
+        <p className="m-0 text-[14px] font-bold">{STATUS_LABELS[currentStatus] ?? currentStatus}</p>
+      ) : (
+        <ol className="m-0 grid list-none gap-0 p-0" aria-label="Order progress">
+          {STATUS_FLOW.map((step, index) => {
+            const done = index < currentIdx;
+            const active = index === currentIdx;
+            return (
+              <li key={step} className="relative flex items-center gap-3 py-1.5" aria-current={active ? "step" : undefined}>
+                {index < STATUS_FLOW.length - 1 && (
+                  <span aria-hidden className={cx("absolute left-[7px] top-[22px] h-[calc(100%-10px)] w-[2px]", index < currentIdx ? "bg-app-ink" : "bg-app-track")} />
+                )}
+                <span
+                  aria-hidden
+                  className={cx(
+                    "relative grid h-4 w-4 shrink-0 place-items-center rounded-full border-2",
+                    done ? "border-app-ink bg-app-ink" : active ? "border-app-accent bg-white" : "border-app-track bg-white",
+                  )}
+                >
+                  {active && <span className="h-1.5 w-1.5 rounded-full bg-app-accent" />}
+                </span>
+                <span className={cx("text-[14px]", active ? "font-extrabold" : done ? "font-semibold" : "text-app-ink-soft")}>
+                  {step === "pending" && currentStatus === "awaiting_payment" ? STATUS_LABELS.awaiting_payment : STATUS_LABELS[step]}
+                </span>
+                {active && <span className="ml-auto text-[12.5px] font-bold text-app-accent-ink">Now</span>}
+                {done && <span className="sr-only">(done)</span>}
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
-      {/* Logistics Selection Modal */}
+      {/* Shipping method */}
       {showLogistics && (
-        <div className="bg-white border rounded-xl p-4" style={{ borderColor: "rgba(14,42,56,0.1)" }}>
-          <div className="font-semibold text-[var(--color-navy)] mb-3">Select shipping method</div>
-          <div className="flex flex-col gap-2 mb-4">
+        <fieldset className="m-0 grid gap-3 rounded-[18px] border border-app-line p-4">
+          <legend className="px-1 text-[15px] font-extrabold">How is it getting there?</legend>
+          <div className="grid gap-2">
             {LOGISTICS_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
-                style={{
-                  borderColor: logisticsType === opt.value ? "var(--color-teal-deep)" : "rgba(14,42,56,0.1)",
-                  background: logisticsType === opt.value ? "rgba(115,216,200,0.08)" : "transparent",
-                }}
+                className={cx(
+                  "flex cursor-pointer items-start gap-3 rounded-[14px] border p-3 transition",
+                  logisticsType === opt.value ? "border-app-ink bg-app-canvas" : "border-app-line hover:border-app-line-strong",
+                )}
               >
                 <input
                   type="radio"
@@ -148,71 +160,72 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
                   value={opt.value}
                   checked={logisticsType === opt.value}
                   onChange={() => setLogisticsType(opt.value)}
-                  className="mt-0.5"
+                  className="mt-1 h-4 w-4 accent-[#16141F]"
                 />
-                <div>
-                  <div className="font-semibold text-[13px] text-[var(--color-navy)]">{opt.label}</div>
-                  <div className="text-[11px] text-[var(--color-muted)]">{opt.desc}</div>
-                </div>
+                <span>
+                  <span className="block text-[14px] font-bold">{opt.label}</span>
+                  <span className="block text-[12.5px] text-app-ink-soft">{opt.desc}</span>
+                </span>
               </label>
             ))}
           </div>
           {logisticsType === "personal" && (
-            <div className="mb-4">
-              <label className="text-[11px] font-mono tracking-[0.1em] uppercase text-[var(--color-muted)] block mb-1">Tracking code (optional)</label>
-              <input
-                type="text"
+            <div>
+              <FieldLabel htmlFor="tracking-code">Tracking code (optional)</FieldLabel>
+              <TextInput
+                id="tracking-code"
                 placeholder="e.g. NIPOST-12345"
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-[13px]"
-                style={{ borderColor: "rgba(14,42,56,0.15)" }}
+                className="h-12"
               />
             </div>
           )}
-          <div className="flex gap-2">
-            <Btn variant="ghost" size="sm" onClick={() => setShowLogistics(false)}>Cancel</Btn>
-            <Btn size="sm" onClick={handleShipWithLogistics} disabled={loading !== null}>
-              {loading === "shipped" ? "Shipping..." : "Mark as Shipped"}
-            </Btn>
+          <div className="flex flex-wrap gap-2">
+            <PillButton tone="accent" size="md" onClick={handleShipWithLogistics} busy={loading === "shipped"} disabled={loading !== null}>
+              Mark as shipped
+            </PillButton>
+            <PillButton tone="white" size="md" onClick={() => setShowLogistics(false)}>Cancel</PillButton>
           </div>
-        </div>
+        </fieldset>
       )}
 
-      {/* Tracking Display */}
+      {/* Tracking */}
       {trackingCode && currentStatus === "shipped" && (
-        <div className="bg-white border rounded-xl p-4" style={{ borderColor: "rgba(14,42,56,0.1)" }}>
-          <div className="text-[11px] font-mono tracking-[0.1em] uppercase text-[var(--color-muted)] mb-1">Tracking</div>
-          <div className="font-semibold text-[var(--color-navy)]">{trackingCode}</div>
+        <div className="rounded-[16px] bg-app-canvas px-4 py-3">
+          <div className="text-[12.5px] text-app-ink-soft">Tracking</div>
+          <div className="break-all text-[15px] font-extrabold">{trackingCode}</div>
           {logisticsDetails && (
-            <div className="text-[12px] text-[var(--color-muted)] mt-1">
+            <div className="mt-0.5 text-[12.5px] text-app-ink-soft">
               {logisticsDetails.type === "pickup" ? "Buyer pickup" : "Personal logistics"}
             </div>
           )}
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Actions */}
       {!isTerminal && next.length > 0 && !showLogistics && (
-        <div className="flex flex-col gap-2">
-          <div className="text-[11px] font-mono tracking-[0.1em] uppercase text-[var(--color-muted)]">Actions</div>
+        <div className="grid gap-2">
           {next.map((status) => (
-            <Btn
+            <PillButton
               key={status}
-              variant={status === "cancelled" ? "outline" : status === "shipped" ? "ghost" : "primary"}
-              size="sm"
+              tone={status === "cancelled" ? "white" : "accent"}
+              size="md"
               onClick={() => handleStatusClick(status)}
+              busy={loading === status}
               disabled={loading !== null}
+              className={cx("w-full", status === "cancelled" && "text-app-danger hover:border-app-danger")}
             >
-              {loading === status ? "Updating..." : status === "shipped" ? "Ship Order" : STATUS_LABELS[status] ?? status}
-            </Btn>
+              {ACTION_LABELS[status] ?? STATUS_LABELS[status] ?? status}
+            </PillButton>
           ))}
-          {error && <p className="text-[12px] text-[var(--color-coral)] mt-1">{error}</p>}
         </div>
       )}
 
+      {error && <Notice>{error}</Notice>}
+
       {isTerminal && (
-        <div className="text-[13px] text-[var(--color-muted)]">This order is complete.</div>
+        <p className="m-0 text-[13.5px] text-app-ink-soft">This order is complete.</p>
       )}
     </div>
   );

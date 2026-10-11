@@ -1,150 +1,186 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon, MascotAvatar } from "@/components/ui";
+import { db } from "@/lib/db/client";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
+import { QuoteRequestForm } from "./QuoteRequestForm";
 
 export const dynamic = "force-dynamic";
 
 function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
 
-export default async function SellerLogisticsPage() {
+const ACTIVE = ["pending", "confirmed", "picked_up", "in_transit"] as const;
+
+const QUOTE_TONE: Record<string, Tone> = { pending: "warning", responded: "info", accepted: "success", rejected: "muted", expired: "muted" };
+const QUOTE_LABEL: Record<string, string> = { pending: "Waiting", responded: "Price in", accepted: "Accepted", rejected: "Declined", expired: "Expired" };
+const BOOKING_TONE: Record<string, Tone> = { pending: "warning", confirmed: "info", picked_up: "info", in_transit: "info", delivered: "success", failed: "danger", cancelled: "muted" };
+const BOOKING_LABEL: Record<string, string> = { pending: "Needs a rider", confirmed: "Rider booked", picked_up: "Rider picked it up", in_transit: "Rider on the way", delivered: "Delivered", failed: "Failed", cancelled: "Cancelled" };
+
+const FILTERS = [
+  { key: "all", label: "All partners" },
+  { key: "same_day", label: "Same day" },
+  { key: "nationwide", label: "Nationwide" },
+] as const;
+
+// partner may be an id or a slug; logisticsSlug arrives from the marketing site ("Book delivery" intent).
+type Search = { filter?: string; partner?: string; intent?: string; logisticsSlug?: string };
+
+export default async function SellerLogisticsPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
 
-  const active = workspace.deliveryBookings.filter((b) => ["pending", "confirmed", "picked_up", "in_transit"].includes(b.status));
-  const delivered = workspace.deliveryBookings.filter((b) => b.status === "delivered");
-  const topPartners = workspace.logisticsPartners.slice(0, 6);
-  const recentQuotes = workspace.deliveryQuotes.slice(0, 5);
-  const recentBookings = workspace.deliveryBookings.slice(0, 5);
+  const filter = FILTERS.find((f) => f.key === params.filter)?.key ?? "all";
+  const partnerRef = params.partner ?? params.logisticsSlug;
+  const chosen = partnerRef
+    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }] }, select: { id: true } })
+    : null;
+  const chosenId = chosen?.id;
+
+  const [partners, quoteCount, pendingQuotes, activeCount, deliveredCount, recentQuotes, recentBookings] = await Promise.all([
+    db.logisticsPartner.findMany({
+      where: {
+        status: "active",
+        verificationStatus: "verified",
+        ...(filter === "same_day" ? { deliveryTypes: { has: "same_day" } } : {}),
+        ...(filter === "nationwide" ? { coverageZones: { hasSome: ["Nationwide", "nationwide"] } } : {}),
+      },
+      orderBy: [{ reliabilityScore: "desc" }, { rating: "desc" }],
+      take: 30,
+    }),
+    db.deliveryQuoteRequest.count({ where: { sellerId: user.id } }),
+    db.deliveryQuoteRequest.count({ where: { sellerId: user.id, status: "pending" } }),
+    db.deliveryBooking.count({ where: { sellerId: user.id, status: { in: [...ACTIVE] } } }),
+    db.deliveryBooking.count({ where: { sellerId: user.id, status: "delivered" } }),
+    db.deliveryQuoteRequest.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 6 }),
+    db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
+  ]);
+
+  const allVerified = filter === "all"
+    ? partners
+    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: { displayName: "asc" }, take: 100 });
+  const partnerOptions = allVerified.map((p) => ({ id: p.id, name: `${p.displayName} · ${p.city}` }));
+  const date = (d: Date) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={workspace.store?.name ?? "Store"}
-      storeSlug={workspace.store?.slug ?? ""}
-      storeInitial={workspace.store?.name?.charAt(0).toUpperCase() ?? "S"}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(workspace.store)}
+      title="Delivery"
+      sub="Book riders, compare delivery partners and follow every parcel."
+      actions={
+        <>
+          <PillLink href="/marketplace?type=logistics" icon="truck">Find partners</PillLink>
+          <PillLink href="/home/logistics?intent=book_delivery#quote" tone="accent" icon="plus">Book delivery</PillLink>
+        </>
+      }
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Logistics Desk"
-          sub={`${workspace.logisticsPartners.length} verified partners · ${workspace.deliveryQuotes.length} quote requests · ${active.length} active bookings`}
-          actions={<>
-            <a href="/marketplace?type=logistics" className="dbtn dBtn-ghost" style={{ textDecoration: "none" }}><Icon name="truck" size={14} /> Find partners</a>
-            <a href="/home/logistics?intent=book_delivery" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}><Icon name="plus" size={14} /> Book delivery</a>
-          </>}
-        />
+      <div className="grid gap-5">
+        <StatGrid>
+          <StatTile tone="card" label="On the way" value={activeCount} />
+          <StatTile tone="card" label="Delivered" value={deliveredCount} />
+          <StatTile tone="card" label="Quotes waiting" value={pendingQuotes} hint={`${quoteCount} asked in total`} />
+          <StatTile tone="card" label="Verified partners" value={allVerified.length} />
+        </StatGrid>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.45fr 1fr", gap: 18 }}>
-          {/* Available partners */}
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--ink-100)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Available partners</div>
-                <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Verified fleets you can use at checkout or for manual bookings</div>
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {["All partners", "Same-day", "Nationwide"].map((f, i) => {
-                  const filter = i === 0 ? "all" : i === 1 ? "same_day" : "nationwide";
-                  return (
-                    <a key={f} href={`/home/logistics?filter=${filter}`} className={`dbtn ${i === 0 ? "dBtn-soft" : "dBtn-ghost"}`} style={{ fontSize: 12, padding: "6px 10px", textDecoration: "none" }}>{f}</a>
-                  );
-                })}
-              </div>
-            </div>
-            {topPartners.length === 0 ? (
-              <div style={{ padding: 24, fontSize: 13, color: "var(--ink-500)" }}>Verified logistics partners will appear here as soon as they are approved.</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {topPartners.map((p) => (
-                  <div key={p.id} style={{ padding: "14px 16px", borderTop: "1px solid var(--ink-100)", display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "var(--teal-100)", color: "var(--teal-700)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                      <Icon name="truck" size={19} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{p.displayName}</div>
-                      <div style={{ fontSize: 12, color: "var(--ink-500)" }}>{p.city}, {p.country} · reliability {p.reliabilityScore}/100</div>
-                      <div style={{ fontSize: 11.5, color: "var(--ink-600)" }}>
-                        <strong>Base {fmt(p.basePrice)}</strong> · {p.coverageZones.join(", ")}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      <Badge variant={p.verificationStatus === "verified" ? "mint" : "warn"}>{p.verificationStatus}</Badge>
-                      <Link href={`/home/logistics?intent=quote&partner=${p.id}`} className="dbtn dBtn-ghost" style={{ fontSize: 12, padding: "6px 10px", textDecoration: "none" }}>Quote</Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar: quotes + bookings */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--ink-100)" }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Quote requests</div>
-                <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Routes waiting for a partner answer</div>
-              </div>
-              {recentQuotes.length === 0 ? (
-                <div style={{ padding: 20, fontSize: 13, color: "var(--ink-500)" }}>When you request delivery pricing, those conversations will show up here.</div>
-              ) : (
-                recentQuotes.map((q) => (
-                  <div key={q.id} style={{ padding: "12px 16px", borderTop: "1px solid var(--ink-100)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{q.logisticsPartner.displayName}</div>
-                      <Badge variant={q.status === "pending" ? "warn" : q.status === "accepted" ? "mint" : "info"}>{q.status}</Badge>
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--ink-600)" }}>{q.pickupLocation} → {q.destination}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-400)", marginTop: 2 }}>
-                      {new Date(q.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--ink-100)" }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Delivery bookings</div>
-                <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Latest movements across your store</div>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <div className="grid min-w-0 content-start gap-5">
+            <Card className="overflow-hidden">
+              <div className="flex flex-wrap items-end justify-between gap-3 px-5 pb-4 pt-5">
+                <CardHead title="Your deliveries" sub="Latest bookings across your store" />
               </div>
               {recentBookings.length === 0 ? (
-                <div style={{ padding: 20, fontSize: 13, color: "var(--ink-500)" }}>Delivery bookings will appear here once you confirm a logistics partner.</div>
+                <p className="m-0 border-t border-app-line px-5 py-8 text-center text-[14px] text-app-ink-soft">Bookings show here once you confirm a delivery partner.</p>
               ) : (
-                recentBookings.map((b) => (
-                  <div key={b.id} style={{ padding: "12px 16px", borderTop: "1px solid var(--ink-100)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{b.logisticsPartner.displayName}</div>
-                      <Badge variant={b.status === "delivered" ? "mint" : b.status === "failed" ? "danger" : b.status === "in_transit" ? "info" : "warn"}>{b.status.replace(/_/g, " ")}</Badge>
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--ink-600)" }}>{b.pickupLocation} → {b.destination}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-400)", marginTop: 2 }}>
-                      {fmt(b.deliveryFee)} · {new Date(b.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                    </div>
-                  </div>
-                ))
+                <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
+                  {recentBookings.map((b) => (
+                    <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-3.5 sm:flex-nowrap">
+                      <div className="min-w-0 flex-1 basis-[220px]">
+                        <div className="truncate text-[14.5px] font-extrabold">{b.pickupLocation} → {b.destination}</div>
+                        <div className="truncate text-[13px] text-app-ink-soft">{b.logisticsPartner.displayName}{b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}</div>
+                      </div>
+                      <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{BOOKING_LABEL[b.status] ?? b.status.replace(/_/g, " ")}</Pill>
+                      <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee)}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
+            </Card>
 
-            <div className="card" style={{ padding: 14, background: "linear-gradient(160deg, var(--teal-50), var(--paper))" }}>
-              <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
-                <MascotAvatar role="seller" size={36} />
-                <div>
-                  <div style={{ fontSize: 11, color: "var(--teal-700)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Peggy</div>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--ink-700)", marginTop: 4 }}>
-                    Peggy compares reliability, price, and response time before you book. Same-day partners tend to reply fastest before noon.
-                  </div>
-                </div>
+            <section className="grid gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="m-0 text-[17px] font-extrabold">Delivery partners</h2>
+                <FilterChips items={FILTERS.map((f) => ({ label: f.label, href: f.key === "all" ? "/home/logistics" : `/home/logistics?filter=${f.key}`, active: f.key === filter }))} />
               </div>
-            </div>
+              {partners.length === 0 ? (
+                <EmptyState icon="truck" title={filter === "all" ? "No verified partners yet" : "No partners match"}>
+                  {filter === "all" ? "Verified delivery partners show here as soon as they're approved." : "Try another filter to see more partners."}
+                </EmptyState>
+              ) : (
+                <ListCard>
+                  {partners.map((p) => (
+                    <ListRow key={p.id} className={chosenId === p.id ? "bg-app-canvas" : undefined}>
+                      <Thumb src={p.logoUrl} label={p.displayName} size={44} />
+                      <div className="min-w-0 flex-1 basis-[220px]">
+                        <div className="truncate text-[14.5px] font-extrabold">{p.displayName}</div>
+                        <div className="truncate text-[13px] text-app-ink-soft">
+                          {p.city}, {p.country} · reliability {p.reliabilityScore}/100{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
+                        </div>
+                        {p.coverageZones.length > 0 && <div className="truncate text-[12.5px] text-app-ink-soft">Covers {p.coverageZones.join(", ")}</div>}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-[12.5px] text-app-ink-soft">From</div>
+                        <div className="text-[14.5px] font-extrabold">{fmt(p.basePrice)}</div>
+                      </div>
+                      <PillLink href={`/home/logistics?intent=quote&partner=${p.id}${filter !== "all" ? `&filter=${filter}` : ""}#quote`} size="sm" tone={chosenId === p.id ? "ink" : "white"}>Get a quote</PillLink>
+                    </ListRow>
+                  ))}
+                </ListCard>
+              )}
+            </section>
           </div>
+
+          <aside className="grid min-w-0 content-start gap-5">
+            <Card className="scroll-mt-4 p-5">
+              <div id="quote" className="scroll-mt-4" />
+              <CardHead title="Ask for a delivery price" sub="The partner replies with a price you can accept." />
+              <div className="mt-4">
+                <QuoteRequestForm
+                  key={chosenId ?? "none"}
+                  partners={partnerOptions}
+                  defaultPartnerId={chosenId}
+                  defaultPickup={workspace.store?.city ?? undefined}
+                />
+              </div>
+            </Card>
+
+            <Card className="overflow-hidden">
+              <CardHead title="Quote requests" sub="Routes waiting for a partner's answer" className="px-5 pb-3 pt-5" />
+              {recentQuotes.length === 0 ? (
+                <p className="m-0 border-t border-app-line px-5 py-6 text-[14px] text-app-ink-soft">When you ask for delivery prices, they show up here.</p>
+              ) : (
+                <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
+                  {recentQuotes.map((q) => (
+                    <li key={q.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[14px] font-extrabold">{q.logisticsPartner.displayName}</div>
+                        <div className="truncate text-[13px] text-app-ink-soft">{q.pickupLocation} → {q.destination} · {date(q.createdAt)}</div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <Pill tone={QUOTE_TONE[q.status] ?? "muted"}>{QUOTE_LABEL[q.status] ?? q.status}</Pill>
+                        {q.quotedPrice != null && <div className="mt-1 text-[13.5px] font-extrabold">{fmt(q.quotedPrice)}</div>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            <AssistantNote who="peggy">Book riders before 2pm for same-day delivery. I compare reliability, price and reply time before you book.</AssistantNote>
+          </aside>
         </div>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

@@ -17,6 +17,14 @@ interface Message {
   }>;
 }
 
+/** The conversation so far as plain turns for Rex (the greeting and placeholders are left out). */
+function historyFor(messages: Message[]) {
+  return messages
+    .slice(1)
+    .filter((message) => message.text && message.text !== "...")
+    .map((message) => ({ role: message.role, content: message.text }));
+}
+
 interface AssistantRexDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -132,6 +140,7 @@ export function AssistantRexDrawer({
     const cleanText = text.trim();
     if (!cleanText || isLoading) return;
 
+    const history = historyFor(messages);
     setMessages((prev) => [
       ...prev.map((message) => ({
         ...message,
@@ -142,12 +151,12 @@ export function AssistantRexDrawer({
     setIsLoading(true);
 
     try {
-      const result = await askRex(cleanText, pageContext);
+      const result = await askRex(cleanText, pageContext, history);
       setMessages((prev) => [...prev, messageFromResult(result)]);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, messageFromResult, pageContext.label, pageContext.path]);
+  }, [isLoading, messageFromResult, messages, pageContext.label, pageContext.path]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();

@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { InboxClient, type InboxConversationSummary } from "@/components/messaging/InboxClient";
-import { PageHead } from "@/components/ui";
+import type { InboxConversationSummary } from "@/components/messaging/InboxClient";
+import { AppPage } from "@/components/app-kit";
+import { sellerFrame } from "@/components/seller-core";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, safeQuery } from "@/lib/workspace";
+import { SellerInbox } from "./SellerInbox";
 
 export const dynamic = "force-dynamic";
 
@@ -125,27 +126,16 @@ export default async function SellerMessagesPage() {
   }, 0);
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={workspace.store.name}
-      storeSlug={workspace.store.slug}
-      storeInitial={workspace.store.name?.[0]?.toUpperCase()}
-      storeLogoUrl={workspace.store.logoUrl}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={sellerFrame(user, workspace.store)}
+      title="Messages"
+      sub={conversations.length > 0 ? `${conversations.length} conversations with suppliers and delivery partners · ${unreadCount} unread` : "Message suppliers and delivery partners directly."}
     >
-      <div className="page-stack">
-        <PageHead
-          title="Messages"
-          sub={conversations.length > 0 ? `${conversations.length} supplier and logistics conversations - ${unreadCount} unread` : "Message suppliers and logistics vendors directly"}
-        />
-        <InboxClient
-          conversations={conversations}
-          currentUserId={user.id}
-          emptyMessage="No conversations yet. Verified suppliers and logistics partners will appear here."
-        />
-      </div>
-    </AppFrame>
+      <SellerInbox
+        conversations={conversations}
+        currentUserId={user.id}
+        emptyMessage="No conversations yet. Verified suppliers and delivery partners will appear here."
+      />
+    </AppPage>
   );
 }

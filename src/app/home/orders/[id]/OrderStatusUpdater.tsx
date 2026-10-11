@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Btn } from "@/components/ui/Btn";
+import { Notice, PillButton, cx } from "@/components/app-ui";
 
 const TRANSITIONS: Record<string, string[]> = {
   paid:       ["processing", "cancelled"],
@@ -11,10 +11,10 @@ const TRANSITIONS: Record<string, string[]> = {
 };
 
 const LABELS: Record<string, string> = {
-  processing: "Mark as Processing",
-  shipped:    "Mark as Shipped",
-  delivered:  "Mark as Delivered",
-  cancelled:  "Cancel Order",
+  processing: "Mark as processing",
+  shipped:    "Mark as shipped",
+  delivered:  "Mark as delivered",
+  cancelled:  "Cancel order",
 };
 
 export function OrderStatusUpdater({ orderId, currentStatus }: { orderId: string; currentStatus: string }) {
@@ -23,7 +23,7 @@ export function OrderStatusUpdater({ orderId, currentStatus }: { orderId: string
   const [error, setError] = useState<string | null>(null);
 
   const next = TRANSITIONS[currentStatus] ?? [];
-  if (next.length === 0) return <p className="text-[13px] text-[var(--color-muted)]">No further actions available.</p>;
+  if (next.length === 0) return <p className="m-0 text-[13.5px] text-app-ink-soft">No further actions available.</p>;
 
   async function update(status: string) {
     setError(null);
@@ -48,19 +48,21 @@ export function OrderStatusUpdater({ orderId, currentStatus }: { orderId: string
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid gap-2">
       {next.map(status => (
-        <Btn
+        <PillButton
           key={status}
-          variant={status === "cancelled" ? "outline" : "primary"}
-          size="sm"
+          tone={status === "cancelled" ? "white" : "ink"}
+          size="md"
           onClick={() => update(status)}
+          busy={loading === status}
           disabled={loading !== null}
+          className={cx("w-full", status === "cancelled" && "text-app-danger hover:border-app-danger")}
         >
-          {loading === status ? "Updating..." : LABELS[status] ?? status}
-        </Btn>
+          {LABELS[status] ?? status}
+        </PillButton>
       ))}
-      {error && <p className="text-[12px] text-[var(--color-coral)] mt-1">{error}</p>}
+      {error && <Notice>{error}</Notice>}
     </div>
   );
 }

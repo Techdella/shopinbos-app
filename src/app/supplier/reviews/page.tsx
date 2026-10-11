@@ -1,7 +1,8 @@
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { db } from "@/lib/db/client";
-import { AppFrame } from "@/components/shell/AppFrame";
+import { AppPage } from "@/components/app-kit";
+import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { SupplierReviewsClient } from "./SupplierReviewsClient";
 
 export const dynamic = "force-dynamic";
@@ -75,15 +76,12 @@ export default async function SupplierReviewsPage() {
   const responded = incoming.filter((r) => r.reply).length;
 
   return (
-    <AppFrame
-      role="supplier"
-      storeName={supplier.displayName}
-      storeSlug={`${supplier.city ?? "Aba"} · ${supplier.country ?? "Nigeria"}`}
-      storeInitial={supplier.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={supplierFrame(user, supplier)}
+      title="Reviews"
+      sub={total > 0
+        ? `${total} review${total === 1 ? "" : "s"} about you · ${avgRating.toFixed(1)} average`
+        : "Reviews show up after sellers or delivery partners work with you."}
     >
       <SupplierReviewsClient
         supplierId={supplier.id}
@@ -113,6 +111,6 @@ export default async function SupplierReviewsPage() {
         supplierRating={supplier.rating}
         supplierRatingCount={supplier.ratingCount}
       />
-    </AppFrame>
+    </AppPage>
   );
 }

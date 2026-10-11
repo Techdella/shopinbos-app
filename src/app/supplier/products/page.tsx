@@ -1,103 +1,139 @@
-import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
-import { DataTable, RolePage, formatDate, formatMoney } from "@/components/role/RolePage";
-import { Icon } from "@/components/ui/Icon";
+import { AppPage, AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
+import { cx } from "@/components/app-ui/cx";
+import { PRODUCT_STATUS, money, statusOf, supplierFrame } from "@/components/supplier/supplier-kit";
 
-export default async function SupplierProductsPage() {
+const LOW_STOCK = 5;
+
+const FILTERS: Record<string, { label: string; where: Prisma.SupplierProductWhereInput }> = {
+  live: { label: "Live", where: { status: "published" } },
+  review: { label: "In review", where: { status: "pending_review" } },
+  drafts: { label: "Drafts", where: { status: { in: ["draft", "unpublished", "rejected"] } } },
+  "low-stock": { label: "Low stock", where: { stockQuantity: { lte: LOW_STOCK } } },
+  dropship: { label: "Dropship", where: { dropshipAvailable: true } },
+};
+
+type PageProps = {
+  searchParams?: Promise<{ show?: string; q?: string }>;
+};
+
+function href(show?: string, q?: string) {
+  const params = new URLSearchParams();
+  if (show) params.set("show", show);
+  if (q) params.set("q", q);
+  const query = params.toString();
+  return `/supplier/products${query ? `?${query}` : ""}`;
+}
+
+export default async function SupplierProductsPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
 
-  const [products, dbUser] = await Promise.all([
+  const show = params.show && FILTERS[params.show] ? params.show : undefined;
+  const q = params.q?.trim() || undefined;
+  const base: Prisma.SupplierProductWhereInput = { supplierId: supplier.id };
+
+  const [products, counts, dbUser] = await Promise.all([
     db.supplierProduct.findMany({
-      where: { supplierId: supplier.id },
+      where: {
+        ...base,
+        ...(show ? FILTERS[show].where : {}),
+        ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] } : {}),
+      },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
         name: true,
         slug: true,
         status: true,
+        images: true,
         wholesalePrice: true,
         currency: true,
         stockQuantity: true,
+        moq: true,
         dropshipAvailable: true,
         bulkOrderAvailable: true,
         updatedAt: true,
         category: { select: { name: true } },
+        _count: { select: { wholesales: true, storeProducts: true } },
       },
     }),
+    Promise.all([
+      db.supplierProduct.count({ where: base }),
+      ...Object.values(FILTERS).map((filter) => db.supplierProduct.count({ where: { ...base, ...filter.where } })),
+    ]),
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
   ]);
   const isPro = isProPlan(dbUser ?? {});
+  const [total, ...filterCounts] = counts;
 
   return (
-    <RolePage
-      role="supplier"
-      eyebrow="Supplier catalog"
+    <AppPage
+      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search products…" })}
       title="Products"
-      description="Manage the products sellers can source from you. Draft privately, then send complete products into marketplace review."
-      actions={[{ label: "New product", href: "/supplier/products/new", icon: "plus" }]}
-      metrics={[
-        { label: "Products", value: isPro ? "Unlimited" : `${Math.min(products.length, 50)}/50`, icon: "box", tone: "amber" },
-        { label: "Published", value: String(products.filter((product) => product.status === "published").length), icon: "check", tone: "teal" },
-        { label: "Pending review", value: String(products.filter((product) => product.status === "pending_review").length), icon: "flag", tone: "indigo" },
-        { label: "Dropship ready", value: String(products.filter((product) => product.dropshipAvailable).length), icon: "truck", tone: "lime" },
-      ]}
-      assistantNote="Rex is checking catalog gaps: missing stock, products waiting on review, and items that can become dropship-ready."
+      sub={isPro ? "Supplier Max · unlimited products" : `${Math.min(total, 50)} of 50 products on the free plan. Draft privately, then send complete products to marketplace review.`}
+      actions={<PillLink href="/supplier/products/new" tone="accent" icon="plus">Add product</PillLink>}
+      toolbar={
+        <>
+          <FilterChips
+            items={[
+              { label: "All", href: href(undefined, q), count: total, active: !show },
+              ...Object.entries(FILTERS).map(([key, filter], index) => ({ label: filter.label, href: href(key, q), count: filterCounts[index], active: show === key })),
+            ]}
+          />
+          <SearchForm action="/supplier/products" defaultValue={q} placeholder="Search name or slug" keep={{ show }} />
+        </>
+      }
     >
-      {!isPro && products.length >= 50 && (
-        <div className="card tight mb-4 flex items-start gap-3 border-[var(--amber-300)] bg-[var(--amber-100)]">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[var(--paper)] text-[var(--amber-500)]">
-            <Icon name="flag" size={17} />
-          </div>
-          <div>
-            <div className="text-[13px] font-semibold text-[var(--ink-900)]">Free product limit reached</div>
-            <div className="mt-1 text-[12px] leading-5 text-[var(--ink-600)]">
-              Free plan includes up to 50 products. Upgrade to Supplier Max (₦25,000/month) from Billing & Plan to add more.
-            </div>
-          </div>
+      {!isPro && total >= 50 && (
+        <div className="mb-4">
+          <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">See plans</PillLink>}>
+            You&apos;ve reached the 50 products on the free plan. Supplier Max (₦25,000/month) lets you add more.
+          </AssistantNote>
         </div>
       )}
-      <div className="mb-4 grid gap-3 lg:grid-cols-3">
-        {[
-          { label: "Draft complete products", body: "Add image URLs, MOQ, stock, delivery regions, and tier pricing before review.", icon: "edit" as const },
-          { label: "Submit for review", body: "Admins approve public marketplace visibility once the product is complete.", icon: "flag" as const },
-          { label: "Keep terms current", body: "Published product edits return to review when public selling fields change.", icon: "refresh" as const },
-        ].map((item) => (
-          <div key={item.label} className="card tight flex gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[var(--amber-100)] text-[var(--amber-500)]">
-              <Icon name={item.icon} size={17} />
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold text-[var(--ink-900)]">{item.label}</div>
-              <div className="mt-1 text-[12px] leading-5 text-[var(--ink-500)]">{item.body}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <DataTable
-        title="Supplier Products"
-        empty="No products yet."
-        rows={products}
-        columns={[
-          {
-            label: "Name",
-            value: (row) => (
-              <Link href={`/supplier/products/${row.id}/edit`} className="font-semibold text-[var(--teal-700)] no-underline">
-                {row.name}
-              </Link>
-            ),
-          },
-          { label: "Category", value: (row) => row.category.name },
-          { label: "Status", value: (row) => row.status },
-          { label: "Stock", value: (row) => `${row.stockQuantity} units` },
-          { label: "Terms", value: (row) => [row.dropshipAvailable ? "Dropship" : null, row.bulkOrderAvailable ? "Bulk" : null].filter(Boolean).join(" + ") || "Standard" },
-          { label: "Price", value: (row) => formatMoney(row.wholesalePrice, row.currency) },
-          { label: "Updated", value: (row) => formatDate(row.updatedAt) },
-        ]}
-      />
-    </RolePage>
+
+      {products.length === 0 ? (
+        <EmptyState
+          icon="box"
+          title={total === 0 ? "No products yet" : "No products match"}
+          action={total === 0 ? <PillLink href="/supplier/products/new" tone="ink" icon="plus">Add product</PillLink> : undefined}
+        >
+          {total === 0
+            ? "Add images, MOQ, stock, delivery regions and tier pricing, then send it to review so sellers can find it."
+            : "Try another filter or clear the search."}
+        </EmptyState>
+      ) : (
+        <ListCard>
+          {products.map((product) => {
+            const status = statusOf(PRODUCT_STATUS, product.status);
+            const low = product.stockQuantity <= LOW_STOCK;
+            const terms = [product.dropshipAvailable ? "Dropship" : null, product.bulkOrderAvailable ? "Wholesale" : null].filter(Boolean).join(" + ") || "Standard";
+            return (
+              <ListRow key={product.id} href={`/supplier/products/${product.id}/edit`} className="lg:grid lg:grid-cols-[56px_minmax(0,2fr)_110px_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <Thumb src={product.images[0]} label={product.name} size={56} />
+                <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
+                  <span className="block truncate text-[14.5px] font-extrabold">{product.name}</span>
+                  <span className="block truncate text-[13px] text-app-ink-soft">{product.category.name} · MOQ {product.moq.toLocaleString("en-NG")} · {terms}</span>
+                </span>
+                <span><Pill tone={status.tone}>{status.label}</Pill></span>
+                <span className={cx("shrink-0 text-[13.5px]", low ? "font-bold text-app-accent-ink" : "text-app-ink-soft")}>
+                  {low ? `${product.stockQuantity} left` : `${product.stockQuantity.toLocaleString("en-NG")} in stock`}
+                </span>
+                <span className="hidden text-[13.5px] text-app-ink-soft lg:block">
+                  {product._count.wholesales} order{product._count.wholesales === 1 ? "" : "s"} · {product._count.storeProducts} shop{product._count.storeProducts === 1 ? "" : "s"}
+                </span>
+                <span className="ml-auto text-right text-[14.5px] font-extrabold">{money(product.wholesalePrice, product.currency)}</span>
+              </ListRow>
+            );
+          })}
+        </ListCard>
+      )}
+    </AppPage>
   );
 }

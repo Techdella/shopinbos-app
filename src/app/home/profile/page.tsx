@@ -1,152 +1,132 @@
 import { Suspense } from "react";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
+import { db } from "@/lib/db/client";
 import { updateSellerProfile, uploadAvatar } from "@/app/actions/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon, MascotAvatar } from "@/components/ui";
 import { PageToast } from "@/components/PageToast";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, Card, CardHead, Pill, StatTile } from "@/components/app-kit";
+import { Icon } from "@/components/ui/Icon";
+import { FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK } from "@/components/seller-settings/fields";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellerProfilePage() {
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
-  const storeName = workspace?.store?.name ?? "Your Store";
-  const storeSlug = workspace?.store?.slug ? `${workspace.store.slug}.shopinbos.shop` : undefined;
+  const store = workspace?.store ?? null;
+  const storeName = store?.name ?? "Your Store";
   const initials = user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [account, productCount, monthOrders, reviewStats] = await Promise.all([
+    db.user.findUnique({ where: { id: user.id }, select: { createdAt: true, verificationStatus: true } }),
+    store ? db.storeProduct.count({ where: { storeId: store.id } }) : Promise.resolve(0),
+    store ? db.retailOrder.count({ where: { storeId: store.id, createdAt: { gte: monthStart } } }) : Promise.resolve(0),
+    store ? db.productReview.aggregate({ where: { storeId: store.id }, _count: { _all: true }, _avg: { rating: true } }) : Promise.resolve(null),
+  ]);
+  const reviewCount = reviewStats?._count._all ?? 0;
+  const avgRating = reviewStats?._avg.rating ?? null;
+  const verified = account?.verificationStatus === "verified";
+
   return (
-    <AppFrame
-      role="seller"
-      storeName={storeName}
-      storeSlug={storeSlug}
-      storeInitial={storeName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={initials}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
-    >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <Suspense fallback={null}><PageToast /></Suspense>
-        <PageHead title="Profile" sub="Manage your seller profile and public presence" />
+    <SellerPage user={user} store={storeSummary(store)} title="Profile" sub="How you and your store appear to buyers.">
+      <Suspense fallback={null}><PageToast /></Suspense>
+      <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="grid min-w-0 content-start gap-5">
+          <Card className="flex flex-col items-center p-6 text-center">
+            {user.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatarUrl} alt="" className="h-20 w-20 rounded-full border border-app-line object-cover" />
+            ) : (
+              <span className="grid h-20 w-20 place-items-center rounded-full bg-app-ink text-[28px] font-extrabold text-white">{initials}</span>
+            )}
+            <h2 className="mb-0 mt-3 max-w-full truncate text-[18px] font-extrabold">{user.name}</h2>
+            <p className="mb-3 mt-0.5 max-w-full truncate text-[13.5px] text-app-ink-soft">{storeName} · Seller</p>
+            <Pill tone={verified ? "success" : "muted"} dot>{verified ? "Verified seller" : "Not verified yet"}</Pill>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 20 }}>
-          {/* Left - Avatar + Identity */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div className="card" style={{ padding: 24, textAlign: "center" }}>
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", margin: "0 auto 12px", display: "block" }} />
-              ) : (
-                <div style={{
-                  width: 72, height: 72, borderRadius: "50%",
-                  background: "var(--teal-600)", color: "white",
-                  display: "grid", placeItems: "center",
-                  fontSize: 26, fontWeight: 700, margin: "0 auto 12px",
-                  fontFamily: "var(--font-accent)",
-                }}>
-                  {initials}
-                </div>
-              )}
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2, color: "var(--ink-900)" }}>{user.name}</div>
-              <div style={{ fontSize: 13, color: "var(--ink-500)", marginBottom: 10 }}>{storeName} · Seller</div>
-              <Badge variant="mint">Verified seller</Badge>
-            </div>
-            <form action={uploadAvatar} className="card" style={{ padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "var(--ink-700)" }}>Change avatar</div>
-              <input type="file" name="avatar" accept="image/*" style={{ fontSize: 12, marginBottom: 8, width: "100%" }} />
-              <button type="submit" className="dbtn dBtn-mint dBtn-sm">Upload</button>
+            <form action={uploadAvatar} className="mt-5 grid w-full gap-3 border-t border-app-line pt-4">
+              <label htmlFor="avatar" className="text-[14px] font-bold">Change photo</label>
+              <input
+                id="avatar"
+                type="file"
+                name="avatar"
+                accept="image/*"
+                className="w-full min-w-0 text-[13px] file:mr-3 file:min-h-[40px] file:cursor-pointer file:rounded-full file:border file:border-app-line file:bg-white file:px-4 file:text-[13.5px] file:font-bold"
+              />
+              <button type="submit" className={SUBMIT_INK}>Upload</button>
             </form>
+          </Card>
 
-            <div className="card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, color: "var(--ink-700)" }}>Account info</div>
+          <Card className="p-5">
+            <CardHead title="Account" />
+            <dl className="m-0 mt-2 divide-y divide-app-line">
               {[
                 { label: "Email", value: user.email ?? "—" },
                 { label: "Phone", value: user.phone ?? "—" },
-                { label: "Joined", value: "Recently" },
-              ].map((info, i) => (
-                <div key={i} style={{
-                  display: "flex", justifyContent: "space-between",
-                  padding: "7px 0", borderTop: i ? "1px solid var(--ink-100)" : "none",
-                  fontSize: 13,
-                }}>
-                  <span style={{ color: "var(--ink-500)" }}>{info.label}</span>
-                  <span style={{ color: "var(--ink-800)", fontWeight: 500 }}>{info.value}</span>
+                { label: "Joined", value: account ? account.createdAt.toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "—" },
+              ].map((info) => (
+                <div key={info.label} className="flex justify-between gap-3 py-2.5 text-[14px]">
+                  <dt className="shrink-0 text-app-ink-soft">{info.label}</dt>
+                  <dd className="m-0 min-w-0 truncate font-bold">{info.value}</dd>
                 </div>
               ))}
+            </dl>
+          </Card>
+        </div>
+
+        <div className="grid min-w-0 content-start gap-5">
+          <Card className="p-5">
+            <CardHead title="Your store so far" />
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatTile tone="card" label="Products" value={productCount} />
+              <StatTile tone="card" label="Orders" value={monthOrders} hint="this month" />
+              <StatTile tone="card" label="Reviews" value={reviewCount} />
+              <StatTile tone="card" label="Rating" value={avgRating ? avgRating.toFixed(1) : "—"} hint={avgRating ? "out of 5" : "no reviews yet"} />
             </div>
-          </div>
+          </Card>
 
-          {/* Right - Stats + Public profile */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div className="card" style={{ padding: 20 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: "var(--ink-900)" }}>Store performance</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-                {[
-                  { label: "Products", value: String(workspace?.storeProducts.length ?? 0), icon: "box" },
-                  { label: "Orders", value: "12", icon: "cart", note: "this month" },
-                  { label: "Reviews", value: "8", icon: "star", note: "4.5 avg" },
-                  { label: "Rating", value: "4.5", icon: "star", note: "★ 5.0" },
-                ].map((stat, i) => (
-                  <div key={i} className="card" style={{ padding: "14px 12px", textAlign: "center", border: "1px solid var(--ink-100)" }}>
-                    <Icon name={stat.icon as any} size={16} color="var(--teal-600)" />
-                    <div style={{ fontSize: 20, fontWeight: 700, color: "var(--ink-900)", marginTop: 4 }}>{stat.value}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>{stat.label}</div>
-                    {"note" in stat && <div style={{ fontSize: 10.5, color: "var(--ink-400)" }}>{stat.note}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <form action={updateSellerProfile} className="card" style={{ padding: 20 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: "var(--ink-900)" }}>Public profile</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div className="field">
-                  <label className="label">Display name</label>
-                  <input name="name" className="inp" defaultValue={user.name} />
-                </div>
-                <div className="field">
-                  <label className="label">Bio</label>
-                  <textarea name="description" className="ta" rows={3} defaultValue={workspace?.store?.description ?? ""} placeholder="Tell buyers about your store…" />
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div className="field">
-                    <label className="label">City</label>
-                    <input name="city" className="inp" defaultValue={workspace?.store?.city ?? user.city ?? ""} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Country</label>
-                    <input name="country" className="inp" defaultValue={workspace?.store?.country ?? user.country ?? "Nigeria"} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Phone</label>
-                  <input name="phone" className="inp" defaultValue={user.phone ?? ""} />
-                </div>
-                <button type="submit" className="dbtn dBtn-mint" style={{ alignSelf: "flex-start" }}>
-                  <Icon name="check" size={14} /> Save profile
-                </button>
-              </div>
-            </form>
-
-            <div className="card" style={{
-              padding: 16,
-              background: "linear-gradient(160deg, var(--teal-50), var(--teal-100))",
-            }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <MascotAvatar role="seller" size={40} />
+          <form action={updateSellerProfile}>
+            <Card className="p-5">
+              <CardHead title="Public profile" />
+              <div className="mt-4 grid gap-4">
                 <div>
-                  <div style={{ fontSize: 11, color: "var(--teal-700)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
-                    Peggy's tip
+                  <label htmlFor="name" className={FIELD_LABEL}>Display name</label>
+                  <input id="name" name="name" className={FIELD_INPUT} defaultValue={user.name} />
+                </div>
+                <div>
+                  <label htmlFor="description" className={FIELD_LABEL}>About you</label>
+                  <textarea id="description" name="description" className={FIELD_TEXTAREA} rows={3} defaultValue={store?.description ?? ""} placeholder="Tell buyers about your store" />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="min-w-0">
+                    <label htmlFor="city" className={FIELD_LABEL}>City</label>
+                    <input id="city" name="city" className={FIELD_INPUT} defaultValue={store?.city ?? user.city ?? ""} />
                   </div>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--ink-800)" }}>
-                    A complete profile with a bio and location helps build trust with customers. Stores with complete profiles get 2x more orders.
+                  <div className="min-w-0">
+                    <label htmlFor="country" className={FIELD_LABEL}>Country</label>
+                    <input id="country" name="country" className={FIELD_INPUT} defaultValue={store?.country ?? user.country ?? "Nigeria"} />
                   </div>
                 </div>
+                <div>
+                  <label htmlFor="phone" className={FIELD_LABEL}>Phone</label>
+                  <input id="phone" name="phone" type="tel" className={FIELD_INPUT} defaultValue={user.phone ?? ""} />
+                </div>
+                <div>
+                  <button type="submit" className={SUBMIT_INK}><Icon name="check" size={16} /> Save profile</button>
+                </div>
               </div>
-            </div>
-          </div>
+            </Card>
+          </form>
+
+          <AssistantNote who="peggy">
+            <strong>Peggy&apos;s tip:</strong> a full profile with a short bio and your city helps buyers trust you.
+          </AssistantNote>
         </div>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

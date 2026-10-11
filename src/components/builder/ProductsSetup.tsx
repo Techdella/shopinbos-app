@@ -171,6 +171,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
   const [csvRows, setCsvRows] = useState<{ name: string; price: string; desc: string }[]>([]);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const [peggyLoading, setPeggyLoading] = useState<{ id: string; field: string } | null>(null);
+  const [peggyError, setPeggyError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [mpProducts, setMpProducts] = useState<Array<{ id: string; name: string; price: number; currency: string; supplier: string; imageUrl?: string }>>([]);
@@ -257,61 +258,54 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
 
     const loadKey = specKey ?? field;
     setPeggyLoading({ id: productId, field: loadKey });
+    setPeggyError(null);
 
-    const ctx = `Product: "${product.name}". Category: ${category || "general e-commerce"}.`;
-    let prompt = "";
-
+    let fieldName = "";
+    let instructions = "";
+    let maxWords = 80;
     if (field === "shortDesc") {
-      prompt = `${ctx}\n\nWrite a punchy 1-sentence product card description, under 15 words. No filler words. Return ONLY the text.`;
+      fieldName = "product card description";
+      instructions = "One punchy sentence. No filler words.";
+      maxWords = 15;
     } else if (field === "fullDesc") {
-      prompt = `${ctx}\n\nWrite a compelling 3-4 sentence product description. Focus on benefits, quality, and why a customer should buy it. Return ONLY the text.`;
+      fieldName = "product description";
+      instructions = "3-4 sentences on benefits, quality, and why a customer should buy it.";
+      maxWords = 90;
     } else if (specKey) {
       const sf = schema.specFields.find((f) => f.key === specKey);
-      if (specKey === "ingredients" || specKey === "key_ingredients") {
-        prompt = `${ctx}\n\nList realistic key ingredients as a comma-separated list. Return ONLY the list.`;
-      } else if (specKey === "care") {
-        prompt = `${ctx}\n\nWrite concise care/washing instructions. Return ONLY the instructions.`;
-      } else if (specKey === "how_to_use") {
-        prompt = `${ctx}\n\nWrite 2-3 simple application/usage steps. Return ONLY the steps.`;
-      } else if (specKey === "specs") {
-        prompt = `${ctx}\n\nWrite realistic technical specifications. Return ONLY the specs, one per line.`;
-      } else {
-        prompt = `${ctx}\n\nFor the product field "${sf?.label ?? specKey}", suggest a realistic value. Return ONLY the value.`;
-      }
+      fieldName = `"${sf?.label ?? specKey}" field of a product listing`;
+      if (specKey === "ingredients" || specKey === "key_ingredients") instructions = "A comma-separated list of likely key ingredients. Only list ingredients typical for this product.";
+      else if (specKey === "care") instructions = "Concise care or washing instructions.";
+      else if (specKey === "how_to_use") instructions = "2-3 simple usage steps.";
+      else if (specKey === "specs") instructions = "Typical technical specifications, one per line.";
+      else instructions = "A realistic value for this field, as short as possible.";
     }
 
     try {
-      const res = await fetch("/api/ai/store-builder", {
+      const res = await fetch("/api/ai/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: prompt }],
-          store: { name: "", products: [], changed: [] },
+          field: fieldName,
+          instructions,
+          maxWords,
+          context: {
+            product: product.name,
+            category: category || "general e-commerce",
+            price: product.price || "",
+            "short description": field === "shortDesc" ? "" : product.shortDesc,
+            "seller's notes": field === "fullDesc" ? product.fullDesc : "",
+          },
         }),
       });
-      if (!res.body) throw new Error("no body");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        for (const line of decoder.decode(value, { stream: true }).split("\n").filter(Boolean)) {
-          try {
-            const ev = JSON.parse(line) as { type: string; text?: string };
-            if (ev.type === "token" && ev.text && !ev.text.includes("<store_config>")) {
-              text += ev.text;
-              if (field === "shortDesc" || field === "fullDesc") {
-                update(productId, { [field]: text });
-              } else if (specKey) {
-                updateSpec(productId, specKey, text);
-              }
-            }
-          } catch { /* skip */ }
-        }
-      }
-    } catch { /* best-effort */ }
-    finally {
+      const json = (await res.json().catch(() => null)) as { data?: { text?: string }; error?: { message?: string } } | null;
+      const text = json?.data?.text;
+      if (!res.ok || !text) throw new Error(json?.error?.message ?? "Peggy couldn't write that right now.");
+      if (field === "shortDesc" || field === "fullDesc") update(productId, { [field]: text });
+      else if (specKey) updateSpec(productId, specKey, text);
+    } catch (error) {
+      setPeggyError(error instanceof Error ? error.message : "Peggy couldn't write that right now.");
+    } finally {
       setPeggyLoading(null);
     }
   }
@@ -477,6 +471,12 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
           <strong>Ask Peggy</strong> next to any field.
         </p>
       </div>
+
+      {peggyError && (
+        <div className="rounded-[12px] border px-3 py-2 text-[12px]" style={{ borderColor: "rgb(232 106 79 / 0.3)", background: "rgb(232 106 79 / 0.08)", color: "#9F2D20" }}>
+          {peggyError}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-[14px] p-1" style={{ background: "rgb(14 42 56 / 0.06)" }}>

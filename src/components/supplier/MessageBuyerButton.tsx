@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
 import { ConversationsModal } from "@/components/shell/ConversationsModal";
 
 interface MessageBuyerButtonProps {
@@ -16,12 +16,11 @@ export function MessageBuyerButton({ sellerUserId, sellerName }: MessageBuyerBut
     <>
       <button
         type="button"
-        className="dbtn dBtn-ghost"
-        style={{ padding: "5px 9px", fontSize: 12 }}
+        className="inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink transition hover:border-app-line-strong"
         onClick={() => setChatOpen(true)}
-        title={`Message ${sellerName}`}
+        aria-label={`Message ${sellerName}`}
       >
-        <Icon name="chat" size={12} /> Message
+        <Icon name="chat" size={14} /> Message
       </button>
       <ConversationsModal
         open={chatOpen}

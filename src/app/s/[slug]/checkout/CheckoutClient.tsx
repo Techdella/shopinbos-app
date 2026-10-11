@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
-import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
+import { readLinkCode, readOrderChannel, useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
@@ -193,6 +193,9 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
           paymentMethod: "inline",
           discountCode: appliedDiscount?.code || undefined,
           campaignToken: campaignToken || undefined,
+          channel: readOrderChannel(store.slug) ?? undefined,
+          affiliateCode: readLinkCode("aff", store.slug) ?? undefined,
+          adCode: readLinkCode("ad", store.slug) ?? undefined,
         }),
       });
 

@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { saveSupplierNotificationPreferences } from "@/app/actions/supplier";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Icon } from "@/components/ui";
+import { AppPage, Card } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { buttonClass, supplierFrame } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
@@ -10,6 +13,15 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   searchParams?: Promise<{ saved?: string }>;
 };
+
+const LINKS: Array<{ label: string; hint: string; href: string; icon: IconName }> = [
+  { label: "Supplier profile", hint: "Name, logo, about, contact", href: "/supplier/profile", icon: "shop" },
+  { label: "Billing and plan", hint: "Free plan or Supplier Max", href: "/supplier/profile?tab=Billing%20%26%20Plan", icon: "card" },
+  { label: "Payouts", hint: "Bank account for payments", href: "/supplier/payouts", icon: "bank" },
+  { label: "Team", hint: "People who help you", href: "/supplier/team", icon: "users" },
+  { label: "Verification", hint: "Documents and trust score", href: "/supplier/verification", icon: "shield" },
+  { label: "Customise your menu", hint: "Switch off what you don't use; replay the walkthrough", href: "/supplier/features", icon: "settings" },
+];
 
 function ToggleRow({
   name,
@@ -23,21 +35,16 @@ function ToggleRow({
   defaultChecked: boolean;
 }) {
   return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "14px 0",
-        borderTop: "1px solid var(--ink-100)",
-        cursor: "pointer",
-      }}
-    >
-      <input name={name} type="checkbox" defaultChecked={defaultChecked} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink-900)" }}>{label}</div>
-        <div style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 2 }}>{description}</div>
-      </div>
+    <label className="flex min-h-[64px] cursor-pointer items-center gap-4 py-3.5">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-bold">{label}</span>
+        <span className="mt-0.5 block text-[13.5px] text-app-ink-soft">{description}</span>
+      </span>
+      <input name={name} type="checkbox" defaultChecked={defaultChecked} className="peer sr-only" />
+      <span
+        aria-hidden
+        className="relative h-[30px] w-[52px] shrink-0 rounded-full bg-app-toggle-off transition peer-checked:bg-app-ink peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-app-ink after:absolute after:left-[3px] after:top-[3px] after:h-[24px] after:w-[24px] after:rounded-full after:bg-white after:shadow after:transition-all peer-checked:after:left-[25px]"
+      />
     </label>
   );
 }
@@ -57,83 +64,71 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
   });
 
   return (
-    <AppFrame
-      role="supplier"
-      storeName={supplier.displayName}
-      storeSlug={`${supplier.city ?? "Aba"} · ${supplier.country ?? "Nigeria"}`}
-      storeInitial={supplier.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={supplierFrame(user, supplier)}
+      title="Settings"
+      sub="How Shopinbos lets you know when sellers message you."
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Settings"
-          sub={`${supplier.displayName} · notification and account preferences`}
-          actions={<button className="dbtn dBtn-mint" form="supplier-notification-settings"><Icon name="check" size={14} /> Save</button>}
-        />
+      {params?.saved && <div className="mb-4"><Notice tone="success">Notification settings saved.</Notice></div>}
 
-        {params?.saved && (
-          <div className="card" style={{ padding: 14, borderColor: "var(--teal-200)", background: "var(--teal-50)", color: "var(--teal-800)", fontSize: 13, fontWeight: 600 }}>
-            Notification preferences saved.
-          </div>
-        )}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Card className="p-5 sm:p-6">
+          <form action={saveSupplierNotificationPreferences}>
+            <h2 className="m-0 text-[17px] font-extrabold">Message notifications</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Choose how we tell you about new messages from sellers.</p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0, 1fr)", gap: 24 }}>
-          <aside style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {["Notifications", "Account", "Security", "Payouts"].map((item) => (
-              <a
-                key={item}
-                href={item === "Payouts" ? "/supplier/payouts" : "/supplier/settings"}
-                style={{
-                  padding: "9px 12px",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: item === "Notifications" ? 700 : 600,
-                  color: item === "Notifications" ? "var(--teal-800)" : "var(--ink-600)",
-                  background: item === "Notifications" ? "var(--teal-100)" : "transparent",
-                  textDecoration: "none",
-                }}
-              >
-                {item}
-              </a>
-            ))}
-          </aside>
-
-          <form id="supplier-notification-settings" action={saveSupplierNotificationPreferences} className="card" style={{ padding: "4px 20px 20px" }}>
-            <div style={{ padding: "18px 0 8px" }}>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>Message notifications</div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 2 }}>
-                Choose how Shopinbos alerts you when sellers send in-app messages.
-              </div>
+            <div className="mt-2 divide-y divide-app-line">
+              <ToggleRow
+                name="messageInApp"
+                label="In the app"
+                description="Show a notification in your supplier portal."
+                defaultChecked={preference?.inApp ?? true}
+              />
+              <ToggleRow
+                name="messageEmail"
+                label="Email"
+                description={`Send alerts to ${user.email}.`}
+                defaultChecked={preference?.email ?? false}
+              />
+              <ToggleRow
+                name="messageSms"
+                label="SMS"
+                description={user.phone ? `Text alerts to ${user.phone}.` : "Add a phone number to your account first."}
+                defaultChecked={preference?.sms ?? false}
+              />
             </div>
 
-            <ToggleRow
-              name="messageInApp"
-              label="In-app notifications"
-              description="Create a notification inside the supplier portal."
-              defaultChecked={preference?.inApp ?? true}
-            />
-            <ToggleRow
-              name="messageEmail"
-              label="Email notifications"
-              description={`Send message alerts to ${user.email}.`}
-              defaultChecked={preference?.email ?? false}
-            />
-            <ToggleRow
-              name="messageSms"
-              label="SMS via Sendchamp"
-              description={user.phone ? `Send SMS alerts to ${user.phone}.` : "Add a phone number to your account before SMS alerts can be delivered."}
-              defaultChecked={preference?.sms ?? false}
-            />
+            <p className="mb-0 mt-3 rounded-[16px] bg-app-canvas px-4 py-3 text-[13.5px] leading-[1.5] text-app-ink-soft">
+              Email and SMS only go out when those services are switched on for Shopinbos. In-app alerts always work.
+            </p>
 
-            <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: "var(--ink-50)", color: "var(--ink-600)", fontSize: 12.5, lineHeight: 1.5 }}>
-              Email and SMS delivery only run when the matching provider keys are configured. In-app notifications stay available by default.
+            <div className="mt-5 flex justify-end">
+              <button type="submit" className={buttonClass.ink}>
+                <Icon name="check" size={15} /> Save
+              </button>
             </div>
           </form>
-        </div>
+        </Card>
+
+        <nav aria-label="More settings">
+          <Card className="overflow-hidden">
+            <ul className="m-0 list-none divide-y divide-app-line p-0">
+              {LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="flex min-h-[60px] items-center gap-3 px-5 py-3 text-app-ink no-underline hover:bg-app-canvas">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name={link.icon} size={16} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14.5px] font-bold">{link.label}</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft">{link.hint}</span>
+                    </span>
+                    <Icon name="chevRight" size={16} className="text-app-ink-soft" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </nav>
       </div>
-    </AppFrame>
+    </AppPage>
   );
 }

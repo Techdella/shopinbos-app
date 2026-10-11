@@ -1,10 +1,12 @@
-import { AppFrame } from "@/components/shell/AppFrame";
-import { TopBar } from "@/components/shell/TopBar";
+import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { PortalBlogCmsClient } from "@/components/cms/PortalBlogCmsClient";
+import { AppPage } from "@/components/app-kit";
+import { partnerFrame } from "@/components/logistics/kit";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Blog" };
 
 export default async function LogisticsCmsPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
@@ -12,30 +14,17 @@ export default async function LogisticsCmsPage() {
   ensureLogisticsAccess(partner);
 
   return (
-    <AppFrame
-      role="logistics_partner"
-      chipMode="rail"
-      chipRole="logistics_partner"
-      chipMessage="Your blog is set up. Rex can write full SEO articles for your logistics profile."
-      chipTasks={[
-        { text: "Blog CMS is ready for drafts and publishing", status: "auto", time: "live" },
-        { text: "Rex can write long-form SEO articles from a prompt", status: "review", time: "ready" },
-      ]}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={{ ...partnerFrame({ user, partner }), chipMessage: "Your blog is set up. Rex can write full SEO articles for your logistics profile." }}
+      title="Blog"
+      sub="Articles on your public partner page. Rex can write a draft from a short prompt; you check it and publish."
     >
-      <TopBar
-        eyebrow="CMS"
-        title="Blog and articles"
-        subtitle="Rex writes the content. Keep your blog connected to your logistics profile."
-      />
-
       <PortalBlogCmsClient
         role="logistics_partner"
         businessName={partner.displayName}
         category="logistics"
         apiEndpoint="/api/logistics/blog-posts"
       />
-    </AppFrame>
+    </AppPage>
   );
 }

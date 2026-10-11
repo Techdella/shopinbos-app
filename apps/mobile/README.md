@@ -8,7 +8,7 @@ Screens follow the 2026 app prototypes, the same designs as the web screens:
 | --- | --- |
 | Sign in | Welcome (Rex), create account (phone or email), enter code, log in (phone code, email code, password, Google), forgot password |
 | Seller onboarding | Chat with Rex (5 languages) → brand (name, colours, look) → first products from photos → payments and delivery → launch fee (Paystack) → shop is live (share, QR poster) → finish setting up |
-| Home | Placeholder until the seller app dashboard is built (next design phase) |
+| Seller app | Home (sales, Peggy's tasks, quick actions, checklist, best sellers), Products, Chats, Orders and More tabs; "+" adds products from photos; order details (mark paid, sent, delivered; WhatsApp or call the buyer); record a sale; Ask Peggy |
 
 Design tokens, phone helpers and onboarding copy come from `../../shared`, so web and mobile stay in step.
 
@@ -40,6 +40,8 @@ Native folders are generated (Continuous Native Generation), so don't commit `io
 This folder is outside the web app's TypeScript project and its Next.js build. Vercel only installs the root package.
 
 ## Not in the app yet
+
+Tools that open the web app for now: booking a rider, labels, the store editor, campaigns, ads, video studio, affiliates, payments and settings. `openWeb()` passes the app's session to `/auth/handoff`, so the seller stays signed in there (for up to an hour per open).
 
 - Voice notes in the Rex chat (shows "coming soon"; the web app records them)
 - Instagram product import (coming soon on web too)

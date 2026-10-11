@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import Link from "next/link";
+import { AppPage, Card, CardHead, EmptyState, Pill, PillLink, SearchForm, StatGrid, StatTile, cx } from "@/components/app-kit";
+import { Icon } from "@/components/ui/Icon";
+import { Avatar, field, pillButton, sellerFrame } from "@/components/seller-core";
 import { moderateReview, deleteReview, replyToReview, ensureReviewTable } from "@/app/actions/reviews";
 import { ReviewCardExport } from "./ReviewCardExport";
 import { ReviewFilters } from "./ReviewFilters";
@@ -25,28 +27,19 @@ function fmtDate(d: Date | string | null | undefined) {
   return new Date(d).toLocaleDateString("en-NG", { day: "numeric", month: "short" });
 }
 
-function StarRating({ rating, size = 14 }: { rating: number; size?: number }) {
+function StarRating({ rating }: { rating: number }) {
   return (
-    <span style={{ color: "#f59e0b", fontSize: size, letterSpacing: 1 }}>
-      {"★".repeat(rating)}{"☆".repeat(5 - rating)}
+    <span className="text-[14px] tracking-[1px] text-[#E8A23A]" role="img" aria-label={`${rating} out of 5 stars`}>
+      {"★".repeat(rating)}<span className="text-app-track">{"★".repeat(Math.max(0, 5 - rating))}</span>
     </span>
   );
 }
 
-function Av({ name, size = 36 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-  const colors = ["#D4A574","#195754","#E86A4F","#5b6ad0","#8aa843","#b14a8a","#e8a647"];
-  const c = colors[name.length % colors.length];
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: c, display: "grid", placeItems: "center",
-      color: "white", fontWeight: 700, fontSize: size * 0.38, flexShrink: 0,
-    }}>
-      {initials}
-    </div>
-  );
-}
+const STATUS_PILL: Record<string, { tone: "success" | "warning" | "danger" | "muted"; label: string }> = {
+  approved: { tone: "success", label: "Approved" },
+  pending: { tone: "warning", label: "Pending" },
+  rejected: { tone: "danger", label: "Rejected" },
+};
 
 export default async function SellerReviewsPage({ searchParams }: SearchParams) {
   const sp = await searchParams;
@@ -118,161 +111,151 @@ export default async function SellerReviewsPage({ searchParams }: SearchParams) 
     return `/home/reviews${qs ? `?${qs}` : ""}`;
   }
 
-  return (
-    <AppFrame role="seller" chipMode="rail" chipRole="seller">
-      <div className="flex-1 overflow-y-auto" style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Reviews"
-          sub={`${totalReviews} total · ${avgRating} avg rating · ${pendingCount} pending`}
-        />
+  const replied = reviews.filter((r) => r.sellerReply).length;
+  const hasFilters = Boolean(filterRating || filterStatus || filterProduct || searchQ);
 
-        {/* Stats cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
-          {[
-            { label: "Total reviews", value: String(totalReviews), sub: `${approvedCount} approved`, color: "var(--teal-600)" },
-            { label: "Average rating", value: avgRating, sub: "out of 5", color: "var(--amber-500)" },
-            { label: "5-star", value: String(ratingCounts[4]), sub: `${totalReviews > 0 ? Math.round(ratingCounts[4] / totalReviews * 100) : 0}%`, color: "var(--success)" },
-            { label: "Pending", value: String(pendingCount), sub: "awaiting moderation", color: "var(--warning)" },
-            { label: "Replied", value: String(reviews.filter((r) => r.sellerReply).length), sub: "seller responses", color: "var(--berry-500)" },
-          ].map((s) => (
-            <div key={s.label} className="card" style={{ padding: "12px 14px", borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 10.5, color: "var(--ink-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 1, color: "var(--ink-900)" }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "var(--ink-500)", marginTop: 1 }}>{s.sub}</div>
-            </div>
-          ))}
-        </div>
+  return (
+    <AppPage
+      frame={sellerFrame(user, workspace.store)}
+      title="Reviews"
+      sub={totalReviews > 0 ? `${totalReviews} reviews · ${avgRating} average · ${pendingCount} waiting for you` : "What buyers say about your products. Approve reviews to show them on your store."}
+      toolbar={
+        <>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <ReviewFilters status={filterStatus} product={filterProduct} products={products} rating={filterRating} />
+            {hasFilters && <PillLink href="/home/reviews" size="sm">Clear filters</PillLink>}
+          </div>
+          <SearchForm
+            action="/home/reviews"
+            defaultValue={searchQ}
+            placeholder="Search reviews"
+            keep={{ rating: filterRating > 0 ? String(filterRating) : undefined, status: filterStatus || undefined, product: filterProduct || undefined }}
+          />
+        </>
+      }
+    >
+      <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+        <StatGrid className="content-start md:grid-cols-3 xl:grid-cols-3">
+          <StatTile tone="card" label="Total reviews" value={String(totalReviews)} hint={`${approvedCount} approved`} />
+          <StatTile tone="card" label="Average rating" value={avgRating} hint="Out of 5" />
+          <StatTile tone="card" label="5 stars" value={String(ratingCounts[4])} hint={`${totalReviews > 0 ? Math.round(ratingCounts[4] / totalReviews * 100) : 0}% of reviews`} />
+          <StatTile tone="card" label="Waiting for you" value={String(pendingCount)} hint="Approve or reject" />
+          <StatTile tone="card" label="Replied" value={String(replied)} hint="Your answers" />
+        </StatGrid>
 
         {/* Rating distribution */}
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-500)", marginBottom: 10 }}>Rating distribution</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <Card className="p-5">
+          <CardHead title="Ratings" action={filterRating > 0 ? <Link href={setParam("rating", "")} className="text-[13px] font-bold text-app-accent-ink no-underline hover:underline">Show all</Link> : undefined} />
+          <div className="mt-3 grid gap-1">
             {[5, 4, 3, 2, 1].map((star) => {
               const count = ratingCounts[star - 1];
               const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-              const barColor = star >= 4 ? "var(--success)" : star === 3 ? "var(--warning)" : "var(--danger)";
               return (
-                <a key={star} href={setParam("rating", String(star))} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--amber-500)", minWidth: 30 }}>{star}★</span>
-                  <div style={{ flex: 1, height: 8, background: "var(--ink-100)", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: barColor, borderRadius: 999, transition: "width 0.3s" }} />
-                  </div>
-                  <span style={{ fontSize: 12, color: "var(--ink-600)", minWidth: 50, textAlign: "right" }}>{count} ({Math.round(pct)}%)</span>
-                </a>
+                <Link
+                  key={star}
+                  href={setParam("rating", String(star))}
+                  aria-current={filterRating === star ? "true" : undefined}
+                  aria-label={`${star} stars: ${count} reviews. Show only these.`}
+                  className={cx("flex min-h-[32px] items-center gap-3 rounded-full px-2 text-app-ink no-underline hover:bg-app-canvas", filterRating === star && "bg-app-canvas")}
+                >
+                  <span className="w-8 shrink-0 text-[13px] font-bold">{star} ★</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-app-track">
+                    <span className={cx("block h-full rounded-full", star >= 4 ? "bg-app-success" : star === 3 ? "bg-[#F2A93B]" : "bg-app-danger")} style={{ width: `${pct}%` }} />
+                  </span>
+                  <span className="w-16 shrink-0 text-right text-[12.5px] text-app-ink-soft">{count} ({Math.round(pct)}%)</span>
+                </Link>
               );
             })}
           </div>
-          <a href={setParam("rating", "")} style={{ fontSize: 11, color: "var(--teal-600)", marginTop: 6, display: "inline-block", textDecoration: "none" }}>Clear filter</a>
-        </div>
+        </Card>
+      </div>
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <form method="GET" action="/home/reviews" style={{ display: "contents" }}>
-            {filterRating > 0 ? <input type="hidden" name="rating" value={filterRating} /> : null}
-            {filterStatus ? <input type="hidden" name="status" value={filterStatus} /> : null}
-            {filterProduct ? <input type="hidden" name="product" value={filterProduct} /> : null}
-            <div className="sb-search" style={{ flex: "1 1 200px", maxWidth: 300 }}>
-              <Icon name="search" size={14} />
-              <input name="q" defaultValue={searchQ} placeholder="Search reviews…" style={{ border: "none", background: "none", outline: "none", flex: 1, fontSize: 13, padding: "6px 0" }} />
-            </div>
-          </form>
-          <ReviewFilters status={filterStatus} product={filterProduct} products={products} rating={filterRating} />
-        </div>
-
-        {/* Reviews list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {filtered.length > 0 ? filtered.map((r) => {
+      {/* Reviews list */}
+      {filtered.length === 0 ? (
+        <EmptyState icon="star" title={totalReviews === 0 ? "No reviews yet" : "No reviews match"} action={hasFilters ? <PillLink href="/home/reviews">Show all reviews</PillLink> : undefined}>
+          {totalReviews === 0 ? "Buyers can review products after their order is delivered. Their reviews will show up here." : "Try a different filter or search."}
+        </EmptyState>
+      ) : (
+        <div className="grid gap-3 2xl:grid-cols-2">
+          {filtered.map((r) => {
             const product = productMap.get(r.productId);
-            const isPending = r.status === "pending";
-            const isRejected = r.status === "rejected";
+            const pill = STATUS_PILL[r.status] ?? { tone: "muted" as const, label: r.status };
             return (
-              <div key={r.id} id={`review-${r.id}`} className="card" style={{
-                padding: 18,
-                borderLeft: isPending ? "3px solid var(--warning)" : isRejected ? "3px solid var(--danger)" : "3px solid var(--success)",
-              }}>
-                <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <Av name={r.buyerName} size={40} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* Header */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 6 }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 600, fontSize: 14 }}>{r.buyerName}</span>
-                          <StarRating rating={r.rating} size={13} />
-                          <Badge variant={isPending ? "warn" : isRejected ? "danger" : "success"}>{r.status}</Badge>
-                        </div>
-                        <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 2 }}>
-                          {fmtDate(r.createdAt)}
-                          {product ? <> · <span style={{ color: "var(--teal-700)", fontWeight: 500 }}>{product.name}</span></> : null}
-                        </div>
-                      </div>
+              <article key={r.id} id={`review-${r.id}`} className="min-w-0 rounded-[22px] border border-app-line bg-white p-5">
+                <div className="flex items-start gap-3.5">
+                  <Avatar name={r.buyerName} size={42} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                      <h2 className="m-0 truncate text-[15px] font-extrabold">{r.buyerName}</h2>
+                      <StarRating rating={r.rating} />
+                      <Pill tone={pill.tone}>{pill.label}</Pill>
                     </div>
-
-                    {/* Title & Body */}
-                    {r.title ? <div style={{ fontWeight: 600, fontSize: 13.5, marginTop: 8, color: "var(--ink-800)" }}>{r.title}</div> : null}
-                    {r.body ? <div style={{ fontSize: 13, color: "var(--ink-700)", lineHeight: 1.55, marginTop: 4 }}>{r.body}</div> : null}
-
-                    {/* Seller reply */}
-                    {r.sellerReply ? (
-                      <div style={{ marginTop: 10, padding: "10px 12px", background: "var(--teal-50)", borderRadius: 8, borderLeft: "2px solid var(--teal-400)" }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--teal-700)", marginBottom: 3 }}>Your reply</div>
-                        <div style={{ fontSize: 12.5, color: "var(--ink-700)", lineHeight: 1.5 }}>{r.sellerReply}</div>
-                        {r.repliedAt ? <div style={{ fontSize: 10.5, color: "var(--ink-500)", marginTop: 3 }}>{fmtDate(r.repliedAt)}</div> : null}
-                      </div>
-                    ) : null}
-
-                    {/* Actions */}
-                    <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      {r.status !== "approved" ? (
-                        <form action={moderateReview} style={{ display: "inline" }}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="status" value="approved" />
-                          <button type="submit" className="dbtn dBtn-mint dBtn-xs"><Icon name="check" size={11} /> Approve</button>
-                        </form>
-                      ) : null}
-                      {r.status !== "rejected" ? (
-                        <form action={moderateReview} style={{ display: "inline" }}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="status" value="rejected" />
-                          <button type="submit" className="dbtn dBtn-ghost dBtn-xs" style={{ color: "var(--danger)" }}><Icon name="x" size={11} /> Reject</button>
-                        </form>
-                      ) : null}
-                      {r.status !== "pending" ? (
-                        <form action={moderateReview} style={{ display: "inline" }}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="status" value="pending" />
-                          <button type="submit" className="dbtn dBtn-ghost dBtn-xs">Unapprove</button>
-                        </form>
-                      ) : null}
-                      <details style={{ display: "inline-block", position: "relative" }}>
-                        <summary className="dbtn dBtn-ghost dBtn-xs" style={{ cursor: "pointer", listStyle: "none" }}>Reply</summary>
-                        <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 10, marginTop: 4, minWidth: 280 }}>
-                          <form action={replyToReview} className="card" style={{ padding: 10, display: "flex", flexDirection: "column", gap: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <textarea name="reply" rows={2} className="inp" style={{ fontSize: 12, resize: "vertical" }} placeholder="Write your reply…" defaultValue={r.sellerReply ?? ""} />
-                            <button type="submit" className="dbtn dBtn-mint dBtn-xs" style={{ alignSelf: "flex-end" }}>Send reply</button>
-                          </form>
-                        </div>
-                      </details>
-                      <form action={deleteReview} style={{ display: "inline" }}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <button type="submit" className="dbtn dBtn-ghost dBtn-xs" style={{ color: "var(--danger)" }}>Delete</button>
-                      </form>
-                      <div style={{ marginLeft: "auto" }}>
-                        <ReviewCardExport reviewId={r.id} />
-                      </div>
+                    <div className="mt-0.5 truncate text-[13px] text-app-ink-soft">
+                      {fmtDate(r.createdAt)}
+                      {product ? <> · <span className="font-semibold text-app-ink">{product.name}</span></> : null}
                     </div>
                   </div>
                 </div>
-              </div>
+
+                {r.title ? <h3 className="m-0 mt-3 text-[15px] font-bold">{r.title}</h3> : null}
+                {r.body ? <p className="m-0 mt-1 whitespace-pre-line text-[14px] leading-[1.55]">{r.body}</p> : null}
+
+                {r.sellerReply ? (
+                  <div className="mt-3 rounded-[16px] bg-app-mint px-4 py-3">
+                    <div className="text-[12.5px] font-bold text-app-forest">Your reply{r.repliedAt ? ` · ${fmtDate(r.repliedAt)}` : ""}</div>
+                    <p className="m-0 mt-0.5 whitespace-pre-line text-[14px] leading-[1.5]">{r.sellerReply}</p>
+                  </div>
+                ) : null}
+
+                {/* Actions */}
+                <div data-export-skip="true" className="mt-4 grid gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {r.status !== "approved" ? (
+                      <form action={moderateReview}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="status" value="approved" />
+                        <button type="submit" className={pillButton.ink}><Icon name="check" size={14} /> Approve</button>
+                      </form>
+                    ) : null}
+                    {r.status !== "rejected" ? (
+                      <form action={moderateReview}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="status" value="rejected" />
+                        <button type="submit" className={pillButton.white}><Icon name="x" size={14} /> Reject</button>
+                      </form>
+                    ) : null}
+                    {r.status !== "pending" ? (
+                      <form action={moderateReview}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="status" value="pending" />
+                        <button type="submit" className={pillButton.white}>Unapprove</button>
+                      </form>
+                    ) : null}
+                    <form action={deleteReview}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <button type="submit" className={pillButton.danger}><Icon name="trash" size={14} /> Delete</button>
+                    </form>
+                    <div className="ml-auto">
+                      <ReviewCardExport reviewId={r.id} />
+                    </div>
+                  </div>
+                  <details className="group">
+                    <summary className={cx(pillButton.white, "w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden")}>
+                      <Icon name="chat" size={14} /> {r.sellerReply ? "Edit reply" : "Reply"}
+                    </summary>
+                    <form action={replyToReview} className="mt-2 grid gap-2">
+                      <input type="hidden" name="id" value={r.id} />
+                      <label className="sr-only" htmlFor={`reply-${r.id}`}>Reply to {r.buyerName}</label>
+                      <textarea id={`reply-${r.id}`} name="reply" rows={3} className={field.textarea} placeholder="Write your reply…" defaultValue={r.sellerReply ?? ""} />
+                      <button type="submit" className={cx(pillButton.accent, "w-fit")}>Send reply</button>
+                    </form>
+                  </details>
+                </div>
+              </article>
             );
-          }) : (
-            <div className="card" style={{ padding: 40, textAlign: "center" }}>
-              <div style={{ fontSize: 14, color: "var(--ink-500)" }}>No reviews found.</div>
-            </div>
-          )}
+          })}
         </div>
-      </div>
-    </AppFrame>
+      )}
+    </AppPage>
   );
 }

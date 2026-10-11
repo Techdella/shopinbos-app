@@ -8,7 +8,7 @@ import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { StorePreview, PREVIEW_VARIANTS, type PreviewVariant } from "./StorePreview";
 import { ProductsSetup } from "./ProductsSetup";
 import { PagesSetup, type SelectedPage } from "./PagesSetup";
-import { BuildProgress } from "./BuildProgress";
+import { BuildProgress, type BuildSummary } from "./BuildProgress";
 import { DomainSetup } from "./DomainSetup";
 import { LaunchSetup } from "./LaunchSetup";
 import { DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/store-types";
@@ -425,19 +425,19 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
       setMessages((prev) => [...prev, { role: "assistant", content: "", isStreaming: true, chips: [] }]);
 
       setIsLoading(true);
+      const setStreaming = (patch: Partial<ChatMessage>) =>
+        setMessages((prev) => {
+          const next = [...prev];
+          next[streamingIdx] = { ...next[streamingIdx], ...patch };
+          return next;
+        });
       try {
         const response = await fetch("/api/ai/store-builder", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: history.map((m) => ({
-              role: m.role,
-              content: m.content,
-              imageDataUrls: m.imagePreviewUrls
-                ? pendingFiles.filter((f) => f.type === "image").map((f) => f.dataUrl).filter(Boolean)
-                : undefined,
-            })),
-            // Pass the current message's image data separately so the API can use it
+            // Prior turns as text; the images attached to this message go separately.
+            messages: history.map((m) => ({ role: m.role, content: m.content })),
             currentImageDataUrls: imageDataUrls.length > 0 ? imageDataUrls : undefined,
             currentDocNames: docNames.length > 0 ? docNames : undefined,
             store: storeConfig,
@@ -446,67 +446,71 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
           }),
         });
 
-        if (!response.body) throw new Error("No response body");
+        if (!response.ok || !response.body) {
+          const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+          throw new Error(json?.error?.message ?? "Rex couldn't start. Please try again.");
+        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = "";
         let accumulated = "";
+        let streamError: string | null = null;
+
+        const handle = (event: { type: string; text?: string; data?: unknown; message?: string }) => {
+          if (event.type === "status" && event.message && !accumulated) {
+            setStreaming({ content: `${event.message}…`, isStreaming: true });
+          } else if (event.type === "token" && event.text) {
+            accumulated += event.text;
+            setStreaming({ content: accumulated, isStreaming: true });
+          } else if (event.type === "store" && event.data) {
+            const generatedStore = event.data as StoreConfig;
+            setStoreConfig((prev) => {
+              const mergedStore = mergeGeneratedStore(prev, generatedStore, imageDataUrls);
+              setLiveChanges(mergedStore.changed ?? []);
+              if (mergedStore.name !== "Your Store") {
+                setSelectedCategory(mergedStore.name);
+              }
+              return mergedStore;
+            });
+          } else if (event.type === "chips" && Array.isArray(event.data)) {
+            setStreaming({ chips: event.data as string[] });
+          } else if (event.type === "error") {
+            streamError = event.message ?? "Rex hit a problem.";
+          }
+        };
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-
-          const lines = decoder.decode(value, { stream: true }).split("\n").filter(Boolean);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
           for (const line of lines) {
+            if (!line.trim()) continue;
             try {
-              const event = JSON.parse(line) as { type: string; text?: string; data?: unknown };
-
-              if (event.type === "token" && event.text) {
-                accumulated += event.text;
-                setMessages((prev) => {
-                  const next = [...prev];
-                  next[streamingIdx] = { role: "assistant", content: accumulated, isStreaming: true, chips: [] };
-                  return next;
-                });
-              } else if (event.type === "store" && event.data) {
-                const generatedStore = event.data as StoreConfig;
-                setStoreConfig((prev) => {
-                  const mergedStore = mergeGeneratedStore(prev, generatedStore, imageDataUrls);
-                  setLiveChanges(mergedStore.changed ?? []);
-                  if (mergedStore.name !== "Your Store") {
-                    setSelectedCategory(mergedStore.name);
-                  }
-                  return mergedStore;
-                });
-              } else if (event.type === "chips" && event.data) {
-                const chips = event.data as string[];
-                setMessages((prev) => {
-                  const next = [...prev];
-                  next[streamingIdx] = { ...next[streamingIdx], chips };
-                  return next;
-                });
-              } else if (event.type === "done") {
-                setMessages((prev) => {
-                  const next = [...prev];
-                  next[streamingIdx] = { ...next[streamingIdx], isStreaming: false };
-                  return next;
-                });
-              }
+              handle(JSON.parse(line) as { type: string; text?: string; data?: unknown; message?: string });
             } catch {
               /* skip malformed lines */
             }
           }
         }
-      } catch {
-        setMessages((prev) => {
-          const next = [...prev];
-          next[streamingIdx] = {
-            role: "assistant",
-            content: "Something went wrong. Please try again.",
-            isStreaming: false,
-            chips: ["Try again"],
-          };
-          return next;
+        if (buffer.trim()) {
+          try { handle(JSON.parse(buffer) as { type: string; text?: string; data?: unknown; message?: string }); } catch { /* ignore */ }
+        }
+
+        const finalError = streamError as string | null;
+        setStreaming({
+          content: finalError ? [accumulated, finalError].filter(Boolean).join("\n\n") : accumulated || "Done. Check the preview.",
+          isStreaming: false,
+          ...(finalError ? { chips: ["Try again"] } : {}),
+        });
+      } catch (error) {
+        setStreaming({
+          role: "assistant",
+          content: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+          isStreaming: false,
+          chips: ["Try again"],
         });
       } finally {
         setIsLoading(false);
@@ -557,36 +561,23 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
     setEditSectionChat(false);
   }
 
-  function handleBuildComplete() {
-    void fetch("/api/store/editor", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        hydrateFromStoreConfig: {
-          name: storeConfig.name,
-          tagline: storeConfig.tagline,
-          heroHeadline: storeConfig.heroHeadline,
-          heroSubline: storeConfig.heroSubline,
-          heroCtaText: storeConfig.heroCtaText,
-          navLinks: storeConfig.navLinks,
-          fontStyle: storeConfig.fontStyle,
-          palette: storeConfig.palette,
-          products: storeConfig.products,
-        },
-      }),
-    }).catch(() => null);
-
-    if (selectedPages.includes("blog")) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Your blog is set up. You can write and publish articles from the CMS in your workspace: go to Workspace, then CMS. Peggy can write full SEO-optimized articles for you from a prompt, including long-form guides over 5000 words when needed.",
-          chips: [],
-        },
-      ]);
+  function handleBuildComplete(summary: BuildSummary) {
+    // The build step saves the design through /api/ai/build-store; if that failed, keep the design anyway.
+    if (!summary.designSaved) {
+      void fetch("/api/store/editor", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hydrateFromStoreConfig: storeConfig }),
+      }).catch(() => null);
     }
+
+    const notes = [
+      ...summary.notes,
+      summary.failedPages.length ? `I couldn't write ${summary.failedPages.join(", ")} yet; ask me to try again from the preview.` : "",
+      selectedPages.includes("blog") ? "Your blog page is ready. Write and publish articles from Workspace, then CMS, where Peggy can draft them for you." : "",
+      "This is a draft: nothing is live until you publish it at the launch step.",
+    ].filter(Boolean);
+    setMessages((prev) => [...prev, { role: "assistant", content: notes.join("\n\n"), chips: [] }]);
     setPreviewPage("home");
     setPhase("preview");
   }
@@ -865,7 +856,9 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                               <button
                                 key={chip}
                                 type="button"
-                                onClick={() => sendMessage(chip)}
+                                // "Publish this" / "Looks good" move on to the real build and launch steps instead of
+                                // asking the model to publish (it can't).
+                                onClick={() => (/^(publish|launch|looks good)/i.test(chip) && storeReady ? setPhase("products") : sendMessage(chip))}
                                 className="rounded-full border px-3 py-1.5 text-[11px] transition-colors hover:border-[var(--color-mint)] hover:text-[var(--color-mint)]"
                                 style={{ borderColor: "rgba(115,216,200,0.2)", color: "rgba(115,216,200,0.7)" }}
                               >
@@ -1075,6 +1068,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                   selectedPages={selectedPages}
                   selectedPageDetails={selectedPageDetails}
                   storeConfig={{ name: storeConfig.name, category: selectedCategory, designStyle, tagline: storeConfig.tagline }}
+                  design={storeConfig}
                   onComplete={handleBuildComplete}
                 />
               </div>

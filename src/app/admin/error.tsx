@@ -8,15 +8,16 @@ export default function AdminErrorPage({
   reset: () => void;
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4" style={{ background: "var(--canvas)" }}>
-      <h1 className="font-display text-6xl font-bold tracking-tight text-[var(--ink-900)]">500</h1>
-      <p className="mt-4 text-lg text-[var(--ink-500)]">Something went wrong in the admin panel.</p>
-      <p className="mt-1 text-sm text-[var(--ink-400)]">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-app-canvas px-4 text-center font-app text-app-ink">
+      <h1 className="m-0 text-[56px] font-extrabold tracking-[-1.5px]">500</h1>
+      <p className="mb-0 mt-3 text-[17px] font-bold">Something went wrong in the admin panel.</p>
+      <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">
         {error.digest ? `Error ID: ${error.digest}` : "An unexpected error occurred."}
       </p>
       <button
+        type="button"
         onClick={() => reset()}
-        className="mt-8 rounded-lg bg-[var(--teal-700)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90"
+        className="mt-8 inline-flex min-h-[48px] items-center rounded-full bg-app-ink px-6 text-[15px] font-extrabold text-white transition hover:bg-black"
       >
         Try again
       </button>

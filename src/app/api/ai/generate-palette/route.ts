@@ -1,16 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { getAnthropicClient, getOpenAIClient, REX_OPENAI_MODEL } from "@/lib/ai/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, firstJsonArray } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-export const POST = withSeller(async (req: NextRequest) => {
-  const openai = getOpenAIClient();
-  const anthropic = getAnthropicClient();
-  if (!openai && !anthropic) {
-    return NextResponse.json({ error: { message: "AI not configured" } }, { status: 500 });
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const COLOR_KEYS = ["primary", "secondary", "accent", "background", "surface", "text"] as const;
+
+function cleanPalettes(raw: unknown[]) {
+  return raw
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((item, index) => {
+      const colors = (item.colors && typeof item.colors === "object" ? item.colors : {}) as Record<string, unknown>;
+      if (!COLOR_KEYS.every((key) => typeof colors[key] === "string" && HEX.test(colors[key] as string))) return null;
+      return {
+        id: typeof item.id === "string" && item.id ? item.id.slice(0, 60) : `palette-${index + 1}`,
+        name: typeof item.name === "string" ? item.name.slice(0, 60) : `Palette ${index + 1}`,
+        personality: typeof item.personality === "string" ? item.personality.slice(0, 240) : "",
+        vibe: typeof item.vibe === "string" ? item.vibe : "minimal",
+        colors: Object.fromEntries(COLOR_KEYS.map((key) => [key, colors[key] as string])),
+        bestFor: typeof item.bestFor === "string" ? item.bestFor.slice(0, 240) : "",
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .slice(0, 5);
+}
+
+export const POST = withSeller(async (req: NextRequest, { user }) => {
+  if (!aiConfigured()) {
+    return NextResponse.json(
+      { error: { code: "AI_OFF", message: "AI isn't switched on yet. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to generate palettes." } },
+      { status: 503 },
+    );
   }
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
 
   const body = await req.json().catch(() => ({})) as {
     businessName?: string;
@@ -51,33 +78,19 @@ Color design rules:
 
 Return ONLY the raw JSON array. No markdown, no explanation, no code fences.`;
 
-  let raw = "";
-  if (openai) {
-    const response = await openai.responses.create({
-      model: REX_OPENAI_MODEL,
-      input: prompt,
-    });
-    raw = response.output_text?.trim() ?? "";
-  } else if (anthropic) {
-    const message = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
-    });
-    raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
-  }
-
-  // Extract JSON array even if model wraps it in extra text
-  const jsonMatch = raw.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    return NextResponse.json({ error: { message: "AI returned unexpected format — try again." } }, { status: 500 });
-  }
-
-  let palettes: unknown;
+  let raw: string | null = null;
   try {
-    palettes = JSON.parse(jsonMatch[0]);
-  } catch {
-    return NextResponse.json({ error: { message: "Could not parse palette response." } }, { status: 500 });
+    raw = (await aiText({ prompt, fast: true, maxTokens: 6000 }))?.text ?? null;
+  } catch (error) {
+    console.error("[ai/generate-palette] failed", error);
+  }
+  if (!raw) {
+    return NextResponse.json({ error: { code: "AI_FAILED", message: "Rex couldn't reach the AI right now. Try again in a moment." } }, { status: 502 });
+  }
+
+  const palettes = cleanPalettes(firstJsonArray(raw) ?? []);
+  if (!palettes.length) {
+    return NextResponse.json({ error: { code: "AI_FORMAT", message: "The palettes came back in a format that couldn't be read. Try again." } }, { status: 502 });
   }
 
   return NextResponse.json({ palettes });

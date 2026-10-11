@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com",
               "font-src 'self' https://fonts.gstatic.com data:",
+              // Video studio previews its reel (blob:) and product videos are stored on Supabase.
+              "media-src 'self' blob: https://*.supabase.co",
               "frame-src https://js.paystack.co https://checkout.flutterwave.com",
               "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com",
               "object-src 'none'",

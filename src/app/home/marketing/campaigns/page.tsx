@@ -1,172 +1,126 @@
-"use client";
-
-import { useCallback, useEffect, useState } from "react";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
-import { useToast } from "@/components/ui/Toast";
+import type { Metadata } from "next";
+import type { CampaignStatus } from "@prisma/client";
+import { requireRole } from "@/lib/server-auth";
+import { db } from "@/lib/db/client";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, type Tone } from "@/components/app-kit";
 import { RexAICopywriter } from "@/components/marketing/RexAICopywriter";
+import { formatDate, humanize } from "@/components/growth/kit";
+import { naira } from "@shared/onboarding";
 
-interface Campaign {
-  id: string;
-  name: string;
-  subject: string;
-  campaignType: string;
-  status: string;
-  sentCount: number;
-  openCount: number;
-  clickCount: number;
-  revenueGenerated: number;
-  conversionCount: number;
-  scheduledAt: string | null;
-  sentAt: string | null;
-  createdAt: string;
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Campaigns" };
+
+const FILTERS: Array<{ label: string; status?: CampaignStatus }> = [
+  { label: "All" },
+  { label: "Drafts", status: "draft" },
+  { label: "Scheduled", status: "scheduled" },
+  { label: "Sent", status: "sent" },
+  { label: "Cancelled", status: "cancelled" },
+];
+
+const STATUS: Record<CampaignStatus, { tone: Tone; label: string }> = {
+  draft: { tone: "muted", label: "Draft" },
+  scheduled: { tone: "info", label: "Scheduled" },
+  sending: { tone: "info", label: "Sending" },
+  sent: { tone: "success", label: "Sent" },
+  cancelled: { tone: "warning", label: "Cancelled" },
+};
+
+function pct(part: number, whole: number) {
+  return whole > 0 ? `${Math.round((part / whole) * 100)}%` : "0%";
 }
 
-function fmtCurrency(amount: number, currency = "NGN") {
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
-}
+export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<{ status?: string }> }) {
+  const params = await searchParams;
+  const user = await requireRole(["seller"], "/login");
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
+  const active = FILTERS.find((filter) => filter.status === params?.status) ?? FILTERS[0];
 
-function fmtDate(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-NG", { dateStyle: "medium" });
-}
+  const [campaigns, totals, byStatus] = store
+    ? await Promise.all([
+        db.broadcastCampaign.findMany({
+          where: { storeId: store.id, ...(active.status ? { status: active.status } : {}) },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          select: { id: true, name: true, subject: true, campaignType: true, status: true, sentCount: true, openCount: true, clickCount: true, revenueGenerated: true, scheduledAt: true, sentAt: true, createdAt: true },
+        }),
+        db.broadcastCampaign.aggregate({
+          where: { storeId: store.id, status: "sent" },
+          _sum: { sentCount: true, openCount: true, clickCount: true, revenueGenerated: true },
+        }),
+        db.broadcastCampaign.groupBy({ by: ["status"], where: { storeId: store.id }, _count: true }),
+      ])
+    : [[], null, []];
 
-function statusBadgeVariant(status: string): "success" | "mint" | "warn" | "soft" {
-  const map: Record<string, "success" | "mint" | "warn" | "soft"> = {
-    sent: "success",
-    sending: "mint",
-    scheduled: "mint",
-    draft: "soft",
-    cancelled: "warn",
-  };
-  return map[status] ?? "soft";
-}
-
-const STATUS_FILTERS = ["All", "Draft", "Scheduled", "Sent", "Cancelled"];
-
-export default function CampaignsPage() {
-  const { toast } = useToast();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("All");
-
-  const fetchCampaigns = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "All") params.set("status", statusFilter.toLowerCase());
-      const res = await fetch(`/api/store/campaigns?${params}`);
-      const data = await res.json();
-      if (Array.isArray(data.data)) setCampaigns(data.data);
-    } catch {
-      toast("Could not load campaigns", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, toast]);
-
-  useEffect(() => { void fetchCampaigns(); }, [fetchCampaigns]);
-
-  const totalSent = campaigns.reduce((sum, c) => sum + (c.status === "sent" ? c.sentCount : 0), 0);
-  const totalOpens = campaigns.reduce((sum, c) => sum + (c.status === "sent" ? c.openCount : 0), 0);
-  const totalClicks = campaigns.reduce((sum, c) => sum + (c.status === "sent" ? c.clickCount || 0 : 0), 0);
-  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.revenueGenerated || 0), 0);
-  const openRate = totalSent > 0 ? Math.round((totalOpens / totalSent) * 100) : 0;
-  const clickRate = totalOpens > 0 ? Math.round((totalClicks / totalOpens) * 100) : 0;
+  const sent = totals?._sum.sentCount ?? 0;
+  const opens = totals?._sum.openCount ?? 0;
+  const clicks = totals?._sum.clickCount ?? 0;
+  const countFor = (status?: CampaignStatus) => byStatus.filter((row) => !status || row.status === status).reduce((sum, row) => sum + row._count, 0);
 
   return (
-    <AppFrame role="seller">
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Email Campaigns"
-          sub="Manage your broadcast email campaigns"
-          actions={
-            <div style={{ display: "flex", gap: 8 }}>
-              <RexAICopywriter />
-              <a href="/home/marketing/campaigns/new"
-                className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-                <Icon name="plus" size={14} /> New Campaign
-              </a>
-            </div>
-          }
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Campaigns"
+      sub="Emails you send to your buyers and newsletter subscribers."
+      actions={
+        <>
+          <RexAICopywriter storeName={store?.name} />
+          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New campaign</PillLink>
+        </>
+      }
+    >
+      <div className="grid gap-5">
+        <StatGrid>
+          <StatTile tone="card" label="Emails sent" value={sent.toLocaleString("en-NG")} />
+          <StatTile tone="card" label="Opened" value={pct(opens, sent)} hint={`${opens.toLocaleString("en-NG")} opens`} />
+          <StatTile tone="card" label="Clicked" value={pct(clicks, opens)} hint="of people who opened" />
+          <StatTile tone="card" label="Sales from email" value={naira(totals?._sum.revenueGenerated ?? 0)} />
+        </StatGrid>
+
+        <FilterChips
+          items={FILTERS.map((filter) => ({
+            label: filter.label,
+            href: filter.status ? `/home/marketing/campaigns?status=${filter.status}` : "/home/marketing/campaigns",
+            count: countFor(filter.status),
+            active: filter === active,
+          }))}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-          {[
-            { label: "Total Sent", value: String(totalSent), color: "var(--teal-600)" },
-            { label: "Open Rate", value: `${openRate}%`, color: "var(--success)" },
-            { label: "Click Rate", value: `${clickRate}%`, color: "var(--berry-500)" },
-            { label: "Revenue Generated", value: fmtCurrency(totalRevenue), color: "var(--amber-600)" },
-          ].map((s) => (
-            <div key={s.label} className="card" style={{ padding: "12px 14px", borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 11, color: "var(--ink-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2, color: "var(--ink-900)" }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", gap: 6 }}>
-          {STATUS_FILTERS.map((f) => (
-            <button key={f} onClick={() => setStatusFilter(f)}
-              style={{
-                padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                border: "none", cursor: "pointer", fontFamily: "inherit",
-                background: f === statusFilter ? "var(--teal-600)" : "var(--ink-100)",
-                color: f === statusFilter ? "white" : "var(--ink-600)",
-              }}>
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--ink-500)" }}>Loading campaigns...</div>
-        ) : campaigns.length === 0 ? (
-          <div className="card" style={{ padding: "60px 24px", textAlign: "center", color: "var(--ink-500)" }}>
-            <Icon name="send" size={32} color="var(--ink-300)" />
-            <div style={{ marginTop: 8, fontWeight: 600 }}>No campaigns yet</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Create your first email campaign to reach your subscribers.</div>
-          </div>
+        {campaigns.length ? (
+          <ListCard>
+            {campaigns.map((campaign) => {
+              const status = STATUS[campaign.status];
+              const editable = campaign.status === "draft" || campaign.status === "scheduled";
+              return (
+                <ListRow key={campaign.id} href={`/home/marketing/campaigns/${campaign.id}`}>
+                  <span className="min-w-0 flex-1 basis-full sm:basis-auto">
+                    <span className="block truncate text-[15px] font-extrabold">{campaign.name}</span>
+                    <span className="block truncate text-[13px] text-app-ink-soft">{humanize(campaign.campaignType || "broadcast")} · {campaign.subject}</span>
+                  </span>
+                  <span className="text-[13px] text-app-ink-soft sm:w-[210px]">
+                    {campaign.sentCount.toLocaleString("en-NG")} sent · {campaign.openCount.toLocaleString("en-NG")} opened · {campaign.clickCount.toLocaleString("en-NG")} clicked
+                  </span>
+                  <span className="text-[13px] text-app-ink-soft sm:w-[120px]">
+                    {campaign.scheduledAt ? formatDate(campaign.scheduledAt) : campaign.sentAt ? formatDate(campaign.sentAt) : `Made ${formatDate(campaign.createdAt)}`}
+                  </span>
+                  <Pill tone={status.tone}>{status.label}</Pill>
+                  <span className="text-[13px] font-extrabold text-app-accent-ink">{editable ? "Edit" : "View"}</span>
+                </ListRow>
+              );
+            })}
+          </ListCard>
         ) : (
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Sent</th>
-                  <th>Opened</th>
-                  <th>Clicked</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((c) => (
-                  <tr key={c.id}>
-                    <td style={{ fontWeight: 600 }}>{c.name}</td>
-                    <td><Badge variant="soft">{(c.campaignType || "broadcast").replace(/_/g, " ")}</Badge></td>
-                    <td style={{ fontSize: 12.5 }}>{c.sentCount}</td>
-                    <td style={{ fontSize: 12.5 }}>{c.openCount}</td>
-                    <td style={{ fontSize: 12.5 }}>{c.clickCount || 0}</td>
-                    <td><Badge variant={statusBadgeVariant(c.status)}>{c.status}</Badge></td>
-                    <td style={{ fontSize: 12 }}>{c.scheduledAt ? fmtDate(c.scheduledAt) : fmtDate(c.sentAt)}</td>
-                    <td>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <a href={`/home/marketing/campaigns/${c.id}`}
-                          className="dbtn dBtn-ghost dBtn-xs" style={{ textDecoration: "none" }}>
-                          {c.status === "draft" || c.status === "scheduled" ? "Edit" : "View"}
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <EmptyState
+            icon="send"
+            title={active.status ? `No ${active.label.toLowerCase()} campaigns` : "No campaigns yet"}
+            action={<PillLink href="/home/marketing/campaigns/new" tone="ink" icon="plus">New campaign</PillLink>}
+          >
+            Write one email and send it to everyone who bought from you or joined your newsletter.
+          </EmptyState>
         )}
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

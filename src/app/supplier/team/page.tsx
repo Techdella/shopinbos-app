@@ -1,6 +1,8 @@
 import { addSupplierTeamMember, updateSupplierTeamMemberStatus, removeSupplierTeamMember } from "@/app/actions/supplier";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { Badge, FilterBar, Icon, PageHead, StatTile } from "@/components/ui";
+import { AppPage, AssistantNote, Card, EmptyState, ListCard, Pill, PillLink, StatGrid, StatTile, Thumb } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
+import { buttonClass, fieldClass, labelClass, shortDate, supplierFrame } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { SUPPLIER_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
@@ -8,41 +10,19 @@ import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
-function Av({ name, size = 36, seed = 0, square }: { name: string; size?: number; seed?: number; square?: boolean }) {
-  const initials = name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
-  const gradients = [
-    ["#D4A574", "#6B4A2C"],
-    ["#F2C8B4", "#D4A574"],
-    ["#195754", "#0c4a44"],
-    ["#E86A4F", "#6B4A2C"],
-    ["#5b6ad0", "#3a4ba6"],
-    ["#8aa843", "#5a7a28"],
-    ["#b14a8a", "#7a2a6a"],
-    ["#e8a647", "#b97511"],
-  ];
-  const gradient = gradients[seed % gradients.length];
+const ROLES = [
+  { value: "manager", label: "Manager" },
+  { value: "inventory", label: "Inventory" },
+  { value: "support", label: "Support" },
+  { value: "sales", label: "Sales" },
+];
 
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: square ? 7 : "50%",
-        background: `linear-gradient(135deg, ${gradient[0]}, ${gradient[1]})`,
-        display: "grid",
-        placeItems: "center",
-        color: "white",
-        fontWeight: 700,
-        fontSize: size * 0.38,
-        flexShrink: 0,
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
+type PageProps = {
+  searchParams?: Promise<{ saved?: string; error?: string }>;
+};
 
-export default async function SupplierTeamPage() {
+export default async function SupplierTeamPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
@@ -57,143 +37,100 @@ export default async function SupplierTeamPage() {
   const activeTeamMembers = teamMembers.filter((member) => member.status === "active");
   const proPlan = isProPlan(dbUser ?? {});
   const atFreeTeamLimit = !proPlan && activeTeamMembers.length >= SUPPLIER_FREE_TEAM_MEMBER_LIMIT;
+  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
 
   return (
-    <AppFrame
-      role="supplier"
-      storeName={supplier.displayName}
-      storeSlug={`${supplier.city ?? "Aba"} · ${supplier.country ?? "Nigeria"}`}
-      storeInitial={supplier.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={supplierFrame(user, supplier)}
+      title="Team"
+      sub="The people who help you run orders, stock and replies."
+      actions={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan">{proPlan ? "Supplier Max plan" : "Free plan"}</PillLink>}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Team members"
-          sub={`${activeTeamMembers.length} active · Manage the people who help run your supplier operations`}
-          actions={
-            <>
-              <a className="dbtn dBtn-ghost" href="/supplier/profile?tab=Billing%20%26%20Plan" style={{ textDecoration: "none" }}>
-                <Icon name="upload" size={14} /> {proPlan ? "Supplier Max plan" : "Free plan"}
-              </a>
-              <button className="dbtn dBtn-mint" form="add-team-member-form" disabled={atFreeTeamLimit}>
-                <Icon name="plus" size={14} /> Add member
-              </button>
-            </>
-          }
+      {(params.error || params.saved) && (
+        <div className="mb-4"><Notice tone={params.error ? "error" : "success"}>{params.error ?? "Team updated."}</Notice></div>
+      )}
+
+      <StatGrid className="mb-5">
+        <StatTile tone="card" label="Active" value={activeTeamMembers.length} />
+        <StatTile
+          tone="card"
+          label="Plan limit"
+          value={proPlan ? "Unlimited" : `${Math.min(activeTeamMembers.length, SUPPLIER_FREE_TEAM_MEMBER_LIMIT)} of ${SUPPLIER_FREE_TEAM_MEMBER_LIMIT}`}
+          hint={proPlan ? "Supplier Max" : "free plan"}
         />
+        <StatTile tone="card" label="Roles in use" value={new Set(teamMembers.map((m) => m.role)).size} />
+        <StatTile tone="card" label="Inactive" value={teamMembers.filter((m) => m.status === "inactive").length} />
+      </StatGrid>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <StatTile label="Active members" value={String(activeTeamMembers.length)} delta="Team members" deltaDir="flat" />
-          <StatTile
-            label="Free limit"
-            value={String(SUPPLIER_FREE_TEAM_MEMBER_LIMIT)}
-            delta={proPlan ? "Unlimited (Supplier Max)" : `${Math.min(activeTeamMembers.length, SUPPLIER_FREE_TEAM_MEMBER_LIMIT)}/${SUPPLIER_FREE_TEAM_MEMBER_LIMIT} used`}
-            deltaDir="flat"
-          />
-          <StatTile label="Roles" value={String(new Set(teamMembers.map((m) => m.role)).size)} delta="different roles" deltaDir="flat" />
-          <StatTile label="Pending invites" value={String(teamMembers.filter((m) => m.status === "inactive").length)} delta="awaiting activation" deltaDir="flat" />
-        </div>
-
-        <form
-          id="add-team-member-form"
-          action={addSupplierTeamMember}
-          className="card"
-          style={{ display: "grid", gridTemplateColumns: "1.2fr 1.2fr 0.9fr 0.9fr auto", gap: 10, alignItems: "end" }}
-        >
-          <label className="field">
-            <span className="label">Name</span>
-            <input className="inp" name="name" placeholder="Chidi Okafor" disabled={atFreeTeamLimit} required />
-          </label>
-          <label className="field">
-            <span className="label">Email</span>
-            <input className="inp" name="email" type="email" placeholder="chidi@example.com" disabled={atFreeTeamLimit} required />
-          </label>
-          <label className="field">
-            <span className="label">Phone</span>
-            <input className="inp" name="phone" placeholder="+234..." disabled={atFreeTeamLimit} />
-          </label>
-          <label className="field">
-            <span className="label">Role</span>
-            <select className="inp" name="role" defaultValue="manager" disabled={atFreeTeamLimit}>
-              <option value="manager">Manager</option>
-              <option value="inventory">Inventory</option>
-              <option value="support">Support</option>
-              <option value="sales">Sales</option>
+      <Card className="mb-5 p-5">
+        <h2 className="m-0 text-[17px] font-extrabold">Add someone</h2>
+        <form action={addSupplierTeamMember} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto] xl:items-end">
+          <div>
+            <label htmlFor="member-name" className={labelClass}>Name</label>
+            <input id="member-name" className={fieldClass} name="name" placeholder="Chidi Okafor" disabled={atFreeTeamLimit} required />
+          </div>
+          <div>
+            <label htmlFor="member-email" className={labelClass}>Email</label>
+            <input id="member-email" className={fieldClass} name="email" type="email" placeholder="chidi@example.com" disabled={atFreeTeamLimit} required />
+          </div>
+          <div>
+            <label htmlFor="member-phone" className={labelClass}>Phone</label>
+            <input id="member-phone" className={fieldClass} name="phone" type="tel" placeholder="+234…" disabled={atFreeTeamLimit} />
+          </div>
+          <div>
+            <label htmlFor="member-role" className={labelClass}>Role</label>
+            <select id="member-role" className={fieldClass} name="role" defaultValue="manager" disabled={atFreeTeamLimit}>
+              {ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
             </select>
-          </label>
-          <button className="dbtn dBtn-mint" type="submit" disabled={atFreeTeamLimit}>
-            Invite
+          </div>
+          <button className={`${buttonClass.ink} min-h-[48px]`} type="submit" disabled={atFreeTeamLimit}>
+            <Icon name="plus" size={15} /> Add member
           </button>
-          {atFreeTeamLimit && (
-            <div style={{ gridColumn: "1 / -1", color: "var(--warning)", fontSize: 12.5, fontWeight: 600 }}>
-              Free plan includes up to {SUPPLIER_FREE_TEAM_MEMBER_LIMIT} active team members. Upgrade to Supplier Max (₦25,000/month) for unlimited team members.
-            </div>
-          )}
         </form>
+        {atFreeTeamLimit && (
+          <div className="mt-4">
+            <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">See plans</PillLink>}>
+              The free plan includes up to {SUPPLIER_FREE_TEAM_MEMBER_LIMIT} active team members. Supplier Max (₦25,000/month) has no limit.
+            </AssistantNote>
+          </div>
+        )}
+      </Card>
 
-        <FilterBar />
-
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Invited</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamMembers.map((member, index) => (
-                <tr key={member.id}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <Av name={member.name} seed={index} />
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{member.name}</div>
-                        <div style={{ color: "var(--ink-500)", fontSize: 12 }}>{member.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ fontSize: 13 }}>{member.role}</td>
-                  <td>
-                    <Badge variant={member.status === "active" ? "mint" : "warn"}>{member.status}</Badge>
-                  </td>
-                  <td style={{ fontSize: 13 }}>{new Date(member.invitedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</td>
-                  <td>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <form action={updateSupplierTeamMemberStatus}>
-                        <input type="hidden" name="teamMemberId" value={member.id} />
-                        <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
-                        <button className="dbtn dBtn-ghost" type="submit" style={{ padding: "5px 9px", fontSize: 12 }}>
-                          {member.status === "active" ? "Deactivate" : "Reactivate"}
-                        </button>
-                      </form>
-                      <form action={removeSupplierTeamMember}>
-                        <input type="hidden" name="teamMemberId" value={member.id} />
-                        <button className="dbtn dBtn-ghost" type="submit" style={{ padding: "5px 9px", fontSize: 12, color: "var(--danger)" }}>
-                          <Icon name="x" size={12} />
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {teamMembers.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>
-                    No team members yet. Invite your first team member to start collaborating.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </AppFrame>
+      {teamMembers.length === 0 ? (
+        <EmptyState icon="users" title="No team members yet">
+          Add the first person who helps you pack orders, update stock or answer sellers.
+        </EmptyState>
+      ) : (
+        <ListCard>
+          {teamMembers.map((member) => (
+            <li key={member.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:flex-nowrap sm:px-5">
+              <Thumb label={member.name} size={44} />
+              <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
+                <span className="block truncate text-[14.5px] font-extrabold">{member.name}</span>
+                <span className="block truncate text-[13px] text-app-ink-soft">{member.email}{member.phone ? ` · ${member.phone}` : ""}</span>
+              </span>
+              <span className="w-[90px] text-[13.5px] font-semibold">{roleLabel(member.role)}</span>
+              <Pill tone={member.status === "active" ? "success" : "muted"}>{member.status === "active" ? "Active" : "Inactive"}</Pill>
+              <span className="hidden w-[110px] text-[13px] text-app-ink-soft md:block">Added {shortDate(member.invitedAt)}</span>
+              <span className="flex gap-2">
+                <form action={updateSupplierTeamMemberStatus}>
+                  <input type="hidden" name="teamMemberId" value={member.id} />
+                  <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
+                  <button className={buttonClass.smallWhite} type="submit">
+                    {member.status === "active" ? "Deactivate" : "Reactivate"}
+                  </button>
+                </form>
+                <form action={removeSupplierTeamMember}>
+                  <input type="hidden" name="teamMemberId" value={member.id} />
+                  <button className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-danger transition hover:border-app-danger" type="submit" aria-label={`Remove ${member.name}`}>
+                    <Icon name="trash" size={15} />
+                  </button>
+                </form>
+              </span>
+            </li>
+          ))}
+        </ListCard>
+      )}
+    </AppPage>
   );
 }

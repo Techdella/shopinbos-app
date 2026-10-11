@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { getAnthropicClient, getOpenAIClient, PEGGY_CLAUDE_MODEL, REX_OPENAI_MODEL } from "@/lib/ai/client";
+import { aiConfigured, getAnthropicClient, getOpenAIClient, PEGGY_CLAUDE_MODEL, providerOrder, REX_OPENAI_MODEL } from "@/lib/ai/client";
+import { meterAi } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { mergeOnboardingMemory, type StoreOnboardingMemory } from "@/lib/onboarding-memory";
@@ -9,10 +10,10 @@ import type { ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-// OpenAI-backed Rex route. The actual SDK construction is centralized in getOpenAIClient()
-// instead of using `new OpenAI` here, and the default Rex model remains gpt-5.4-mini.
+// Rex during onboarding: reads the seller's message and uploads, replies, and saves durable memory.
+// Tries the preferred provider and falls back to the other one on a missing key, an error or a refusal.
 interface RexChatBody {
   message?: string;
   memory?: Partial<StoreOnboardingMemory>;
@@ -97,30 +98,28 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const system = `You are Rex, Shopinbos' live AI onboarding and store builder assistant. The signed-in user's name is ${JSON.stringify(user.name)}; naturally call them ${JSON.stringify(preferredName)} when a name is useful, and never substitute a demo name. Inspect every attached image or document carefully. Extract durable seller memory so the user is not asked twice. Carry their real category, products, audience, location, brand voice, visual references, and brief into your recommendations. Never pretend you inspected an attachment you could not read. Reply specifically and conversationally in 1-3 short sentences. Return JSON only with keys: reply, memoryPatch, suggestedVibes, nextQuestion. memoryPatch may include preferredName, category, businessDescription, storeName, customerProfile.who, customerProfile.vibe, documentNotes, documentNames. Do not invent personal or business data.`;
   const userInput = `Current durable memory:\n${JSON.stringify(currentMemory)}\n\nUser message:\n${message || "Please read my uploads and use them for my store."}${docContext}`;
 
-  let raw = "";
-  const openai = getOpenAIClient();
-  if (openai) {
+  async function viaOpenAI(): Promise<string | null> {
+    const openai = getOpenAIClient();
+    if (!openai) return null;
     const content: ResponseInputContent[] = [{ type: "input_text", text: userInput }];
     for (const upload of uploads) {
       if (upload.file.type.startsWith("image/")) {
         content.push({ type: "input_image", detail: "high", image_url: `data:${upload.file.type};base64,${upload.base64}` });
       } else {
-        content.push({ type: "input_file", filename: upload.file.name, file_data: upload.base64 });
+        content.push({ type: "input_file", filename: upload.file.name, file_data: `data:${upload.file.type || "application/octet-stream"};base64,${upload.base64}` });
       }
     }
     const response = await openai.responses.create({
       model: REX_OPENAI_MODEL,
-      input: [
-        { role: "system", content: system },
-        { role: "user", content },
-      ],
+      instructions: system,
+      input: [{ role: "user", content }],
     });
-    raw = response.output_text ?? "";
-  } else {
+    return response.output_text?.trim() || null;
+  }
+
+  async function viaAnthropic(): Promise<string | null> {
     const anthropic = getAnthropicClient();
-    if (!anthropic) {
-      return NextResponse.json({ error: { message: "OPENAI_API_KEY or ANTHROPIC_API_KEY is required for Rex." } }, { status: 500 });
-    }
+    if (!anthropic) return null;
     const content: ContentBlockParam[] = [{ type: "text", text: userInput }];
     const unsupported: string[] = [];
     for (const upload of uploads) {
@@ -139,11 +138,32 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     }
     const response = await anthropic.messages.create({
       model: PEGGY_CLAUDE_MODEL,
-      max_tokens: 1200,
+      max_tokens: 8000,
       system,
+      output_config: { effort: "low" },
       messages: [{ role: "user", content }],
     });
-    raw = response.content[0]?.type === "text" ? response.content[0].text : "";
+    if (response.stop_reason === "refusal") return null;
+    return response.content.map((block) => (block.type === "text" ? block.text : "")).join("").trim() || null;
+  }
+
+  if (!aiConfigured()) {
+    return NextResponse.json({ error: { code: "AI_OFF", message: "Rex's AI isn't switched on yet (no OPENAI_API_KEY or ANTHROPIC_API_KEY)." } }, { status: 503 });
+  }
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
+
+  let raw = "";
+  for (const provider of providerOrder()) {
+    try {
+      raw = (provider === "openai" ? await viaOpenAI() : await viaAnthropic()) ?? "";
+    } catch (error) {
+      console.error(`[ai/onboarding-rex] ${provider} failed`, error);
+    }
+    if (raw) break;
+  }
+  if (!raw) {
+    return NextResponse.json({ error: { code: "AI_FAILED", message: "Rex couldn't reach the AI right now. Try again in a moment." } }, { status: 502 });
   }
   const parsed = extractJsonObject(raw);
   const fallbackReply = raw.replace(/\{[\s\S]*\}/, "").trim() || "Got it. I'll remember that and use it while building your store.";

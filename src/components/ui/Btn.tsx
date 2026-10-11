@@ -19,18 +19,19 @@ interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   dark?: boolean;
 }
 
+// 2026 app look: pills; ink primary, orange accent ("mint" kept as the name older pages use).
 const variants: Record<BtnVariant, string> = {
-  primary: "bg-navy text-mint hover:bg-ink",
-  mint:    "bg-mint  text-navy hover:bg-mint-soft",
-  outline: "bg-transparent border border-navy/[0.18] text-navy hover:bg-navy/[0.04]",
-  ghost:   "bg-transparent text-navy hover:bg-navy/[0.04]",
-  danger:  "bg-coral text-white hover:opacity-90",
+  primary: "bg-app-ink text-white hover:bg-black",
+  mint:    "bg-app-accent text-white hover:brightness-95",
+  outline: "bg-white border border-app-line text-app-ink hover:border-app-line-strong",
+  ghost:   "bg-transparent text-app-ink hover:bg-black/[0.04]",
+  danger:  "bg-app-danger text-white hover:opacity-90",
 };
 
 const sizes: Record<BtnSize, string> = {
-  sm: "px-3 py-1.5 text-xs gap-1.5",
-  md: "px-4 py-2.5 text-sm gap-2",
-  lg: "px-5 py-3 text-sm gap-2",
+  sm: "min-h-[34px] px-3.5 text-[13px] gap-1.5",
+  md: "min-h-[42px] px-5 text-[14px] gap-2",
+  lg: "min-h-[50px] px-6 text-[15px] gap-2",
 };
 
 export const Btn = forwardRef<HTMLButtonElement, BtnProps>(
@@ -41,10 +42,10 @@ export const Btn = forwardRef<HTMLButtonElement, BtnProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center rounded-pill font-sans font-medium",
+          "inline-flex items-center justify-center rounded-full font-app font-extrabold",
           "leading-none tracking-[-0.005em] cursor-pointer transition-colors duration-150",
           "disabled:opacity-50 disabled:pointer-events-none",
-          isDark ? "bg-mint text-navy hover:bg-mint-soft" : variants[variant],
+          isDark ? "bg-app-accent text-white hover:brightness-95" : variants[variant],
           sizes[size],
           className,
         )}

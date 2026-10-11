@@ -1,228 +1,202 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
-import { PayoutBankSection } from "@/components/payments/PayoutBankSection";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, TextLink } from "@/components/app-kit";
+import { Bars, ShareBar, formatDate } from "@/components/growth/kit";
+import { DEFAULT_PAYMENT_METHODS, naira, type PaymentMethodKey } from "@shared/onboarding";
+import { PAYMENT_METHOD_LABEL } from "@shared/sales";
+import { BankCard, type PayoutBankSummary } from "./BankCard";
+import { PaymentMethods } from "./PaymentMethods";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Money" };
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
-function fmtDate(d: Date) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(d)); }
+const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
+const WAITING = ["pending", "awaiting_payment"] as const;
+const REFUNDED = ["refunded", "partially_refunded"] as const;
+const DAY = 86_400_000;
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+/** Orders taken through Shopinbos checkout have no offline payment method (or "paystack"). */
+function isOnline(method: string | null) {
+  return !method || method === "paystack";
+}
+
+function lagosDayKey(date: Date) {
+  return new Date(date.getTime() + 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function readBank(settings: Record<string, unknown>): PayoutBankSummary | null {
+  const bank = record(settings.payoutBank);
+  if (!bank.bankName) return null;
+  const digits = String(bank.accountNumberMask ?? bank.accountNumber ?? "").replace(/\D/g, "");
+  return {
+    bankName: String(bank.bankName),
+    accountName: String(bank.accountName ?? ""),
+    accountEnding: digits.slice(-4),
+    status: typeof bank.verificationStatus === "string" ? bank.verificationStatus : null,
+  };
+}
+
+function readMethods(settings: Record<string, unknown>): Record<PaymentMethodKey, boolean> {
+  const saved = record(record(settings.paymentConfig).methods);
+  return Object.fromEntries(
+    (Object.keys(DEFAULT_PAYMENT_METHODS) as PaymentMethodKey[]).map((key) => [key, typeof saved[key] === "boolean" ? (saved[key] as boolean) : DEFAULT_PAYMENT_METHODS[key]]),
+  ) as Record<PaymentMethodKey, boolean>;
+}
 
 export default async function SellerPaymentsPage() {
   const user = await requireRole(["seller"], "/login");
-
   const store = await db.store.findUnique({
     where: { userId: user.id },
-    select: { id: true, name: true, currency: true, brandSettings: true },
+    select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true },
   });
+  const settings = record(store?.brandSettings);
+  const now = new Date();
+  const since = new Date(now.getTime() - 30 * DAY);
 
-  const brandSettings = (store?.brandSettings as any) || {};
-  const payoutBank = brandSettings.payoutBank || null;
+  const [recent, waiting, latestPaid] = store
+    ? await Promise.all([
+        db.retailOrder.findMany({
+          where: { storeId: store.id, createdAt: { gte: since } },
+          select: { total: true, status: true, paymentMethod: true, createdAt: true },
+          take: 5000,
+        }),
+        db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: [...WAITING] } }, _sum: { total: true }, _count: true }),
+        db.retailOrder.findMany({
+          where: { storeId: store.id, status: { in: [...PAID] } },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+          select: { id: true, orderNumber: true, buyerName: true, total: true, paymentMethod: true, createdAt: true },
+        }),
+      ])
+    : [[], null, []];
 
-  const orders = store
-    ? await db.retailOrder.findMany({
-        where: { storeId: store.id },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        select: { id: true, orderNumber: true, buyerName: true, total: true, currency: true, status: true, createdAt: true },
-      })
-    : [];
+  const paid = recent.filter((order) => (PAID as readonly string[]).includes(order.status));
+  const online = paid.filter((order) => isOnline(order.paymentMethod)).reduce((sum, order) => sum + order.total, 0);
+  const offline = paid.filter((order) => !isOnline(order.paymentMethod)).reduce((sum, order) => sum + order.total, 0);
+  const refunded = recent.filter((order) => (REFUNDED as readonly string[]).includes(order.status)).reduce((sum, order) => sum + order.total, 0);
+  const moneyIn = online + offline;
 
-  const paidOrders = orders.filter((o) => ["paid", "processing", "shipped", "delivered"].includes(o.status));
-  const grossTotal = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-  const available = grossTotal * 0.975;
-  const onHold = grossTotal * 0.025;
+  // Money in per day for the last 14 days, Lagos time.
+  const days = Array.from({ length: 14 }, (_, index) => lagosDayKey(new Date(now.getTime() - (13 - index) * DAY)));
+  const byDay = new Map(days.map((key) => [key, 0]));
+  for (const order of paid) {
+    const key = lagosDayKey(order.createdAt);
+    if (byDay.has(key)) byDay.set(key, (byDay.get(key) ?? 0) + order.total);
+  }
+  const daily = days.map((key) => byDay.get(key) ?? 0);
+  const dayLabel = (key: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${key}T00:00:00Z`));
+  const fortnight = daily.reduce((sum, value) => sum + value, 0);
+
+  // How customers paid, last 30 days.
+  const methodTotals = new Map<string, number>();
+  for (const order of paid) {
+    const label = isOnline(order.paymentMethod) ? "Online checkout" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod!;
+    methodTotals.set(label, (methodTotals.get(label) ?? 0) + order.total);
+  }
+  const methods = [...methodTotals.entries()].sort((a, b) => b[1] - a[1]);
+
+  const bank = readBank(settings);
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store?.name}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Money"
+      sub="Shopinbos handles checkout. Here's what came in, what's still owed, and where your money goes."
+      actions={
+        <>
+          <PillLink href="/home/invoices" icon="document">Invoices</PillLink>
+          <PillLink href="/home/payouts" icon="bank">Payouts</PillLink>
+          <PillLink href="/home/orders/new" tone="accent" icon="plus">Record a sale</PillLink>
+        </>
+      }
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Payments"
-          sub="Shopinbos handles checkout. You add your bank, we send the money."
-          actions={<Link href="/home/payments/statement" className="dbtn dBtn-ghost"><Icon name="download" size={14} /> Statement</Link>}
-        />
+      <SplitLayout
+        main={
+          <>
+            <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
+              <div className="text-[14px] text-app-ink-soft">Money in, last 30 days</div>
+              <div className="mt-2 break-words text-[40px] font-extrabold leading-none tracking-[-1px] sm:text-[48px]">{naira(moneyIn)}</div>
+              <p className="mb-0 mt-3 max-w-[560px] text-[14.5px] leading-[1.5] text-app-ink-soft">
+                {paid.length
+                  ? `From ${paid.length} paid order${paid.length === 1 ? "" : "s"}. ${naira(online)} came through online checkout and ${naira(offline)} you collected yourself.`
+                  : "No paid orders in the last 30 days. Share your shop link to get the next one."}
+              </p>
+            </Card>
 
-        {/* Stat tiles */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <div className="stat">
-            <div className="stat-lbl">Available balance</div>
-            <div className="stat-val money">{fmt(available)}</div>
-            <div className="stat-delta delta-flat">
-              <Icon name="bank" size={12} />
-              <span>settles tomorrow 6am</span>
-            </div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">On hold</div>
-            <div className="stat-val money">{fmt(onHold)}</div>
-            <div className="stat-delta delta-flat">
-              <Icon name="lock" size={12} />
-              <span>dispute window</span>
-            </div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Paid · 30d</div>
-            <div className="stat-val money">{fmt(grossTotal)}</div>
-            <div className="stat-delta delta-up">
-              <Icon name="coin" size={12} />
-              <span>42 settlements</span>
-            </div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Shopinbos fee</div>
-            <div className="stat-val">1.5%</div>
-            <div className="stat-delta delta-flat">Pro plan</div>
-          </div>
-        </div>
+            <StatGrid>
+              <StatTile tone="card" label="Online checkout" value={naira(online)} hint="Last 30 days" />
+              <StatTile tone="card" label="Collected yourself" value={naira(offline)} hint="Cash, transfer, POS" />
+              <StatTile tone="card" label="Waiting for payment" value={naira(waiting?._sum.total ?? 0)} hint={`${waiting?._count ?? 0} order${waiting?._count === 1 ? "" : "s"}`} />
+              <StatTile tone="card" label="Refunded" value={naira(refunded)} hint="Last 30 days" />
+            </StatGrid>
 
-        {/* Main grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 18 }}>
-          {/* Left: scheduled payout + recent payouts */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Scheduled payout card */}
-            <div className="card" style={{
-              padding: 22,
-              background: "linear-gradient(135deg, var(--teal-900), var(--teal-700))",
-              color: "white",
-            }}>
-              <div style={{
-                fontSize: 11.5, color: "var(--teal-200)", fontWeight: 600,
-                textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
-              }}>
-                Tomorrow morning · {fmtDate(new Date(Date.now() + 86400000))}
+            <Card className="p-5">
+              <CardHead title="Money in, last 14 days" sub={`${naira(fortnight)} in total`} />
+              <div className="mt-5">
+                <Bars
+                  values={daily}
+                  labels={days.map((key, index) => (index === days.length - 1 ? "Today" : index % 7 === 0 ? dayLabel(key) : ""))}
+                  format={naira}
+                  recent={7}
+                  summary={`Money from paid orders for each of the last 14 days. ${naira(fortnight)} in total.`}
+                />
               </div>
-              <div style={{ fontFamily: "var(--font-accent)", fontSize: 44, fontWeight: 500, lineHeight: 1 }}>
-                {fmt(available)}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--teal-200)", marginTop: 8 }}>
-                Sent to <strong style={{ color: "white" }}>
-                  {payoutBank ? `${payoutBank.bankName} ••${payoutBank.accountNumber.slice(-2)}` : "unlinked bank account"}
-                </strong> · usually arrives within 1 hour
-              </div>
-              <div style={{
-                display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18,
-                marginTop: 22, paddingTop: 18,
-                borderTop: "1px solid rgba(255,255,255,0.15)",
-              }}>
-                {[
-                  { l: "From orders", v: fmt(grossTotal) },
-                  { l: "Refunded", v: "−₦0" },
-                  { l: "Shopinbos fee", v: `−${fmt(grossTotal * 0.015)}` },
-                  { l: "Tax withheld", v: "₦0" },
-                ].map((r, i) => (
-                  <div key={i}>
-                    <div style={{ color: "var(--teal-200)", fontSize: 11.5 }}>{r.l}</div>
-                    <div style={{ fontWeight: 600, marginTop: 3, fontSize: 14 }}>{r.v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </Card>
 
-            {/* Recent payouts */}
-            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{
-                padding: "14px 16px", borderBottom: "1px solid var(--ink-100)",
-                display: "flex", justifyContent: "space-between",
-              }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Recent payouts</div>
-                <Link href="/home/payouts" className="dbtn dBtn-link" style={{ fontSize: 12 }}>All →</Link>
+            <section>
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h2 className="m-0 text-[17px] font-extrabold">Latest payments</h2>
+                <TextLink href="/home/orders">All orders</TextLink>
               </div>
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Orders</th>
-                    <th>Gross</th>
-                    <th>Fee</th>
-                    <th>Net</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paidOrders.slice(0, 6).map((o, i) => (
-                    <tr key={o.id}>
-                      <td style={{ fontWeight: 600 }}>{fmtDate(o.createdAt)}</td>
-                      <td>{1}</td>
-                      <td className="money" style={{ fontWeight: 600 }}>{fmt(Number(o.total))}</td>
-                      <td className="money" style={{ color: "var(--ink-500)" }}>−{fmt(Math.round(Number(o.total) * 0.015))}</td>
-                      <td className="money" style={{ fontWeight: 600 }}>{fmt(Math.round(Number(o.total) * 0.985))}</td>
-                      <td><Badge variant="success" dot>Settled</Badge></td>
-                    </tr>
+              {latestPaid.length ? (
+                <ListCard>
+                  {latestPaid.map((order) => (
+                    <ListRow key={order.id} href={`/home/orders/${order.id}`}>
+                      <span className="min-w-0 flex-1 basis-full sm:basis-auto">
+                        <span className="block truncate text-[14.5px] font-extrabold">{order.buyerName || "Customer"}</span>
+                        <span className="block truncate text-[13px] text-app-ink-soft">{order.orderNumber} · {formatDate(order.createdAt)}</span>
+                      </span>
+                      <span className="text-[13px] text-app-ink-soft sm:w-[140px]">{isOnline(order.paymentMethod) ? "Online checkout" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod}</span>
+                      <Pill tone="success">Paid</Pill>
+                      <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{naira(order.total)}</span>
+                    </ListRow>
                   ))}
-                  {paidOrders.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ padding: 16, color: "var(--ink-500)", textAlign: "center" }}>
-                        No payouts yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Right: bank account + settings */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <PayoutBankSection role="seller" payoutBank={payoutBank} displayName={user.name} />
-
-            {/* Payout settings */}
-            <div className="card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Payout settings</div>
-              {[
-                { l: "Schedule", v: "Daily · 6am WAT" },
-                { l: "Threshold", v: "No minimum" },
-                { l: "Currency", v: "₦ Naira" },
-                { l: "FX spread (cross-border)", v: "1.5% (Pro default)" },
-                { l: "Auto-hold disputes", v: "72 hours · standard" },
-              ].map((r, i) => (
-                <div key={i} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "8px 0", borderTop: i ? "1px solid var(--ink-100)" : "none",
-                }}>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-700)" }}>{r.l}</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>{r.v}</div>
+                </ListCard>
+              ) : (
+                <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">Paid orders show up here.</Card>
+              )}
+            </section>
+          </>
+        }
+        side={
+          <>
+            <BankCard bank={bank} />
+            <Card className="p-5">
+              <CardHead title="How customers paid" sub="Last 30 days" />
+              {methods.length ? (
+                <div className="mt-4 grid gap-3.5">
+                  {methods.map(([label, total], index) => (
+                    <ShareBar key={label} label={label} value={naira(total)} share={moneyIn ? total / moneyIn : 0} tone={index === 0 ? "success" : "ink"} />
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            {/* How checkout works */}
-            <div className="card" style={{
-              padding: 14,
-              background: "linear-gradient(160deg, var(--teal-50), var(--paper))",
-            }}>
-              <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 9,
-                  background: "var(--paper)", color: "var(--teal-700)",
-                  display: "grid", placeItems: "center", flexShrink: 0,
-                }}>
-                  <Icon name="lock" size={16} />
-                </div>
-                <div>
-                  <div style={{
-                    fontSize: 11, color: "var(--teal-700)", fontWeight: 700,
-                    textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3,
-                  }}>
-                    How checkout works
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-700)", lineHeight: 1.55 }}>
-                    Customers pay through Shopinbos and Paystack handles secure checkout. The money settles to your bank account the next morning. <strong>You don&apos;t manage any payment providers.</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </AppFrame>
+              ) : (
+                <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Shows up after your first paid order.</p>
+              )}
+            </Card>
+            <PaymentMethods initial={readMethods(settings)} />
+            <AssistantNote>
+              Online payments go through Paystack checkout and are paid out to your payout bank. Cash, transfers and POS you record yourself never pass through Shopinbos.
+            </AssistantNote>
+          </>
+        }
+      />
+    </SellerPage>
   );
 }

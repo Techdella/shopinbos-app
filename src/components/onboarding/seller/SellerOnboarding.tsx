@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
 import { BackButton, cx, Mascot, MicIcon, Notice, PillButton, ProgressBars, QrIcon, Spinner, TextInput, Toggle, Wordmark } from "@/components/app-ui";
 import intentRouting from "@/lib/intent-routing";
+import { withChannelRef } from "@shared/channels";
 import {
   BRAND_LOOKS,
   BRAND_PALETTES,
@@ -335,11 +336,11 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
 
   // ── Live ───────────────────────────────────────────────────────────────────
   const shareUrl = status.store.url;
-  const shareText = `${status.store.name} is open! Shop here: ${shareUrl}`;
+  const shareText = `${status.store.name} is open! Shop here: ${withChannelRef(shareUrl, "whatsapp")}`;
 
-  async function copyLink(message = "Link copied") {
+  async function copyLink(message = "Link copied", link = shareUrl) {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(link);
       setToast(message);
     } catch {
       setToast(shareUrl);
@@ -768,7 +769,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer" className="grid min-h-[84px] place-items-center gap-1 rounded-[20px] bg-white p-3 text-center text-[13px] font-bold text-app-ink no-underline">
             <span className="text-[#25D366]"><Icon name="whatsapp" size={20} /></span> WhatsApp Status
           </a>
-          <button type="button" onClick={() => void copyLink("Link copied. Paste it in your Instagram bio.")} className="grid min-h-[84px] place-items-center gap-1 rounded-[20px] bg-white p-3 text-[13px] font-bold">
+          <button type="button" onClick={() => void copyLink("Link copied. Paste it in your Instagram bio.", withChannelRef(shareUrl, "instagram"))} className="grid min-h-[84px] place-items-center gap-1 rounded-[20px] bg-white p-3 text-[13px] font-bold">
             <span className="text-[#C13584]"><Icon name="instagram" size={20} /></span> Instagram bio
           </button>
           <button type="button" onClick={() => void openQr()} className="grid min-h-[84px] place-items-center gap-1 rounded-[20px] bg-white p-3 text-[13px] font-bold">

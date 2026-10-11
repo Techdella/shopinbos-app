@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Icon } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
+import { Notice, PillButton } from "@/components/app-ui";
+import { Modal } from "@/components/growth/Modal";
+import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { MARKETING_PROMPTS, type MarketingCopyType } from "@/lib/ai/marketing-prompts";
 
 interface RexAICopywriterProps {
@@ -16,9 +19,10 @@ export function RexAICopywriter({ storeName, onResult }: RexAICopywriterProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const config = MARKETING_PROMPTS[copyType];
+  const close = useCallback(() => setOpen(false), []);
 
   const handleTypeChange = useCallback((type: MarketingCopyType) => {
     setCopyType(type);
@@ -42,59 +46,55 @@ export function RexAICopywriter({ storeName, onResult }: RexAICopywriterProps) {
         setResult(data.data);
         onResult?.(copyType, data.data);
       } else {
-        setError(data.error?.message ?? "Generation failed");
+        setError(data.error?.message ?? "Rex couldn't write that. Try again.");
       }
     } catch {
-      setError("Could not connect to Rex AI");
+      setError("Couldn't reach Rex. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   }, [copyType, fieldValues, storeName, onResult]);
 
-  const copyToClipboard = useCallback(async (text: string, index: number) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const copyText = useCallback(async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      window.setTimeout(() => setCopied(null), 1600);
+    } catch {
+      setError("Couldn't copy. Select the text and copy it.");
+    }
   }, []);
+
+  function copyRow(text: string, id: string) {
+    return (
+      <div key={id} className="flex items-start gap-2">
+        <div className="min-w-0 flex-1 whitespace-pre-wrap break-words rounded-[14px] bg-app-canvas px-3.5 py-2.5 text-[14px] leading-[1.5]">{text}</div>
+        <button type="button" onClick={() => void copyText(text, id)} className={buttonClass("white", "sm")}>
+          {copied === id ? "Copied" : "Copy"}
+        </button>
+      </div>
+    );
+  }
 
   function renderResult() {
     if (!result) return null;
-    const r = result as Record<string, unknown>;
-    const entries = Object.entries(r).filter(([k]) => k !== "id");
-
+    const entries = Object.entries(result as Record<string, unknown>).filter(([key]) => key !== "id");
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        {entries.map(([key, val]) => {
-          if (Array.isArray(val)) {
+      <div className="mt-4 grid gap-3">
+        {entries.map(([key, value]) => {
+          if (Array.isArray(value)) {
             return (
-              <div key={key}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teal-700)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{key}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {val.map((item: unknown, i: number) => {
-                    const text = typeof item === "string" ? item : String((item as Record<string, unknown>)?.body ?? (item as Record<string, unknown>)?.headline ?? JSON.stringify(item, null, 2));
-                    return (
-                      <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                        <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.5, padding: "8px 10px", background: "var(--ink-50)", borderRadius: 8, color: "var(--ink-800)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                          {text}
-                        </div>
-                        <button onClick={() => void copyToClipboard(String(text), i)}
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: copiedIndex === i ? "var(--teal-600)" : "var(--ink-400)", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", fontFamily: "inherit" }}>
-                          {copiedIndex === i ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div key={key} className="grid gap-2">
+                <div className="text-[13px] font-bold text-app-ink-soft">{key.replace(/_/g, " ")}</div>
+                {value.map((item: unknown, index: number) => {
+                  const record = item as Record<string, unknown>;
+                  const text = typeof item === "string" ? item : String(record?.body ?? record?.headline ?? JSON.stringify(item, null, 2));
+                  return copyRow(text, `${key}-${index}`);
+                })}
               </div>
             );
           }
-          if (typeof val === "string") {
-            return (
-              <div key={key} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.5, padding: "8px 10px", background: "var(--ink-50)", borderRadius: 8, color: "var(--ink-800)", whiteSpace: "pre-wrap" }}>{val}</div>
-              </div>
-            );
-          }
+          if (typeof value === "string") return copyRow(value, key);
           return null;
         })}
       </div>
@@ -103,66 +103,47 @@ export function RexAICopywriter({ storeName, onResult }: RexAICopywriterProps) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
-        className="dbtn dBtn-mint" style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-        <Icon name="sparkle" size={14} /> Write with Rex
+      <button type="button" onClick={() => setOpen(true)} className={buttonClass("white")}>
+        <Icon name="sparkle" size={16} /> Write with Rex
       </button>
 
       {open && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "grid", placeItems: "center" }}
-          onClick={() => setOpen(false)}>
-          <div className="card" style={{ padding: 0, maxWidth: 640, width: "95%", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-            onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid var(--ink-100)", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--teal-100)", color: "var(--teal-700)", display: "grid", placeItems: "center", fontSize: 16 }}>R</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink-900)" }}>Rex AI Copywriter</div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>Generate marketing copy for your store</div>
-              </div>
-              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-400)", padding: 4 }}><Icon name="x" size={18} /></button>
-            </div>
-
-            <div style={{ padding: "14px 20px 0", overflow: "auto", flex: 1 }}>
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label className="label">Copy type</label>
-                <select value={copyType} onChange={(e) => handleTypeChange(e.target.value as MarketingCopyType)} className="sel">
-                  {Object.entries(MARKETING_PROMPTS).map(([key, p]) => (
-                    <option key={key} value={key}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {config.fields.map((f) => (
-                  <div className="field" key={f.key}>
-                    <label className="label">{f.label}</label>
-                    {f.type === "select" ? (
-                      <select value={fieldValues[f.key] ?? ""} onChange={(e) => setFieldValues({ ...fieldValues, [f.key]: e.target.value })} className="sel">
-                        <option value="">Select...</option>
-                        {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    ) : f.type === "textarea" ? (
-                      <textarea value={fieldValues[f.key] ?? ""} onChange={(e) => setFieldValues({ ...fieldValues, [f.key]: e.target.value })} className="ta" rows={3} placeholder={f.placeholder} />
-                    ) : (
-                      <input value={fieldValues[f.key] ?? ""} onChange={(e) => setFieldValues({ ...fieldValues, [f.key]: e.target.value })} className="inp" placeholder={f.placeholder} />
-                    )}
-                  </div>
+        <Modal title="Write with Rex" onClose={close} wide>
+          <p className="m-0 mb-4 text-[14px] text-app-ink-soft">Rex writes subject lines, messages and captions for {storeName || "your shop"}. Pick what you need.</p>
+          <div className="grid gap-3">
+            <Field label="What should Rex write?" htmlFor="rex-type">
+              <select id="rex-type" value={copyType} onChange={(event) => handleTypeChange(event.target.value as MarketingCopyType)} className={selectClass}>
+                {Object.entries(MARKETING_PROMPTS).map(([key, prompt]) => (
+                  <option key={key} value={key}>{prompt.label}</option>
                 ))}
-              </div>
-
-              <button onClick={() => void generate()} disabled={loading}
-                className="dbtn dBtn-mint" style={{ marginTop: 14, border: "none", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
-                {loading ? "Generating..." : `Generate ${config.label}`}
-              </button>
-
-              {error && <div style={{ marginTop: 10, padding: "8px 12px", background: "var(--rose-50)", color: "var(--danger)", borderRadius: 8, fontSize: 12.5 }}>{error}</div>}
-
-              <div style={{ margin: "10px 0 18px" }}>
-                {renderResult()}
-              </div>
-            </div>
+              </select>
+            </Field>
+            {config.fields.map((field) => {
+              const id = `rex-${field.key}`;
+              const value = fieldValues[field.key] ?? "";
+              const set = (next: string) => setFieldValues({ ...fieldValues, [field.key]: next });
+              return (
+                <Field key={field.key} label={field.label} htmlFor={id}>
+                  {field.type === "select" ? (
+                    <select id={id} value={value} onChange={(event) => set(event.target.value)} className={selectClass}>
+                      <option value="">Choose</option>
+                      {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  ) : field.type === "textarea" ? (
+                    <textarea id={id} value={value} onChange={(event) => set(event.target.value)} className={textareaClass} rows={3} placeholder={field.placeholder} />
+                  ) : (
+                    <input id={id} value={value} onChange={(event) => set(event.target.value)} className={inputClass} placeholder={field.placeholder} />
+                  )}
+                </Field>
+              );
+            })}
+            <PillButton size="md" busy={loading} onClick={() => void generate()} className="w-full">
+              Write {config.label.toLowerCase()}
+            </PillButton>
+            {error && <Notice>{error}</Notice>}
           </div>
-        </div>
+          {renderResult()}
+        </Modal>
       )}
     </>
   );

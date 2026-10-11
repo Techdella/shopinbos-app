@@ -1,86 +1,28 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Icon } from "@/components/ui";
-import type { IconName } from "@/components/ui/Icon";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Card, CardHead, StatGrid, StatTile, TextLink } from "@/components/app-kit";
+import { Bars, ShareBar } from "@/components/growth/kit";
 import { InsightsExportButton } from "./InsightsExportButton";
 import { computeSellerInsights } from "@/lib/insights";
 import { isProPlan } from "@/lib/plan-limits";
+import { naira } from "@shared/onboarding";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Reports" };
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
-function fmtK(n: number) { return "₦" + (n / 1000).toFixed(0) + "K"; }
-
-const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => (h % 3 === 0 ? `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "a" : "p"}` : ""));
+function hourName(h: number) {
+  return `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`;
+}
 
 function hourLabel(hour: number) {
-  const fmtHour = (h: number) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`;
-  return `${fmtHour(hour)} – ${fmtHour((hour + 1) % 24)}`;
-}
-
-function LineChart({ data, labels, height = 220, money }: { data: number[]; labels: string[]; height?: number; money?: boolean }) {
-  const w = 600;
-  const max = Math.max(...data, 1) * 1.12;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = height - (v / max) * (height - 24) + 4;
-    return `${x},${y}`;
-  }).join(" ");
-  return (
-    <svg viewBox={`0 0 ${w} ${height}`} style={{ width: "100%", height, display: "block" }}>
-      {[0.25, 0.5, 0.75].map((r, i) => (
-        <line key={i} x1={0} y1={height - (height - 24) * r - 4} x2={w} y2={height - (height - 24) * r - 4} stroke="var(--ink-100)" strokeWidth={1} />
-      ))}
-      <polyline points={pts} fill="none" stroke="var(--teal-600)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      <polygon points={`0,${height} ${pts} ${w},${height}`} fill="var(--teal-600)" opacity={0.08} />
-      {labels.map((l, i) => l && (
-        <text key={i} x={(i / Math.max(data.length - 1, 1)) * w} y={height - 4} textAnchor="middle" fill="var(--ink-400)" fontSize={10.5} fontFamily="var(--font-mono)">
-          {l}
-        </text>
-      ))}
-    </svg>
-  );
-}
-
-function BarChart({ data, labels, height = 120, color = "var(--teal-500)" }: { data: number[]; labels: string[]; height?: number; color?: string }) {
-  const max = Math.max(...data) || 1;
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 1, height, width: "100%" }}>
-      {data.map((v, i) => (
-        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-          <div style={{ width: "60%", maxWidth: 14, height: (v / max) * (height - 24), background: color, borderRadius: "3px 3px 0 0", minHeight: v > 0 ? 2 : 0 }} />
-          {labels[i] && <span style={{ fontSize: 8, color: "var(--ink-400)", writingMode: "vertical-lr", textOrientation: "mixed", transform: "rotate(180deg)", marginTop: 4 }}>{labels[i]}</span>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-interface StatCard { label: string; value: string; delta: string; deltaDir: "up" | "down" | "flat"; icon: IconName; iconBg?: string; money?: boolean }
-
-function StatTileCard({ label, value, delta, deltaDir = "flat", icon, iconBg, money }: StatCard) {
-  return (
-    <div className="stat">
-      <div className="stat-lbl">{label}</div>
-      <div className={`stat-val${money ? " money" : ""}`}>{value}</div>
-      <div className={`stat-delta delta-${deltaDir}`}>
-        {deltaDir === "up" && <Icon name="arrowUp" size={11} />}
-        {deltaDir === "down" && <Icon name="arrowDown" size={11} />}
-        {deltaDir === "flat" && <Icon name="minus" size={11} />}
-        <span>{delta}</span>
-      </div>
-    </div>
-  );
+  return `${hourName(hour)} to ${hourName((hour + 1) % 24)}`;
 }
 
 export default async function SellerInsightsPage() {
   const user = await requireRole(["seller"], "/login");
-  const workspace = await getSellerWorkspace(user.id);
-  if (!workspace) return null;
-
-  const store = workspace.store;
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const since = new Date(Date.now() - 180 * 86_400_000);
   const [orders, account] = await Promise.all([
     store
@@ -98,139 +40,132 @@ export default async function SellerInsightsPage() {
   const topValue = Math.max(...insights.topProducts.map((product) => product.revenue), 1);
   const aiCredits = account?.aiCredits ?? 0;
   const proPlan = isProPlan({ aiCredits });
+  const month = insights.daily.data.reduce((sum, value) => sum + value, 0);
+  const dailyLabels = insights.daily.labels.map((label, index) => (index === insights.daily.labels.length - 1 ? "Today" : label));
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store?.name ?? "Store"}
-      storeSlug={store?.slug ?? ""}
-      storeInitial={store?.name?.charAt(0).toUpperCase() ?? "S"}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Reports"
+      sub="Sales, buyers and best sellers from your orders over the last 180 days."
+      actions={<InsightsExportButton />}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Analytics"
-          sub={`${store?.name ?? "Store"} · live order data · last 180 days`}
-          actions={<><div className="btn dBtn-ghost" style={{ fontSize: 12.5, padding: "7px 13px", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="calendar" size={14} /> Last 180 days</div><InsightsExportButton /></>}
-        />
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <StatTileCard label="GMV" value={fmt(insights.revenue)} delta="paid orders" deltaDir="flat" icon="coin" money />
-          <StatTileCard label="Orders" value={String(insights.paidOrders)} delta={`${insights.totalOrders} total`} deltaDir="flat" icon="cart" />
-          <StatTileCard label="AOV" value={fmt(Math.round(insights.aov))} delta="paid orders" deltaDir="flat" icon="chart" />
-          <StatTileCard
-            label="Repeat rate"
-            value={insights.repeatRate == null ? "—" : `${Math.round(insights.repeatRate * 100)}%`}
-            delta={insights.repeatRate == null ? "no paying buyers yet" : "buyers with 2+ orders"}
-            deltaDir="flat"
-            icon="users"
+      <div className="grid gap-5">
+        <StatGrid>
+          <StatTile tone="card" label="Sales" value={naira(insights.revenue)} hint="Paid orders" />
+          <StatTile tone="card" label="Paid orders" value={insights.paidOrders} hint={`${insights.totalOrders} orders in all`} />
+          <StatTile tone="card" label="Average order" value={naira(Math.round(insights.aov))} />
+          <StatTile
+            tone="card"
+            label="Buyers who came back"
+            value={insights.repeatRate == null ? "None yet" : `${Math.round(insights.repeatRate * 100)}%`}
+            hint={insights.repeatRate == null ? "No paying buyers yet" : "Bought 2 or more times"}
           />
-        </div>
+        </StatGrid>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Revenue · last 30 days</div>
-              <div style={{ fontSize: 12, color: "var(--ink-500)" }}>
-                {insights.cityCount > 0 ? `Top ${insights.cities.length} of ${insights.cityCount} cities` : "No delivery cities yet"}
-              </div>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_480px]">
+          <Card className="p-5">
+            <CardHead title="Sales, last 30 days" sub={`${naira(month)} from paid orders`} />
+            <div className="mt-5">
+              <Bars values={insights.daily.data} labels={dailyLabels} format={naira} recent={7} summary={`Daily sales for the last 30 days, ${naira(month)} in total.`} />
             </div>
-            <LineChart data={insights.daily.data} labels={insights.daily.labels} height={220} />
             {insights.cities.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 10, marginTop: 14 }}>
-                {insights.cities.map((r) => (
-                  <div key={r.city} style={{ padding: "10px 12px", background: "var(--ink-50)", borderRadius: 10 }}>
-                    <div style={{ fontSize: 11, color: "var(--ink-500)" }}>{r.city}</div>
-                    <div style={{ fontFamily: "var(--font-accent)", fontSize: 16, fontWeight: 500 }}>{fmtK(r.revenue)}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--ink-500)" }}>{Math.round(r.share * 100)}%</div>
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                {insights.cities.map((city) => (
+                  <div key={city.city} className="min-w-0 rounded-[14px] bg-app-canvas px-3.5 py-2.5">
+                    <div className="truncate text-[12.5px] text-app-ink-soft">{city.city}</div>
+                    <div className="truncate text-[16px] font-extrabold">{naira(city.revenue)}</div>
+                    <div className="text-[12px] text-app-ink-soft">{Math.round(city.share * 100)}% of sales</div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+            <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
+              {insights.cityCount > 0 ? `Top ${insights.cities.length} of ${insights.cityCount} delivery cities` : "Delivery cities show up once orders have an address."}
+            </p>
+          </Card>
 
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>Top products</div>
-            {(insights.topProducts.length > 0 ? insights.topProducts : [{ name: "No product sales yet", quantity: 0, revenue: 0 }]).map((p, i) => (
-              <div key={i} style={{ padding: "10px 0", borderTop: i ? "1px dashed var(--ink-150)" : "none" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: "var(--ink-500)" }}>{p.quantity} sold</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1, height: 6, background: "var(--ink-100)", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ width: `${Math.round((p.revenue / topValue) * 100)}%`, height: "100%", background: "var(--teal-600)" }} />
-                  </div>
-                  <div style={{ fontFamily: "var(--font-accent)", fontSize: 14, fontWeight: 500, minWidth: 80, textAlign: "right" }}>{fmtK(p.revenue)}</div>
-                </div>
+          <Card className="p-5">
+            <CardHead title="Best sellers" action={<TextLink href="/products">All products</TextLink>} />
+            {insights.topProducts.length ? (
+              <div className="mt-4 grid gap-4">
+                {insights.topProducts.map((product, index) => (
+                  <ShareBar key={`${product.name}-${index}`} label={product.name} value={`${product.quantity} sold · ${naira(product.revenue)}`} share={product.revenue / topValue} tone={index === 0 ? "accent" : "ink"} />
+                ))}
               </div>
-            ))}
-          </div>
+            ) : (
+              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Your best sellers show up after the first paid orders.</p>
+            )}
+          </Card>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Hours of the day</div>
-            <BarChart data={insights.hours} labels={HOUR_LABELS} height={120} color="var(--teal-500)" />
-            <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 8 }}>
-              {insights.peakHour == null ? (
-                "Peak order hour appears once you have paid orders."
-              ) : (
-                <>Peak: <strong style={{ color: "var(--ink-800)" }}>{hourLabel(insights.peakHour)} Lagos time</strong> — schedule WA broadcasts here.</>
-              )}
+        <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+          <Card className="p-5">
+            <CardHead title="When people buy" sub="Paid orders by hour, Lagos time" />
+            <div className="mt-5">
+              <Bars
+                values={insights.hours}
+                labels={insights.hours.map((_, hour) => (hour % 6 === 0 ? hourName(hour) : hour === 23 ? "11pm" : ""))}
+                format={(value) => `${value} order${value === 1 ? "" : "s"}`}
+                highlightLast={false}
+                height={130}
+                summary={insights.peakHour == null ? "No paid orders yet." : `Most orders come in between ${hourLabel(insights.peakHour)}.`}
+              />
             </div>
-          </div>
+            <p className="mb-0 mt-3 text-[13.5px] text-app-ink-soft">
+              {insights.peakHour == null ? "Your busiest hour shows up once you have paid orders." : <>Busiest: <strong className="text-app-ink">{hourLabel(insights.peakHour)}</strong>. Send WhatsApp broadcasts just before.</>}
+            </p>
+          </Card>
 
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Customer cohort retention</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              {insights.cohorts.length === 0 && (
-                <div style={{ fontSize: 12, color: "var(--ink-500)", padding: "8px 0" }}>Retention appears once buyers start paying.</div>
-              )}
-              {insights.cohorts.map((row) => ({ m: row.month, v: row.retention })).map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "30px repeat(5, 1fr)", gap: 3, alignItems: "center" }}>
-                  <div style={{ fontSize: 10.5, color: "var(--ink-500)", fontFamily: "var(--font-mono)" }}>{row.m}</div>
-                  {Array.from({ length: 5 }, (_, j) => {
-                    const v = row.v[j];
-                    if (v == null) return <div key={j} />;
-                    return (
-                      <div key={j} style={{
-                        height: 24,
-                        background: `rgba(30,144,133,${Math.min(0.9, v / 120)})`,
-                        borderRadius: 4,
-                        display: "grid",
-                        placeItems: "center",
-                        color: v > 40 ? "white" : "var(--teal-800)",
-                        fontSize: 10,
-                        fontWeight: 600,
-                      }}>
-                        {v}%
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-              <div style={{ display: "grid", gridTemplateColumns: "30px repeat(5, 1fr)", gap: 3, fontSize: 10, color: "var(--ink-500)", marginTop: 4 }}>
-                <div /><div style={{ textAlign: "center" }}>M0</div><div style={{ textAlign: "center" }}>M1</div><div style={{ textAlign: "center" }}>M2</div><div style={{ textAlign: "center" }}>M3</div><div style={{ textAlign: "center" }}>M4</div>
+          <Card className="p-5">
+            <CardHead title="Buyers who come back" sub="Share of each month's new buyers who bought again" />
+            {insights.cohorts.length ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[300px] border-separate border-spacing-1 text-[12.5px]">
+                  <thead>
+                    <tr className="text-app-ink-soft">
+                      <th scope="col" className="text-left font-semibold">Started</th>
+                      {["First month", "+1", "+2", "+3", "+4"].map((label) => <th key={label} scope="col" className="font-semibold">{label}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insights.cohorts.map((row) => (
+                      <tr key={row.month}>
+                        <th scope="row" className="pr-2 text-left font-semibold text-app-ink-soft">{row.month}</th>
+                        {Array.from({ length: 5 }, (_, index) => {
+                          const value = row.retention[index];
+                          if (value == null) return <td key={index} />;
+                          return (
+                            <td
+                              key={index}
+                              className="h-8 rounded-[8px] text-center font-bold"
+                              style={{ background: `rgba(22, 20, 31, ${Math.min(0.85, 0.06 + value / 120)})`, color: value > 45 ? "#fff" : "#16141F" }}
+                            >
+                              {value}%
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </div>
+            ) : (
+              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Shows up once buyers start paying.</p>
+            )}
+          </Card>
 
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>AI credits</div>
-            <div style={{ fontFamily: "var(--font-accent)", fontSize: 34, fontWeight: 500, lineHeight: 1 }}>{aiCredits.toLocaleString("en-US")}</div>
-            <div style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 6 }}>credits available for Rex copy, images and store edits</div>
-            <hr className="hr" />
-            <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>
-              You&apos;re on <strong style={{ color: "var(--ink-800)" }}>{proPlan ? "Pro" : "Starter"}</strong>.{" "}
-              <a href="/home/settings?tab=Billing" style={{ color: "var(--teal-700)" }}>Manage plan</a>
-            </div>
-          </div>
+          <Card className="p-5">
+            <CardHead title="AI credits" />
+            <div className="mt-3 text-[36px] font-extrabold leading-none tracking-[-0.8px]">{aiCredits.toLocaleString("en-NG")}</div>
+            <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">For Rex copy, images and store edits.</p>
+            <p className="mb-0 mt-4 border-t border-app-line pt-3 text-[14px] text-app-ink-soft">
+              You&apos;re on <strong className="text-app-ink">{proPlan ? "Pro" : "Starter"}</strong>. <TextLink href="/home/settings?tab=Billing">Manage plan</TextLink>
+            </p>
+          </Card>
         </div>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

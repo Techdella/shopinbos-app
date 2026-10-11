@@ -1,22 +1,16 @@
-"use client";
+import type { Metadata } from "next";
+import { requireRole } from "@/lib/server-auth";
+import { db } from "@/lib/db/client";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Card, EmptyState, FilterChips } from "@/components/app-kit";
+import { Icon, type IconName } from "@/components/ui/Icon";
 
-import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Icon, MascotAvatar } from "@/components/ui";
-import type { IconName } from "@/components/ui/Icon";
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Activity" };
 
-interface ActivityItem {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  link?: string | null;
-}
+const TYPES = ["order", "inventory", "payment", "logistics", "product", "customer", "system"] as const;
 
-const activityTypes = ["all", "order", "inventory", "payment", "logistics", "product", "customer", "system"] as const;
-
-const activityIcons: Record<string, IconName> = {
+const ICONS: Record<string, IconName> = {
   order: "cart",
   inventory: "box",
   payment: "card",
@@ -26,158 +20,103 @@ const activityIcons: Record<string, IconName> = {
   system: "settings",
 };
 
-const activityColors: Record<string, string> = {
-  order: "var(--teal-500)",
-  inventory: "var(--berry-500)",
-  payment: "var(--success)",
-  logistics: "var(--amber-500)",
-  product: "var(--indigo-500)",
-  customer: "var(--mint)",
-  system: "var(--ink-500)",
-};
+const DAY = 86_400_000;
 
-function formatDateHeader(dateStr: string): string {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = (today.getTime() - dStart.getTime()) / 86400000;
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) {
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    return days[d.getDay()];
-  }
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function lagosDay(date: Date) {
+  return new Date(date.getTime() + 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+function dayHeading(key: string, today: string) {
+  const diff = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${key}T00:00:00Z`)) / DAY);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: diff < 7 ? "long" : undefined, day: "numeric", month: "long" }).format(new Date(`${key}T00:00:00Z`));
 }
 
-export default function ActivityFeedPage() {
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
+function timeOf(date: Date) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" }).format(date);
+}
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (filter !== "all") params.set("type", filter);
-        const res = await fetch(`/api/activity?${params}`);
-        const data = await res.json();
-        if (Array.isArray(data.activities)) setActivities(data.activities);
-      } catch {
-        // silent
-      } finally {
-        setLoading(false);
-      }
-    }
-    void load();
-  }, [filter]);
+/** Event types look like "order_created"; the first word is the group. */
+function groupOf(type: string) {
+  return type.split(/[_.:-]/)[0];
+}
 
-  const grouped: Record<string, ActivityItem[]> = {};
-  for (const act of activities) {
-    const header = formatDateHeader(act.timestamp);
-    if (!grouped[header]) grouped[header] = [];
-    grouped[header].push(act);
+function linkOf(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const link = (metadata as Record<string, unknown>).link;
+  return typeof link === "string" && link.startsWith("/") ? link : null;
+}
+
+export default async function ActivityFeedPage({ searchParams }: { searchParams?: Promise<{ type?: string }> }) {
+  const params = await searchParams;
+  const filter = (TYPES as readonly string[]).includes(params?.type ?? "") ? params!.type! : "";
+  const user = await requireRole(["seller"], "/login");
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
+  const events = store
+    ? await db.activityEvent.findMany({
+        where: { storeId: store.id, ...(filter ? { type: { startsWith: filter } } : {}) },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: { id: true, type: true, title: true, description: true, metadata: true, createdAt: true },
+      })
+    : [];
+
+  const today = lagosDay(new Date());
+  const days: Array<{ key: string; items: typeof events }> = [];
+  for (const event of events) {
+    const key = lagosDay(event.createdAt);
+    const last = days[days.length - 1];
+    if (last?.key === key) last.items.push(event);
+    else days.push({ key, items: [event] });
   }
 
   return (
-    <AppFrame role="seller" storeName="Your Store">
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead title="Activity Feed" sub="Store history and event timeline" />
+    <SellerPage user={user} store={storeSummary(store)} title="Activity" sub="Everything that happened in your shop, newest first.">
+      <div className="grid gap-5">
+        <FilterChips
+          items={[
+            { label: "All", href: "/home/activity", active: !filter },
+            ...TYPES.map((type) => ({ label: type.charAt(0).toUpperCase() + type.slice(1), href: `/home/activity?type=${type}`, active: filter === type })),
+          ]}
+        />
 
-        <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: 4 }}>
-          {activityTypes.map(t => (
-            <button
-              key={t}
-              onClick={() => setFilter(t)}
-              className={filter === t ? "dbtn dBtn-mint dBtn-sm" : "dbtn dBtn-ghost dBtn-sm"}
-              style={{
-                border: filter === t ? "none" : "1px solid var(--ink-150)",
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              {t === "all" ? "All" : t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-sec)" }}>Loading activity...</div>
-        ) : Object.keys(grouped).length === 0 ? (
-          <div className="card" style={{ padding: "60px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <MascotAvatar role="seller" size={56} />
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-600)" }}>No activity yet</div>
-            <div style={{ fontSize: 13, color: "var(--ink-400)", maxWidth: 300 }}>
-              Store activity will appear here as you manage your business.
-            </div>
-          </div>
+        {days.length === 0 ? (
+          <EmptyState icon="clock" title={filter ? "Nothing here yet" : "No activity yet"}>
+            Orders, stock changes, payments and deliveries show up here as they happen.
+          </EmptyState>
         ) : (
-          <div style={{ position: "relative" }}>
-            <div style={{
-              position: "absolute", left: 72, top: 0, bottom: 0,
-              width: 2, background: "var(--ink-100)",
-            }} />
-            {Object.entries(grouped).map(([dateLabel, items]) => (
-              <div key={dateLabel} style={{ marginBottom: 24 }}>
-                <div style={{
-                  fontSize: 12, fontWeight: 700, color: "var(--ink-400)",
-                  textTransform: "uppercase", letterSpacing: "0.05em",
-                  marginBottom: 8, paddingLeft: 4,
-                }}>
-                  {dateLabel}
-                </div>
-                {items.map(act => {
-                  const icon = activityIcons[act.type] ?? "settings";
-                  const color = activityColors[act.type] ?? "var(--ink-500)";
-                  return (
-                    <div key={act.id} style={{
-                      display: "flex", gap: 14, padding: "8px 0",
-                      position: "relative", alignItems: "flex-start",
-                    }}>
-                      <div style={{
-                        width: 44, textAlign: "right", flexShrink: 0,
-                        fontSize: 11.5, color: "var(--ink-400)", paddingTop: 4,
-                      }}>
-                        {formatTime(act.timestamp)}
-                      </div>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: color + "18", color: color,
-                        display: "grid", placeItems: "center", flexShrink: 0,
-                        position: "relative", zIndex: 1, marginTop: 2,
-                      }}>
-                        <Icon name={icon} size={12} />
-                      </div>
-                      <div className="flex-1 min-w-0" style={{ paddingTop: 2 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13.5, color: "var(--ink-800)" }}>
-                          {act.title}
+          days.map((day) => (
+            <section key={day.key} aria-labelledby={`day-${day.key}`}>
+              <h2 id={`day-${day.key}`} className="mb-2 mt-0 text-[15px] font-extrabold">{dayHeading(day.key, today)}</h2>
+              <Card className="overflow-hidden">
+                <ol className="m-0 list-none divide-y divide-app-line p-0">
+                  {day.items.map((event) => {
+                    const link = linkOf(event.metadata);
+                    return (
+                      <li key={event.id} className="flex items-start gap-3 px-4 py-3.5 sm:gap-4 sm:px-5">
+                        <time dateTime={event.createdAt.toISOString()} className="w-11 shrink-0 pt-1 text-[12.5px] tabular-nums text-app-ink-soft">{timeOf(event.createdAt)}</time>
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas">
+                          <Icon name={ICONS[groupOf(event.type)] ?? "settings"} size={16} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="break-words text-[14.5px] font-bold">{event.title}</div>
+                          {event.description && <div className="mt-0.5 break-words text-[13.5px] leading-[1.45] text-app-ink-soft">{event.description}</div>}
+                          {link && (
+                            <a href={link} className="mt-1 inline-flex min-h-[32px] items-center gap-1 text-[13px] font-extrabold text-app-accent-ink no-underline hover:underline">
+                              View <Icon name="chevRight" size={12} />
+                            </a>
+                          )}
                         </div>
-                        <div style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 1, lineHeight: 1.4 }}>
-                          {act.description}
-                        </div>
-                        {act.link && (
-                          <a href={act.link} style={{
-                            fontSize: 12, fontWeight: 600, color: "var(--teal-700)",
-                            textDecoration: "none", marginTop: 4, display: "inline-block",
-                          }}>
-                            View details <Icon name="arrow" size={10} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </Card>
+            </section>
+          ))
         )}
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

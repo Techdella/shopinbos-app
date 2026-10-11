@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { getAnthropicClient } from "@/lib/ai/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, firstJsonObject } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 import { createSectionFromLibrary, guessPageType, summarizeTemplateForAi, type StoreBrandSettingsLike } from "@/lib/store-templates";
 
 export const runtime = "nodejs";
@@ -56,7 +58,7 @@ function fallbackOps(prompt: string, pageType: string, sectionId?: string) {
             id: `${sectionId}-copy`,
             type: "copy",
             content: {
-              title: "Updated by Rex",
+              title: "",
               body: prompt,
             },
           },
@@ -68,10 +70,25 @@ function fallbackOps(prompt: string, pageType: string, sectionId?: string) {
   return [{ op: "add-section", pageType, section: createSectionFromLibrary("text-columns") }];
 }
 
+function describeOps(ops: unknown[]) {
+  const words = ops.map((raw) => {
+    const op = (raw && typeof raw === "object" ? raw : {}) as { op?: string; pageType?: string; section?: { kind?: string; name?: string } };
+    const where = op.pageType ? ` on the ${op.pageType} page` : "";
+    if (op.op === "add-section") return `add a ${op.section?.name ?? op.section?.kind ?? "new"} section${where}`;
+    if (op.op === "update-section") return `update a section${where}`;
+    if (op.op === "toggle-section") return `show or hide a section${where}`;
+    if (op.op === "remove-section") return `remove a section${where}`;
+    return `change the layout${where}`;
+  });
+  return words.length ? `Suggested changes: ${words.join("; ")}.` : "No changes were suggested.";
+}
+
 export const POST = withSeller(async (req: NextRequest, { user }) => {
-  void user;
   const body = (await req.json().catch(() => null)) as {
     prompt?: string;
+    /** Chat-style callers send the conversation and context instead of prompt/pageType/sectionId. */
+    messages?: Array<{ role?: string; content?: string }>;
+    context?: { storeName?: string; page?: string; selectedSection?: string | null };
     pageType?: string;
     sectionId?: string;
     templateId?: string;
@@ -94,26 +111,35 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     };
   } | null;
 
-  const prompt = body?.prompt?.trim();
+  const lastUserMessage = Array.isArray(body?.messages)
+    ? [...body.messages].reverse().find((message) => message?.role === "user" && typeof message.content === "string")?.content
+    : undefined;
+  const prompt = (body?.prompt ?? lastUserMessage)?.trim().slice(0, 4000);
   if (!prompt) {
     return NextResponse.json({ error: { code: "BAD_REQUEST", message: "prompt is required" } }, { status: 400 });
   }
 
-  const pageType = guessPageType(body?.pageType ?? "home");
-  const client = getAnthropicClient();
+  const pageType = guessPageType(body?.pageType ?? body?.context?.page ?? "home");
+  const sectionId = body?.sectionId ?? body?.context?.selectedSection ?? undefined;
+  const storeContext = body?.store ?? (body?.context?.storeName ? { name: body.context.storeName } : null);
 
-  if (!client) {
-    return NextResponse.json({ data: { ops: fallbackOps(prompt, pageType, body?.sectionId) } });
+  // Keyword-based layout ops only when no AI key is configured at all, and labelled as such.
+  if (!aiConfigured()) {
+    const ops = fallbackOps(prompt, pageType, sectionId);
+    return NextResponse.json({
+      data: {
+        ops,
+        aiOff: true,
+        reply: `AI isn't switched on, so Rex matched your request to a standard section instead of writing it. ${describeOps(ops)}`,
+      },
+    });
   }
 
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
+
   const templateSummary = body?.templateId ? summarizeTemplateForAi(body.templateId) : null;
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1200,
-    messages: [
-      {
-        role: "user",
-        content: `You are Rex, editing a store template section for Shopinbos.
+  const editorPrompt = `You are Rex, editing a store template section for Shopinbos.
 Return only valid JSON with this shape:
 {"ops":[{"op":"update-section","pageType":"home","sectionId":"hero","changes":{"blocks":[{"id":"hero-copy","type":"copy","content":{"title":"...","body":"..."}}]}}]}
 
@@ -131,30 +157,27 @@ Template summary:
 ${JSON.stringify(templateSummary)}
 
 Store context:
-${JSON.stringify(body?.store ?? null)}
+${JSON.stringify(storeContext)}
 
 Current target page: ${pageType}
-Current target section: ${body?.sectionId ?? "none selected"}
+Current target section: ${sectionId ?? "none selected"}
 
 Seller request:
-${prompt}`,
-      },
-    ],
-  });
+${prompt}`;
 
-  const text = response.content[0]?.type === "text" ? response.content[0].text : "";
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) {
-    return NextResponse.json({ data: { ops: fallbackOps(prompt, pageType, body?.sectionId) } });
-  }
-
+  let text: string | null = null;
   try {
-    const parsed = JSON.parse(match[0]) as { ops?: unknown[] };
-    if (!Array.isArray(parsed.ops)) {
-      return NextResponse.json({ data: { ops: fallbackOps(prompt, pageType, body?.sectionId) } });
-    }
-    return NextResponse.json({ data: { ops: parsed.ops } });
-  } catch {
-    return NextResponse.json({ data: { ops: fallbackOps(prompt, pageType, body?.sectionId) } });
+    text = (await aiText({ prompt: editorPrompt, fast: true, maxTokens: 8000 }))?.text ?? null;
+  } catch (error) {
+    console.error("[ai/store-editor] failed", error);
   }
+  if (!text) {
+    return NextResponse.json({ error: { code: "AI_FAILED", message: "Rex couldn't reach the AI right now. Nothing was changed; try again." } }, { status: 502 });
+  }
+
+  const parsed = firstJsonObject(text) as { ops?: unknown[] } | null;
+  if (!parsed || !Array.isArray(parsed.ops) || !parsed.ops.length) {
+    return NextResponse.json({ error: { code: "AI_FORMAT", message: "Rex's edit came back in a format that couldn't be applied. Nothing was changed; try rephrasing." } }, { status: 502 });
+  }
+  return NextResponse.json({ data: { ops: parsed.ops, reply: describeOps(parsed.ops) } });
 });

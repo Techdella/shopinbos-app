@@ -4,11 +4,13 @@ import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, created, apiError } from "@/lib/api/response";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { z } from "zod";
+import { LINK_CHANNELS } from "@shared/channels";
 import { randomBytes } from "crypto";
 import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/notifications/resend";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { redemptionError } from "@/lib/discounts";
 import { validCampaignToken } from "@/lib/campaigns/send";
+import { cleanAffiliateCode, commissionFor } from "@shared/affiliates";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -38,6 +40,9 @@ const CheckoutSchema = z.object({
   paymentMethod: z.enum(["redirect", "inline"]).optional(),
   discountCode: z.string().optional(),
   campaignToken: z.string().max(64).optional(),
+  channel: z.enum(LINK_CHANNELS).optional(),
+  affiliateCode: z.string().max(32).optional(),
+  adCode: z.string().max(32).optional(),
 });
 
 function generateOrderNumber(): string {
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid body"), CHECKOUT_CORS);
   }
 
-  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode, campaignToken: rawCampaignToken } = parsed.data;
+  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode, campaignToken: rawCampaignToken, channel: linkChannel, affiliateCode, adCode } = parsed.data;
 
   const requestedQuantities = new Map<string, number>();
   for (const item of items) {
@@ -140,10 +145,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       (z) => z.regions.length === 0 || z.regions.some((r) => deliveryAddress.city.toLowerCase().includes(r.toLowerCase()) || deliveryAddress.state?.toLowerCase().includes(r.toLowerCase())),
     );
     if (matchingZone) {
-      const zoneRates = (Array.isArray(matchingZone.rates) ? matchingZone.rates : []) as Array<{ min?: number; max?: number; price?: number }>;
-      const matchedRate = zoneRates.find(
-        (r) => (!r.min || subtotal >= r.min) && (!r.max || subtotal <= r.max),
-      );
+      // Rates are stored as minValue/maxValue (ShippingRateSchema); min/max kept for older rows.
+      const zoneRates = (Array.isArray(matchingZone.rates) ? matchingZone.rates : []) as Array<{ minValue?: number; maxValue?: number; min?: number; max?: number; price?: number }>;
+      const matchedRate = zoneRates.find((r) => {
+        const min = r.minValue ?? r.min;
+        const max = r.maxValue ?? r.max;
+        return (!min || subtotal >= min) && (!max || subtotal <= max);
+      });
       shippingFee = matchedRate?.price ?? 0;
     }
   } else {
@@ -193,6 +201,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const campaignToken = await validCampaignToken(store.id, rawCampaignToken);
   const orderNumber = generateOrderNumber();
 
+  // Creator and ad links: only codes that belong to this store count.
+  const affCode = cleanAffiliateCode(affiliateCode);
+  const affiliate = affCode
+    ? await db.affiliate.findFirst({ where: { storeId: store.id, code: affCode, active: true }, select: { id: true, commissionRate: true } })
+    : null;
+  const adCampaignCode = cleanAffiliateCode(adCode);
+  const adCampaign = adCampaignCode
+    ? await db.adCampaign.findFirst({ where: { storeId: store.id, code: adCampaignCode }, select: { id: true } })
+    : null;
+
   let order: Awaited<ReturnType<typeof db.retailOrder.create>>;
   try {
     order = await db.$transaction(async (tx) => {
@@ -241,6 +259,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           total,
           discountCode: discountCode ?? null,
           campaignToken,
+          // Email campaign clicks win; otherwise the share link's ?ref, else the online store itself.
+          channel: campaignToken ? "email" : linkChannel ?? "online_store",
+          affiliateId: affiliate?.id ?? null,
+          affiliateCommission: affiliate ? commissionFor(subtotal, discountAmount, affiliate.commissionRate) : null,
+          adCampaignId: adCampaign?.id ?? null,
           discountAmount,
           currency: store.currency,
           notes: notes ?? null,

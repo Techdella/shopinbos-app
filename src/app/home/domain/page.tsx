@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Icon } from "@/components/ui";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
-import { DomainSettingsPanel } from "@/components/settings/DomainSettingsPanel";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Card, CardHead, Pill } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
+import { DomainConnect } from "./DomainConnect";
 import { PageToast } from "@/components/PageToast";
 import { db } from "@/lib/db/client";
 
@@ -90,105 +92,75 @@ export default async function DomainSettingsPage() {
   const registrars: RegistrarRow[] = dbPartners.length > 0 ? dbPartners : FALLBACK_REGISTRARS;
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store.name}
-      storeSlug={store.slug}
-      storeInitial={store.name?.[0]?.toUpperCase()}
-      storeLogoUrl={store.logoUrl}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Domain"
+      sub="Your store's address on the web: a free Shopinbos address, or your own domain."
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 24 }}>
-        <PageToast />
-        <PageHead
-          title="Domain"
-          sub="Your store's address on the web — free Shopinbos subdomain or a custom domain you own."
-        />
-
-        {/* Platform subdomain */}
-        <div style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="card" style={{ padding: "14px 18px", background: "var(--ink-50)" }}>
-            <div style={{ fontSize: 11, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
-              Platform subdomain (always active)
-            </div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink-900)" }}>
-              {store.slug}.shopinbos.com
-            </div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 4 }}>
-              This URL is always available — your permanent fallback even when using a custom domain.
-            </div>
-          </div>
-
-          {/* Custom domain */}
-          <DomainSettingsPanel
-            storeSlug={store.slug}
-            storeName={store.name}
-            currentDomain={store.customDomain ?? null}
-          />
+      <PageToast />
+      <div className="grid gap-5">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card className="min-w-0 p-5">
+            <CardHead title="Free Shopinbos address" action={<Pill tone="success" dot>Always on</Pill>} />
+            <div className="mt-3 break-all text-[20px] font-extrabold tracking-[-0.3px]">{store.slug}.shopinbos.com</div>
+            <p className="mb-0 mt-1.5 text-[13.5px] text-app-ink-soft">This address always works, even after you connect your own domain.</p>
+          </Card>
+          <Card className="min-w-0 p-5">
+            <CardHead title="Your own domain" action={<Pill tone={store.customDomain ? "success" : "muted"} dot>{store.customDomain ? "Connected" : "Not connected"}</Pill>} />
+            {store.customDomain ? (
+              <>
+                <div className="mt-3 break-all text-[20px] font-extrabold tracking-[-0.3px]">{store.customDomain}</div>
+                <p className="mb-0 mt-1.5 text-[13.5px] text-app-ink-soft">
+                  Your store is live at{" "}
+                  <a href={`https://${store.customDomain}`} target="_blank" rel="noopener noreferrer" className="font-bold text-app-accent-ink">
+                    https://{store.customDomain}
+                  </a>
+                </p>
+              </>
+            ) : (
+              <p className="mb-0 mt-3 text-[13.5px] text-app-ink-soft">Connect a domain you own below, like yourbrand.com.ng.</p>
+            )}
+          </Card>
         </div>
 
-        {/* Buy a domain section */}
-        <div style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 16, marginTop: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "var(--ink-900)" }}>
-                Buy a domain
-              </h2>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-500)" }}>
-                Don&apos;t have a domain yet? Purchase one from a trusted registrar below, then connect it here.
-              </p>
-            </div>
-            <div style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: 999, background: "var(--mint)", color: "var(--navy)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Coming soon on Shopinbos
-            </div>
+        <Card className="min-w-0 p-5">
+          <CardHead title="Connect a domain" sub="Add your domain, then copy the records into your registrar." />
+          <div className="mt-4 min-w-0 overflow-x-auto">
+            <DomainConnect storeSlug={store.slug} storeName={store.name} />
           </div>
+        </Card>
 
-          <div style={{ padding: "12px 16px", borderRadius: 10, background: "var(--amber-50)", border: "1px solid var(--amber-200)", fontSize: 13, color: "var(--amber-800)", display: "flex", gap: 8, alignItems: "flex-start" }}>
-            <Icon name="info" size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>
-              We&apos;re working on native domain purchasing directly on Shopinbos. For now, buy from one of our recommended registrars below, then connect it using the custom domain field above.
-            </span>
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="m-0 text-[20px] font-extrabold">Buy a domain</h2>
+              <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">No domain yet? Buy one from a registrar below, then connect it above.</p>
+            </div>
+            <Pill tone="info">Buying on Shopinbos is coming soon</Pill>
           </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+          <Notice tone="info">We&apos;re building domain buying into Shopinbos. Until then, these registrars are a good place to start.</Notice>
+          <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {registrars.map((r) => (
-              <a
-                key={r.id}
-                href={r.affiliateUrl ?? r.baseUrl}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                style={{ textDecoration: "none" }}
-              >
-                <div
-                  className="card"
-                  style={{
-                    padding: "16px 18px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    cursor: "pointer",
-                    transition: "box-shadow 0.15s",
-                    height: "100%",
-                  }}
+              <li key={r.id} className="min-w-0">
+                <a
+                  href={r.affiliateUrl ?? r.baseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className="flex h-full flex-col gap-2 rounded-[22px] border border-app-line bg-white p-5 text-app-ink no-underline transition hover:border-app-line-strong"
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink-900)" }}>{r.name}</div>
-                    <Icon name="link" size={12} style={{ color: "var(--ink-400)" }} />
-                  </div>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-500)", lineHeight: 1.5, flex: 1 }}>
-                    {r.description}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--teal-700)", fontWeight: 600 }}>
-                    Visit {r.name} →
-                  </div>
-                </div>
-              </a>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="truncate text-[15px] font-extrabold">{r.name}</span>
+                    <Icon name="link" size={14} className="shrink-0 text-app-ink-soft" />
+                  </span>
+                  <span className="flex-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{r.description}</span>
+                  <span className="text-[13.5px] font-extrabold text-app-accent-ink">Visit {r.name} →</span>
+                </a>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

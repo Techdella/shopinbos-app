@@ -319,18 +319,29 @@ export const ShippingRateSchema = z.object({
   maxWeight: z.number().min(0).optional(),
   price: z.number().min(0),
   estimatedDays: z.string().max(40).optional(),
+  // Marks rates written by onboarding so re-running it replaces its own zones only.
+  source: z.string().max(40).optional(),
 });
 
 export const ShippingZoneCreateSchema = z.object({
   name: z.string().min(1).max(120),
   type: ShippingTypeSchema.default("flat_rate"),
-  regions: z.array(z.string()).min(1),
+  // Empty regions = catch-all zone that matches every address (as onboarding's "other states" zone does).
+  regions: z.array(z.string().trim().min(1).max(80)).max(200).default([]),
   rates: z.array(ShippingRateSchema).default([]),
   sortOrder: z.number().int().default(0),
   active: z.boolean().default(true),
 });
 
-export const ShippingZoneUpdateSchema = ShippingZoneCreateSchema.partial();
+// No defaults here: Zod 4 applies defaults inside .partial(), so a PATCH of one field would reset the others.
+export const ShippingZoneUpdateSchema = z.object({
+  name: z.string().min(1).max(120),
+  type: ShippingTypeSchema,
+  regions: z.array(z.string().trim().min(1).max(80)).max(200),
+  rates: z.array(ShippingRateSchema),
+  sortOrder: z.number().int(),
+  active: z.boolean(),
+}).partial();
 
 export const ShippingZoneSchema = ShippingZoneCreateSchema.extend({
   id: z.string(),

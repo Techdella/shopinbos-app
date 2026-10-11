@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Icon, MascotAvatar } from "@/components/ui";
 
+const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
+
 interface SupportChatModalProps {
   open: boolean;
   onClose: () => void;
@@ -12,8 +14,9 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
   const [chat, setChat] = useState<Array<{ role: "agent" | "user"; text: string }>>([
-    { role: "agent", text: "Hi there! I'm Rex, your support assistant. How can I help you today?" },
+    { role: "agent", text: "Hi! Ask me how to do anything in Shopinbos: building your store, products, orders, payments or delivery. For account problems, use \"Talk to a person\" below." },
   ]);
 
   useEffect(() => {
@@ -36,16 +39,31 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  const handleSend = () => {
-    if (!message.trim()) return;
-    setChat((prev) => [...prev, { role: "user", text: message.trim() }]);
+  const handleSend = async () => {
+    const text = message.trim();
+    if (!text || sending) return;
+    const history = [...chat, { role: "user" as const, text }];
+    setChat(history);
     setMessage("");
-    setTimeout(() => {
-      setChat((prev) => [...prev, {
-        role: "agent",
-        text: "Thanks for your message! Our team will review this and get back to you shortly. For urgent issues, you can also reach us at support@shopinbos.com.",
-      }]);
-    }, 800);
+    setSending(true);
+    try {
+      const response = await fetch("/api/ai/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // The opening greeting is not part of the conversation the assistant answers.
+          messages: history.slice(1).map((entry) => ({ role: entry.role === "agent" ? "assistant" : "user", content: entry.text })),
+          path: typeof window !== "undefined" ? window.location.pathname : undefined,
+        }),
+      });
+      const json = (await response.json().catch(() => null)) as { data?: { text?: string }; error?: { message?: string } } | null;
+      const reply = json?.data?.text ?? json?.error?.message ?? "I couldn't answer just now. Use \"Talk to a person\" below and the team will reply.";
+      setChat((prev) => [...prev, { role: "agent", text: reply }]);
+    } catch {
+      setChat((prev) => [...prev, { role: "agent", text: "I couldn't reach the help assistant. Check your connection, or use \"Talk to a person\" below." }]);
+    } finally {
+      setSending(false);
+    }
   };
 
   if (!mounted) return null;
@@ -82,7 +100,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>
                 Need help?
               </h2>
-              <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>Support chat · 24/7</div>
+              <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>AI help assistant · people reply on WhatsApp and email</div>
             </div>
           </div>
           <button
@@ -120,6 +138,23 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
               </div>
             </div>
           ))}
+          {sending && (
+            <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+              <MascotAvatar role="supplier" size={30} />
+              <div style={{ padding: "10px 14px", borderRadius: "14px 14px 14px 4px", background: "var(--ink-50)", color: "var(--ink-500)", fontSize: 13 }}>
+                Thinking…
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: "8px 16px 0", fontSize: 12, color: "var(--ink-500)", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontWeight: 600, color: "var(--ink-700)" }}>Talk to a person:</span>
+          {SUPPORT_WHATSAPP ? (
+            <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-600)", fontWeight: 600 }}>WhatsApp</a>
+          ) : null}
+          {SUPPORT_WHATSAPP ? <span>·</span> : null}
+          <a href="mailto:support@shopinbos.com" style={{ color: "var(--teal-600)", fontWeight: 600 }}>support@shopinbos.com</a>
         </div>
 
         <div style={{
@@ -131,16 +166,16 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
             className="inp"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleSend(); }}
             placeholder="Type your message..."
             style={{ flex: 1 }}
           />
           <button
             type="button"
-            onClick={handleSend}
+            onClick={() => void handleSend()}
             className="dbtn dBtn-mint"
             style={{ padding: "8px 16px", flexShrink: 0 }}
-            disabled={!message.trim()}
+            disabled={!message.trim() || sending}
           >
             <Icon name="arrow" size={14} />
           </button>

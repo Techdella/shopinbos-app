@@ -1,6 +1,6 @@
-import { AppFrame } from "@/components/shell/AppFrame";
+import { AppPage } from "@/components/app-kit";
+import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { InboxClient } from "@/components/messaging/InboxClient";
-import { PageHead } from "@/components/ui";
 import { db } from "@/lib/db/client";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
@@ -34,40 +34,31 @@ export default async function SupplierInboxPage() {
   }, 0);
 
   return (
-    <AppFrame
-      role="supplier"
-      storeName={supplier.displayName}
-      storeSlug={`${supplier.city ?? "Supplier"} · ${supplier.country ?? "Shopinbos"}`}
-      storeInitial={supplier.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={supplierFrame(user, supplier)}
+      title="Inbox"
+      sub={conversations.length > 0
+        ? `${conversations.length} conversation${conversations.length === 1 ? "" : "s"} with sellers · ${unreadCount} unread`
+        : "Reply to sellers directly."}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Inbox"
-          sub={conversations.length > 0 ? `${conversations.length} seller conversations - ${unreadCount} unread` : "Reply to sellers directly"}
-        />
-        <InboxClient
-          conversations={conversations.map((conversation) => ({
-            id: conversation.id,
-            participant1: conversation.participant1,
-            participant2: conversation.participant2,
-            lastMessage: conversation.messages[0]
-              ? {
-                  text: conversation.messages[0].text,
-                  createdAt: conversation.messages[0].createdAt.toISOString(),
-                  read: conversation.messages[0].read,
-                  senderId: conversation.messages[0].senderId,
-                }
-              : null,
-            updatedAt: conversation.updatedAt.toISOString(),
-          }))}
-          currentUserId={user.id}
-          emptyMessage="No conversations yet. Seller messages will appear here."
-        />
-      </div>
-    </AppFrame>
+      <InboxClient
+        conversations={conversations.map((conversation) => ({
+          id: conversation.id,
+          participant1: conversation.participant1,
+          participant2: conversation.participant2,
+          lastMessage: conversation.messages[0]
+            ? {
+                text: conversation.messages[0].text,
+                createdAt: conversation.messages[0].createdAt.toISOString(),
+                read: conversation.messages[0].read,
+                senderId: conversation.messages[0].senderId,
+              }
+            : null,
+          updatedAt: conversation.updatedAt.toISOString(),
+        }))}
+        currentUserId={user.id}
+        emptyMessage="No conversations yet. Seller messages will appear here."
+      />
+    </AppPage>
   );
 }

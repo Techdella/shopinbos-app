@@ -1,12 +1,13 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
-import { respondToReview } from "@/app/actions/reviews";
+import { Card, EmptyState, StatGrid, StatTile } from "@/components/app-kit";
+import { PartnerPage } from "@/components/logistics/kit";
 import { ReviewsClient } from "./ReviewsClient";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Reviews" };
 
 export default async function LogisticsReviewsPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
@@ -24,70 +25,48 @@ export default async function LogisticsReviewsPage() {
   });
 
   const total = reviews.length;
-  const avgRating = total > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / total : 0;
+  const avgRating = total > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / total : 0;
   const distribution = [0, 0, 0, 0, 0];
-  reviews.forEach((r) => { if (r.rating >= 1 && r.rating <= 5) distribution[r.rating - 1]++; });
-  const responded = reviews.filter((r) => r.response).length;
+  reviews.forEach((review) => { if (review.rating >= 1 && review.rating <= 5) distribution[review.rating - 1]++; });
+  const responded = reviews.filter((review) => review.response).length;
 
   return (
-    <AppFrame
-      role="logistics_partner"
-      storeName={partner.displayName}
-      storeSlug={`${partner.city ?? "Lagos"} · Fleet`}
-      storeInitial={partner.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
-    >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Reviews"
-          sub={total > 0 ? `${total} review${total > 1 ? "s" : ""} · ${avgRating.toFixed(1)} avg · ${responded} responded` : "Ratings and feedback from sellers, suppliers, and customers"}
-        />
+    <PartnerPage frame={{ user, partner }} title="Reviews" sub="What sellers say after you deliver for them. Replies are public.">
+      <StatGrid className="mb-5 md:grid-cols-3">
+        <StatTile tone="card" label="Average rating" value={total ? `${avgRating.toFixed(1)} ★` : "—"} hint={`${total} ${total === 1 ? "review" : "reviews"}`} />
+        <StatTile tone="card" label="You replied to" value={`${responded} of ${total}`} hint={`${total ? Math.round((responded / total) * 100) : 0}% replied`} />
+        <Card className="col-span-2 px-4 py-3.5 md:col-span-1" as="div">
+          <div className="text-[13px] text-app-ink-soft">Breakdown</div>
+          <ul className="m-0 mt-2 grid list-none gap-1 p-0">
+            {[5, 4, 3, 2, 1].map((star) => (
+              <li key={star} className="flex items-center gap-2 text-[12.5px]">
+                <span className="w-10 shrink-0">{star} star</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-track">
+                  <span className="block h-full rounded-full bg-app-ink" style={{ width: `${total ? (distribution[star - 1] / total) * 100 : 0}%` }} />
+                </span>
+                <span className="w-6 shrink-0 text-right text-app-ink-soft">{distribution[star - 1]}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </StatGrid>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <div className="stat">
-            <div className="stat-lbl">Average rating</div>
-            <div className="stat-val" style={{ fontFamily: "var(--font-accent)" }}>
-              {total > 0 ? <>{avgRating.toFixed(1)} <span style={{ fontSize: 18, color: "var(--amber-500)" }}>★</span></> : "—"}
-            </div>
-            <div className="stat-delta delta-flat">{total} total reviews</div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Responded to</div>
-            <div className="stat-val">{responded}<span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink-400)" }}>/{total}</span></div>
-            <div className="stat-delta delta-flat">{total > 0 ? Math.round(responded / total * 100) : 0}% response rate</div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Rating breakdown</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 6 }}>
-              {[5, 4, 3, 2, 1].map((star) => (
-                <div key={star} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5 }}>
-                  <span style={{ width: 14 }}>{star}</span>
-                  <div style={{ flex: 1, height: 6, background: "var(--ink-100)", borderRadius: 3 }}>
-                    <div style={{ width: `${total > 0 ? distribution[star - 1] / total * 100 : 0}%`, height: 6, background: "var(--amber-500)", borderRadius: 3 }} />
-                  </div>
-                  <span style={{ width: 20, textAlign: "right", color: "var(--ink-500)" }}>{distribution[star - 1]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
+      {total === 0 ? (
+        <EmptyState icon="star" title="No reviews yet">Sellers can review you once a delivery is done. Their reviews show up here.</EmptyState>
+      ) : (
         <ReviewsClient
-          reviews={reviews.map((r) => ({
-            id: r.id,
-            rating: r.rating,
-            comment: r.comment,
-            response: r.response,
-            respondedAt: r.respondedAt?.toISOString() ?? null,
-            createdAt: r.createdAt.toISOString(),
-            reviewer: { name: r.reviewer.name, role: r.reviewer.role },
-            booking: r.booking ? { pickup: r.booking.pickupLocation, dest: r.booking.destination } : null,
+          reviews={reviews.map((review) => ({
+            id: review.id,
+            rating: review.rating,
+            comment: review.comment,
+            response: review.response,
+            respondedAt: review.respondedAt?.toISOString() ?? null,
+            createdAt: review.createdAt.toISOString(),
+            reviewer: { name: review.reviewer.name, role: review.reviewer.role },
+            booking: review.booking ? { pickup: review.booking.pickupLocation, dest: review.booking.destination } : null,
           }))}
         />
-      </div>
-    </AppFrame>
+      )}
+    </PartnerPage>
   );
 }

@@ -1,11 +1,8 @@
 "use server";
 
-import {
-  getAnthropicClient,
-  getOpenAIClient,
-  PEGGY_CLAUDE_MODEL,
-  PEGGY_OPENAI_MODEL,
-} from "@/lib/ai/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, type ChatTurn } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 import {
   applyGuidedQuestionFallback,
   buildRexCommerceSystemPrompt,
@@ -17,180 +14,7 @@ import {
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, mergeBrandSettings } from "@/lib/workspace";
-
-function fmtMoney(amount: number, currency = "NGN") {
-  return `${currency} ${amount.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
-}
-
-function orderItemCount(items: unknown) {
-  return Array.isArray(items) ? items.length : 0;
-}
-
-async function buildSellerSnapshot(userId: string) {
-  const workspace = await getSellerWorkspace(userId);
-  const store = workspace?.store ?? null;
-
-  const retailOrders = store
-    ? await db.retailOrder.findMany({
-        where: { storeId: store.id },
-        orderBy: { createdAt: "desc" },
-        take: 12,
-      })
-    : [];
-
-  const unreadMessages = await db.message.count({
-    where: {
-      read: false,
-      senderId: { not: userId },
-      conversation: {
-        OR: [{ participant1Id: userId }, { participant2Id: userId }],
-      },
-    },
-  });
-
-  const paidStatuses = ["paid", "processing", "shipped", "delivered"];
-  const revenue = retailOrders
-    .filter((order) => paidStatuses.includes(order.status))
-    .reduce((sum, order) => sum + Number(order.total), 0);
-
-  const products = workspace?.storeProducts ?? [];
-  const publishedProducts = products.filter((product) => ["published", "active"].includes(product.status));
-  const lowStockProducts = products.filter((product) => {
-    const stock = product.supplierProduct?.stockQuantity;
-    return typeof stock === "number" && stock > 0 && stock <= 5;
-  });
-
-  return {
-    store: store
-      ? {
-          id: store.id,
-          name: store.name,
-          slug: store.slug,
-          status: store.status,
-          currency: store.currency,
-          customDomain: store.customDomain,
-        }
-      : null,
-    products: {
-      total: products.length,
-      published: publishedProducts.length,
-      drafts: products.filter((product) => product.status === "draft").length,
-      lowStock: lowStockProducts.length,
-      recent: products.slice(0, 8).map((product) => ({
-        name: product.name,
-        status: product.status,
-        price: fmtMoney(Number(product.retailPrice), product.currency),
-        fulfillmentType: product.fulfillmentType,
-        supplier: product.supplierProduct?.supplier?.displayName ?? null,
-        stock: product.supplierProduct?.stockQuantity ?? null,
-      })),
-    },
-    orders: {
-      total: retailOrders.length,
-      revenue: fmtMoney(revenue, store?.currency ?? "NGN"),
-      pending: retailOrders.filter((order) => order.status === "pending").length,
-      processing: retailOrders.filter((order) => order.status === "processing").length,
-      shipped: retailOrders.filter((order) => order.status === "shipped").length,
-      recent: retailOrders.slice(0, 8).map((order) => ({
-        orderNumber: order.orderNumber,
-        buyerName: order.buyerName,
-        total: fmtMoney(Number(order.total), order.currency),
-        status: order.status,
-        itemCount: orderItemCount(order.items),
-        createdAt: order.createdAt.toISOString(),
-      })),
-    },
-    sourcing: {
-      wholesaleOrders: (workspace?.wholesaleOrders ?? []).map((order) => ({
-        product: order.supplierProduct.name,
-        supplier: order.supplier.displayName,
-        quantity: order.quantity,
-        status: order.status,
-        total: fmtMoney(Number(order.totalPrice), order.currency),
-      })),
-      recommendedProducts: (workspace?.trendingProducts ?? []).map((product) => ({
-        name: product.name,
-        supplier: product.supplier.displayName,
-        category: product.category.name,
-        wholesalePrice: fmtMoney(Number(product.wholesalePrice), product.currency),
-        suggestedRetailPrice: fmtMoney(Number(product.suggestedRetailPrice), product.currency),
-        stock: product.stockQuantity,
-        dropshipAvailable: product.dropshipAvailable,
-      })),
-      suppliers: (workspace?.suppliers ?? []).map((supplier) => ({
-        name: supplier.displayName,
-        city: supplier.city,
-        country: supplier.country,
-        rating: supplier.rating,
-        trustScore: supplier.trustScore,
-      })),
-    },
-    logistics: {
-      bookings: (workspace?.deliveryBookings ?? []).map((booking) => ({
-        partner: booking.logisticsPartner.displayName,
-        destination: booking.destination,
-        status: booking.status,
-        trackingCode: booking.trackingCode,
-        fee: fmtMoney(Number(booking.deliveryFee), booking.currency),
-      })),
-      quoteRequests: (workspace?.deliveryQuotes ?? []).map((quote) => ({
-        partner: quote.logisticsPartner.displayName,
-        destination: quote.destination,
-        status: quote.status,
-        quotedPrice: quote.quotedPrice ? fmtMoney(Number(quote.quotedPrice)) : null,
-      })),
-      partners: (workspace?.logisticsPartners ?? []).map((partner) => ({
-        name: partner.displayName,
-        city: partner.city,
-        zones: partner.coverageZones,
-        reliabilityScore: partner.reliabilityScore,
-        rating: partner.rating,
-      })),
-    },
-    messages: {
-      unread: unreadMessages,
-    },
-  };
-}
-
-function greetingFor(name: string, snapshot: Awaited<ReturnType<typeof buildSellerSnapshot>>) {
-  const firstName = name.split(" ")[0] || "there";
-  const storeName = snapshot.store?.name ?? "your store";
-  const urgent: string[] = [];
-
-  if (snapshot.orders.pending > 0) {
-    urgent.push(`${snapshot.orders.pending} pending order${snapshot.orders.pending === 1 ? "" : "s"} waiting to be fulfilled`);
-  }
-  if (snapshot.products.lowStock > 0) {
-    urgent.push(`${snapshot.products.lowStock} product${snapshot.products.lowStock === 1 ? "" : "s"} running low on stock`);
-  }
-  if (snapshot.messages.unread > 0) {
-    urgent.push(`${snapshot.messages.unread} unread message${snapshot.messages.unread === 1 ? "" : "s"} from suppliers or logistics`);
-  }
-  if (snapshot.products.drafts > 0) {
-    urgent.push(`${snapshot.products.drafts} draft product${snapshot.products.drafts === 1 ? "" : "s"} not yet published`);
-  }
-
-  if (urgent.length > 0) {
-    return `Hi ${firstName}. Here is what needs your attention in ${storeName} today:\n\n${urgent.map((item, i) => `${i + 1}. ${item}`).join("\n")}\n\nAsk me about any of these, or anything else about orders, products, sourcing, or logistics.`;
-  }
-
-  if (snapshot.products.total === 0) {
-    return `Hi ${firstName}. ${storeName} is set up but you have not added any products yet. I can help you import a product list, source from verified suppliers, or write product descriptions. Where would you like to start?`;
-  }
-
-  return `Hi ${firstName}. ${storeName} looks good today — ${snapshot.products.published} active product${snapshot.products.published === 1 ? "" : "s"}, ${snapshot.orders.total} recent order${snapshot.orders.total === 1 ? "" : "s"}, and ${snapshot.sourcing.recommendedProducts.length} sourcing suggestion${snapshot.sourcing.recommendedProducts.length === 1 ? "" : "s"} waiting. What would you like to work on?`;
-}
-
-function sellerSystemPrompt(snapshot: Awaited<ReturnType<typeof buildSellerSnapshot>>, assistantName: "Peggy" | "Rex") {
-  return `You are ${assistantName}, a practical AI commerce assistant for Shopinbos.
-Use only the live workspace data below when discussing store status, product pages, orders, import/export, sourcing, supplier chats, and logistics.
-If a user asks for data that is not present, say what is missing and point them to the relevant app area instead of inventing it.
-Keep replies concise, operational, and specific. Use plain app paths when useful: /products, /products/import, /home/orders, /marketplace, /home/logistics, /home/peggy.
-
-Live workspace snapshot:
-${JSON.stringify(snapshot, null, 2)}`;
-}
+import { answerPeggy, buildSellerSnapshot, greetingFor, orderItemCount, sellerSystemPrompt, fmtMoney } from "@/lib/ai/seller-context";
 
 export async function getSuggestions(pathname?: string) {
   const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
@@ -302,47 +126,35 @@ export async function getPeggyData() {
 }
 
 export async function askPeggy(message: string, _storeContext?: string) {
-  try {
-    const user = await requireRole(["seller"], "/login");
-    const snapshot = await buildSellerSnapshot(user.id);
-    const system = sellerSystemPrompt(snapshot, "Peggy");
+  const user = await requireRole(["seller"], "/login");
+  return answerPeggy(user.id, message);
+}
 
-    const anthropic = getAnthropicClient();
-    if (anthropic) {
-      const response = await anthropic.messages.create({
-        model: PEGGY_CLAUDE_MODEL,
-        max_tokens: 1600,
-        system,
-        messages: [{ role: "user", content: message }],
-      });
-      const text = response.content[0]?.type === "text" ? response.content[0].text : "";
-      return { text };
-    }
-
-    const openai = getOpenAIClient();
-    if (openai) {
-      const response = await openai.responses.create({
-        model: PEGGY_OPENAI_MODEL,
-        input: [
-          { role: "system", content: system },
-          { role: "user", content: message },
-        ],
-      });
-      return { text: response.output_text ?? "" };
-    }
-
-    return { error: "AI assistant is not available right now. Configure OPENAI_API_KEY or ANTHROPIC_API_KEY." };
-  } catch (error) {
-    console.error("Peggy AI error:", error);
-    return { error: "Something went wrong. Please try again in a moment." };
+/** Prior turns from the drawer, oldest first. Only plain text is kept, and only the most recent turns. */
+function cleanHistory(history: unknown): ChatTurn[] {
+  if (!Array.isArray(history)) return [];
+  const turns: ChatTurn[] = [];
+  for (const raw of history.slice(-16)) {
+    if (!raw || typeof raw !== "object") continue;
+    const turn = raw as { role?: unknown; content?: unknown };
+    const role = turn.role === "assistant" ? "assistant" : turn.role === "user" ? "user" : null;
+    const content = typeof turn.content === "string" ? turn.content.trim().slice(0, 4000) : "";
+    if (!role || !content) continue;
+    const previous = turns[turns.length - 1];
+    if (previous?.role === role) previous.content = `${previous.content}\n\n${content}`;
+    else turns.push({ role, content });
   }
+  while (turns.length && turns[0].role === "assistant") turns.shift();
+  return turns;
 }
 
 export async function askRex(
   message: string,
   pageContext?: { path?: string; label?: string },
+  history?: Array<{ role: "user" | "assistant"; content: string }>,
 ) {
   try {
+    if (!message?.trim()) return { error: "Type a message for Rex first." };
     const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
     const sellerSnapshot = user.role === "seller" ? await buildSellerSnapshot(user.id) : null;
     const savedAnswers = await getSavedRexAnswers(user.id);
@@ -356,33 +168,25 @@ export async function askRex(
       pageContext,
     });
 
-    let raw = "";
-    const openai = getOpenAIClient();
-    if (openai) {
-      const response = await openai.responses.create({
-        model: process.env.OPENAI_REX_ASSISTANT_MODEL ?? PEGGY_OPENAI_MODEL,
-        input: [
-          { role: "system", content: system },
-          { role: "user", content: message },
-        ],
-      });
-      raw = response.output_text ?? "";
-    } else {
-      const anthropic = getAnthropicClient();
-      if (anthropic) {
-        const response = await anthropic.messages.create({
-          model: PEGGY_CLAUDE_MODEL,
-          max_tokens: 1600,
-          system,
-          messages: [{ role: "user", content: message }],
-        });
-        raw = response.content[0]?.type === "text" ? response.content[0].text : "";
-      }
+    if (!aiConfigured()) {
+      return { error: "Rex's AI isn't switched on yet. Ask your admin to add OPENAI_API_KEY or ANTHROPIC_API_KEY." };
+    }
+    const limited = await meterAi(user.id, "text");
+    if (limited) {
+      const body = (await limited.json().catch(() => null)) as { error?: { message?: string } } | null;
+      return { error: body?.error?.message ?? "You've reached today's limit for Rex. Try again later." };
     }
 
-    if (!raw) {
-      return { error: "Rex needs OPENAI_API_KEY or ANTHROPIC_API_KEY configured before he can answer with live AI." };
+    const turns = cleanHistory(history);
+    // A trailing unanswered user turn (e.g. one that failed) is folded into this message.
+    const unanswered = turns[turns.length - 1]?.role === "user" ? turns.pop()!.content : "";
+    turns.push({ role: "user", content: [unanswered, message.trim().slice(0, 4000)].filter(Boolean).join("\n\n") });
+    // OpenAI or Claude, whichever answers first (with fallback to the other).
+    const reply = await aiText({ system, messages: turns, maxTokens: 8000 });
+    if (!reply) {
+      return { error: "Rex couldn't reach the AI right now. Please try again in a moment." };
     }
+    const raw = reply.text;
 
     const parsed = parseRexStructuredResult(raw);
     if (!parsed) {
@@ -420,8 +224,12 @@ export async function askRex(
       }
       const draft = await createRexDraftFromPlan({ user, result: guided, savedAnswers: refreshedAnswers });
       const previewUrl = draft.homePageId ? `/preview/store/${draft.slug}/${draft.homePageId}` : `/builder/rex`;
+      const extras = [
+        draft.sampleProducts ? `I added ${draft.sampleProducts} sample product${draft.sampleProducts === 1 ? "" : "s"} as drafts, marked "(sample)"; check their prices and photos.` : "",
+        draft.live ? "Your store is live, so this is saved as a draft: shoppers see it only after you publish." : "Nothing is published yet: publish from the builder when you're happy with it.",
+      ].filter(Boolean).join(" ");
       return {
-        text: `${guided.reply}\n\nDraft created for ${draft.storeName}. Preview it at ${previewUrl} or continue editing in /builder/rex.`,
+        text: `${guided.reply}\n\nDraft created for ${draft.storeName}. ${extras}`,
         meta: {
           intent: guided.intent,
           draftCreated: true,

@@ -4,15 +4,10 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/store-types";
 import { db } from "@/lib/db/client";
-import {
-  createBlankEditorSnapshot,
-  hydrateDraftFromStoreConfig,
-  type StoreBrandSettingsLike,
-} from "@/lib/store-templates";
-import {
-  mergeBrandSettings,
-  slugify,
-} from "@/lib/workspace";
+import { slugify } from "@/lib/workspace";
+import { createSampleProducts, writeStoreDraft } from "@/lib/ai/rex/build-store";
+import { validateStoreConfig } from "@/lib/ai/rex/store-config";
+import { firstJsonObject } from "@/lib/ai/text";
 import type { AuthUser } from "@/lib/auth/types";
 import type { StoreOnboardingMemory } from "@/lib/onboarding-memory";
 
@@ -95,7 +90,14 @@ export function buildRexCommerceSystemPrompt(args: {
     (key) => !args.savedAnswers.some((answer) => answer.questionKey === key),
   );
 
-  return `You are Rex, Shopinbos' AI commerce setup assistant. The signed-in user's name is ${JSON.stringify(args.user.name)}. Use their real first name naturally when addressing them and never replace it with a demo name. You are connected to a backend route and may ask guided setup questions, save onboarding answers, summarize store plans, and request draft generation. Never claim you published, deleted, changed payout details, submitted verification, or invited team members.
+  return `You are Rex, Shopinbos' AI commerce setup assistant. The signed-in user's name is ${JSON.stringify(args.user.name)}. Use their real first name naturally when addressing them and never replace it with a demo name.
+
+You are connected to the Shopinbos backend through the JSON you return, and only through it:
+- "answerWrites" are saved as the user's onboarding answers, so you never need to ask for them again.
+- "memoryPatch" is merged into the store's onboarding memory (store name, category, description, customers, vibe).
+- intent "generate_store_draft" or "generate_landing_page_draft" (only after the user clearly confirms) makes the backend build a DRAFT store from "draftSpec": editor draft, draft pages and, if the store has no products yet, clearly marked sample products. It never publishes.
+- Everything else is only your reply.
+You cannot publish the store, take payments, delete anything, change payout or bank details, submit verification, or invite team members. Never claim you did. For those, tell the user where in the app to do it (publishing: the Rex builder or store editor, "Publish"; payouts: Settings).
 
 Use the live context below. Reuse saved answers and do not ask for the same durable answer twice.
 
@@ -149,11 +151,9 @@ Guidance:
 }
 
 export function parseRexStructuredResult(raw: string): RexStructuredResult | null {
-  const trimmed = raw.trim();
-  const match = trimmed.match(/\{[\s\S]*\}/);
-  if (!match) return null;
+  const parsed = firstJsonObject(raw) as Partial<RexStructuredResult> | null;
+  if (!parsed) return null;
   try {
-    const parsed = JSON.parse(match[0]) as Partial<RexStructuredResult>;
     if (!parsed.reply || typeof parsed.reply !== "string") return null;
     return {
       reply: parsed.reply,
@@ -171,39 +171,17 @@ export function parseRexStructuredResult(raw: string): RexStructuredResult | nul
   }
 }
 
-async function ensureOnboardingResponseTable() {
-  await db.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS onboarding_responses (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      organization_id TEXT,
-      account_type TEXT,
-      question_key TEXT NOT NULL,
-      answer JSONB NOT NULL,
-      source TEXT NOT NULL DEFAULT 'rex',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-  await db.$executeRawUnsafe(`
-    CREATE UNIQUE INDEX IF NOT EXISTS onboarding_responses_user_question_key
-    ON onboarding_responses (user_id, question_key)
-  `);
-}
-
 export async function getSavedRexAnswers(userId: string): Promise<SavedRexAnswer[]> {
-  await ensureOnboardingResponseTable();
-  const rows = await db.$queryRaw<Array<{ question_key: string; answer: Prisma.JsonValue; source: string; updated_at: Date }>>`
-    SELECT question_key, answer, source, updated_at
-    FROM onboarding_responses
-    WHERE user_id = ${userId}
-    ORDER BY updated_at ASC
-  `;
+  const rows = await db.onboardingResponse.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "asc" },
+    select: { questionKey: true, answer: true, source: true, updatedAt: true },
+  });
   return rows.map((row) => ({
-    questionKey: row.question_key,
+    questionKey: row.questionKey,
     answer: row.answer,
     source: row.source,
-    updatedAt: row.updated_at,
+    updatedAt: row.updatedAt,
   }));
 }
 
@@ -213,18 +191,18 @@ export async function saveRexAnswers(args: {
   source?: string;
 }) {
   const writes = args.writes.filter(
-    (write) => write.questionKey && write.answer !== undefined && write.answer !== null && write.answer !== "",
+    (write) => typeof write.questionKey === "string" && write.questionKey.trim() && write.answer !== undefined && write.answer !== null && write.answer !== "",
   );
   if (writes.length === 0) return;
 
-  await ensureOnboardingResponseTable();
-  for (const write of writes) {
-    await db.$executeRaw`
-      INSERT INTO onboarding_responses (id, user_id, account_type, question_key, answer, source, created_at, updated_at)
-      VALUES (${randomUUID()}, ${args.user.id}, ${args.user.role}, ${write.questionKey}, ${JSON.stringify(write.answer)}::jsonb, ${args.source ?? "rex"}, now(), now())
-      ON CONFLICT (user_id, question_key)
-      DO UPDATE SET answer = EXCLUDED.answer, source = EXCLUDED.source, account_type = EXCLUDED.account_type, updated_at = now()
-    `;
+  for (const write of writes.slice(0, 20)) {
+    const questionKey = write.questionKey.trim().slice(0, 80);
+    const answer = write.answer as Prisma.InputJsonValue;
+    await db.onboardingResponse.upsert({
+      where: { userId_questionKey: { userId: args.user.id, questionKey } },
+      create: { id: randomUUID(), userId: args.user.id, accountType: args.user.role, questionKey, answer, source: args.source ?? "rex" },
+      update: { answer, source: args.source ?? "rex", accountType: args.user.role },
+    });
   }
 }
 
@@ -285,16 +263,6 @@ export function applyGuidedQuestionFallback(result: RexStructuredResult, savedAn
   return result;
 }
 
-async function uniqueStoreSlug(baseName: string, userId: string, currentStoreId?: string) {
-  const base = slugify(baseName) || `store-${userId.slice(0, 6)}`;
-  const existing = await db.store.findUnique({
-    where: { slug: base },
-    select: { id: true },
-  });
-  if (!existing || existing.id === currentStoreId) return base;
-  return `${base}-${userId.slice(0, 6)}`;
-}
-
 function coerceDraftSpec(
   result: RexStructuredResult,
   savedAnswers: SavedRexAnswer[],
@@ -329,127 +297,34 @@ function coerceDraftSpec(
   };
 }
 
+/**
+ * Builds the draft from a confirmed plan through the same writer as /api/ai/build-store. A live store keeps
+ * its status, slug and live look; only its draft changes until the seller publishes.
+ */
 export async function createRexDraftFromPlan(args: {
   user: AuthUser;
   result: RexStructuredResult;
   savedAnswers: SavedRexAnswer[];
 }) {
   const spec = coerceDraftSpec(args.result, args.savedAnswers);
-  const existing = await db.store.findUnique({
-    where: { userId: args.user.id },
-    select: {
-      id: true,
-      brandSettings: true,
-      country: true,
-      city: true,
-    },
-  });
-  const slug = await uniqueStoreSlug(spec.name, args.user.id, existing?.id);
-  const baseBrandSettings = existing?.brandSettings ?? {};
-  const fallback = createBlankEditorSnapshot(spec.name);
-  const { slug: _slug, ...editorSpec } = spec;
-  const hydrated = hydrateDraftFromStoreConfig(
-    baseBrandSettings as StoreBrandSettingsLike,
-    editorSpec,
-    fallback,
-  );
-  const brandSettings = mergeBrandSettings(hydrated.brandSettings, {
-    onboardingMemory: {
-      storeName: spec.name,
-      businessDescription: spec.heroSubline,
-      buildPath: "rex",
-      completed: false,
-      updatedAt: new Date().toISOString(),
-    },
-    setup: { storeBuilt: true },
-    rexDraft: {
-      generatedAt: new Date().toISOString(),
-      source: "rex-chat",
-      plan: args.result.storePlan ?? null,
-    },
-  });
+  const validated = validateStoreConfig(spec, DEFAULT_STORE_CONFIG);
+  const config = validated.ok ? validated.config : spec;
+  const written = await writeStoreDraft({ user: args.user, config, source: "rex-chat", plan: args.result.storePlan ?? null });
 
-  const store = existing
-    ? await db.store.update({
-        where: { id: existing.id },
-        data: {
-          name: spec.name,
-          slug,
-          description: spec.heroSubline,
-          status: "draft",
-          onboardingState: "BUILDING_REX",
-          brandSettings,
-        },
-      })
-    : await db.store.create({
-        data: {
-          userId: args.user.id,
-          name: spec.name,
-          slug,
-          description: spec.heroSubline,
-          status: "draft",
-          country: args.user.country ?? "Nigeria",
-          city: args.user.city ?? "",
-          currency: "NGN",
-          onboardingState: "BUILDING_REX",
-          brandSettings,
-        },
-      });
-
-  const pageSeeds = [
-    { type: "home", title: "Home", slug: "", order: 0 },
-    { type: "products", title: "Products", slug: "products", order: 1 },
-    { type: "about", title: "About", slug: "about", order: 2 },
-    { type: "contact", title: "Contact", slug: "contact", order: 3 },
-    { type: "faq", title: "FAQ", slug: "faq", order: 4 },
-  ];
-
-  let homePageId = "";
-
-  for (const seed of pageSeeds) {
-    const page = hydrated.updated.pages.find((candidate) => candidate.pageType === seed.type);
-    const content = (page ?? {
-      title: seed.title,
-      slug: seed.slug,
-      pageType: seed.type,
-      sections: [],
-      seo: {
-        metaTitle: `${seed.title} | ${spec.name}`,
-        metaDescription: spec.heroSubline,
-      },
-    }) as unknown as Prisma.InputJsonValue;
-
-    const savedPage = await db.storePage.upsert({
-      where: { storeId_slug: { storeId: store.id, slug: seed.slug } },
-      update: {
-        title: seed.title,
-        type: seed.type,
-        draftContent: content,
-        status: "draft",
-        isPublished: false,
-        order: seed.order,
-      },
-      create: {
-        storeId: store.id,
-        title: seed.title,
-        slug: seed.slug,
-        type: seed.type,
-        draftContent: content,
-        content: {},
-        status: "draft",
-        isPublished: false,
-        order: seed.order,
-      },
-      select: { id: true, type: true },
-    });
-    if (savedPage.type === "home") homePageId = savedPage.id;
-  }
+  // Sample products only when the store has none yet; real products are never touched.
+  const productCount = await db.storeProduct.count({ where: { storeId: written.store.id, status: { not: "archived" } } });
+  const samples = productCount === 0
+    ? await createSampleProducts({ storeId: written.store.id, userId: args.user.id, products: config.products, currency: written.store.currency })
+    : [];
+  const sampleProducts = samples.length;
 
   return {
-    storeId: store.id,
-    storeName: store.name,
-    slug: store.slug,
-    homePageId,
-    draft: hydrated.updated,
+    storeId: written.store.id,
+    storeName: written.store.name,
+    slug: written.store.slug,
+    live: written.store.live,
+    homePageId: written.homePageId,
+    sampleProducts,
+    draft: written.draft,
   };
 }

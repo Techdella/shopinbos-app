@@ -1,14 +1,14 @@
 import { respondToSupplierQuote } from "@/app/actions/supplier";
-import { StatusPill } from "@/components/ops/OpsPrimitives";
-import { RolePage, formatDate, formatMoney } from "@/components/role/RolePage";
+import { AppPage, AssistantNote, Card, EmptyState, FilterChips, Pill, SplitLayout, StatTile, Thumb } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
-import { MascotAvatar } from "@/components/ui";
+import { QUOTE_STATUS, buttonClass, fieldClass, labelClass, money, shortDate, statusOf, supplierFrame, textareaClass, timeAgo } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
 
 type PageProps = {
-  searchParams?: Promise<{ error?: string; saved?: string }>;
+  searchParams?: Promise<{ error?: string; saved?: string; show?: string }>;
 };
 
 const quoteTips = [
@@ -16,6 +16,12 @@ const quoteTips = [
   "Mention packing, processing time, and whether samples are available.",
   "Set an expiry date when material or FX prices may move.",
 ];
+
+const FILTERS = [
+  { key: "waiting", label: "Waiting on you", statuses: ["pending"] },
+  { key: "answered", label: "Answered", statuses: ["responded", "accepted"] },
+  { key: "closed", label: "Closed", statuses: ["rejected", "expired"] },
+] as const;
 
 function openQuoteValue(quotes: Array<{ quantity: number; quotedPrice: number | null }>) {
   return quotes.reduce((total, quote) => total + (quote.quotedPrice ?? 0) * quote.quantity, 0);
@@ -45,6 +51,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
       supplierProduct: {
         select: {
           name: true,
+          images: true,
           currency: true,
           wholesalePrice: true,
           moq: true,
@@ -56,214 +63,174 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
 
   const pendingQuotes = quotes.filter((quote) => quote.status === "pending");
   const respondedQuotes = quotes.filter((quote) => quote.status === "responded" || quote.status === "accepted");
-  const rejectedQuotes = quotes.filter((quote) => quote.status === "rejected" || quote.status === "expired");
+  const closedQuotes = quotes.filter((quote) => quote.status === "rejected" || quote.status === "expired");
+  const filter = FILTERS.find((item) => item.key === params?.show);
+  const visible = filter ? quotes.filter((quote) => (filter.statuses as readonly string[]).includes(quote.status)) : quotes;
+  const verified = supplier.verificationStatus === "verified";
 
   return (
-    <RolePage
-      role="supplier"
-      eyebrow="Supplier quotes"
-      title="Quote Requests"
-      description="Reply to sellers with clear prices, expiry dates, and fulfilment notes so they can move from interest to order."
-      metrics={[
-        { label: "Requests", value: String(quotes.length), icon: "chat", tone: "amber" },
-        { label: "Waiting on you", value: String(pendingQuotes.length), icon: "clock", tone: "rose" },
-        { label: "Sent replies", value: String(respondedQuotes.length), icon: "send", tone: "teal" },
-        { label: "Quoted value", value: formatMoney(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN"), icon: "coin", tone: "indigo" },
-      ]}
-      assistantNote="Rex is checking which quotes need fast replies, where the margin looks healthy, and which sellers are ready for bulk follow-up."
+    <AppPage
+      frame={supplierFrame(user, supplier)}
+      title="Quote requests"
+      sub="Reply to sellers with a clear price, an expiry date and fulfilment notes so they can move from interest to order."
+      toolbar={
+        <FilterChips
+          items={[
+            { label: "All", href: "/supplier/quote-requests", count: quotes.length, active: !filter },
+            { label: "Waiting on you", href: "/supplier/quote-requests?show=waiting", count: pendingQuotes.length, active: filter?.key === "waiting" },
+            { label: "Answered", href: "/supplier/quote-requests?show=answered", count: respondedQuotes.length, active: filter?.key === "answered" },
+            { label: "Closed", href: "/supplier/quote-requests?show=closed", count: closedQuotes.length, active: filter?.key === "closed" },
+          ]}
+        />
+      }
     >
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="space-y-3">
-          {(params?.error || params?.saved) && (
-            <div
-              className="rounded-[12px] border px-4 py-3 text-[13px] leading-5"
-              style={{
-                borderColor: params?.error ? "rgb(232 106 79 / 0.22)" : "rgb(46 126 120 / 0.18)",
-                background: params?.error ? "rgb(232 106 79 / 0.08)" : "rgb(46 126 120 / 0.08)",
-                color: params?.error ? "var(--color-coral)" : "var(--color-teal-deep)",
-              }}
-            >
-              {params?.error ?? "Quote updated."}
-            </div>
-          )}
+      <SplitLayout
+        sideWidth="360px"
+        main={
+          <>
+            {(params?.error || params?.saved) && <Notice tone={params?.error ? "error" : "success"}>{params?.error ?? "Quote updated."}</Notice>}
+            {!verified && (
+              <AssistantNote who="rex">
+                You can read requests now. Replies open once your business is verified.
+              </AssistantNote>
+            )}
 
-          {quotes.length === 0 ? (
-            <div className="card tight">
-              <div className="flex items-start gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-[10px] bg-[var(--amber-100)] text-[var(--amber-500)]">
-                  <Icon name="chat" size={17} />
-                </div>
-                <div>
-                  <div className="text-[14px] font-semibold text-[var(--ink-900)]">No quote requests yet</div>
-                  <p className="mt-1 max-w-[620px] text-[13px] leading-6 text-[var(--ink-500)]">
-                    When a seller asks for bulk pricing, Rex will place it here with the product, quantity, destination, and notes ready for your reply.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            quotes.map((quote) => {
-              const pending = quote.status === "pending";
-              const basePrice = quote.quotedPrice ?? quote.supplierProduct.wholesalePrice;
-              const suggestedTotal = basePrice * quote.quantity;
+            {visible.length === 0 ? (
+              <EmptyState icon="chat" title={quotes.length === 0 ? "No quote requests yet" : "Nothing here"}>
+                {quotes.length === 0
+                  ? "When a seller asks for bulk pricing, the request lands here with the product, quantity, destination and notes ready for your reply."
+                  : "No requests match this filter."}
+              </EmptyState>
+            ) : (
+              visible.map((quote) => {
+                const pending = quote.status === "pending";
+                const status = statusOf(QUOTE_STATUS, quote.status);
+                const basePrice = quote.quotedPrice ?? quote.supplierProduct.wholesalePrice;
+                const currency = quote.supplierProduct.currency;
+                const place = [quote.seller.city, quote.seller.country].filter(Boolean).join(", ");
 
-              return (
-                <article key={quote.id} className="card tight overflow-hidden p-0">
-                  <div className="flex flex-col gap-3 border-b border-[var(--ink-100)] px-4 py-3.5 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="m-0 text-[15px] font-semibold text-[var(--ink-900)]">{quote.supplierProduct.name}</h2>
-                        <StatusPill status={quote.status} />
+                return (
+                  <Card key={quote.id} as="article" className="scroll-mt-6 overflow-hidden">
+                    <div id={`quote-${quote.id}`} className="flex flex-wrap items-start gap-3 p-4 sm:p-5">
+                      <Thumb src={quote.supplierProduct.images[0]} label={quote.supplierProduct.name} size={52} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="m-0 min-w-0 truncate text-[16px] font-extrabold">{quote.seller.name}</h2>
+                          <Pill tone={status.tone}>{status.label}</Pill>
+                        </div>
+                        <div className="mt-0.5 text-[13.5px] text-app-ink-soft">
+                          {quote.quantity.toLocaleString("en-NG")} × {quote.supplierProduct.name} to {quote.destination}
+                        </div>
+                        <div className="mt-0.5 text-[12.5px] text-app-ink-soft">
+                          {timeAgo(quote.createdAt)}{place && ` · ${place}`} · MOQ {quote.supplierProduct.moq.toLocaleString("en-NG")}
+                        </div>
                       </div>
-                      <div className="mt-1 text-[12px] leading-5 text-[var(--ink-500)]">
-                        {quote.seller.name} wants {quote.quantity.toLocaleString()} units for {quote.destination}.
+                      <div className="text-right">
+                        <div className="text-[20px] font-extrabold leading-none">{money(basePrice * quote.quantity, currency)}</div>
+                        <div className="mt-1 text-[12px] text-app-ink-soft">{quote.quotedPrice ? "quoted value" : "at list price"}</div>
                       </div>
                     </div>
-                    <div className="text-left lg:text-right">
-                      <div className="font-display text-[22px] font-medium leading-none text-[var(--ink-900)]">
-                        {formatMoney(suggestedTotal, quote.supplierProduct.currency)}
-                      </div>
-                      <div className="mt-1 text-[11px] text-[var(--ink-500)]">estimated order value</div>
-                    </div>
-                  </div>
 
-                  <div className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                    <div className="space-y-3">
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        {[
-                          { label: "Seller", value: quote.seller.name },
-                          { label: "MOQ", value: `${quote.supplierProduct.moq.toLocaleString()} units` },
-                          { label: "Requested", value: formatDate(quote.createdAt) },
-                        ].map((item) => (
-                          <div key={item.label} className="rounded-[10px] border border-[var(--ink-100)] bg-[var(--paper)] px-3 py-2.5">
-                            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ink-400)]">{item.label}</div>
-                            <div className="mt-1 truncate text-[13px] font-semibold text-[var(--ink-900)]">{item.value}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="rounded-[12px] border border-[var(--ink-100)] bg-[var(--ink-50)] px-4 py-3">
-                        <div className="text-[12px] font-semibold text-[var(--ink-900)]">Buyer note</div>
-                        <p className="mt-1 text-[13px] leading-6 text-[var(--ink-600)]">
-                          {quote.notes || "No extra note yet. Reply with price, availability, and next step."}
-                        </p>
-                      </div>
-
-                      {!pending && (
-                        <div className="rounded-[12px] border border-[var(--teal-200)] bg-[var(--teal-50)] px-4 py-3">
-                          <div className="text-[12px] font-semibold text-[var(--teal-900)]">Your reply</div>
-                          <p className="mt-1 text-[13px] leading-6 text-[var(--ink-700)]">
-                            {quote.supplierResponse || "Reply sent."}
+                    <div className="grid gap-4 border-t border-app-line p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+                      <div className="grid content-start gap-3">
+                        <div className="rounded-[16px] bg-app-canvas px-4 py-3">
+                          <div className="text-[13px] font-bold">Seller&apos;s note</div>
+                          <p className="mb-0 mt-1 text-[14px] leading-[1.55]">
+                            {quote.notes || "No note. Reply with price, availability and next step."}
                           </p>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[12px] text-[var(--ink-500)]">
-                            {quote.quotedPrice && <span>{formatMoney(quote.quotedPrice, quote.supplierProduct.currency)} per unit</span>}
-                            {quote.expiresAt && <span>Valid until {formatDate(quote.expiresAt)}</span>}
+                        </div>
+                        {!pending && (
+                          <div className="rounded-[16px] bg-app-mint px-4 py-3">
+                            <div className="text-[13px] font-bold">Your reply</div>
+                            <p className="mb-0 mt-1 text-[14px] leading-[1.55]">{quote.supplierResponse || "Reply sent."}</p>
+                            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-app-ink-soft">
+                              {quote.quotedPrice && <span>{money(quote.quotedPrice, currency)} per unit</span>}
+                              {quote.expiresAt && <span>Valid until {shortDate(quote.expiresAt)}</span>}
+                            </div>
                           </div>
+                        )}
+                      </div>
+
+                      {pending ? (
+                        <form action={respondToSupplierQuote} className="grid content-start gap-3">
+                          <input type="hidden" name="quoteId" value={quote.id} />
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <label htmlFor={`price-${quote.id}`} className={labelClass}>Unit price ({currency})</label>
+                              <input id={`price-${quote.id}`} name="quotedPrice" type="number" min="1" step="0.01" defaultValue={quote.supplierProduct.wholesalePrice} className={fieldClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`expires-${quote.id}`} className={labelClass}>Valid until</label>
+                              <input id={`expires-${quote.id}`} name="expiresAt" type="date" className={fieldClass} />
+                            </div>
+                          </div>
+                          <div>
+                            <label htmlFor={`message-${quote.id}`} className={labelClass}>Message</label>
+                            <textarea
+                              id={`message-${quote.id}`}
+                              name="supplierResponse"
+                              rows={3}
+                              defaultValue={`Yes, we can supply ${quote.quantity.toLocaleString("en-NG")} units to ${quote.destination}.`}
+                              className={`${textareaClass} resize-y`}
+                            />
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="submit" name="intent" value="respond" className={buttonClass.ink}>
+                              <Icon name="send" size={14} /> Send quote
+                            </button>
+                            <button type="submit" name="intent" value="reject" className={buttonClass.white}>
+                              Pass
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="rounded-[16px] border border-app-line px-4 py-3 text-[13.5px] leading-[1.55] text-app-ink-soft">
+                          <div className="mb-1 flex items-center gap-2 font-bold text-app-ink">
+                            <Icon name="check" size={14} /> What happens next
+                          </div>
+                          {quote.status === "accepted"
+                            ? "The seller accepted this quote. Watch Orders for the wholesale order."
+                            : quote.status === "responded"
+                              ? "Your quote is with the seller. Keep stock ready until the expiry date."
+                              : "This request is closed. New requests from this seller still show up here."}
                         </div>
                       )}
                     </div>
-
-                    {pending ? (
-                      <form action={respondToSupplierQuote} className="rounded-[12px] border border-[var(--ink-100)] bg-[var(--paper)] p-3">
-                        <input type="hidden" name="quoteId" value={quote.id} />
-                        <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[var(--ink-900)]">
-                          <Icon name="bolt" size={14} color="var(--amber-500)" />
-                          Rex reply pad
-                        </div>
-                        <label className="mb-3 block">
-                          <span className="mb-1.5 block text-[12px] font-semibold text-[var(--ink-500)]">Unit price</span>
-                          <input
-                            name="quotedPrice"
-                            type="number"
-                            min="1"
-                            step="0.01"
-                            defaultValue={quote.supplierProduct.wholesalePrice}
-                            className="w-full rounded-[10px] border border-[var(--ink-150)] bg-white px-3 py-2.5 text-[13px] text-[var(--ink-900)] outline-none"
-                          />
-                        </label>
-                        <label className="mb-3 block">
-                          <span className="mb-1.5 block text-[12px] font-semibold text-[var(--ink-500)]">Valid until</span>
-                          <input
-                            name="expiresAt"
-                            type="date"
-                            className="w-full rounded-[10px] border border-[var(--ink-150)] bg-white px-3 py-2.5 text-[13px] text-[var(--ink-900)] outline-none"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1.5 block text-[12px] font-semibold text-[var(--ink-500)]">Message</span>
-                          <textarea
-                            name="supplierResponse"
-                            rows={4}
-                            defaultValue={`Yes, we can supply ${quote.quantity.toLocaleString()} units to ${quote.destination}.`}
-                            className="w-full resize-none rounded-[10px] border border-[var(--ink-150)] bg-white px-3 py-2.5 text-[13px] leading-5 text-[var(--ink-900)] outline-none"
-                          />
-                        </label>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button type="submit" name="intent" value="respond" className="dbtn dBtn-mint dBtn-sm">
-                            <Icon name="send" size={13} />
-                            Send quote
-                          </button>
-                          <button type="submit" name="intent" value="reject" className="dbtn dBtn-ghost dBtn-sm">
-                            <Icon name="x" size={13} />
-                            Pass
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="rounded-[12px] border border-[var(--ink-100)] bg-[var(--paper)] p-3 text-[12px] leading-5 text-[var(--ink-600)]">
-                        <div className="mb-2 flex items-center gap-2 font-semibold text-[var(--ink-900)]">
-                          <Icon name="check" size={14} color="var(--teal-700)" />
-                          Follow-up
-                        </div>
-                        {quote.status === "accepted"
-                          ? "Seller accepted this quote. Watch the wholesale order board for fulfilment."
-                          : quote.status === "responded"
-                            ? "Quote is with the seller. Keep stock ready until the expiry date."
-                            : "This request is closed. Similar future requests will still appear here."}
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })
-          )}
-        </section>
-
-        <aside className="space-y-3">
-          <div className="card tight">
-            <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[var(--ink-900)]">
-              <MascotAvatar role="supplier" size={24} />
-              Rex quote coach
-            </div>
-            <div className="space-y-2">
-              {quoteTips.map((tip) => (
-                <div key={tip} className="flex gap-2 rounded-[10px] border border-[var(--ink-100)] bg-[var(--ink-50)] px-3 py-2 text-[12px] leading-5 text-[var(--ink-600)]">
-                  <Icon name="check" size={13} color="var(--teal-700)" />
-                  <span>{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card tight">
-            <div className="mb-3 text-[13px] font-semibold text-[var(--ink-900)]">Quote health</div>
-            <div className="space-y-3">
-              {[
-                { label: "Waiting", value: pendingQuotes.length, tone: "var(--rose-500)" },
-                { label: "Answered", value: respondedQuotes.length, tone: "var(--teal-700)" },
-                { label: "Closed", value: rejectedQuotes.length, tone: "var(--ink-500)" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between gap-3">
-                  <span className="text-[12px] text-[var(--ink-500)]">{item.label}</span>
-                  <span className="font-display text-[24px] font-medium text-[var(--ink-900)]" style={{ color: item.tone }}>
-                    {item.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-      </div>
-    </RolePage>
+                  </Card>
+                );
+              })
+            )}
+          </>
+        }
+        side={
+          <>
+            <Card className="p-5">
+              <h2 className="m-0 text-[17px] font-extrabold">Quote health</h2>
+              <div className="mt-2 grid grid-cols-2 gap-1">
+                <StatTile label="Waiting on you" value={pendingQuotes.length} />
+                <StatTile label="Answered" value={respondedQuotes.length} />
+                <StatTile label="Closed" value={closedQuotes.length} />
+                <StatTile label="Quoted value" value={money(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN")} />
+              </div>
+            </Card>
+            <section className="rounded-[22px] bg-app-peach p-5">
+              <div className="mb-3 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/app/rex.png" alt="Rex" className="h-10 w-10 object-contain" />
+                <h2 className="m-0 text-[17px] font-extrabold">Quotes that win</h2>
+              </div>
+              <ul className="m-0 grid list-none gap-2 p-0">
+                {quoteTips.map((tip) => (
+                  <li key={tip} className="flex gap-2.5 rounded-[14px] bg-white px-3.5 py-2.5 text-[13.5px] leading-[1.5]">
+                    <Icon name="check" size={14} className="mt-1 shrink-0 text-app-success" />
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </>
+        }
+      />
+    </AppPage>
   );
 }

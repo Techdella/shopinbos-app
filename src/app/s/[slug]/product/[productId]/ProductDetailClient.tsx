@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { useState } from "react";
+import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 
 interface Review {
@@ -111,6 +112,7 @@ export function ProductDetailClient({
   const router = useRouter();
   const cart = useCart(store.slug);
   useCampaignAttribution(store.slug);
+  useStoreVisitBeacon(store.slug);
   const wishlist = useWishlist(store.slug);
   const [selectedImage, setSelectedImage] = useState(0);
   const variants = readVariants(product.variants);

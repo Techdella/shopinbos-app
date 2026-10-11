@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import type { Metadata } from "next";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, type Tone } from "@/components/app-kit";
+import { Field, buttonClass, formatDate, humanize, inputClass, selectClass } from "@/components/growth/kit";
 import { revalidatePath } from "next/cache";
 import { sendEmail } from "@/lib/notifications/resend";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Invoices" };
 
 function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
 
@@ -67,14 +69,23 @@ async function createManualInvoice(formData: FormData) {
   revalidatePath("/home/invoices");
 }
 
-export default async function SellerInvoicesPage() {
+const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
+
+function orderTone(status: string): Tone {
+  if (status === "delivered") return "success";
+  if (PAID.includes(status)) return "info";
+  if (status === "pending" || status === "awaiting_payment") return "warning";
+  return "muted";
+}
+
+export default async function SellerInvoicesPage({ searchParams }: { searchParams?: Promise<{ show?: string }> }) {
+  const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
-  const workspace = await getSellerWorkspace(user.id);
-  if (!workspace) return null;
-  if (!workspace.store) redirect("/builder?firstRun=1");
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
+  if (!store) redirect("/builder?firstRun=1");
 
   const orders = await db.retailOrder.findMany({
-    where: { storeId: workspace.store.id },
+    where: { storeId: store.id },
     orderBy: { createdAt: "desc" },
     take: 100,
     select: {
@@ -84,125 +95,109 @@ export default async function SellerInvoicesPage() {
     },
   });
 
-  const paidOrders = orders.filter((o) => ["paid", "processing", "shipped", "delivered"].includes(o.status));
-  const pendingOrders = orders.filter((o) => o.status === "pending");
+  const paidOrders = orders.filter((o) => PAID.includes(o.status));
+  const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "awaiting_payment");
   const pendingValue = pendingOrders.reduce((s, o) => s + Number(o.total), 0);
   const grossValue = orders.reduce((s, o) => s + Number(o.total), 0);
-  const manualInvoices = readManualInvoices(workspace.store.brandSettings);
+  const manualInvoices = readManualInvoices(store.brandSettings);
+  const show = params?.show === "manual" ? "manual" : "orders";
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={workspace.store.name}
-      storeSlug={workspace.store.slug ?? ""}
-      storeInitial={workspace.store.name.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Invoices"
+      sub="Invoices for your orders, and ones you send to or get from suppliers, delivery partners and customers."
+      actions={<PillLink href="/home/payments" icon="coin">Money</PillLink>}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Invoicing"
-          sub={`${orders.length} invoice candidates · ${pendingOrders.length} pending ${fmt(pendingValue)}`}
-          actions={<><a href="/home/payments" className="dbtn dBtn-ghost" style={{ textDecoration: "none" }}>Payment activity</a><a href="#new-invoice" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>New invoice</a></>}
-        />
+      <SplitLayout
+        main={
+          <>
+            <StatGrid>
+              <StatTile tone="card" label="Order invoices" value={orders.length} hint="Latest 100 orders" />
+              <StatTile tone="card" label="Waiting for payment" value={fmt(pendingValue)} hint={`${pendingOrders.length} order${pendingOrders.length === 1 ? "" : "s"}`} />
+              <StatTile tone="card" label="Paid" value={paidOrders.length} hint="orders" />
+              <StatTile tone="card" label="Total ordered" value={fmt(grossValue)} />
+            </StatGrid>
 
-        <form id="new-invoice" action={createManualInvoice} className="card" style={{ padding: 18, display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 12, alignItems: "end" }}>
-          <label className="field"><span className="label">Direction</span><select name="direction" className="sel"><option value="sent">Send invoice</option><option value="received">Receive invoice</option></select></label>
-          <label className="field"><span className="label">Party</span><select name="partyType" className="sel"><option value="supplier">Supplier</option><option value="logistics">Logistics</option><option value="customer">Customer</option></select></label>
-          <label className="field"><span className="label">Name</span><input name="partyName" className="inp" required placeholder="Business name" /></label>
-          <label className="field"><span className="label">Email</span><input name="partyEmail" type="email" className="inp" placeholder="billing@example.com" /></label>
-          <label className="field"><span className="label">Amount</span><input name="amount" type="number" min={1} step="0.01" className="inp" required placeholder="50000" /></label>
-          <button type="submit" className="dbtn dBtn-mint">Create</button>
-          <label className="field" style={{ gridColumn: "1 / -1" }}><span className="label">Description</span><input name="description" className="inp" required placeholder="Products supplied, delivery service, or wholesale order details" /></label>
-        </form>
+            <FilterChips
+              items={[
+                { label: "Order invoices", href: "/home/invoices", count: orders.length, active: show === "orders" },
+                { label: "Invoices you made", href: "/home/invoices?show=manual", count: manualInvoices.length, active: show === "manual" },
+              ]}
+            />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <div className="stat">
-            <div className="stat-lbl">Invoice candidates</div>
-            <div className="stat-val">{orders.length}</div>
-            <div className="stat-delta delta-up"><Icon name="document" size={12} /><span>orders</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Pending payment</div>
-            <div className="stat-val">{pendingOrders.length}</div>
-            <div className="stat-delta delta-down"><Icon name="clock" size={12} /><span>{fmt(pendingValue)}</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Paid</div>
-            <div className="stat-val">{paidOrders.length}</div>
-            <div className="stat-delta delta-up"><Icon name="check" size={12} /><span>fulfilled</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Gross ordered</div>
-            <div className="stat-val money">{fmt(grossValue)}</div>
-            <div className="stat-delta delta-up"><Icon name="coin" size={12} /><span>total</span></div>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Subtotal</th>
-                <th>Shipping</th>
-                <th>Total</th>
-                <th>Order</th>
-                <th>Payment</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manualInvoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600 }}>{invoice.id}</td>
-                  <td>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{invoice.partyName}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>{invoice.partyType} · {invoice.partyEmail || "no email"}</div>
-                    </div>
-                  </td>
-                  <td className="money">{fmt(invoice.amount)}</td>
-                  <td className="money">—</td>
-                  <td className="money" style={{ fontWeight: 600 }}>{fmt(invoice.amount)}</td>
-                  <td><Badge variant={invoice.direction === "sent" ? "info" : "mint"}>{invoice.direction}</Badge></td>
-                  <td style={{ fontSize: 12.5 }}>{invoice.status}</td>
-                  <td style={{ fontSize: 12.5, color: "var(--ink-500)" }}>
-                    {new Date(invoice.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                  </td>
-                </tr>
-              ))}
-              {orders.slice(0, 30).map((o) => (
-                <tr key={o.id}>
-                  <td style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600 }}>{o.orderNumber}</td>
-                  <td>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{o.buyerName}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>{o.buyerEmail}</div>
-                    </div>
-                  </td>
-                  <td className="money">{fmt(Number(o.subtotal))}</td>
-                  <td className="money">{fmt(Number(o.shippingFee))}</td>
-                  <td className="money" style={{ fontWeight: 600 }}>{fmt(Number(o.total))}</td>
-                  <td>
-                    <Badge variant={o.status === "delivered" ? "mint" : o.status === "paid" || o.status === "processing" || o.status === "shipped" ? "info" : "warn"}>{o.status}</Badge>
-                  </td>
-                  <td style={{ fontSize: 12.5 }}>{o.paystackStatus ?? "pending"}</td>
-                  <td style={{ fontSize: 12.5, color: "var(--ink-500)" }}>
-                    {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                  </td>
-                </tr>
-              ))}
-              {orders.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>No orders yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </AppFrame>
+            {show === "manual" ? (
+              manualInvoices.length ? (
+                <ListCard>
+                  {manualInvoices.map((invoice) => (
+                    <ListRow key={invoice.id}>
+                      <span className="min-w-0 flex-1 basis-full sm:basis-auto">
+                        <span className="block truncate text-[14.5px] font-extrabold">{invoice.partyName}</span>
+                        <span className="block truncate text-[13px] text-app-ink-soft">{invoice.description}{invoice.partyEmail ? ` · ${invoice.partyEmail}` : ""}</span>
+                      </span>
+                      <span className="min-w-0 text-[13px] text-app-ink-soft sm:w-[150px]">
+                        <span className="block truncate font-mono">{invoice.id}</span>
+                        <span className="block truncate">{humanize(invoice.partyType)} · {formatDate(invoice.createdAt)}</span>
+                      </span>
+                      <Pill tone={invoice.direction === "sent" ? "info" : "accent"}>{invoice.direction === "sent" ? "Sent" : "Received"}</Pill>
+                      <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{fmt(invoice.amount)}</span>
+                    </ListRow>
+                  ))}
+                </ListCard>
+              ) : (
+                <EmptyState icon="document" title="No invoices made yet">Use the form to send an invoice, or to note one you got from a supplier or delivery partner.</EmptyState>
+              )
+            ) : orders.length ? (
+              <ListCard>
+                {orders.slice(0, 50).map((o) => (
+                  <ListRow key={o.id} href={`/home/orders/${o.id}`}>
+                    <span className="min-w-0 flex-1 basis-full sm:basis-auto">
+                      <span className="block truncate text-[14.5px] font-extrabold">{o.buyerName || "Customer"}</span>
+                      <span className="block truncate text-[13px] text-app-ink-soft">{fmt(Number(o.subtotal))} + {fmt(Number(o.shippingFee))} delivery{o.buyerEmail ? ` · ${o.buyerEmail}` : ""}</span>
+                    </span>
+                    <span className="min-w-0 text-[13px] text-app-ink-soft sm:w-[150px]">
+                      <span className="block truncate font-mono">{o.orderNumber}</span>
+                      <span className="block truncate">{formatDate(o.createdAt)}</span>
+                    </span>
+                    <Pill tone={orderTone(o.status)}>{humanize(o.status)}</Pill>
+                    <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{fmt(Number(o.total))}</span>
+                  </ListRow>
+                ))}
+              </ListCard>
+            ) : (
+              <EmptyState icon="document" title="No orders yet">Every order gets an invoice. They show up here once orders come in.</EmptyState>
+            )}
+          </>
+        }
+        side={
+          <Card className="p-5">
+            <CardHead title="New invoice" sub="Sent invoices are emailed when you add an email." />
+            <form id="new-invoice" action={createManualInvoice} className="mt-4 grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                <Field label="Type" htmlFor="inv-direction">
+                  <select id="inv-direction" name="direction" className={selectClass}>
+                    <option value="sent">I&apos;m sending it</option>
+                    <option value="received">I got it</option>
+                  </select>
+                </Field>
+                <Field label="Who" htmlFor="inv-party">
+                  <select id="inv-party" name="partyType" className={selectClass}>
+                    <option value="supplier">Supplier</option>
+                    <option value="logistics">Delivery partner</option>
+                    <option value="customer">Customer</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label="Their name" htmlFor="inv-name"><input id="inv-name" name="partyName" className={inputClass} required placeholder="Business name" /></Field>
+              <Field label="Their email (optional)" htmlFor="inv-email"><input id="inv-email" name="partyEmail" type="email" className={inputClass} placeholder="billing@example.com" /></Field>
+              <Field label="Amount (₦)" htmlFor="inv-amount"><input id="inv-amount" name="amount" type="number" min={1} step="0.01" className={inputClass} required placeholder="50000" /></Field>
+              <Field label="What it's for" htmlFor="inv-desc"><input id="inv-desc" name="description" className={inputClass} required placeholder="Stock supplied, delivery, wholesale order" /></Field>
+              <button type="submit" className={buttonClass("ink", "md", "w-full")}>Create invoice</button>
+            </form>
+          </Card>
+        }
+      />
+    </SellerPage>
   );
 }

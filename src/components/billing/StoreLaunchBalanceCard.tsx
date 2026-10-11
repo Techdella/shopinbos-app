@@ -26,14 +26,19 @@ export function StoreLaunchBalanceCard({ balanceDue, dueAt }: { balanceDue: numb
   }
 
   return (
-    <div className="card" style={{ padding: 20, border: "1px solid var(--amber-200, #f4d58d)" }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--amber-800, #8a5a00)", textTransform: "uppercase", letterSpacing: ".06em" }}>Store launch balance</div>
-      <div style={{ marginTop: 6, fontSize: 22, fontWeight: 700 }}>NGN {balanceDue.toLocaleString("en-NG")}</div>
-      <p style={{ margin: "6px 0 14px", fontSize: 12.5, color: "var(--ink-600)" }}>Your deposit launched the store. The remaining balance is due by {dueLabel}.</p>
-      {error && <p role="alert" style={{ fontSize: 12, color: "#b42318" }}>{error}</p>}
-      <button type="button" className="dbtn dBtn-mint" onClick={() => void payBalance()} disabled={busy}>
+    <section className="rounded-[22px] border border-[#F2D9A8] bg-white p-5">
+      <h2 className="m-0 text-[15px] font-extrabold text-[#8A5A00]">Store launch balance</h2>
+      <div className="mt-1.5 text-[26px] font-extrabold tracking-[-0.5px]">NGN {balanceDue.toLocaleString("en-NG")}</div>
+      <p className="mb-4 mt-1.5 text-[13.5px] text-app-ink-soft">Your deposit launched the store. The rest is due by {dueLabel}.</p>
+      {error && <p role="alert" className="mb-3 mt-0 text-[13px] text-app-danger">{error}</p>}
+      <button
+        type="button"
+        onClick={() => void payBalance()}
+        disabled={busy}
+        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-app-accent px-5 text-[14px] font-extrabold text-white transition hover:brightness-95 disabled:opacity-55"
+      >
         {busy ? "Opening Paystack…" : "Pay remaining balance"}
       </button>
-    </div>
+    </section>
   );
 }
