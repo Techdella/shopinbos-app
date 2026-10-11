@@ -137,3 +137,98 @@ test("order channels: share refs normalise, unknown refs are ignored", () => {
   assert.equal(channels.withChannelRef("https://ada.shopinbos.com/", "whatsapp"), "https://ada.shopinbos.com/?ref=wa");
   assert.equal(channels.withChannelRef("https://x.com/?a=1", "instagram"), "https://x.com/?a=1&ref=ig");
 });
+
+test("record a sale: totals, and the status a sale starts in", async () => {
+  const sales = await import("../shared/sales.ts");
+  assert.deepEqual(sales.saleTotals([{ name: "Shirt", price: 18500, quantity: 2 }, { name: "Cap", price: 4000, quantity: 1 }], 1500), { subtotal: 41000, shippingFee: 1500, total: 42500 });
+  assert.deepEqual(sales.saleTotals([{ name: "Bad", price: -5, quantity: 2.7 }], -100), { subtotal: 0, shippingFee: 0, total: 0 });
+  assert.deepEqual(sales.saleStatus("cash", "collected"), { status: "delivered", paymentMethod: "cash", delivered: true });
+  assert.deepEqual(sales.saleStatus("transfer", "deliver"), { status: "paid", paymentMethod: "transfer", delivered: false });
+  assert.deepEqual(sales.saleStatus("unpaid", "deliver"), { status: "pending", paymentMethod: "pay_on_delivery", delivered: false });
+  assert.equal(sales.saleStatus("unpaid", "collected").status, "pending");
+  // Marking an unpaid sale paid: collected ones are done, others wait for a rider.
+  assert.equal(sales.statusWhenMarkedPaid({ type: "collected" }), "delivered");
+  assert.equal(sales.statusWhenMarkedPaid(null), "paid");
+});
+
+test("affiliates: codes, commission after discounts, and what's pending, owed and paid", async () => {
+  const aff = await import("../shared/affiliates.ts");
+  assert.equal(aff.affiliateCode("Tolu Adéyẹmí"), "tolu" + "adeyemi".slice(0, 8));
+  assert.equal(aff.affiliateCode("Tolu", ["tolu", "tolu2"]), "tolu3");
+  assert.equal(aff.affiliateCode("!!!"), "creator");
+  assert.equal(aff.cleanAffiliateCode(" ToLu "), "tolu");
+  assert.equal(aff.cleanAffiliateCode("a b"), null);
+  assert.equal(aff.cleanAffiliateCode("<script>"), null);
+  assert.equal(aff.commissionFor(20000, 2000, 10), 1800);
+  assert.equal(aff.commissionFor(1000, 5000, 10), 0);
+  assert.equal(aff.commissionFor(1000, 0, 500), 1000, "rate is capped at 100%");
+  const totals = aff.affiliateTotals([
+    { status: "delivered", affiliateCommission: 1000, affiliatePaidAt: null, total: 10000 },
+    { status: "delivered", affiliateCommission: 500, affiliatePaidAt: "2026-10-09", total: 5000 },
+    { status: "shipped", affiliateCommission: 700, affiliatePaidAt: null, total: 7000 },
+    { status: "cancelled", affiliateCommission: 900, affiliatePaidAt: null, total: 9000 },
+  ]);
+  assert.deepEqual(totals, { pending: 700, owed: 1000, paid: 500, sales: 15000, deliveredOrders: 2, orders: 3 });
+  // Saturday 10 Oct 2026 → Friday 16 Oct; a Friday stays that Friday.
+  assert.equal(aff.nextPayday(new Date("2026-10-10T09:00:00Z")).toISOString().slice(0, 10), "2026-10-16");
+  assert.equal(aff.nextPayday(new Date("2026-10-16T09:00:00Z")).toISOString().slice(0, 10), "2026-10-16");
+});
+
+test("ads: tracking codes, cost per order and Peggy's stop rule", async () => {
+  const ads = await import("../shared/ads.ts");
+  let n = 0;
+  const code = ads.adCode(() => (n++ % 10) / 10);
+  assert.match(code, /^[a-z2-9]{7}$/);
+  assert.equal(ads.costPerOrder({ spend: 9000, orders: 7 }), 1286);
+  assert.equal(ads.costPerOrder({ spend: 9000, orders: 0 }), null);
+  const now = new Date("2026-10-11T12:00:00Z");
+  const base = { status: "running", startedAt: "2026-10-08T12:00:00Z", days: 5, dailyBudget: 2000, spend: 6000, clicks: 40, orders: 0, revenue: 0 };
+  assert.equal(ads.adAdvice(base, now)?.action, "pause");
+  assert.equal(ads.adAdvice({ ...base, startedAt: "2026-10-10T12:00:00Z" }, now), null, "too early to judge");
+  assert.equal(ads.adAdvice({ ...base, orders: 7, revenue: 60000 }, now)?.action, "boost");
+  assert.equal(ads.adAdvice({ ...base, startedAt: "2026-10-01T12:00:00Z", orders: 2, revenue: 1000 }, now)?.action, "end");
+  assert.equal(ads.adAdvice({ ...base, status: "draft" }, now), null);
+  assert.equal(ads.plannedBudget(5000, 5), 25000);
+  assert.match(ads.fallbackAdCopy("Camel coat", "₦38,500", "whatsapp").primaryText, /WhatsApp/);
+});
+
+test("video studio: scripts always fit the photos, and the reel follows the voiceover", async () => {
+  const video = await import("../shared/video.ts");
+  const fallback = video.fallbackScript("Linen set", "₦29,500", "pidgin", 3);
+  assert.equal(fallback.captions.length, 3);
+  assert.match(fallback.voiceover, /₦29,500/);
+  const script = video.normaliseScript({ captions: ["One", "  Two  ", 3], voiceover: "x".repeat(400) }, fallback, 4);
+  assert.deepEqual(script.captions.slice(0, 2), ["One", "Two"]);
+  assert.equal(script.captions.length, 4);
+  assert.equal(script.voiceover.length, 320);
+  assert.equal(script.cta, fallback.cta);
+  assert.equal(video.normaliseScript(null, fallback, 2).voiceover, fallback.voiceover);
+  assert.deepEqual(video.reelTimeline(3, null), { perPhoto: 2.6, endCard: 2.2, total: 3 * 2.6 + 2.2 });
+  const voiced = video.reelTimeline(3, 12);
+  assert.ok(voiced.total >= 12, "the reel lasts at least as long as the voice");
+  assert.equal(video.reelTimeline(1, 60).perPhoto, 5, "photos stay up at most 5 seconds");
+});
+
+test("labels: order ids, address lines and cash to collect", async () => {
+  const labels = await import("../src/lib/labels.ts");
+  assert.deepEqual(labels.parseOrderIds("abc123def,abc123def, bad id ,x,cl0123456"), ["abc123def", "cl0123456"]);
+  assert.equal(labels.parseLabelFormat("a4"), "a4");
+  assert.equal(labels.parseLabelFormat("zzz"), "label");
+  assert.deepEqual(labels.addressLines({ street: "12 Admiralty Way", city: "Lekki", state: "Lagos", country: "NG" }), ["12 Admiralty Way", "Lekki, Lagos"]);
+  assert.deepEqual(labels.addressLines({}), []);
+  assert.deepEqual(labels.addressLines({ street: "1 Ring Rd", city: "Accra", country: "Ghana" }), ["1 Ring Rd", "Accra", "Ghana"]);
+  assert.equal(labels.amountToCollect({ status: "pending", total: 21000 }), 21000);
+  assert.equal(labels.amountToCollect({ status: "paid", total: 21000 }), 0);
+  assert.equal(labels.itemCount([{ quantity: 2 }, { name: "x" }]), 3);
+});
+
+test("app → web handoff only follows same-site paths and well-formed tokens", async () => {
+  const handoff = await import("../src/lib/auth/handoff.ts");
+  assert.equal(handoff.handoffNextPath("/home/orders/abc?x=1"), "/home/orders/abc?x=1");
+  for (const bad of ["//evil.com", "/\\evil.com", "https://evil.com", "javascript:alert(1)", "", null, "/home\r\nSet-Cookie: x"]) {
+    assert.equal(handoff.handoffNextPath(bad), "/home", String(bad));
+  }
+  assert.equal(handoff.readHandoffToken("#t=aaa.bbb.ccc"), "aaa.bbb.ccc");
+  assert.equal(handoff.readHandoffToken("#t=not-a-jwt"), null);
+  assert.equal(handoff.readHandoffToken(""), null);
+});

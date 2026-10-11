@@ -240,6 +240,8 @@ model Store {
   broadcastCampaigns BroadcastCampaign[]
   automations    AutomationRule[]
   launchPayments StoreLaunchPayment[]
+  affiliates     Affiliate[]
+  adCampaigns    AdCampaign[]
 
   @@index([slug])
   @@index([userId])
@@ -1533,18 +1535,27 @@ model RetailOrder {
   trackingCode    String?
   logisticsDetails Json?
   campaignToken   String? // CampaignRecipient.token of the email that brought the buyer; credited once paid
-  channel         String? // whatsapp | instagram | facebook | tiktok | email | online_store (shared/channels.ts)
+  channel         String? // whatsapp | instagram | facebook | tiktok | email | online_store | in_person (shared/channels.ts)
+  paymentMethod   String? // paystack | cash | transfer | pos | pay_on_delivery (null = paystack checkout)
+  affiliateId     String?
+  affiliateCommission Float? // naira owed to the affiliate once the order is delivered
+  affiliatePaidAt DateTime?
+  adCampaignId    String?
   shippedAt       DateTime?
   deliveredAt     DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  store Store @relation(fields: [storeId], references: [id])
+  store      Store       @relation(fields: [storeId], references: [id])
+  affiliate  Affiliate?  @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
+  adCampaign AdCampaign? @relation(fields: [adCampaignId], references: [id], onDelete: SetNull)
 
   @@index([storeId])
   @@index([buyerEmail])
   @@index([status])
   @@index([paystackRef])
+  @@index([affiliateId])
+  @@index([adCampaignId])
 }
 
 model AbandonedCartEvent {
@@ -1670,4 +1681,53 @@ model CampaignRecipient {
   @@unique([campaignId, email])
   @@index([storeId])
   @@index([campaignId, status])
+}
+
+// ─── Affiliates (creators earn a share of delivered orders from their link) ───
+
+model Affiliate {
+  id             String   @id @default(cuid())
+  storeId        String
+  name           String
+  phone          String?
+  email          String?
+  code           String // ?aff=<code> on any store link
+  commissionRate Float    @default(10) // percent of the order's item total after discounts
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  store  Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders RetailOrder[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+}
+
+// ─── Ads (Peggy writes the ad; the seller runs it; we track clicks and orders) ─
+
+model AdCampaign {
+  id             String    @id @default(cuid())
+  storeId        String
+  storeProductId String?
+  code           String    @unique // /r/ad/<code> tracking link
+  platform       String // instagram | facebook | tiktok | whatsapp_status
+  destination    String    @default("whatsapp") // whatsapp | store
+  headline       String
+  primaryText    String
+  imageUrl       String?
+  dailyBudget    Float     @default(0)
+  days           Int       @default(5)
+  spend          Float     @default(0) // logged by the seller
+  clicks         Int       @default(0)
+  status         String    @default("draft") // draft | running | paused | ended
+  startedAt      DateTime?
+  pausedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  store  Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders RetailOrder[]
+
+  @@index([storeId])
 }

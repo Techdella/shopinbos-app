@@ -121,8 +121,24 @@ Status: built against the "Seller app · web" and "Seller app · iOS and Android
 - [x] Order channel tracking (`RetailOrder.channel` from `?ref=` / `utm_source`) and a storefront visit beacon for "Visitors".
 - [x] Expo app: home, Products, Chats, Orders and More tabs, the orange "+" for adding products from photos, and native Ask Peggy (`POST /api/app/peggy`).
 - [x] Applied `docs/migrations/2026-10-11-order-channel.sql` to the live database (2026-10-11).
-- [ ] Restyle inner seller pages (orders, products, customers…) to the new design; build Ads, Video studio, Affiliates and Labels and print, which the mockup's nav shows.
+- [ ] Restyle inner seller pages (orders, products, customers…) to the new design.
+- [x] Build Ads, Video studio, Affiliates and Labels and print (Phase 10).
 - [ ] Bring the inbox to the app (needs buyer conversations, today only supplier/logistics messages and contact forms exist).
+
+### Phase 10 - Seller Growth Tools, Record a Sale, App Handoff (web + Expo)
+
+Status: built and verified locally (production build, route smoke incl. write flows, Playwright walkthrough).
+
+- [x] Record a sale: `/home/orders/new` (web) and the app's "Record sale" screen, both `POST /api/app/orders` (`src/lib/orders/record-sale.ts`, rules in `shared/sales.ts`). Catalogue items lower stock; payment cash/transfer/POS/not paid; collected or to deliver; channel incl. "In person". `PATCH /api/app/orders/:id {status:"paid"}` marks unpaid orders paid.
+- [x] Native order details in the app (`/order/[id]`): mark paid, remind on WhatsApp, mark sent/delivered, cancel, call or WhatsApp the buyer; booking a rider and labels open the web.
+- [x] App → web handoff: the app opens web tools via `/auth/handoff#t=<access token>`, so sellers aren't asked to log in again. Only the access token is shared (the app keeps its refresh token), so the web session lasts up to an hour and each open starts a fresh one.
+- [x] Labels and print (`/home/labels`, `/home/labels/print`): 4×6 in or A4 (4 per page) labels with logo, address, pay-on-delivery amount and a tracking QR, plus packing slips.
+- [x] Affiliates (`/home/affiliates`, `/api/app/affiliates`): creator links `?aff=<code>`, credited at checkout for 30 days, commission on the item total after discounts, earned on delivery, marked paid by the seller.
+- [x] Ads (`/home/ads`, `/api/app/ads`, `/r/ad/<code>`): Peggy writes the ad; the seller runs it on Instagram/Facebook/TikTok/WhatsApp status with the tracking link; we count taps and orders (`?ad=` at checkout), take logged spend for cost per order, and flag no orders by day 2. We don't buy ads on the seller's behalf.
+- [x] Video studio (`/home/video`): photos → 9:16 reel rendered in the browser (canvas + MediaRecorder; MP4 where supported, else WebM), Peggy's captions/voiceover in English, Pidgin, Yorùbá or Hausa (`/api/ai/video-script`), OpenAI TTS voiceover (`/api/ai/voiceover`, needs `OPENAI_API_KEY`), save to the product's video.
+- [x] Fixed: `PATCH /api/store/products/:id` reset images, specs and FAQs to empty when a client sent only some fields (Zod defaults on a partial schema).
+- [ ] Apply `docs/migrations/2026-10-11-growth-tools.sql` to the live database.
+- [ ] Have a native speaker check the starter Yorùbá and Hausa reel lines in `shared/video.ts` (used when AI is unavailable).
 
 ## Current Todos
 

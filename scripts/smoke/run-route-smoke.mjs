@@ -166,6 +166,8 @@ const apiChecks = [
   ["/api/app/shell-counts", "seller", true],
   ["/api/app/shell-counts", "supplier", true],
   ["/api/app/payout-bank", "seller", true],
+  ["/api/app/affiliates", "seller", true],
+  ["/api/app/ads", "seller", true],
   // A seller still in onboarding must reach the API, not be redirected to the onboarding page.
   ["/api/app/onboarding", "new_seller", true],
   ["/api/app/store", "new_seller", true],
@@ -178,6 +180,57 @@ const apiChecks = [
   logistics && [`/api/admin/logistics-partners/${logistics.id}/documents`, "admin"],
 ].filter(Boolean);
 for (const [url, role, requireOk] of apiChecks) await check(url, role, results, requireOk);
+
+// Write flows for the seller growth tools: record a sale, creators, ads, the ad link and the video script.
+async function call(method, url, role, body, expect) {
+  const headers = { "content-type": "application/json", ...(role ? { authorization: `Bearer ${TOKENS[role]}` } : {}) };
+  try {
+    const res = await fetch(`${BASE_URL}${url}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
+    const json = res.headers.get("content-type")?.includes("json") ? await res.json().catch(() => null) : null;
+    const ok = expect.includes(res.status);
+    results.push({ url: `${method} ${url}`, role: role ?? "guest", status: res.status, ok, note: ok ? "" : JSON.stringify(json?.error ?? "").slice(0, 160) });
+    return { status: res.status, data: json?.data, location: res.headers.get("location") };
+  } catch (error) {
+    results.push({ url: `${method} ${url}`, role: role ?? "guest", status: 0, ok: false, note: String(error) });
+    return { status: 0 };
+  }
+}
+
+const sale = await call("POST", "/api/app/orders", "seller", {
+  buyerName: "Smoke Buyer", buyerPhone: "08031234567", items: [{ name: "Hand-made tote", price: 12000, quantity: 2 }],
+  payment: "unpaid", delivery: "collected", channel: "in_person",
+}, [201]);
+if (sale.data?.id) {
+  const paid = await call("PATCH", `/api/app/orders/${sale.data.id}`, "seller", { status: "paid", paymentMethod: "cash" }, [200]);
+  if (paid.data && paid.data.status !== "delivered") results.push({ url: "record sale → paid", role: "seller", status: 0, ok: false, note: `expected delivered, got ${paid.data.status}` });
+}
+await call("POST", "/api/app/orders", "seller", { buyerName: "", items: [], payment: "cash", delivery: "collected", channel: "in_person" }, [400]);
+await call("POST", "/api/app/orders", "supplier", { buyerName: "x" }, [403]);
+
+const creator = await call("POST", "/api/app/affiliates", "seller", { name: `Smoke Creator ${Date.now()}`, commissionRate: 12 }, [201]);
+if (creator.data?.id) {
+  await call("PATCH", `/api/app/affiliates/${creator.data.id}`, "seller", { markPaid: true, active: false }, [200]);
+  await call("DELETE", `/api/app/affiliates/${creator.data.id}`, "seller", undefined, [200]);
+}
+
+const productId = params.__api.store && (await (async () => {
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const row = await pool.query(`select id from "StoreProduct" where "storeId" = $1 order by "createdAt" limit 1`, [params.__api.store.id]).catch(() => ({ rows: [] }));
+  await pool.end();
+  return row.rows[0]?.id;
+})());
+if (productId) {
+  const ad = await call("POST", "/api/app/ads", "seller", { productId, platform: "instagram", destination: "store", dailyBudget: 2000, days: 5 }, [201]);
+  if (ad.data?.code) {
+    await call("PATCH", `/api/app/ads/${ad.data.id}`, "seller", { status: "running", spend: 4000 }, [200]);
+    const tap = await call("GET", `/r/ad/${ad.data.code}`, null, undefined, [302, 307]);
+    if (tap.location && !tap.location.includes(`ad=${ad.data.code}`)) results.push({ url: "ad link lands with ?ad=", role: "guest", status: 0, ok: false, note: tap.location });
+    await call("DELETE", `/api/app/ads/${ad.data.id}`, "seller", undefined, [200]);
+  }
+}
+await call("POST", "/api/ai/video-script", "seller", { name: "Linen set", price: "₦29,500", language: "pidgin", photos: 3 }, [200]);
+// No OpenAI key in smoke runs: the voiceover says so instead of failing.
+await call("POST", "/api/ai/voiceover", "seller", { text: "Hello", language: "english" }, [200, 503]);
 
 const failures = results.filter((r) => !r.ok);
 for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${String(r.status).padEnd(3)} ${r.role.padEnd(17)} ${r.url} ${r.note}`);

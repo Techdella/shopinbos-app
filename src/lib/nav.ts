@@ -25,8 +25,8 @@ export interface NavGroup {
 }
 
 export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
-  // Seller nav follows the 2026 "Seller app · web" mockup. Mockup items without a page yet (Ads, Video studio,
-  // Affiliates, Labels and print) are left out; existing pages the mockup doesn't show live under "More tools".
+  // Seller nav follows the 2026 "Seller app · web" mockup. Existing pages the mockup doesn't show live under
+  // "More tools" (Campaigns stays under Marketing: it's where broadcasts are sent).
   seller: [
     {
       group: "main",
@@ -70,8 +70,11 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       label: "Marketing",
       items: [
         { id: "marketing",       label: "Overview",        icon: "chart",     href: "/home/marketing" },
-        { id: "campaigns",       label: "Campaigns",       icon: "megaphone", href: "/home/marketing/campaigns" },
+        { id: "ads",             label: "Ads",             icon: "rocket",    href: "/home/ads" },
+        { id: "video",           label: "Video studio",    icon: "play",      href: "/home/video", tag: "AI" },
         { id: "discounts",       label: "Discounts",       icon: "percent",   href: "/home/discounts" },
+        { id: "affiliates",      label: "Affiliates",      icon: "link",      href: "/home/affiliates" },
+        { id: "campaigns",       label: "Campaigns",       icon: "megaphone", href: "/home/marketing/campaigns" },
         { id: "sell-everywhere", label: "Sell everywhere", icon: "globe",     href: "/home/social" },
       ],
     },
@@ -81,6 +84,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       items: [
         { id: "money",    label: "Money",    icon: "coin",  href: "/home/payments" },
         { id: "delivery", label: "Delivery", icon: "truck", href: "/home/logistics" },
+        { id: "labels",   label: "Labels and print", icon: "tag", href: "/home/labels" },
         { id: "reports",  label: "Reports",  icon: "chart", href: "/home/insights" },
       ],
     },
