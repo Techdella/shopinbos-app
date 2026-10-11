@@ -1,4 +1,5 @@
--- APPLIED to Supabase project "shopinbos" on 2026-10-11 as migration schedule_campaign_cron.
+-- APPLIED to Supabase project "shopinbos" on 2026-10-11 as migrations schedule_campaign_cron and
+-- point_campaign_cron_to_app_domain (job targets https://app.shopinbos.com).
 --
 -- Scheduled campaigns need something to call GET /api/cron/campaigns regularly. Vercel's Hobby (free)
 -- plan only allows daily crons, so Supabase pg_cron + pg_net call it every 5 minutes instead (free).
@@ -27,7 +28,7 @@ select cron.schedule(
   '*/5 * * * *',
   $$
   select net.http_get(
-    url := 'https://shopinbos-app.vercel.app/api/cron/campaigns',
+    url := 'https://app.shopinbos.com/api/cron/campaigns',
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
     ),
