@@ -1,0 +1,88 @@
+"use client";
+
+import type { StoreEditorSnapshot } from "@/lib/store-templates";
+import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
+import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
+import type { StudioChange } from "./types";
+
+// Browser calls for Rex Studio. They rely on the Supabase session cookie.
+
+async function readError(response: Response, fallback: string) {
+  const type = response.headers.get("content-type") ?? "";
+  if (!type.includes("application/json")) return response.status === 401 ? "Your session has ended. Log in again to carry on." : fallback;
+  const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+  return body?.error?.message ?? fallback;
+}
+
+const json = (payload: unknown): RequestInit => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+
+export async function askRexStudio(input: { message: string; history: Array<{ role: "user" | "assistant"; content: string }>; imageUrls: string[] }): Promise<StudioChange> {
+  const response = await fetch("/api/ai/build-store/studio", json(input));
+  if (!response.ok) throw new Error(await readError(response, "Rex couldn't make that change. Nothing was changed; try again."));
+  return ((await response.json()) as { data: StudioChange }).data;
+}
+
+/** "Build my store": the full Rex build (design, pages, sample products, images), saved as a draft version. */
+export async function buildWholeStore(input: {
+  request: string;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+  brief?: string;
+  brandContext: Record<string, unknown>;
+  templateContext?: { templateId: string; templateName: string } | null;
+}) {
+  const response = await fetch(
+    "/api/ai/build-store",
+    json({
+      messages: [...input.history, { role: "user", content: input.request }].slice(-30),
+      brief: input.brief,
+      brandContext: input.brandContext,
+      templateContext: input.templateContext ?? undefined,
+      versionLabel: input.request,
+    }),
+  );
+  if (!response.ok) throw new Error(await readError(response, "Rex couldn't build the store. Nothing was published; try again."));
+  const { data } = (await response.json()) as {
+    data: {
+      draft: StoreEditorSnapshot;
+      notes: string[];
+      products: Array<{ name: string }>;
+      pages: Array<{ title: string }>;
+      images: { hero: string | null; product: string | null };
+      version?: { id: string; n: number };
+      undoTo?: string | null;
+      versions?: RexVersionSummary[];
+    };
+  };
+  return data;
+}
+
+export async function restoreVersion(id: string) {
+  const response = await fetch("/api/ai/build-store/versions", json({ action: "restore", id }));
+  if (!response.ok) throw new Error(await readError(response, "Couldn't restore that version."));
+  return ((await response.json()) as { data: { draft: StoreEditorSnapshot; restored: { id: string; n: number }; versions: RexVersionSummary[] } }).data;
+}
+
+export type PublishResult =
+  | { ok: true }
+  | { ok: false; billing: StoreLaunchPricing }
+  | { ok: false; message: string; blockers: string[] };
+
+/** Same publish path as the advanced builder. */
+export async function publishDraft(): Promise<PublishResult> {
+  const response = await fetch("/api/store/editor/publish", { method: "POST" });
+  const body = (await response.json().catch(() => null)) as { billing?: StoreLaunchPricing; error?: { message?: string; blockers?: string[] } } | null;
+  if (response.status === 402 && body?.billing) return { ok: false, billing: body.billing };
+  if (!response.ok) return { ok: false, message: body?.error?.message ?? "Couldn't publish. Try again.", blockers: body?.error?.blockers ?? [] };
+  return { ok: true };
+}
+
+/** Uploads a photo to the store's media and returns its public URL. */
+export async function uploadStudioPhoto(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  body.append("folder", "store-banners");
+  const response = await fetch("/api/upload", { method: "POST", body });
+  const result = (await response.json().catch(() => null)) as { data?: { publicUrl?: string }; error?: { message?: string } } | null;
+  if (!response.ok || !result?.data?.publicUrl) throw new Error(result?.error?.message ?? "That photo didn't upload. Try another one.");
+  return result.data.publicUrl;
+}

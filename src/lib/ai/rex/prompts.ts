@@ -136,3 +136,62 @@ Reply with ONE JSON object only (no prose, no Markdown), with exactly these keys
 
 Use the seller's real business, products and location. Prices use the local currency symbol (₦ for Nigeria, GH₵ for Ghana, KSh for Kenya). heroBg/heroText and ctaBg/ctaText must contrast strongly; paperBg is a soft off-white.`;
 }
+
+export interface RexStudioPromptInput {
+  storeName: string;
+  location: string;
+  currency: string;
+  description: string;
+  memory: { category?: string; businessDescription?: string; customers?: string; vibe?: string; languages?: string[] };
+  theme: { id: string; name: string };
+  themes: Array<{ id: string; name: string; description: string }>;
+  allowedKinds: string[];
+  /** The draft as Rex should see it: pages, sections and their words. */
+  draft: unknown;
+  products: Array<{ name: string; price: string; hasPhoto: boolean }>;
+  facts: string[];
+  /** Pictures the seller attached to this message (already uploaded to the store's media). */
+  imageUrls: string[];
+}
+
+/** System prompt for Rex Studio: edit the live preview (the draft) with a JSON plan. */
+export function rexStudioSystemPrompt(input: RexStudioPromptInput) {
+  const memoryLines = [
+    input.memory.category ? `What they sell: ${input.memory.category}` : "",
+    input.memory.businessDescription ? `About the business: ${input.memory.businessDescription}` : "",
+    input.memory.customers ? `Customers: ${input.memory.customers}` : "",
+    input.memory.vibe ? `Brand feel they want: ${input.memory.vibe}` : "",
+    input.memory.languages?.length ? `Languages: ${input.memory.languages.join(", ")}` : "",
+  ].filter(Boolean);
+  return `You are Rex, the store designer inside Shopinbos Rex Studio. The seller chats with you while looking at a live preview of their store's DRAFT. You change the draft by replying with a JSON plan. Nothing reaches shoppers until the seller presses Publish, so never say you published anything.
+
+Store: ${input.storeName}${input.location ? ` (${input.location})` : ""}. Currency: ${input.currency}.${input.description ? `\nStore description: ${input.description.slice(0, 600)}` : ""}${memoryLines.length ? `\n${memoryLines.map((line) => `- ${line.slice(0, 600)}`).join("\n")}` : ""}
+
+Current theme: ${input.theme.name} (id "${input.theme.id}").
+Themes you can switch to (use the id): ${input.themes.map((theme) => `"${theme.id}" ${theme.name}: ${theme.description}`).join(" | ")}
+
+Real products (you cannot change products or prices; never invent products, prices, discounts, reviews, delivery times or awards):
+${input.products.length ? input.products.map((product) => `- ${product.name}, ${product.price}${product.hasPhoto ? "" : " (no photo yet)"}`).join("\n") : "- none yet"}
+
+Store facts: ${input.facts.join("; ")}
+${input.imageUrls.length ? `\nThe seller attached these pictures (use them as "imageUrl" where they asked): ${input.imageUrls.join(", ")}` : ""}
+
+The draft right now (pages, sections with their id, kind and words):
+${JSON.stringify(input.draft).slice(0, 14000)}
+
+Section kinds this theme can show: ${input.allowedKinds.join(", ")}.
+- "testimonials" shows the store's real approved reviews only. Add it, but never write review quotes.
+- "payday-countdown" counts down to payday (the 25th); only mention a discount the seller gave you.
+- "faq" items are {"question","answer"}; leave an answer empty to fill it from the store's delivery or payment settings.
+- Copy keys: hero-split {eyebrow,title,body,primaryCta}; story-split {eyebrow,title,body,primaryCta}; newsletter {title,body,buttonLabel}; text-columns {title,body} with items [{title,body}]; promo-banner {title,body,cta}.
+
+Reply with ONE JSON object only, no Markdown:
+{"reply": "1-3 short sentences in plain words explaining what you changed and why",
+ "theme": null or a theme id to switch to,
+ "tokens": null or {"heroBg","heroText","accent","ctaBg","ctaText","paperBg","cardBg","ink","muted","border": "#RRGGBB", "headingStyle": "serif"|"grotesk", "radius": "soft"|"rounded"|"sharp"} (only the ones you change),
+ "tokensSummary": "short past-tense line, e.g. Gold accents and serif headings",
+ "pages": [{"page": "about", "title": "About us", "metaTitle": "...", "metaDescription": "..."}] (to add a page or fix its search title/description),
+ "ops": [{"action": "update"|"add"|"remove"|"hide"|"show", "page": "home", "kind": "hero-split", "sectionId": "optional id from the draft", "copy": {...}, "items": [...], "imageUrl": "https://...", "position": "top"|"bottom", "summary": "short past-tense line for the seller, e.g. Wrote the homepage in Pidgin"}]}
+
+Rules: change only what the seller asked; keep everything else. Write in the seller's language and voice (Nigerian Pidgin when asked). Keep headlines short. When you add a section always give it a title and body. Contrast must stay readable. If the request is a question or you can't do it here (products, prices, delivery fees, payments, domains), answer in "reply", leave ops empty, and say where in Shopinbos they can do it. Do not use emojis.`;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Icon } from "@/components/ui/Icon";
 
 const MEMORY_KEY = "shopinbos-rex-memory";
 
@@ -85,40 +86,28 @@ export function RexMemoryIndicator() {
 
   const items = [
     memory.storeName && `Store: ${memory.storeName}`,
-    memory.category && `Category: ${memory.category}`,
-    memory.productsAdded && "✓ Products added",
-    memory.pagesCreated && "✓ Pages created",
-    memory.storePublished && "✓ Published",
-  ].filter(Boolean);
+    memory.category && `Sells: ${memory.category}`,
+    memory.productsAdded && "Products added",
+    memory.pagesCreated && "Pages written",
+    memory.storePublished && "Published",
+  ].filter((item): item is string => Boolean(item));
 
   if (items.length === 0) return null;
 
   return (
-    <div style={{
-      position: "fixed", bottom: 16, right: 16, zIndex: 9998,
-      padding: "12px 16px", borderRadius: 12,
-      background: "var(--paper)",
-      border: "1px solid var(--ink-150)",
-      boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-      fontSize: 12, color: "var(--ink-700)",
-      maxWidth: 240,
-    }}>
-      <div style={{ fontWeight: 600, fontSize: 11, color: "var(--teal-700)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        Rex remembers
-      </div>
-      {items.map((item, i) => (
-        <div key={i} style={{ padding: "2px 0" }}>{item}</div>
-      ))}
-      <button
-        onClick={clear}
-        style={{
-          background: "none", border: "none", cursor: "pointer",
-          fontSize: 11, color: "var(--ink-400)", textDecoration: "underline",
-          padding: 0, marginTop: 4,
-        }}
-      >
+    <aside aria-label="What Rex remembers" className="fixed bottom-4 right-4 z-[9998] w-[240px] max-w-[calc(100vw-32px)] rounded-[18px] border border-app-line bg-white px-4 py-3 font-app text-[13px] text-app-ink shadow-[0_6px_18px_rgba(22,20,31,0.08)]">
+      <p className="m-0 mb-1.5 text-[13px] font-extrabold">Rex remembers</p>
+      <ul className="m-0 grid list-none gap-1 p-0">
+        {items.map((item) => (
+          <li key={item} className="flex items-center gap-1.5">
+            <Icon name="check" size={12} className="shrink-0 text-app-success" />
+            <span className="truncate">{item}</span>
+          </li>
+        ))}
+      </ul>
+      <button type="button" onClick={clear} className="mt-2 min-h-[32px] p-0 text-[12.5px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
         Clear memory
       </button>
-    </div>
+    </aside>
   );
 }

@@ -14,7 +14,8 @@ import type { ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
-import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
+import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout } from "./look";
 
 interface Props {
   themeId: BoutiqueThemeId;
@@ -39,7 +40,7 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/** The live product page for Breeze, Noir and Plain stores. */
+/** The live product page for the 2026 theme stores. */
 export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews, avgRating, reviewCount, catalog, shopper, storeBasePath }: Props) {
   const router = useRouter();
   const cart = useCart(store.slug);
@@ -57,7 +58,9 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
 
   const home = snapshot.pages.find((page) => page.pageType === "home") ?? snapshot.pages[0];
   const sections = (home?.sections ?? []).filter((section) => section.visible !== false);
-  const headerCopy = copyOf(sections.find((section) => section.kind === "header"));
+  const headerSection = sections.find((section) => section.kind === "header");
+  const headerCopy = copyOf(headerSection);
+  const headerLayout = typeof headerSection?.settings?.layout === "string" ? headerSection.settings.layout : "";
   const announcementSection = sections.find((section) => section.kind === "announcement-bar");
   const announcement = announcementSection ? text(copyOf(announcementSection).text) || shopper.announcement : null;
   const footerSection = sections.find((section) => section.kind === "footer");
@@ -98,7 +101,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const searchable = catalog.some((entry) => entry.id === product.id) ? catalog : [product, ...catalog];
 
   return (
-    <div className="bq" style={{ ...lookVars(look), minHeight: "100vh" }}>
+    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} style={{ ...lookVars(look), minHeight: "100vh" }}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to product</a>
       <AnnouncementBar text={announcement} look={look} />
@@ -117,7 +120,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         cartCount={cart.count}
         wishlistCount={wishlist.productIds.length}
         cartLabel={cartLabel}
-        centred={themeId === "plain"}
+        centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
       />
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         <BoutiqueProductView

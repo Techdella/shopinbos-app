@@ -1,13 +1,13 @@
-// Breeze, Noir and Plain: the 2026 storefront themes. They are ordinary template manifests (so
+// The 2026 storefront themes (Breeze, Noir, Plain, Adire, Pantry, Ilé, Plug, Stride). They are ordinary template manifests (so
 // /builder/templates, the editor and Rex can pick them), rendered by the boutique storefront renderer
 // (src/components/storefront/boutique). Seeds carry no stock photos and no invented reviews or offers:
 // imagery comes from the seller's products or uploads, proof from real reviews, promises from settings.
 
 import type { StoreTemplateManifest, TemplateBlockNode, TemplatePageSeed, TemplateSectionNode, ThemeTokenSet } from "./types";
 
-export type BoutiqueThemeId = "breeze" | "noir" | "plain";
+export type BoutiqueThemeId = "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride";
 
-export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = ["breeze", "noir", "plain"];
+export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride"];
 
 export function isBoutiqueTheme(templateId: string | null | undefined): templateId is BoutiqueThemeId {
   return typeof templateId === "string" && (BOUTIQUE_THEME_IDS as readonly string[]).includes(templateId);
@@ -70,6 +70,76 @@ export const BOUTIQUE_THEME_TOKENS: Record<BoutiqueThemeId, ThemeTokenSet> = {
     headingStyle: "grotesk",
     radius: "sharp",
   },
+  adire: {
+    heroBg: "#2B1D14",
+    heroText: "#FFFFFF",
+    accent: "#B8612F",
+    ctaBg: "#2B1D14",
+    ctaText: "#F3ECE5",
+    paperBg: "#F3ECE5",
+    cardBg: "#EADFD3",
+    ink: "#2B1D14",
+    muted: "#76604F",
+    border: "#DDCFC1",
+    headingStyle: "serif",
+    radius: "sharp",
+  },
+  pantry: {
+    heroBg: "#E2541B",
+    heroText: "#FFF8EA",
+    accent: "#E2541B",
+    ctaBg: "#E2541B",
+    ctaText: "#FFFFFF",
+    paperBg: "#FFF8EA",
+    cardBg: "#FFEBC2",
+    ink: "#3A1E0B",
+    muted: "#7A5B43",
+    border: "#EFD9AF",
+    headingStyle: "grotesk",
+    radius: "rounded",
+  },
+  ile: {
+    heroBg: "#DCE5DE",
+    heroText: "#1F2A24",
+    accent: "#5E7464",
+    ctaBg: "#1F2A24",
+    ctaText: "#F4F6F2",
+    paperBg: "#F4F6F2",
+    cardBg: "#E6EDE8",
+    ink: "#1F2A24",
+    muted: "#5F6B63",
+    border: "#D5DED7",
+    headingStyle: "serif",
+    radius: "soft",
+  },
+  plug: {
+    heroBg: "#0B0C10",
+    heroText: "#F2F4F7",
+    accent: "#5B8CFF",
+    ctaBg: "#5B8CFF",
+    ctaText: "#FFFFFF",
+    paperBg: "#111318",
+    cardBg: "#1A1D24",
+    ink: "#F2F4F7",
+    muted: "#9AA1AC",
+    border: "#2A2E37",
+    headingStyle: "grotesk",
+    radius: "sharp",
+  },
+  stride: {
+    heroBg: "#FF4D1F",
+    heroText: "#FFFFFF",
+    accent: "#FF4D1F",
+    ctaBg: "#141414",
+    ctaText: "#FFFFFF",
+    paperBg: "#FFFFFF",
+    cardBg: "#FDE6DA",
+    ink: "#141414",
+    muted: "#5E5E5E",
+    border: "#EDE3DD",
+    headingStyle: "grotesk",
+    radius: "rounded",
+  },
 };
 
 const NAV = ["home", "products", "about", "contact"];
@@ -79,7 +149,7 @@ function announcement() {
   return section("announcement", "announcement-bar", "Announcement Bar", { text: "" }, { settings: { source: "store-settings" } });
 }
 
-function header(layout: "split" | "centered") {
+function header(layout: "split" | "centered" | "bold") {
   return section("header", "header", "Header", { navLinks: NAV, utilityLinks: ["wishlist", "cart"], cartLabel: "My bag" }, { settings: { layout, search: true, wishlist: true, cart: true } });
 }
 
@@ -96,22 +166,29 @@ function newsletter() {
   });
 }
 
-function bestSellers(layout: "carousel" | "grid") {
-  return section("featured-products", "featured-products", "Best Sellers", { title: "Best sellers", cta: "Shop all" }, { settings: { layout, source: "best-sellers", allowMapping: true } });
+function bestSellers(layout: "carousel" | "tiles", title = "Best sellers") {
+  return section("featured-products", "featured-products", "Best Sellers", { title, cta: "Shop all" }, { settings: { layout, source: "best-sellers", allowMapping: true } });
 }
+
+const HERO_SEEDS: Record<BoutiqueThemeId, { layout: string; eyebrow: string; title: string; primaryCta: string }> = {
+  breeze: { layout: "breeze-banner", eyebrow: "", title: "New season, made for the heat", primaryCta: "Shop new arrivals" },
+  noir: { layout: "noir-center", eyebrow: "", title: "The new edit", primaryCta: "Shop the edit" },
+  plain: { layout: "plain-slides", eyebrow: "New season", title: "The new edit", primaryCta: "Shop now" },
+  adire: { layout: "adire-banner", eyebrow: "", title: "The new collection", primaryCta: "Shop new arrivals" },
+  pantry: { layout: "pantry-split", eyebrow: "Fresh this week", title: "Made to be enjoyed", primaryCta: "Order now" },
+  ile: { layout: "ile-calm", eyebrow: "Home and living", title: "Pieces for a calm home", primaryCta: "Shop the collection" },
+  plug: { layout: "plug-spotlight", eyebrow: "New in", title: "The latest tech, sorted", primaryCta: "Shop now" },
+  stride: { layout: "stride-loud", eyebrow: "New drop", title: "Built to move", primaryCta: "Shop the drop" },
+};
 
 function hero(theme: BoutiqueThemeId): TemplateSectionNode {
-  if (theme === "noir") {
-    return section("hero", "hero-split", "Hero", { eyebrow: "", title: "The new edit", body: "", primaryCta: "Shop the edit" }, { settings: { layout: "noir-center", primaryButtonAction: "products" }, items: [] });
-  }
-  if (theme === "plain") {
-    return section("hero", "hero-split", "Hero", { eyebrow: "New season", title: "The new edit", body: "", primaryCta: "Shop now" }, { settings: { layout: "plain-slides", primaryButtonAction: "products" }, items: [] });
-  }
-  return section("hero", "hero-split", "Hero", { eyebrow: "", title: "New season, made for the heat", body: "", primaryCta: "Shop new arrivals" }, { settings: { layout: "breeze-banner", primaryButtonAction: "products" }, items: [] });
+  const seed = HERO_SEEDS[theme];
+  return section("hero", "hero-split", "Hero", { eyebrow: seed.eyebrow, title: seed.title, body: "", primaryCta: seed.primaryCta }, { settings: { layout: seed.layout, primaryButtonAction: "products" }, items: [] });
 }
 
-function categories(theme: BoutiqueThemeId) {
-  return section("categories", "category-grid", "Shop by Category", { title: "Shop by category" }, { settings: { layout: theme === "breeze" ? "boutique-tiles" : "boutique-circles", source: "store-categories" } });
+function categories(theme: BoutiqueThemeId, title = "Shop by category") {
+  const layout = theme === "plug" ? "chips" : theme === "breeze" || theme === "ile" || theme === "stride" ? "boutique-tiles" : "boutique-circles";
+  return section("categories", "category-grid", "Shop by Category", { title }, { settings: { layout, source: "store-categories" } });
 }
 
 function reviews() {
@@ -134,7 +211,7 @@ function story(theme: BoutiqueThemeId) {
     "story-split",
     "Our Story",
     { eyebrow: "Our studio", title: "Made with care", body: "", primaryCta: "Our story" },
-    { settings: { layout: theme === "noir" ? "noir-split" : "boutique" }, items: [] },
+    { settings: { layout: theme === "noir" ? "noir-split" : theme === "adire" || theme === "ile" ? "editorial" : "boutique" }, items: [] },
   );
 }
 
@@ -161,16 +238,42 @@ function page(theme: BoutiqueThemeId, pageType: TemplatePageSeed["pageType"], ti
     pageType,
     title,
     slug,
-    sections: [announcement(), header(theme === "plain" ? "centered" : "split"), ...body, footer()],
+    sections: [announcement(), header(theme === "plain" || theme === "ile" ? "centered" : theme === "stride" ? "bold" : "split"), ...body, footer()],
     seo: { metaTitle: title === "Home" ? themeName : title, metaDescription: "" },
   };
 }
 
 function homeSections(theme: BoutiqueThemeId): TemplateSectionNode[] {
-  if (theme === "noir") return [hero("noir"), payday(), bestSellers("carousel"), story("noir")];
-  if (theme === "plain") return [hero("plain"), bestSellers("carousel"), faq(), newsletter()];
-  return [hero("breeze"), categories("breeze"), bestSellers("carousel"), reviews(), newsletter()];
+  switch (theme) {
+    case "noir":
+      return [hero("noir"), payday(), bestSellers("carousel"), story("noir")];
+    case "plain":
+      return [hero("plain"), bestSellers("carousel"), faq(), newsletter()];
+    case "adire":
+      return [hero("adire"), bestSellers("carousel"), story("adire"), categories("adire", "Shop the collection"), newsletter()];
+    case "pantry":
+      return [hero("pantry"), categories("pantry", "What are you craving?"), bestSellers("tiles", "Popular right now"), faq(), newsletter()];
+    case "ile":
+      return [hero("ile"), categories("ile", "Shop by room"), bestSellers("tiles", "New in"), story("ile"), newsletter()];
+    case "plug":
+      return [hero("plug"), categories("plug"), bestSellers("carousel", "Top picks"), faq(), newsletter()];
+    case "stride":
+      return [hero("stride"), bestSellers("carousel", "Best sellers"), categories("stride", "Shop by style"), reviews(), newsletter()];
+    default:
+      return [hero("breeze"), categories("breeze"), bestSellers("carousel"), reviews(), newsletter()];
+  }
 }
+
+const PRODUCT_LAYOUT: Record<BoutiqueThemeId, string> = {
+  breeze: "boutique-gallery",
+  noir: "boutique-gallery",
+  plain: "boutique-gallery",
+  adire: "editorial-gallery",
+  pantry: "stacked",
+  ile: "editorial-gallery",
+  plug: "spec-sheet",
+  stride: "wide-gallery",
+};
 
 function buildPages(theme: BoutiqueThemeId, themeName: string): TemplatePageSeed[] {
   return [
@@ -179,8 +282,8 @@ function buildPages(theme: BoutiqueThemeId, themeName: string): TemplatePageSeed
       section("shop-grid", "featured-products", "All Products", { title: "Shop all" }, { settings: { layout: "grid", source: "all", filters: true } }),
     ], themeName),
     page(theme, "product", "Product", "product", [
-      section("product-detail", "product-detail", "Product Detail", { title: "" }, { settings: { layout: "boutique-gallery" } }),
-      section("related", "featured-products", "Explore", { title: "Explore" }, { settings: { layout: "carousel", source: "related" } }),
+      section("product-detail", "product-detail", "Product Detail", { title: "" }, { settings: { layout: PRODUCT_LAYOUT[theme] } }),
+      section("related", "featured-products", "Explore", { title: theme === "pantry" ? "Goes well with" : "Explore" }, { settings: { layout: "carousel", source: "related" } }),
     ], themeName),
     page(theme, "wishlist", "Wishlist", "wishlist", [section("wishlist", "wishlist-grid", "Wishlist", { title: "Your wishlist" })], themeName),
     page(theme, "cart", "Bag", "cart", [section("cart", "cart-summary", "Bag", { title: "Your bag" }, { settings: { drawerVariation: "right-drawer" } })], themeName),
@@ -227,7 +330,73 @@ const DEFINITIONS: Array<{ id: BoutiqueThemeId; name: string; description: strin
       "FAQ answers about delivery and pay on delivery come from the store's own settings",
     ],
   },
+  {
+    id: "adire",
+    name: "Adire",
+    description: "Editorial and photo-led on warm sand: a dark announcement bar, italic serif shop name, a big image banner, a best sellers carousel and an image-with-text story.",
+    tags: ["fashion", "editorial", "serif", "photo-led", "2026"],
+    aiHints: [
+      "Adire: sand page, cocoa ink, rust accent, italic serif shop name, serif headings, outlined pill buttons on photos",
+      "Home order: full-width image banner with a centred serif headline, best sellers carousel with arrows, image with text, collection tiles, newsletter",
+      "Write like a fashion editor: short, sensory headlines (under 7 words)",
+    ],
+  },
+  {
+    id: "pantry",
+    name: "Pantry",
+    description: "Warm and bold for food and drinks: a big split banner in tomato and cream, round category picks, a popular-now grid and delivery answers from your settings.",
+    tags: ["food", "drinks", "warm", "bold", "2026"],
+    aiHints: [
+      "Pantry: cream page, tomato accent, heavy sans headings, rounded cards and pill buttons",
+      "Home order: split hero (bold headline on colour, photo beside it), round category picks, popular products grid, questions, newsletter",
+      "Talk about taste and freshness; never promise delivery times the seller hasn't set",
+    ],
+  },
+  {
+    id: "ile",
+    name: "Ilé",
+    description: "Calm and roomy for home and decor: a centred logo, lots of white space, a quiet headline over a wide photo, rooms as tiles and an editorial story.",
+    tags: ["home", "decor", "furniture", "calm", "2026"],
+    aiHints: [
+      "Ilé: soft sage page, deep green ink, serif headings, generous spacing, soft corners",
+      "Home order: calm hero (headline then wide photo), shop by room tiles, new in grid, image with text, newsletter",
+      "Keep copy quiet and short; let the photos breathe",
+    ],
+  },
+  {
+    id: "plug",
+    name: "Plug",
+    description: "Dark and sharp for gadgets: a spotlight banner with the product on a glow, category chips, a top picks carousel and plain answers about delivery and payment.",
+    tags: ["gadgets", "electronics", "dark", "tech", "2026"],
+    aiHints: [
+      "Plug: near-black page, electric blue accent, sharp corners, mono labels for specs",
+      "Home order: spotlight hero (text left, product right), category chips, top picks carousel, questions, newsletter",
+      "Be specific and factual: model, storage, warranty only when the seller provides it",
+    ],
+  },
+  {
+    id: "stride",
+    name: "Stride",
+    description: "Loud and sporty for shoes: a huge uppercase headline over the photo, best sellers up front, style tiles, real reviews and a big product gallery.",
+    tags: ["shoes", "sneakers", "sport", "loud", "2026"],
+    aiHints: [
+      "Stride: white page, blaze orange accent, heavy italic uppercase headings, black pill buttons",
+      "Home order: loud hero, best sellers carousel, shop by style tiles, customer reviews, newsletter",
+      "Short punchy headlines (2 to 4 words)",
+    ],
+  },
 ];
+
+const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "category" | "layoutFamily">> = {
+  breeze: { category: "fashion", layoutFamily: "minimal-showcase" },
+  noir: { category: "fashion", layoutFamily: "editorial-boutique" },
+  plain: { category: "minimal", layoutFamily: "minimal-showcase" },
+  adire: { category: "fashion", layoutFamily: "editorial-boutique" },
+  pantry: { category: "food", layoutFamily: "food-market" },
+  ile: { category: "furniture", layoutFamily: "home-living" },
+  plug: { category: "electronics", layoutFamily: "electronics-grid" },
+  stride: { category: "fashion", layoutFamily: "fashion-runway" },
+};
 
 export const BOUTIQUE_TEMPLATE_MANIFESTS: StoreTemplateManifest[] = DEFINITIONS.map((definition) => ({
   id: definition.id,
@@ -235,9 +404,9 @@ export const BOUTIQUE_TEMPLATE_MANIFESTS: StoreTemplateManifest[] = DEFINITIONS.
   sourcePack: "Shopinbos 2026 storefront themes",
   sourcePath: `/store-templates/native/${definition.id}`,
   sourceType: "next-template",
-  category: definition.id === "plain" ? "minimal" : "fashion",
+  category: MANIFEST_SHAPE[definition.id].category,
   description: definition.description,
-  layoutFamily: definition.id === "noir" ? "editorial-boutique" : "minimal-showcase",
+  layoutFamily: MANIFEST_SHAPE[definition.id].layoutFamily,
   themeTokens: BOUTIQUE_THEME_TOKENS[definition.id],
   supportedPages: ["home", "products", "product", "cart", "checkout", "wishlist", "about", "contact", "faq"],
   seedPages: buildPages(definition.id, definition.name),

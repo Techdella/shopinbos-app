@@ -254,6 +254,8 @@ export interface BuildStoreResult {
   provider: "anthropic" | "openai" | null;
   pages: WrittenDraft["pages"];
   homePageId: string;
+  /** The editor draft as saved. */
+  draft: StoreEditorSnapshot;
   previewUrl: string;
   products: Array<{ id: string; name: string; retailPrice: number; currency: string; imageUrl: string | null }>;
   images: { hero: string | null; product: string | null };
@@ -385,7 +387,8 @@ export async function buildStore(input: BuildStoreInput): Promise<BuildStoreResu
     provider,
     pages: written.pages,
     homePageId: written.homePageId,
-    previewUrl: written.homePageId ? `/preview/store/${written.store.slug}/${written.homePageId}` : "/builder/rex",
+    draft: written.draft,
+    previewUrl: written.homePageId ? `/preview/store/${written.store.slug}/${written.homePageId}` : "/studio",
     products,
     images,
     notes,

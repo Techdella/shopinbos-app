@@ -23,7 +23,8 @@ import { bestSellers, productCategories, searchProducts, type ShopperProduct } f
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView } from "./BoutiqueProductView";
-import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, type BoutiqueLook } from "./look";
+import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
 
 export interface BoutiqueStore {
@@ -182,6 +183,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const footerSection = [...sections].reverse().find((entry) => entry.kind === "footer");
   const content = sections.filter((entry) => !["announcement-bar", "header", "footer"].includes(entry.kind));
   const headerCopy = copyOf(headerSection);
+  const headerLayout = text(headerSection?.settings?.layout);
   const pageTypes = new Set(snapshot.pages.map((entry) => entry.pageType as string));
   const categories = useMemo(() => productCategories(products), [products]);
   const wished = props.wishlistProductIds;
@@ -272,7 +274,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function hero(section: TemplateSectionNode) {
     const copy = copyOf(section);
-    const layout = text(section.settings?.layout) || (themeId === "noir" ? "noir-center" : themeId === "plain" ? "plain-slides" : "breeze-banner");
+    const layout = text(section.settings?.layout) || look.defaultHero;
     const uploaded = itemImages(section);
     const fromProducts = products.map((product) => product.images[0]).filter(Boolean) as string[];
     const slides = (uploaded.length ? uploaded : fromProducts).slice(0, 3);
@@ -284,6 +286,98 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const headingId = `${uid}-hero`;
 
     const img = image ? <img src={image} alt="" width={1600} height={900} loading="eager" fetchPriority="high" decoding="async" /> : null;
+
+    const eyebrow = text(copy.eyebrow);
+
+    if (layout === "adire-banner") {
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: image ? look.placeholder : "#9A928A" }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "rgba(20,12,6,.38)" : "transparent" }} />
+            <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 pb-10 text-center text-white">
+              {eyebrow ? <p className="text-[12px] uppercase" style={{ letterSpacing: "0.22em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[980px]" style={{ ...look.headingStyle, fontWeight: 500, fontSize: "clamp(34px, 6cqi, 72px)", lineHeight: 1.04 }}>{title}</h1>
+              {body ? <p className="max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
+              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#fff", border: "1.5px solid #fff", borderRadius: 999 }} onClick={() => go(action)}>{cta}</button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "pantry-split") {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-4">
+          <div className="bq-split-hero overflow-hidden" style={{ borderRadius: look.cardRadius + 8 }}>
+            <div className="flex flex-col justify-center gap-4 px-6 py-10 @3xl:px-12" style={{ background: t.heroBg, color: t.heroText }}>
+              {eyebrow ? <p className="text-[13px] font-bold uppercase" style={{ letterSpacing: "0.14em", opacity: 0.85 }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.5cqi, 76px)", lineHeight: 0.98 }}>{title}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] opacity-90">{body}</p> : null}
+              <div>
+                <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go(action)}>{cta}</button>
+              </div>
+            </div>
+            <div className="bq-media" style={{ aspectRatio: "4 / 3", minHeight: "100%" }}>{img}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ile-calm") {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pb-4 pt-12 @3xl:pt-20">
+          <div className="grid gap-5 @3xl:grid-cols-[1.2fr_1fr] @3xl:items-end">
+            <div>
+              {eyebrow ? <p className="text-[12.5px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h mt-3 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 68px)", lineHeight: 1.04 }}>{title}</h1>
+            </div>
+            <div className="flex flex-col items-start gap-4">
+              {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go(action)}>{cta}</button>
+            </div>
+          </div>
+          <div className="bq-media mt-10" style={{ aspectRatio: "16 / 9", borderRadius: look.cardRadius }}>{img}</div>
+        </section>
+      );
+    }
+
+    if (layout === "plug-spotlight") {
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 py-12 @3xl:grid-cols-2 @3xl:items-center @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="text-[12px] uppercase" style={{ fontFamily: look.eyebrowFont, color: t.accent, letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 66px)", lineHeight: 1.02 }}>{title}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px]" style={{ color: t.muted }}>{body}</p> : null}
+              <div className="flex flex-wrap gap-3">
+                <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go(action)}>{cta}</button>
+              </div>
+            </div>
+            <div className="relative grid place-items-center" style={{ aspectRatio: "1 / 1", borderRadius: look.cardRadius, background: `radial-gradient(circle at 50% 45%, ${t.accent}40, transparent 62%), ${t.cardBg}`, border: `1px solid ${t.border}` }}>
+              {image ? <img src={image} alt="" width={900} height={900} loading="eager" fetchPriority="high" decoding="async" className="h-[78%] w-[78%] object-contain" /> : <Icon name="image" size={40} color={t.border} />}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "stride-loud") {
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: image ? look.placeholder : t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 55%)" : "transparent" }} />
+            <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 text-white">
+              {eyebrow ? <p className="px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: image ? t.accent : t.ink, letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 10cqi, 140px)", lineHeight: 0.9 }}>{title}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] font-medium opacity-90">{body}</p> : null}
+              <button type="button" className="bq-btn" style={{ background: "#fff", color: t.ink, border: "1.5px solid #fff", borderRadius: 999, textTransform: "uppercase", fontWeight: 800 }} onClick={() => go(action)}>{cta}</button>
+            </div>
+          </div>
+        </section>
+      );
+    }
 
     if (layout === "noir-center") {
       return (
@@ -358,6 +452,21 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, onSelect: () => shopCategory(category.slug) }));
     if (!tiles.length) return editorHint("Category tiles appear once your products have categories or you create collections.");
     const headingId = `${uid}-${section.id}`;
+    if (section.settings?.layout === "chips") {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-8">
+          <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
+          <div className="bq-chips">
+            {tiles.map((tile) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className="inline-flex min-h-[44px] shrink-0 items-center gap-2 border px-4 text-[14px] font-medium" style={{ borderColor: t.border, background: look.raised, color: t.ink, borderRadius: look.buttonRadius, cursor: "pointer" }}>
+                {tile.image ? <img src={tile.image} alt="" width={28} height={28} loading="lazy" className="h-7 w-7 rounded-[4px] object-cover" /> : null}
+                {tile.name}
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
     return (
       <section aria-labelledby={headingId} className="bq-wrap pt-8">
         <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
@@ -405,7 +514,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <button type="button" className="bq-icon-btn border" style={{ borderColor: t.border, width: 36, height: 36 }} onClick={() => scroll(-1)} aria-label={`Scroll ${text(copy.title) || "products"} back`}>
             <Icon name="arrowLeft" size={15} />
           </button>
-          <button type="button" className="bq-icon-btn" style={{ background: look.id === "plain" ? t.ink : t.accent, color: look.dark ? "#0A0A0A" : "#fff", width: 36, height: 36 }} onClick={() => scroll(1)} aria-label={`Scroll ${text(copy.title) || "products"} forward`}>
+          <button type="button" className="bq-icon-btn" style={{ background: look.countBg, color: look.onAccent, width: 36, height: 36 }} onClick={() => scroll(1)} aria-label={`Scroll ${text(copy.title) || "products"} forward`}>
             <Icon name="chevRight" size={15} />
           </button>
         </div>
@@ -416,10 +525,15 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {text(copy.cta) || "Shop all"}
       </button>
     );
+    const shopAllAlways = (
+      <button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>
+        {text(copy.cta) || "Shop all"}
+      </button>
+    );
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10" style={look.dark ? { background: t.paperBg } : undefined}>
-        <SectionTitle look={look} id={headingId} action={<>{shopAll}{arrows}</>}>{text(copy.title) || "Best sellers"}</SectionTitle>
-        <div className="bq-rail" ref={(el) => { railRefs.current[section.id] = el; }}>
+        <SectionTitle look={look} id={headingId} action={section.settings?.layout === "tiles" ? shopAllAlways : <>{shopAll}{arrows}</>}>{text(copy.title) || "Best sellers"}</SectionTitle>
+        <div className={section.settings?.layout === "tiles" ? "bq-tiles" : "bq-rail"} ref={(el) => { railRefs.current[section.id] = el; }}>
           {list.map((product, i) => (
             <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} />
           ))}
@@ -439,7 +553,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (filter.sort === "rating") list = bestSellers(list);
     const headingId = `${uid}-${section.id}`;
     const chip = (key: string, label: string, active: boolean, onClick: () => void) => (
-      <button key={key} type="button" aria-pressed={active} onClick={onClick} className="shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium" style={{ borderColor: active ? t.ink : t.border, background: active ? t.ink : "transparent", color: active ? (look.dark ? "#0A0A0A" : "#fff") : t.ink, cursor: "pointer" }}>
+      <button key={key} type="button" aria-pressed={active} onClick={onClick} className="shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium" style={{ borderColor: active ? t.ink : t.border, background: active ? t.ink : "transparent", color: active ? t.paperBg : t.ink, cursor: "pointer" }}>
         {label}
       </button>
     );
@@ -500,7 +614,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         ) : null}
         <ul className="mt-6 grid gap-3 bq-cols-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
           {reviews.map((review) => (
-            <li key={review.id} className="rounded-[14px] p-5" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+            <li key={review.id} className="rounded-[14px] p-5" style={{ background: look.raised }}>
               <span aria-hidden style={{ color: "#F2A93B", letterSpacing: 1.5 }}>{"★".repeat(review.rating)}</span>
               <span className="sr-only">{review.rating} out of 5</span>
               <blockquote className="m-0 mt-2 text-[14.5px] leading-6">“{review.body}”</blockquote>
@@ -521,8 +635,30 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const body = text(copy.body) || text(store.description);
     const headingId = `${uid}-${section.id}`;
     const onAbout = current === "about";
+    const storyButton = (
+      <button type="button" className="bq-btn mt-2" style={{ ...look.secondaryButton, minHeight: 44 }} onClick={() => go(onAbout ? "contact" : pageTypes.has("about") ? "about" : "contact")}>
+        {onAbout ? "Get in touch" : text(copy.primaryCta) || "Our story"}
+      </button>
+    );
+    if (section.settings?.layout === "editorial") {
+      return (
+        <section aria-labelledby={headingId} className="py-12 @3xl:py-16" style={{ background: look.storyBg }}>
+          <div className="bq-wrap grid gap-8 @3xl:grid-cols-2 @3xl:items-center @3xl:gap-14">
+            <div className="bq-media" style={{ aspectRatio: "4 / 5", borderRadius: look.cardRadius }}>
+              {image ? <img src={image} alt="" width={800} height={1000} loading="lazy" /> : null}
+            </div>
+            <div className="flex flex-col items-start gap-4">
+              {text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
+              <h2 id={headingId} className="bq-h text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{text(copy.title) || store.name}</h2>
+              {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {storyButton}
+            </div>
+          </div>
+        </section>
+      );
+    }
     return (
-      <section aria-labelledby={headingId} className="bq-split" style={{ background: look.dark ? "#1C1B1A" : t.cardBg }}>
+      <section aria-labelledby={headingId} className="bq-split" style={{ background: look.storyBg }}>
         <div className="bq-media" style={{ aspectRatio: "4 / 3", minHeight: "100%" }}>
           {image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}
         </div>
@@ -580,14 +716,14 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const headingId = `${uid}-${section.id}`;
     const inputId = `${uid}-newsletter`;
     return (
-      <section aria-labelledby={headingId} className="py-12" style={{ background: look.dark ? "#1C1B1A" : look.id === "plain" ? "#F2F2F2" : t.cardBg }}>
+      <section aria-labelledby={headingId} className="py-12" style={{ background: look.newsletterBg }}>
         <div className="bq-wrap text-center">
           <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[32px]" style={look.headingStyle}>{text(copy.title) || "Subscribe to new drops"}</h2>
           {text(copy.body) ? <p className="mt-2 text-[14.5px]" style={{ color: t.muted }}>{text(copy.body)}</p> : null}
           <form className="mx-auto mt-5 flex max-w-[460px] flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void submitForm("newsletter"); }}>
             <label htmlFor={inputId} className="sr-only">{text(copy.placeholder) || "WhatsApp number or email"}</label>
             <input id={inputId} required minLength={5} value={form.newsletter} onChange={(event) => setForm((prev) => ({ ...prev, newsletter: event.target.value }))} placeholder={text(copy.placeholder) || "WhatsApp number or email"} className="h-12 min-w-0 flex-1 rounded-[var(--bq-button-radius)] border bg-white px-4 text-[14.5px]" style={{ borderColor: t.border, color: "#111" }} />
-            <button type="submit" className="bq-btn" style={look.id === "noir" ? look.secondaryButton : look.primaryButton} disabled={status === "sending"}>
+            <button type="submit" className="bq-btn" style={look.solidButton} disabled={status === "sending"}>
               {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Subscribe"}
             </button>
           </form>
@@ -627,7 +763,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <textarea required value={form.message} onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))} rows={5} className="rounded-[10px] border bg-transparent px-3 py-2 text-[14.5px]" style={{ borderColor: t.border, color: t.ink }} />
             </label>
             <div>
-              <button type="submit" className="bq-btn" style={look.id === "noir" ? look.secondaryButton : look.primaryButton} disabled={status === "sending" || (!form.email.trim() && !form.phone.trim())}>
+              <button type="submit" className="bq-btn" style={look.solidButton} disabled={status === "sending" || (!form.email.trim() && !form.phone.trim())}>
                 {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Send message"}
               </button>
             </div>
@@ -765,7 +901,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const editorStyle: React.CSSProperties = live ? {} : { minHeight: "100%" };
 
   return (
-    <div className="bq" style={{ ...lookVars(look), ...editorStyle }} onClick={live ? undefined : () => props.onSelectSection?.(null)}>
+    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} style={{ ...lookVars(look), ...editorStyle }} onClick={live ? undefined : () => props.onSelectSection?.(null)}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to products</a>
       {announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live ? null : (
@@ -787,7 +923,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           cartCount={props.cartCount}
           wishlistCount={wished.length}
           cartLabel={text(headerCopy.cartLabel) && text(headerCopy.cartLabel) !== "Cart" ? text(headerCopy.cartLabel) : "My bag"}
-          centred={headerSection.settings?.layout === "centered" || themeId === "plain"}
+          centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
         />
       )) : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>

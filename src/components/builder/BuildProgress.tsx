@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { Mascot, PillButton, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import type { StoreConfig } from "@/lib/ai/store-types";
 
 export interface BuildSummary {
@@ -150,70 +151,68 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
   }, [summary, hasFailures, onComplete]);
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="relative mb-8">
-        <ChipAvatar mascot="rex" size={80} className="relative rounded-[20px]" />
-      </div>
+    <div className="flex w-full flex-col items-center px-4 py-10 text-center font-app text-app-ink sm:py-12">
+      <Mascot name="rex" className="h-20 w-20" alt="Rex" />
 
-      <div className="font-mono text-[11px] tracking-[0.16em] uppercase" style={{ color: "var(--color-teal-deep)" }}>
-        Rex is building {storeConfig.name || "your store"}
-      </div>
-      <h2 className="mt-2 font-display text-[28px] font-semibold tracking-[-0.03em]" style={{ color: "var(--color-navy)" }}>
+      <p className="m-0 mt-5 text-[14px] font-bold text-app-ink-soft">Rex is building {storeConfig.name || "your store"}</p>
+      <h2 className="m-0 mt-1.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[28px]" aria-live="polite">
         {summary ? (hasFailures ? "Built, with a few gaps" : "Your store draft is ready") : activeStep ? `${activeStep.label}…` : "Starting…"}
       </h2>
 
-      <div className="mt-6 w-full max-w-[400px] overflow-hidden rounded-full bg-[rgb(14_42_56_/_0.08)]" style={{ height: 8 }}>
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${progress}%`, background: "linear-gradient(90deg, var(--color-mint), var(--color-teal))" }}
-        />
+      <div
+        className="mt-6 h-2 w-full max-w-[420px] overflow-hidden rounded-full bg-app-track"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+        aria-label="Build progress"
+      >
+        <div className="h-full rounded-full bg-app-ink transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
-      <div className="mt-2 font-mono text-[12px]" style={{ color: "var(--color-muted)" }}>
+      <div className="mt-2 text-[13px] text-app-ink-soft">
         {finishedCount} of {steps.length} steps
       </div>
 
-      <div className="mt-6 w-full max-w-[420px] space-y-2 text-left">
+      <ol className="m-0 mt-6 grid w-full max-w-[440px] list-none gap-2.5 p-0 text-left">
         {steps.map((step, index) => {
           const state = states[step.key] ?? "pending";
           return (
-            <div key={step.key} className="flex items-start gap-3 text-[13px]">
-              <div
-                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                style={{
-                  background: state === "done" ? "var(--color-teal)" : state === "failed" ? "var(--color-coral)" : state === "active" ? "var(--color-mint)" : "rgb(14 42 56 / 0.08)",
-                  color: state === "done" || state === "failed" ? "white" : state === "active" ? "var(--color-navy)" : "var(--color-muted)",
-                }}
+            <li key={step.key} className="flex items-start gap-3 text-[14px]">
+              <span
+                className={cx(
+                  "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold",
+                  state === "done" && "bg-app-success text-white",
+                  state === "failed" && "bg-app-danger text-white",
+                  state === "active" && "bg-app-ink text-white",
+                  state === "pending" && "bg-app-canvas text-app-ink-soft",
+                )}
               >
-                {state === "done" ? "OK" : state === "failed" ? "!" : index + 1}
-              </div>
-              <div>
-                <span style={{ color: state === "done" ? "var(--color-teal-deep)" : state === "failed" ? "#9F2D20" : state === "active" ? "var(--color-navy)" : "var(--color-muted)" }}>
-                  {step.label} {state === "active" && "..."}
+                {state === "done" ? <Icon name="check" size={13} /> : state === "failed" ? "!" : index + 1}
+                <span className="sr-only">{state === "done" ? " done" : state === "failed" ? " failed" : state === "active" ? " in progress" : " waiting"}</span>
+              </span>
+              <span className="min-w-0">
+                <span className={cx(state === "pending" ? "text-app-ink-soft" : state === "failed" ? "text-app-danger" : "text-app-ink", state === "active" && "font-bold")}>
+                  {step.label}{state === "active" && "…"}
                 </span>
-                {messages[step.key] && <div className="text-[11px]" style={{ color: "var(--color-muted)" }}>{messages[step.key]}</div>}
-              </div>
-            </div>
+                {messages[step.key] && <span className="block text-[12.5px] text-app-ink-soft">{messages[step.key]}</span>}
+              </span>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       {summary && (summary.notes.length > 0 || hasFailures) && (
-        <div className="mt-6 w-full max-w-[420px] rounded-[14px] border px-4 py-3 text-left text-[12px] leading-5" style={{ borderColor: "rgb(14 42 56 / 0.08)", color: "var(--color-navy)" }}>
-          {summary.notes.map((note) => <p key={note}>{note}</p>)}
-          {summary.failedPages.length > 0 && <p>Not written yet: {summary.failedPages.join(", ")}. You can ask Rex to write them from the preview.</p>}
-          {!summary.designSaved && <p>The store design wasn&apos;t saved; your preview still has it, and you can save it from the editor.</p>}
+        <div className="mt-6 grid w-full max-w-[440px] gap-1.5 rounded-[18px] bg-app-peach px-4 py-3 text-left text-[13.5px] leading-[1.5]">
+          {summary.notes.map((note) => <p key={note} className="m-0">{note}</p>)}
+          {summary.failedPages.length > 0 && <p className="m-0">Not written yet: {summary.failedPages.join(", ")}. You can ask Rex to write them from the preview.</p>}
+          {!summary.designSaved && <p className="m-0">The store design wasn&apos;t saved; your preview still has it, and you can save it from the builder.</p>}
         </div>
       )}
 
       {summary && hasFailures && (
-        <button
-          type="button"
-          onClick={() => onComplete(summary)}
-          className="mt-5 rounded-full px-6 py-2.5 text-[13px] font-semibold"
-          style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
-        >
+        <PillButton size="md" className="mt-5" onClick={() => onComplete(summary)}>
           Continue to preview
-        </button>
+        </PillButton>
       )}
     </div>
   );

@@ -796,3 +796,370 @@ test("photo and logo uploads go through one API and update the shell everywhere"
     assert.doesNotMatch(readFileSync(new URL(file, import.meta.url), "utf8"), /\$\{file\.name\}/, `${file} never reuses the browser's file name`);
   }
 });
+
+// ─── Theme library (store templates) ─────────────────────────────────────────
+
+const themeLib = await import("../src/lib/store-templates/theme-library.ts");
+const boutique = await import("../src/lib/store-templates/boutique-themes.ts");
+
+function seedSnapshot(id) {
+  const manifest = boutique.BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === id);
+  return JSON.parse(JSON.stringify({ templateId: manifest.id, templateName: manifest.name, layoutFamily: manifest.layoutFamily, themeTokens: manifest.themeTokens, pages: manifest.seedPages, updatedAt: "" }));
+}
+
+test("theme library lists the eight 2026 themes, each a real boutique theme with its own pages and tokens", () => {
+  assert.deepEqual(themeLib.THEME_LIBRARY.map((theme) => theme.name), ["Breeze", "Noir", "Plain", "Adire", "Pantry", "Ilé", "Plug", "Stride"]);
+  assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.id)).size, 8);
+  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).map((theme) => theme.id), ["breeze", "noir", "plain"]);
+  const tokenKeys = Object.keys(boutique.BOUTIQUE_THEME_TOKENS.breeze).sort();
+  for (const theme of themeLib.THEME_LIBRARY) {
+    assert.ok(boutique.isBoutiqueTheme(theme.id), `${theme.id} renders with the boutique renderer`);
+    assert.ok(theme.blurb && theme.categoryLabel, `${theme.id} has copy`);
+    assert.deepEqual(Object.keys(boutique.BOUTIQUE_THEME_TOKENS[theme.id]).sort(), tokenKeys, `${theme.id} has every token`);
+    const manifest = boutique.BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === theme.id);
+    assert.ok(manifest, `${theme.id} has a manifest`);
+    assert.equal(manifest.name, theme.name);
+    const home = manifest.seedPages.find((page) => page.pageType === "home");
+    const product = manifest.seedPages.find((page) => page.pageType === "product");
+    assert.ok(home.sections.some((section) => section.kind === "hero-split"), `${theme.id} home has a hero`);
+    assert.ok(home.sections.some((section) => section.kind === "featured-products"), `${theme.id} home shows products`);
+    assert.ok(product.sections.some((section) => section.kind === "product-detail"));
+    assert.doesNotMatch(JSON.stringify(manifest), /unsplash|pexels|https?:\/\//, `${theme.id} seeds carry no stock photos`);
+  }
+  // Each theme has its own hero layout.
+  const heroLayouts = boutique.BOUTIQUE_TEMPLATE_MANIFESTS.map((manifest) => manifest.seedPages[0].sections.find((section) => section.kind === "hero-split").settings.layout);
+  assert.equal(new Set(heroLayouts).size, 8);
+});
+
+test("theme category chips only show categories that have themes", () => {
+  assert.deepEqual(themeLib.themeCategoryChips().map((chip) => chip.label), ["All", "Fashion", "Shoes", "Luxury", "Food", "Home", "Gadgets"]);
+  const subset = themeLib.THEME_LIBRARY.filter((theme) => theme.id === "breeze" || theme.id === "pantry" || theme.id === "plain");
+  assert.deepEqual(themeLib.themeCategoryChips(subset).map((chip) => chip.id), ["all", "fashion", "food"]);
+  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "adire"]);
+  assert.equal(themeLib.filterThemes("all").length, 8);
+});
+
+test("switching theme keeps the seller's own content where section types match, and drops template defaults", () => {
+  const breezeSeed = seedSnapshot("breeze");
+  const previous = seedSnapshot("breeze");
+  const home = previous.pages.find((page) => page.pageType === "home");
+  const hero = home.sections.find((section) => section.kind === "hero-split");
+  hero.blocks[0].content.title = "Soft tailoring for Lagos heat";
+  hero.items = [{ imageUrl: "/uploads/banner.jpg" }];
+  const rail = home.sections.find((section) => section.kind === "featured-products");
+  rail.items = [{ mappedStoreProductId: "prod_1" }];
+  home.sections.find((section) => section.kind === "testimonials").visible = false;
+  home.sections.splice(3, 0, { id: "my-note", kind: "rich-text", name: "Note", visible: true, blocks: [{ id: "n", type: "copy", content: { title: "Made in Yaba" } }] });
+  previous.pages.push({ id: "lookbook", pageType: "blog", title: "Lookbook", slug: "lookbook", sections: [] });
+
+  const result = themeLib.switchThemeDraft(previous, seedSnapshot("noir"), breezeSeed);
+  const next = result.snapshot;
+  assert.equal(next.templateId, "noir");
+  assert.deepEqual(next.themeTokens, boutique.BOUTIQUE_THEME_TOKENS.noir, "the new theme's look");
+  const nextHome = next.pages.find((page) => page.pageType === "home");
+  const nextHero = nextHome.sections.find((section) => section.kind === "hero-split");
+  assert.equal(nextHero.blocks[0].content.title, "Soft tailoring for Lagos heat");
+  assert.equal(nextHero.settings.layout, "noir-center", "layout belongs to the new theme");
+  assert.deepEqual(nextHero.items, [{ imageUrl: "/uploads/banner.jpg" }]);
+  assert.deepEqual(nextHome.sections.find((section) => section.kind === "featured-products").items, [{ mappedStoreProductId: "prod_1" }]);
+  assert.ok(nextHome.sections.some((section) => section.kind === "payday-countdown"), "new theme's own sections stay");
+  const footerAt = nextHome.sections.findIndex((section) => section.kind === "footer");
+  assert.equal(nextHome.sections[footerAt - 1].id, "my-note", "a section the seller added comes along, before the footer");
+  assert.ok(next.pages.some((page) => page.pageType === "blog"), "pages the new theme lacks are kept");
+  assert.equal(result.keptPages, 1);
+
+  // Untouched template copy is not the seller's: it stays behind.
+  const plain = themeLib.switchThemeDraft(seedSnapshot("breeze"), seedSnapshot("noir"), breezeSeed).snapshot;
+  const plainHero = plain.pages.find((page) => page.pageType === "home").sections.find((section) => section.kind === "hero-split");
+  assert.equal(plainHero.blocks[0].content.title, "The new edit");
+  // No previous draft: the new seed as is.
+  assert.equal(themeLib.switchThemeDraft(null, seedSnapshot("plug")).carriedSections, 0);
+});
+
+test("Rex's fallback pick follows what the store sells", () => {
+  assert.equal(themeLib.pickThemeByRules({ storeCategory: "Sneakers and slides" }).themeId, "stride");
+  assert.equal(themeLib.pickThemeByRules({ storeCategory: "Fashion", productNames: ["Ankara wrap dress"] }).themeId, "adire");
+  assert.equal(themeLib.pickThemeByRules({ storeCategory: "Clothing" }).themeId, "breeze");
+  assert.equal(themeLib.pickThemeByRules({ productNames: ["Bluetooth speaker", "Power bank 20000mAh"] }).themeId, "plug");
+  assert.equal(themeLib.pickThemeByRules({ storeCategory: "Home decor" }).themeId, "ile");
+  assert.equal(themeLib.pickThemeByRules({ storeCategory: "Small chops and drinks" }).themeId, "pantry");
+  const unknown = themeLib.pickThemeByRules({});
+  assert.equal(unknown.themeId, "plain");
+  assert.match(unknown.reason, /couldn't tell/);
+});
+
+// ─── Rex Studio: store health, versions and Rex's edit plans ─────────────────────────────────────────
+
+const storeHealth = await import("../src/lib/store-health.ts");
+const rexVersions = await import("../src/lib/ai/rex/studio-versions.ts");
+const rexPlan = await import("../src/lib/ai/rex/studio-plan.ts");
+
+function rexSnapshot(templateId, pages, updatedAt = "2026-10-01T10:00:00.000Z") {
+  const tokens = { heroBg: "#111111", heroText: "#FFFFFF", accent: "#C8A96A", ctaBg: "#FFFFFF", ctaText: "#111111", paperBg: "#FFFFFF", cardBg: "#F3F3F3", ink: "#111111", muted: "#6B6B6B", border: "#E4E4E4", headingStyle: "grotesk", radius: "sharp" };
+  return { templateId, templateName: templateId, layoutFamily: "minimal-showcase", themeTokens: tokens, pages, updatedAt };
+}
+function rexSection(id, kind, copy = {}, extra = {}) {
+  return { id, kind, name: kind, visible: true, blocks: [{ id: `${id}-copy`, type: "copy", content: copy }], ...extra };
+}
+function rexPage(pageType, sections) {
+  return { id: pageType, pageType, title: pageType, slug: pageType, sections: [rexSection("header", "header"), ...sections, rexSection("footer", "footer")] };
+}
+
+test("store health scores real facts out of 100 and Rex suggests the biggest gaps first", () => {
+  const draft = rexSnapshot("breeze", [
+    rexPage("home", [rexSection("hero", "hero-split", { title: "Soft tailoring" })]),
+    rexPage("product", [rexSection("pd", "product-detail")]),
+    rexPage("about", [rexSection("story", "story-split", { title: "Made with care", body: "" })]),
+  ]);
+  const facts = {
+    products: 4, productsWithPhoto: 4, productsWithPrice: 4, hasLogo: true, deliveryOptions: 2, paymentMethods: 3,
+    approvedReviews: 0, hasCustomDomain: false, hasReturnPolicy: true, hasDeliveryPolicy: false, hasWhatsapp: true,
+    draft: storeHealth.draftHealthFacts(draft),
+  };
+  const pages = Object.fromEntries(facts.draft.pages.map((page) => [page.key, page.state]));
+  assert.deepEqual(pages, { home: "written", product: "written", collections: "missing", about: "empty", faq: "missing" }, "an About page with only a heading isn't written");
+
+  const now = new Date("2026-10-20T09:00:00Z");
+  const health = storeHealth.computeStoreHealth(facts, now);
+  assert.equal(health.possible, 100, "payday counts on themes that can show it");
+  // Done: products 12, photos 10, prices 6, logo 8, delivery 10, payments 10, WhatsApp 4.
+  assert.equal(health.earned, 60);
+  assert.equal(health.score, 60);
+  assert.deepEqual(health.missing.slice(0, 3).map((item) => [item.id, item.points]), [["about", 8], ["reviews-section", 8], ["faq", 6]]);
+  assert.ok(health.missing.find((item) => item.id === "about").rexPrompt, "Rex can write the About page");
+  assert.equal(health.missing.find((item) => item.id === "policies").href, "/home/legal", "policies are the seller's job");
+  assert.equal(health.items.find((item) => item.id === "payday").label, "Run a payday sale, the 23rd is close", "25 Oct 2026 is a Sunday, so payday moves to Friday the 23rd");
+
+  // A store with nothing scores 0, and a classic theme doesn't count the payday item.
+  const empty = storeHealth.computeStoreHealth({
+    products: 0, productsWithPhoto: 0, productsWithPrice: 0, hasLogo: false, deliveryOptions: 0, paymentMethods: 0, approvedReviews: 0,
+    hasCustomDomain: false, hasReturnPolicy: false, hasDeliveryPolicy: false, hasWhatsapp: false, draft: storeHealth.draftHealthFacts(rexSnapshot("aurora", [])),
+  }, now);
+  assert.equal(empty.score, 0);
+  assert.equal(empty.possible, 96);
+  assert.equal(empty.items.find((item) => item.id === "photos").done, false, "no products is not 'every product has a photo'");
+
+  // Writing the About page and adding reviews moves the score; the chips follow the store's state.
+  const better = rexSnapshot("breeze", [
+    rexPage("home", [rexSection("hero", "hero-split", { title: "Soft tailoring" }), rexSection("reviews", "testimonials", { title: "What customers say" }, { items: [] })]),
+    rexPage("about", [rexSection("story", "story-split", { title: "Our studio", body: "Six tailors in Yaba cut and sew every piece, and we check each one twice." })]),
+  ]);
+  const improved = storeHealth.computeStoreHealth({ ...facts, draft: storeHealth.draftHealthFacts(better) }, now);
+  assert.equal(improved.earned, 76);
+  const chips = storeHealth.rexSuggestionChips({ ...facts, draft: storeHealth.draftHealthFacts(better) }, { hasDraft: true });
+  assert.ok(!chips.includes("Add customer reviews") && !chips.includes("Write the About us page"));
+  assert.ok(chips.includes("Set up a payday sale") && chips.includes("Try the Plain template"));
+  assert.deepEqual(storeHealth.rexSuggestionChips(facts, { hasDraft: false }), ["Build my store", "Make the homepage feel premium"]);
+});
+
+test("Rex Studio keeps a bounded history of draft versions, always keeping the original", () => {
+  const snap = (n) => rexSnapshot("noir", [rexPage("home", [rexSection("hero", "hero-split", { title: `Headline ${n}` })])], `2026-10-01T10:00:${String(n).padStart(2, "0")}.000Z`);
+  let state = rexVersions.readRexVersions({});
+  assert.deepEqual(state, { current: null, items: [] });
+
+  state = rexVersions.recordDraftBeforeChange(state, snap(0));
+  assert.equal(state.items[0].label, "Original store");
+  for (let n = 1; n <= 30; n++) state = rexVersions.pushRexVersion(state, { label: `Change ${n}`, snapshot: snap(n) }).state;
+
+  assert.equal(state.items.length, 20, "at most 20 versions");
+  assert.equal(state.items[0].label, "Original store", "the original survives bounding");
+  assert.equal(state.items[1].n, 13, "the oldest changes are dropped first");
+  assert.equal(state.items.at(-1).n, 31, "numbers keep counting up");
+  assert.equal(state.current, state.items.at(-1).id);
+
+  // Byte budget: big snapshots drop more history, but never the newest or the original.
+  const tight = rexVersions.boundRexVersions(state.items, 20, 4000);
+  assert.equal(tight[0].label, "Original store");
+  assert.equal(tight.at(-1).n, 31);
+  assert.ok(tight.length < 20);
+
+  // Summaries: newest first, "current" only while the draft still matches that version.
+  const latest = state.items.at(-1);
+  const summaries = rexVersions.summariseRexVersions(state, latest.snapshot.updatedAt);
+  assert.equal(summaries[0].n, 31);
+  assert.equal(summaries[0].current, true);
+  assert.ok(!("snapshot" in summaries[0]));
+  assert.equal(rexVersions.summariseRexVersions(state, "2026-10-02T00:00:00.000Z").some((entry) => entry.current), false);
+
+  // Builder edits since the last version are kept before Rex's next change; an unchanged draft adds nothing.
+  assert.equal(rexVersions.recordDraftBeforeChange(state, latest.snapshot), state);
+  const kept = rexVersions.recordDraftBeforeChange(state, snap(59));
+  assert.equal(kept.items.at(-1).label, "Changes made in the builder");
+  assert.equal(rexVersions.previousRexVersion(kept, kept.items.at(-1).id).n, 31);
+
+  // Round trip through brandSettings; junk entries are ignored.
+  const read = rexVersions.readRexVersions({ rexVersions: { current: state.current, items: [...state.items, { id: "x", n: 99 }] } });
+  assert.equal(read.items.length, 20);
+  assert.equal(read.current, state.current);
+});
+
+test("Rex Studio plans edit only the draft, fit the theme and never invent reviews", () => {
+  const draft = rexSnapshot("breeze", [
+    rexPage("home", [rexSection("hero", "hero-split", { title: "New season", primaryCta: "Shop new arrivals" }, { items: [] }), rexSection("newsletter", "newsletter", { title: "Subscribe" })]),
+  ]);
+  const library = (kind) => rexSection(`${kind}-lib`, kind, { title: "Placeholder title" }, { items: [{ quote: "Made-up praise", person: "Customer" }] });
+  const context = {
+    storeName: "Adaeze Studio",
+    themeSnapshot: (id) => (id === "noir" ? rexSnapshot("noir", [rexPage("home", [rexSection("hero", "hero-split", { title: "The new edit" }, { items: [] })])]) : null),
+    themeName: (id) => (id === "noir" ? "Noir" : null),
+    createSection: library,
+    allowedKinds: () => rexPlan.BOUTIQUE_SECTION_KINDS,
+    reviewItems: [],
+    now: "2026-10-11T12:00:00.000Z",
+  };
+
+  const plan = rexPlan.parseRexStudioPlan({
+    reply: "Done. Noir makes the photos the hero.",
+    theme: "noir",
+    tokens: { accent: "#C8A96A", headingStyle: "serif", ink: "not-a-colour" },
+    tokensSummary: "Gold accents and serif headings",
+    ops: [
+      { action: "add", page: "home", kind: "testimonials", copy: { title: "What customers say" }, items: [{ quote: "Best shop ever", person: "Ada" }] },
+      { action: "add", page: "home", kind: "trust-strip", copy: { title: "Not on this theme" } },
+      { action: "update", page: "about", kind: "story-split", copy: { title: "Our studio", body: "Six tailors in Yaba." } },
+      { action: "remove", page: "home", kind: "header" },
+      { nonsense: true },
+    ],
+  });
+  assert.equal(plan.ops.length, 4, "malformed ops are dropped");
+  assert.deepEqual(plan.tokens, { accent: "#C8A96A", headingStyle: "serif" }, "invalid tokens are dropped, valid ones kept");
+
+  const result = rexPlan.applyRexStudioPlan(draft, plan, context);
+  assert.equal(result.themeChanged, true);
+  assert.equal(result.snapshot.templateId, "noir");
+  const hero = result.snapshot.pages[0].sections.find((section) => section.kind === "hero-split");
+  assert.equal(hero.blocks[0].content.title, "New season", "the seller's headline comes across to the new theme");
+  assert.equal(result.snapshot.themeTokens.accent, "#C8A96A");
+  const reviews = result.snapshot.pages[0].sections.find((section) => section.kind === "testimonials");
+  assert.deepEqual(reviews.items, [], "no made-up reviews: only approved ones, and there are none");
+  assert.ok(!result.snapshot.pages[0].sections.some((section) => section.kind === "trust-strip"), "sections the theme can't show are skipped");
+  assert.ok(result.snapshot.pages[0].sections.some((section) => section.kind === "header"), "the header can't be removed");
+  const about = result.snapshot.pages.find((page) => page.pageType === "about");
+  assert.equal(about.title, "About us");
+  assert.equal(about.sections.find((section) => section.kind === "story-split").blocks[0].content.body, "Six tailors in Yaba.");
+  assert.deepEqual(result.changes, [
+    "Switched to the Noir theme",
+    "Gold accents and serif headings",
+    "Added customer reviews to the homepage",
+    "Added the About us page",
+    "Added your story to the About us page",
+  ]);
+  assert.equal(result.snapshot.updatedAt, "2026-10-11T12:00:00.000Z");
+  assert.equal(draft.templateId, "breeze", "the input draft is not mutated");
+
+  // Nothing applicable: the draft comes back untouched and no version should be recorded.
+  const noop = rexPlan.applyRexStudioPlan(draft, rexPlan.parseRexStudioPlan({ reply: "Delivery fees live in Settings.", ops: [] }), context);
+  assert.equal(noop.snapshot, draft);
+  assert.deepEqual(noop.changes, []);
+});
+
+test("advanced builder: undo history merges typing, undoes, redoes and drops redo after a new edit", async () => {
+  const logic = await import("../src/components/builder/editor/editor-logic.ts");
+  let h = logic.createHistory("a");
+  h = logic.pushHistory(h, "ab", { key: "hero:title", now: 1000 });
+  h = logic.pushHistory(h, "abc", { key: "hero:title", now: 1500 });
+  assert.deepEqual(h.past, ["a"], "typing in one field within the merge window is one undo step");
+  h = logic.pushHistory(h, "abcd", { key: "hero:title", now: 5000 });
+  assert.deepEqual(h.past, ["a", "abc"], "a pause starts a new step");
+  h = logic.undoHistory(h);
+  assert.equal(h.present, "abc");
+  assert.equal(logic.canRedo(h), true);
+  h = logic.redoHistory(h);
+  assert.equal(h.present, "abcd");
+  h = logic.undoHistory(logic.undoHistory(h));
+  assert.equal(h.present, "a");
+  assert.equal(logic.canUndo(h), false);
+  assert.equal(logic.undoHistory(h), h, "undo with nothing to undo is a no-op");
+  h = logic.pushHistory(h, "z", { now: 9000 });
+  assert.equal(logic.canRedo(h), false, "a new edit clears redo");
+  let capped = logic.createHistory(0);
+  for (let i = 1; i <= 5; i += 1) capped = logic.pushHistory(capped, i, { limit: 3, now: i * 10000 });
+  assert.deepEqual(capped.past, [2, 3, 4]);
+});
+
+test("advanced builder: sections move within their group, duplicate, hide, insert and reorder by drag", async () => {
+  const logic = await import("../src/components/builder/editor/editor-logic.ts");
+  const s = (id, kind, extra = {}) => ({ id, kind, name: id, visible: true, blocks: [{ id: `${id}-copy`, type: "copy", content: { title: id } }], ...extra });
+  const page = [s("bar", "announcement-bar"), s("header", "header"), s("hero", "hero-split"), s("best", "featured-products"), s("faq", "faq"), s("footer", "footer")];
+  const ids = (list) => list.map((section) => section.id);
+
+  assert.deepEqual(ids(logic.moveSection(page, "best", "up")), ["bar", "header", "best", "hero", "faq", "footer"]);
+  assert.equal(logic.moveSection(page, "hero", "up"), page, "the first body section can't jump above the header");
+  assert.equal(logic.canMoveSection(page, "faq", "down"), false, "nor below the footer");
+  assert.deepEqual(ids(logic.moveSection(page, "header", "up")), ["header", "bar", "hero", "best", "faq", "footer"], "header sections reorder among themselves");
+
+  const duplicated = logic.duplicateSection(page, "best", "best-2");
+  assert.deepEqual(ids(duplicated), ["bar", "header", "hero", "best", "best-2", "faq", "footer"]);
+  const copy = duplicated[4];
+  assert.equal(copy.name, "best copy");
+  assert.notEqual(copy.blocks[0].id, page[3].blocks[0].id);
+  copy.blocks[0].content.title = "changed";
+  assert.equal(page[3].blocks[0].content.title, "best", "the copy is deep, the original is untouched");
+  assert.equal(logic.duplicateSection(page, "header", "header-2"), page, "only one header per page");
+
+  const hidden = logic.toggleSectionHidden(page, "faq");
+  assert.equal(hidden.find((section) => section.id === "faq").visible, false);
+  assert.equal(logic.toggleSectionHidden(hidden, "faq").find((section) => section.id === "faq").visible, true);
+  assert.deepEqual(ids(logic.removeSection(page, "faq")), ["bar", "header", "hero", "best", "footer"]);
+
+  assert.deepEqual(ids(logic.insertSection(page, s("news", "newsletter"), null)), ["bar", "header", "hero", "best", "faq", "news", "footer"], "new body sections go above the footer");
+  assert.deepEqual(ids(logic.insertSection(page, s("news", "newsletter"), "best")), ["bar", "header", "hero", "news", "best", "faq", "footer"]);
+  assert.deepEqual(ids(logic.insertSection(page, s("news", "newsletter"), "header")), ["bar", "header", "hero", "best", "faq", "news", "footer"], "body sections never land in the header");
+  assert.deepEqual(ids(logic.insertSection(page.slice(1), s("bar2", "announcement-bar"), null)), ["header", "bar2", "hero", "best", "faq", "footer"]);
+
+  assert.deepEqual(ids(logic.moveSectionTo(page, "faq", "hero", "before")), ["bar", "header", "faq", "hero", "best", "footer"]);
+  assert.equal(logic.moveSectionTo(page, "faq", "header", "after"), page, "dragging across groups is refused");
+
+  const snapshot = { templateId: "breeze", templateName: "Breeze", layoutFamily: "minimal-showcase", themeTokens: {}, updatedAt: "1", pages: [{ id: "h", pageType: "home", title: "Home", slug: "", sections: page }] };
+  assert.equal(logic.updatePageSections(snapshot, "home", (list) => list), snapshot, "no change keeps the same snapshot");
+  const moved = logic.updatePageSections(snapshot, "home", (list) => logic.moveSection(list, "best", "up"));
+  assert.notEqual(moved, snapshot);
+  assert.equal(logic.publishState(moved, null), "draft");
+  assert.equal(logic.publishState({ ...snapshot, updatedAt: "2" }, snapshot), "live", "the save time alone is not a change");
+  assert.equal(logic.publishState(moved, snapshot), "changes");
+
+  assert.deepEqual(logic.sectionBlocks(s("x", "hero-split", { blocks: [{ id: "c", type: "copy", content: { eyebrow: "", title: "T", body: "B", primaryCta: "Go" } }], items: [{ question: "How fast is delivery?" }] })).map((row) => row.label),
+    ["Eyebrow", "Heading", "Text", "Button", "How fast is delivery?"]);
+});
+
+test("advanced builder: page list, insert options and apps follow the store's real pages and theme", async () => {
+  const logic = await import("../src/components/builder/editor/editor-logic.ts");
+  const schema = await import("../src/components/builder/editor/section-schema.ts");
+  const list = logic.buildPageList({
+    pages: [{ pageType: "home", title: "Home" }, { pageType: "products", title: "Shop" }, { pageType: "product", title: "Product" }, { pageType: "about", title: "About" }, { pageType: "cart", title: "Bag" }, { pageType: "checkout", title: "Checkout" }],
+    products: [{ id: "p1", name: "Linen shirt" }, { id: "p2", name: "Knit jumper" }],
+    collections: [{ id: "c1", name: "New in" }],
+  });
+  assert.deepEqual(list.map((entry) => entry.label), ["Home page", "Products", "Collections", "Pages", "Cart", "Checkout"]);
+  assert.deepEqual(list[1].children.map((entry) => entry.label), ["All products", "Linen shirt", "Knit jumper"]);
+  assert.equal(logic.findPageEntry(list, "product:p2").pageType, "product");
+  assert.equal(logic.findPageEntry(list, "collection:c1").collectionId, "c1");
+  assert.deepEqual(logic.searchPageList(list, "shirt").map((entry) => entry.id), ["product:p1"]);
+  const bare = logic.buildPageList({ pages: [{ pageType: "home", title: "Home" }], products: [{ id: "p1", name: "x" }], collections: [{ id: "c", name: "y" }] });
+  assert.deepEqual(bare.map((entry) => entry.label), ["Home page"], "no products page, no Products or Collections entries");
+
+  const boutique = logic.insertOptions({ renderer: "boutique", target: "template", existingKinds: [] });
+  assert.deepEqual(boutique.map((group) => group.group), ["Banners", "Products", "Story", "Grow"]);
+  assert.ok(boutique.flatMap((group) => group.items).every((item) => item.renderers.includes("boutique")), "only sections the theme can draw");
+  assert.deepEqual(logic.insertOptions({ renderer: "boutique", target: "header", existingKinds: ["header"] }).flatMap((group) => group.items.map((item) => item.kind)), ["announcement-bar"]);
+  assert.deepEqual(logic.insertOptions({ renderer: "classic", target: "template", existingKinds: [], query: "countdown" }), [], "the countdown needs a 2026 theme");
+
+  const app = logic.EDITOR_APPS.find((entry) => entry.id === "countdown");
+  const home = [{ id: "header", kind: "header", name: "Header", visible: true, blocks: [] }, { id: "hero", kind: "hero-split", name: "Hero", visible: true, blocks: [] }, { id: "footer", kind: "footer", name: "Footer", visible: true, blocks: [] }];
+  const on = logic.setAppEnabled(home, app, true, "cd1");
+  assert.deepEqual(on.map((section) => section.id), ["header", "hero", "cd1", "footer"], "the countdown goes under the banner");
+  assert.equal(logic.appEnabled(on, app), true);
+  const off = logic.setAppEnabled(on, app, false, "unused");
+  assert.equal(off.length, 4, "switching off hides the section and keeps its settings");
+  assert.equal(logic.appEnabled(off, app), false);
+  assert.equal(logic.setAppEnabled(off, app, true, "cd2").find((section) => section.kind === "payday-countdown").id, "cd1");
+
+  const hero = schema.sectionSchema("hero-split", "boutique", "noir");
+  const layout = hero.settings.flatMap((group) => group.fields).find((field) => field.id === "layout");
+  assert.equal(layout.fallback, "noir-center", "each theme's own banner is the default");
+  const eyebrow = hero.settings.flatMap((group) => group.fields).find((field) => field.id === "eyebrow");
+  const section = { id: "h", kind: "hero-split", name: "Hero", visible: true, blocks: [], settings: { layout: "breeze-banner" } };
+  assert.equal(schema.fieldVisible(section, eyebrow), false, "the wide banner has no eyebrow, so the field is hidden");
+  assert.equal(schema.fieldVisible({ ...section, settings: {} }, eyebrow), true);
+  assert.ok(schema.sectionSchema("hero-split", "classic").style.length > 0, "older templates keep background and spacing controls");
+});

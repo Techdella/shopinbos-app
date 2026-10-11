@@ -4,8 +4,13 @@ import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import {
   applyTemplateToDraft,
+  buildTemplateSelectionMeta,
   createSnapshotFromTemplate,
   getTemplateManifest,
+  parseEditorState,
+  resolveDraftSnapshot,
+  resolvePublishedSnapshot,
+  switchThemeDraft,
   type StoreEditorSnapshot,
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
@@ -78,7 +83,8 @@ function hydrateDraftWithStoreData(
           };
         }
 
-        if ((section.kind === "featured-products" || section.kind === "cart-summary" || section.kind === "wishlist-grid") && products.length > 0) {
+        const alreadyMapped = (section.items ?? []).some((item) => typeof item.mappedStoreProductId === "string" && item.mappedStoreProductId);
+        if ((section.kind === "featured-products" || section.kind === "cart-summary" || section.kind === "wishlist-grid") && products.length > 0 && !alreadyMapped) {
           const styleItems = section.items && section.items.length > 0 ? section.items : [];
           return {
             ...section,
@@ -149,10 +155,28 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     return NextResponse.json({ error: { code: "NOT_FOUND", message: "Store not found" } }, { status: 404 });
   }
 
-  const draft = hydrateDraftWithStoreData(createSnapshotFromTemplate(manifest), store);
   const currentSettings = ((store.brandSettings as Record<string, unknown>) ?? {}) as StoreBrandSettingsLike;
+  const previousDraft = resolveDraftSnapshot(currentSettings, null);
+  const published = resolvePublishedSnapshot(currentSettings, null);
+  const previousManifest = previousDraft ? getTemplateManifest(previousDraft.templateId) : null;
 
-  const nextSettings = applyTemplateToDraft(currentSettings, manifest, draft);
+  // Switching keeps the seller's own copy, images, picked products, hidden sections and extra pages. Products,
+  // prices and orders live in their own tables and never change here.
+  const switched = switchThemeDraft(previousDraft, createSnapshotFromTemplate(manifest), previousManifest ? createSnapshotFromTemplate(previousManifest) : null);
+  const draft = hydrateDraftWithStoreData(switched.snapshot, store);
+
+  // A live store keeps its published look until the seller publishes; only the draft changes. A store that
+  // has never published takes the theme straight away.
+  const nextSettings: StoreBrandSettingsLike = published
+    ? {
+        ...currentSettings,
+        editor: {
+          ...parseEditorState(currentSettings.editor),
+          template: buildTemplateSelectionMeta(manifest),
+          draft,
+        },
+      }
+    : applyTemplateToDraft(currentSettings, manifest, draft);
   const cleanSettings = stripUndefinedDeep(nextSettings);
 
   const updated = await db.store.update({
@@ -162,6 +186,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     },
     select: {
       id: true,
+      slug: true,
       brandSettings: true,
     },
   });
@@ -170,10 +195,16 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   return NextResponse.json({
     data: {
-      template: cleanSettings.template,
+      template: buildTemplateSelectionMeta(manifest),
       draft,
-      published: null,
+      published,
       storeId: updated.id,
+      storeSlug: updated.slug,
+      /** True when the live storefront still shows the previous theme until the seller publishes. */
+      draftOnly: Boolean(published),
+      previousTemplateId: previousDraft?.templateId ?? null,
+      carriedSections: switched.carriedSections,
+      keptPages: switched.keptPages,
     },
   });
 });

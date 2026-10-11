@@ -1,0 +1,53 @@
+import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
+import type { StoreEditorSnapshot } from "@/lib/store-templates";
+import type { StoreHealthFacts } from "@/lib/store-health";
+import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
+
+export interface RexStudioProps {
+  firstName: string;
+  fromOnboarding: boolean;
+  store: SurfaceStore & { id: string; slug: string };
+  /** "adaeze.shopinbos.com" or the custom domain, for the publish toast. */
+  storeHost: string;
+  storeUrl: string;
+  initialDraft: StoreEditorSnapshot;
+  /** False when the store has no saved draft yet (Rex offers to build it). */
+  draftSaved: boolean;
+  themeName: string;
+  healthFacts: StoreHealthFacts;
+  versions: RexVersionSummary[];
+  live: boolean;
+  hasUnpublishedChanges: boolean;
+  aiReady: boolean;
+  /** For "build my whole store": what onboarding remembered. */
+  buildContext: {
+    brief?: string;
+    category?: string;
+    businessDescription?: string;
+    template?: { templateId: string; templateName: string } | null;
+  };
+}
+
+export type ChatMessage =
+  | { id: string; role: "seller"; text: string; images?: string[] }
+  | {
+      id: string;
+      role: "rex";
+      text: string;
+      changes?: string[];
+      version?: { id: string; n: number } | null;
+      undoTo?: string | null;
+      undone?: boolean;
+      tone?: "error";
+      /** A follow-up Rex offers (e.g. after a blocked publish). */
+      offer?: string;
+    };
+
+export interface StudioChange {
+  reply: string;
+  changes: string[];
+  draft: StoreEditorSnapshot | null;
+  version: { id: string; n: number } | null;
+  undoTo: string | null;
+  versions?: RexVersionSummary[];
+}

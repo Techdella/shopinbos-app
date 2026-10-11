@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { BrandLogo } from "@/components/brand/BrandLogo";
-import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { BackButton, Mascot, PillButton, Wordmark, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { StorePreview, PREVIEW_VARIANTS, type PreviewVariant } from "./StorePreview";
 import { ProductsSetup } from "./ProductsSetup";
 import { PagesSetup, type SelectedPage } from "./PagesSetup";
@@ -269,6 +269,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
   const [showBrandPanel, setShowBrandPanel] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<PreviewVariant>("classic");
   const [mounted, setMounted] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -591,202 +592,198 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
     else if (phase === "launch") setPhase("domain");
   }
 
-  return (
-    <div className="flex h-screen flex-col overflow-hidden" style={{ background: "var(--color-navy)", color: "var(--color-cream)" }}>
-      <div className="pointer-events-none absolute inset-0 dot-grid opacity-60" />
+  const stepNumber = currentPhaseIdx + 1;
+  const stepEyebrow = `Step ${stepNumber} of ${STEP_LABELS.length} · ${STEP_LABELS[currentPhaseIdx] ?? ""}`;
+  const productCount = storeConfig.products.filter((p) => p.name && p.name !== "Product One" && p.name !== "Product Two" && p.name !== "Product Three").length || storeConfig.products.length;
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between border-b px-6 py-3" style={{ borderColor: "rgba(115,216,200,0.12)" }}>
-        <div className="flex items-center gap-3">
-          {phase !== "chat" && (
+  const previewPanel = (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <p className="m-0 min-w-0 truncate text-[13px] font-bold text-app-ink-soft">
+          Live preview · {storeConfig.slug}.shopinbos.com
+        </p>
+        <div className="flex rounded-full bg-white p-1" role="group" aria-label="Preview size">
+          {(["desktop", "mobile"] as const).map((d) => (
             <button
+              key={d}
               type="button"
-              onClick={goBack}
-              className="rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:border-[var(--color-mint)]"
-              style={{
-                borderColor: "rgba(115,216,200,0.28)",
-                color: "var(--color-mint)",
-                background: "rgba(115,216,200,0.08)",
-              }}
+              aria-pressed={device === d}
+              onClick={() => setDevice(d)}
+              className={cx("min-h-[32px] rounded-full px-3 text-[12.5px] font-bold transition", device === d ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
             >
-              Back
+              {d === "desktop" ? "Computer" : "Phone"}
             </button>
-          )}
-          <BrandLogo theme="light" className="w-[140px]" />
-          </div>
+          ))}
+        </div>
+      </div>
 
-        <div className="hidden items-center gap-1 md:flex">
+      <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Layout">
+        {PREVIEW_VARIANTS.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            aria-pressed={previewVariant === v.id}
+            onClick={() => setPreviewVariant(v.id)}
+            className={cx(
+              "min-h-[34px] rounded-full border px-3 text-[12.5px] font-bold transition",
+              previewVariant === v.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+            )}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-app-line bg-white">
+        <div className="flex shrink-0 items-center gap-3 border-b border-app-line px-4 py-2.5">
+          <div className="flex gap-[5px]" aria-hidden>
+            {["#FF6A2B", "#F2A93B", "#16794A"].map((c) => (
+              <span key={c} className="h-[9px] w-[9px] rounded-full opacity-70" style={{ background: c }} />
+            ))}
+          </div>
+          <div className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1 text-[12px] text-app-ink-soft">{storeConfig.slug}.shopinbos.com</div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <StorePreview
+            store={storeConfig}
+            changed={liveChanges}
+            device={device}
+            variant={previewVariant}
+            currentPage={previewPage}
+            onPageChange={setPreviewPage}
+            pages={previewTabs}
+          />
+        </div>
+      </div>
+
+      {liveChanges.length > 0 && (
+        <p className="m-0 flex shrink-0 items-center gap-2 rounded-[14px] bg-app-success-tint px-3 py-2 text-[12.5px] font-semibold text-app-success" role="status">
+          <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-app-success" />
+          <span className="truncate">Updated: {liveChanges.join(", ")}</span>
+        </p>
+      )}
+    </div>
+  );
+
+  const showSidePreview = phase !== "building" && phase !== "preview";
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-app-canvas font-app text-app-ink">
+      <header className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-app-line bg-white px-4 py-2.5 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          {phase !== "chat" && <BackButton onClick={goBack} label="Previous step" />}
+          <Wordmark className="h-[18px]" />
+        </div>
+
+        <ol className="m-0 hidden list-none items-center gap-1 p-0 xl:flex" aria-label="Store setup steps">
           {STEP_LABELS.map((label, i) => {
             const done = i < currentPhaseIdx;
             const active = i === currentPhaseIdx;
             return (
-              <div key={label} className="flex items-center gap-1">
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className="flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] font-bold"
-                    style={{
-                      background: done || active ? "var(--color-mint)" : "rgba(115,216,200,0.18)",
-                      color: done || active ? "var(--color-navy)" : "rgba(115,216,200,0.5)",
-                    }}
-                  >
-                    {done ? "OK" : i + 1}
-                  </div>
-                  <span
-                    className="text-[11px]"
-                    style={{ color: active ? "var(--color-cream)" : "rgba(115,216,200,0.5)", fontWeight: active ? 600 : 400 }}
-                  >
-                    {label}
+              <li key={label} className="flex items-center gap-1" aria-current={active ? "step" : undefined}>
+                <span
+                  className={cx(
+                    "inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold",
+                    active ? "bg-app-ink text-white" : done ? "text-app-ink" : "text-app-ink-faint",
+                  )}
+                >
+                  <span className={cx("grid h-[18px] w-[18px] place-items-center rounded-full text-[10.5px]", active ? "bg-white/20" : done ? "bg-app-success-tint text-app-success" : "bg-app-canvas")}>
+                    {done ? <Icon name="check" size={10} /> : i + 1}
                   </span>
-                </div>
-                {i < STEP_LABELS.length - 1 && <div className="mx-1.5 h-px w-3" style={{ background: "rgba(115,216,200,0.18)" }} />}
-              </div>
+                  {label}
+                </span>
+                {i < STEP_LABELS.length - 1 && <span className="h-px w-2 bg-app-line" aria-hidden />}
+              </li>
             );
           })}
-        </div>
+        </ol>
+        <span className="text-[13px] font-bold text-app-ink-soft xl:hidden">{stepEyebrow}</span>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.push("/builder/templates")}
-              className="rounded-full border px-4 py-1.5 text-[12px] font-semibold"
-              style={{
-                borderColor: "rgba(115,216,200,0.28)",
-                color: "rgba(115,216,200,0.8)",
-                background: "transparent",
-              }}
-            >
-              Templates
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push("/builder/editor")}
-              className="rounded-full border px-4 py-1.5 text-[12px] font-semibold"
-              style={{
-                borderColor: "rgba(115,216,200,0.28)",
-                color: "rgba(115,216,200,0.8)",
-                background: "transparent",
-              }}
-            >
-              Visual editor
-            </button>
-
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-            style={{
-              borderColor: "rgba(115,216,200,0.28)",
-              color: "rgba(115,216,200,0.62)",
-              background: "transparent",
-            }}
-          >
-            Out
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => router.push("/builder/templates")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
+            Templates
           </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/home")}
-            className="rounded-full px-4 py-1.5 text-[12px] font-semibold"
-            style={{
-              background: storeReady ? "var(--color-mint)" : "rgba(115,216,200,0.18)",
-              color: storeReady ? "var(--color-navy)" : "rgba(115,216,200,0.6)",
-            }}
-          >
-            {storeReady ? "Go to workspace" : "Skip setup"}
+          <button type="button" onClick={() => router.push("/seller/store/builder")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
+            Advanced builder
           </button>
+          <button type="button" onClick={handleSignOut} className="min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink">
+            Sign out
+          </button>
+          <PillButton size="sm" tone={storeReady ? "ink" : "white"} onClick={() => router.push(storeReady ? "/home/store" : "/home")}>
+            {storeReady ? "Go to Your store" : "Skip setup"}
+          </PillButton>
         </div>
       </header>
 
-      {/* Body */}
-      <div className="relative z-10 flex flex-1 gap-6 overflow-hidden p-5 pt-4">
-        <div
-          className="grid flex-1 gap-6 overflow-hidden"
-          style={{ gridTemplateColumns: phase === "building" ? "1fr" : "1fr 480px" }}
-        >
-          {/* Left panel */}
-          <div className="flex flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className={cx("grid min-h-0 flex-1 gap-5 overflow-hidden p-4 sm:p-5", showSidePreview && "lg:grid-cols-[minmax(0,1fr)_minmax(360px,44%)]")}>
+          <div className="flex min-h-0 flex-col overflow-hidden">
 
-            {/* CHAT phase */}
             {phase === "chat" && (
               <>
                 <div className="mb-3 shrink-0">
-                  <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "rgba(115,216,200,0.7)" }}>
-                    CONVERSATION
-                  </div>
-                  <h1 className="mt-2 font-display text-[32px] font-medium leading-[1.06] tracking-[-0.03em]" style={{ color: "var(--color-cream)" }}>
-                    Tell Rex what you sell.
-                    <br />
-                    <span className="font-accent italic" style={{ color: "var(--color-mint)" }}>He&apos;ll design the rest.</span>
+                  <p className="m-0 text-[13px] font-bold text-app-ink-soft">{stepEyebrow}</p>
+                  <h1 className="m-0 mt-1 text-[28px] font-extrabold leading-[1.08] tracking-[-0.8px] sm:text-[32px]">
+                    Tell Rex what you sell. <span className="text-app-accent-ink">He&apos;ll design the rest.</span>
                   </h1>
                 </div>
 
-                {/* Brand context bar */}
                 {mounted && hasBrand && (
-                  <div
-                    className="mb-3 shrink-0 rounded-[12px] px-3 py-2.5"
-                    style={{ background: "rgba(115,216,200,0.07)", border: "1px solid rgba(115,216,200,0.18)" }}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                  <div className="mb-3 shrink-0 rounded-[18px] bg-white px-3.5 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         {brandContext?.logoUrl && (
-                          <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-[6px]">
-                            <Image src={brandContext.logoUrl} alt="Brand logo" fill sizes="32px" className="object-contain" />
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px] border border-app-line">
+                            <Image src={brandContext.logoUrl} alt="Your logo" fill sizes="36px" className="object-contain" />
                           </div>
                         )}
-                        <div>
-                          <div className="font-mono text-[9px] tracking-[0.1em] uppercase" style={{ color: "rgba(115,216,200,0.6)" }}>
-                            Brand from onboarding
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2">
+                        <div className="min-w-0">
+                          <p className="m-0 text-[12.5px] text-app-ink-soft">Brand from your setup</p>
+                          <div className="mt-0.5 flex min-w-0 items-center gap-2">
                             {brandContext?.paletteColors && (
-                              <div className="flex gap-1">
+                              <span className="flex shrink-0 gap-1" aria-hidden>
                                 {Object.values(brandContext.paletteColors).slice(0, 4).map((c, i) => (
-                                  <div key={i} className="h-3 w-3 rounded-full" style={{ background: c }} />
+                                  <span key={i} className="h-3.5 w-3.5 rounded-full" style={{ background: c, boxShadow: "inset 0 0 0 1px rgba(22,20,31,0.1)" }} />
                                 ))}
-                              </div>
+                              </span>
                             )}
-                            <span className="text-[11px] font-medium" style={{ color: "var(--color-cream)" }}>
-                              {brandContext?.paletteName ?? "Custom palette"}
-                              {brandContext?.logoLabel ? ` · ${brandContext.logoLabel} logo` : brandContext?.logoUrl ? " · Logo ready" : ""}
+                            <span className="truncate text-[13.5px] font-bold">
+                              {brandContext?.paletteName ?? "Your colours"}
+                              {brandContext?.logoLabel ? ` · ${brandContext.logoLabel} logo` : brandContext?.logoUrl ? " · logo ready" : ""}
                             </span>
                           </div>
                         </div>
                       </div>
                       <button
                         type="button"
+                        aria-expanded={showBrandPanel}
                         onClick={() => setShowBrandPanel(!showBrandPanel)}
-                        className="shrink-0 text-[11px] font-semibold underline"
-                        style={{ color: "rgba(115,216,200,0.7)" }}
+                        className="min-h-[36px] shrink-0 rounded-full border border-app-line px-3 text-[13px] font-bold hover:border-app-line-strong"
                       >
                         {showBrandPanel ? "Close" : "Change brand"}
                       </button>
                     </div>
 
                     {showBrandPanel && (
-                      <div className="mt-3 border-t pt-3" style={{ borderColor: "rgba(115,216,200,0.12)" }}>
-                        <p className="mb-2 text-[12px]" style={{ color: "rgba(115,216,200,0.8)" }}>
-                          Tell Rex what you want to change and he&apos;ll update it live:
-                        </p>
+                      <div className="mt-3 border-t border-app-line pt-3">
+                        <p className="m-0 mb-2 text-[13px] text-app-ink-soft">Tell Rex what to change and he updates it live:</p>
                         <div className="flex flex-wrap gap-2">
-                          {["Change my palette", "Use a different logo", "I want darker colors", "Make it brighter"].map((opt) => (
+                          {["Change my palette", "Use a different logo", "I want darker colours", "Make it brighter"].map((opt) => (
                             <button
                               key={opt}
                               type="button"
                               onClick={() => { sendMessage(opt); setShowBrandPanel(false); }}
-                              className="rounded-full border px-3 py-1 text-[11px] transition-colors hover:border-[var(--color-mint)]"
-                              style={{ borderColor: "rgba(115,216,200,0.2)", color: "rgba(115,216,200,0.8)" }}
+                              className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px] font-bold hover:border-app-ink"
                             >
                               {opt}
                             </button>
                           ))}
                           <button
                             type="button"
-                            onClick={() => router.push("/onboarding")}
-                            className="rounded-full border px-3 py-1 text-[11px] transition-colors hover:border-[var(--color-mint)]"
-                            style={{ borderColor: "rgba(115,216,200,0.2)", color: "rgba(115,216,200,0.8)" }}
+                            onClick={() => router.push("/home/brand-kit")}
+                            className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px] font-bold hover:border-app-ink"
                           >
-                            Redesign brand
+                            Open brand kit
                           </button>
                         </div>
                       </div>
@@ -794,55 +791,41 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                   </div>
                 )}
 
-                {/* Messages */}
-                <div className="flex flex-1 flex-col gap-3 overflow-y-auto pb-2 pr-1">
+                <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-2 pr-1" aria-live="polite">
                   {messages.map((msg, i) => (
-                    <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                      {msg.role === "assistant" && <ChipAvatar mascot="rex" size={34} />}
+                    <div key={i} className={cx("flex items-end gap-2", msg.role === "user" ? "justify-end" : "justify-start")}>
+                      {msg.role === "assistant" && <Mascot name="rex" className="h-8 w-8 shrink-0" alt="" />}
 
-                      <div className="flex max-w-[82%] flex-col gap-2">
-                        {msg.role === "assistant" && (
-                          <div className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "var(--color-mint)" }}>
-                            {msg.isStreaming ? "REX · DRAFTING" : "REX"}
-                          </div>
-                        )}
-
-                        {/* Image attachments */}
+                      <div className={cx("flex min-w-0 max-w-[85%] flex-col gap-2", msg.role === "user" && "items-end")}>
                         {msg.imagePreviewUrls && msg.imagePreviewUrls.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {msg.imagePreviewUrls.map((url, j) => (
-                              <div key={j} className="relative h-20 w-20 overflow-hidden rounded-[10px]">
-                                <Image src={url} alt="Attached" fill sizes="80px" className="object-cover" />
+                              <div key={j} className="relative h-20 w-20 overflow-hidden rounded-[14px]">
+                                <Image src={url} alt="Attached photo" fill sizes="80px" className="object-cover" />
                               </div>
                             ))}
                           </div>
                         )}
 
-                        {/* Doc attachments */}
                         {msg.docNames && msg.docNames.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {msg.docNames.map((name, j) => (
-                              <div
-                                key={j}
-                                className="rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium"
-                                style={{ background: "rgba(115,216,200,0.15)", color: "var(--color-cream)" }}
-                              >
-                                {name}
-                              </div>
+                              <span key={j} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12.5px] font-semibold">
+                                <Icon name="file" size={13} /> {name}
+                              </span>
                             ))}
                           </div>
                         )}
 
                         <div
-                          className="rounded-[16px] px-4 py-3 text-[13px] leading-[1.55]"
-                          style={{
-                            background: msg.role === "user" ? "var(--color-mint)" : "rgba(115,216,200,0.07)",
-                            border: msg.role === "assistant" ? "1px solid rgba(115,216,200,0.18)" : "none",
-                            color: msg.role === "user" ? "var(--color-navy)" : "var(--color-cream)",
-                          }}
+                          className={cx(
+                            "whitespace-pre-line rounded-[20px] px-4 py-3 text-[14.5px] leading-[1.5]",
+                            msg.role === "user" ? "rounded-br-[6px] bg-app-ink text-white" : "rounded-bl-[6px] bg-white text-app-ink",
+                          )}
                         >
+                          <span className="sr-only">{msg.role === "user" ? "You: " : "Rex: "}</span>
                           {msg.content || (msg.isStreaming ? (
-                            <span className="inline-flex gap-1">
+                            <span className="inline-flex gap-1 text-app-ink-soft" aria-label="Rex is writing">
                               {[0, 150, 300].map((d) => (
                                 <span key={d} className="animate-bounce" style={{ animationDelay: `${d}ms` }}>·</span>
                               ))}
@@ -851,7 +834,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                         </div>
 
                         {msg.role === "assistant" && !msg.isStreaming && msg.chips && msg.chips.length > 0 && i === messages.length - 1 && (
-                          <div className="mt-1 flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {msg.chips.map((chip) => (
                               <button
                                 key={chip}
@@ -859,8 +842,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                                 // "Publish this" / "Looks good" move on to the real build and launch steps instead of
                                 // asking the model to publish (it can't).
                                 onClick={() => (/^(publish|launch|looks good)/i.test(chip) && storeReady ? setPhase("products") : sendMessage(chip))}
-                                className="rounded-full border px-3 py-1.5 text-[11px] transition-colors hover:border-[var(--color-mint)] hover:text-[var(--color-mint)]"
-                                style={{ borderColor: "rgba(115,216,200,0.2)", color: "rgba(115,216,200,0.7)" }}
+                                className="min-h-[36px] rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold transition hover:border-app-ink"
                               >
                                 {chip}
                               </button>
@@ -870,112 +852,98 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                       </div>
 
                       {msg.role === "user" && (
-                        <div
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] font-display text-[13px] font-bold"
-                          style={{ background: "var(--color-amber)", color: "var(--color-navy)" }}
-                        >
-                          {firstName[0].toUpperCase()}
-                        </div>
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink" aria-hidden>
+                          {firstName[0]?.toUpperCase()}
+                        </span>
                       )}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input area */}
                 <div className="mt-3 shrink-0">
-                  {/* Pending file previews */}
                   {pendingFiles.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-2">
                       {pendingFiles.map((f, i) => (
-                        <div key={i} className="group relative">
+                        <div key={i} className="relative">
                           {f.type === "image" ? (
-                            <div className="relative h-16 w-16 overflow-hidden rounded-[8px]">
+                            <div className="relative h-16 w-16 overflow-hidden rounded-[12px]">
                               <Image src={f.previewUrl} alt={f.name} fill sizes="64px" className="object-cover" />
                             </div>
                           ) : (
-                            <div
-                              className="flex items-center gap-1.5 rounded-[8px] px-2.5 py-2 text-[11px]"
-                              style={{ background: "rgba(115,216,200,0.12)", color: "var(--color-cream)" }}
-                            >
-                              <span>doc</span>
-                              <span className="max-w-[100px] truncate font-medium">{f.name}</span>
-                            </div>
+                            <span className="inline-flex h-16 items-center gap-1.5 rounded-[12px] bg-white px-3 text-[12.5px]">
+                              <Icon name="file" size={14} />
+                              <span className="max-w-[110px] truncate font-semibold">{f.name}</span>
+                            </span>
                           )}
                           <button
                             type="button"
                             onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--color-navy)] shadow group-hover:flex"
+                            aria-label={`Remove ${f.name}`}
+                            className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-app-ink text-white shadow"
                           >
-                            x
+                            <Icon name="x" size={11} />
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Input row */}
-                  <div
-                    className="flex items-center gap-2 rounded-[14px] px-3 py-2.5"
-                    style={{ background: "rgba(244,241,234,0.06)", border: "1px solid rgba(115,216,200,0.18)" }}
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      sendMessage(input);
+                    }}
                   >
-                    {/* Upload button */}
                     <input
                       ref={uploadInputRef}
                       type="file"
                       multiple
                       accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
-                      className="hidden"
+                      className="sr-only"
+                      tabIndex={-1}
+                      aria-hidden
                       onChange={handleFileUpload}
                     />
                     <button
                       type="button"
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={isLoading}
-                      title="Attach image or document"
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-[16px] transition-colors hover:bg-[rgba(115,216,200,0.1)] disabled:opacity-40"
-                      style={{ color: "rgba(115,216,200,0.6)" }}
+                      aria-label="Attach a photo or document"
+                      className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-white text-app-ink transition hover:bg-app-lilac disabled:opacity-40"
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                        <path d="M2 11L6.5 6.5a2.121 2.121 0 013 0l4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                        <path d="M9.5 9.5L10.5 8.5a1.5 1.5 0 012.121 0L14 9.879" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                        <rect x="1" y="1" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.4"/>
-                      </svg>
+                      <Icon name="paperclip" size={18} />
                     </button>
-
+                    <label htmlFor="rex-reply" className="sr-only">Reply to Rex</label>
                     <input
+                      id="rex-reply"
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
-                      }}
-                      placeholder={pendingFiles.length > 0 ? "Add a note about this file (optional)..." : "Reply to Rex..."}
+                      placeholder={pendingFiles.length > 0 ? "Add a note about this file (optional)…" : "Reply to Rex…"}
                       disabled={isLoading}
-                      className="flex-1 bg-transparent text-[14px] outline-none"
-                      style={{ color: "var(--color-cream)" }}
+                      className="h-[52px] min-w-0 flex-1 rounded-full bg-white px-5 text-[15.5px] text-app-ink outline-none placeholder:text-app-ink-faint focus:ring-2 focus:ring-app-ink/15"
                       suppressHydrationWarning
                     />
                     <button
-                      type="button"
-                      onClick={() => sendMessage(input)}
+                      type="submit"
                       disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
-                      className="rounded-full px-4 py-1.5 text-[12px] font-semibold disabled:opacity-40"
-                      style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
+                      aria-label="Send"
+                      className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-45"
                     >
-                      Send
+                      <Icon name="send" size={18} />
                     </button>
-                  </div>
+                  </form>
 
                   {chips.length === 0 && !isLoading && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {["I sell fashion", "Beauty products", "Food & drinks", "Electronics"].map((s) => (
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {["I sell fashion", "Beauty products", "Food and drinks", "Electronics"].map((s) => (
                         <button
                           key={s}
                           type="button"
                           onClick={() => sendMessage(s)}
-                          className="rounded-full border px-3 py-1.5 text-[11px] transition-colors hover:border-[var(--color-mint)] hover:text-[var(--color-mint)]"
-                          style={{ borderColor: "rgba(115,216,200,0.2)", color: "rgba(115,216,200,0.7)", background: "transparent" }}
+                          className="min-h-[36px] rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold transition hover:border-app-ink"
                         >
                           {s}
                         </button>
@@ -985,40 +953,29 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
                   {storeReady && (
                     <div className="mt-3 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setPhase("products")}
-                        className="rounded-full px-5 py-2.5 text-[13px] font-semibold"
-                        style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
-                      >
-                        Looks good — add products
-                      </button>
+                      <PillButton size="md" tone="accent" onClick={() => setPhase("products")}>
+                        Looks good, add products <Icon name="arrow" size={16} />
+                      </PillButton>
                     </div>
                   )}
                 </div>
               </>
             )}
 
-            {/* PRODUCTS phase */}
             {phase === "products" && (
-              <div className="flex flex-1 flex-col overflow-y-auto">
-                <div className="mb-3 shrink-0">
-                  <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "rgba(115,216,200,0.7)" }}>STEP 2 OF 5 — PRODUCTS</div>
-                  <h2 className="mt-1 font-display text-[26px] font-semibold tracking-[-0.03em]" style={{ color: "var(--color-cream)" }}>
-                    Add your products
-                  </h2>
-                  <p className="mt-1 text-[13px]" style={{ color: "rgba(244,241,234,0.6)" }}>
-                    Add real products and product images. Rex uses these images in the store preview, and Peggy can help turn your notes into clean product copy.
-                  </p>
-                </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <PhaseHead
+                  eyebrow={stepEyebrow}
+                  title="Add your products"
+                  sub="Add real products and product images. Rex uses these images in the store preview, and Peggy can help turn your notes into clean product copy."
+                />
                 {storeReady && (
-                  <div className="mb-3 shrink-0 flex items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "rgba(115,216,200,0.07)", border: "1px solid rgba(115,216,200,0.12)" }}>
-                    <span className="font-mono text-[10px]" style={{ color: "rgba(115,216,200,0.6)" }}>Store:</span>
-                    <span className="text-[12px] font-semibold" style={{ color: "var(--color-cream)" }}>{storeConfig.name}</span>
-                    {storeConfig.tagline && <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.5)" }}>· {storeConfig.tagline}</span>}
-                  </div>
+                  <StoreStrip>
+                    <span className="font-bold text-app-ink">{storeConfig.name}</span>
+                    {storeConfig.tagline && <span className="truncate">· {storeConfig.tagline}</span>}
+                  </StoreStrip>
                 )}
-                <div className="rounded-[20px] bg-white p-5">
+                <div className="rounded-[22px] bg-white p-4 sm:p-5">
                   <ProductsSetup
                     category={resolvedOnboardingMemory?.category || selectedCategory || storeConfig.name}
                     onNext={() => setPhase("pages")}
@@ -1029,27 +986,19 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               </div>
             )}
 
-            {/* PAGES phase */}
             {phase === "pages" && (
-              <div className="flex flex-1 flex-col overflow-y-auto">
-                <div className="mb-3 shrink-0">
-                  <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "rgba(115,216,200,0.7)" }}>STEP 3 OF 5 — PAGES</div>
-                  <h2 className="mt-1 font-display text-[26px] font-semibold tracking-[-0.03em]" style={{ color: "var(--color-cream)" }}>
-                    Choose your pages
-                  </h2>
-                  <p className="mt-1 text-[13px]" style={{ color: "rgba(244,241,234,0.6)" }}>
-                    Pick pages and give Rex your copy insights: tone, promises, FAQs, delivery notes, and anything buyers should know. Rex writes the full store from that.
-                  </p>
-                </div>
-                <div className="mb-3 shrink-0 flex items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "rgba(115,216,200,0.07)", border: "1px solid rgba(115,216,200,0.12)" }}>
-                  <span className="font-mono text-[10px]" style={{ color: "rgba(115,216,200,0.6)" }}>Store:</span>
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--color-cream)" }}>{storeConfig.name}</span>
-                  <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.5)" }}>·</span>
-                  <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.6)" }}>{storeConfig.products.filter(p => p.name && p.name !== "Product One" && p.name !== "Product Two" && p.name !== "Product Three").length || storeConfig.products.length} products</span>
-                  <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.5)" }}>·</span>
-                  <span className="text-[11px] capitalize" style={{ color: "rgba(115,216,200,0.6)" }}>{previewVariant} layout</span>
-                </div>
-                <div className="rounded-[20px] bg-white p-5">
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <PhaseHead
+                  eyebrow={stepEyebrow}
+                  title="Choose your pages"
+                  sub="Pick pages and give Rex your notes: tone, promises, questions buyers ask, delivery details. Rex writes the whole store from that."
+                />
+                <StoreStrip>
+                  <span className="font-bold text-app-ink">{storeConfig.name}</span>
+                  <span>· {productCount} {productCount === 1 ? "product" : "products"}</span>
+                  <span className="capitalize">· {previewVariant} layout</span>
+                </StoreStrip>
+                <div className="rounded-[22px] bg-white p-4 sm:p-5">
                   <PagesSetup
                     storeName={storeConfig.name}
                     category={selectedCategory || storeConfig.name}
@@ -1061,9 +1010,8 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               </div>
             )}
 
-            {/* BUILDING phase */}
             {phase === "building" && (
-              <div className="flex flex-1 items-center justify-center overflow-hidden rounded-[20px] bg-white">
+              <div className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto rounded-[22px] bg-white sm:items-center">
                 <BuildProgress
                   selectedPages={selectedPages}
                   selectedPageDetails={selectedPageDetails}
@@ -1074,55 +1022,34 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               </div>
             )}
 
-            {/* PREVIEW phase */}
             {phase === "preview" && (
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="mb-3 shrink-0">
-                  <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "rgba(115,216,200,0.7)" }}>STEP 4 OF 5 — PREVIEW</div>
-                  <div className="mt-1 flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className="font-display text-[24px] font-semibold tracking-[-0.03em]" style={{ color: "var(--color-cream)" }}>
-                        Review your store
-                      </h2>
-                      <p className="mt-0.5 text-[12px]" style={{ color: "rgba(244,241,234,0.55)" }}>
-                        Browse each page tab. Click &ldquo;Edit with Rex&rdquo; to change any section live.
-                      </p>
-                      {selectedTemplate ? (
-                        <p className="mt-1 text-[11px]" style={{ color: "rgba(115,216,200,0.72)" }}>
-                          Starting from template: {selectedTemplate.templateName}
-                        </p>
-                      ) : null}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setPhase("domain")}
-                      className="shrink-0 rounded-full px-5 py-2 text-[13px] font-semibold"
-                      style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
-                    >
-                      Set up domain
-                    </button>
-                  </div>
-                </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <PhaseHead
+                  eyebrow={stepEyebrow}
+                  title="Review your store"
+                  sub={`Look through each page. Use “Change with Rex” to change any part.${selectedTemplate ? ` Template: ${selectedTemplate.templateName}.` : ""}`}
+                  action={<PillButton size="md" tone="accent" onClick={() => setPhase("domain")}>Set up your address <Icon name="arrow" size={16} /></PillButton>}
+                />
 
-                <div className="mb-3 flex shrink-0 gap-1">
+                <div className="mb-3 flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Page">
                   {previewTabs.map((p) => (
                     <button
                       key={p}
                       type="button"
+                      aria-pressed={previewPage === p}
                       onClick={() => setPreviewPage(p)}
-                      className="rounded-full px-3 py-1 text-[11px] font-semibold capitalize transition-all"
-                      style={{
-                        background: previewPage === p ? "var(--color-mint)" : "rgba(115,216,200,0.12)",
-                        color: previewPage === p ? "var(--color-navy)" : "rgba(115,216,200,0.7)",
-                      }}
+                      className={cx(
+                        "min-h-[36px] rounded-full border px-3.5 text-[13px] font-bold capitalize transition",
+                        previewPage === p ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+                      )}
                     >
-                      {p}
+                      {formatPreviewLabel(p)}
                     </button>
                   ))}
                 </div>
 
-                <div className="flex flex-1 gap-4 overflow-hidden">
-                  <div className="flex-1 overflow-y-auto rounded-[14px]">
+                <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden lg:flex-row">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-[22px] border border-app-line bg-white">
                     <StorePreview
                       store={storeConfig}
                       changed={liveChanges}
@@ -1135,212 +1062,133 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                   </div>
 
                   {editSectionChat && (
-                    <div
-                      className="flex w-[220px] shrink-0 flex-col rounded-[14px]"
-                      style={{ background: "rgba(115,216,200,0.07)", border: "1px solid rgba(115,216,200,0.18)" }}
+                    <form
+                      className="flex shrink-0 flex-col rounded-[22px] bg-app-peach p-4 lg:w-[280px]"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        submitRexPreviewEdit();
+                      }}
                     >
-                      <div className="flex items-center gap-2 px-3 py-3" style={{ borderBottom: "1px solid rgba(115,216,200,0.1)" }}>
-                        <ChipAvatar mascot="rex" size={22} />
-                        <span className="font-mono text-[10px]" style={{ color: "var(--color-mint)" }}>REX · EDITING</span>
+                      <div className="flex items-center gap-2">
+                        <Mascot name="rex" className="h-8 w-8" alt="" />
+                        <span className="text-[14px] font-extrabold">What should Rex change?</span>
                       </div>
-                      <div className="flex-1 px-3 py-3 text-[12px]" style={{ color: "rgba(115,216,200,0.7)" }}>
-                        What would you like to change?
-                      </div>
-                      <div className="px-3 pb-3">
-                        <div className="flex gap-1">
-                          <input
-                            value={editInput}
-                            onChange={(e) => setEditInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") submitRexPreviewEdit(); }}
-                            placeholder={`Edit ${formatPreviewLabel(previewPage).toLowerCase()}...`}
-                            className="flex-1 rounded-[8px] px-2 py-1.5 text-[11px] outline-none"
-                            style={{ background: "rgba(115,216,200,0.1)", color: "var(--color-cream)", border: "1px solid rgba(115,216,200,0.18)" }}
-                          />
-                          <button
-                            type="button"
-                            onClick={submitRexPreviewEdit}
-                            className="rounded-[8px] px-2 py-1.5 text-[11px] font-bold"
-                            style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
-                          >
-                            OK
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      <label htmlFor="rex-edit" className="sr-only">Change on the {formatPreviewLabel(previewPage)} page</label>
+                      <textarea
+                        id="rex-edit"
+                        rows={3}
+                        value={editInput}
+                        onChange={(e) => setEditInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitRexPreviewEdit(); } }}
+                        placeholder={`e.g. Make the ${formatPreviewLabel(previewPage).toLowerCase()} headline warmer`}
+                        className="mt-3 w-full resize-none rounded-[14px] border border-transparent bg-white px-3 py-2.5 text-[14px] leading-[1.5] outline-none focus:border-app-ink"
+                      />
+                      <PillButton type="submit" size="sm" className="mt-2 self-start" disabled={!editInput.trim()}>Send to Rex</PillButton>
+                    </form>
                   )}
                 </div>
 
-                <div className="mt-3 flex shrink-0 items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setEditSectionChat(!editSectionChat)}
-                    className="rounded-full border px-4 py-2 text-[12px] font-semibold transition-colors hover:border-[var(--color-mint)]"
-                    style={{ borderColor: "rgba(115,216,200,0.3)", color: "rgba(115,216,200,0.8)" }}
-                  >
-                    {editSectionChat ? "Close editor" : "Edit sections with Rex"}
-                  </button>
+                <div className="mt-3 flex shrink-0 flex-wrap items-center gap-2">
+                  <PillButton size="sm" tone="white" aria-expanded={editSectionChat} onClick={() => setEditSectionChat(!editSectionChat)}>
+                    <Icon name="sparkle" size={14} /> {editSectionChat ? "Close" : "Change with Rex"}
+                  </PillButton>
+                  <div className="flex rounded-full bg-white p-1" role="group" aria-label="Preview size">
+                    {(["desktop", "mobile"] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        aria-pressed={device === d}
+                        onClick={() => setDevice(d)}
+                        className={cx("min-h-[30px] rounded-full px-3 text-[12.5px] font-bold transition", device === d ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
+                      >
+                        {d === "desktop" ? "Computer" : "Phone"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* DOMAIN phase */}
             {phase === "domain" && (
-              <div className="flex flex-1 flex-col overflow-y-auto">
-                <div className="mb-3 shrink-0">
-                  <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "rgba(115,216,200,0.7)" }}>STEP 4 OF 5 — DOMAIN</div>
-                  <h2 className="mt-1 font-display text-[26px] font-semibold tracking-[-0.03em]" style={{ color: "var(--color-cream)" }}>
-                    Choose your domain
-                  </h2>
-                  <p className="mt-1 text-[13px]" style={{ color: "rgba(244,241,234,0.6)" }}>
-                    Use your free Shopinbos link or connect a domain you already own through Vercel.
-                  </p>
-                </div>
-                <div className="mb-3 shrink-0 flex flex-wrap items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "rgba(115,216,200,0.07)", border: "1px solid rgba(115,216,200,0.12)" }}>
-                  <span className="font-mono text-[10px]" style={{ color: "rgba(115,216,200,0.6)" }}>Free link:</span>
-                  <span className="font-mono text-[12px] font-semibold" style={{ color: "var(--color-mint)" }}>{storeConfig.slug}.shopinbos.com</span>
-                  <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.4)" }}>·</span>
-                  <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.6)" }}>{storeConfig.products.length} products · {selectedPages.length} pages</span>
-                </div>
-                <div className="rounded-[20px] bg-white p-5">
-                  <DomainSetup
-                    storeSlug={storeConfig.slug}
-                    storeName={storeConfig.name}
-                    onDone={(domain) => { setCustomDomain(domain); setPhase("launch"); }}
-                  />
-                </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <PhaseHead eyebrow={stepEyebrow} title="Choose your address" sub="Use your free Shopinbos address, connect a domain you own, or buy a new one." />
+                <StoreStrip>
+                  <span>Free address</span>
+                  <span className="font-bold text-app-ink">{storeConfig.slug}.shopinbos.com</span>
+                  <span>· {storeConfig.products.length} products · {selectedPages.length} pages</span>
+                </StoreStrip>
+                <DomainSetup
+                  storeSlug={storeConfig.slug}
+                  storeName={storeConfig.name}
+                  onDone={(domain) => { setCustomDomain(domain); setPhase("launch"); }}
+                />
               </div>
             )}
 
-            {/* LAUNCH phase */}
             {phase === "launch" && (
-              <div className="flex flex-1 flex-col overflow-y-auto">
-                <div className="mb-3 shrink-0">
-                  <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "rgba(115,216,200,0.7)" }}>STEP 5 OF 5 — LAUNCH</div>
-                  <h2 className="mt-1 font-display text-[26px] font-semibold tracking-[-0.03em]" style={{ color: "var(--color-cream)" }}>
-                    Payments and delivery
-                  </h2>
-                  <p className="mt-1 text-[13px]" style={{ color: "rgba(244,241,234,0.6)" }}>
-                    Last step. Set up how customers pay and how you deliver — then your store goes live.
-                  </p>
-                </div>
-                <div className="mb-3 shrink-0 flex flex-wrap items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "rgba(115,216,200,0.07)", border: "1px solid rgba(115,216,200,0.12)" }}>
-                  <span className="font-mono text-[10px]" style={{ color: "rgba(115,216,200,0.6)" }}>Store:</span>
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--color-cream)" }}>{storeConfig.name}</span>
-                  <span className="text-[11px]" style={{ color: "rgba(115,216,200,0.4)" }}>·</span>
-                  <span className="font-mono text-[11px]" style={{ color: "rgba(115,216,200,0.6)" }}>
-                    {customDomain ?? `${storeConfig.slug}.shopinbos.com`}
-                  </span>
-                </div>
-                <div className="rounded-[20px] bg-white p-5">
-                    <LaunchSetup
-                      storeName={storeConfig.name}
-                      storeSlug={storeConfig.slug}
-                      customDomain={customDomain}
-                      storeConfig={storeConfig}
-                      layoutVariant={previewVariant}
-                      onDone={() => router.push("/home")}
-                    />
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <PhaseHead eyebrow={stepEyebrow} title="Payments and delivery" sub="Last step. Choose how customers pay and how you deliver, then your store goes live." />
+                <StoreStrip>
+                  <span className="font-bold text-app-ink">{storeConfig.name}</span>
+                  <span>· {customDomain ?? `${storeConfig.slug}.shopinbos.com`}</span>
+                </StoreStrip>
+                <div className="rounded-[22px] bg-white p-4 sm:p-5">
+                  <LaunchSetup
+                    storeName={storeConfig.name}
+                    storeSlug={storeConfig.slug}
+                    customDomain={customDomain}
+                    storeConfig={storeConfig}
+                    layoutVariant={previewVariant}
+                    onDone={() => router.push("/home/store")}
+                  />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Right panel: live preview */}
-          {phase !== "building" && (
-            <div className="flex flex-col gap-3 overflow-hidden">
-              <div className="flex shrink-0 items-center justify-between">
-                <div className="font-mono text-[11px] tracking-[0.12em]" style={{ color: "var(--color-teal)" }}>
-                  LIVE PREVIEW · {storeConfig.slug}.shopinbos.com
-                </div>
-                <div className="flex gap-1">
-                  {(["desktop", "mobile"] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setDevice(d)}
-                      className="rounded-[6px] px-2 py-1 text-[10px] font-semibold capitalize transition-colors"
-                      style={{
-                        background: device === d ? "white" : "transparent",
-                        border: "1px solid rgba(14,42,56,0.1)",
-                        color: device === d ? "var(--color-navy)" : "rgba(115,216,200,0.5)",
-                      }}
-                    >
-                      {d === "desktop" ? "Desktop" : "Mobile"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Layout variant selector */}
-              <div className="flex shrink-0 gap-1">
-                {PREVIEW_VARIANTS.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setPreviewVariant(v.id)}
-                    className="rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all"
-                    style={{
-                      background: previewVariant === v.id ? "var(--color-mint)" : "rgba(115,216,200,0.1)",
-                      color: previewVariant === v.id ? "var(--color-navy)" : "rgba(115,216,200,0.55)",
-                      border: previewVariant === v.id ? "none" : "1px solid rgba(115,216,200,0.15)",
-                    }}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-
-              <div
-                className="flex-1 overflow-hidden rounded-[14px]"
-                style={{ background: "var(--color-paper)", border: "1px solid rgba(14,42,56,0.08)" }}
-              >
-                <div
-                  className="flex items-center gap-3 px-4 py-2.5"
-                  style={{ borderBottom: "1px solid rgba(14,42,56,0.06)", background: "white" }}
-                >
-                  <div className="flex gap-[5px]">
-                    {["#E86A4F", "#F2A93B", "#73D8C8"].map((c) => (
-                      <div key={c} className="h-[9px] w-[9px] rounded-full" style={{ background: c }} />
-                    ))}
-                  </div>
-                  <div
-                    className="flex-1 rounded-[6px] px-2 py-1 font-mono text-[10px]"
-                    style={{ background: "var(--color-paper)", color: "var(--color-muted)" }}
-                  >
-                    {storeConfig.slug}.shopinbos.com
-                  </div>
-                </div>
-                <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 260px)" }}>
-                  <StorePreview
-                    store={storeConfig}
-                    changed={liveChanges}
-                    device={device}
-                    variant={previewVariant}
-                    currentPage={previewPage}
-                    onPageChange={setPreviewPage}
-                    pages={previewTabs}
-                  />
-                </div>
-              </div>
-
-              {liveChanges.length > 0 && (
-                <div
-                  className="flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-2"
-                  style={{ background: "rgba(115,216,200,0.12)", border: "1px solid rgba(46,126,120,0.25)" }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: "var(--color-teal)", boxShadow: "0 0 0 3px rgba(46,126,120,0.3)", animation: "pulse 1.5s infinite" }}
-                  />
-                  <span className="font-mono text-[10px]" style={{ color: "var(--color-teal-deep)" }}>
-                    Updated: {liveChanges.join(", ")}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+          {showSidePreview && <div className="hidden min-h-0 flex-col overflow-hidden lg:flex">{previewPanel}</div>}
         </div>
       </div>
+
+      {showSidePreview && (
+        <>
+          <button
+            type="button"
+            onClick={() => setMobilePreview(true)}
+            className="fixed bottom-4 right-4 z-20 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-4 text-[14px] font-extrabold text-white shadow-[0_12px_30px_-10px_rgba(22,20,31,0.5)] lg:hidden"
+          >
+            <Icon name="eye" size={16} /> Preview
+          </button>
+          {mobilePreview && (
+            <div role="dialog" aria-modal="true" aria-label="Store preview" className="fixed inset-0 z-30 flex flex-col bg-app-canvas p-4 lg:hidden">
+              <div className="mb-3 flex shrink-0 items-center justify-between">
+                <span className="text-[16px] font-extrabold">Preview</span>
+                <button type="button" onClick={() => setMobilePreview(false)} aria-label="Close preview" className="grid h-11 w-11 place-items-center rounded-full bg-white">
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
+              {previewPanel}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function StoreStrip({ children }: { children: React.ReactNode }) {
+  return <div className="mb-4 flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-[16px] bg-white px-3.5 py-2.5 text-[13px] text-app-ink-soft">{children}</div>;
+}
+
+function PhaseHead({ eyebrow, title, sub, action }: { eyebrow: string; title: string; sub?: string; action?: React.ReactNode }) {
+  return (
+    <div className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <p className="m-0 text-[13px] font-bold text-app-ink-soft">{eyebrow}</p>
+        <h2 className="m-0 mt-1 text-[26px] font-extrabold leading-[1.1] tracking-[-0.6px]">{title}</h2>
+        {sub && <p className="mb-0 mt-1.5 max-w-[640px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
+      </div>
+      {action}
     </div>
   );
 }

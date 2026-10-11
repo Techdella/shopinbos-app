@@ -368,10 +368,10 @@ export function BoutiqueProductView(props: Props) {
           </div>
 
           <div className="mt-5 grid gap-2.5">
-            <button type="button" className="bq-btn w-full" style={look.id === "noir" ? look.secondaryButton : look.primaryButton} disabled={soldOut || !interactive} onClick={() => props.onAddToBag?.(item())}>
+            <button type="button" className="bq-btn w-full" style={look.solidButton} disabled={soldOut || !interactive} onClick={() => props.onAddToBag?.(item())}>
               {soldOut ? "Sold out" : "+ Add to bag"}
             </button>
-            <button type="button" className="bq-btn w-full" style={look.id === "noir" ? look.primaryButton : look.id === "plain" ? look.secondaryButton : { background: `${t.accent}1A`, color: t.ink, border: "1.5px solid transparent" }} disabled={soldOut || !interactive} onClick={() => props.onBuyNow?.(item())}>
+            <button type="button" className="bq-btn w-full" style={look.softButton} disabled={soldOut || !interactive} onClick={() => props.onBuyNow?.(item())}>
               Buy now
             </button>
           </div>
@@ -390,7 +390,7 @@ export function BoutiqueProductView(props: Props) {
             </button>
           </div>
 
-          <div className="mt-4 grid gap-2 rounded-[12px] p-4 text-[13.5px]" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+          <div className="mt-4 grid gap-2 rounded-[12px] p-4 text-[13.5px]" style={{ background: look.raised }}>
             <div className="flex items-start gap-2.5">
               <Icon name="truck" size={18} className="mt-0.5 shrink-0" />
               <div className="min-w-0">
@@ -461,9 +461,9 @@ export function BoutiqueProductView(props: Props) {
                 {product.sku ? <p className="mt-3 text-[12.5px]" style={{ color: t.muted }}>SKU {selected?.sku ?? product.sku}</p> : null}
               </div>
               {specs.length ? (
-                <div className="rounded-[16px] p-5" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+                <div className="rounded-[16px] p-5" style={{ background: look.raised }}>
                   <h3 className="text-[18px] font-semibold">Specifications</h3>
-                  <dl className="mt-3 rounded-[10px] px-4" style={{ background: look.dark ? "#121212" : "#fff" }}>
+                  <dl className="mt-3 rounded-[10px] px-4" style={{ background: look.dark ? t.paperBg : "#fff" }}>
                     {specs.map((spec) => (
                       <div key={spec.name} className="flex justify-between gap-4 border-b py-2.5 text-[14px] last:border-b-0" style={{ borderColor: t.border }}>
                         <dt className="font-semibold">{spec.name}</dt>
@@ -485,7 +485,7 @@ export function BoutiqueProductView(props: Props) {
                 </div>
                 <ul className="grid gap-3">
                   {props.reviews.map((review) => (
-                    <li key={review.id} className="rounded-[14px] p-4" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+                    <li key={review.id} className="rounded-[14px] p-4" style={{ background: look.raised }}>
                       <div className="flex items-center justify-between gap-2">
                         <Stars rating={review.rating} color="#F2A93B" />
                         <span className="sr-only">{review.rating} out of 5</span>

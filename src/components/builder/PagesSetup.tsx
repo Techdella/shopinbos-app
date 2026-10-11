@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { Mascot, PillButton, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -106,15 +107,6 @@ const STYLE_LABELS: Record<string, string> = {
   minimal: "Clean & Minimal layout",
 };
 
-// ── Input styling ──────────────────────────────────────────────────────────────
-
-const INPUT_STYLE = {
-  borderColor: "rgb(14 42 56 / 0.12)",
-  color: "var(--color-navy)",
-  background: "white",
-};
-const LABEL_COLOR = { color: "var(--color-muted)" };
-
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }: PagesSetupProps) {
@@ -175,33 +167,22 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
   const optionalSelected = selected.filter((t) => !pages.find((p) => p.type === t)?.required);
 
   return (
-    <div className="flex flex-col gap-6">
-
-      {/* Rex intro */}
-      <div
-        className="flex items-start gap-3 rounded-[18px] border px-4 py-4"
-        style={{ background: "rgb(14 42 56 / 0.03)", borderColor: "rgb(115 216 200 / 0.2)" }}
-      >
-        <ChipAvatar mascot="rex" size={32} />
-        <div>
-          <p className="text-[13px] leading-[1.6]" style={{ color: "var(--color-navy)" }}>
-            Pick which pages <strong>{storeName || "your store"}</strong> needs. I write all the copy — you just
-            add your details where it helps. Peggy can also draft any section you leave blank.
+    <div className="flex flex-col gap-6 font-app text-app-ink">
+      <div className="flex items-start gap-3 rounded-[18px] bg-app-peach px-4 py-3.5">
+        <Mascot name="rex" className="h-9 w-9 shrink-0" alt="Rex" />
+        <div className="min-w-0">
+          <p className="m-0 text-[14px] leading-[1.55]">
+            Pick the pages <strong>{storeName || "your store"}</strong> needs. I write all the copy; add your details where it helps.
+            Peggy can draft any notes you leave blank.
           </p>
-          <p className="mt-1 text-[12px]" style={{ color: "var(--color-muted)" }}>
-            Your <strong>{STYLE_LABELS[designStyle] ?? "Classic layout"}</strong> is already locked in from your brand setup.
+          <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">
+            Layout: {STYLE_LABELS[designStyle] ?? "Classic layout"}, from your brand setup.
           </p>
         </div>
       </div>
 
-      {/* Page selector */}
-      <div>
-        <div
-          className="mb-3 font-mono text-[10px] uppercase tracking-[0.14em]"
-          style={{ color: "var(--color-teal-deep)" }}
-        >
-          Select pages
-        </div>
+      <fieldset className="m-0 min-w-0 border-0 p-0">
+        <legend className="mb-3 p-0 text-[15px] font-extrabold">Pages</legend>
         <div className="grid gap-2.5 sm:grid-cols-2">
           {pages.map((p) => {
             const active = selected.includes(p.type);
@@ -209,135 +190,81 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
               <button
                 key={p.type}
                 type="button"
+                role="checkbox"
+                aria-checked={active}
+                aria-disabled={p.required || undefined}
                 onClick={() => togglePage(p.type)}
-                className="flex items-start gap-3 rounded-[16px] border px-4 py-3.5 text-left transition-all"
-                style={{
-                  background: active ? "rgb(115 216 200 / 0.06)" : "white",
-                  borderColor: active ? "var(--color-mint)" : "rgb(14 42 56 / 0.08)",
-                }}
+                className={cx(
+                  "flex min-h-[68px] items-start gap-3 rounded-[18px] border-2 bg-white px-4 py-3 text-left transition",
+                  active ? "border-app-ink" : "border-app-line hover:border-app-line-strong",
+                )}
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold" style={{ color: active ? "var(--color-teal-deep)" : "var(--color-navy)" }}>
-                      {p.label}
-                    </span>
-                    {p.required && (
-                      <span
-                        className="rounded-full px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wide"
-                        style={{ background: "rgb(46 126 120 / 0.12)", color: "var(--color-teal-deep)" }}
-                      >
-                        required
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 text-[11px]" style={{ color: "var(--color-muted)" }}>
-                    {p.description}
-                  </div>
-                </div>
-                <div
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 transition-all"
-                  style={{
-                    borderColor: active ? "var(--color-mint)" : "rgb(14 42 56 / 0.2)",
-                    background: active ? "var(--color-mint)" : "transparent",
-                  }}
-                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-[14.5px] font-extrabold">{p.label}</span>
+                    {p.required && <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-bold text-app-ink-soft">Always on</span>}
+                  </span>
+                  <span className="mt-0.5 block text-[13px] leading-[1.45] text-app-ink-soft">{p.description}</span>
+                </span>
+                <span className={cx("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2", active ? "border-app-ink bg-app-ink text-white" : "border-app-line-strong")}>
+                  {active && <Icon name="check" size={11} />}
+                </span>
               </button>
             );
           })}
         </div>
-      </div>
+      </fieldset>
 
-      {/* Content inputs for selected optional pages */}
       {optionalSelected.length > 0 && (
-        <div className="space-y-4">
-          <div
-            className="font-mono text-[10px] uppercase tracking-[0.14em]"
-            style={{ color: "var(--color-teal-deep)" }}
-          >
-            Add your details — Rex writes the rest
-          </div>
+        <div className="grid gap-3">
+          <h3 className="m-0 text-[15px] font-extrabold">Add your details, Rex writes the rest</h3>
           {optionalSelected.map((type) => {
             const page = pages.find((p) => p.type === type)!;
             if (!page?.contentLabel) return null;
             const isLoading = peggyLoading === type;
+            const fieldId = `page-notes-${type}`;
             return (
-              <div
-                key={type}
-                className="rounded-[16px] border p-4"
-                style={{ borderColor: "rgb(14 42 56 / 0.08)", background: "white" }}
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-[13px] font-semibold" style={{ color: "var(--color-navy)" }}>
-                      {page.label}
-                    </div>
-                    <div className="text-[11px]" style={LABEL_COLOR}>{page.contentLabel}</div>
-                  </div>
+              <div key={type} className="rounded-[18px] border border-app-line bg-white p-4">
+                <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor={fieldId} className="min-w-0">
+                    <span className="block text-[14.5px] font-extrabold">{page.label}</span>
+                    <span className="block text-[13px] text-app-ink-soft">{page.contentLabel}</span>
+                  </label>
                   <button
                     type="button"
                     onClick={() => askPeggy(type, page)}
                     disabled={isLoading}
-                    className="flex items-center gap-1 text-[11px] font-semibold disabled:opacity-40"
-                    style={{ color: "var(--color-teal-deep)" }}
+                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-mint px-3 text-[13px] font-bold text-app-forest disabled:opacity-50"
                   >
-                    <ChipAvatar mascot="peggy" size={13} />
-                    {isLoading ? "Writing..." : "Ask Peggy"}
+                    <Mascot name="peggy" className="h-5 w-5" alt="" />
+                    {isLoading ? "Writing…" : "Ask Peggy"}
                   </button>
                 </div>
                 <textarea
+                  id={fieldId}
                   rows={page.multiline ? 4 : 3}
                   value={content[type] ?? ""}
                   onChange={(e) => setPageContent(type, e.target.value)}
                   placeholder={page.contentPlaceholder}
-                  className="w-full resize-none rounded-[10px] border px-3 py-2.5 text-[13px] leading-[1.6] outline-none transition-colors focus:border-[var(--color-mint)]"
-                  style={INPUT_STYLE}
+                  className="w-full resize-y rounded-[14px] border border-app-line bg-white px-3.5 py-3 text-[14.5px] leading-[1.55] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink"
                 />
-                {peggyError?.type === type && (
-                  <p className="mt-2 text-[11px]" style={{ color: "var(--color-coral)" }}>{peggyError.message}</p>
-                )}
+                {peggyError?.type === type && <p role="alert" className="mb-0 mt-2 text-[13px] font-semibold text-app-danger">{peggyError.message}</p>}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* What Rex will write */}
-      <div
-        className="rounded-[14px] px-4 py-3.5"
-        style={{ background: "rgb(14 42 56 / 0.03)", border: "1px solid rgb(14 42 56 / 0.06)" }}
-      >
-        <div className="mb-1 text-[11px] font-semibold" style={{ color: "var(--color-navy)" }}>
-          Rex will write for every page:
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={LABEL_COLOR}>
-          <span>Hero headlines</span>
-          <span>Section copy</span>
-          <span>Call-to-action text</span>
-          <span>SEO descriptions</span>
-          <span>Footer content</span>
-          <span>Cart, checkout, and product detail pages</span>
-          <span>CMS setup when Blog is selected</span>
-        </div>
+      <div className="rounded-[18px] bg-app-canvas px-4 py-3.5">
+        <p className="m-0 text-[13.5px] font-bold">Rex writes for every page</p>
+        <p className="mb-0 mt-1 text-[13px] leading-[1.6] text-app-ink-soft">
+          Headlines, section copy, button text, search descriptions and the footer, plus cart, checkout and product pages. Picking Blog also sets up your blog.
+        </p>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-full border px-5 py-3 text-[13px] font-semibold"
-          style={{ borderColor: "rgb(14 42 56 / 0.12)", color: "var(--color-muted)" }}
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={handleBuild}
-          className="rounded-full px-6 py-3 text-[13px] font-semibold"
-          style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
-        >
-          Build my store
-        </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <PillButton size="md" tone="white" onClick={onBack}>Back</PillButton>
+        <PillButton size="md" tone="accent" onClick={handleBuild}>Build my store</PillButton>
       </div>
     </div>
   );

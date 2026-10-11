@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Papa from "papaparse";
-import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { Mascot, Notice, PillButton, Segmented, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { uploadFile } from "@/lib/supabase/storage";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -152,15 +153,9 @@ function mkProduct(schema: CategorySchema): ProductRow {
   };
 }
 
-const INPUT_BASE = "w-full rounded-[10px] border px-3 py-2.5 text-[13px] outline-none transition-colors focus:border-[var(--color-mint)]";
-const INPUT_STYLE = {
-  borderColor: "rgb(14 42 56 / 0.12)",
-  color: "var(--color-navy)",
-  background: "white",
-};
-const LABEL_COLOR = { color: "var(--color-muted)" };
-const SECTION_TITLE = "mb-3 font-mono text-[10px] uppercase tracking-[0.12em]";
-const DIVIDER = { borderTop: "1px solid rgb(14 42 56 / 0.06)" };
+const INPUT = "w-full rounded-[14px] border border-app-line bg-white px-3.5 py-3 text-[15px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
+const LABEL = "text-[13.5px] font-bold text-app-ink";
+const SECTION_TITLE = "m-0 mb-3 text-[15px] font-extrabold";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -176,6 +171,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
   const [saved, setSaved] = useState(false);
   const [mpProducts, setMpProducts] = useState<Array<{ id: string; name: string; price: number; currency: string; supplier: string; imageUrl?: string }>>([]);
   const [addedMp, setAddedMp] = useState<Set<string>>(new Set());
+  const [mpState, setMpState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const csvRef = useRef<HTMLInputElement>(null);
 
   // Sync to parent for live preview whenever products change
@@ -335,7 +331,8 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
   // ── Marketplace ──
 
   const fetchMp = useCallback(async () => {
-    if (mpProducts.length > 0) return;
+    if (mpProducts.length > 0 || mpState === "loading") return;
+    setMpState("loading");
     try {
       const res = await fetch(`/api/public/products?category=${encodeURIComponent(category)}&limit=6`);
       const data = await res.json() as {
@@ -351,8 +348,11 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
           imageUrl: p.images?.[0],
         }))
       );
-    } catch { /* no-op */ }
-  }, [category, mpProducts.length]);
+      setMpState("done");
+    } catch {
+      setMpState("error");
+    }
+  }, [category, mpProducts.length, mpState]);
 
   async function addMpProduct(id: string) {
     const product = mpProducts.find((item) => item.id === id);
@@ -439,11 +439,11 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
         type="button"
         onClick={() => askPeggy(id, field, specKey)}
         disabled={!product?.name.trim() || isLoading}
-        className="flex items-center gap-1 text-[11px] font-semibold disabled:opacity-40"
-        style={{ color: "var(--color-teal-deep)" }}
+        title={product?.name.trim() ? undefined : "Add the product name first"}
+        className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-full bg-app-mint px-2.5 text-[12.5px] font-bold text-app-forest disabled:opacity-45"
       >
-        <ChipAvatar mascot="peggy" size={13} />
-        {isLoading ? "Writing..." : "Ask Peggy"}
+        <Mascot name="peggy" className="h-4 w-4" alt="" />
+        {isLoading ? "Writing…" : "Ask Peggy"}
       </button>
     );
   }
@@ -451,438 +451,278 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const TABS = [
-    { id: "manual" as const, label: "Add manually" },
-    { id: "csv" as const, label: "Import CSV" },
-    { id: "marketplace" as const, label: "From marketplace" },
+    { value: "manual" as const, label: "Add myself" },
+    { value: "csv" as const, label: "Import a file" },
+    { value: "marketplace" as const, label: "From suppliers" },
   ];
 
   return (
-    <div className="flex flex-col gap-5">
-
-      {/* Peggy intro */}
-      <div
-        className="flex items-start gap-3 rounded-[18px] border px-4 py-4"
-        style={{ background: "rgb(14 42 56 / 0.03)", borderColor: "rgb(115 216 200 / 0.2)" }}
-      >
-        <ChipAvatar mascot="peggy" size={32} />
-        <p className="text-[13px] leading-[1.6]" style={{ color: "var(--color-navy)" }}>
-          I&apos;m Peggy, your product assistant. Add your products below and I&apos;ll help with
-          descriptions, ingredients, care labels, specs — anything you need. Just click{" "}
+    <div className="flex flex-col gap-5 font-app text-app-ink">
+      <div className="flex items-start gap-3 rounded-[18px] bg-app-mint px-4 py-3.5">
+        <Mascot name="peggy" className="h-9 w-9 shrink-0" alt="Peggy" />
+        <p className="m-0 text-[14px] leading-[1.55]">
+          I&apos;m Peggy. Add your products and I&apos;ll help with descriptions, ingredients, care labels and specs. Tap{" "}
           <strong>Ask Peggy</strong> next to any field.
         </p>
       </div>
 
-      {peggyError && (
-        <div className="rounded-[12px] border px-3 py-2 text-[12px]" style={{ borderColor: "rgb(232 106 79 / 0.3)", background: "rgb(232 106 79 / 0.08)", color: "#9F2D20" }}>
-          {peggyError}
-        </div>
-      )}
+      {peggyError && <Notice>{peggyError}</Notice>}
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-[14px] p-1" style={{ background: "rgb(14 42 56 / 0.06)" }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              setTab(t.id);
-              if (t.id === "marketplace") fetchMp();
-            }}
-            className="flex flex-1 items-center justify-center rounded-[10px] py-2 text-[12px] font-semibold transition-all"
-            style={{
-              background: tab === t.id ? "white" : "transparent",
-              color: tab === t.id ? "var(--color-navy)" : "var(--color-muted)",
-              boxShadow: tab === t.id ? "0 1px 3px rgb(14 42 56 / 0.08)" : "none",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        className="w-full border border-app-line"
+        value={tab}
+        onChange={(next) => {
+          setTab(next);
+          if (next === "marketplace") void fetchMp();
+        }}
+        options={TABS}
+      />
 
-      {/* ── MANUAL TAB ── */}
       {tab === "manual" && (
-        <div className="space-y-4">
-          {products.map((p, pIdx) => (
-            <div
-              key={p.id}
-              className="overflow-hidden rounded-[18px] border"
-              style={{ borderColor: "rgb(14 42 56 / 0.09)" }}
-            >
-              {/* Card header / collapse toggle */}
-              <button
-                type="button"
-                onClick={() => update(p.id, { open: !p.open })}
-                className="flex w-full items-center justify-between px-5 py-4 text-left"
-                style={{ background: "rgb(14 42 56 / 0.02)" }}
-              >
-                <div className="flex items-center gap-3">
-                  {p.images[0] && (
-                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[8px]">
-                      <Image src={p.images[0]} alt="" fill sizes="36px" className="object-cover" />
-                    </div>
-                  )}
-                  <span className="text-[14px] font-semibold" style={{ color: "var(--color-navy)" }}>
-                    {p.name || `Product ${pIdx + 1}`}
-                  </span>
-                  {p.price && (
-                    <span className="font-mono text-[12px]" style={{ color: "var(--color-muted)" }}>
-                      {p.price.match(/[₦GH₵KSh$]/) ? p.price : `₦${p.price}`}
-                    </span>
-                  )}
-                </div>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  style={{
-                    transform: p.open ? "rotate(180deg)" : "none",
-                    transition: "transform 0.2s",
-                    color: "var(--color-muted)",
-                  }}
+        <div className="grid gap-3">
+          {products.map((p, pIdx) => {
+            const bodyId = `product-${p.id}`;
+            return (
+              <div key={p.id} className="overflow-hidden rounded-[22px] border border-app-line bg-white">
+                <button
+                  type="button"
+                  aria-expanded={p.open}
+                  aria-controls={bodyId}
+                  onClick={() => update(p.id, { open: !p.open })}
+                  className="flex min-h-[60px] w-full items-center justify-between gap-3 px-4 py-3 text-left sm:px-5"
                 >
-                  <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+                  <span className="flex min-w-0 items-center gap-3">
+                    {p.images[0] ? (
+                      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-[10px]">
+                        <Image src={p.images[0]} alt="" fill sizes="40px" className="object-cover" />
+                      </span>
+                    ) : (
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-app-canvas text-app-ink-soft"><Icon name="image" size={16} /></span>
+                    )}
+                    <span className="truncate text-[15px] font-extrabold">{p.name || `Product ${pIdx + 1}`}</span>
+                    {p.price && <span className="shrink-0 text-[13.5px] text-app-ink-soft">{p.price.match(/[₦GH₵KSh$]/) ? p.price : `₦${p.price}`}</span>}
+                  </span>
+                  <Icon name="chevDown" size={18} className={cx("shrink-0 text-app-ink-soft transition", p.open && "rotate-180")} />
+                </button>
 
-              {p.open && (
-                <div className="space-y-5 px-5 pb-6 pt-5" style={DIVIDER}>
-
-                  {/* ─ Basic Info ─ */}
-                  <div>
-                    <div className={SECTION_TITLE} style={{ color: "var(--color-teal-deep)" }}>Basic info</div>
-                    <div className="grid gap-3 sm:grid-cols-[1fr_140px_140px]">
-                      <div>
-                        <label className="mb-1.5 block text-[11px] font-semibold" style={LABEL_COLOR}>Product name *</label>
-                        <input
-                          value={p.name}
-                          onChange={(e) => update(p.id, { name: e.target.value })}
-                          placeholder="e.g. Handmade Leather Tote"
-                          className={INPUT_BASE}
-                          style={INPUT_STYLE}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1.5 block text-[11px] font-semibold" style={LABEL_COLOR}>Price *</label>
-                        <input
-                          value={p.price}
-                          onChange={(e) => update(p.id, { price: e.target.value })}
-                          placeholder="₦15,000"
-                          className={INPUT_BASE}
-                          style={INPUT_STYLE}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1.5 block text-[11px] font-semibold" style={LABEL_COLOR}>Compare-at price</label>
-                        <input
-                          value={p.compareAt}
-                          onChange={(e) => update(p.id, { compareAt: e.target.value })}
-                          placeholder="₦20,000"
-                          className={INPUT_BASE}
-                          style={INPUT_STYLE}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={DIVIDER} />
-
-                  {/* ─ Images ─ */}
-                  <div>
-                    <div className={SECTION_TITLE} style={{ color: "var(--color-teal-deep)" }}>Product images</div>
-                    <div className="flex flex-wrap gap-2">
-                      {p.images.map((url, imgIdx) => (
-                        <div
-                          key={imgIdx}
-                          className="group relative h-20 w-20 overflow-hidden rounded-[10px] border"
-                          style={{ borderColor: "rgb(14 42 56 / 0.1)" }}
-                        >
-                          <Image src={url} alt="" fill sizes="80px" className="object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(p.id, imgIdx)}
-                            className="absolute inset-0 hidden items-center justify-center text-[11px] font-bold text-white group-hover:flex"
-                            style={{ background: "rgba(0,0,0,0.55)" }}
-                          >
-                            Remove
-                          </button>
+                {p.open && (
+                  <div id={bodyId} className="grid gap-6 border-t border-app-line px-4 pb-5 pt-5 sm:px-5">
+                    <section>
+                      <h4 className={SECTION_TITLE}>Basics</h4>
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_150px]">
+                        <div className="min-w-0">
+                          <label htmlFor={`${bodyId}-name`} className={`${LABEL} mb-1.5 block`}>Product name *</label>
+                          <input id={`${bodyId}-name`} value={p.name} onChange={(e) => update(p.id, { name: e.target.value })} placeholder="e.g. Handmade leather tote" className={INPUT} />
                         </div>
-                      ))}
-                      {p.images.length < 5 && (
-                        <label
-                          className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-[10px] border-2 border-dashed transition-colors hover:border-[var(--color-mint)]"
-                          style={{ borderColor: "rgb(14 42 56 / 0.15)", color: "var(--color-muted)" }}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mb-1">
-                            <path d="M9 4v10M4 9h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                          </svg>
-                          <span className="text-[10px] font-semibold">Add photo</span>
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => addImages(p.id, e.target.files)}
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <p className="mt-1.5 text-[11px]" style={{ color: "var(--color-muted)" }}>
-                      Up to 5 photos. The first image shows in the store preview.
-                    </p>
-                  </div>
+                        <div className="min-w-0">
+                          <label htmlFor={`${bodyId}-price`} className={`${LABEL} mb-1.5 block`}>Price *</label>
+                          <input id={`${bodyId}-price`} inputMode="decimal" value={p.price} onChange={(e) => update(p.id, { price: e.target.value })} placeholder="₦15,000" className={INPUT} />
+                        </div>
+                        <div className="min-w-0">
+                          <label htmlFor={`${bodyId}-compare`} className={`${LABEL} mb-1.5 block`}>Was (optional)</label>
+                          <input id={`${bodyId}-compare`} inputMode="decimal" value={p.compareAt} onChange={(e) => update(p.id, { compareAt: e.target.value })} placeholder="₦20,000" className={INPUT} />
+                        </div>
+                      </div>
+                    </section>
 
-                  <div style={DIVIDER} />
+                    <section>
+                      <h4 className={SECTION_TITLE}>Photos</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {p.images.map((url, imgIdx) => (
+                          <div key={imgIdx} className="relative h-20 w-20 overflow-hidden rounded-[14px] border border-app-line">
+                            <Image src={url} alt={`Photo ${imgIdx + 1}`} fill sizes="80px" className="object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(p.id, imgIdx)}
+                              aria-label={`Remove photo ${imgIdx + 1}`}
+                              className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-app-ink shadow"
+                            >
+                              <Icon name="x" size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        {p.images.length < 5 && (
+                          <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] border-2 border-dashed border-app-line-strong text-app-ink-soft transition hover:border-app-ink hover:text-app-ink focus-within:border-app-ink">
+                            <Icon name="plus" size={18} />
+                            <span className="text-[11.5px] font-bold">Add photo</span>
+                            <input type="file" multiple accept="image/*" className="sr-only" onChange={(e) => addImages(p.id, e.target.files)} />
+                          </label>
+                        )}
+                      </div>
+                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Up to 5 photos. The first one shows in the store preview.</p>
+                    </section>
 
-                  {/* ─ Descriptions ─ */}
-                  <div>
-                    <div className={SECTION_TITLE} style={{ color: "var(--color-teal-deep)" }}>Descriptions</div>
-                    <div className="space-y-4">
+                    <section className="grid gap-4">
+                      <h4 className={`${SECTION_TITLE} mb-0`}>Descriptions</h4>
                       <div>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <label className="text-[11px] font-semibold" style={LABEL_COLOR}>
-                            Short description{" "}
-                            <span className="font-normal opacity-70">(one line — shows on product card)</span>
+                        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                          <label htmlFor={`${bodyId}-short`} className={LABEL}>
+                            Short description <span className="font-normal text-app-ink-soft">(one line, on the product card)</span>
                           </label>
                           <PeggyBtn id={p.id} field="shortDesc" />
                         </div>
-                        <input
-                          value={p.shortDesc}
-                          onChange={(e) => update(p.id, { shortDesc: e.target.value })}
-                          placeholder="One punchy sentence about this product..."
-                          className={INPUT_BASE}
-                          style={INPUT_STYLE}
-                        />
+                        <input id={`${bodyId}-short`} value={p.shortDesc} onChange={(e) => update(p.id, { shortDesc: e.target.value })} placeholder="One line about this product…" className={INPUT} />
                       </div>
                       <div>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <label className="text-[11px] font-semibold" style={LABEL_COLOR}>
-                            Full description{" "}
-                            <span className="font-normal opacity-70">(shows on product page)</span>
+                        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                          <label htmlFor={`${bodyId}-full`} className={LABEL}>
+                            Full description <span className="font-normal text-app-ink-soft">(on the product page)</span>
                           </label>
                           <PeggyBtn id={p.id} field="fullDesc" />
                         </div>
                         <textarea
+                          id={`${bodyId}-full`}
                           rows={3}
                           value={p.fullDesc}
                           onChange={(e) => update(p.id, { fullDesc: e.target.value })}
-                          placeholder="Tell the full story — quality, sourcing, benefits, what makes it different..."
-                          className="w-full resize-none rounded-[10px] border px-3 py-2.5 text-[13px] leading-[1.6] outline-none transition-colors focus:border-[var(--color-mint)]"
-                          style={INPUT_STYLE}
+                          placeholder="Quality, where it's from, why buyers love it…"
+                          className={`${INPUT} resize-y leading-[1.55]`}
                         />
                       </div>
-                    </div>
-                  </div>
+                    </section>
 
-                  <div style={DIVIDER} />
-
-                  {/* ─ Variants ─ */}
-                  <div>
-                    <div className={SECTION_TITLE} style={{ color: "var(--color-teal-deep)" }}>Variants</div>
-                    <div className="space-y-3">
-                      {p.variants.map((v, vIdx) => (
-                        <div key={vIdx}>
-                          <label className="mb-1.5 block text-[11px] font-semibold" style={LABEL_COLOR}>{v.type}</label>
-                          <input
-                            value={v.options}
-                            onChange={(e) => updateVariant(p.id, vIdx, e.target.value)}
-                            placeholder="Comma-separated options, e.g. S, M, L, XL"
-                            className={INPUT_BASE}
-                            style={INPUT_STYLE}
-                          />
-                        </div>
-                      ))}
-                      <p className="text-[11px]" style={{ color: "var(--color-muted)" }}>
-                        Leave blank if this product has no variants.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={DIVIDER} />
-
-                  {/* ─ Product Details / Specs ─ */}
-                  <div>
-                    <div className={SECTION_TITLE} style={{ color: "var(--color-teal-deep)" }}>Product details</div>
-                    <div className="space-y-3">
-                      {schema.specFields.map((sf) => (
-                        <div key={sf.key}>
-                          <div className="mb-1.5 flex items-center justify-between">
-                            <label className="text-[11px] font-semibold" style={LABEL_COLOR}>{sf.label}</label>
-                            <PeggyBtn id={p.id} field="spec" specKey={sf.key} />
-                          </div>
-                          {sf.multiline ? (
-                            <textarea
-                              rows={2}
-                              value={p.specs[sf.key] ?? ""}
-                              onChange={(e) => updateSpec(p.id, sf.key, e.target.value)}
-                              placeholder={sf.placeholder}
-                              className="w-full resize-none rounded-[10px] border px-3 py-2.5 text-[13px] leading-[1.55] outline-none transition-colors focus:border-[var(--color-mint)]"
-                              style={INPUT_STYLE}
-                            />
-                          ) : (
+                    <section>
+                      <h4 className={SECTION_TITLE}>Options</h4>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {p.variants.map((v, vIdx) => (
+                          <div key={vIdx} className="min-w-0">
+                            <label htmlFor={`${bodyId}-variant-${vIdx}`} className={`${LABEL} mb-1.5 block`}>{v.type}</label>
                             <input
-                              value={p.specs[sf.key] ?? ""}
-                              onChange={(e) => updateSpec(p.id, sf.key, e.target.value)}
-                              placeholder={sf.placeholder}
-                              className={INPUT_BASE}
-                              style={INPUT_STYLE}
+                              id={`${bodyId}-variant-${vIdx}`}
+                              value={v.options}
+                              onChange={(e) => updateVariant(p.id, vIdx, e.target.value)}
+                              placeholder="Separate with commas, e.g. S, M, L, XL"
+                              className={INPUT}
                             />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Leave blank if this product has no options.</p>
+                    </section>
 
-                  {/* Remove product */}
-                  {products.length > 1 && (
-                    <div className="flex justify-end pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setProducts((prev) => prev.filter((x) => x.id !== p.id))}
-                        className="text-[12px] font-semibold"
-                        style={{ color: "var(--color-coral)" }}
-                      >
-                        Remove this product
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+                    <section>
+                      <h4 className={SECTION_TITLE}>Details</h4>
+                      <div className="grid gap-3">
+                        {schema.specFields.map((sf) => (
+                          <div key={sf.key}>
+                            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                              <label htmlFor={`${bodyId}-spec-${sf.key}`} className={LABEL}>{sf.label}</label>
+                              <PeggyBtn id={p.id} field="spec" specKey={sf.key} />
+                            </div>
+                            {sf.multiline ? (
+                              <textarea
+                                id={`${bodyId}-spec-${sf.key}`}
+                                rows={2}
+                                value={p.specs[sf.key] ?? ""}
+                                onChange={(e) => updateSpec(p.id, sf.key, e.target.value)}
+                                placeholder={sf.placeholder}
+                                className={`${INPUT} resize-y leading-[1.55]`}
+                              />
+                            ) : (
+                              <input id={`${bodyId}-spec-${sf.key}`} value={p.specs[sf.key] ?? ""} onChange={(e) => updateSpec(p.id, sf.key, e.target.value)} placeholder={sf.placeholder} className={INPUT} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {products.length > 1 && (
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setProducts((prev) => prev.filter((x) => x.id !== p.id))}
+                          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"
+                        >
+                          <Icon name="trash" size={14} /> Remove this product
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           <button
             type="button"
             onClick={() => setProducts((prev) => [...prev, mkProduct(schema)])}
-            className="w-full rounded-[14px] border border-dashed px-4 py-3.5 text-[13px] font-semibold transition-colors hover:border-[var(--color-mint)]"
-            style={{ borderColor: "rgb(14 42 56 / 0.15)", color: "var(--color-muted)" }}
+            className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-app-line-strong text-[14px] font-bold text-app-ink-soft transition hover:border-app-ink hover:text-app-ink"
           >
-            + Add another product
+            <Icon name="plus" size={16} /> Add another product
           </button>
         </div>
       )}
 
-      {/* ── CSV TAB ── */}
       {tab === "csv" && (
-        <div className="space-y-4">
-          <div
-            className="flex cursor-pointer flex-col items-center justify-center rounded-[18px] border-2 border-dashed px-6 py-10 transition-colors hover:border-[var(--color-mint)]"
-            style={{ borderColor: csvFileName ? "var(--color-mint)" : "rgb(14 42 56 / 0.15)" }}
+        <div className="grid gap-4">
+          <button
+            type="button"
             onClick={() => csvRef.current?.click()}
+            className={cx(
+              "flex flex-col items-center justify-center rounded-[22px] border-2 border-dashed bg-white px-6 py-10 text-center transition hover:border-app-ink",
+              csvFileName ? "border-app-ink" : "border-app-line-strong",
+            )}
           >
-            <input ref={csvRef} type="file" accept=".csv" title="Upload CSV file" className="hidden" onChange={handleCsvUpload} />
-            <div className="text-[14px] font-semibold" style={{ color: "var(--color-navy)" }}>
-              {csvFileName ?? "Drop your CSV file here or click to browse"}
-            </div>
-            <div className="mt-1 text-[12px]" style={{ color: "var(--color-muted)" }}>
-              Required columns: <strong>name</strong>, <strong>price</strong> — Optional: description
-            </div>
-          </div>
+            <Icon name="upload" size={22} className="text-app-ink-soft" />
+            <span className="mt-2 text-[15px] font-extrabold">{csvFileName ?? "Choose a CSV file"}</span>
+            <span className="mt-1 text-[13px] text-app-ink-soft">Columns: name and price, plus description if you have it</span>
+          </button>
+          <input ref={csvRef} type="file" accept=".csv" aria-label="Upload CSV file" className="sr-only" onChange={handleCsvUpload} />
 
           {csvRows.length > 0 && (
-            <div className="overflow-hidden rounded-[14px] border" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-              <table className="w-full text-[12px]">
-                <thead style={{ background: "rgb(14 42 56 / 0.04)" }}>
-                  <tr>
-                    {["Name", "Price", "Description"].map((h) => (
-                      <th key={h} className="px-3 py-2.5 text-left font-semibold" style={LABEL_COLOR}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvRows.slice(0, 8).map((r, i) => (
-                    <tr key={i} style={{ borderTop: "1px solid rgb(14 42 56 / 0.05)" }}>
-                      <td className="px-3 py-2" style={{ color: "var(--color-navy)" }}>{r.name}</td>
-                      <td className="px-3 py-2 font-mono" style={LABEL_COLOR}>{r.price}</td>
-                      <td className="max-w-[200px] truncate px-3 py-2" style={LABEL_COLOR}>{r.desc}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {csvRows.length > 8 && (
-                <div className="px-3 py-2 text-[11px]" style={LABEL_COLOR}>
-                  +{csvRows.length - 8} more rows
-                </div>
-              )}
+            <div className="overflow-hidden rounded-[22px] border border-app-line bg-white">
+              <ul className="m-0 list-none divide-y divide-app-line p-0">
+                {csvRows.slice(0, 8).map((r, i) => (
+                  <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-4 py-2.5 text-[14px]">
+                    <span className="min-w-0 flex-1 truncate font-bold">{r.name || "No name"}</span>
+                    <span className="shrink-0 text-app-ink-soft">{r.price}</span>
+                    {r.desc && <span className="w-full truncate text-[13px] text-app-ink-soft">{r.desc}</span>}
+                  </li>
+                ))}
+              </ul>
+              {csvRows.length > 8 && <p className="m-0 border-t border-app-line px-4 py-2.5 text-[13px] text-app-ink-soft">+{csvRows.length - 8} more</p>}
             </div>
           )}
         </div>
       )}
 
-      {/* ── MARKETPLACE TAB ── */}
       {tab === "marketplace" && (
-        <div className="space-y-3">
-          <div className="font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: "var(--color-teal-deep)" }}>
-            Suggested for {category || "your store"} — add to dropship instantly
-          </div>
+        <div className="grid gap-3">
+          <p className="m-0 text-[14px] text-app-ink-soft">Suggested for {category || "your store"}. Add one and it sells on your store; the supplier ships it.</p>
           {mpProducts.length === 0 ? (
-            <div className="py-10 text-center text-[13px]" style={{ color: "var(--color-muted)" }}>
-              Loading marketplace suggestions...
-            </div>
+            <p className="m-0 rounded-[18px] bg-app-canvas px-4 py-8 text-center text-[14px] text-app-ink-soft" role="status">
+              {mpState === "loading" || mpState === "idle" ? "Finding supplier products…" : mpState === "error" ? "Couldn't load supplier products. Try again later." : "No supplier products for this category yet."}
+            </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
               {mpProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-3 rounded-[16px] border bg-white px-4 py-3"
-                  style={{ borderColor: "rgb(14 42 56 / 0.08)" }}
-                >
-                  {p.imageUrl && (
-                    <img src={p.imageUrl} alt={p.name} className="h-10 w-10 shrink-0 rounded-[8px] object-cover" />
+                <li key={p.id} className="flex min-w-0 items-center gap-3 rounded-[18px] border border-app-line bg-white px-3 py-2.5">
+                  {p.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.imageUrl} alt="" className="h-11 w-11 shrink-0 rounded-[10px] object-cover" />
+                  ) : (
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] bg-app-canvas text-app-ink-soft"><Icon name="box" size={16} /></span>
                   )}
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold" style={{ color: "var(--color-navy)" }}>
-                      {p.name}
-                    </div>
-                    <div className="text-[11px]" style={LABEL_COLOR}>
-                      {p.supplier} · {p.currency} {p.price}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addMpProduct(p.id)}
-                    disabled={addedMp.has(p.id)}
-                    className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold disabled:opacity-60"
-                    style={{
-                      background: addedMp.has(p.id) ? "var(--color-teal)" : "var(--color-mint)",
-                      color: "var(--color-navy)",
-                    }}
-                  >
-                    {addedMp.has(p.id) ? "Added" : "Add"}
-                  </button>
-                </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-bold">{p.name}</span>
+                    <span className="block truncate text-[12.5px] text-app-ink-soft">{p.supplier} · {p.currency} {p.price}</span>
+                  </span>
+                  <PillButton size="sm" tone={addedMp.has(p.id) ? "white" : "ink"} onClick={() => addMpProduct(p.id)} disabled={addedMp.has(p.id)} aria-label={addedMp.has(p.id) ? `${p.name} added` : `Add ${p.name}`}>
+                    {addedMp.has(p.id) ? <><Icon name="check" size={13} /> Added</> : "Add"}
+                  </PillButton>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}
 
-      {/* ── Actions ── */}
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-full border px-5 py-3 text-[13px] font-semibold"
-          style={{ borderColor: "rgb(14 42 56 / 0.12)", color: "var(--color-muted)" }}
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={saveAndNext}
-          disabled={isSaving}
-          className="rounded-full px-6 py-3 text-[13px] font-semibold disabled:opacity-60"
-          style={{ background: "var(--color-mint)", color: "var(--color-navy)" }}
-        >
-          {saved ? "Saved" : isSaving ? "Saving..." : "Save & continue"}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="text-[13px] underline"
-          style={{ color: "var(--color-muted)" }}
-        >
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <PillButton size="md" tone="white" onClick={onBack}>Back</PillButton>
+        <PillButton size="md" onClick={saveAndNext} busy={isSaving} disabled={saved}>
+          {saved ? <><Icon name="check" size={15} /> Saved</> : "Save and continue"}
+        </PillButton>
+        <button type="button" onClick={onNext} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink">
           Skip for now
         </button>
       </div>

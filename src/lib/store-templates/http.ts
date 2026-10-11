@@ -644,8 +644,19 @@ export function summarizeTemplateForAi(templateId: string) {
   };
 }
 
+/**
+ * The template being edited. A theme switch on a live store changes only the draft (the live storefront keeps
+ * its published snapshot), so the draft's own template wins over the store-level one; publishing then
+ * promotes it.
+ */
 export function getCurrentTemplateMeta(brandSettings: StoreBrandSettingsLike) {
-  return brandSettings.template ?? parseEditorState(brandSettings.editor).template ?? null;
+  const editor = parseEditorState(brandSettings.editor);
+  const draftTemplateId = editor.draft?.templateId;
+  if (draftTemplateId && draftTemplateId !== brandSettings.template?.templateId) {
+    const manifest = getTemplateManifest(draftTemplateId);
+    if (manifest) return buildTemplateSelectionMeta(manifest);
+  }
+  return brandSettings.template ?? editor.template ?? null;
 }
 
 export function attachTemplateMeta(

@@ -864,7 +864,7 @@ function createManifest(source: TemplateSourceRecord): StoreTemplateManifest {
   };
 }
 
-// The 2026 themes (Breeze, Noir, Plain) come after the source catalog so existing defaults are unchanged.
+// The 2026 themes (Breeze, Noir, Plain, Adire, Pantry, Ilé, Plug, Stride) come after the source catalog so existing defaults are unchanged.
 export const STORE_TEMPLATE_MANIFESTS = [...TEMPLATE_SOURCE_CATALOG.map(createManifest), ...BOUTIQUE_TEMPLATE_MANIFESTS];
 
 export function getTemplateManifest(templateId: string) {

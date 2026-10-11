@@ -223,7 +223,7 @@ export async function askRex(
         };
       }
       const draft = await createRexDraftFromPlan({ user, result: guided, savedAnswers: refreshedAnswers });
-      const previewUrl = draft.homePageId ? `/preview/store/${draft.slug}/${draft.homePageId}` : `/builder/rex`;
+      const previewUrl = draft.homePageId ? `/preview/store/${draft.slug}/${draft.homePageId}` : `/studio`;
       const extras = [
         draft.sampleProducts ? `I added ${draft.sampleProducts} sample product${draft.sampleProducts === 1 ? "" : "s"} as drafts, marked "(sample)"; check their prices and photos.` : "",
         draft.live ? "Your store is live, so this is saved as a draft: shoppers see it only after you publish." : "Nothing is published yet: publish from the builder when you're happy with it.",
@@ -235,7 +235,7 @@ export async function askRex(
           draftCreated: true,
           storeSlug: draft.slug,
           previewUrl,
-          builderUrl: "/builder/rex",
+          builderUrl: "/studio",
         },
       };
     }

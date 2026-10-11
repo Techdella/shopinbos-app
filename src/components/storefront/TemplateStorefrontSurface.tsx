@@ -694,7 +694,7 @@ function ProductCard({
 }
 
 /**
- * Renders a store snapshot. The 2026 themes (Breeze, Noir, Plain) have their own renderer; every other
+ * Renders a store snapshot. The 2026 themes (THEME_LIBRARY) have their own renderer; every other
  * template uses the classic section renderer below.
  */
 export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps) {
@@ -948,16 +948,17 @@ function ClassicTemplateSurface({
       >
         {isSelected || isHovered ? (
           <div style={{ position: "absolute", top: 8, left: 8, zIndex: 999, display: "flex", alignItems: "center", gap: 4, background: "#0F1F3D", color: "#fff", borderRadius: 6, padding: 4, boxShadow: "0 10px 30px rgba(15,31,61,.18)" }}>
-            {[
-              ["Edit", () => onSelectSection?.(sectionId)],
-              ["Change Style", () => onChangeSectionStyle?.(sectionId)],
-              ["Duplicate", () => onDuplicateSection?.(sectionId)],
-              ["Up", () => onMoveSection?.(sectionId, "up")],
-              ["Down", () => onMoveSection?.(sectionId, "down")],
-              ["Hide", () => onToggleSectionVisibility?.(sectionId)],
-              ["Delete", () => onDeleteSection?.(sectionId)],
-              ["Save", () => onSaveReusableSection?.(sectionId)],
-            ].map(([label, action]) => (
+            {/* Only the actions the host editor handles, so a missing handler never shows as a dead button. */}
+            {([
+              ["Edit", onSelectSection, () => onSelectSection?.(sectionId)],
+              ["Change Style", onChangeSectionStyle, () => onChangeSectionStyle?.(sectionId)],
+              ["Duplicate", onDuplicateSection, () => onDuplicateSection?.(sectionId)],
+              ["Up", onMoveSection, () => onMoveSection?.(sectionId, "up")],
+              ["Down", onMoveSection, () => onMoveSection?.(sectionId, "down")],
+              ["Hide", onToggleSectionVisibility, () => onToggleSectionVisibility?.(sectionId)],
+              ["Delete", onDeleteSection, () => onDeleteSection?.(sectionId)],
+              ["Save", onSaveReusableSection, () => onSaveReusableSection?.(sectionId)],
+            ] as const).filter(([, handler]) => Boolean(handler)).map(([label, , action]) => (
               <button
                 key={String(label)}
                 type="button"

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { buildStorefrontOrigin, getPlatformRootDomain } from "@/lib/domains/storefront";
 
 interface DomainResult {
@@ -91,10 +92,19 @@ interface StandardContactValues {
   companyName: string;
 }
 
+export type DomainOption = "free" | "connect" | "buy";
+
 interface DomainSetupProps {
   storeSlug: string;
   storeName: string;
   onDone: (domain: string | null) => void;
+  /** Controlled choice (the Domain page has its own toggle). When set, the three option cards are hidden. */
+  option?: DomainOption;
+  /** Label of the button that finishes the flow once a domain is attached. */
+  doneLabel?: string;
+  /** A domain the store already uses: prefilled, and looked up straight away when `checkOnOpen` is set. */
+  initialDomain?: string | null;
+  checkOnOpen?: boolean;
 }
 
 const STANDARD_CONTACT_KEYS = new Set([
@@ -162,14 +172,15 @@ function getSchemaSection(schema: RegistrarContactSchema | null) {
   };
 }
 
-export function DomainSetup({ storeSlug, storeName, onDone }: DomainSetupProps) {
-  const [option, setOption] = useState<"free" | "connect" | "buy" | null>(null);
+export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOption, doneLabel = "Continue to launch", initialDomain, checkOnOpen = false }: DomainSetupProps) {
+  const [pickedOption, setOption] = useState<DomainOption | null>(null);
+  const option = controlledOption ?? pickedOption;
   const [searchQuery, setSearchQuery] = useState(storeSlug);
   const [searchResults, setSearchResults] = useState<DomainResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const [customDomainInput, setCustomDomainInput] = useState("");
+  const [customDomainInput, setCustomDomainInput] = useState(initialDomain ?? "");
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [connectedDomain, setConnectedDomain] = useState<ConnectedDomain | null>(null);
@@ -244,6 +255,12 @@ export function DomainSetup({ storeSlug, storeName, onDone }: DomainSetupProps) 
 
     return () => window.clearInterval(interval);
   }, [connectedDomain, purchaseOrder]);
+
+  useEffect(() => {
+    if (checkOnOpen && initialDomain) void connectDomain(initialDomain);
+    // Runs once when opened to check an existing domain's records.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function searchDomains() {
     const query = searchQuery.trim();
@@ -473,404 +490,276 @@ export function DomainSetup({ storeSlug, storeName, onDone }: DomainSetupProps) 
   }
 
   if (connectedDomain) {
+    const ready = connectedDomain.verified || connectedDomain.demo;
     return (
-      <div className="flex flex-col gap-5">
-        <div className="flex items-start gap-3 rounded-[18px] border px-4 py-4" style={{ background: "rgb(14 42 56 / 0.03)", borderColor: "rgb(115 216 200 / 0.2)" }}>
-          <ChipAvatar mascot="rex" size={32} />
-          <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--color-teal-deep)" }}>
-              Domain ready
-            </div>
-            <h3 className="mt-1 text-[20px] font-semibold" style={{ color: "var(--color-navy)" }}>
-              {connectedDomain.domain}
-            </h3>
-            <p className="mt-2 text-[13px] leading-6" style={{ color: "var(--color-muted)" }}>
-              {connectedDomain.verified || connectedDomain.demo
-                ? "Your store can now use this public address."
-                : "The domain is attached, but Vercel still needs the DNS records below before traffic can go live."}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start gap-3 rounded-[18px] bg-app-canvas px-4 py-4">
+          <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full", ready ? "bg-app-success-tint text-app-success" : "bg-[#FDF0D5] text-[#8A5A00]")}>
+            <Icon name={ready ? "check" : "clock"} size={18} />
+          </span>
+          <div className="min-w-0">
+            <p className="m-0 text-[13px] font-bold text-app-ink-soft">{ready ? "Domain ready" : "Almost there"}</p>
+            <h3 className="m-0 mt-0.5 break-all text-[20px] font-extrabold">{connectedDomain.domain}</h3>
+            <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
+              {ready
+                ? "Your store can now use this address."
+                : "The domain is attached. Add the records below at the company you bought it from, then check again. It can take up to a few hours to go live."}
             </p>
           </div>
         </div>
 
         {connectedDomain.verification.length > 0 && (
-          <div className="rounded-[18px] border bg-[rgb(14_42_56_/_0.02)] p-4" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-            <div className="font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-              Add these DNS records
-            </div>
-            <div className="mt-3 grid gap-2">
-              {connectedDomain.verification.map((record) => (
-                <div key={`${record.type}-${record.domain}-${record.value}`} className="rounded-[14px] border bg-white px-4 py-3" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-                  <div className="grid gap-1 text-[12px] sm:grid-cols-[90px_1fr]">
-                    <span style={{ color: "var(--color-muted)" }}>Type</span>
-                    <span className="font-mono" style={{ color: "var(--color-navy)" }}>{record.type}</span>
-                    <span style={{ color: "var(--color-muted)" }}>Host</span>
-                    <span className="font-mono break-all" style={{ color: "var(--color-navy)" }}>{record.domain}</span>
-                    <span style={{ color: "var(--color-muted)" }}>Value</span>
-                    <span className="font-mono break-all" style={{ color: "var(--color-navy)" }}>{record.value}</span>
-                  </div>
-                  {record.reason && (
-                    <p className="mt-2 text-[12px]" style={{ color: "var(--color-muted)" }}>
-                      {record.reason}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <RecordList title="Add these records">
+            {connectedDomain.verification.map((record) => (
+              <RecordRow key={`${record.type}-${record.domain}-${record.value}`} type={record.type} host={record.domain} value={record.value} note={record.reason} />
+            ))}
+          </RecordList>
         )}
 
-        {connectedDomain.configuration && !connectedDomain.verified && (
-          <div className="rounded-[18px] border bg-white p-4" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-            <div className="font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-              Vercel recommendations
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {connectedDomain.configuration.recommendedCNAME.map((entry) => (
-                <div key={`cname-${entry.rank}-${entry.value}`} className="rounded-[14px] bg-[rgb(14_42_56_/_0.03)] px-4 py-3 text-[12px]">
-                  <div style={{ color: "var(--color-muted)" }}>Recommended CNAME</div>
-                  <div className="mt-1 font-mono break-all" style={{ color: "var(--color-navy)" }}>{entry.value}</div>
-                </div>
-              ))}
-              {connectedDomain.configuration.recommendedIPv4.flatMap((entry) => entry.value).map((value) => (
-                <div key={`ipv4-${value}`} className="rounded-[14px] bg-[rgb(14_42_56_/_0.03)] px-4 py-3 text-[12px]">
-                  <div style={{ color: "var(--color-muted)" }}>Recommended A record</div>
-                  <div className="mt-1 font-mono break-all" style={{ color: "var(--color-navy)" }}>{value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {connectedDomain.configuration && !connectedDomain.verified && (connectedDomain.configuration.recommendedCNAME.length > 0 || connectedDomain.configuration.recommendedIPv4.length > 0) && (
+          <RecordList title="Point your domain here">
+            {connectedDomain.configuration.recommendedCNAME.map((entry) => (
+              <RecordRow key={`cname-${entry.rank}-${entry.value}`} type="CNAME" host={connectedDomain.domain} value={entry.value} note="Use this one if your address starts with www (or another word before your name)." />
+            ))}
+            {connectedDomain.configuration.recommendedIPv4.flatMap((entry) => entry.value).map((value) => (
+              <RecordRow key={`ipv4-${value}`} type="A" host={connectedDomain.domain} value={value} note="Use this one if your address has no www. Many registrars call this name @." />
+            ))}
+          </RecordList>
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => onDone(connectedDomain.domain)}
-            className="rounded-full px-6 py-3 text-[14px] font-semibold text-[var(--color-navy)]"
-            style={{ background: "var(--color-mint)" }}
-          >
-            Continue to launch
-          </button>
-          <button
-            type="button"
-            onClick={resetDomainFlow}
-            className="text-[13px] font-semibold underline"
-            style={{ color: "var(--color-teal-deep)" }}
-          >
-            Connect a different domain
+          <PillButton size="md" onClick={() => onDone(connectedDomain.domain)}>{doneLabel}</PillButton>
+          {!ready && (
+            <PillButton size="md" tone="white" busy={isConnecting} onClick={() => void connectDomain(connectedDomain.domain)}>
+              Check again
+            </PillButton>
+          )}
+          <button type="button" onClick={resetDomainFlow} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
+            Use a different domain
           </button>
         </div>
+        {connectError && <Notice>{connectError}</Notice>}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start gap-3 rounded-[18px] border px-4 py-4" style={{ background: "rgb(14 42 56 / 0.03)", borderColor: "rgb(115 216 200 / 0.2)" }}>
-        <ChipAvatar mascot="rex" size={32} />
-        <p className="text-[13px] leading-6" style={{ color: "var(--color-navy)" }}>
-          Vercel powers your free wildcard subdomain, lets you attach a domain you already own, or register a new one for you with SSL handled automatically.
-        </p>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-3">
-        {[
-          { id: "free" as const, label: "Free subdomain", desc: `${freeDomain} at no extra cost.` },
-          { id: "connect" as const, label: "Connect my domain", desc: "Use a domain you already bought elsewhere." },
-          { id: "buy" as const, label: "Register on Vercel", desc: "Search, pay, and attach the domain here." },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setOption(item.id)}
-            className="rounded-[16px] border px-4 py-4 text-left transition-all"
-            style={{
-              borderColor: option === item.id ? "var(--color-mint)" : "rgb(14 42 56 / 0.08)",
-              background: option === item.id ? "rgb(115 216 200 / 0.06)" : "white",
-            }}
-          >
-            <div className="font-mono text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-              {item.id === "free" ? "Instant" : item.id === "connect" ? "Bring yours" : "Registrar"}
-            </div>
-            <div className="mt-2 text-[14px] font-semibold" style={{ color: "var(--color-navy)" }}>
-              {item.label}
-            </div>
-            <div className="mt-1 text-[12px] leading-5" style={{ color: "var(--color-muted)" }}>
-              {item.desc}
-            </div>
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-col gap-4">
+      {!controlledOption && (
+        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Store address">
+          {[
+            { id: "free" as const, label: "Free address", desc: `${freeDomain}, included with your store.` },
+            { id: "connect" as const, label: "Connect one I own", desc: "A domain you already bought elsewhere." },
+            { id: "buy" as const, label: "Buy a new one", desc: "Search, pay and connect it here." },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="radio"
+              aria-checked={option === item.id}
+              onClick={() => setOption(item.id)}
+              className={cx(
+                "min-h-[88px] rounded-[18px] border-2 bg-white px-4 py-3.5 text-left transition",
+                option === item.id ? "border-app-ink" : "border-app-line hover:border-app-line-strong",
+              )}
+            >
+              <span className="block text-[15px] font-extrabold">{item.label}</span>
+              <span className="mt-1 block break-words text-[13px] leading-[1.45] text-app-ink-soft">{item.desc}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {option === "free" && (
-        <div className="rounded-[18px] border bg-white p-5" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-          <div className="font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-            Your free store link
-          </div>
-          <div className="mt-2 text-[22px] font-semibold break-all" style={{ color: "var(--color-navy)" }}>
-            {freeDomain}
-          </div>
-          <p className="mt-2 text-[13px] leading-6" style={{ color: "var(--color-muted)" }}>
-            This is included with your store and already points at {storeName}. You can swap to a custom domain later.
+        <Panel>
+          <p className="m-0 text-[13px] font-bold text-app-ink-soft">Your free address</p>
+          <div className="mt-1 break-all text-[22px] font-extrabold tracking-[-0.3px]">{freeDomain}</div>
+          <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
+            It already points at {storeName}. You can connect your own domain later.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onDone(null)}
-              className="rounded-full px-6 py-3 text-[14px] font-semibold text-[var(--color-navy)]"
-              style={{ background: "var(--color-mint)" }}
-            >
-              Use {freeDomain}
-            </button>
-            <a href={freeOrigin} target="_blank" rel="noopener noreferrer" className="text-[13px] font-semibold underline" style={{ color: "var(--color-teal-deep)" }}>
-              Preview link
+            <PillButton size="md" onClick={() => onDone(null)}>Use {freeDomain}</PillButton>
+            <a href={freeOrigin} target="_blank" rel="noopener noreferrer" className="text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">
+              Open it
             </a>
           </div>
-        </div>
+        </Panel>
       )}
 
       {option === "connect" && (
-        <div className="rounded-[18px] border bg-white p-5" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-          <div className="font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-            Connect a domain you already own
-          </div>
-          <p className="mt-2 text-[13px] leading-6" style={{ color: "var(--color-muted)" }}>
-            Enter the domain exactly as you want customers to visit it, for example <span className="font-mono">mystore.com</span>.
-          </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              value={customDomainInput}
-              onChange={(event) => setCustomDomainInput(event.target.value)}
-              placeholder="mystore.com"
-              className="w-full rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-4 py-3 text-[13px] outline-none"
-              style={{ color: "var(--color-navy)" }}
-            />
-            <button
-              type="button"
-              onClick={() => connectDomain()}
-              disabled={isConnecting}
-              className="rounded-full px-6 py-3 text-[14px] font-semibold text-[var(--color-navy)] disabled:opacity-50"
-              style={{ background: "var(--color-mint)" }}
-            >
-              {isConnecting ? "Connecting..." : "Add to Vercel"}
-            </button>
-          </div>
-          {connectError && (
-            <div className="mt-3 rounded-[14px] border px-4 py-3 text-[12px]" style={{ borderColor: "rgb(232 106 79 / 0.3)", background: "rgb(232 106 79 / 0.08)", color: "#9F2D20" }}>
-              {connectError}
+        <Panel>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void connectDomain();
+            }}
+          >
+            <FieldLabel htmlFor="own-domain">Your domain</FieldLabel>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <TextInput
+                id="own-domain"
+                value={customDomainInput}
+                onChange={(event) => setCustomDomainInput(event.target.value)}
+                placeholder={`www.${storeSlug.replace(/-/g, "")}.com`}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                inputMode="url"
+                className="sm:flex-1"
+              />
+              <PillButton type="submit" size="lg" busy={isConnecting} className="sm:w-auto">Continue</PillButton>
             </div>
-          )}
-        </div>
+            <p className="mb-0 mt-2.5 text-[13px] leading-[1.5] text-app-ink-soft">
+              Type it the way buyers will visit it, like www.yourbrand.com or yourbrand.com.ng. Next you&apos;ll see the records to add.
+            </p>
+          </form>
+          {connectError && <div className="mt-3"><Notice>{connectError}</Notice></div>}
+        </Panel>
       )}
 
       {option === "buy" && (
-        <div className="flex flex-col gap-4 rounded-[18px] border bg-white p-5" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-          <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-              Search domains
+        <Panel>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void searchDomains();
+            }}
+          >
+            <FieldLabel htmlFor="domain-search">Search for a domain</FieldLabel>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <TextInput
+                id="domain-search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="yourbrand"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                className="sm:flex-1"
+              />
+              <PillButton type="submit" size="lg" busy={isSearching} className="sm:w-auto">Search</PillButton>
             </div>
-            <p className="mt-2 text-[13px] leading-6" style={{ color: "var(--color-muted)" }}>
-              Search brand ideas, check availability, then fill in the registrar checkout and billing details Vercel requires.
-            </p>
-          </div>
+            <p className="mb-0 mt-2.5 text-[13px] leading-[1.5] text-app-ink-soft">We check which endings are free, then you pay and it connects to your store with a secure certificate.</p>
+          </form>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void searchDomains();
-                }
-              }}
-              placeholder="shopinbos, rexwear, glowandgo"
-              className="w-full rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-4 py-3 text-[13px] outline-none"
-              style={{ color: "var(--color-navy)" }}
-            />
-            <button
-              type="button"
-              onClick={() => void searchDomains()}
-              disabled={isSearching}
-              className="rounded-full px-6 py-3 text-[14px] font-semibold text-[var(--color-navy)] disabled:opacity-50"
-              style={{ background: "var(--color-mint)" }}
-            >
-              {isSearching ? "Searching..." : "Search"}
-            </button>
-          </div>
-
-          {searchError && (
-            <div className="rounded-[14px] border px-4 py-3 text-[12px]" style={{ borderColor: "rgb(232 106 79 / 0.3)", background: "rgb(232 106 79 / 0.08)", color: "#9F2D20" }}>
-              {searchError}
-            </div>
-          )}
+          {searchError && <div className="mt-3"><Notice>{searchError}</Notice></div>}
 
           {searchResults.length > 0 && !selectedPurchaseDomain && (
-            <div className="grid gap-2">
+            <ul className="m-0 mt-4 list-none divide-y divide-app-line overflow-hidden rounded-[18px] border border-app-line p-0">
               {searchResults.map((result) => (
-                <div key={result.domain} className="flex flex-col gap-3 rounded-[16px] border px-4 py-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-                  <div>
-                    <div className="text-[14px] font-semibold break-all" style={{ color: "var(--color-navy)" }}>
-                      {result.domain}
-                    </div>
-                    <div className="mt-1 text-[12px]" style={{ color: result.available ? "var(--color-teal-deep)" : "var(--color-muted)" }}>
+                <li key={result.domain} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="break-all text-[15px] font-bold">{result.domain}</div>
+                    <div className={cx("mt-0.5 text-[13px]", result.available ? "text-app-success" : "text-app-ink-soft")}>
                       {result.available
                         ? result.price !== null
                           ? `${result.currency} ${result.price.toFixed(2)} for the first year`
-                          : "Available now"
+                          : "Available"
                         : "Already taken"}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void preparePurchase(result)}
-                    disabled={!result.available}
-                    className="rounded-full px-5 py-2.5 text-[13px] font-semibold disabled:opacity-50"
-                    style={{
-                      background: result.available ? "var(--color-mint)" : "rgb(14 42 56 / 0.08)",
-                      color: result.available ? "var(--color-navy)" : "var(--color-muted)",
-                    }}
-                  >
-                    {result.available ? "Buy on Vercel" : "Unavailable"}
-                  </button>
-                </div>
+                  <PillButton size="sm" tone={result.available ? "ink" : "white"} disabled={!result.available} onClick={() => void preparePurchase(result)}>
+                    {result.available ? "Buy" : "Taken"}
+                  </PillButton>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
           {selectedPurchaseDomain && (
-            <div className="rounded-[18px] border bg-[rgb(14_42_56_/_0.02)] p-4" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
+            <div className="mt-4 rounded-[18px] bg-app-canvas p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--color-teal-deep)" }}>
-                    Registrar checkout
-                  </div>
-                  <div className="mt-2 text-[20px] font-semibold break-all" style={{ color: "var(--color-navy)" }}>
-                    {selectedPurchaseDomain.domain}
-                  </div>
-                  <div className="mt-1 text-[12px]" style={{ color: "var(--color-muted)" }}>
+                <div className="min-w-0">
+                  <p className="m-0 text-[13px] font-bold text-app-ink-soft">Buying</p>
+                  <div className="mt-0.5 break-all text-[20px] font-extrabold">{selectedPurchaseDomain.domain}</div>
+                  <div className="mt-0.5 text-[13px] text-app-ink-soft">
                     {selectedPurchaseDomain.price !== null
-                      ? `${selectedPurchaseDomain.currency} ${selectedPurchaseDomain.price.toFixed(2)} billed for 1 year`
-                      : "Price will be confirmed by Vercel at purchase time"}
+                      ? `${selectedPurchaseDomain.currency} ${selectedPurchaseDomain.price.toFixed(2)} for 1 year`
+                      : "The price is confirmed when you pay"}
                   </div>
                 </div>
-                <label className="flex items-center gap-2 text-[12px]" style={{ color: "var(--color-muted)" }}>
-                  <input type="checkbox" checked={autoRenew} onChange={(event) => setAutoRenew(event.target.checked)} />
-                  Auto-renew this domain
+                <label className="flex min-h-[40px] items-center gap-2 text-[14px] font-semibold">
+                  <input type="checkbox" checked={autoRenew} onChange={(event) => setAutoRenew(event.target.checked)} className="h-4 w-4 accent-[#16141F]" />
+                  Renew every year
                 </label>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">Domain companies need the owner&apos;s contact details. Fields marked * are required.</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[
-                  { key: "firstName", label: "First name", placeholder: "Ada", required: true },
-                  { key: "lastName", label: "Last name", placeholder: "Okafor", required: true },
-                  { key: "email", label: "Email", placeholder: "you@example.com", required: true },
-                  { key: "phone", label: "Phone", placeholder: "+2348012345678", required: true },
-                  { key: "companyName", label: "Company name", placeholder: "Optional", required: false },
-                  { key: "address1", label: "Address line 1", placeholder: "12 Admiralty Way", required: true },
-                  { key: "address2", label: "Address line 2", placeholder: "Suite, floor, landmark", required: false },
-                  { key: "city", label: "City", placeholder: "Lagos", required: true },
-                  { key: "state", label: "State / region", placeholder: "Lagos", required: true },
-                  { key: "zip", label: "Postal code", placeholder: "101233", required: true },
-                  { key: "country", label: "Country code", placeholder: "NG", required: true },
+                  { key: "firstName", label: "First name", placeholder: "Ada", required: true, auto: "given-name" },
+                  { key: "lastName", label: "Last name", placeholder: "Okafor", required: true, auto: "family-name" },
+                  { key: "email", label: "Email", placeholder: "you@example.com", required: true, auto: "email" },
+                  { key: "phone", label: "Phone", placeholder: "+2348012345678", required: true, auto: "tel" },
+                  { key: "companyName", label: "Business name", placeholder: "Optional", required: false, auto: "organization" },
+                  { key: "address1", label: "Address", placeholder: "12 Admiralty Way", required: true, auto: "address-line1" },
+                  { key: "address2", label: "Address line 2", placeholder: "Suite, floor, landmark", required: false, auto: "address-line2" },
+                  { key: "city", label: "City", placeholder: "Lagos", required: true, auto: "address-level2" },
+                  { key: "state", label: "State", placeholder: "Lagos", required: true, auto: "address-level1" },
+                  { key: "zip", label: "Postal code", placeholder: "101233", required: true, auto: "postal-code" },
+                  { key: "country", label: "Country code", placeholder: "NG", required: true, auto: "country" },
                 ].map((field) => (
-                  <label key={field.key} className="grid gap-1.5 text-[12px] font-semibold" style={{ color: "var(--color-muted)" }}>
-                    <span>
-                      {field.label}
-                      {field.required ? " *" : ""}
-                    </span>
-                    <input
+                  <div key={field.key} className="min-w-0">
+                    <FieldLabel htmlFor={`contact-${field.key}`}>{field.label}{field.required ? " *" : ""}</FieldLabel>
+                    <TextInput
+                      id={`contact-${field.key}`}
                       value={contactValues[field.key as keyof StandardContactValues]}
                       onChange={(event) => updateContactValue(field.key as keyof StandardContactValues, event.target.value)}
                       placeholder={field.placeholder}
                       type={getFieldInputType(field.key)}
-                      className="w-full rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-4 py-3 text-[13px] outline-none"
-                      style={{ color: "var(--color-navy)" }}
+                      autoComplete={field.auto}
+                      required={field.required}
+                      className="h-[48px] text-[15px]"
                     />
-                  </label>
+                  </div>
                 ))}
               </div>
 
-              {isLoadingContactSchema && (
-                <div className="mt-4 text-[12px]" style={{ color: "var(--color-muted)" }}>
-                  Loading any extra registrar requirements for this TLD...
-                </div>
-              )}
-
-              {schemaSection.description && (
-                <p className="mt-4 text-[12px] leading-6" style={{ color: "var(--color-muted)" }}>
-                  {schemaSection.description}
-                </p>
-              )}
+              {isLoadingContactSchema && <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">Checking if this ending needs anything else…</p>}
+              {schemaSection.description && <p className="mb-0 mt-4 text-[13px] leading-[1.5] text-app-ink-soft">{schemaSection.description}</p>}
 
               {extraFields.length > 0 && (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {extraFields.map(([key, property]) => (
-                    <label key={key} className="grid gap-1.5 text-[12px] font-semibold" style={{ color: "var(--color-muted)" }}>
-                      <span>
-                        {property.title ?? toTitle(key)}
-                        {requiredExtraFields.has(key) ? " *" : ""}
-                      </span>
+                    <div key={key} className="min-w-0">
+                      <FieldLabel htmlFor={`extra-${key}`}>{property.title ?? toTitle(key)}{requiredExtraFields.has(key) ? " *" : ""}</FieldLabel>
                       {property.enum && property.enum.length > 0 ? (
                         <select
+                          id={`extra-${key}`}
                           value={extraContactValues[key] ?? ""}
                           onChange={(event) => updateExtraContactValue(key, event.target.value)}
-                          className="w-full rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-4 py-3 text-[13px] outline-none"
-                          style={{ color: "var(--color-navy)" }}
+                          className="h-[48px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[15px] text-app-ink outline-none focus:border-app-ink"
                         >
-                          <option value="">Select</option>
+                          <option value="">Choose</option>
                           {property.enum.map((value) => (
-                            <option key={value} value={value}>
-                              {value}
-                            </option>
+                            <option key={value} value={value}>{value}</option>
                           ))}
                         </select>
                       ) : (
-                        <input
+                        <TextInput
+                          id={`extra-${key}`}
                           value={extraContactValues[key] ?? ""}
                           onChange={(event) => updateExtraContactValue(key, event.target.value)}
                           placeholder={property.description ?? property.title ?? toTitle(key)}
                           type={getFieldInputType(key, property)}
-                          className="w-full rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-4 py-3 text-[13px] outline-none"
-                          style={{ color: "var(--color-navy)" }}
+                          className="h-[48px] text-[15px]"
                         />
                       )}
-                    </label>
+                    </div>
                   ))}
                 </div>
               )}
 
               {purchaseOrder && (
-                <div className="mt-4 rounded-[14px] border bg-white px-4 py-3 text-[12px]" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-                  <div className="font-semibold" style={{ color: "var(--color-navy)" }}>
-                    Order {purchaseOrder.orderId}
-                  </div>
-                  <div className="mt-1" style={{ color: "var(--color-muted)" }}>
-                    Status: {purchaseOrder.status}
-                  </div>
-                </div>
+                <div className="mt-4"><Notice tone="info">Order {purchaseOrder.orderId}: {purchaseOrder.status === "purchasing" ? "buying your domain…" : purchaseOrder.status}</Notice></div>
               )}
-
-              {purchaseError && (
-                <div className="mt-4 rounded-[14px] border px-4 py-3 text-[12px]" style={{ borderColor: "rgb(232 106 79 / 0.3)", background: "rgb(232 106 79 / 0.08)", color: "#9F2D20" }}>
-                  {purchaseError}
-                </div>
-              )}
-
-              {purchaseIntegrationError && (
-                <div className="mt-4 rounded-[14px] border px-4 py-3 text-[12px]" style={{ borderColor: "rgb(242 169 59 / 0.28)", background: "rgb(242 169 59 / 0.08)", color: "#8A5A00" }}>
-                  {purchaseIntegrationError}
-                </div>
-              )}
+              {purchaseError && <div className="mt-4"><Notice>{purchaseError}</Notice></div>}
+              {purchaseIntegrationError && <div className="mt-4"><Notice tone="info">{purchaseIntegrationError}</Notice></div>}
 
               <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => void purchaseDomain()}
-                  disabled={isPurchasing || isLoadingContactSchema}
-                  className="rounded-full px-6 py-3 text-[14px] font-semibold text-[var(--color-navy)] disabled:opacity-50"
-                  style={{ background: "var(--color-mint)" }}
-                >
-                  {isPurchasing ? "Processing..." : "Complete purchase"}
-                </button>
+                <PillButton size="md" tone="accent" busy={isPurchasing} disabled={isLoadingContactSchema} onClick={() => void purchaseDomain()}>
+                  Pay and connect
+                </PillButton>
                 <button
                   type="button"
                   onClick={() => {
@@ -881,16 +770,59 @@ export function DomainSetup({ storeSlug, storeName, onDone }: DomainSetupProps) 
                     setPurchaseIntegrationError(null);
                     setPurchaseOrder(null);
                   }}
-                  className="text-[13px] font-semibold underline"
-                  style={{ color: "var(--color-teal-deep)" }}
+                  className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink"
                 >
                   Choose another domain
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </Panel>
       )}
     </div>
+  );
+}
+
+function Panel({ children }: { children: ReactNode }) {
+  return <div className="min-w-0 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">{children}</div>;
+}
+
+function RecordList({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="min-w-0 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
+      <h3 className="m-0 text-[15px] font-extrabold">{title}</h3>
+      <ul className="m-0 mt-3 grid list-none gap-2 p-0">{children}</ul>
+    </section>
+  );
+}
+
+function RecordRow({ type, host, value, note }: { type: string; host: string; value: string; note?: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked: the value is selectable text.
+    }
+  }
+  return (
+    <li className="rounded-[16px] bg-app-canvas px-4 py-3">
+      <dl className="m-0 grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13.5px]">
+        <dt className="text-app-ink-soft">Type</dt>
+        <dd className="m-0 font-mono font-bold">{type}</dd>
+        <dt className="text-app-ink-soft">Name</dt>
+        <dd className="m-0 break-all font-mono">{host}</dd>
+        <dt className="text-app-ink-soft">Value</dt>
+        <dd className="m-0 flex min-w-0 items-start gap-2">
+          <span className="min-w-0 flex-1 break-all font-mono">{value}</span>
+          <button type="button" onClick={() => void copy()} aria-label={`Copy ${type} value`} className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-full border border-app-line bg-white px-2.5 text-[12px] font-bold">
+            <Icon name={copied ? "check" : "copy"} size={12} /> {copied ? "Copied" : "Copy"}
+          </button>
+        </dd>
+      </dl>
+      {note && <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{note}</p>}
+    </li>
   );
 }

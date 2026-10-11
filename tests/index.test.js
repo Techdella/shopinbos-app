@@ -334,7 +334,8 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(builder, /Do not ask the same setup questions again|what I remember/);
   assert.match(builder, /real products and product images/);
 
-  assert.match(templatesPage, /initialCategory=\{workspace\.settings\.onboardingMemory\?\.category\}/);
+  // The onboarding category opens the matching chip while the seller picks their first theme.
+  assert.match(templatesPage, /initialCategory=\{currentThemeId \? null : workspace\.settings\.onboardingMemory\?\.category\}/);
   assert.match(templateGallery, /initialCategory/);
   assert.match(templateGallery, /text\.includes\("food"\)/);
   assert.match(templateGallery, /TEMPLATE_ID_TO_IMAGE/);
@@ -856,7 +857,7 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   const lookup = read("src/app/api/public/store/[slug]/orders/lookup/route.ts");
 
   assert.match(catalog, /\.\.\.BOUTIQUE_TEMPLATE_MANIFESTS\]/);
-  for (const id of ["breeze", "noir", "plain"]) assert.match(themes, new RegExp(`id: "${id}"`));
+  for (const id of ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride"]) assert.match(themes, new RegExp(`id: "${id}"`));
   assert.doesNotMatch(themes, /unsplash|images\.pexels/, "no stock photos presented as the seller's");
   assert.match(surface, /isBoutiqueTheme\(themeId\)/);
   assert.match(client, /<ShopperBottomNav/);
@@ -870,4 +871,37 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   assert.match(productView, /shopper\.whatsappNumber/);
   assert.match(publicStore, /loadShopperInfo\(store\.id/);
   assert.match(lookup, /order numbers can't be probed/);
+});
+
+test("Your store hub links to Rex Studio, the builder, brand kit, templates and domain", () => {
+  const nav = read("src/lib/nav.ts");
+  const hub = read("src/app/home/store/page.tsx");
+  const look = read("src/app/home/store/look.ts");
+  const editorRedirect = read("src/app/home/editor/page.tsx");
+  const brandKit = read("src/app/home/brand-kit/page.tsx");
+  const brandControls = read("src/app/home/brand-kit/BrandKitControls.tsx");
+  const domain = read("src/app/home/domain/DomainConnect.tsx");
+  const builder = read("src/components/builder/ChipBuilder.tsx");
+
+  assert.match(nav, /id: "your-store", label: "Your store", icon: "shop", href: "\/home\/store"/);
+  assert.ok(exists("src/app/home/store/page.tsx"));
+  assert.match(hub, /title="Your store"/);
+  assert.match(hub, /href="\/studio"/);
+  assert.match(hub, /`\/studio\?prompt=\$\{encodeURIComponent\(REBRAND_PROMPT\)\}`/);
+  assert.match(look, /export const REBRAND_PROMPT = /);
+  assert.match(hub, /href="\/seller\/store\/builder"/);
+  assert.match(hub, /href="\/home\/brand-kit"/);
+  assert.match(hub, /href="\/builder\/templates"/);
+  assert.match(hub, /href="\/home\/domain"/);
+  assert.match(hub, /<ShareStoreButton/);
+  assert.match(hub, /<StorePreviewCard/);
+  assert.match(editorRedirect, /redirect\(query \? `\/seller\/store\/builder\?\$\{query\}` : "\/seller\/store\/builder"\)/);
+
+  assert.match(brandKit, /href="\/studio\/logo"/);
+  assert.match(brandKit, /href="\/home\/brand-kit\/sheet"/);
+  assert.match(brandControls, /\/api\/app\/me\/images/);
+  assert.match(brandControls, /op: "update-theme"/);
+  assert.match(domain, /<DomainSetup/);
+  assert.match(builder, /router\.push\("\/home\/store"\)/);
+  assert.doesNotMatch(builder, /\/builder\/editor/);
 });

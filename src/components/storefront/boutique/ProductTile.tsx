@@ -30,9 +30,9 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
     <span
       className="bq-media block"
       style={{
-        aspectRatio: "4 / 5",
+        aspectRatio: look.tileRatio,
         borderRadius: look.cardRadius,
-        border: look.id === "breeze" ? "none" : `1px solid ${look.tokens.border}`,
+        border: look.tileBorder,
       }}
     >
       {image ? (
@@ -86,7 +86,7 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
       aria-pressed={wished}
       aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
       className="absolute right-2.5 top-2.5 grid h-9 w-9 place-items-center rounded-full shadow-sm"
-      style={{ background: dark ? "#E9E6DF" : "#FFFFFF", color: wished ? (look.id === "plain" ? "#111" : look.tokens.accent) : "#1A1A1A" }}
+      style={{ background: dark ? "#E9E6DF" : "#FFFFFF", color: wished ? look.heartActive : "#1A1A1A" }}
     >
       <Icon name="heart" size={16} fill={wished ? "currentColor" : "none"} />
     </button>

@@ -108,7 +108,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       label: "Store",
       items: [
         {
-          id: "your-store", label: "Your store", icon: "shop", href: "/home/editor",
+          id: "your-store", label: "Your store", icon: "shop", href: "/home/store",
           children: [
             { id: "editor", label: "Edit your store", href: "/home/editor" },
             { id: "pages", label: "Pages", href: "/home/pages" },
