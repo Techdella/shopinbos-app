@@ -494,3 +494,8 @@ body {
   .app-scope .card { padding: 16px; border-radius: 18px; }
 }
 .app-scope img, .app-scope video, .app-scope canvas { max-width: 100%; }
+
+/* Grid and flex children default to min-width: auto, so one long unbreakable line (a link, a nowrap
+   label) can push a column wider than a phone screen. Inside the app, let them shrink instead. */
+.app-scope .grid > *, .app-scope main .flex-1 { min-width: 0; }
+.app-scope main :where(p, h1, h2, h3, dd, li) { overflow-wrap: anywhere; }

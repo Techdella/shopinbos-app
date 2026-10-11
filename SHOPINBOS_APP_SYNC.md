@@ -140,6 +140,18 @@ Status: built and verified locally (production build, route smoke incl. write fl
 - [x] Applied `docs/migrations/2026-10-11-growth-tools.sql` to the live database (2026-10-11).
 - [ ] Have a native speaker check the starter Yorùbá and Hausa reel lines in `shared/video.ts` (used when AI is unavailable).
 
+### Phase 11 - Every Page in the 2026 Look, Menu Hierarchy, Rex and Peggy Fully Wired
+
+Status: built and verified locally (production build, route smoke 247/247, 161 pages swept at 360/768/1440/2560px in Chromium with no overflow or errors, Playwright walkthrough).
+
+- [x] All signed-in pages (seller, supplier, logistics, admin) rebuilt to the prototype with real data, full-bleed, responsive; `.app-scope` remaps older tokens/classes; shared `src/components/app-kit`.
+- [x] Menu: prototype items at the top level, other pages in hover flyouts (inline on touch/when inside); "Customise your menu" (`/home/features`, `/supplier/features`, `/logistics/features`) switches features off per person (`User.preferences`).
+- [x] Guided walkthrough on the first visit to each portal's home (`GuidedTour`), replayable.
+- [x] AI: both providers with fallback (`src/lib/ai/text.ts`), models in `src/lib/ai/client.ts` (env-overridable), daily limits (`AiUsage`), image generation/editing fixed (`src/lib/ai/images.ts`), Peggy tool agent (`src/lib/ai/peggy`), Rex store builder (`src/lib/ai/rex`, `/api/ai/build-store`).
+- [x] Applied to the live database (2026-10-11): `2026-10-11-growth-tools.sql`, `2026-10-11-ai-usage.sql`, `2026-10-11-user-preferences.sql`.
+- [ ] Test Rex and Peggy against live keys (only typecheck/unit/smoke runs without keys were possible here).
+- [ ] Check in Safari and Firefox (only Chromium is available in the build environment).
+
 ## Current Todos
 
 - [x] Finish the onboarding visual QA pass against the supplied mockup screens.
