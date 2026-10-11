@@ -26,6 +26,7 @@ export async function getSellerOnboardingStatus(userId: string) {
       status: true,
       customDomain: true,
       onboardingState: true,
+      firstDashboardVisitComplete: true,
       brandSettings: true,
       user: { select: { name: true, verificationStatus: true } },
       _count: { select: { storeProducts: true } },
@@ -62,6 +63,8 @@ export async function getSellerOnboardingStatus(userId: string) {
       url: buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }),
     },
     ownerName: store.user.name,
+    /** True once the seller has left onboarding for the dashboard (finished or skipped). */
+    finished: store.firstDashboardVisitComplete,
     memory: parseOnboardingMemory(settings.onboardingMemory) ?? null,
     launch: {
       status: typeof launchBilling.status === "string" ? launchBilling.status : "unpaid",

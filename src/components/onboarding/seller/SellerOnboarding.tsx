@@ -22,7 +22,6 @@ import {
   shopSlug,
   START_PATHS,
   suggestShopNames,
-  zoneFee,
   type DeliveryZone,
   type OnboardingLanguage,
   type OnboardingStep,
@@ -692,21 +691,17 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           {zones.map((zone, index) => (
             <label key={zone.name} className="flex items-center gap-3 py-4">
               <span className="flex-1 text-[15px]">{zone.name}</span>
-              {zone.maxFee ? (
-                <span className="text-[15px] font-extrabold">{zoneFee(zone)}</span>
-              ) : (
-                <span className="flex items-center text-[15px] font-extrabold">
-                  ₦
-                  <input
-                    aria-label={`Delivery fee for ${zone.name}`}
-                    inputMode="numeric"
-                    value={zone.fee.toLocaleString("en-NG")}
-                    onChange={(event) => setZones((current) => current.map((row, i) => (i === index ? { ...row, fee: Number(event.target.value.replace(/\D/g, "")) || 0 } : row)))}
-                    size={Math.max(3, zone.fee.toLocaleString("en-NG").length)}
-                    className="bg-transparent text-right outline-none focus:underline"
-                  />
-                </span>
-              )}
+              <span className="flex items-center text-[15px] font-extrabold">
+                ₦
+                <input
+                  aria-label={`Delivery fee for ${zone.name}`}
+                  inputMode="numeric"
+                  value={zone.fee.toLocaleString("en-NG")}
+                  onChange={(event) => setZones((current) => current.map((row, i) => (i === index ? { ...row, fee: Number(event.target.value.replace(/\D/g, "")) || 0 } : row)))}
+                  size={Math.max(3, zone.fee.toLocaleString("en-NG").length)}
+                  className="bg-transparent text-right outline-none focus:underline"
+                />
+              </span>
             </label>
           ))}
         </div>

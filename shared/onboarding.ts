@@ -110,15 +110,25 @@ export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { tran
 
 export interface DeliveryZone {
   name: string;
-  /** Flat fee in naira; a range shows "from–to". */
+  /** Flat delivery fee in naira. */
   fee: number;
-  maxFee?: number;
+  /**
+   * Checkout picks the first zone (by `priority`) whose region appears in the customer's city or state;
+   * an empty list matches every address, so it must come last.
+   */
+  regions: string[];
+  priority: number;
 }
 
 export const DEFAULT_DELIVERY_ZONES: DeliveryZone[] = [
-  { name: "Lagos Mainland", fee: 2000 },
-  { name: "Lagos Island and Lekki", fee: 2500 },
-  { name: "Abuja and other states", fee: 3500, maxFee: 6000 },
+  { name: "Lagos Mainland", fee: 2000, regions: ["Lagos"], priority: 1 },
+  {
+    name: "Lagos Island and Lekki",
+    fee: 2500,
+    regions: ["Lekki", "Victoria Island", "Ikoyi", "Ajah", "Lagos Island", "Oniru", "Sangotedo", "Chevron", "Eko Atlantic"],
+    priority: 0,
+  },
+  { name: "Abuja and other states", fee: 3500, regions: [], priority: 2 },
 ];
 
 export type ChecklistKey = "live" | "product" | "brand" | "bank" | "wa" | "id" | "ig" | "labels";
@@ -136,10 +146,6 @@ export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: 
 
 export function naira(amount: number) {
   return `₦${Math.round(amount).toLocaleString("en-NG")}`;
-}
-
-export function zoneFee(zone: DeliveryZone) {
-  return zone.maxFee ? `${naira(zone.fee)} to ${naira(zone.maxFee)}` : naira(zone.fee);
 }
 
 export function shopSlug(name: string) {

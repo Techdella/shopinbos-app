@@ -8,6 +8,7 @@ import type { StoreOnboardingMemory } from "@/lib/onboarding-memory";
 export interface OnboardingStatus {
   store: { id: string; name: string; slug: string; status: string; live: boolean; url: string };
   ownerName: string;
+  finished: boolean;
   memory: StoreOnboardingMemory | null;
   launch: { status: string; totalNgn: number; depositNgn: number };
   productCount: number;

@@ -216,7 +216,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(schema, /@@unique\(\[userId, eventKey, category\]\)/);
 
   assert.match(payments, /export async function linkSupplierPaystackRecipient/);
-  assert.match(payments, /https:\/\/api\.paystack\.co\/transferrecipient/);
+  assert.match(read("src/lib/payout-bank.ts"), /https:\/\/api\.paystack\.co\/transferrecipient/);
   assert.match(payments, /verificationStatus: recipient\.status/);
 
   assert.match(supplierActions, /export async function saveSupplierNotificationPreferences/);

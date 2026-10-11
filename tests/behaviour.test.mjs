@@ -73,6 +73,13 @@ test("onboarding helpers make clean slugs, name ideas and delivery fees", () => 
   assert.equal(onboarding.shopSlug("  Àdùnní's Linen & Co. "), "adunni-s-linen-co");
   const ideas = onboarding.suggestShopNames("Adaeze Okafor", "I sell linen shirts to working women");
   assert.deepEqual(ideas, ["Adaeze Studio", "Adaeze and Co.", "Adaeze's Linen"]);
-  assert.equal(onboarding.zoneFee({ name: "Abuja", fee: 3500, maxFee: 6000 }), "₦3,500 to ₦6,000");
+  // Checkout picks the first zone whose region is in the address, so the catch-all must sort last.
+  const catchAll = onboarding.DEFAULT_DELIVERY_ZONES.filter((zone) => zone.regions.length === 0);
+  assert.equal(catchAll.length, 1);
+  assert.equal(Math.max(...onboarding.DEFAULT_DELIVERY_ZONES.map((zone) => zone.priority)), catchAll[0].priority);
+  const island = onboarding.DEFAULT_DELIVERY_ZONES.find((zone) => zone.regions.includes("Lekki"));
+  const mainland = onboarding.DEFAULT_DELIVERY_ZONES.find((zone) => zone.regions.includes("Lagos"));
+  assert.ok(island.priority < mainland.priority, "Lekki must match before the general Lagos zone");
+  assert.equal(onboarding.naira(13000), "₦13,000");
   assert.equal(onboarding.ONBOARDING_LANGUAGES.every((lang) => typeof onboarding.REX_GREETING[lang]("Ada") === "string"), true);
 });

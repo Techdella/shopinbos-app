@@ -17,6 +17,7 @@ const TOKENS = {
   supplier: "smoke-supplier",
   logistics_partner: "smoke-logistics",
   admin: "smoke-admin",
+  new_seller: "smoke-new-seller",
 };
 
 // Pages that only make sense for signed-out visitors.
@@ -160,6 +161,11 @@ const apiChecks = [
   ["/api/store/discounts", "seller"],
   ["/api/store/automations", "seller"],
   ["/api/notifications", "seller"],
+  ["/api/app/onboarding", "seller", true],
+  ["/api/app/payout-bank", "seller", true],
+  // A seller still in onboarding must reach the API, not be redirected to the onboarding page.
+  ["/api/app/onboarding", "new_seller", true],
+  ["/api/app/store", "new_seller", true],
   ["/api/supplier/me", "supplier"],
   ["/api/supplier/products", "supplier"],
   ["/api/supplier/quote-requests", "supplier"],
@@ -168,7 +174,7 @@ const apiChecks = [
   supplier && [`/api/admin/suppliers/${supplier.id}/documents`, "admin"],
   logistics && [`/api/admin/logistics-partners/${logistics.id}/documents`, "admin"],
 ].filter(Boolean);
-for (const [url, role] of apiChecks) await check(url, role, results);
+for (const [url, role, requireOk] of apiChecks) await check(url, role, results, requireOk);
 
 const failures = results.filter((r) => !r.ok);
 for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${String(r.status).padEnd(3)} ${r.role.padEnd(17)} ${r.url} ${r.note}`);
