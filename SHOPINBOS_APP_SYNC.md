@@ -91,7 +91,8 @@ Status: built and verified locally; needs the database migrations and env vars b
 - [x] Plan upgrades require a successful, single-use payment for the right plan, amount and account (`PaymentReceipt`).
 - [x] Campaign and payment-receipt tables applied to the live database (part of the 2026-10-11 catch-up migration).
 - [ ] Set `RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `CRON_SECRET` in Vercel.
-- [ ] Add a Vercel Cron for `/api/cron/campaigns` (needs a plan that allows sub-daily crons, e.g. every 15 minutes).
+- [x] Schedule `/api/cron/campaigns` every 5 minutes with Supabase pg_cron (Vercel Hobby only allows daily crons) — see `docs/migrations/2026-10-11-campaign-scheduler.sql`.
+- [ ] Copy the `cron_secret` from Supabase Vault into Vercel as `CRON_SECRET` and redeploy.
 - [ ] Customer segments: `CustomerSegment.rules` are stored but not evaluated yet.
 
 ## Current Todos
