@@ -151,7 +151,7 @@ export default async function YourStorePage() {
           <div className="grid gap-3 sm:grid-cols-3">
             <ActionCard href="/studio" tone="dark" icon="chat" title="Rex Studio" sub="Build and change your store by chatting" />
             <ActionCard href={`/studio?prompt=${encodeURIComponent(REBRAND_PROMPT)}`} tone="mint" icon="sparkle" title="Rebrand with Rex" sub="New logo, colours, homepage" />
-            <ActionCard href="/seller/store/builder" tone="white" icon="monitor" title="Advanced builder" sub="Sections, pages and themes" />
+            <ActionCard href="/seller/store/builder" tone="white" icon="monitor" title="Edit your store" sub="Pages, sections and themes" />
           </div>
         </div>
 

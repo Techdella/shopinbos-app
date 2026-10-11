@@ -704,7 +704,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
             Templates
           </button>
           <button type="button" onClick={() => router.push("/seller/store/builder")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
-            Advanced builder
+            Edit your store
           </button>
           <button type="button" onClick={handleSignOut} className="min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink">
             Sign out

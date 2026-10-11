@@ -110,7 +110,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         {
           id: "your-store", label: "Your store", icon: "shop", href: "/home/store",
           children: [
-            { id: "editor", label: "Edit your store", href: "/home/editor" },
+            { id: "editor", label: "Edit your store", href: "/seller/store/builder" },
             { id: "pages", label: "Pages", href: "/home/pages" },
             { id: "navigation", label: "Menus", href: "/home/navigation" },
             { id: "blog", label: "Blog", href: "/home/cms" },
@@ -131,7 +131,6 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "brand-kit", label: "Brand kit", icon: "tag", href: "/home/brand-kit" },
         { id: "templates", label: "Templates", icon: "grid", href: "/builder/templates" },
         { id: "domain", label: "Domain", icon: "globe", href: "/home/domain" },
-        { id: "builder", label: "Advanced builder", icon: "monitor", href: "/seller/store/builder", tag: "Web" },
       ],
     },
     {
