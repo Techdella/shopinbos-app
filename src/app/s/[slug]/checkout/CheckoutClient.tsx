@@ -8,6 +8,14 @@ import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } fro
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
+import {
+  checkoutPaymentOptions,
+  deliveryFeeFor,
+  type CheckoutPaymentMethod,
+  type CheckoutPaymentSettings,
+  type FeeZone,
+} from "@shared/checkout-payments";
+import { TransferInstructions, type TransferDetails } from "../order/[orderId]/TransferInstructions";
 
 interface Store {
   id: string;
@@ -25,6 +33,8 @@ interface Store {
 interface Props {
   store: Store;
   storeBasePath: string;
+  payments: CheckoutPaymentSettings;
+  feeZones: FeeZone[];
 }
 
 interface CreatedOrder {
@@ -34,19 +44,7 @@ interface CreatedOrder {
   currency: string;
 }
 
-const GATEWAY_FEE_RATE = 0.015;
-const GATEWAY_FEE_FLAT = 100;
-const PLATFORM_FEE_RATE = 0.02;
-
-function calcGatewayFee(amount: number) {
-  return Math.round(amount * GATEWAY_FEE_RATE * 100 + GATEWAY_FEE_FLAT) / 100;
-}
-
-function calcPlatformFee(amount: number) {
-  return Math.round(amount * PLATFORM_FEE_RATE * 100) / 100;
-}
-
-export function CheckoutClient({ store, storeBasePath }: Props) {
+export function CheckoutClient({ store, storeBasePath, payments, feeZones }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cart = useCart(store.slug);
@@ -58,7 +56,6 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
   const heroBg = palette.heroBg ?? "#0E2A38";
   const heroText = palette.heroText ?? "#F4F1EA";
   const paperBg = palette.paperBg ?? "#FAF7F1";
-  const shippingFee = store.brandSettings?.shippingConfig?.flatRate ?? 0;
 
   const steps = ["Contact", "Delivery", "Review & Pay"];
   const [step, setStep] = useState(0);
@@ -75,6 +72,8 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
+  const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod | null>(null);
+  const [transfer, setTransfer] = useState<TransferDetails | null>(null);
   const [paying, setPaying] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ type: string; value: number; code: string } | null>(null);
@@ -154,9 +153,19 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
   }
 
   const subtotalAfterDiscount = getDiscountedTotal(cart.subtotal);
-  const gatewayFee = useMemo(() => calcGatewayFee(subtotalAfterDiscount + shippingFee), [subtotalAfterDiscount, shippingFee]);
-  const platformFee = useMemo(() => calcPlatformFee(subtotalAfterDiscount + shippingFee), [subtotalAfterDiscount, shippingFee]);
-  const total = subtotalAfterDiscount + shippingFee + gatewayFee + platformFee;
+  // Same zone rules as the checkout API, so the total shown is the total charged.
+  const shippingFee = deliveryFeeFor(feeZones, store.brandSettings?.shippingConfig?.flatRate ?? 0, { city: form.city, state: form.state }, cart.subtotal);
+  const orderTotal = subtotalAfterDiscount + shippingFee;
+  const paymentOptions = useMemo(
+    () => checkoutPaymentOptions(payments, { city: form.city, state: form.state, total: orderTotal }),
+    [payments, form.city, form.state, orderTotal],
+  );
+  // Keep the buyer's pick while it is still on offer (an address or total change can rule pay on delivery out).
+  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0].key;
+  const isPaystack = paymentMethod === "paystack";
+  // Show exactly what the checkout route charges: the order total, no fees added on top.
+  const total = orderTotal;
+  const needsPhone = paymentMethod === "pay_on_delivery" && form.buyerPhone.trim().length === 0;
 
   function canProceedToStep(target: number): boolean {
     if (target === 0) return true;
@@ -190,7 +199,7 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
           buyerPhone: form.buyerPhone || undefined,
           deliveryAddress: { street: form.street, city: form.city, state: form.state || undefined, country: form.country },
           items: cart.items,
-          paymentMethod: "inline",
+          paymentMethod: isPaystack ? "inline" : paymentMethod,
           discountCode: appliedDiscount?.code || undefined,
           campaignToken: campaignToken || undefined,
           channel: readOrderChannel(store.slug) ?? undefined,
@@ -205,7 +214,19 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
         return;
       }
 
-      setCreatedOrder(data.data.order);
+      const order = data.data.order as CreatedOrder;
+      setCreatedOrder(order);
+      if (paymentMethod === "paystack") return;
+
+      // Transfer and pay on delivery orders are placed now; nothing is charged here.
+      cart.clear();
+      const orderPath = getPublicStorefrontPath(storeBasePath, `/order/${order.id}`);
+      if (paymentMethod === "transfer" && data.data.transfer) {
+        setTransfer(data.data.transfer as TransferDetails);
+        window.scrollTo({ top: 0 });
+      } else {
+        router.push(orderPath);
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
@@ -237,6 +258,31 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
     },
     [createdOrder, cart, router, storeBasePath],
   );
+
+  if (createdOrder && transfer) {
+    return (
+      <div style={{ background: paperBg, minHeight: "100vh", fontFamily: "var(--font-app, sans-serif)" }}>
+        <nav style={{ background: heroBg, padding: "0 24px", display: "flex", alignItems: "center", height: 60 }}>
+          <a href={getPublicStorefrontPath(storeBasePath, "/")} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0 }}>
+            {store.logoUrl && <img src={store.logoUrl} alt={store.name} style={{ width: 28, height: 28, borderRadius: 8, objectFit: "cover" }} />}
+            <span style={{ color: heroText, fontWeight: 700, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{store.name}</span>
+          </a>
+        </nav>
+        <main style={{ maxWidth: 640, margin: "0 auto", padding: "28px 16px 60px", display: "flex", flexDirection: "column", gap: 18 }}>
+          <div>
+            <h1 style={{ margin: "0 0 6px", fontSize: 26, fontWeight: 800, color: "#16141F" }}>Order {createdOrder.orderNumber} placed</h1>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: "#6E6E68" }}>
+              Thanks, {form.buyerName.split(" ")[0] || "there"}. Send the transfer below and the store will confirm your order once the money arrives.
+            </p>
+          </div>
+          <TransferInstructions orderId={createdOrder.id} currency={createdOrder.currency} details={transfer} ctaBg={ctaBg} ctaText={ctaText} />
+          <a href={getPublicStorefrontPath(storeBasePath, `/order/${createdOrder.id}`)} style={{ alignSelf: "center", color: "#16141F", fontWeight: 700, fontSize: 15, padding: "10px 4px" }}>
+            View your order
+          </a>
+        </main>
+      </div>
+    );
+  }
 
   if (!cart.loaded) {
     return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: paperBg, color: "#6E6E68" }}>Loading...</div>;
@@ -373,14 +419,6 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
                     <span>Delivery</span>
                     <span>{shippingFee === 0 ? "Free" : `${store.currency} ${shippingFee.toLocaleString()}`}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6E6E68" }}>
-                    <span>Gateway fee (1.5% + ₦100)</span>
-                    <span>{store.currency} {gatewayFee.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6E6E68" }}>
-                    <span>Platform fee (2%)</span>
-                    <span>{store.currency} {platformFee.toLocaleString()}</span>
-                  </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, color: "#0E2A38", marginTop: 4, borderTop: "1px solid rgba(14,42,56,0.08)", paddingTop: 14 }}>
                     <span>Total</span>
                     <span>{store.currency} {total.toLocaleString()}</span>
@@ -412,9 +450,45 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
                 )}
               </div>
 
+              <fieldset style={{ border: "none", margin: "0 0 20px", padding: 0, fontFamily: "var(--font-app, inherit)" }}>
+                <legend style={{ padding: 0, marginBottom: 10, fontSize: 16, fontWeight: 800, color: "#16141F" }}>How would you like to pay?</legend>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {paymentOptions.map((option) => {
+                    const selected = option.key === paymentMethod;
+                    return (
+                      <label
+                        key={option.key}
+                        style={{ display: "flex", alignItems: "flex-start", gap: 12, minHeight: 56, padding: "14px 16px", borderRadius: 18, background: "#fff", border: `2px solid ${selected ? ctaBg : "rgba(22,20,31,0.1)"}`, cursor: createdOrder ? "default" : "pointer" }}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={option.key}
+                          checked={selected}
+                          disabled={Boolean(createdOrder)}
+                          onChange={() => setChosenMethod(option.key)}
+                          style={{ marginTop: 3, width: 18, height: 18, accentColor: ctaBg, flexShrink: 0 }}
+                        />
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#16141F" }}>{option.label}</span>
+                          <span style={{ display: "block", fontSize: 13, lineHeight: 1.45, color: "#6E6E68" }}>{option.hint}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {paymentMethod === "pay_on_delivery" && (
+                  <div style={{ marginTop: 12 }}>
+                    <label htmlFor="pod-phone" style={labelStyle}>Phone number for the rider</label>
+                    <input id="pod-phone" type="tel" required placeholder="+234 800 000 0000" value={form.buyerPhone} onChange={(e) => set("buyerPhone", e.target.value)} style={inputStyle} />
+                    <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "#6E6E68" }}>Have {store.currency} {total.toLocaleString()} ready when your order arrives.</p>
+                  </div>
+                )}
+              </fieldset>
+
               {error && <div style={{ background: "#fef2f2", border: "1px solid #E86A4F", borderRadius: 10, padding: "12px 16px", color: "#E86A4F", fontSize: 14, marginBottom: 16 }}>{error}</div>}
 
-              {createdOrder ? (
+              {createdOrder && isPaystack ? (
                 <PaystackCheckoutButton
                   amount={createdOrder.total}
                   email={form.buyerEmail}
@@ -435,9 +509,9 @@ export function CheckoutClient({ store, storeBasePath }: Props) {
                     Back
                   </button>
                   <button type="submit"
-                    disabled={submitting || cart.items.length === 0}
-                    style={{ flex: 1, background: submitting ? "#9ca3af" : ctaBg, color: ctaText, border: "none", borderRadius: 999, padding: "15px", fontSize: 16, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-                    {submitting ? "Creating order..." : `Pay ${store.currency} ${total.toLocaleString()}`}
+                    disabled={submitting || Boolean(createdOrder) || cart.items.length === 0 || needsPhone}
+                    style={{ flex: 1, background: submitting || needsPhone ? "#9ca3af" : ctaBg, color: ctaText, border: "none", borderRadius: 999, padding: "15px", fontSize: 16, fontWeight: 700, cursor: submitting || needsPhone ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                    {submitting ? "Placing order..." : isPaystack ? `Pay ${store.currency} ${total.toLocaleString()}` : "Place order"}
                   </button>
                 </div>
               )}

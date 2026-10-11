@@ -112,6 +112,30 @@ export const THEME_AI_HINTS: Record<string, ThemeAIHints> = {
     dynamicBindings: ["Products: home/furniture store products", "Categories: room-based", "Forms: app submissions"],
     rexPrompt: "Create The Plaza store: dark gray #414141 text, tan #b09d81 accent, Raleway font. Clean structured layout. Home/living products. Logo: The Plaza.",
   },
+  breeze: {
+    palette: "White #FFFFFF, ink #1A1D21, turquoise #1FC6D6, pale aqua cards #EEF6F7",
+    vibe: "Light, airy fashion boutique for hot cities: friendly, mobile-first, trustworthy",
+    layout: "Announcement bar from delivery settings, split header with italic serif logo, wide photo banner with headline and 'Shop new arrivals', category tiles, best sellers carousel with wishlist hearts, real reviews, newsletter",
+    keySections: ["announcement-bar", "hero-split", "category-grid", "featured-products", "testimonials", "newsletter"],
+    dynamicBindings: ["Announcement derives from shipping zones and pay-on-delivery", "Categories and best sellers come from storeProducts", "Reviews are approved product reviews only", "WhatsApp button uses the store's live chat number"],
+    rexPrompt: "Use the Breeze theme: short hero headline (under 8 words) about the seller's products, 'Shop new arrivals' CTA, keep the announcement text empty so it comes from delivery settings, never write testimonials.",
+  },
+  noir: {
+    palette: "Near-black #0A0A0A and #121212, ivory #F5F2EA, antique gold #C8A96A",
+    vibe: "Dark, premium boutique with a payday moment",
+    layout: "Uppercase serif headings, centred hero, payday countdown strip, best sellers carousel, studio story split",
+    keySections: ["hero-split", "payday-countdown", "featured-products", "story-split"],
+    dynamicBindings: ["Payday countdown runs from settings (default 25th, Friday before at weekends, until Sunday)", "Discount label shows only when the seller sets one", "Products from storeProducts"],
+    rexPrompt: "Use the Noir theme: uppercase serif headline, payday countdown strip; only mention a discount if the seller gave one; story section about how the seller makes or sources products.",
+  },
+  plain: {
+    palette: "White #FFFFFF, black #111111, grey #6B6B6B",
+    vibe: "Quiet, minimal, centred logo",
+    layout: "Centred logo header, full-width hero with eyebrow and slide dots, best sellers, questions accordion, newsletter",
+    keySections: ["hero-split", "featured-products", "faq", "newsletter"],
+    dynamicBindings: ["FAQ answers for delivery and payment come from store settings", "Products from storeProducts"],
+    rexPrompt: "Use the Plain theme: two to five word hero title with a short eyebrow like 'New season'; keep FAQ answers about delivery and payment blank so they come from settings.",
+  },
 };
 
 export function getThemeAIHints(templateId: string): ThemeAIHints {

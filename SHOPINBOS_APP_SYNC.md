@@ -152,6 +152,20 @@ Status: built and verified locally (production build, route smoke 247/247, 161 p
 - [ ] Test Rex and Peggy against live keys (only typecheck/unit/smoke runs without keys were possible here).
 - [ ] Check in Safari and Firefox (only Chromium is available in the build environment).
 
+### Phase 12 - Riders, Delivery Partner API, Checkout Payment Choices, Storefront Themes
+
+Status: built and verified locally (production build, route smoke 252/252, changed portal pages swept at 360/768/1440/2560px, storefront themes and the Riders app checked at 360/1440px in Chromium).
+
+- [x] Riders: accept-and-assign on Today and Jobs, private Riders app links (`/rider/[token]`, SHA-256 hashed), delivery codes, cash-on-delivery pay-ins (`/logistics/cash`). One transition path for portal, riders and API: `src/lib/logistics/job-rules.ts`, `jobs.ts`.
+- [x] Delivery partner API v1 (`/api/v1/partner/*`): hashed `sbp_live_` keys, jobs, accept, status, proof, quotes, COD remittances; signed webhooks (`Shopinbos-Signature`), 3 in-request retries; Connect page `/logistics/connect`.
+- [x] Checkout honours the seller's payment methods (Paystack, bank transfer, pay on delivery); the shown total matches what is charged.
+- [x] Supplier onboarding uploads real documents (`shared/verification-docs.ts`).
+- [x] Storefront themes Breeze, Noir (payday countdown), Plain; phone bottom bar (search, wishlist, bag, track an order); new product page.
+- [x] Private store settings (payout bank, billing, invites, Peggy settings) are stripped from public responses (`shared/public-brand-settings.ts`); product pages only show published products of active stores.
+- [x] Applied to the live database (2026-10-11): `2026-10-12-riders-and-partner-api.sql`.
+- [ ] Webhook retries beyond the request (a queue) and the `cod.reminder` sender.
+- [ ] Rider pay (the Riders app shows delivery fees, not rider earnings).
+
 ## Current Todos
 
 - [x] Finish the onboarding visual QA pass against the supplied mockup screens.

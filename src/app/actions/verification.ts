@@ -5,6 +5,15 @@ import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import type { DocType, VerificationDoc } from "@/lib/verification-utils";
 import { computeBadgeTier, parseVerificationDocs } from "@/lib/verification-utils";
+import {
+  DOC_TYPE_LABELS,
+  docHasFile,
+  docMimeType,
+  docTypesForRole,
+  missingRequiredDocs,
+  submitUploadedDocs,
+  validateDocFile,
+} from "@shared/verification-docs";
 
 const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
 
@@ -17,56 +26,67 @@ export async function uploadVerificationDoc(
     const user = await getCurrentAppUser({ expectedRole: role });
     if (!user || user.role !== role) return { success: false, error: "Not authenticated" };
 
-    const file = formData.get("file") as File;
-    if (!file) return { success: false, error: "No file provided" };
+    const file = formData.get("file");
+    if (!(file instanceof File)) return { success: false, error: "No file provided" };
+    if (!docTypesForRole(role).some((config) => config.type === docType)) {
+      return { success: false, error: "That document type isn't used for this account." };
+    }
+    const invalid = validateDocFile(file);
+    if (invalid) return { success: false, error: invalid };
+    const mimeType = docMimeType(file) ?? "application/octet-stream";
 
     const model = role === "supplier" ? db.supplier : db.logisticsPartner;
     const entity = await (model as any).findUnique({ where: { userId: user.id } });
     if (!entity) return { success: false, error: "Profile not found" };
 
+    const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
+    const existingIdx = docs.findIndex((d) => d.type === docType && docHasFile(d));
+    const lockedStatus = existingIdx >= 0 && ["submitted", "under_review", "approved"].includes(docs[existingIdx].status);
+    if (lockedStatus) return { success: false, error: "This document is already with the review team." };
+
     const folder = role === "supplier" ? "supplier-verifications" : "logistics-verifications";
-    const ext = file.name.split(".").pop() ?? "bin";
+    const ext = mimeType === "application/pdf" ? "pdf" : mimeType.split("/")[1] === "jpeg" ? "jpg" : mimeType.split("/")[1];
     const filePath = `${folder}/${entity.id}/${docType}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
     const supabase = await getSupabaseServiceClient();
     const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
-      contentType: file.type || "application/octet-stream",
+      contentType: mimeType,
     });
     if (uploadError) return { success: false, error: uploadError.message };
 
-    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-
-    const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
-    const existingIdx = docs.findIndex((d) => d.type === docType);
+    // Old onboarding rows of this type that never had a file are replaced by the real upload.
+    const placeholders = docs.filter((d) => d.type === docType && !docHasFile(d));
+    const previous = existingIdx >= 0 ? docs[existingIdx] : placeholders[0];
     const newDoc: VerificationDoc = {
-      id: existingIdx >= 0 ? docs[existingIdx].id : `${docType}-${Date.now()}`,
+      id: previous?.id ?? `${docType}-${Date.now()}`,
       type: docType,
-      label: docLabel(docType),
+      label: DOC_TYPE_LABELS[docType],
       fileName: file.name,
       filePath,
       fileSize: file.size,
-      mimeType: file.type,
+      mimeType,
       status: "uploaded",
-      uploadedAt: existingIdx >= 0 ? docs[existingIdx].uploadedAt : new Date().toISOString(),
+      uploadedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    if (existingIdx >= 0) {
-      const oldDoc = docs[existingIdx];
-      if (oldDoc.filePath) {
-        await supabase.storage.from(BUCKET).remove([oldDoc.filePath]).catch(() => {});
-      }
-      docs[existingIdx] = newDoc;
-    } else {
-      docs.push(newDoc);
+    const kept = docs.filter((d, index) => index !== existingIdx && !placeholders.includes(d));
+    try {
+      await (model as any).update({
+        where: { userId: user.id },
+        data: { verificationDocuments: [...kept, newDoc] },
+      });
+    } catch (err) {
+      await supabase.storage.from(BUCKET).remove([filePath]).catch(() => {});
+      throw err;
     }
 
-    await (model as any).update({
-      where: { userId: user.id },
-      data: { verificationDocuments: docs },
-    });
+    // Only drop the replaced file once the new record is saved.
+    if (existingIdx >= 0) {
+      await supabase.storage.from(BUCKET).remove([docs[existingIdx].filePath]).catch(() => {});
+    }
 
     return { success: true, doc: newDoc };
   } catch (err: any) {
@@ -120,21 +140,12 @@ export async function submitVerification(
     if (!entity) return { success: false, error: "Profile not found" };
 
     const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
-    const requiredTypes: DocType[] = role === "supplier"
-      ? ["cac", "identity"]
-      : ["cac", "insurance"];
-
-    const missingRequired = requiredTypes.filter(
-      (t) => !docs.some((d) => d.type === t && (d.status === "uploaded" || d.status === "submitted")),
-    );
+    const missingRequired = missingRequiredDocs(docTypesForRole(role), docs);
     if (missingRequired.length > 0) {
-      return { success: false, error: `Missing required documents: ${missingRequired.join(", ")}` };
+      return { success: false, error: `Upload ${missingRequired.map((config) => config.label).join(", ")} before sending for review.` };
     }
 
-    const updatedDocs = docs.map((d) => ({
-      ...d,
-      status: d.status === "uploaded" ? "submitted" as const : d.status,
-    }));
+    const updatedDocs = submitUploadedDocs(docs);
 
     await (model as any).update({
       where: { userId: user.id },
@@ -167,18 +178,3 @@ export async function getVerificationDocs(
 
   return { docs, trustScore, verificationStatus, badgeTier };
 }
-
-function docLabel(type: DocType): string {
-  const labels: Record<DocType, string> = {
-    cac: "Business registration / CAC certificate",
-    tax: "Tax Identification Number (TIN)",
-    utility: "Utility bill (address verification)",
-    identity: "Owner identity document (NIN)",
-    "product-images": "Product images",
-    insurance: "Insurance certificate",
-    fleet: "Fleet / vehicle documents",
-    other: "Other document",
-  };
-  return labels[type] ?? type;
-}
-

@@ -418,6 +418,7 @@ const HEADER_CATEGORY_VARIATIONS = [
 ];
 
 const SECTION_GUIDES: Record<string, string> = {
+  "payday-countdown": "Counts down to payday, then through the payday edit. Set when payday is and how long the edit runs; only add a discount you will honour at checkout.",
   header: "Choose what appears in the header: logo, menu, search, wishlist, cart and category navigation.",
   "category-list": "Categories help shoppers browse your products by need, collection, or department.",
   "featured-products": "Feature best sellers, new arrivals, sale items, or hand-picked products.",
@@ -1710,6 +1711,29 @@ export function StoreEditor({ initialRexOpen = false }: EditorProps) {
                 <option value="minimal">Minimal cart</option>
               </select>
             </div>
+          ) : null}
+          {selectedDraftSection?.kind === "payday-countdown" ? (
+            <>
+              <div className="rf"><label className="rl">Payday</label><select className="rsel" value={String(selectedDraftSection.settings?.paydayRule ?? "day-of-month")} onChange={event => updateSelectedSetting("paydayRule", event.target.value)}>
+                <option value="day-of-month">A set day of the month</option>
+                <option value="last-friday">Last Friday of the month</option>
+                <option value="last-weekday">Last weekday of the month</option>
+              </select></div>
+              {String(selectedDraftSection.settings?.paydayRule ?? "day-of-month") === "day-of-month" ? (
+                <>
+                  <div className="rf"><label className="rl">Day of the month</label><input className="ri" type="number" min={1} max={31} value={Number(selectedDraftSection.settings?.paydayDay ?? 25)} onChange={event => updateSelectedSetting("paydayDay", Math.min(31, Math.max(1, Number(event.target.value) || 25)))} /></div>
+                  <div className="rf"><label className="rl">Weekend payday</label><div className="rbg"><button type="button" className={`rbgb${selectedDraftSection.settings?.weekendToFriday !== false ? " on" : ""}`} onClick={() => updateSelectedSetting("weekendToFriday", true)}>Friday before</button><button type="button" className={`rbgb${selectedDraftSection.settings?.weekendToFriday === false ? " on" : ""}`} onClick={() => updateSelectedSetting("weekendToFriday", false)}>Keep the date</button></div></div>
+                </>
+              ) : null}
+              <div className="rf"><label className="rl">Edit runs</label><select className="rsel" value={String(selectedDraftSection.settings?.saleEnds ?? "sunday")} onChange={event => updateSelectedSetting("saleEnds", event.target.value)}>
+                <option value="sunday">From payday until Sunday</option>
+                <option value="days">A number of days</option>
+              </select></div>
+              {selectedDraftSection.settings?.saleEnds === "days" ? (
+                <div className="rf"><label className="rl">Days</label><input className="ri" type="number" min={1} max={14} value={Number(selectedDraftSection.settings?.saleDays ?? 3)} onChange={event => updateSelectedSetting("saleDays", Math.min(14, Math.max(1, Number(event.target.value) || 3)))} /></div>
+              ) : null}
+              <div className="rf"><label className="rl">Discount (optional)</label><input className="ri" value={String(copy.discountLabel ?? "")} onChange={event => updateSelectedCopy("discountLabel", event.target.value)} placeholder="e.g. 15% off" /></div>
+            </>
           ) : null}
           <div className="rf"><label className="rl">Title</label><textarea className="rtx" rows={2} value={String(copy.title ?? "")} onChange={event => updateSelectedCopy("title", event.target.value)} /></div>
           <div className="rf"><label className="rl">Body</label><textarea className="rtx" rows={3} value={String(copy.body ?? copy.summary ?? "")} onChange={event => updateSelectedCopy("body", event.target.value)} /></div>

@@ -110,7 +110,7 @@ function buildJsonLd(store: StoreData) {
     url: storeUrl,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${storeUrl}/search?q={search_term_string}`,
+      target: `${storeUrl}?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };

@@ -1,16 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import type { Prisma } from "@prisma/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { requireRole } from "@/lib/server-auth";
 import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
+import { replyToQuote } from "@/lib/logistics/quotes";
+import { getPublicEnv } from "@/lib/env";
+import { recordRemittance } from "@/lib/logistics/remittances";
+import { assignRider, transitionJob } from "@/lib/logistics/jobs";
+import { newRiderToken } from "@/lib/logistics/rider-token";
+import { toE164 } from "@shared/phone";
 import { LOGISTICS_FREE_ROUTE_LIMIT, LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import {
   BookingStatusUpdateSchema,
-  DeliveryQuoteResponseSchema,
   LogisticsCoverageUpdateSchema,
   LogisticsPricingUpdateSchema,
 } from "@/lib/schemas";
@@ -96,57 +102,18 @@ async function assertLogisticsPlanAllowsTeamMember(userId: string, partnerId: st
 export async function respondToDeliveryQuote(formData: FormData) {
   const { partner } = await getLogisticsActor();
   assertVerifiedLogistics(partner);
-  const quoteId = String(formData.get("quoteId") || "");
-  const intent = String(formData.get("intent") || "respond");
-  const quotedPrice = parsePositiveNumber(formData.get("quotedPrice"));
-  const partnerResponse = String(formData.get("partnerResponse") || "").trim();
-  const expiresAtRaw = String(formData.get("expiresAt") || "").trim();
   const back = returnPath(formData, "/logistics/quotes");
 
-  const quote = quoteId
-    ? await db.deliveryQuoteRequest.findFirst({
-        where: { id: quoteId, logisticsPartnerId: partner.id },
-        select: { id: true, status: true },
-      })
-    : null;
-
-  if (!quote) redirect(`${back}?error=Quote%20not%20found.`);
-  if (quote.status !== "pending") {
-    redirect(`${back}?error=This%20quote%20has%20already%20been%20handled.`);
-  }
-
-  if (intent === "reject") {
-    await db.deliveryQuoteRequest.update({
-      where: { id: quote.id },
-      data: {
-        status: "rejected",
-        partnerResponse: partnerResponse || "Thanks for reaching out. This route is not available for us right now.",
-      },
-    });
-    revalidatePath("/logistics/quotes");
-    revalidatePath("/logistics/dashboard");
-    redirect(`${back}?saved=1`);
-  }
-
-  const parsed = DeliveryQuoteResponseSchema.safeParse({
-    quotedPrice,
-    partnerResponse: partnerResponse || undefined,
-    expiresAt: expiresAtRaw || undefined,
+  // Same rules as POST /v1/partner/quotes.
+  const result = await replyToQuote({
+    partnerId: partner.id,
+    quoteId: String(formData.get("quoteId") || ""),
+    intent: String(formData.get("intent") || "respond") === "reject" ? "reject" : "respond",
+    quotedPrice: parsePositiveNumber(formData.get("quotedPrice")),
+    partnerResponse: String(formData.get("partnerResponse") || ""),
+    expiresAt: String(formData.get("expiresAt") || "").trim() || undefined,
   });
-
-  if (!parsed.success) {
-    redirect(`${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the quote details.")}`);
-  }
-
-  await db.deliveryQuoteRequest.update({
-    where: { id: quote.id },
-    data: {
-      status: "responded",
-      quotedPrice: parsed.data.quotedPrice,
-      partnerResponse: parsed.data.partnerResponse,
-      expiresAt: parsed.data.expiresAt,
-    },
-  });
+  if (!result.ok) redirect(`${back}?error=${encodeURIComponent(result.error)}`);
 
   revalidatePath("/logistics/quotes");
   revalidatePath("/logistics/dashboard");
@@ -160,12 +127,15 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   const status = String(formData.get("status") || "");
   const trackingCode = String(formData.get("trackingCode") || "").trim();
   const estimatedDeliveryRaw = String(formData.get("estimatedDelivery") || "").trim();
+  const failedReason = String(formData.get("failedReason") || "").trim();
+  const codCollectedRaw = String(formData.get("codCollected") || "").trim();
+  const codMethod = String(formData.get("codMethod") || "").trim();
+  const riderField = formData.get("riderId");
   const back = returnPath(formData, "/logistics/bookings");
   const parsed = BookingStatusUpdateSchema.safeParse({
     status,
     trackingCode: trackingCode || undefined,
     estimatedDelivery: estimatedDeliveryRaw || undefined,
-    deliveredAt: status === "delivered" ? new Date() : undefined,
   });
 
   if (!parsed.success || !bookingStatuses.includes(status as never)) {
@@ -175,20 +145,154 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   const booking = bookingId
     ? await db.deliveryBooking.findFirst({
         where: { id: bookingId, logisticsPartnerId: partner.id },
-        select: { id: true },
+        select: { id: true, status: true, riderId: true },
       })
     : null;
 
   if (!booking) redirect(`${back}?error=Booking%20not%20found.`);
 
-  await db.deliveryBooking.update({
-    where: { id: booking.id },
-    data: parsed.data,
-  });
+  // Status changes go through the shared job rules (delivery code, failure reason, cash on delivery) and
+  // keep the seller's order in step. The dispatcher can close a job without the buyer's code.
+  if (status !== booking.status) {
+    const result = await transitionJob({
+      bookingId: booking.id,
+      partnerId: partner.id,
+      to: status,
+      actor: "partner",
+      failedReason: failedReason || null,
+      codCollected: codCollectedRaw ? parsePositiveNumber(codCollectedRaw) : null,
+      codMethod: codMethod || null,
+    });
+    if (!result.ok) redirect(`${back}?error=${encodeURIComponent(result.error)}`);
+  }
 
+  const details: Prisma.DeliveryBookingUpdateInput = {};
+  if (parsed.data.trackingCode) details.trackingCode = parsed.data.trackingCode;
+  if (parsed.data.estimatedDelivery) details.estimatedDelivery = parsed.data.estimatedDelivery;
+  if (Object.keys(details).length > 0) {
+    const saved = await db.deliveryBooking.update({ where: { id: booking.id }, data: details }).catch(() => null);
+    if (!saved) redirect(`${back}?error=${encodeURIComponent("That tracking code is already used on another job.")}`);
+  }
+
+  if (riderField !== null) {
+    const riderId = String(riderField) || null;
+    if (riderId !== booking.riderId && !["delivered", "cancelled"].includes(status)) {
+      const result = await assignRider({ bookingId: booking.id, partnerId: partner.id, riderId });
+      if (!result.ok) redirect(`${back}?error=${encodeURIComponent(result.error)}`);
+    }
+  }
+
+  revalidateDispatch();
+  redirect(`${back}?saved=1`);
+}
+
+function revalidateDispatch() {
   revalidatePath("/logistics/bookings");
   revalidatePath("/logistics/dashboard");
+  revalidatePath("/logistics/couriers");
+  revalidatePath("/logistics/cash");
+}
+
+/** "Accept and assign": confirm a new job (which gives it a delivery code) and hand it to a rider in one step. */
+export async function acceptAndAssignJob(formData: FormData) {
+  const { partner } = await getLogisticsActor();
+  assertVerifiedLogistics(partner);
+  const bookingId = String(formData.get("bookingId") || "");
+  const riderId = String(formData.get("riderId") || "") || null;
+  const back = returnPath(formData, "/logistics/bookings");
+
+  const accepted = await transitionJob({ bookingId, partnerId: partner.id, to: "confirmed", actor: "partner" });
+  if (!accepted.ok) redirect(`${back}?error=${encodeURIComponent(accepted.error)}`);
+  if (riderId) {
+    const assigned = await assignRider({ bookingId, partnerId: partner.id, riderId });
+    if (!assigned.ok) redirect(`${back}?error=${encodeURIComponent(`Accepted, but ${assigned.error.charAt(0).toLowerCase()}${assigned.error.slice(1)}`)}`);
+  }
+
+  revalidateDispatch();
   redirect(`${back}?saved=1`);
+}
+
+/** Give a job to a rider, move it to another rider, or take it off the rider (empty riderId). */
+export async function assignJobRider(formData: FormData) {
+  const { partner } = await getLogisticsActor();
+  assertVerifiedLogistics(partner);
+  const back = returnPath(formData, "/logistics/bookings");
+  const result = await assignRider({
+    bookingId: String(formData.get("bookingId") || ""),
+    partnerId: partner.id,
+    riderId: String(formData.get("riderId") || "") || null,
+  });
+  if (!result.ok) redirect(`${back}?error=${encodeURIComponent(result.error)}`);
+  revalidateDispatch();
+  redirect(`${back}?saved=1`);
+}
+
+export type RiderLinkResult = { ok: true; url: string; riderName: string; whatsapp: string | null } | { ok: false; error: string };
+
+async function appOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return getPublicEnv().appUrl.replace(/\/$/, "");
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
+ * New private Riders app link for a rider. The token is shown once and only its hash is stored, so making a
+ * new link switches the old one off.
+ */
+export async function createRiderLink(teamMemberId: string): Promise<RiderLinkResult> {
+  const { partner } = await getLogisticsActor();
+  assertVerifiedLogistics(partner);
+  const member = await db.logisticsTeamMember.findFirst({
+    where: { id: String(teamMemberId || ""), logisticsPartnerId: partner.id },
+    select: { id: true, name: true, role: true, status: true, phone: true },
+  });
+  if (!member) return { ok: false, error: "Rider not found." };
+  if (member.role !== "rider") return { ok: false, error: "Only riders get a Riders app link." };
+  if (member.status !== "active") return { ok: false, error: "Reactivate this rider first." };
+
+  const { token, hash } = newRiderToken();
+  await db.logisticsTeamMember.update({ where: { id: member.id }, data: { riderTokenHash: hash } });
+  revalidatePath("/logistics/couriers");
+  const phone = member.phone ? toE164(member.phone) : null;
+  return { ok: true, url: `${await appOrigin()}/rider/${token}`, riderName: member.name, whatsapp: phone ? phone.replace(/\D/g, "") : null };
+}
+
+export async function revokeRiderLink(formData: FormData) {
+  const { partner } = await getLogisticsActor();
+  assertVerifiedLogistics(partner);
+  const member = await db.logisticsTeamMember.findFirst({
+    where: { id: String(formData.get("teamMemberId") || ""), logisticsPartnerId: partner.id },
+    select: { id: true },
+  });
+  if (!member) redirect("/logistics/couriers?error=Rider%20not%20found.");
+  await db.logisticsTeamMember.update({ where: { id: member.id }, data: { riderTokenHash: null, online: false } });
+  revalidatePath("/logistics/couriers");
+  redirect("/logistics/couriers?saved=1");
+}
+
+/**
+ * Record cash paid in from pay-on-delivery jobs. It settles the oldest unremitted cash jobs it fully covers;
+ * whatever is left over stays on the pay-in record.
+ */
+export async function recordCodRemittance(formData: FormData) {
+  const { partner } = await getLogisticsActor();
+  assertVerifiedLogistics(partner);
+  const amount = parsePositiveNumber(formData.get("amount"));
+  const reference = String(formData.get("reference") || "").trim().slice(0, 120);
+  const method = String(formData.get("method") || "transfer");
+  const note = String(formData.get("note") || "").trim().slice(0, 300);
+
+  if (!(amount > 0)) redirect("/logistics/cash?error=Enter%20the%20amount%20you%20paid%20in.");
+  if (!["transfer", "cash"].includes(method)) redirect("/logistics/cash?error=Choose%20how%20you%20paid%20it%20in.");
+
+  const result = await recordRemittance({ partnerId: partner.id, amount, method: method as "transfer" | "cash", reference, note });
+  if (!result.ok) redirect(`/logistics/cash?error=${encodeURIComponent(result.error)}`);
+
+  revalidatePath("/logistics/cash");
+  revalidatePath("/logistics/dashboard");
+  redirect("/logistics/cash?saved=1");
 }
 
 export async function updateLogisticsCoverage(formData: FormData) {

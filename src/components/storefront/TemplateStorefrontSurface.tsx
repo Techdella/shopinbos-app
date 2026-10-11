@@ -5,8 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { rememberStoreVisitor } from "@/hooks/useStoreVisitor";
 import type { StoreEditorSnapshot, TemplateBlockNode, TemplateSectionNode } from "@/lib/store-templates";
+import { getTemplateManifest, isBoutiqueTheme } from "@/lib/store-templates";
 import { normalizeImage } from "@/lib/store-templates/images";
 import { getThemeOverrides } from "@/lib/store-templates/themes";
+import { readShopperInfo } from "@/lib/storefront/shopper-info";
+import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
 
 export interface SurfaceProduct {
   id: string;
@@ -18,6 +21,9 @@ export interface SurfaceProduct {
   category?: { id: string; name: string; slug: string } | null;
   avgRating?: number;
   reviewCount?: number;
+  compareAtPrice?: number | null;
+  variants?: unknown;
+  supplierProduct?: { stockQuantity?: number | null } | null;
 }
 
 export interface SurfaceStore {
@@ -30,6 +36,8 @@ export interface SurfaceStore {
   country?: string | null;
   currency: string;
   storeProducts: SurfaceProduct[];
+  /** Delivery, payment, WhatsApp and review details from /api/public/store/[slug] (StorefrontShopperInfo). */
+  shopper?: unknown;
 }
 
 interface RenderProduct {
@@ -77,6 +85,8 @@ interface TemplateStorefrontSurfaceProps {
   visitorKey?: string;
   wishlistProductIds?: string[];
   onToggleWishlist?: (productId: string) => void;
+  /** ?q= from the storefront URL (search sheet on the 2026 themes). */
+  initialQuery?: string;
 }
 
 function hexToRgb(hex: string) {
@@ -683,7 +693,38 @@ function ProductCard({
   );
 }
 
-export function TemplateStorefrontSurface({
+/**
+ * Renders a store snapshot. The 2026 themes (Breeze, Noir, Plain) have their own renderer; every other
+ * template uses the classic section renderer below.
+ */
+export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps) {
+  const [ownPage, setOwnPage] = useState(props.selectedPage ?? "home");
+  const themeId = props.snapshot.templateId;
+  if (!isBoutiqueTheme(themeId)) return <ClassicTemplateSurface {...props} />;
+  return (
+    <BoutiqueStorefront
+      themeId={themeId}
+      store={props.store}
+      snapshot={props.snapshot}
+      storeBasePath={props.storeBasePath}
+      mode={props.mode ?? "live"}
+      device={props.device ?? "desktop"}
+      currentPage={props.selectedPage ?? ownPage}
+      onNavigate={props.onSelectPage ?? setOwnPage}
+      selectedSectionId={props.selectedSectionId}
+      onSelectSection={props.onSelectSection}
+      cartCount={props.cartCount ?? 0}
+      onOpenCart={props.onOpenCart}
+      onAddToCart={props.onAddToCart}
+      visitorKey={props.visitorKey}
+      wishlistProductIds={props.wishlistProductIds ?? []}
+      onToggleWishlist={props.onToggleWishlist}
+      initialQuery={props.initialQuery}
+    />
+  );
+}
+
+function ClassicTemplateSurface({
   store,
   snapshot,
   storeBasePath,
@@ -3022,7 +3063,15 @@ export function TemplateStorefrontSurface({
     return null;
   }
 
-  const announcementText = String(announcement?.blocks.find((entry) => entry.type === "copy")?.content.text ?? "");
+  const writtenAnnouncement = String(announcement?.blocks.find((entry) => entry.type === "copy")?.content.text ?? "");
+  // Template starter copy ("Free shipping on orders over ₦30,000") is not a promise the seller made: on the live
+  // store, untouched starter text is replaced by what their shipping zones and payment settings actually offer.
+  const seededAnnouncement = String(
+    getTemplateManifest(snapshot.templateId)?.seedPages.find((entry) => entry.pageType === "home")?.sections.find((entry) => entry.kind === "announcement-bar")?.blocks.find((entry) => entry.type === "copy")?.content.text ?? "",
+  );
+  const announcementText = mode === "live" && writtenAnnouncement && writtenAnnouncement === seededAnnouncement
+    ? readShopperInfo(store.shopper).announcement ?? ""
+    : writtenAnnouncement;
   const footerCopy = footer?.blocks.find((entry) => entry.type === "copy")?.content ?? {};
   const footerPaymentBadges = Array.isArray(footer?.settings?.paymentBadges)
     ? footer.settings.paymentBadges.map((item) => String(item))
@@ -3265,7 +3314,7 @@ export function TemplateStorefrontSurface({
         </div>
       </footer>, "footer") : null}
       {stickyCtaSection ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 p-3 shadow-[0_-14px_40px_rgba(14,42,56,.14)] backdrop-blur md:hidden" style={{ borderColor: theme.border, display: mode === "editor" && device !== "mobile" ? "none" : undefined }}>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 p-3 shadow-[0_-14px_40px_rgba(14,42,56,.14)] backdrop-blur md:hidden" style={{ borderColor: theme.border, display: mode === "editor" && device !== "mobile" ? "none" : undefined, bottom: mode === "live" ? 76 : undefined }}>
           <div className="mx-auto flex max-w-[520px] gap-2">
             <CommerceButton
               block

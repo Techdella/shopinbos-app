@@ -24,7 +24,7 @@ const TOKENS = {
 const GUEST_PAGES = new Set(["/login", "/signup", "/supplier/login", "/supplier/signup", "/logistics/login", "/logistics/signup", "/admin/login", "/forgot-password", "/reset-password"]);
 
 // Public pages under portal prefixes: must render for signed-out visitors, not redirect to a portal login.
-const PUBLIC_PAGES = new Set(["/suppliers/[slug]", "/logistics/partners/[slug]", "/email/unsubscribe/[token]"]);
+const PUBLIC_PAGES = new Set(["/suppliers/[slug]", "/logistics/partners/[slug]", "/email/unsubscribe/[token]", "/rider/[token]"]);
 
 function authCookie(token) {
   const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
@@ -89,6 +89,8 @@ async function loadParams() {
     "/home/collections/[id]": collection && { id: collection.id },
     "/home/marketing/campaigns/[id]": campaign && { id: campaign.id },
     "/email/unsubscribe/[token]": recipient && { token: recipient.token },
+    // Seeds store only link hashes, so this checks the Riders app's "link doesn't work" page renders for anyone.
+    "/rider/[token]": { token: "smoke".padEnd(43, "x") },
     "/seller/store/builder/[storeId]": store && { storeId: store.id },
     "/seller/store/preview/[storeId]": store && { storeId: store.id },
     "/s/[slug]": store && { slug: store.slug },
@@ -235,6 +237,11 @@ await call("PATCH", "/api/app/preferences", "seller", { hiddenNav: [], tour: "do
 await call("POST", "/api/ai/video-script", "seller", { name: "Linen set", price: "₦29,500", language: "pidgin", photos: 3 }, [200]);
 // No OpenAI key in smoke runs: the voiceover says so instead of failing.
 await call("POST", "/api/ai/voiceover", "seller", { text: "Hello", language: "english" }, [200, 503]);
+
+// Partner API: only an sbp_live_ key gets in; no key, or a user's sign-in token, is a 401.
+await call("GET", "/api/v1/partner/jobs", null, undefined, [401]);
+await call("GET", "/api/v1/partner/jobs", "logistics_partner", undefined, [401]);
+await call("PATCH", "/api/v1/partner/jobs/nope/status", null, { status: "picked_up" }, [401]);
 
 const failures = results.filter((r) => !r.ok);
 for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${String(r.status).padEnd(3)} ${r.role.padEnd(17)} ${r.url} ${r.note}`);

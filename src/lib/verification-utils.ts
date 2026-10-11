@@ -1,43 +1,10 @@
-export type DocType =
-  | "cac"
-  | "tax"
-  | "utility"
-  | "identity"
-  | "product-images"
-  | "insurance"
-  | "fleet"
-  | "other";
+import { LOGISTICS_DOC_TYPES, SUPPLIER_DOC_TYPES, normalizeVerificationDocs, type VerificationDoc } from "@shared/verification-docs";
 
-export interface VerificationDoc {
-  id: string;
-  type: DocType;
-  label: string;
-  fileName: string;
-  filePath: string;
-  fileSize: number;
-  mimeType: string;
-  status: "draft" | "uploaded" | "submitted" | "under_review" | "approved" | "rejected";
-  uploadedAt: string;
-  updatedAt: string;
-  rejectionReason?: string;
-}
+export type { DocConfig, DocStatus, DocType, VerificationDoc } from "@shared/verification-docs";
 
-export const supplierDocTypes: { type: DocType; label: string; required: boolean; hint: string }[] = [
-  { type: "cac", label: "Business registration or CAC certificate", required: true, hint: "BN or RC document accepted" },
-  { type: "identity", label: "Owner identity document (NIN)", required: true, hint: "NIN slip or NIN-backed ID" },
-  { type: "product-images", label: "Product images", required: true, hint: "At least 5 images showing your products" },
-  { type: "tax", label: "Tax Identification Number (TIN)", required: false, hint: "FIRS document — boosts trust score" },
-  { type: "utility", label: "Utility bill", required: false, hint: "For address verification — boosts trust score" },
-  { type: "insurance", label: "Insurance certificate", required: false, hint: "Public liability — unlocks badges" },
-];
-
-export const logisticsDocTypes: { type: DocType; label: string; required: boolean; hint: string }[] = [
-  { type: "cac", label: "Business registration or CAC certificate", required: true, hint: "BN or RC document accepted" },
-  { type: "insurance", label: "Insurance certificate", required: true, hint: "Required for fleet operations" },
-  { type: "utility", label: "Utility bill", required: false, hint: "For address verification" },
-  { type: "identity", label: "Owner identity document (NIN)", required: false, hint: "NIN slip or NIN-backed ID" },
-  { type: "fleet", label: "Fleet / vehicle documents", required: false, hint: "Vehicle registration, road worthiness" },
-];
+// Kept under their old names for existing callers; the lists live in @shared/verification-docs.
+export const supplierDocTypes = SUPPLIER_DOC_TYPES;
+export const logisticsDocTypes = LOGISTICS_DOC_TYPES;
 
 export function computeTrustScore(params: {
   docs: VerificationDoc[];
@@ -163,5 +130,5 @@ export function getTrustScoreBreakdown(params: {
 }
 
 export function parseVerificationDocs(value: unknown): VerificationDoc[] {
-  return Array.isArray(value) ? (value as VerificationDoc[]) : [];
+  return normalizeVerificationDocs(value);
 }

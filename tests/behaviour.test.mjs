@@ -412,3 +412,353 @@ test("menu preferences: only known, switch-offable items are saved; the walkthro
   assert.equal(prefs.mergePreferences(next, { tour: null }, allowed).tour, null);
   assert.equal(prefs.mergePreferences(next, { tour: "done" }, allowed).tour, "done");
 });
+
+test("verification documents: one shared type list, real files only, old onboarding rows need a re-upload", async () => {
+  const docs = await import("../shared/verification-docs.ts");
+
+  // Every listed type has a label, and the supplier/logistics lists only use known types.
+  for (const config of [...docs.SUPPLIER_DOC_TYPES, ...docs.LOGISTICS_DOC_TYPES]) {
+    assert.ok(docs.isDocType(config.type), config.type);
+    assert.equal(config.label, docs.DOC_TYPE_LABELS[config.type]);
+  }
+  assert.deepEqual(docs.SUPPLIER_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "identity", "product-images"]);
+  assert.deepEqual(docs.LOGISTICS_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "insurance"]);
+  assert.equal(docs.docTypesForRole("logistics_partner"), docs.LOGISTICS_DOC_TYPES);
+
+  // File checks: PDF/JPG/PNG/WebP up to 10 MB; the extension is only trusted when no type was sent.
+  assert.equal(docs.validateDocFile({ name: "cac.pdf", type: "application/pdf", size: 2048 }), null);
+  assert.equal(docs.validateDocFile({ name: "nin.JPG", type: "", size: 2048 }), null);
+  assert.equal(docs.docMimeType({ name: "nin.jpeg", type: "" }), "image/jpeg");
+  assert.match(docs.validateDocFile({ name: "notes.docx", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", size: 10 }), /isn't a PDF, JPG, PNG or WebP/);
+  assert.match(docs.validateDocFile({ name: "fake.pdf", type: "text/html", size: 10 }), /isn't a PDF/, "a declared type wins over the extension");
+  assert.match(docs.validateDocFile({ name: "big.png", type: "image/png", size: docs.MAX_DOC_BYTES + 1 }), /limit is 10 MB/);
+  assert.match(docs.validateDocFile({ name: "empty.png", type: "image/png", size: 0 }), /empty/);
+  assert.equal(docs.validateDocFile({ name: "max.webp", type: "image/webp", size: docs.MAX_DOC_BYTES }), null);
+
+  // Old onboarding rows: "registration" maps to cac, unchosen rows are dropped, "uploaded" without a path needs a file.
+  const stored = docs.normalizeVerificationDocs([
+    { id: "registration", name: "Business Name registration or CAC certificate", type: "registration", status: "uploaded", fileName: "cac.pdf", uploadedAt: "2026-09-01T10:00:00.000Z" },
+    { id: "owner", name: "Owner NIN", type: "identity", status: "pending" },
+    { id: "tax", name: "Tax identification", type: "tax", status: "optional" },
+    { id: "factory", type: "factory", status: "read", fileName: "shop.jpg" },
+    { id: "identity-1", type: "identity", label: "NIN", fileName: "nin.png", filePath: "supplier-verifications/s1/identity/a.png", fileSize: 5000, mimeType: "image/png", status: "uploaded", uploadedAt: "2026-10-01T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z" },
+    "junk",
+    null,
+  ]);
+  assert.deepEqual(stored.map((d) => [d.id, d.type, d.status]), [
+    ["registration", "cac", "uploaded"],
+    ["factory", "other", "uploaded"],
+    ["identity-1", "identity", "uploaded"],
+  ]);
+  assert.equal(docs.normalizeVerificationDocs(null).length, 0);
+
+  const cac = docs.findDoc(stored, "cac");
+  assert.equal(docs.docHasFile(cac), false);
+  assert.equal(docs.isDocComplete(cac), false);
+  assert.equal(docs.docDisplayState(cac), "needs_file");
+  assert.equal(docs.docStatusLabel(cac, "owner"), "Needs re-upload");
+  assert.equal(docs.docStatusLabel(cac, "admin"), "No file");
+  assert.equal(docs.docStatusLabel(undefined, "owner", true), "Needed");
+  assert.equal(docs.docStatusLabel(undefined, "owner", false), "Optional");
+
+  const nin = docs.findDoc(stored, "identity");
+  assert.equal(docs.isDocComplete(nin), true);
+  assert.equal(docs.docStatusLabel(nin, "owner"), "Uploaded");
+  assert.equal(docs.isDocComplete({ ...nin, status: "rejected" }), false);
+
+  // Only types with a stored file count; product images are still missing too.
+  assert.deepEqual(docs.missingRequiredDocs(docs.SUPPLIER_DOC_TYPES, stored).map((c) => c.type), ["cac", "product-images"]);
+
+  // Submitting sends real uploads for review and leaves file-less rows alone.
+  const submitted = docs.submitUploadedDocs(stored, "2026-10-11T00:00:00.000Z");
+  assert.deepEqual(submitted.map((d) => d.status), ["uploaded", "uploaded", "submitted"]);
+  assert.equal(submitted[2].updatedAt, "2026-10-11T00:00:00.000Z");
+
+  // A real upload of a type is preferred over an old placeholder of the same type.
+  const both = [cac, { ...nin, id: "cac-2", type: "cac" }];
+  assert.equal(docs.findDoc(both, "cac").id, "cac-2");
+
+  assert.equal(docs.formatBytes(5000), "5 KB");
+  assert.equal(docs.formatBytes(0), "");
+});
+
+test("checkout offers the payment methods the seller chose, in a fixed order, with Paystack as the safe default", async () => {
+  const pay = await import("../shared/checkout-payments.ts");
+  const zones = [
+    { name: "Lekki", regions: ["Lekki"], pickupOnly: false },
+    { name: "Ikeja pickup", regions: ["Ikeja"], pickupOnly: true },
+    { name: "Lagos", regions: ["Lagos"], pickupOnly: false },
+  ];
+  const all = { methods: { transfer: true, card: true, cod: true, wa: true }, paystackReady: true, transferReady: true, codLimit: 50000, zones };
+  const keys = (settings, context) => pay.checkoutPaymentOptions(settings, context).map((option) => option.key);
+
+  assert.deepEqual(keys(all, { city: "Lekki", total: 20000 }), ["paystack", "transfer", "pay_on_delivery"]);
+  // Paystack needs real keys; transfer needs the full payout account.
+  assert.deepEqual(keys({ ...all, paystackReady: false, transferReady: false }, { city: "Lekki", total: 20000 }), ["pay_on_delivery"]);
+  // Pay on delivery respects the cap, pickup-only zones and uncovered addresses.
+  assert.deepEqual(keys(all, { city: "Lekki", total: 60000 }), ["paystack", "transfer"]);
+  assert.deepEqual(keys(all, { city: "Ikeja", total: 1000 }), ["paystack", "transfer"]);
+  assert.deepEqual(keys(all, { city: "Kano", state: "Kano", total: 1000 }), ["paystack", "transfer"]);
+  assert.match(pay.payOnDeliveryBlock(all, { city: "Lekki", total: 60000 }), /up to ₦50,000/);
+  assert.deepEqual(keys({ ...all, codLimit: null }, { city: "Lagos", total: 900000 }), ["paystack", "transfer", "pay_on_delivery"]);
+  // No zones at all: pay on delivery is the seller's call everywhere.
+  assert.deepEqual(keys({ ...all, zones: [] }, { city: "Kano", total: 1000 }), ["paystack", "transfer", "pay_on_delivery"]);
+  // Seller turned methods off.
+  assert.deepEqual(keys({ ...all, methods: { transfer: true, card: false, cod: false, wa: false } }, {}), ["transfer"]);
+  // Nothing configured, or nothing that can be offered: Paystack.
+  assert.deepEqual(keys({ ...all, methods: null }, {}), ["paystack"]);
+  assert.deepEqual(keys({ ...all, methods: { transfer: false, card: false, cod: false, wa: true } }, {}), ["paystack"]);
+
+  assert.equal(pay.normalizeCheckoutMethod("inline"), "paystack");
+  assert.equal(pay.normalizeCheckoutMethod("redirect"), "paystack");
+  assert.equal(pay.normalizeCheckoutMethod(undefined), "paystack");
+  assert.equal(pay.normalizeCheckoutMethod("transfer"), "transfer");
+  assert.equal(pay.normalizeCheckoutMethod("pay_on_delivery"), "pay_on_delivery");
+  assert.equal(pay.paystackSecretReady("sk_live_abc"), true);
+  assert.equal(pay.paystackSecretReady("sk_test_your_key_here"), false);
+  assert.equal(pay.paystackSecretReady(""), false);
+});
+
+test("checkout payment settings come from the saved store config", async () => {
+  const pay = await import("../shared/checkout-payments.ts");
+  const verifiedBank = {
+    bankName: "Zenith Bank",
+    accountName: "Ada Stores",
+    accountNumberMask: "******6789",
+    providerResponse: { status: true, data: { details: { account_number: "0123456789" } } },
+  };
+  assert.deepEqual(pay.readTransferAccount({ payoutBank: verifiedBank }), { bankName: "Zenith Bank", accountName: "Ada Stores", accountNumber: "0123456789" });
+  // Only the mask stored (Paystack keys missing at link time): no full number, so no transfer.
+  assert.equal(pay.readTransferAccount({ payoutBank: { ...verifiedBank, providerResponse: { message: "not configured" } } }), null);
+  // A number that doesn't match the mask is not trusted.
+  assert.equal(pay.readTransferAccount({ payoutBank: { ...verifiedBank, accountNumberMask: "******0000" } }), null);
+  assert.equal(pay.readTransferAccount({}), null);
+
+  assert.equal(pay.readSavedPaymentMethods({}), null);
+  assert.deepEqual(pay.readSavedPaymentMethods({ paymentConfig: { methods: { card: false, cod: true } } }), { card: false, cod: true });
+  assert.equal(pay.readCodLimit({}), pay.DEFAULT_COD_LIMIT);
+  assert.equal(pay.readCodLimit({ paymentConfig: { codLimit: 20000 } }), 20000);
+  assert.equal(pay.readCodLimit({ paymentConfig: { codLimit: 0 } }), null);
+
+  assert.equal(pay.isPickupOnlyZone({ name: "Ikeja pickup", rates: [{ name: "Pick-up at store", price: 0 }] }), true);
+  assert.equal(pay.isPickupOnlyZone({ name: "Lagos Mainland", rates: [{ name: "Standard delivery", price: 2000 }] }), false);
+
+  const settings = pay.checkoutPaymentSettings(
+    { paymentConfig: { methods: { transfer: true, card: true, cod: true, wa: false } }, payoutBank: verifiedBank },
+    [{ name: "Lagos", regions: ["Lagos"], rates: [] }],
+    false,
+  );
+  assert.equal(settings.transferReady, true);
+  assert.equal(settings.paystackReady, false);
+  assert.equal(JSON.stringify(settings).includes("0123456789"), false, "the account number never reaches the checkout page");
+
+  // Delivery fee: first matching zone's tier for the subtotal, flat rate when there are no zones.
+  const feeZones = [
+    { regions: ["Lekki"], rates: [{ minValue: 0, maxValue: 50000, price: 2500 }, { minValue: 50001, price: 0 }] },
+    { regions: [], rates: [{ minValue: 0, price: 3500 }] },
+  ];
+  assert.equal(pay.deliveryFeeFor(feeZones, 999, { city: "Lekki Phase 1" }, 10000), 2500);
+  assert.equal(pay.deliveryFeeFor(feeZones, 999, { city: "Lekki" }, 80000), 0);
+  assert.equal(pay.deliveryFeeFor(feeZones, 999, { city: "Kano" }, 10000), 3500);
+  assert.equal(pay.deliveryFeeFor([], 1500, { city: "Kano" }, 10000), 1500);
+});
+
+test("partner API keys are sbp_live_ + 24 random bytes, stored as a SHA-256 hash and read from the Bearer header", async () => {
+  const api = await import("../src/lib/logistics/partner-api-core.ts");
+  const { createHash } = await import("node:crypto");
+  const { key, prefix, keyHash } = api.generateApiKey((n) => Buffer.alloc(n, 7));
+  assert.match(key, /^sbp_live_[A-Za-z0-9_-]{32}$/);
+  assert.equal(key, `sbp_live_${Buffer.alloc(24, 7).toString("base64url")}`);
+  assert.equal(prefix, key.slice(0, 15));
+  assert.equal(keyHash, createHash("sha256").update(key).digest("hex"));
+  assert.notEqual(api.generateApiKey().key, api.generateApiKey().key);
+
+  assert.equal(api.bearerApiKey(`Bearer ${key}`), key);
+  assert.equal(api.bearerApiKey(`bearer ${key}  `), key);
+  assert.equal(api.bearerApiKey("Bearer eyJhbGciOiJIUzI1NiJ9.x.y"), null, "a user's sign-in token is not a partner key");
+  assert.equal(api.bearerApiKey(key), null);
+  assert.equal(api.bearerApiKey(null), null);
+
+  const now = new Date("2026-10-11T12:00:00Z");
+  assert.equal(api.shouldTouchLastUsed(null, now), true);
+  assert.equal(api.shouldTouchLastUsed(new Date("2026-10-11T11:59:30Z"), now), false);
+  assert.equal(api.shouldTouchLastUsed(new Date("2026-10-11T11:58:00Z"), now), true);
+});
+
+test("partner webhooks are signed t=<unix>,v1=<HMAC-SHA256 of '<t>.<body>'> and carry {id, type, created, data}", async () => {
+  const api = await import("../src/lib/logistics/partner-api-core.ts");
+  const { createHmac } = await import("node:crypto");
+  const envelope = api.buildEventEnvelope("job.updated", { id: "job_1", status: "picked_up" }, { id: "evt_1", now: new Date("2026-10-11T12:00:00Z") });
+  assert.deepEqual(envelope, { id: "evt_1", type: "job.updated", created: 1791720000, data: { id: "job_1", status: "picked_up" } });
+  assert.match(api.buildEventEnvelope("job.offered", {}).id, /^evt_[0-9a-f]{24}$/);
+
+  const body = JSON.stringify(envelope);
+  const header = api.signWebhook("whsec_test", body, 1791720000);
+  assert.equal(header, `t=1791720000,v1=${createHmac("sha256", "whsec_test").update(`1791720000.${body}`).digest("hex")}`);
+  assert.equal(api.verifyWebhookSignature("whsec_test", body, header, 1791720010), true);
+  assert.equal(api.verifyWebhookSignature("whsec_other", body, header, 1791720010), false);
+  assert.equal(api.verifyWebhookSignature("whsec_test", `${body} `, header, 1791720010), false);
+  assert.equal(api.verifyWebhookSignature("whsec_test", body, header, 1791720000 + 3600), false, "old timestamps are refused");
+  assert.match(api.generateWebhookSecret(), /^whsec_[A-Za-z0-9_-]{32}$/);
+
+  assert.equal(api.webhookWants([], "cod.reminder"), true, "no events selected means every event");
+  assert.equal(api.webhookWants(["job.offered"], "job.updated"), false);
+  assert.equal(api.isAllowedWebhookUrl("https://dispatch.example.com/hook"), true);
+  for (const bad of ["http://dispatch.example.com", "https://localhost/x", "https://10.0.0.4/x", "https://192.168.1.2/x", "https://169.254.169.254/x", "https://[::1]/x", "nope"]) {
+    assert.equal(api.isAllowedWebhookUrl(bad), false, bad);
+  }
+});
+
+test("partner job payload hides the buyer until accepted and never includes an email", async () => {
+  const api = await import("../src/lib/logistics/partner-api-core.ts");
+  const job = {
+    id: "job_1", status: "pending", pickupLocation: "Yaba", destination: "Lekki", packageDetails: { description: "Tote", weight: 1.2, fragile: false },
+    deliveryFee: 2500, currency: "NGN", codAmount: 18500, trackingCode: null, createdAt: new Date("2026-10-11T09:00:00Z"),
+    rider: { id: "r1", name: "Tunde", phone: "+2348030000000" },
+  };
+  const buyer = { name: "Ada", phone: "+2348031234567", email: "ada@example.com" };
+  const offered = api.partnerJob(job, buyer);
+  assert.equal(offered.buyer, null);
+  assert.deepEqual(offered.fee, { amount: 2500, currency: "NGN" });
+  assert.equal(offered.codAmount, 18500);
+  assert.deepEqual(offered.package, { description: "Tote", weight: 1.2, fragile: false });
+  assert.equal(offered.createdAt, "2026-10-11T09:00:00.000Z");
+  assert.doesNotMatch(JSON.stringify(api.partnerJob({ ...job, status: "confirmed" }, buyer)), /ada@example\.com/);
+  assert.deepEqual(api.partnerJob({ ...job, status: "confirmed" }, buyer).buyer, { name: "Ada", phone: "+2348031234567" });
+  assert.equal(api.partnerJob({ ...job, status: "cancelled" }, buyer).buyer, null);
+});
+
+test("delivery jobs: allowed moves, delivery code, failure reason and cash on delivery", async () => {
+  const rules = await import("../src/lib/logistics/job-rules.ts");
+  assert.deepEqual(rules.nextStatuses("pending"), ["confirmed", "cancelled"]);
+  assert.deepEqual(rules.nextStatuses("delivered"), []);
+  assert.deepEqual(rules.nextStatuses("nonsense"), []);
+  assert.ok(rules.nextStatuses("failed").includes("confirmed"), "failed jobs can be retried");
+
+  const job = { status: "picked_up", deliveryCode: "0427", codAmount: null };
+  assert.match(rules.checkTransition({ ...job, status: "pending" }, { to: "delivered", actor: "partner" }).error, /can't move/);
+  assert.match(rules.checkTransition(job, { to: "delivered", actor: "rider", code: "1111" }).error, /doesn't match/);
+  assert.match(rules.checkTransition(job, { to: "delivered", actor: "api" }).error, /doesn't match/);
+  assert.equal(rules.checkTransition(job, { to: "delivered", actor: "rider", code: " 0427 " }).ok, true);
+  assert.equal(rules.checkTransition(job, { to: "delivered", actor: "partner" }).ok, true, "dispatcher can close without the code");
+  assert.match(rules.checkTransition(job, { to: "failed", actor: "rider", failedReason: "  " }).error, /why/);
+  assert.equal(rules.checkTransition(job, { to: "failed", actor: "rider", failedReason: "Buyer not home" }).ok, true);
+
+  const cod = { ...job, codAmount: 34100 };
+  assert.match(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427" }).error, /how much/);
+  assert.match(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427", codCollected: 34100, codMethod: "card" }).error, /cash or by transfer/);
+  assert.equal(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427", codCollected: 34100, codMethod: "cash" }).ok, true);
+  assert.match(rules.checkTransition(cod, { to: "delivered", actor: "partner" }).error, /how much/, "partner still records the cash");
+
+  assert.equal(rules.makeDeliveryCode(() => 0.0042), "0042");
+  assert.equal(rules.makeDeliveryCode(() => 0.99999), "9999");
+  assert.match(rules.makeDeliveryCode(), /^\d{4}$/);
+});
+
+test("delivery jobs: cash to pay in, pay-in coverage and riders out", async () => {
+  const rules = await import("../src/lib/logistics/job-rules.ts");
+  const jobs = [
+    { id: "a", codCollected: 5000, codMethod: "cash", remittanceId: null },
+    { id: "b", codCollected: 3000, codMethod: "transfer", remittanceId: null },
+    { id: "c", codCollected: 2000, codMethod: "cash", remittanceId: "r1" },
+    { id: "d", codCollected: 4000, codMethod: "cash", remittanceId: null },
+    { id: "e", codCollected: null, codMethod: null, remittanceId: null },
+  ];
+  assert.equal(rules.cashToPayIn(jobs), 9000, "only unremitted cash counts; transfers go to the seller");
+
+  const owed = [{ id: "a", codCollected: 5000 }, { id: "d", codCollected: 4000 }, { id: "f", codCollected: 1000 }];
+  assert.deepEqual(rules.jobsCoveredBy(owed, 10000), { ids: ["a", "d", "f"], covered: 10000 });
+  assert.deepEqual(rules.jobsCoveredBy(owed, 8000), { ids: ["a"], covered: 5000 }, "stops at the first job it can't cover whole");
+  assert.deepEqual(rules.jobsCoveredBy(owed, 100), { ids: [], covered: 0 });
+
+  const now = new Date("2026-10-10T12:00:00Z");
+  assert.equal(rules.isRiderOut({ online: true, lastSeenAt: new Date("2026-10-10T11:50:00Z") }, now), true);
+  assert.equal(rules.isRiderOut({ online: true, lastSeenAt: new Date("2026-10-10T10:00:00Z") }, now), false, "stale app counts as offline");
+  assert.equal(rules.isRiderOut({ online: false, lastSeenAt: now }, now), false);
+  assert.equal(rules.isRiderOut({ online: true, lastSeenAt: null }, now), false);
+});
+
+test("Riders app links: 32-byte tokens, only the SHA-256 is stored", async () => {
+  const tokens = await import("../src/lib/logistics/rider-token.ts");
+  const { token, hash } = tokens.newRiderToken();
+  assert.equal(token.length, 43);
+  assert.ok(tokens.isRiderTokenShape(token));
+  assert.equal(hash, tokens.hashRiderToken(token));
+  assert.match(hash, /^[0-9a-f]{64}$/);
+  assert.notEqual(tokens.newRiderToken().token, token);
+  assert.equal(tokens.isRiderTokenShape("short"), false);
+  assert.equal(tokens.isRiderTokenShape(`${token.slice(0, 42)}/`), false);
+});
+
+test("storefront shopper info only promises what the seller's settings offer", async () => {
+  const info = await import("../src/lib/storefront/shopper-info.ts");
+  const zones = info.summariseDeliveryZones([
+    { name: "Lekki", type: "flat_rate", regions: ["Lekki"], rates: [{ name: "Standard", minValue: 0, price: 2500, estimatedDays: "Same day" }, { name: "Free", minValue: 40000, price: 0 }] },
+    { name: "Pickup at studio", type: "flat_rate", regions: ["Yaba"], rates: [{ name: "Pickup", minValue: 0, price: 0 }] },
+    { name: "Everywhere else", type: "flat_rate", regions: [], rates: [{ name: "Standard", minValue: 0, price: 5000 }] },
+  ]);
+  assert.equal(zones[0].fee, 2500);
+  assert.equal(zones[0].freeOver, 40000);
+  assert.equal(zones[0].estimatedDays, "Same day");
+  assert.equal(zones[1].pickupOnly, true);
+  assert.equal(info.deriveAnnouncement(zones, true), "Free delivery in Lekki over ₦40,000 · Pay on delivery available");
+  assert.equal(info.deriveAnnouncement(zones.slice(2), false), null, "nothing to promise hides the bar");
+  assert.equal(info.freeDeliveryEverywhereOver(zones), null, "a free tier in one zone is not free delivery everywhere");
+
+  assert.equal(info.readPaymentChoices({}).payOnDelivery, false, "pay on delivery needs the seller to turn it on");
+  assert.equal(info.readPaymentChoices({ paymentConfig: { methods: { cod: true, card: true } } }).payOnDelivery, true);
+  assert.equal(info.readPaymentChoices({ paymentConfig: { methods: { cod: true }, codLimit: 0 } }).payOnDeliveryLimit, null);
+  assert.equal(info.whatsappDigits("0803 412 7790"), "2348034127790");
+  assert.equal(info.whatsappDigits("+44 20 7946 0958"), "442079460958");
+  assert.equal(info.whatsappDigits("call me"), null);
+  assert.deepEqual(info.storeRating([{ avgRating: 5, reviewCount: 3 }, { avgRating: 4, reviewCount: 1 }, { avgRating: 0, reviewCount: 0 }]), { average: 4.8, count: 4 });
+  assert.equal(info.readShopperInfo(undefined).announcement, null);
+});
+
+test("Noir payday countdown: 25th (Friday before at weekends), running until Sunday, in Lagos time", async () => {
+  const info = await import("../src/lib/storefront/shopper-info.ts");
+  const settings = info.readPaydaySettings({});
+  assert.deepEqual(settings, info.DEFAULT_PAYDAY);
+
+  // 25 October 2026 is a Sunday, so payday moves to Friday 23rd; the edit ends at midnight after Sunday 25th.
+  const upcoming = info.paydayWindow(new Date("2026-10-11T12:00:00Z"), settings);
+  assert.equal(upcoming.phase, "upcoming");
+  assert.equal(upcoming.start.toISOString(), "2026-10-22T23:00:00.000Z");
+  const live = info.paydayWindow(new Date("2026-10-24T10:00:00Z"), settings);
+  assert.equal(live.phase, "live");
+  assert.equal(live.end.toISOString(), "2026-10-25T23:00:00.000Z");
+  assert.equal(info.lagosDayLabel(info.paydayLastDay(live), "weekday"), "Sunday");
+  // After the edit, count down to Wednesday 25 November.
+  const next = info.paydayWindow(new Date("2026-10-26T12:00:00Z"), settings);
+  assert.equal(next.phase, "upcoming");
+  assert.equal(next.start.toISOString(), "2026-11-24T23:00:00.000Z");
+  assert.equal(next.end.toISOString(), "2026-11-29T23:00:00.000Z");
+
+  assert.equal(info.paydayInMonth(2026, 9, info.readPaydaySettings({ paydayRule: "last-friday" })).toISOString(), "2026-10-29T23:00:00.000Z");
+  const fixedDays = info.readPaydaySettings({ paydayDay: 31, saleEnds: "days", saleDays: 2, weekendToFriday: false });
+  assert.equal(info.paydayInMonth(2026, 1, fixedDays).toISOString(), "2026-02-27T23:00:00.000Z", "day clamps to the month's length");
+  assert.deepEqual(info.countdownParts(new Date("2026-10-12T14:36:09Z"), new Date("2026-10-11T00:00:00Z")), { days: 1, hours: 14, minutes: 36, seconds: 9 });
+});
+
+test("storefront catalog helpers: real stock, variant groups and search", async () => {
+  const catalog = await import("../src/components/storefront/shopper/catalog.ts");
+  const variants = [
+    { color: "White", size: "M", stock: 2 },
+    { color: "White", size: "L", stock: 1 },
+    { color: "Black", size: "M", stock: 0 },
+  ];
+  assert.equal(catalog.lowStockLabel({ variants }), "Only 3 left");
+  assert.equal(catalog.lowStockLabel({ variants: [{ name: "One size" }] }), null, "untracked stock never claims scarcity");
+  assert.equal(catalog.lowStockLabel({ supplierProduct: { stockQuantity: 40 } }), null);
+  assert.deepEqual(catalog.variantGroups(variants), { colours: ["White", "Black"], sizes: ["M", "L"], names: [] });
+  assert.equal(catalog.matchVariant(variants, { colour: "Black", size: "M" })?.stock, 0);
+  assert.equal(catalog.colourHex("Navy"), "#1F2A44");
+  assert.equal(catalog.colourHex("Sunset swirl"), null);
+  const products = [
+    { id: "1", name: "Linen shirt", images: [], retailPrice: 18500, currency: "NGN", category: { id: "c", name: "Shirts", slug: "shirts" } },
+    { id: "2", name: "Olive blazer", images: [], retailPrice: 32000, currency: "NGN", category: null },
+  ];
+  assert.deepEqual(catalog.searchProducts(products, "shirts").map((p) => p.id), ["1"]);
+  assert.deepEqual(catalog.searchProducts(products, "  ").map((p) => p.id), ["1", "2"]);
+  assert.deepEqual(catalog.productCategories(products), [{ slug: "shirts", name: "Shirts", imageUrl: null, count: 1 }]);
+});

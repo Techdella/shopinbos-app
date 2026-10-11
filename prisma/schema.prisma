@@ -781,6 +781,9 @@ model LogisticsPartner {
   quoteRequests  DeliveryQuoteRequest[]
   bookings       DeliveryBooking[]
   teamMembers    LogisticsTeamMember[]
+  remittances    CodRemittance[]
+  apiKeys        PartnerApiKey[]
+  webhooks       PartnerWebhook[]
   payoutAccount  LogisticsPayoutAccount?
   reviews        LogisticsReview[]
 
@@ -815,10 +818,15 @@ model LogisticsTeamMember {
   phone              String?
   role               String           @default("dispatcher")
   status             String           @default("active")
+  /// Riders app: SHA-256 of the private link token the partner shares with the rider (never stored raw).
+  riderTokenHash     String?          @unique
+  online             Boolean          @default(false)
+  lastSeenAt         DateTime?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+  jobs             DeliveryBooking[]
 
   @@unique([logisticsPartnerId, email])
   @@index([logisticsPartnerId])
@@ -904,17 +912,33 @@ model DeliveryBooking {
   estimatedDelivery  DateTime?
   deliveredAt        DateTime?
   notes              String?
+  /// Rider (a LogisticsTeamMember) the partner assigned the job to.
+  riderId            String?
+  pickedUpAt         DateTime?
+  failedReason       String?
+  /// 4-digit code the buyer gives the rider as proof of delivery.
+  deliveryCode       String?
+  proofUrl           String?
+  /// Pay on delivery: amount to collect, what was collected and how, and the remittance that settled it.
+  codAmount          Float?
+  codCollected       Float?
+  codMethod          String? // cash | transfer
+  codCollectedAt     DateTime?
+  remittanceId       String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  seller           User             @relation(fields: [sellerId], references: [id])
-  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
+  seller           User                 @relation(fields: [sellerId], references: [id])
+  logisticsPartner LogisticsPartner     @relation(fields: [logisticsPartnerId], references: [id])
+  rider            LogisticsTeamMember? @relation(fields: [riderId], references: [id], onDelete: SetNull)
+  remittance       CodRemittance?       @relation(fields: [remittanceId], references: [id], onDelete: SetNull)
   review           LogisticsReview?
 
   @@index([sellerId])
   @@index([logisticsPartnerId])
   @@index([trackingCode])
   @@index([status])
+  @@index([riderId])
 }
 
 // ─── Shipping Zone ────────────────────────────────────────────────────────────
@@ -1743,4 +1767,52 @@ model AiUsage {
   createdAt DateTime @default(now())
 
   @@index([userId, kind, createdAt])
+}
+
+// ─── Delivery partners: cash-on-delivery pay-ins, API keys and webhooks ──────
+
+model CodRemittance {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  amount             Float
+  method             String   @default("transfer") // transfer | cash | api
+  reference          String?
+  note               String?
+  createdAt          DateTime @default(now())
+
+  logisticsPartner LogisticsPartner  @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+  bookings         DeliveryBooking[]
+
+  @@index([logisticsPartnerId, createdAt])
+}
+
+model PartnerApiKey {
+  id                 String    @id @default(cuid())
+  logisticsPartnerId String
+  name               String
+  prefix             String // first characters, shown in the dashboard
+  keyHash            String    @unique // SHA-256 of the full key; the key itself is shown once
+  lastUsedAt         DateTime?
+  revokedAt          DateTime?
+  createdAt          DateTime  @default(now())
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId])
+}
+
+model PartnerWebhook {
+  id                 String    @id @default(cuid())
+  logisticsPartnerId String
+  url                String
+  secret             String // HMAC-SHA256 signing secret
+  events             String[]  @default([])
+  active             Boolean   @default(true)
+  lastStatus         Int?
+  lastDeliveredAt    DateTime?
+  createdAt          DateTime  @default(now())
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId])
 }
