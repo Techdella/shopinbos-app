@@ -900,14 +900,24 @@ test("Rex's theme ids follow the theme library", async () => {
   assert.deepEqual([...rex.REX_THEME_IDS], ALL_THEME_IDS);
 });
 
-test("theme previews use a sample catalogue per industry, clearly made up, in the theme's colours", async () => {
+test("theme previews use a sample catalogue per industry, made up, with real photos people first", async () => {
   const demo = await import("../src/lib/store-templates/demo-catalogue.ts");
+  const photos = await import("../src/lib/store-templates/demo-photos.ts");
   const art = await import("../src/lib/store-templates/demo-art.ts");
   const colours = { accent: "#C2566B", ink: "#3B1F1A", cardBg: "#F9E7E1", paperBg: "#FFF8F5" };
+  const photoUrl = /^https:\/\/images\.unsplash\.com\/photo-\d{10,13}-[0-9a-f]{12}\?auto=format&fit=crop&w=\d+&h=\d+&q=\d+$/;
+  const used = new Map();
   for (const id of ALL_THEME_IDS) {
     const catalogue = demo.DEMO_CATALOGUES[id];
     assert.ok(catalogue, `${id} has a sample catalogue`);
     assert.ok(catalogue.products.length >= 6 && catalogue.products.length <= 12, `${id} has 6 to 12 sample products`);
+    const themePhotos = photos.DEMO_PHOTOS[id];
+    assert.ok(themePhotos, `${id} has photos`);
+    assert.equal(themePhotos.products.length, catalogue.products.length, `${id} has one photo per sample product`);
+    for (const photo of [themePhotos.hero, themePhotos.story, ...themePhotos.products]) {
+      assert.ok(!used.has(photo), `${photo} in ${id} is also used by ${used.get(photo)}`);
+      used.set(photo, id);
+    }
     const products = demo.demoProducts(id, colours);
     assert.equal(new Set(products.map((product) => product.id)).size, products.length);
     for (const product of products) {
@@ -917,19 +927,19 @@ test("theme previews use a sample catalogue per industry, clearly made up, in th
       assert.ok(product.name && product.description && product.category.slug, `${product.name} is complete`);
       assert.match(product.category.slug, /^[a-z0-9-]+$/);
       assert.equal(product.images.length, 1);
-      assert.match(product.images[0], /^data:image\/svg\+xml/, "illustrations are inline SVG, not stock photos");
+      assert.match(product.images[0], photoUrl, `${product.name} has a photo`);
       assert.equal(product.reviewCount, 0, "no invented reviews");
       if (product.compareAtPrice !== null) assert.ok(product.compareAtPrice > product.retailPrice);
     }
     assert.ok(new Set(products.map((product) => product.category.slug)).size >= 2, `${id} samples span categories`);
     const banners = demo.demoBanners(id, colours);
-    assert.match(decodeURIComponent(banners.hero), /Sample<\/text>/, "banners are marked as samples");
-    assert.match(decodeURIComponent(banners.story), /viewBox="0 0 80 100"/, "story pictures are 4:5");
+    assert.match(banners.hero, photoUrl);
+    assert.match(banners.story, /&w=1000&h=1250&/, "story pictures are 4:5");
   }
   assert.ok(demo.DEMO_CATALOGUES.oja.products.length >= 12 && demo.DEMO_CATALOGUES.danfo.products.length >= 12, "dense catalogues fill their grid");
-  const svg = decodeURIComponent(demo.demoProducts("ewa", colours)[0].images[0]);
-  assert.ok(svg.includes(colours.cardBg) && svg.includes(colours.accent), "drawn in the theme's colours");
+  assert.match(demo.demoBanners("ewa", colours).hero, /&w=1200&h=1500&/, "tall hero frames get a 4:5 banner");
   assert.doesNotMatch(JSON.stringify(demo.DEMO_CATALOGUES), /https?:\/\//);
+  // Illustrations stay as the fallback (and for the seller's own products without a photo).
   for (const kind of art.DEMO_ART_KINDS) assert.match(art.demoProductSvg(kind, { bg: "#fff", main: "#000", accent: "#f00", ink: "#111" }), /^<svg [^>]+>.*<\/svg>$/s, `${kind} draws`);
   // "Show with my products" needs four products with photos.
   assert.equal(demo.ownPreviewProducts([{ images: ["a"] }, { images: ["b"] }, { images: [] }, { images: ["c"] }]), null);
