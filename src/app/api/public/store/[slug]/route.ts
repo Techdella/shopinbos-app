@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, apiError } from "@/lib/api/response";
+import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
+import { publicBrandSettings } from "@shared/public-brand-settings";
 
 function hasPublishedStorefront(brandSettings: unknown, publishedPageCount: number) {
   if (publishedPageCount > 0) return true;
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
           sku: true,
           images: true,
           retailPrice: true,
+          compareAtPrice: true,
           currency: true,
           fulfillmentType: true,
           category: {
@@ -103,5 +106,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     };
   });
 
-  return withCors(req, ok({ ...store, storeProducts: enrichedProducts }));
+  // Delivery promises, pay-on-delivery, WhatsApp, collections and review highlights for the storefront chrome.
+  const shopper = await loadShopperInfo(store.id, store.brandSettings, enrichedProducts);
+
+  return withCors(req, ok({ ...store, brandSettings: publicBrandSettings(store.brandSettings), storeProducts: enrichedProducts, shopper }));
 }

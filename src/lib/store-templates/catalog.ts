@@ -1,5 +1,6 @@
 import { getThemeSeedPages, getThemeAIHints, getNavStructure, resolveThemeTokens, THEME_DESIGN_PROFILES } from "./themes";
 import { TEMPLATE_SOURCE_CATALOG, type TemplateSourceRecord } from "./source-catalog.generated";
+import { BOUTIQUE_TEMPLATE_MANIFESTS } from "./boutique-themes";
 import type {
   LayoutFamily,
   StoreEditorSnapshot,
@@ -863,7 +864,8 @@ function createManifest(source: TemplateSourceRecord): StoreTemplateManifest {
   };
 }
 
-export const STORE_TEMPLATE_MANIFESTS = TEMPLATE_SOURCE_CATALOG.map(createManifest);
+// The 2026 themes (Breeze, Noir, Plain) come after the source catalog so existing defaults are unchanged.
+export const STORE_TEMPLATE_MANIFESTS = [...TEMPLATE_SOURCE_CATALOG.map(createManifest), ...BOUTIQUE_TEMPLATE_MANIFESTS];
 
 export function getTemplateManifest(templateId: string) {
   return STORE_TEMPLATE_MANIFESTS.find((item) => item.id === templateId) ?? null;

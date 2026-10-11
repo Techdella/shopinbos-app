@@ -8,6 +8,9 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { useState } from "react";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
+import { CartDrawer } from "../../CartDrawer";
+import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
+import type { ShopperProduct } from "@/components/storefront/shopper/catalog";
 
 interface Review {
   id: string;
@@ -49,6 +52,8 @@ interface ProductDetailClientProps {
   reviewCount: number;
   ratingCounts: number[];
   storeBasePath: string;
+  /** The store's published products, for the phone bottom nav's search and wishlist. */
+  catalog?: ShopperProduct[];
 }
 
 function money(value: number, currency: string) {
@@ -107,8 +112,9 @@ const CART_LABELS: Record<string, string> = {
 };
 
 export function ProductDetailClient({
-  store, product, reviews, avgRating, reviewCount, ratingCounts, storeBasePath,
+  store, product, reviews, avgRating, reviewCount, ratingCounts, storeBasePath, catalog = [],
 }: ProductDetailClientProps) {
+  const [cartOpen, setCartOpen] = useState(false);
   const router = useRouter();
   const cart = useCart(store.slug);
   useCampaignAttribution(store.slug);
@@ -148,6 +154,7 @@ export function ProductDetailClient({
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
+    if (addToCartBehavior === "drawer") setCartOpen(true);
     if (addToCartBehavior === "checkout") {
       router.push(getPublicStorefrontPath(storeBasePath, "/checkout"));
     }
@@ -188,6 +195,7 @@ export function ProductDetailClient({
         .pd-review-card{border:1px solid ${border};border-radius:10px;padding:20px;background:white}
         .pd-review-card+.pd-review-card{margin-top:14px}
         .pd-stars{color:#c9a96e}
+        @media(max-width:760px){.pd-grid{grid-template-columns:1fr !important;gap:24px !important}.pd-main-img{height:auto !important;aspect-ratio:1/1}.pd-page{padding-bottom:110px !important}}
       `}</style>
 
       <nav style={{ borderBottom: `1px solid ${border}`, background: "white", position: "sticky", top: 0, zIndex: 20 }}>
@@ -207,11 +215,11 @@ export function ProductDetailClient({
         </div>
       </nav>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px 60px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, marginBottom: 60 }}>
+      <div className="pd-page" style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px 60px" }}>
+        <div className="pd-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, marginBottom: 60 }}>
           <div>
             <div style={{ borderRadius: 12, overflow: "hidden", background: "#f3efe9", marginBottom: 12 }}>
-              <img src={allImages[selectedImage]} alt={product.name} style={{ width: "100%", height: 480, objectFit: "cover", display: "block" }} />
+              <img className="pd-main-img" src={allImages[selectedImage]} alt={product.name} style={{ width: "100%", height: 480, objectFit: "cover", display: "block" }} />
             </div>
             {allImages.length > 1 ? (
               <div style={{ display: "flex", gap: 8 }}>
@@ -416,6 +424,27 @@ export function ProductDetailClient({
           </Link>
         </div>
       </div>
+
+      <ShopperBottomNav
+        storeSlug={store.slug}
+        storeName={store.name}
+        basePath={storeBasePath}
+        products={catalog.some((entry) => entry.id === product.id) ? catalog : [product, ...catalog]}
+        wishlistIds={wishlist.productIds}
+        onToggleWishlist={wishlist.toggle}
+        cartCount={cart.count}
+        onOpenBag={() => setCartOpen(true)}
+        colors={{ active: ink, activeText: "#ffffff", badge: accent }}
+      />
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cart={cart}
+        storeBasePath={storeBasePath}
+        currency={store.currency}
+        accentColor={accent}
+        accentTextColor="#ffffff"
+      />
     </div>
   );
 }

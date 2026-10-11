@@ -7,12 +7,15 @@ import type { MouseEvent } from "react";
 import Link from "next/link";
 import { CartDrawer } from "./CartDrawer";
 import { TemplateStorefrontSurface } from "@/components/storefront/TemplateStorefrontSurface";
+import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
+import { freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import {
   createSnapshotFromTemplate,
   getTemplateManifest,
+  isBoutiqueTheme,
   STORE_TEMPLATE_MANIFESTS,
   type StoreEditorSnapshot,
 } from "@/lib/store-templates";
@@ -23,6 +26,9 @@ interface StoreProduct {
   description?: string | null;
   images: string[];
   retailPrice: number;
+  compareAtPrice?: number | null;
+  variants?: unknown;
+  supplierProduct?: { stockQuantity?: number | null } | null;
   currency: string;
   category?: { id: string; name: string; slug: string } | null;
   avgRating?: number;
@@ -78,6 +84,8 @@ interface Store {
   };
   storeProducts: StoreProduct[];
   pages?: StorePageRecord[];
+  /** StorefrontShopperInfo from the public store API. */
+  shopper?: unknown;
 }
 
 interface Props {
@@ -546,6 +554,21 @@ export function StorefrontClient({
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
+  // Live storefronts own the current page so the phone bottom nav can go Home, and ?page= / ?q= links work.
+  const [livePage, setLivePage] = useState("home");
+  const [initialQuery, setInitialQuery] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (previewMode) return;
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("page");
+    if (requested && /^[a-z-]{2,20}$/.test(requested)) setLivePage(requested);
+    const q = params.get("q")?.trim();
+    if (q) setInitialQuery(q.slice(0, 80));
+  }, [previewMode]);
+  function selectLivePage(page: string) {
+    setLivePage(page);
+    if (page === "home") window.scrollTo({ top: 0 });
+  }
 
   const snapshot = useMemo(() => {
     if (previewSnapshot) return previewSnapshot;
@@ -584,16 +607,19 @@ export function StorefrontClient({
     }
   }, [snapshot.themeTokens.paperBg]);
 
+  const boutique = isBoutiqueTheme(snapshot.templateId);
+
   return (
-    <div ref={templateRootRef} className="template-store-root">
+    <div ref={templateRootRef} className={`template-store-root${!previewMode && !boutique ? " pb-24 md:pb-0" : ""}`}>
       <TemplateStorefrontSurface
         store={store}
         snapshot={snapshot}
         storeBasePath={storeBasePath}
         mode={previewMode ? "editor" : "live"}
         device={device}
-        selectedPage={selectedPage}
-        onSelectPage={onSelectPage}
+        selectedPage={selectedPage ?? (previewMode ? undefined : livePage)}
+        onSelectPage={onSelectPage ?? (previewMode ? undefined : selectLivePage)}
+        initialQuery={initialQuery}
         selectedSectionId={selectedSectionId}
         onSelectSection={onSelectSection}
         visitorKey={wishlist.visitorKey}
@@ -603,6 +629,24 @@ export function StorefrontClient({
         onOpenCart={previewMode ? undefined : () => setCartOpen(true)}
         onAddToCart={previewMode ? undefined : handleAdd}
       />
+
+      {/* The 2026 themes draw their own bottom nav; every other template gets the shared phone shopper bar. */}
+      {!previewMode && !boutique ? (
+        <ShopperBottomNav
+          storeSlug={store.slug}
+          storeName={store.name}
+          basePath={storeBasePath}
+          products={store.storeProducts}
+          wishlistIds={wishlist.productIds}
+          onToggleWishlist={wishlist.toggle}
+          cartCount={cart.count}
+          onOpenBag={() => setCartOpen(true)}
+          onHome={() => selectLivePage("home")}
+          colors={{ active: snapshot.themeTokens.ink, activeText: snapshot.themeTokens.paperBg }}
+          initialQuery={initialQuery}
+          activeTab={livePage === "home" ? "home" : undefined}
+        />
+      ) : null}
 
       {!previewMode ? (
         <CartDrawer
@@ -614,6 +658,7 @@ export function StorefrontClient({
           accentColor={snapshot.themeTokens.ctaBg}
           accentTextColor={snapshot.themeTokens.ctaText}
           variation={cartVariation}
+          freeDeliveryThreshold={freeDeliveryEverywhereOver(readShopperInfo(store.shopper).delivery) ?? undefined}
         />
       ) : null}
     </div>

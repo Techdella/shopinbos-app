@@ -840,3 +840,31 @@ test("campaigns send through Resend with tracking, suppression and attribution",
   assert.match(webhook, /creditCampaignConversion\(ref\)/);
   assert.match(stubRoute, /sendCampaign\(store\.id, params\.id\)/);
 });
+
+test("2026 storefront themes are selectable templates with the shared shopper journey", () => {
+  const catalog = read("src/lib/store-templates/catalog.ts");
+  const themes = read("src/lib/store-templates/boutique-themes.ts");
+  const surface = read("src/components/storefront/TemplateStorefrontSurface.tsx");
+  const client = read("src/app/s/[slug]/StorefrontClient.tsx");
+  const productPage = read("src/app/s/[slug]/product/[productId]/page.tsx");
+  const domainProductPage = read("src/app/_domain/[domain]/product/[productId]/page.tsx");
+  const productView = read("src/components/storefront/boutique/BoutiqueProductView.tsx");
+  const publicStore = read("src/app/api/public/store/[slug]/route.ts");
+  const lookup = read("src/app/api/public/store/[slug]/orders/lookup/route.ts");
+
+  assert.match(catalog, /\.\.\.BOUTIQUE_TEMPLATE_MANIFESTS\]/);
+  for (const id of ["breeze", "noir", "plain"]) assert.match(themes, new RegExp(`id: "${id}"`));
+  assert.doesNotMatch(themes, /unsplash|images\.pexels/, "no stock photos presented as the seller's");
+  assert.match(surface, /isBoutiqueTheme\(themeId\)/);
+  assert.match(client, /<ShopperBottomNav/);
+  assert.match(client, /useStoreVisitBeacon\(previewMode \? "" : store\.slug\)/);
+  assert.match(client, /useCampaignAttribution\(previewMode \? "" : store\.slug\)/);
+  for (const page of [productPage, domainProductPage]) {
+    assert.match(page, /loadProductPage\(/);
+    assert.match(page, /generateMetadata/);
+  }
+  assert.match(productView, /shopper\.payOnDelivery \?/, "pay on delivery badge only when the seller enabled it");
+  assert.match(productView, /shopper\.whatsappNumber/);
+  assert.match(publicStore, /loadShopperInfo\(store\.id/);
+  assert.match(lookup, /order numbers can't be probed/);
+});

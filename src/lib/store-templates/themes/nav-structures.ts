@@ -222,6 +222,9 @@ export const THEME_NAV_STRUCTURES: Record<string, NavStructure> = {
     utilityLinks: ["cart", "wishlist"],
     ctaLabel: "Shop Now",
   },
+  breeze: { navLinks: ["home", "products", "about", "contact"], logoText: "Studio", utilityLinks: ["wishlist", "cart"], ctaLabel: "Shop new arrivals" },
+  noir: { navLinks: ["home", "products", "about", "contact"], logoText: "NOIR", utilityLinks: ["wishlist", "cart"], ctaLabel: "Shop the edit" },
+  plain: { navLinks: ["home", "products", "about", "contact"], logoText: "Plain", utilityLinks: ["wishlist", "cart"], ctaLabel: "Shop now" },
 };
 
 export function getNavStructure(templateId: string): NavStructure {

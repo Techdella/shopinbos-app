@@ -689,3 +689,76 @@ test("Riders app links: 32-byte tokens, only the SHA-256 is stored", async () =>
   assert.equal(tokens.isRiderTokenShape("short"), false);
   assert.equal(tokens.isRiderTokenShape(`${token.slice(0, 42)}/`), false);
 });
+
+test("storefront shopper info only promises what the seller's settings offer", async () => {
+  const info = await import("../src/lib/storefront/shopper-info.ts");
+  const zones = info.summariseDeliveryZones([
+    { name: "Lekki", type: "flat_rate", regions: ["Lekki"], rates: [{ name: "Standard", minValue: 0, price: 2500, estimatedDays: "Same day" }, { name: "Free", minValue: 40000, price: 0 }] },
+    { name: "Pickup at studio", type: "flat_rate", regions: ["Yaba"], rates: [{ name: "Pickup", minValue: 0, price: 0 }] },
+    { name: "Everywhere else", type: "flat_rate", regions: [], rates: [{ name: "Standard", minValue: 0, price: 5000 }] },
+  ]);
+  assert.equal(zones[0].fee, 2500);
+  assert.equal(zones[0].freeOver, 40000);
+  assert.equal(zones[0].estimatedDays, "Same day");
+  assert.equal(zones[1].pickupOnly, true);
+  assert.equal(info.deriveAnnouncement(zones, true), "Free delivery in Lekki over ₦40,000 · Pay on delivery available");
+  assert.equal(info.deriveAnnouncement(zones.slice(2), false), null, "nothing to promise hides the bar");
+  assert.equal(info.freeDeliveryEverywhereOver(zones), null, "a free tier in one zone is not free delivery everywhere");
+
+  assert.equal(info.readPaymentChoices({}).payOnDelivery, false, "pay on delivery needs the seller to turn it on");
+  assert.equal(info.readPaymentChoices({ paymentConfig: { methods: { cod: true, card: true } } }).payOnDelivery, true);
+  assert.equal(info.readPaymentChoices({ paymentConfig: { methods: { cod: true }, codLimit: 0 } }).payOnDeliveryLimit, null);
+  assert.equal(info.whatsappDigits("0803 412 7790"), "2348034127790");
+  assert.equal(info.whatsappDigits("+44 20 7946 0958"), "442079460958");
+  assert.equal(info.whatsappDigits("call me"), null);
+  assert.deepEqual(info.storeRating([{ avgRating: 5, reviewCount: 3 }, { avgRating: 4, reviewCount: 1 }, { avgRating: 0, reviewCount: 0 }]), { average: 4.8, count: 4 });
+  assert.equal(info.readShopperInfo(undefined).announcement, null);
+});
+
+test("Noir payday countdown: 25th (Friday before at weekends), running until Sunday, in Lagos time", async () => {
+  const info = await import("../src/lib/storefront/shopper-info.ts");
+  const settings = info.readPaydaySettings({});
+  assert.deepEqual(settings, info.DEFAULT_PAYDAY);
+
+  // 25 October 2026 is a Sunday, so payday moves to Friday 23rd; the edit ends at midnight after Sunday 25th.
+  const upcoming = info.paydayWindow(new Date("2026-10-11T12:00:00Z"), settings);
+  assert.equal(upcoming.phase, "upcoming");
+  assert.equal(upcoming.start.toISOString(), "2026-10-22T23:00:00.000Z");
+  const live = info.paydayWindow(new Date("2026-10-24T10:00:00Z"), settings);
+  assert.equal(live.phase, "live");
+  assert.equal(live.end.toISOString(), "2026-10-25T23:00:00.000Z");
+  assert.equal(info.lagosDayLabel(info.paydayLastDay(live), "weekday"), "Sunday");
+  // After the edit, count down to Wednesday 25 November.
+  const next = info.paydayWindow(new Date("2026-10-26T12:00:00Z"), settings);
+  assert.equal(next.phase, "upcoming");
+  assert.equal(next.start.toISOString(), "2026-11-24T23:00:00.000Z");
+  assert.equal(next.end.toISOString(), "2026-11-29T23:00:00.000Z");
+
+  assert.equal(info.paydayInMonth(2026, 9, info.readPaydaySettings({ paydayRule: "last-friday" })).toISOString(), "2026-10-29T23:00:00.000Z");
+  const fixedDays = info.readPaydaySettings({ paydayDay: 31, saleEnds: "days", saleDays: 2, weekendToFriday: false });
+  assert.equal(info.paydayInMonth(2026, 1, fixedDays).toISOString(), "2026-02-27T23:00:00.000Z", "day clamps to the month's length");
+  assert.deepEqual(info.countdownParts(new Date("2026-10-12T14:36:09Z"), new Date("2026-10-11T00:00:00Z")), { days: 1, hours: 14, minutes: 36, seconds: 9 });
+});
+
+test("storefront catalog helpers: real stock, variant groups and search", async () => {
+  const catalog = await import("../src/components/storefront/shopper/catalog.ts");
+  const variants = [
+    { color: "White", size: "M", stock: 2 },
+    { color: "White", size: "L", stock: 1 },
+    { color: "Black", size: "M", stock: 0 },
+  ];
+  assert.equal(catalog.lowStockLabel({ variants }), "Only 3 left");
+  assert.equal(catalog.lowStockLabel({ variants: [{ name: "One size" }] }), null, "untracked stock never claims scarcity");
+  assert.equal(catalog.lowStockLabel({ supplierProduct: { stockQuantity: 40 } }), null);
+  assert.deepEqual(catalog.variantGroups(variants), { colours: ["White", "Black"], sizes: ["M", "L"], names: [] });
+  assert.equal(catalog.matchVariant(variants, { colour: "Black", size: "M" })?.stock, 0);
+  assert.equal(catalog.colourHex("Navy"), "#1F2A44");
+  assert.equal(catalog.colourHex("Sunset swirl"), null);
+  const products = [
+    { id: "1", name: "Linen shirt", images: [], retailPrice: 18500, currency: "NGN", category: { id: "c", name: "Shirts", slug: "shirts" } },
+    { id: "2", name: "Olive blazer", images: [], retailPrice: 32000, currency: "NGN", category: null },
+  ];
+  assert.deepEqual(catalog.searchProducts(products, "shirts").map((p) => p.id), ["1"]);
+  assert.deepEqual(catalog.searchProducts(products, "  ").map((p) => p.id), ["1", "2"]);
+  assert.deepEqual(catalog.productCategories(products), [{ slug: "shirts", name: "Shirts", imageUrl: null, count: 1 }]);
+});
