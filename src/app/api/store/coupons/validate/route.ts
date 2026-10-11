@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { parseBody } from "@/lib/api/validate";
 import { CouponValidateSchema } from "@/lib/schemas";
+import { redemptionError } from "@/lib/discounts";
 
 export async function POST(req: NextRequest) {
   const parsed = await parseBody(CouponValidateSchema, req);
@@ -14,18 +15,8 @@ export async function POST(req: NextRequest) {
   });
 
   if (discount) {
-    if (discount.status !== "active") {
-      return NextResponse.json({ valid: false, error: "This discount is not active" });
-    }
-    if (discount.expiresAt && new Date() > discount.expiresAt) {
-      return NextResponse.json({ valid: false, error: "This discount has expired" });
-    }
-    if (discount.maxUses && discount.maxUses > 0 && discount.usedCount >= discount.maxUses) {
-      return NextResponse.json({ valid: false, error: "This discount has reached its usage limit" });
-    }
-    if (discount.minOrder && subtotal < discount.minOrder) {
-      return NextResponse.json({ valid: false, error: `Minimum order of ${discount.minOrder} required` });
-    }
+    const error = redemptionError(discount, subtotal);
+    if (error) return NextResponse.json({ valid: false, error });
 
     return NextResponse.json({
       valid: true,
@@ -45,18 +36,8 @@ export async function POST(req: NextRequest) {
     if (coupon.storeId !== storeId) {
       return NextResponse.json({ valid: false, error: "Invalid coupon for this store" });
     }
-    if (coupon.status !== "active") {
-      return NextResponse.json({ valid: false, error: "This coupon is not active" });
-    }
-    if (coupon.expiresAt && new Date() > coupon.expiresAt) {
-      return NextResponse.json({ valid: false, error: "This coupon has expired" });
-    }
-    if (coupon.maxUses && coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
-      return NextResponse.json({ valid: false, error: "This coupon has reached its usage limit" });
-    }
-    if (coupon.minOrder && subtotal < coupon.minOrder) {
-      return NextResponse.json({ valid: false, error: `Minimum order of ${coupon.minOrder} required` });
-    }
+    const error = redemptionError(coupon, subtotal);
+    if (error) return NextResponse.json({ valid: false, error });
 
     return NextResponse.json({
       valid: true,

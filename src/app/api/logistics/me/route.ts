@@ -3,7 +3,7 @@ import { withLogistics } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
-import { computeTrustScore, getTrustScoreBreakdown, type VerificationDoc } from "@/lib/verification-utils";
+import { computeTrustScore, getTrustScoreBreakdown, parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
 
 export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const [partner, dbUser] = await Promise.all([
@@ -36,7 +36,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }: { user: Aut
 
   if (!partner) return apiError("NOT_FOUND", "Partner profile not found", 404);
 
-  const docs = (partner.verificationDocuments as VerificationDoc[]) ?? [];
+  const docs = parseVerificationDocs(partner.verificationDocuments);
   const bookingCount = await db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id } });
   const deliverySuccess = bookingCount > 0
     ? await db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id, status: "delivered" } })

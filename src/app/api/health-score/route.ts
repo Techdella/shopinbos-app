@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
+import type { Prisma } from "@prisma/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 
@@ -117,7 +118,7 @@ async function calculateHealthScore(storeId: string) {
     data: {
       storeId,
       score,
-      factors,
+      factors: factors as unknown as Prisma.InputJsonValue,
       recommendations,
     },
   });

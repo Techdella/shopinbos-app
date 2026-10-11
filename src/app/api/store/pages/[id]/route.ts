@@ -8,7 +8,7 @@ import { z } from "zod";
 const UpdatePageSchema = z.object({
   title: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
-  content: z.record(z.unknown()).optional(),
+  content: z.record(z.string(), z.unknown()).optional(),
   isPublished: z.boolean().optional(),
   status: z.enum(["draft", "published", "hidden", "scheduled", "archived"]).optional(),
   publishAt: z.string().datetime().nullable().optional(),
@@ -85,7 +85,7 @@ export const PATCH = withSeller(async (req, { user, params }) => {
 
   if (parsed.data.status && parsed.data.status !== "published") {
     updateData.status = parsed.data.status;
-    updateData.isPublished = parsed.data.status === "published";
+    updateData.isPublished = false;
     if (parsed.data.status === "archived") updateData.archivedAt = new Date();
     if (parsed.data.status !== "archived" && page.archivedAt) updateData.archivedAt = null;
   }

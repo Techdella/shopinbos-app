@@ -32,7 +32,9 @@
 - Add delivery/shipping rate rules — `ShippingZone` model rates are now consulted at checkout before falling back to `brandSettings.shippingConfig.flatRate`.
 - Add domain purchase UI states for Vercel configuration errors — error states surfaced from `vercel.ts` helper functions (see `hasVercelDomainConfig` / `VercelApiError`).
 
+- Broadcast campaigns send real email with per-recipient tracking (`CampaignRecipient`), unsubscribe handling and conversion attribution — see `src/lib/campaigns/` and Phase 7 in `SHOPINBOS_APP_SYNC.md`.
+
 ## Remaining To-Do
 
-- Add a real campaign model before enabling broadcast campaigns and conversion tracking.
+- Evaluate `CustomerSegment.rules` so campaigns can target saved segments.
 - Add email event preferences if sellers need to toggle individual transactional emails.

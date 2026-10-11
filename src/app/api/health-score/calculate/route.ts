@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
+import type { Prisma } from "@prisma/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 
@@ -97,7 +98,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     data: {
       storeId: store.id,
       score: totalScore,
-      factors,
+      factors: factors as unknown as Prisma.InputJsonValue,
       recommendations,
     },
   });

@@ -94,7 +94,7 @@ async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email:
 type Handler = (req: NextRequest, ctx: { user: AuthUser; params: any }) => Promise<NextResponse>;
 
 export function withAuth(handler: Handler, allowedRoles?: Role[]) {
-  return async (req: NextRequest, { params }: { params?: any } = {}) => {
+  return async (req: NextRequest, { params }: { params: Promise<any> }) => {
     const identity = await resolveSupabaseId(req);
     if (!identity) return apiError("UNAUTHORIZED", "Authentication required", 401);
 
@@ -143,7 +143,8 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
       return apiError("FORBIDDEN", `Role '${user.role}' cannot access this resource`, 403);
     }
 
-    return handler(req, { user, params });
+    // Next.js 16 passes route params as a Promise; resolve once so handlers can read params.id directly.
+    return handler(req, { user, params: (await params) ?? {} });
   };
 }
 

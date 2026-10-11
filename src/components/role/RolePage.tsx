@@ -7,7 +7,7 @@ import type { Role } from "@/lib/nav";
 
 export interface MetricItem {
   label: string;
-  value: string;
+  value: ReactNode;
   delta?: string;
   sub?: string;
   icon?: IconName;

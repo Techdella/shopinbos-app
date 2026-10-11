@@ -18,7 +18,7 @@ const UpdateSchema = z.object({
   notes: z.string().optional(),
   trackingCode: z.string().optional(),
   logisticsType: z.enum(["personal", "network", "pickup"]).optional(),
-  logisticsDetails: z.record(z.unknown()).optional(),
+  logisticsDetails: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const GET = withSeller(async (req, { user, params }) => {

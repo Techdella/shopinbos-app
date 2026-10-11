@@ -31,10 +31,15 @@ export function portalRoutesFor(role: AuthRole) {
   return PORTAL_ROUTES[role] ?? PORTAL_ROUTES.seller;
 }
 
+function isUnder(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 export function portalRoleFromPath(pathname: string): AuthRole {
-  if (pathname.startsWith("/supplier")) return "supplier";
-  if (pathname.startsWith("/logistics")) return "logistics_partner";
-  if (pathname.startsWith("/admin")) return "admin";
+  // Segment-aware so public pages like /suppliers/[slug] are not treated as the supplier portal.
+  if (isUnder(pathname, "/supplier")) return "supplier";
+  if (isUnder(pathname, "/logistics")) return "logistics_partner";
+  if (isUnder(pathname, "/admin")) return "admin";
   return "seller";
 }
 

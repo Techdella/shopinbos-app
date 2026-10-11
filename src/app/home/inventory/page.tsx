@@ -7,8 +7,8 @@ import { PageHead, Icon, Badge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-function stockStatus(current: number, threshold: number): { label: string; variant: "mint" | "warn" | "coral" | "ghost" } {
-  if (current <= 0) return { label: "Out of stock", variant: "coral" };
+function stockStatus(current: number, threshold: number): { label: string; variant: "mint" | "warn" | "danger" | "soft" } {
+  if (current <= 0) return { label: "Out of stock", variant: "danger" };
   if (current <= threshold) return { label: "Low stock", variant: "warn" };
   return { label: "In stock", variant: "mint" };
 }
@@ -126,7 +126,7 @@ export default async function InventoryPage() {
                 {products.map((p) => {
                   const available = p.currentStock - p.reservedStock;
                   const status = stockStatus(p.currentStock, p.lowStockThreshold);
-                  const isDropship = p.fulfillmentType === "dropship" || p.fulfillmentType === "supplier_fulfilled";
+                  const isDropship = p.fulfillmentType === "dropship";
                   const supplierStock = p.supplierProduct?.stockQuantity;
 
                   return (
@@ -165,7 +165,7 @@ export default async function InventoryPage() {
                       </td>
                       <td>
                         {isDropship ? (
-                          <Badge variant="ghost">Dropship</Badge>
+                          <Badge variant="soft">Dropship</Badge>
                         ) : (
                           <Badge variant={status.variant} dot>{status.label}</Badge>
                         )}

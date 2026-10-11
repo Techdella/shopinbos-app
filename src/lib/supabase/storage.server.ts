@@ -8,6 +8,7 @@ export type StorageFolder =
   | "store-banners"
   | "supplier-logos"
   | "logistics-logos"
+  | "logistics-banners"
   | "brand"
   | "supplier-verifications"
   | "logistics-verifications"

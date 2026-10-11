@@ -65,9 +65,10 @@ async function notifyMessageRecipient(input: {
 
   const preference = await db.notificationPreference.findUnique({
     where: {
-      userId_eventKey: {
+      userId_eventKey_category: {
         userId: recipient.id,
         eventKey: "message_received",
+        category: "marketplace",
       },
     },
   });

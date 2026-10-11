@@ -42,7 +42,7 @@ Status: in progress, persistence wired.
 - [x] Connect supplier document upload metadata to private verification records.
 - [x] Connect logistics coverage-zone edits to private partner coverage records.
 - [x] Apply Phase 3 private onboarding fields to Supabase.
-- [ ] Browser-verify the onboarding screens at desktop and mobile widths.
+- [x] Browser-verify the onboarding screens at desktop and mobile widths.
 
 ### Phase 4 - Inner Portal Pages
 
@@ -73,11 +73,30 @@ Status: in progress.
 - [x] Wire cache invalidation calls into public marketplace moderation paths.
 - [x] Expand admin moderation views with filters, bulk actions, and review notes.
 - [x] Add role-guard tests for every protected portal route.
-- [ ] Run full typecheck, route smoke checks, and visual QA before launch handoff.
+- [x] Run full typecheck (0 errors) and re-enable build-time type checking.
+- [x] Bring the live `shopinbos` database up to the Prisma schema (`docs/migrations/2026-10-11-live-catch-up.sql`, applied 2026-10-11).
+- [x] Run route smoke checks against a local database: 204/204 pages and API routes pass for every role (`scripts/smoke/`).
+- [x] Visual QA of seller, supplier and logistics onboarding at 1440px and 390px; mobile overflow fixed on the path picker and Rex screen.
+
+### Phase 7 - Email Campaigns and Payment Integrity
+
+Status: built and verified locally; needs the database migrations and env vars below.
+
+- [x] Send broadcast campaigns through Resend in batches of 100, one tracked email per recipient (`CampaignRecipient`).
+- [x] Audiences: everyone, subscribers only, minimum paid orders, minimum spend, specific emails; unsubscribed/bounced contacts are always skipped.
+- [x] Open pixel, click tracking (only to links in the campaign body), one-click unsubscribe (RFC 8058) and a confirm-to-unsubscribe page.
+- [x] Attribute paid storefront orders to the campaign email that brought the buyer (7-day window); real email revenue in marketing analytics.
+- [x] Scheduled campaigns via `GET /api/cron/campaigns` (Bearer `CRON_SECRET`).
+- [x] Order confirmation pages verify payments with Paystack instead of trusting the `reference` URL parameter.
+- [x] Plan upgrades require a successful, single-use payment for the right plan, amount and account (`PaymentReceipt`).
+- [x] Campaign and payment-receipt tables applied to the live database (part of the 2026-10-11 catch-up migration).
+- [ ] Set `RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `CRON_SECRET` in Vercel.
+- [ ] Add a Vercel Cron for `/api/cron/campaigns` (needs a plan that allows sub-daily crons, e.g. every 15 minutes).
+- [ ] Customer segments: `CustomerSegment.rules` are stored but not evaluated yet.
 
 ## Current Todos
 
-- [ ] Finish the onboarding visual QA pass against the supplied mockup screens.
+- [x] Finish the onboarding visual QA pass against the supplied mockup screens.
 - [x] Apply the private onboarding JSON fields to Supabase.
 - [x] Build the supplier product submit/edit workflow.
 - [x] Build the next supplier inner workflows: quote response and order fulfilment.

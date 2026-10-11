@@ -4,7 +4,7 @@ import { createNotification } from "./create";
 interface AlertCheckResult {
   triggered: boolean;
   notifications: Array<{
-    type: "inventory" | "orders" | "category" | "marketing" | "products";
+    type: "inventory" | "order" | "category" | "marketing" | "products";
     priority: "critical" | "warning" | "info" | "success";
     title: string;
     description: string;
@@ -59,7 +59,7 @@ export async function checkStuckOrders(storeId: string): Promise<AlertCheckResul
   return {
     triggered: true,
     notifications: stuckOrders.slice(0, 5).map((o) => ({
-      type: "orders" as const,
+      type: "order" as const,
       priority: "critical" as const,
       title: "Order Stuck — Needs Attention",
       description: `Order #${o.orderNumber} has been in "${o.status}" status for over 7 days`,

@@ -1,14 +1,15 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { NotificationType, Role } from "@prisma/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 
 const UpsertSchema = z.object({
-  role: z.string().optional(),
+  role: z.enum(Role).optional(),
   eventKey: z.string().min(1),
-  category: z.string().min(1),
+  category: z.enum(NotificationType),
   inApp: z.boolean().default(true),
   email: z.boolean().default(false),
   sms: z.boolean().default(false),

@@ -129,7 +129,7 @@ export default async function LogisticsCouriersPage() {
           </button>
           {atStarterTeamLimit && (
             <div style={{ gridColumn: "1 / -1", color: "var(--warning)", fontSize: 12.5, fontWeight: 600 }}>
-              Starter logistics includes 1 active team member. Upgrade to Pro to add more riders, dispatchers, and managers.
+              Starter logistics includes {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Upgrade to Pro to add more riders, dispatchers, and managers.
             </div>
           )}
         </form>

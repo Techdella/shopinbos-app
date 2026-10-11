@@ -31,7 +31,7 @@ interface SupplierOnboardingProps {
 interface Document {
   id: string;
   name: string;
-  type: "registration" | "tax" | "bank" | "identity" | "factory" | "other";
+  type: "registration" | "tax" | "bank" | "identity" | "product-images" | "factory" | "other";
   fileName?: string;
   status: "pending" | "uploaded" | "reading" | "read" | "optional";
   notes?: string;

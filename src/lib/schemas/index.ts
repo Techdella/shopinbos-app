@@ -1,4 +1,8 @@
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+
+// Request bodies come from JSON, so free-form objects are valid Prisma Json input.
+const jsonObject = () => z.record(z.string(), z.unknown()) as unknown as z.ZodType<Prisma.InputJsonObject>;
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -155,7 +159,7 @@ export const StoreCreateSchema = z.object({
   country: z.string().min(2).max(60),
   city: z.string().max(60).optional(),
   currency: z.string().length(3).default("NGN"),
-  brandSettings: z.record(z.string(), z.unknown()).default({}),
+  brandSettings: jsonObject().default({}),
   customDomain: z.string().max(120).optional(),
 });
 
@@ -239,8 +243,8 @@ export const StoreProductCreateSchema = z.object({
   lowStockThreshold: z.number().int().min(0).default(10),
   // Page builder
   pageVariant: ProductPageVariantSchema.default("shopify"),
-  pageLayout: z.record(z.string(), z.unknown()).default({}),
-  descriptionBuilder: z.record(z.string(), z.unknown()).default({}),
+  pageLayout: jsonObject().default({}),
+  descriptionBuilder: jsonObject().default({}),
   enabledModules: z.array(z.string()).default([]),
   // SEO & marketing
   seoTitle: z.string().max(70).optional(),
@@ -283,7 +287,7 @@ export const CollectionCreateSchema = z.object({
   description: z.string().max(2000).optional(),
   imageUrl: z.string().url().optional(),
   type: z.enum(["manual", "auto"]).default("manual"),
-  rules: z.record(z.string(), z.unknown()).default({}),
+  rules: jsonObject().default({}),
   sortOrder: z.number().int().default(0),
   productIds: z.array(z.string()).default([]),
 });
@@ -364,7 +368,7 @@ export const CheckoutConfigSchema = CheckoutConfigCreateSchema.extend({
 export const ProductPageTemplateCreateSchema = z.object({
   name: z.string().min(1).max(120),
   variant: ProductPageVariantSchema.default("shopify"),
-  config: z.record(z.string(), z.unknown()).default({}),
+  config: jsonObject().default({}),
   isDefault: z.boolean().default(false),
 });
 
@@ -638,7 +642,7 @@ export const NotificationCreateSchema = z.object({
   actionLabel: z.string().max(60).optional(),
   actionUrl: z.string().max(500).optional(),
   imageUrl: z.string().url().optional(),
-  metadata: z.record(z.string(), z.unknown()).default({}),
+  metadata: jsonObject().default({}),
   channel: NotificationChannelSchema.default("in_app"),
   scheduledFor: z.coerce.date().optional(),
 });
@@ -671,16 +675,16 @@ export const ActivityEventCreateSchema = z.object({
   type: z.string().min(1).max(80),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  metadata: z.record(z.string(), z.unknown()).default({}),
+  metadata: jsonObject().default({}),
 });
 
 export const SmartAlertRuleCreateSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(500).optional(),
   trigger: z.string(),
-  condition: z.record(z.string(), z.unknown()).default({}),
+  condition: jsonObject().default({}),
   actionType: z.string().default("notification"),
-  actionConfig: z.record(z.string(), z.unknown()).default({}),
+  actionConfig: jsonObject().default({}),
   active: z.boolean().default(true),
 });
 
@@ -698,7 +702,7 @@ export const SubscriberCreateSchema = z.object({
   country: z.string().max(100).optional(),
   source: SubscriberSourceSchema.default("newsletter_form"),
   tags: z.array(z.string()).default([]),
-  metadata: z.record(z.string(), z.unknown()).default({}),
+  metadata: jsonObject().default({}),
 });
 
 export const SubscriberUpdateSchema = SubscriberCreateSchema.partial().extend({
@@ -715,7 +719,7 @@ export const CustomerSegmentCreateSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(500).optional(),
   type: z.enum(["manual", "auto"]).default("manual"),
-  rules: z.record(z.string(), z.unknown()).default({}),
+  rules: jsonObject().default({}),
 });
 
 export const CustomerSegmentUpdateSchema = CustomerSegmentCreateSchema.partial();
@@ -735,17 +739,17 @@ export const FormFieldSchema = z.object({
 
 export const FormActionSchema = z.object({
   type: z.enum(["show_message", "send_email", "add_subscriber", "create_lead", "notify_seller", "redirect", "trigger_automation"]),
-  config: z.record(z.string(), z.unknown()).default({}),
+  config: jsonObject().default({}),
 });
 
 export const StoreFormCreateSchema = z.object({
   type: FormTypeSchema.default("contact"),
   name: z.string().min(1).max(120),
   fields: z.array(FormFieldSchema).default([]),
-  design: z.record(z.string(), z.unknown()).default({}),
+  design: jsonObject().default({}),
   actions: z.array(FormActionSchema).default([]),
   isPopup: z.boolean().default(false),
-  popupConfig: z.record(z.string(), z.unknown()).default({}),
+  popupConfig: jsonObject().default({}),
   active: z.boolean().default(true),
 });
 
@@ -761,7 +765,7 @@ export const LiveChatConfigCreateSchema = z.object({
   whatsappColor: z.string().default("#25D366"),
   showOnMobile: z.boolean().default(true),
   showOnDesktop: z.boolean().default(true),
-  businessHours: z.record(z.string(), z.unknown()).default({}),
+  businessHours: jsonObject().default({}),
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().max(30).optional(),
   customLink: z.string().max(500).optional(),
@@ -773,7 +777,7 @@ export const LiveChatConfigUpdateSchema = LiveChatConfigCreateSchema.partial();
 
 // ─── Discount ──────────────────────────────────────────────────────────────────
 
-export const DiscountTypeSchema = z.enum(["percentage", "fixed", "free_shipping"]);
+export const DiscountTypeSchema = z.enum(["percentage", "fixed_amount", "free_shipping"]);
 
 export const DiscountCreateSchema = z.object({
   name: z.string().min(1).max(120),
@@ -802,7 +806,7 @@ export const DiscountUpdateSchema = z.object({
 
 // ─── Coupon ────────────────────────────────────────────────────────────────────
 
-export const CouponTypeSchema = z.enum(["percentage", "fixed"]);
+export const CouponTypeSchema = z.enum(["percentage", "fixed_amount"]);
 
 export const CouponCreateSchema = z.object({
   action: z.literal("generate").optional(),
@@ -842,9 +846,13 @@ export const BlogPostCreateSchema = z.object({
 export const AutomationRuleCreateSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(500).default(""),
-  trigger: z.string().min(1).max(80),
-  actionType: z.string().default("send_email"),
-  actionConfig: z.record(z.string(), z.unknown()).default({}),
+  trigger: z.enum([
+    "welcome_email", "order_placed", "order_shipped", "order_delivered", "payment_received",
+    "abandoned_checkout", "new_customer", "post_purchase", "review_request", "win_back",
+    "birthday", "low_stock",
+  ]),
+  actionType: z.enum(["send_email", "send_notification", "update_discount", "add_tag", "add_segment"]).default("send_email"),
+  actionConfig: jsonObject().default({}),
   delayMinutes: z.number().int().min(0).default(0),
   active: z.boolean().default(true),
 });
@@ -890,9 +898,9 @@ export const CheckoutModulesUpdateSchema = z.object({
 // ─── Editor Update ─────────────────────────────────────────────────────────────
 
 export const EditorUpdateSchema = z.object({
-  snapshot: z.record(z.string(), z.unknown()).optional(),
+  snapshot: jsonObject().optional(),
   ops: z.array(z.unknown()).optional(),
-  hydrateFromStoreConfig: z.record(z.string(), z.unknown()).optional(),
+  hydrateFromStoreConfig: jsonObject().optional(),
 });
 
 // ─── Type exports ──────────────────────────────────────────────────────────────

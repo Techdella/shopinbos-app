@@ -116,7 +116,7 @@ export default async function ShippingPage() {
                             </div>
                           )}
                         </div>
-                        <Badge variant={zone.active ? "mint" : "ghost"}>{zone.active ? "Active" : "Inactive"}</Badge>
+                        <Badge variant={zone.active ? "mint" : "soft"}>{zone.active ? "Active" : "Inactive"}</Badge>
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
                         <Link href={`/home/shipping/${zone.id}`} className="dbtn dBtn-ghost dBtn-sm" style={{ textDecoration: "none" }}>

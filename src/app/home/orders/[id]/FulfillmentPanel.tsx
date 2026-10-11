@@ -199,7 +199,7 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
           {next.map((status) => (
             <Btn
               key={status}
-              variant={status === "cancelled" ? "outline" : status === "shipped" ? "secondary" : "primary"}
+              variant={status === "cancelled" ? "outline" : status === "shipped" ? "ghost" : "primary"}
               size="sm"
               onClick={() => handleStatusClick(status)}
               disabled={loading !== null}

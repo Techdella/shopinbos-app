@@ -27,12 +27,24 @@ export default async function PathPickerPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#FAF7F1" }}>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 60px", borderBottom: "1px solid #E7E0D6", background: "#FAF7F1" }}>
+      <style>{`
+        @media (max-width: 760px) {
+          .pp-header { padding: 16px !important; }
+          .pp-header img { height: 22px !important; }
+          .pp-header button { white-space: nowrap; }
+          .pp-steps { display: none !important; }
+          .pp-main { padding: 32px 16px 40px !important; }
+          .pp-title { font-size: 36px !important; }
+          .pp-sub { margin-bottom: 28px !important; }
+          .pp-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+      <header className="pp-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 60px", borderBottom: "1px solid #E7E0D6", background: "#FAF7F1" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <img src="/brand/logos/shopinbos-logo-dark.png" alt="Shopinbos" style={{ height: 28, width: "auto" }} />
         </div>
 
-        <div style={{ display: "flex", gap: 28, alignItems: "center", fontSize: 13 }}>
+        <div className="pp-steps" style={{ display: "flex", gap: 28, alignItems: "center", fontSize: 13 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#1A1A18", fontWeight: 600 }}>
             <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#0FA493", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontFamily: "ui-monospace, monospace" }}>1</span>
             Pick your path
@@ -53,13 +65,13 @@ export default async function PathPickerPage() {
         </form>
       </header>
 
-      <div style={{ flex: 1, display: "grid", placeItems: "center", padding: "60px 40px" }}>
+      <div className="pp-main" style={{ flex: 1, display: "grid", placeItems: "center", padding: "60px 40px" }}>
         <div style={{ maxWidth: 1100, width: "100%", textAlign: "center" }}>
           <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "#0FA493", display: "inline-block", marginBottom: 14 }}>
             Welcome{storeName ? `, ${firstName}` : `, ${firstName}`}
           </span>
 
-          <h1 style={{ fontSize: 56, fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1.02, margin: "0 0 12px", color: "#1A1A18" }}>
+          <h1 className="pp-title" style={{ fontSize: 56, fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1.02, margin: "0 0 12px", color: "#1A1A18" }}>
             How do you want to{" "}
             <em style={{ fontFamily: "'Georgia', 'Times New Roman', serif", fontStyle: "italic", fontWeight: 500, color: "#0FA493" }}>
               build your store
@@ -67,11 +79,11 @@ export default async function PathPickerPage() {
             ?
           </h1>
 
-          <p style={{ fontSize: 17, color: "#6F6A63", marginBottom: 56, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+          <p className="pp-sub" style={{ fontSize: 17, color: "#6F6A63", marginBottom: 56, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
             Choose one — you can always change your mind later.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
+          <div className="pp-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
             {/* Build with Rex */}
             <form action={setOnboardingPath} style={{ all: "initial", display: "contents" }}>
               <input type="hidden" name="path" value="rex" />

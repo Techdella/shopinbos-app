@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import type { DocType, VerificationDoc } from "@/lib/verification-utils";
-import { computeBadgeTier } from "@/lib/verification-utils";
+import { computeBadgeTier, parseVerificationDocs } from "@/lib/verification-utils";
 
 const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
 
@@ -14,8 +14,8 @@ export async function uploadVerificationDoc(
   formData: FormData,
 ): Promise<{ success: boolean; doc?: VerificationDoc; error?: string }> {
   try {
-    const user = await getCurrentAppUser({ role });
-    if (!user) return { success: false, error: "Not authenticated" };
+    const user = await getCurrentAppUser({ expectedRole: role });
+    if (!user || user.role !== role) return { success: false, error: "Not authenticated" };
 
     const file = formData.get("file") as File;
     if (!file) return { success: false, error: "No file provided" };
@@ -38,7 +38,7 @@ export async function uploadVerificationDoc(
 
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
 
-    const docs: VerificationDoc[] = (entity.verificationDocuments as VerificationDoc[]) ?? [];
+    const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
     const existingIdx = docs.findIndex((d) => d.type === docType);
     const newDoc: VerificationDoc = {
       id: existingIdx >= 0 ? docs[existingIdx].id : `${docType}-${Date.now()}`,
@@ -79,14 +79,14 @@ export async function deleteVerificationDoc(
   docId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const user = await getCurrentAppUser({ role });
-    if (!user) return { success: false, error: "Not authenticated" };
+    const user = await getCurrentAppUser({ expectedRole: role });
+    if (!user || user.role !== role) return { success: false, error: "Not authenticated" };
 
     const model = role === "supplier" ? db.supplier : db.logisticsPartner;
     const entity = await (model as any).findUnique({ where: { userId: user.id } });
     if (!entity) return { success: false, error: "Profile not found" };
 
-    const docs: VerificationDoc[] = (entity.verificationDocuments as VerificationDoc[]) ?? [];
+    const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
     const doc = docs.find((d) => d.id === docId);
     if (!doc) return { success: false, error: "Document not found" };
 
@@ -112,14 +112,14 @@ export async function submitVerification(
   role: "supplier" | "logistics_partner",
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const user = await getCurrentAppUser({ role });
-    if (!user) return { success: false, error: "Not authenticated" };
+    const user = await getCurrentAppUser({ expectedRole: role });
+    if (!user || user.role !== role) return { success: false, error: "Not authenticated" };
 
     const model = role === "supplier" ? db.supplier : db.logisticsPartner;
     const entity = await (model as any).findUnique({ where: { userId: user.id } });
     if (!entity) return { success: false, error: "Profile not found" };
 
-    const docs: VerificationDoc[] = (entity.verificationDocuments as VerificationDoc[]) ?? [];
+    const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
     const requiredTypes: DocType[] = role === "supplier"
       ? ["cac", "identity"]
       : ["cac", "insurance"];
@@ -153,14 +153,14 @@ export async function submitVerification(
 export async function getVerificationDocs(
   role: "supplier" | "logistics_partner",
 ): Promise<{ docs: VerificationDoc[]; trustScore: number; verificationStatus: string; badgeTier?: string }> {
-  const user = await getCurrentAppUser({ role }).catch(() => null);
-  if (!user) return { docs: [], trustScore: 0, verificationStatus: "unverified" };
+  const user = await getCurrentAppUser({ expectedRole: role }).catch(() => null);
+  if (!user || user.role !== role) return { docs: [], trustScore: 0, verificationStatus: "unverified" };
 
   const model = role === "supplier" ? db.supplier : db.logisticsPartner;
   const entity = await (model as any).findUnique({ where: { userId: user.id } });
   if (!entity) return { docs: [], trustScore: 0, verificationStatus: "unverified" };
 
-  const docs: VerificationDoc[] = (entity.verificationDocuments as VerificationDoc[]) ?? [];
+  const docs: VerificationDoc[] = parseVerificationDocs(entity.verificationDocuments);
   const trustScore = entity.trustScore ?? 0;
   const verificationStatus = entity.verificationStatus ?? "unverified";
   const badgeTier = computeBadgeTier(trustScore, verificationStatus);

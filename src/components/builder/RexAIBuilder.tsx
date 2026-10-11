@@ -477,7 +477,7 @@ export function RexAIBuilder() {
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
-            const chunk = JSON.parse(line) as { type: string; text?: string; data?: unknown };
+            const chunk = JSON.parse(line) as { type: string; text?: string; data?: unknown; content?: unknown };
             if (chunk.type === "token" && typeof chunk.text === "string") {
               assistantText += chunk.text;
               setRexMessages((prev) => prev.map((m, i) => i === placeholderIdx ? { ...m, content: assistantText } : m));

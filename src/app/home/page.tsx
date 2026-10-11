@@ -121,6 +121,11 @@ export default async function HomePage({
 
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
+  const rawBrandSettings = workspace.store?.brandSettings;
+  const brandSettingsRecord =
+    rawBrandSettings && typeof rawBrandSettings === "object" && !Array.isArray(rawBrandSettings)
+      ? (rawBrandSettings as Record<string, unknown>)
+      : null;
 
   const paidStatuses = ["paid", "processing", "shipped", "delivered"] as const;
 
@@ -387,8 +392,8 @@ export default async function HomePage({
             paymentNeeded={paymentNeeded}
             storeName={storeName}
             hasLogo={!!workspace.store?.logoUrl}
-            hasTheme={!!workspace.store?.brandSettings?.palette}
-            hasDelivery={!!workspace.store?.brandSettings?.shippingConfig}
+            hasTheme={!!brandSettingsRecord?.palette}
+            hasDelivery={!!brandSettingsRecord?.shippingConfig}
             isPublished={workspace.store?.status === "active"}
           />
         )}

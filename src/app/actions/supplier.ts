@@ -357,15 +357,17 @@ export async function saveSupplierNotificationPreferences(formData: FormData) {
 
   await db.notificationPreference.upsert({
     where: {
-      userId_eventKey: {
+      userId_eventKey_category: {
         userId: user.id,
         eventKey: "message_received",
+        category: "marketplace",
       },
     },
     create: {
       userId: user.id,
       role: "supplier",
       eventKey: "message_received",
+      category: "marketplace",
       inApp: formData.get("messageInApp") === "on",
       email: formData.get("messageEmail") === "on",
       sms: formData.get("messageSms") === "on",

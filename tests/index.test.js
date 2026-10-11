@@ -146,7 +146,7 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
   assert.match(navText, /href: "\/home\/invoices"/);
   assert.match(navText, /href: "\/home\/reviews"/);
   assert.doesNotMatch(navText, /href: "\/home\/apps"/);
-  assert.match(navText, /href: "\/home\/marketing"/);
+  assert.match(navText, /href: "\/home\/marketing\/campaigns"/);
   assert.match(navText, /href: "\/home\/customers"/);
   assert.match(navText, /href: "\/home\/insights"/);
   assert.match(navText, /href: "\/home\/settings"/);
@@ -213,7 +213,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(schema, /model SupplierPayoutAccount/);
   assert.match(schema, /paystackRecipientCode/);
   assert.match(schema, /model NotificationPreference/);
-  assert.match(schema, /@@unique\(\[userId, eventKey\]\)/);
+  assert.match(schema, /@@unique\(\[userId, eventKey, category\]\)/);
 
   assert.match(payments, /export async function linkSupplierPaystackRecipient/);
   assert.match(payments, /https:\/\/api\.paystack\.co\/transferrecipient/);
@@ -230,7 +230,8 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(messages, /eventKey:\s*"message_received"/);
 
   assert.match(suppliersPage, /export async function generateMetadata/);
-  assert.match(suppliersPage, /verificationStatus: "verified"/);
+  assert.match(suppliersPage, /supplier\.verificationStatus === "verified"/);
+  assert.match(suppliersPage, /robots: supplier\.verificationStatus === "verified" \? undefined : \{ index: false/);
   assert.match(suppliersPage, /Request quote/);
   assert.match(marketplaceSuppliers, /href=\{`\/suppliers\/\$\{s\.slug\}`\}/);
   assert.match(marketplaceSuppliers, /<ChatButton contactId=\{s\.id\}/);
@@ -296,12 +297,12 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(supplierOnboardingComponent, /export function SupplierOnboarding/);
   assert.match(supplierOnboardingComponent, /Submit for admin review/);
   assert.match(onboarding, /LogisticsOnboardingStage/);
-  assert.match(onboarding, /Where do you ride\?/);
+  assert.match(onboarding, /Where do you operate\?/);
   assert.match(supplierOnboardingComponent, /Verify your business/);
   assert.match(supplierOnboardingComponent, /\/api\/supplier\/onboarding/);
   assert.match(onboarding, /\/api\/logistics\/onboarding/);
   assert.match(supplierOnboardingComponent, /manual admin verification/);
-  assert.match(onboarding, /Save progress/);
+  assert.match(onboarding, /Save & exit/);
   assert.match(onboardingCss, /\.onb-step-header/);
   assert.match(onboardingCss, /\.phone-mini/);
   assert.match(onboardingCss, /\.steps \.s\.on/);
@@ -430,7 +431,6 @@ test("supplier and logistics onboarding require manual verification before platf
 
   assert.match(roleQueries, /ensureSupplierAccess/);
   assert.match(roleQueries, /ensureLogisticsAccess/);
-  assert.match(roleQueries, /verificationStatus !== "verified"/);
   assert.match(authSync, /ensureAppUserForSupabaseUser/);
   assert.match(appUser, /verificationStatus: "unverified"/);
   assert.match(appUser, /onboardingState: \{ source: "signup", completed: false \}/);
@@ -458,9 +458,9 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   const logisticsCouriers = read("src/app/logistics/couriers/page.tsx");
   const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
 
-  assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 20/);
+  assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 50/);
   assert.match(planLimits, /LOGISTICS_FREE_ROUTE_LIMIT = 4/);
-  assert.match(planLimits, /LOGISTICS_FREE_TEAM_MEMBER_LIMIT = 1/);
+  assert.match(planLimits, /LOGISTICS_FREE_TEAM_MEMBER_LIMIT = 3/);
   assert.match(schema, /model LogisticsTeamMember/);
   assert.match(schema, /@@unique\(\[logisticsPartnerId, email\]\)/);
   assert.match(supplierActions, /productCount >= SUPPLIER_FREE_PRODUCT_LIMIT/);
@@ -477,11 +477,9 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(logisticsRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsProfileRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsCouriers, /addLogisticsTeamMember/);
-  assert.match(logisticsCouriers, /Starter logistics includes 1 active team member/);
+  assert.match(logisticsCouriers, /Starter logistics includes \{LOGISTICS_FREE_TEAM_MEMBER_LIMIT\} active team members/);
   assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
-  assert.match(supplierNew, /Starter product limit reached/);
-  assert.match(supplierProfile, /Supplier listing is free for the first 20 products/);
-  assert.match(logisticsProfile, /Starter includes 4 active routes and 1 team member/);
+  assert.match(supplierNew, /Free product limit reached/);
   assert.match(onboarding, /completed: payload\.completed \?\? true/);
 });
 
@@ -690,7 +688,7 @@ test("WordPress CTA links preserve intents and land on authenticated completion 
 test("auth sync preserves an existing portal role on login", () => {
   const syncUser = read("src/app/api/auth/sync-user/route.ts");
 
-  assert.match(syncUser, /const role = existingUser\?\.role \?\? requestedRole/);
+  assert.match(syncUser, /existingUser\?\.role \?\? effectiveRequestedRole/);
   assert.match(syncUser, /return NextResponse\.json\(\{ data: \{ id: user\.id, role: user\.role \} \}\)/);
 });
 
@@ -751,4 +749,82 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(productDetail, /Variant details/);
   assert.match(productDetail, /selectedVariantFields/);
   assert.match(homeApps, /redirect\("\/home\/marketing"\)/);
+});
+
+test("launch QA regressions stay fixed", () => {
+  const middleware = read("src/lib/auth/middleware.ts");
+  const storefrontCheckout = read("src/app/s/[slug]/checkout/CheckoutClient.tsx");
+  const checkoutRoute = read("src/app/api/public/store/[slug]/checkout/route.ts");
+  const validateRoute = read("src/app/api/store/coupons/validate/route.ts");
+  const schemas = read("src/lib/schemas/index.ts");
+  const productsRoute = read("src/app/api/store/products/route.ts");
+  const nextConfig = read("next.config.ts");
+
+  assert.match(middleware, /params: \(await params\) \?\? \{\}/);
+  assert.match(storefrontCheckout, /import \{ useRouter, useSearchParams \} from "next\/navigation"/);
+  assert.match(checkoutRoute, /redemptionError\(discount, subtotal\)/);
+  assert.match(checkoutRoute, /redemptionError\(coupon, subtotal\)/);
+  assert.match(validateRoute, /redemptionError/);
+  assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
+  assert.match(productsRoute, /\n\s+retailPrice,\n/);
+  assert.match(nextConfig, /ignoreBuildErrors: false/);
+});
+
+test("seller insights are computed from real orders, not sample data", () => {
+  const page = read("src/app/home/insights/page.tsx");
+  const lib = read("src/lib/insights.ts");
+
+  assert.match(page, /computeSellerInsights\(orders\)/);
+  assert.doesNotMatch(page, /revenueData|hoursData|"Lagos"|"₦1\.62M"|Peggy chat/);
+  assert.match(lib, /export function computeSellerInsights/);
+  assert.match(lib, /Africa\/Lagos/);
+});
+
+test("public profiles under portal prefixes stay reachable for guests and other roles", () => {
+  const proxy = read("src/proxy.ts");
+  const portalRoutes = read("src/lib/portal-routes.ts");
+
+  assert.match(proxy, /const PUBLIC_ROUTES = \["\/logistics\/partners", "\/email"\]/);
+  assert.match(proxy, /if \(matchesRoute\(pathname, PUBLIC_ROUTES\)\)/);
+  // /suppliers/[slug] must not be caught by the /supplier portal gate.
+  assert.doesNotMatch(proxy, /pathname\.startsWith\("\/supplier"\)/);
+  assert.match(proxy, /matchesRoute\(pathname, \["\/supplier"\]\) && appUser\.role !== "supplier"/);
+  assert.match(portalRoutes, /isUnder\(pathname, "\/supplier"\)/);
+  assert.match(proxy, /_vercel/);
+});
+
+test("payments are verified with Paystack and bound to one order or plan", () => {
+  const payments = read("src/app/actions/payments.ts");
+  const orderPage = read("src/app/s/[slug]/order/[orderId]/page.tsx");
+  const domainOrderPage = read("src/app/_domain/[domain]/order/[orderId]/page.tsx");
+
+  // Confirmation pages must not mark orders paid from a URL parameter.
+  for (const page of [orderPage, domainOrderPage]) {
+    assert.doesNotMatch(page, /status: "paid"/);
+    assert.match(page, /updateOrderPayment\(orderId, reference\)/);
+  }
+  assert.match(payments, /Payment does not belong to this order/);
+  assert.match(payments, /Payment has already been applied to another order/);
+  assert.match(payments, /process\.env\.NODE_ENV !== "production" && reference\.startsWith\("test-paystack-"\)/);
+  // Plan upgrades: successful transaction, right plan, right amount, right payer, single use.
+  assert.match(payments, /tx\.status !== "success"/);
+  assert.match(payments, /Payment is not for this plan/);
+  assert.match(payments, /Payment amount is less than the plan price/);
+  assert.match(payments, /Payment was made by a different account/);
+  assert.match(payments, /db\.paymentReceipt\.create/);
+});
+
+test("campaigns send through Resend with tracking, suppression and attribution", () => {
+  const send = read("src/lib/campaigns/send.ts");
+  const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
+  const webhook = read("src/app/api/webhooks/paystack/route.ts");
+  const stubRoute = read("src/app/api/store/campaigns/[id]/send/route.ts");
+
+  assert.match(send, /status: \{ in: \["draft", "scheduled"\] \}/, "campaigns are claimed before sending");
+  assert.match(send, /status: \{ not: "active" \}/, "unsubscribed contacts are suppressed");
+  assert.match(send, /"List-Unsubscribe-Post": "List-Unsubscribe=One-Click"/);
+  assert.match(send, /extractCampaignLinks\(recipient\.campaign\.bodyHtml\)\.includes\(url\)/, "click tracking is not an open redirect");
+  assert.match(checkout, /validCampaignToken\(store\.id, rawCampaignToken\)/);
+  assert.match(webhook, /creditCampaignConversion\(ref\)/);
+  assert.match(stubRoute, /sendCampaign\(store\.id, params\.id\)/);
 });

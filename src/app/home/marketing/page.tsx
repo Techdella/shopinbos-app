@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
@@ -20,6 +21,9 @@ import {
 } from "@/app/actions/marketing";
 
 export const dynamic = "force-dynamic";
+
+// Sending a campaign runs in this page's server action.
+export const maxDuration = 300;
 
 type PageProps = { searchParams?: Promise<{ tab?: string; action?: string; id?: string }> };
 
@@ -97,7 +101,11 @@ async function toggleAutomationRuleForm(formData: FormData) {
 
 async function sendBroadcastCampaignForm(formData: FormData) {
   "use server";
-  await sendBroadcastCampaign(formData);
+  const id = formData.get("id") as string;
+  const result = await sendBroadcastCampaign(formData);
+  // Report the outcome on the campaign page, which shows send results and errors.
+  const query: Record<string, string> = result.error ? { error: result.error } : { sent: String(result.sent ?? 0), failed: String(result.failed ?? 0) };
+  redirect(`/home/marketing/campaigns/${id}?${new URLSearchParams(query)}`);
 }
 
 async function deleteBroadcastCampaignForm(formData: FormData) {

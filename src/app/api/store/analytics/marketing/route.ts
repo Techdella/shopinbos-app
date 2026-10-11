@@ -29,6 +29,7 @@ export const GET = withSeller(async (_req, { user }: { user: AuthUser }) => {
         sentCount: true,
         openCount: true,
         clickCount: true,
+        revenueGenerated: true,
         sentAt: true,
         createdAt: true,
       },
@@ -52,7 +53,7 @@ export const GET = withSeller(async (_req, { user }: { user: AuthUser }) => {
       sent: c.sentCount,
       opened: c.openCount,
       clicked: c.clickCount,
-      revenue: 0,
+      revenue: c.revenueGenerated,
     }));
 
   // Build subscriber growth — last 6 months
@@ -81,6 +82,26 @@ export const GET = withSeller(async (_req, { user }: { user: AuthUser }) => {
     subscriberGrowth.push({ month: monthLabels[d.getMonth()], count: growthMap.get(key) ?? 0 });
   }
 
+  // Email-attributed revenue: all-time total, and per month for the chart.
+  const [emailRevenue, conversions] = await Promise.all([
+    db.broadcastCampaign.aggregate({ where: { storeId }, _sum: { revenueGenerated: true } }),
+    db.campaignRecipient.findMany({
+      where: { storeId, convertedAt: { gte: sixMonthsAgo } },
+      select: { convertedAt: true, revenue: true },
+    }),
+  ]);
+  const revenueByMonth = new Map<string, number>();
+  for (const conversion of conversions) {
+    const d = conversion.convertedAt!;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    revenueByMonth.set(key, (revenueByMonth.get(key) ?? 0) + conversion.revenue);
+  }
+  const revenueOverTime: { month: string; amount: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    revenueOverTime.push({ month: monthLabels[d.getMonth()], amount: revenueByMonth.get(`${d.getFullYear()}-${d.getMonth()}`) ?? 0 });
+  }
+
   // Recent activity
   const recentActivity: { type: string; message: string; timestamp: string }[] = [];
 
@@ -102,13 +123,13 @@ export const GET = withSeller(async (_req, { user }: { user: AuthUser }) => {
     emailsSent,
     openRate,
     clickRate,
-    revenueFromEmail: 0,
+    revenueFromEmail: emailRevenue._sum.revenueGenerated ?? 0,
     couponsUsed,
     abandonedCarts,
     formSubmissions,
     topCampaigns,
     recentActivity,
     subscriberGrowth,
-    revenueOverTime: [],
+    revenueOverTime,
   });
 });

@@ -19,7 +19,7 @@ const PAGE_ICONS: Record<string, IconName> = {
 const SYSTEM_PAGE_TYPES = new Set(["product", "product-detail", "cart", "checkout", "wishlist", "categories"]);
 const LEGAL_PAGE_TYPES = new Set(["privacy-policy", "terms-and-conditions", "cookie-policy", "refund-policy", "shipping-policy", "return-policy"]);
 
-function getPageStatusBadge(isPublished: boolean, storeIsLive: boolean): { label: string; variant: "mint" | "warn" | "ghost" } {
+function getPageStatusBadge(isPublished: boolean, storeIsLive: boolean): { label: string; variant: "mint" | "warn" | "soft" } {
   if (!storeIsLive) return { label: "Draft · Store Not Live", variant: "warn" };
   if (isPublished) return { label: "Live", variant: "mint" };
   return { label: "Draft", variant: "warn" };

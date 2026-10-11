@@ -114,6 +114,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       ...rest,
       storeId: store.id,
       userId: user.id,
+      retailPrice,
       costPrice: costPrice ?? null,
       margin,
       status: rest.status ?? "draft",

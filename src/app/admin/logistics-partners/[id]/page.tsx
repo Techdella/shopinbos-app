@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/server-auth";
 import { RolePage, formatDate } from "@/components/role/RolePage";
 import { StatusPill } from "@/components/ops/OpsPrimitives";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
-import type { VerificationDoc } from "@/lib/verification-utils";
+import { parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
 import { notFound } from "next/navigation";
 
 export default async function AdminLogisticsDetailPage(props: { params: Promise<{ id: string }> }) {
@@ -32,7 +32,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
 
   if (!partner) notFound();
 
-  const docs = (partner.verificationDocuments as VerificationDoc[]) ?? [];
+  const docs = parseVerificationDocs(partner.verificationDocuments);
 
   return (
     <RolePage
