@@ -83,3 +83,57 @@ test("onboarding helpers make clean slugs, name ideas and delivery fees", () => 
   assert.equal(onboarding.naira(13000), "₦13,000");
   assert.equal(onboarding.ONBOARDING_LANGUAGES.every((lang) => typeof onboarding.REX_GREETING[lang]("Ada") === "string"), true);
 });
+
+const dashboard = await import("../src/lib/dashboard/compute.ts");
+const channels = await import("../shared/channels.ts");
+
+test("seller dashboard: today and week sales in Lagos time, order stages, sources and stock labels", () => {
+  const now = new Date("2026-10-10T09:00:00Z"); // 10:00 in Lagos
+  const order = (id, iso, status, total, extra = {}) => ({
+    id, orderNumber: `SIB-${id}`, buyerName: `Buyer ${id}`, buyerEmail: `${id}@x.ng`, total, status, createdAt: new Date(iso),
+    channel: null, deliveryAddress: { city: "Lagos" }, logisticsDetails: null,
+    items: [{ name: "Linen shirt", quantity: 1, price: total }], ...extra,
+  });
+  const orders = [
+    order("a", "2026-10-09T23:30:00Z", "paid", 15500, { channel: "whatsapp" }), // 00:30 Lagos today
+    order("b", "2026-10-09T22:30:00Z", "paid", 21000, { channel: "instagram" }), // 23:30 Lagos yesterday
+    order("c", "2026-10-10T08:00:00Z", "awaiting_payment", 34100, { channel: "whatsapp" }),
+    order("d", "2026-10-02T12:00:00Z", "delivered", 10000), // last week
+    order("e", "2026-10-10T08:30:00Z", "shipped", 9000, { logisticsDetails: { type: "network" }, items: [{ name: "Knit jumper", quantity: 2 }, { name: "Cap" }] }),
+  ];
+  const products = [
+    { id: "p1", name: "Linen shirt", images: ["a.jpg"], retailPrice: 18500, currentStock: 3, lowStockThreshold: 5, soldStock: 14 },
+    { id: "p2", name: "Knit jumper", images: [], retailPrice: 15800, currentStock: 12, lowStockThreshold: 5, soldStock: 9 },
+    { id: "p3", name: "New thing", images: [], retailPrice: 1000, currentStock: 20, lowStockThreshold: 5, soldStock: 0 },
+  ];
+  const result = dashboard.computeDashboard({ orders, products, now });
+
+  assert.equal(result.todaySales, 15500 + 9000);
+  assert.equal(result.weekSales, 15500 + 21000 + 9000);
+  assert.equal(result.weekChange, Math.round(((45500 - 10000) / 10000) * 100));
+  assert.equal(result.ordersToday, 3);
+  assert.equal(result.ordersToSend, 2);
+  assert.equal(result.ordersAwaitingPayment, 1);
+  assert.equal(result.daily.data.length, 14);
+  assert.equal(result.daily.data.at(-1), 15500 + 9000);
+
+  const rows = Object.fromEntries(result.latestOrders.map((row) => [row.id, row]));
+  assert.equal(rows.a.stage.label, "Needs a rider");
+  assert.equal(rows.c.stage.label, "Waiting for payment");
+  assert.equal(rows.c.payment.label, "Not paid yet");
+  assert.equal(rows.e.stage.label, "On the way");
+  assert.equal(rows.e.summary, "Knit jumper × 2 + 1 more");
+
+  assert.deepEqual(result.sources.map((s) => [s.label, s.count]), [["WhatsApp", 2], ["Instagram", 1]]);
+  assert.deepEqual(result.sellingFast.map((p) => [p.name, p.stock.label]), [["Linen shirt", "3 left"], ["Knit jumper", "12 in stock"]]);
+  assert.deepEqual(result.lowStock.map((p) => p.name), ["Linen shirt"]);
+});
+
+test("order channels: share refs normalise, unknown refs are ignored", () => {
+  assert.equal(channels.channelFromRef("wa"), "whatsapp");
+  assert.equal(channels.channelFromRef("Instagram"), "instagram");
+  assert.equal(channels.channelFromRef("utm-tiktok"), null);
+  assert.equal(channels.channelFromRef(""), null);
+  assert.equal(channels.withChannelRef("https://ada.shopinbos.com/", "whatsapp"), "https://ada.shopinbos.com/?ref=wa");
+  assert.equal(channels.withChannelRef("https://x.com/?a=1", "instagram"), "https://x.com/?a=1&ref=ig");
+});

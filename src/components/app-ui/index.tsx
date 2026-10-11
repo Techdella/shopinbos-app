@@ -6,9 +6,9 @@ import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes, type InputHTM
 import { Icon } from "@/components/ui/Icon";
 import { DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
 
-export function cx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(" ");
-}
+import { cx } from "./cx";
+
+export { cx };
 
 export function Wordmark({ tone = "dark", className = "" }: { tone?: "dark" | "light"; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element

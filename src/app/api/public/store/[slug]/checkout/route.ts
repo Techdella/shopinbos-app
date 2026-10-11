@@ -4,6 +4,7 @@ import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, created, apiError } from "@/lib/api/response";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { z } from "zod";
+import { ORDER_CHANNELS } from "@shared/channels";
 import { randomBytes } from "crypto";
 import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/notifications/resend";
 import { triggerAutomations } from "@/lib/automations/engine";
@@ -38,6 +39,7 @@ const CheckoutSchema = z.object({
   paymentMethod: z.enum(["redirect", "inline"]).optional(),
   discountCode: z.string().optional(),
   campaignToken: z.string().max(64).optional(),
+  channel: z.enum(ORDER_CHANNELS).optional(),
 });
 
 function generateOrderNumber(): string {
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid body"), CHECKOUT_CORS);
   }
 
-  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode, campaignToken: rawCampaignToken } = parsed.data;
+  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode, campaignToken: rawCampaignToken, channel: linkChannel } = parsed.data;
 
   const requestedQuantities = new Map<string, number>();
   for (const item of items) {
@@ -241,6 +243,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           total,
           discountCode: discountCode ?? null,
           campaignToken,
+          // Email campaign clicks win; otherwise the share link's ?ref, else the online store itself.
+          channel: campaignToken ? "email" : linkChannel ?? "online_store",
           discountAmount,
           currency: store.currency,
           notes: notes ?? null,

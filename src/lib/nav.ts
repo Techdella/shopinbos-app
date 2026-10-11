@@ -8,6 +8,8 @@ export interface NavItem {
   icon: IconName;
   href: string;
   badge?: string;
+  /** Small label after the name, e.g. "AI" or "Web". */
+  tag?: string;
   accent?: boolean;
   isNew?: boolean;
 }
@@ -15,74 +17,98 @@ export interface NavItem {
 export interface NavGroup {
   group: string;
   label?: string;
+  /** Starts collapsed unless the current page is inside it. */
+  collapsible?: boolean;
+  /** Pushed to the bottom of the sidebar. */
+  pinBottom?: boolean;
   items: NavItem[];
 }
 
 export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
+  // Seller nav follows the 2026 "Seller app · web" mockup. Mockup items without a page yet (Ads, Video studio,
+  // Affiliates, Labels and print) are left out; existing pages the mockup doesn't show live under "More tools".
   seller: [
     {
-      group: "website",
+      group: "main",
+      items: [
+        { id: "home",     label: "Home",     icon: "home",    href: "/home" },
+        { id: "orders",   label: "Orders",   icon: "package", href: "/home/orders" },
+        { id: "inbox",    label: "Inbox",    icon: "chat",    href: "/home/messages" },
+        { id: "products", label: "Products", icon: "bag",     href: "/products" },
+      ],
+    },
+    {
+      group: "sourcing",
+      label: "Sourcing",
+      items: [
+        { id: "find-products", label: "Find products", icon: "search", href: "/marketplace" },
+        { id: "imports",       label: "Imports",       icon: "truck",  href: "/home/dropship" },
+      ],
+    },
+    {
+      group: "people",
+      label: "People",
+      items: [
+        { id: "customers", label: "Customers", icon: "users", href: "/home/customers" },
+        { id: "reviews",   label: "Reviews",   icon: "star",  href: "/home/reviews" },
+      ],
+    },
+    {
+      group: "store",
       label: "Store",
       items: [
-        { id: "home",       label: "Dashboard",   icon: "home",     href: "/home" },
-        { id: "pages",      label: "Pages",       icon: "document", href: "/home/pages" },
-        { id: "blog",       label: "Blog",        icon: "edit",     href: "/home/cms" },
-        { id: "theme",      label: "Theme & Brand", icon: "palette", href: "/seller/store/builder" },
-        { id: "domain",     label: "Domain",      icon: "monitor",  href: "/home/domain" },
-      ],
-    },
-    {
-      group: "catalog",
-      label: "Catalog",
-      items: [
-        { id: "products",    label: "Products",    icon: "box",     href: "/products" },
-        { id: "categories",  label: "Categories",  icon: "grid",    href: "/home/categories" },
-        { id: "collections", label: "Collections", icon: "layers",  href: "/home/collections" },
-      ],
-    },
-    {
-      group: "commerce",
-      label: "Commerce",
-      items: [
-        { id: "orders",      label: "Orders",      icon: "cart",    href: "/home/orders" },
-        { id: "customers",   label: "Customers",   icon: "users",   href: "/home/customers" },
-        { id: "inventory",   label: "Inventory",   icon: "box",     href: "/home/inventory" },
-        { id: "reviews",     label: "Reviews",     icon: "star",    href: "/home/reviews" },
-        { id: "insights",    label: "Insights",    icon: "chart",   href: "/home/insights" },
-      ],
-    },
-    {
-      group: "operations",
-      label: "Operations",
-      items: [
-        { id: "logistics",   label: "Logistics",    icon: "truck",      href: "/home/logistics" },
-        { id: "messages",    label: "Messages",     icon: "message",    href: "/home/messages" },
-        { id: "invoices",    label: "Invoices",     icon: "document",   href: "/home/invoices" },
+        { id: "your-store", label: "Your store",       icon: "shop",    href: "/home/editor" },
+        { id: "rex-studio", label: "Rex Studio",       icon: "sparkle", href: "/studio", tag: "AI" },
+        { id: "brand-kit",  label: "Brand kit",        icon: "tag",     href: "/home/brand-kit" },
+        { id: "templates",  label: "Templates",        icon: "grid",    href: "/builder/templates" },
+        { id: "domain",     label: "Domain",           icon: "globe",   href: "/home/domain" },
+        { id: "builder",    label: "Advanced builder", icon: "monitor", href: "/seller/store/builder", tag: "Web" },
       ],
     },
     {
       group: "marketing",
       label: "Marketing",
       items: [
-        { id: "campaigns",   label: "Campaigns",    icon: "megaphone",  href: "/home/marketing/campaigns" },
-        { id: "analytics",   label: "Analytics",    icon: "chart",      href: "/home/marketing/analytics" },
-        { id: "subscribers", label: "Subscribers",  icon: "users",      href: "/home/marketing/subscribers" },
-        { id: "mkt-forms",   label: "Forms & Popups", icon: "mail",     href: "/home/marketing/forms" },
-        { id: "chat",        label: "Live Chat",    icon: "message",    href: "/home/marketing/chat" },
+        { id: "marketing",       label: "Overview",        icon: "chart",     href: "/home/marketing" },
+        { id: "campaigns",       label: "Campaigns",       icon: "megaphone", href: "/home/marketing/campaigns" },
+        { id: "discounts",       label: "Discounts",       icon: "percent",   href: "/home/discounts" },
+        { id: "sell-everywhere", label: "Sell everywhere", icon: "globe",     href: "/home/social" },
       ],
     },
     {
-      group: "settings",
-      label: "Settings",
+      group: "run",
+      label: "Run",
       items: [
-        { id: "navigation",  label: "Navigation",   icon: "list",      href: "/home/navigation" },
-        { id: "seo",         label: "SEO",          icon: "chart",     href: "/home/seo" },
-        { id: "payments",    label: "Payments",     icon: "coin",      href: "/home/payments" },
-        { id: "shipping",    label: "Delivery",     icon: "truck",     href: "/home/shipping" },
-        { id: "taxes",       label: "Taxes",        icon: "percent",   href: "/home/taxes" },
-        { id: "legal",       label: "Legal Pages",  icon: "document",  href: "/home/legal" },
-        { id: "settings",    label: "General",      icon: "settings",  href: "/home/settings" },
+        { id: "money",    label: "Money",    icon: "coin",  href: "/home/payments" },
+        { id: "delivery", label: "Delivery", icon: "truck", href: "/home/logistics" },
+        { id: "reports",  label: "Reports",  icon: "chart", href: "/home/insights" },
       ],
+    },
+    {
+      group: "more",
+      label: "More tools",
+      collapsible: true,
+      items: [
+        { id: "inventory",   label: "Inventory",      icon: "box",       href: "/home/inventory" },
+        { id: "categories",  label: "Categories",     icon: "grid",      href: "/home/categories" },
+        { id: "collections", label: "Collections",    icon: "layers",    href: "/home/collections" },
+        { id: "pages",       label: "Pages",          icon: "document",  href: "/home/pages" },
+        { id: "blog",        label: "Blog",           icon: "edit",      href: "/home/cms" },
+        { id: "navigation",  label: "Navigation",     icon: "list",      href: "/home/navigation" },
+        { id: "subscribers", label: "Subscribers",    icon: "users",     href: "/home/marketing/subscribers" },
+        { id: "mkt-forms",   label: "Forms & popups", icon: "mail",      href: "/home/marketing/forms" },
+        { id: "chat",        label: "Live chat",      icon: "message",   href: "/home/marketing/chat" },
+        { id: "invoices",    label: "Invoices",       icon: "document",  href: "/home/invoices" },
+        { id: "shipping",    label: "Shipping rates", icon: "truck",     href: "/home/shipping" },
+        { id: "taxes",       label: "Taxes",          icon: "percent",   href: "/home/taxes" },
+        { id: "seo",         label: "SEO",            icon: "search",    href: "/home/seo" },
+        { id: "legal",       label: "Legal pages",    icon: "document",  href: "/home/legal" },
+      ],
+    },
+    {
+      group: "footer",
+      pinBottom: true,
+      items: [{ id: "settings", label: "Settings", icon: "settings", href: "/home/settings" }],
     },
   ],
   supplier: [

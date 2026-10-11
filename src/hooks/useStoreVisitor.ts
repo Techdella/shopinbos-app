@@ -60,3 +60,24 @@ export function useStoreVisitor(storeSlug: string) {
 
   return visitorKey;
 }
+
+/** Counts this browser as a store visitor once per session (feeds "Visitors" on the seller dashboard). */
+export function useStoreVisitBeacon(storeSlug: string) {
+  const visitorKey = useStoreVisitor(storeSlug || "_");
+  useEffect(() => {
+    if (!storeSlug || !visitorKey) return;
+    try {
+      const flag = `visit-sent:${storeSlug}`;
+      if (sessionStorage.getItem(flag)) return;
+      sessionStorage.setItem(flag, "1");
+    } catch {
+      // Without sessionStorage we may count a visit twice; harmless.
+    }
+    void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/visit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitorKey }),
+      keepalive: true,
+    }).catch(() => null);
+  }, [storeSlug, visitorKey]);
+}

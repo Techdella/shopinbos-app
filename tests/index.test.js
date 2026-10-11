@@ -136,6 +136,11 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
     "src/app/admin/settings/page.tsx",
   ];
 
+  // Every sidebar link must open a real page.
+  for (const [, href] of navText.matchAll(/href: "([^"]+)"/g)) {
+    assert.ok(exists(`src/app${href}/page.tsx`), `nav link ${href} should have a page`);
+  }
+
   requiredPages.forEach((pagePath) => {
     assert.ok(exists(pagePath), `${pagePath} should exist`);
   });

@@ -43,17 +43,8 @@ export function AppFrame({
   verificationStatus,
   children,
 }: AppFrameProps) {
-  const roleLabel =
-    role === "supplier"
-      ? "Supplier"
-      : role === "logistics_partner"
-      ? "Logistics"
-      : role === "admin"
-      ? "Admin"
-      : "Seller";
-
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--canvas)" }}>
+    <div className="flex h-screen overflow-hidden bg-app-canvas">
       <RexDrawerProvider chipMessage={_chipMessage}>
         <Sidebar
           role={role}
@@ -63,7 +54,8 @@ export function AppFrame({
           storeLogoUrl={storeLogoUrl}
           userName={userName}
         />
-        <FirstRunWalkthrough role={role} storeName={storeName} />
+        {/* Sellers get the Rex onboarding and the "Finish setting up" checklist instead of the demo tour. */}
+        {role !== "seller" && <FirstRunWalkthrough role={role} storeName={storeName} />}
 
         <main className="flex-1 flex flex-col overflow-hidden min-w-0">
           <GlobalTopBar
@@ -71,7 +63,7 @@ export function AppFrame({
             userInitials={userInitials}
             avatarUrl={avatarUrl}
             email={userEmail}
-            role={roleLabel}
+            role={role}
             searchPlaceholder={searchPlaceholder}
           />
           {verificationStatus && role !== "seller" && role !== "admin" && (
@@ -81,7 +73,7 @@ export function AppFrame({
               displayName={storeName}
             />
           )}
-          <div className="flex-1 overflow-y-auto" style={{ background: "var(--canvas)" }}>
+          <div className="flex-1 overflow-y-auto bg-app-canvas">
             {children}
           </div>
         </main>

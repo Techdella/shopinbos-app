@@ -1,21 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { Mascot } from "@/components/app-ui";
+import { NAV_BY_ROLE, type Role } from "@/lib/nav";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { SearchModal } from "./SearchModal";
 import { ConversationsModal } from "./ConversationsModal";
 import { SignOutButton } from "./SignOutButton";
-import Link from "next/link";
+import { TOGGLE_NAV_EVENT, useShellCounts } from "./useShellCounts";
+
+// Top bar in the 2026 design: page title, pill search ("/" to focus), Ask Peggy, notifications, account menu.
 
 interface GlobalTopBarProps {
   userName?: string;
   userInitials?: string;
   avatarUrl?: string | null;
   email?: string | null;
-  role?: string;
+  role?: Role;
   searchPlaceholder?: string;
-  unreadCount?: number;
+}
+
+const PROFILE_HREF: Record<Role, string> = { seller: "/home/profile", supplier: "/supplier/profile", logistics_partner: "/logistics/profile", admin: "/admin/settings" };
+const SETTINGS_HREF: Record<Role, string> = { seller: "/home/settings", supplier: "/supplier/settings", logistics_partner: "/logistics/settings", admin: "/admin/settings" };
+
+function usePageTitle(role: Role) {
+  const pathname = usePathname();
+  return useMemo(() => {
+    let best: { label: string; length: number } | null = null;
+    for (const group of NAV_BY_ROLE[role]) {
+      for (const item of group.items) {
+        const matches = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        if (matches && (!best || item.href.length > best.length)) best = { label: item.label, length: item.href.length };
+      }
+    }
+    return best?.label ?? "";
+  }, [pathname, role]);
 }
 
 export function GlobalTopBar({
@@ -23,194 +45,104 @@ export function GlobalTopBar({
   userInitials,
   avatarUrl,
   email,
-  role = "Seller",
-  searchPlaceholder = "Search products, orders, suppliers\u2026",
-  unreadCount = 0,
+  role = "seller",
+  searchPlaceholder = role === "seller" ? "Search orders, products, customers, suppliers" : "Search",
 }: GlobalTopBarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const counts = useShellCounts();
+  const title = usePageTitle(role);
+  const initials = userInitials ?? userName.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+  const unread = counts?.notifications ?? 0;
 
-  const initials = userInitials ?? userName.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (!typing && (event.key === "/" || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k"))) {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("mousedown", close);
+    return () => window.removeEventListener("mousedown", close);
+  }, [menuOpen]);
 
   return (
     <>
-      <div
-        className="h-[60px] shrink-0 flex items-center gap-4 px-[22px]"
-        style={{
-          background: "var(--paper)",
-          borderBottom: "1px solid var(--ink-100)",
-        }}
-      >
-        {/* Search */}
-        <div
-          onClick={() => setSearchOpen(true)}
-          className="flex-1 max-w-[520px] h-[38px] flex items-center gap-[9px] px-3 rounded-[10px] text-[13.5px] cursor-pointer"
-          style={{
-            background: "var(--ink-75)",
-            border: "1px solid transparent",
-            color: "var(--ink-500)",
-          }}
-        >
-          <Icon name="search" size={16} color="var(--ink-400)" />
-          <span>{searchPlaceholder}</span>
-          <kbd
-            className="ml-auto text-[10.5px] px-[5px] py-px rounded-[4px]"
-            style={{
-              background: "var(--paper)",
-              border: "1px solid var(--ink-150)",
-              color: "var(--ink-500)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            \u2318K
-          </kbd>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Notifications */}
-        <button
-          type="button"
-          className="relative w-[38px] h-[38px] rounded-[10px] flex items-center justify-center"
-          style={{
-            border: "1px solid var(--ink-150)",
-            background: "var(--paper)",
-            color: "var(--ink-600)",
-          }}
-          aria-label="Notifications"
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Icon name="bell" size={17} />
-          {unreadCount > 0 && (
-            <>
-              <span
-                className="absolute top-[7px] right-[8px] w-[7px] h-[7px] rounded-full"
-                style={{
-                  background: "var(--rose-500)",
-                  border: "2px solid var(--paper)",
-                }}
-              />
-              <span
-                className="absolute -top-[3px] -right-[3px] flex items-center justify-center"
-                style={{
-                  background: "var(--rose-500)",
-                  color: "white",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  minWidth: 16,
-                  height: 16,
-                  borderRadius: 8,
-                  padding: "0 4px",
-                }}
-              >
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            </>
-          )}
+      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3.5 border-b border-app-line bg-white/[0.92] px-4 font-app text-app-ink backdrop-blur sm:px-7">
+        <button type="button" aria-label="Open menu" onClick={() => window.dispatchEvent(new Event(TOGGLE_NAV_EVENT))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas lg:hidden">
+          <Icon name="list" size={19} />
         </button>
-
-        {/* Chat */}
-        <button
-          type="button"
-          className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center"
-          style={{
-            border: "1px solid var(--ink-150)",
-            background: "var(--paper)",
-            color: "var(--ink-600)",
-          }}
-          aria-label="Messages"
-          onClick={() => setChatOpen(true)}
-        >
-          <Icon name="chat" size={17} />
-        </button>
-
-        {/* User pill */}
-        <div
-          className="flex items-center gap-[9px] pl-1 pr-3 rounded-full relative"
-          style={{
-            border: "1px solid var(--ink-150)",
-            background: "var(--paper)",
-          }}
-        >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt=""
-              className="w-[30px] h-[30px] rounded-full object-cover"
-            />
-          ) : (
-            <Link
-              href="/home/profile"
-              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-bold text-[12.5px] text-white no-underline"
-              style={{ background: "var(--teal-700)" }}
-            >
-              {initials}
-            </Link>
-          )}
-          <Link href="/home/profile" className="no-underline">
-            <div>
-              <div className="font-semibold text-[13px] leading-[1.1]" style={{ color: "var(--ink-900)" }}>
-                {userName}
-              </div>
-              <div className="text-[11px]" style={{ color: "var(--ink-500)" }}>
-                {role}
-              </div>
-            </div>
-          </Link>
+        {title && <b className="whitespace-nowrap text-[15px] font-extrabold">{title}</b>}
+        <div className="flex flex-1 justify-center">
           <button
-            onClick={() => setShowMenu(!showMenu)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-400)", padding: 0 }}
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="hidden h-[42px] w-full max-w-[460px] items-center gap-2.5 rounded-full bg-app-canvas px-4 text-left text-[14px] text-app-ink-soft md:flex"
           >
-            <Icon name="chevDown" size={14} />
+            <Icon name="search" size={16} />
+            <span className="flex-1 truncate">{searchPlaceholder}</span>
+            <kbd className="grid h-6 w-6 place-items-center rounded-full bg-white font-sans text-[12px] font-bold text-app-ink">/</kbd>
           </button>
-
-          {showMenu && (
-            <div
-              className="absolute top-full right-0 mt-1 rounded-[12px]"
-              style={{
-                background: "var(--paper)",
-                border: "1px solid var(--ink-150)",
-                boxShadow: "var(--shd-lg)",
-                minWidth: 180,
-                zIndex: 60,
-                padding: 6,
-              }}
-            >
-              <Link href="/home/profile"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-[8px] no-underline"
-                style={{ fontSize: 13, color: "var(--ink-800)" }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "var(--ink-50)"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                onClick={() => setShowMenu(false)}
-              >
-                <Icon name="users" size={14} /> Profile
+        </div>
+        <button type="button" aria-label="Search" onClick={() => setSearchOpen(true)} className="grid h-10 w-10 place-items-center rounded-full border border-app-line md:hidden">
+          <Icon name="search" size={17} />
+        </button>
+        {role === "seller" && (
+          <Link href="/peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
+            <Mascot name="peggy" className="h-8 w-8" alt="" /> Ask Peggy
+          </Link>
+        )}
+        <button type="button" aria-label="Messages" onClick={() => setChatOpen(true)} className="relative hidden h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong sm:grid">
+          <Icon name="chat" size={17} />
+          {(counts?.inbox ?? 0) > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-app-forest ring-2 ring-white" />}
+        </button>
+        <button type="button" aria-label={unread ? `Notifications, ${unread} new` : "Notifications"} onClick={() => setDrawerOpen(true)} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
+          <Icon name="bell" size={17} />
+          {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-app-accent ring-2 ring-white" />}
+        </button>
+        <div className="relative" ref={menuRef}>
+          <button type="button" aria-label="Account" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="grid h-[42px] w-[42px] place-items-center overflow-hidden rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              initials
+            )}
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full z-50 mt-2 min-w-[220px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]">
+              <div className="px-3 py-2">
+                <div className="truncate text-[14px] font-extrabold">{userName}</div>
+                {email && <div className="truncate text-[12px] text-app-ink-soft">{email}</div>}
+              </div>
+              <Link href={PROFILE_HREF[role]} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-[13.5px] font-semibold text-app-ink no-underline hover:bg-app-canvas">
+                <Icon name="user" size={15} /> Profile
               </Link>
-              <Link href="/home/settings"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-[8px] no-underline"
-                style={{ fontSize: 13, color: "var(--ink-800)" }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "var(--ink-50)"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                onClick={() => setShowMenu(false)}
-              >
-                <Icon name="settings" size={14} /> Settings
+              <Link href={SETTINGS_HREF[role]} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-[13.5px] font-semibold text-app-ink no-underline hover:bg-app-canvas">
+                <Icon name="settings" size={15} /> Settings
               </Link>
-              {email && (
-                <div className="flex items-center gap-2.5 px-3 py-2 rounded-[8px]"
-                  style={{ fontSize: 12, color: "var(--ink-400)" }}
-                >
-                  <Icon name="mail" size={14} /> {email}
-                </div>
-              )}
-              <div style={{ borderTop: "1px solid var(--ink-100)", margin: "4px 0" }} />
-              <div className="px-2" onClick={() => setShowMenu(false)}>
-                <SignOutButton variant="full" label="Sign out" />
+              <div className="my-1 border-t border-app-line" />
+              <div className="px-1.5 pb-1">
+                <SignOutButton variant="full" label="Log out" />
               </div>
             </div>
           )}
         </div>
-      </div>
+      </header>
 
       <NotificationsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />

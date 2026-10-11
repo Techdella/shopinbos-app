@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
+import { withChannelRef } from "@shared/channels";
 import { LinkButton, Mascot, PillButton, T, Wash } from "@/components/ui";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { API_URL } from "@/lib/api";
@@ -18,8 +19,8 @@ export default function Live() {
   const url = status.store.url;
   const live = status.store.live;
 
-  async function copy(message = "Link copied") {
-    await Clipboard.setStringAsync(url);
+  async function copy(message = "Link copied", link = url) {
+    await Clipboard.setStringAsync(link);
     setToast(message);
     setTimeout(() => setToast(null), 2400);
   }
@@ -50,8 +51,8 @@ export default function Live() {
         </View>
         <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
           {[
-            { label: "WhatsApp Status", onPress: () => void Share.share({ message: `${status.store.name} is open! Shop here: ${url}` }) },
-            { label: "Instagram bio", onPress: () => void copy("Link copied. Paste it in your Instagram bio.") },
+            { label: "WhatsApp Status", onPress: () => void Share.share({ message: `${status.store.name} is open! Shop here: ${withChannelRef(url, "whatsapp")}` }) },
+            { label: "Instagram bio", onPress: () => void copy("Link copied. Paste it in your Instagram bio.", withChannelRef(url, "instagram")) },
             { label: "QR poster", onPress: () => setQr(true) },
           ].map((item) => (
             <Pressable key={item.label} accessibilityRole="button" onPress={item.onPress} style={{ flex: 1, minHeight: 84, backgroundColor: colors.surface, borderRadius: radii.card, alignItems: "center", justifyContent: "center", padding: 10 }}>

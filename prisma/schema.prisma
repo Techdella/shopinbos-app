@@ -1533,6 +1533,7 @@ model RetailOrder {
   trackingCode    String?
   logisticsDetails Json?
   campaignToken   String? // CampaignRecipient.token of the email that brought the buyer; credited once paid
+  channel         String? // whatsapp | instagram | facebook | tiktok | email | online_store (shared/channels.ts)
   shippedAt       DateTime?
   deliveredAt     DateTime?
   createdAt       DateTime          @default(now())
