@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { billingEmail } from "@/lib/auth/billing-email";
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -79,7 +80,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     const callbackUrl = new URL("/api/billing/store-launch/callback", req.nextUrl.origin);
     callbackUrl.searchParams.set("returnTo", returnTo);
     const payment = await initializePaystackTransaction({
-      email: user.email,
+      email: billingEmail(user),
       amountKobo: amountDue * 100,
       reference,
       callbackUrl: callbackUrl.toString(),

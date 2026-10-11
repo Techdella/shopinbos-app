@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db/client";
+import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import type { Prisma } from "@prisma/client";
@@ -509,7 +510,7 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
     if (tx.amount / 100 < minimum) {
       return { success: false, error: "Payment amount is less than the plan price" };
     }
-    if (tx.customer?.email?.toLowerCase() !== user.email.toLowerCase()) {
+    if (tx.customer?.email?.toLowerCase() !== billingEmail(user)) {
       return { success: false, error: "Payment was made by a different account" };
     }
 

@@ -1,30 +1,40 @@
 import { Suspense } from "react";
-import { getCurrentAppUser } from "@/lib/server-auth";
-import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
-import { STORE_LAUNCH_DEPOSIT_NGN, STORE_LAUNCH_TOTAL_NGN } from "@/lib/store-launch-billing";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
-import { parseOnboardingMemory } from "@/lib/onboarding-memory";
+import { slugify } from "@/lib/workspace";
+import { getSellerOnboardingStatus } from "@/lib/onboarding-status";
+import { SellerOnboarding } from "@/components/onboarding/seller/SellerOnboarding";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Set up your shop" };
 
-export default async function RexOnboardingPage() {
-  const user = await getCurrentAppUser();
-  const store = user
-    ? await db.store.findUnique({ where: { userId: user.id }, select: { brandSettings: true, status: true } })
-    : null;
-  const settings = store?.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings)
-    ? store.brandSettings as Record<string, unknown>
-    : null;
-  const initialMemory = parseOnboardingMemory(settings?.onboardingMemory);
+// Seller onboarding (2026 redesign). Paystack launch payments return here with ?launch=paid|failed.
+export default async function SellerOnboardingPage() {
+  const user = await requireRole(["seller"], "/login");
+
+  let status = await getSellerOnboardingStatus(user.id);
+  if (!status) {
+    const name = `${user.name.split(" ")[0] || "My"}'s Store`;
+    await db.store.create({
+      data: {
+        userId: user.id,
+        name,
+        slug: `${slugify(name)}-${user.id.slice(0, 6)}`,
+        country: user.country || "Nigeria",
+        city: user.city || "Lagos",
+        status: "draft",
+        onboardingState: "NEW",
+      },
+    });
+    status = await getSellerOnboardingStatus(user.id);
+  }
+  if (!status) redirect("/home");
+
   return (
     <Suspense>
-      <OnboardingFlow
-        initialUser={user ? { name: user.name, city: user.city ?? null, country: user.country ?? null } : null}
-        initialMemory={initialMemory}
-        initialLaunchStatus={store?.status ?? null}
-        launchPricing={{ total: STORE_LAUNCH_TOTAL_NGN, deposit: STORE_LAUNCH_DEPOSIT_NGN }}
-        forcedRole="seller"
-      />
+      <SellerOnboarding initialStatus={JSON.parse(JSON.stringify(status))} />
     </Suspense>
   );
 }

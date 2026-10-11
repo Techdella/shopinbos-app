@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 const render = await import("../src/lib/campaigns/render.ts");
 const { redemptionError } = await import("../src/lib/discounts.ts");
 const { computeSellerInsights } = await import("../src/lib/insights.ts");
+const phone = await import("../shared/phone.ts");
+const onboarding = await import("../shared/onboarding.ts");
 
 test("campaign emails escape personal data, track links and add an unsubscribe footer", () => {
   const html = '<p>Hi {{name}} from {{store}}</p><a href="https://shop.example/p?a=1&amp;b=2">Shop</a><a href="mailto:x@y.z">Mail</a><a href="{{unsubscribe_url}}">Stop</a>';
@@ -51,4 +53,26 @@ test("seller insights come from paid orders only, in Lagos time", () => {
   assert.deepEqual(insights.cities.map((c) => [c.city, c.revenue]), [["Lagos", 15000], ["Abuja", 8000]]);
   assert.equal(insights.peakHour, 15, "14:xx UTC is 15:xx in Lagos");
   assert.deepEqual(insights.cohorts[0], { month: "Aug", retention: [100, 0, 100] });
+});
+
+test("phone numbers typed the Nigerian way become E.164, and junk is rejected", () => {
+  const ng = phone.DIAL_COUNTRIES[0];
+  for (const typed of ["0803 412 7790", "803-412-7790", "+234 803 412 7790", "2348034127790", "(0803) 4127790"]) {
+    assert.equal(phone.toE164(typed, ng), "+2348034127790", typed);
+  }
+  assert.equal(phone.toE164("0803 412 779", ng), null);
+  assert.equal(phone.toE164("", ng), null);
+  assert.equal(phone.toE164("+233 24 412 7790", ng), "+233244127790");
+  assert.equal(phone.toE164("024 412 7790", phone.dialCountry("GH")), "+233244127790");
+  assert.equal(phone.formatE164("+2348034127790"), "+234 803 412 7790");
+  assert.equal(phone.isValidEmail("ada@shop.ng"), true);
+  assert.equal(phone.isValidEmail("ada@shop"), false);
+});
+
+test("onboarding helpers make clean slugs, name ideas and delivery fees", () => {
+  assert.equal(onboarding.shopSlug("  Àdùnní's Linen & Co. "), "adunni-s-linen-co");
+  const ideas = onboarding.suggestShopNames("Adaeze Okafor", "I sell linen shirts to working women");
+  assert.deepEqual(ideas, ["Adaeze Studio", "Adaeze and Co.", "Adaeze's Linen"]);
+  assert.equal(onboarding.zoneFee({ name: "Abuja", fee: 3500, maxFee: 6000 }), "₦3,500 to ₦6,000");
+  assert.equal(onboarding.ONBOARDING_LANGUAGES.every((lang) => typeof onboarding.REX_GREETING[lang]("Ada") === "string"), true);
 });

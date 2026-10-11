@@ -1,4 +1,5 @@
 import { updateSupplierProfile } from "@/app/actions/supplier";
+import { billingEmail } from "@/lib/auth/billing-email";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
@@ -42,7 +43,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
       userName={user.name}
       userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
       avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+      userEmail={billingEmail(user)}
     >
       <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
         {supplier.verificationStatus !== "verified" && (
@@ -90,7 +91,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
         {activeTab === "Billing & Plan" ? (
           <div>
             <PlanUpgradeSection
-              userEmail={user.email}
+              userEmail={billingEmail(user)}
               userName={user.name}
               aiCredits={aiCredits}
               productCount={workspace.metrics.productCount}

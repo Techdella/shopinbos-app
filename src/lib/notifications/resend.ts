@@ -157,9 +157,11 @@ export async function sendPayoutNotification(
 }
 
 export async function sendSellerNotification(
-  to: string,
+  to: string | null,
   notification: { title: string; description: string; type?: string },
 ): Promise<EmailSendResult> {
+  // Sellers who signed up with a phone number have no email until they add one.
+  if (!to) return { success: false, message: "No email address on this account" };
   return sendEmail({
     to: [to],
     subject: notification.title,

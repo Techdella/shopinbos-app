@@ -5,7 +5,7 @@ export type { Role };
 export interface AuthUser {
   id: string;
   supabaseId: string;
-  email: string;
+  email: string | null;
   role: Role;
   name: string;
   avatarUrl?: string | null;
@@ -16,7 +16,9 @@ export interface AuthUser {
 
 export interface JWTClaims {
   sub: string;
-  email: string;
+  email: string | null;
+  /** Verified phone in E.164 (+234…), for accounts created with a phone number. */
+  phone: string | null;
   user_metadata: {
     role: Role;
     name?: string;

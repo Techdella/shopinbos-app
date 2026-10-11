@@ -201,6 +201,7 @@ export async function testSendCampaign(formData: FormData) {
   const bodyHtml = (formData.get("bodyHtml") as string) || "";
 
   if (!subject) return { error: "Subject is required" };
+  if (!user.email) return { error: "Add an email address to your account to receive test sends" };
 
   const result = await sendEmail({
     to: [user.email],

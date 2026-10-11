@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@shared/*": [
+        "./shared/*"
       ]
     }
   },
@@ -38,6 +41,7 @@
   ],
   "exclude": [
     "node_modules",
-    "public/store-templates"
+    "public/store-templates",
+    "apps"
   ]
 }

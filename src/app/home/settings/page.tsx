@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/server-auth";
+import { billingEmail } from "@/lib/auth/billing-email";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, uploadStoreLogo, closeStore, inviteTeamMember } from "@/app/actions/workspace";
 import { AppFrame } from "@/components/shell/AppFrame";
@@ -52,7 +53,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
       userName={user.name}
       userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
       avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+      userEmail={billingEmail(user)}
     >
       <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
         <PageToast />
@@ -191,7 +192,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               <>
                 <StoreLaunchBalanceCard balanceDue={Number(launchBilling?.balanceDue ?? 0)} dueAt={launchBilling?.dueAt} />
                 <SellerBillingSection
-                  userEmail={user.email}
+                  userEmail={billingEmail(user)}
                   userName={user.name}
                   aiCredits={aiCredits}
                   productCount={workspace.storeProducts.length}

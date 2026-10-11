@@ -1,4 +1,5 @@
 import "server-only";
+import { billingEmail } from "@/lib/auth/billing-email";
 
 import { db } from "@/lib/db/client";
 import type { Prisma } from "@prisma/client";
@@ -103,8 +104,8 @@ export async function completeStoreLaunchPayment(reference: string) {
     || verified.metadata?.user_id !== payment.user_id) {
     throw new Error("Paystack returned payment details that do not match this store launch.");
   }
-  const user = await db.user.findUnique({ where: { id: payment.user_id }, select: { email: true } });
-  if (!user || verified.customer?.email?.toLowerCase() !== user.email.toLowerCase()) {
+  const user = await db.user.findUnique({ where: { id: payment.user_id }, select: { id: true, email: true } });
+  if (!user || verified.customer?.email?.toLowerCase() !== billingEmail(user)) {
     throw new Error("The Paystack customer does not match this Shopinbos account.");
   }
 
