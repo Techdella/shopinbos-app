@@ -74,7 +74,7 @@ Status: in progress.
 - [x] Expand admin moderation views with filters, bulk actions, and review notes.
 - [x] Add role-guard tests for every protected portal route.
 - [x] Run full typecheck (0 errors) and re-enable build-time type checking.
-- [ ] Apply `docs/migrations/2026-10-10-schema-alignment.sql` (staging first) and review the remaining Prisma/database drift.
+- [x] Bring the live `shopinbos` database up to the Prisma schema (`docs/migrations/2026-10-11-live-catch-up.sql`, applied 2026-10-11).
 - [x] Run route smoke checks against a local database: 204/204 pages and API routes pass for every role (`scripts/smoke/`).
 - [x] Visual QA of seller, supplier and logistics onboarding at 1440px and 390px; mobile overflow fixed on the path picker and Rex screen.
 
@@ -89,7 +89,7 @@ Status: built and verified locally; needs the database migrations and env vars b
 - [x] Scheduled campaigns via `GET /api/cron/campaigns` (Bearer `CRON_SECRET`).
 - [x] Order confirmation pages verify payments with Paystack instead of trusting the `reference` URL parameter.
 - [x] Plan upgrades require a successful, single-use payment for the right plan, amount and account (`PaymentReceipt`).
-- [ ] Apply `docs/migrations/2026-10-11-campaigns-and-payment-receipts.sql` (after the 2026-10-10 file), staging first.
+- [x] Campaign and payment-receipt tables applied to the live database (part of the 2026-10-11 catch-up migration).
 - [ ] Set `RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `CRON_SECRET` in Vercel.
 - [ ] Add a Vercel Cron for `/api/cron/campaigns` (needs a plan that allows sub-daily crons, e.g. every 15 minutes).
 - [ ] Customer segments: `CustomerSegment.rules` are stored but not evaluated yet.
