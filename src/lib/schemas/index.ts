@@ -333,7 +333,15 @@ export const ShippingZoneCreateSchema = z.object({
   active: z.boolean().default(true),
 });
 
-export const ShippingZoneUpdateSchema = ShippingZoneCreateSchema.partial();
+// No defaults here: Zod 4 applies defaults inside .partial(), so a PATCH of one field would reset the others.
+export const ShippingZoneUpdateSchema = z.object({
+  name: z.string().min(1).max(120),
+  type: ShippingTypeSchema,
+  regions: z.array(z.string().trim().min(1).max(80)).max(200),
+  rates: z.array(ShippingRateSchema),
+  sortOrder: z.number().int(),
+  active: z.boolean(),
+}).partial();
 
 export const ShippingZoneSchema = ShippingZoneCreateSchema.extend({
   id: z.string(),

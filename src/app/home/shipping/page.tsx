@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 
 export const dynamic = "force-dynamic";
 
-type RateTier = { label?: string; price?: number | string; minOrder?: number; freeOver?: number };
+type RateTier = { name?: string; label?: string; price?: number | string; minOrder?: number; freeOver?: number };
 
 function formatRate(rate: RateTier, currency = "NGN") {
   const symbol = currency === "GHS" ? "GH₵" : currency === "KES" ? "KSh" : "₦";
@@ -85,7 +85,7 @@ export default async function ShippingPage() {
                       <div className="flex min-w-0 flex-wrap gap-2">
                         {rates.map((rate, j) => (
                           <span key={j} className="rounded-[12px] bg-app-canvas px-3 py-1.5">
-                            <span className="block text-[12px] text-app-ink-soft">{rate.label ?? `Fee ${j + 1}`}</span>
+                            <span className="block text-[12px] text-app-ink-soft">{rate.label ?? rate.name ?? `Fee ${j + 1}`}</span>
                             <span className={`block text-[13.5px] font-extrabold ${rate.price === 0 || rate.freeOver != null ? "text-app-success" : ""}`}>{formatRate(rate, currency)}</span>
                           </span>
                         ))}
