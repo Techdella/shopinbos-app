@@ -186,7 +186,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   );
 
   const rail = (
-    <aside className="flex h-full w-[244px] shrink-0 flex-col gap-px overflow-y-auto border-r border-app-line bg-white px-3 pb-5 pt-4 font-app text-app-ink" aria-label="Main">
+    <aside className="relative flex h-full w-[244px] shrink-0 flex-col gap-px overflow-y-auto border-r border-app-line bg-white px-3 pb-5 pt-4 font-app text-app-ink" aria-label="Main">
       <div className="flex items-center justify-between px-1.5 pb-3.5 pt-0.5">
         <Link href={NAV_BY_ROLE[role][0]?.items[0]?.href ?? "/"} aria-label="Home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
