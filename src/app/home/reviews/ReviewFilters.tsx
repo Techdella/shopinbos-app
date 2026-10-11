@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { cx } from "@/components/app-ui";
+import { field } from "@/components/seller-core";
 
 export function ReviewFilters({
   status, product, products, rating,
@@ -22,9 +24,11 @@ export function ReviewFilters({
     return `/home/reviews${qs ? `?${qs}` : ""}`;
   }
 
+  const select = cx(field.select, "h-11 rounded-full sm:w-auto");
+
   return (
     <>
-      <select className="sel" style={{ minWidth: 120, fontSize: 12.5 }} value={status}
+      <select aria-label="Filter by status" className={cx(select, "sm:min-w-[150px]")} value={status}
         onChange={(e) => router.push(buildUrl("status", e.target.value))}>
         <option value="">All statuses</option>
         <option value="approved">Approved</option>
@@ -32,7 +36,7 @@ export function ReviewFilters({
         <option value="rejected">Rejected</option>
       </select>
       {products.length > 0 ? (
-        <select className="sel" style={{ minWidth: 160, fontSize: 12.5 }} value={product}
+        <select aria-label="Filter by product" className={cx(select, "sm:min-w-[180px] sm:max-w-[260px]")} value={product}
           onChange={(e) => router.push(buildUrl("product", e.target.value))}>
           <option value="">All products</option>
           {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}

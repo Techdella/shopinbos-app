@@ -1,23 +1,26 @@
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
-import Anthropic from "@anthropic-ai/sdk";
-import { getAnthropicClient } from "@/lib/ai/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, firstJsonObject } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 import { parseBody } from "@/lib/api/validate";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const PageInputSchema = z.object({
-  type: z.string().min(1),
+  type: z.string().min(1).max(60),
   title: z.string().min(1).max(200),
   publish: z.boolean().optional(),
-  userContent: z.string().optional(),
-  designStyle: z.string().optional(),
-  storeName: z.string().optional(),
-  storeTagline: z.string().optional(),
-  category: z.string().optional(),
+  userContent: z.string().max(4000).optional(),
+  designStyle: z.string().max(60).optional(),
+  storeName: z.string().max(120).optional(),
+  storeTagline: z.string().max(400).optional(),
+  category: z.string().max(120).optional(),
+  order: z.number().int().min(0).max(100).optional(),
 });
 
 const PagesCreateSchema = z.object({
@@ -25,18 +28,24 @@ const PagesCreateSchema = z.object({
 });
 
 type PageInput = z.infer<typeof PageInputSchema>;
+type PageContent = Record<string, unknown>;
 
-async function generatePageContent(page: PageInput, client: Anthropic): Promise<Record<string, unknown>> {
+/** Home is stored as slug "home" everywhere (templates, Rex drafts, the storefront maps it to "/"). */
+function slugForPage(type: string) {
+  return type === "home" ? "home" : type.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "page";
+}
+
+async function generatePageContent(page: PageInput): Promise<{ content: PageContent; provider: string } | null> {
   const prompt = `You are building a store page for "${page.storeName || "My Store"}" — ${page.storeTagline || ""}.
 Category: ${page.category || "retail"}
 Design style: ${page.designStyle || "minimal"}
 Page: ${page.type} — "${page.title}"
-${page.userContent ? `User provided content: ${page.userContent}` : ""}
+${page.userContent ? `Seller's notes for this page: ${page.userContent}` : ""}
 
-Write compelling African-market focused copy for this ${page.type} page.
+Write compelling, specific, African-market focused copy for this ${page.type} page, for shoppers.
 Build a full page, not a thin placeholder. Include 6-8 sections that match the page type.
 For ecommerce pages, include conversion-focused blocks such as trust points, product/category highlights, process, FAQ, CTA, proof, and policy details where relevant.
-If the page is blog, mention that the CMS is ready in the seller workspace and Peggy can write long-form SEO articles there.
+Never invent facts the notes don't support (delivery times, certifications, awards); keep those general. Do not mention AI, Rex, Peggy or Shopinbos.
 Return ONLY valid JSON with this structure:
 {
   "hero": { "headline": "...", "subline": "..." },
@@ -48,19 +57,26 @@ Return ONLY valid JSON with this structure:
   "seo": { "metaTitle": "...", "metaDescription": "..." }
 }`;
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1800,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const result = await aiText({ prompt, fast: true, maxTokens: 8000 });
+  if (!result) return null;
+  const content = firstJsonObject(result.text);
+  if (!content || !Array.isArray(content.sections)) return null;
+  return { content, provider: result.provider };
+}
 
-  const text = response.content[0]?.type === "text" ? response.content[0].text : "{}";
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-  } catch {
-    return {};
-  }
+/** Neutral starter content, used only when no AI key is configured. Nothing in it claims to be AI-written. */
+function starterContent(page: PageInput, storeName: string, description: string): PageContent {
+  return {
+    hero: { headline: page.title === "Home" ? `Welcome to ${storeName}` : page.title, subline: description },
+    sections: [
+      { type: "text", heading: page.title, body: page.userContent || description || `Find out more about ${storeName}.` },
+      { type: "feature-grid", heading: "Why shop with us", body: "Clear product details, careful delivery, and friendly support before and after you buy." },
+      { type: "faq", heading: "Common questions", body: "Questions about delivery, payment or returns? Get in touch and we will help." },
+      { type: "cta", heading: "Ready to shop?", body: "Browse the collection and check out in a few taps." },
+    ],
+    seo: { metaTitle: `${page.title} | ${storeName}`, metaDescription: description },
+    starter: true,
+  };
 }
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
@@ -69,52 +85,80 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   const { pages } = parsed.data;
 
-  // Get seller's store
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) {
     return NextResponse.json({ error: { code: "no_store", message: "Store not found" } }, { status: 404 });
   }
 
-  const client = getAnthropicClient();
+  const useAi = aiConfigured();
+  if (useAi) {
+    const limited = await meterAi(user.id, "text", pages.length);
+    if (limited) return limited;
+  }
+
   const saved = [];
+  const failures: string[] = [];
 
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
-    const slug = page.type === "home" ? "home" : page.type;
+    const slug = slugForPage(page.type);
+    const order = page.order ?? i;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let content: any = {};
-    if (client) {
-      content = await generatePageContent(
-        { ...page, storeName: store.name, storeTagline: store.description ?? "" },
-        client,
-      );
+    let content: PageContent;
+    let generated = false;
+    if (useAi) {
+      let result: Awaited<ReturnType<typeof generatePageContent>> = null;
+      try {
+        result = await generatePageContent({ ...page, storeName: store.name, storeTagline: store.description ?? "" });
+      } catch (error) {
+        console.error(`[store/pages] ${page.type} failed`, error);
+      }
+      if (!result) {
+        failures.push(page.title);
+        continue;
+      }
+      content = result.content;
+      generated = true;
     } else {
-      content = {
-        hero: { headline: `Welcome to ${store.name}`, subline: store.description ?? "" },
-        sections: [
-          { type: "text", heading: page.title, body: page.userContent || "Rex will shape this page around the details customers need before they buy." },
-          { type: "feature-grid", heading: "Why customers choose us", body: "Clear product information, visible support, reliable delivery, and a checkout flow designed for trust." },
-          { type: "text", heading: "How it works", body: "Customers can browse, compare, add to cart, and check out from one connected storefront." },
-          { type: "text", heading: "Customer confidence", body: "Use this section for delivery promises, returns, warranty, care instructions, or support expectations." },
-          { type: "faq", heading: "Common questions", body: "Peggy can write full answers for delivery, payment, sizing, ingredients, specs, or bulk orders." },
-          { type: "cta", heading: "Ready to shop?", body: "Guide shoppers back to products, cart, or contact depending on the page goal." },
-        ],
-        seo: { metaTitle: `${page.title} | ${store.name}`, metaDescription: store.description ?? "" },
-      };
+      content = starterContent(page, store.name, store.description ?? "");
     }
 
-    const isPublished = page.publish === true;
+    // A page that is already live keeps its live content; new copy goes to its draft until published.
+    const existing = await db.storePage.findUnique({
+      where: { storeId_slug: { storeId: store.id, slug } },
+      select: { isPublished: true },
+    });
+    const json = content as Prisma.InputJsonValue;
+    const keepLive = existing?.isPublished && page.publish !== true;
     const savedPage = await db.storePage.upsert({
       where: { storeId_slug: { storeId: store.id, slug } },
-      create: { storeId: store.id, type: page.type, title: page.title, slug, content, order: i, isPublished },
-      update: { title: page.title, content, order: i, isPublished },
+      create: { storeId: store.id, type: page.type, title: page.title, slug, content: json, draftContent: json, order, isPublished: page.publish === true, status: page.publish === true ? "published" : "draft" },
+      update: keepLive
+        ? { title: page.title, draftContent: json, order }
+        : {
+            title: page.title,
+            content: json,
+            draftContent: json,
+            order,
+            ...(page.publish !== undefined ? { isPublished: page.publish, status: page.publish ? "published" : "draft" } : {}),
+          },
     });
 
-    saved.push(savedPage);
+    saved.push({ ...savedPage, generated });
   }
 
-  return NextResponse.json({ data: saved });
+  if (!saved.length && failures.length) {
+    return NextResponse.json(
+      { error: { code: "AI_FAILED", message: `Rex couldn't write ${failures.join(", ")} right now. Try again in a moment.` } },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json({
+    data: saved,
+    ...(failures.length ? { failed: failures } : {}),
+    ...(useAi ? {} : { aiOff: true, notice: "AI isn't switched on, so these pages have starter text to edit yourself." }),
+  });
 });
 
 export const GET = withSeller(async (_req, { user }) => {

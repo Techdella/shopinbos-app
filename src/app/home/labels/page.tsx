@@ -30,7 +30,6 @@ export default async function LabelsPage({ searchParams }: { searchParams: Promi
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      width="max-w-[980px]"
       title="Labels and print"
       sub="Shipping labels with your logo, the customer's address and a QR code to track the order, plus packing slips to put in the parcel."
     >

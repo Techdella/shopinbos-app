@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AppFrame } from "@/components/shell/AppFrame";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, EmptyState, FilterChips, Pill, PillLink } from "@/components/app-kit";
+import { Icon } from "@/components/ui/Icon";
+import { FIELD_SELECT } from "@/components/seller-settings/fields";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, safeQuery } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
@@ -35,6 +38,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
   const storeCity = norm(store.city);
   const storeCountry = norm(store.country);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = { status: "active", verificationStatus: "verified" };
   if (q) {
     where.OR = [
@@ -80,156 +84,100 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
     (storeCountry && norm(partner.country) === storeCountry),
   ).length;
 
+  const filtered = Boolean(params?.q || params?.zone || params?.country || params?.near);
+  const selectClass = `${FIELD_SELECT} h-[44px] rounded-full sm:w-auto`;
+
   return (
     <MarketplaceChatWrapper>
-    <AppFrame
-      role="seller"
-      storeName={store.name}
-      storeSlug={store.slug}
-      storeInitial={store.name?.[0]?.toUpperCase()}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
-    >
-      <div className="flex-1 overflow-y-auto" style={{ padding: "24px 28px 40px", background: "var(--canvas)" }}>
-        <div className="pg-hero">
-          <div>
-            <h1>
-              Logistics.{" "}
-              <span style={{ color: "var(--teal-700)", fontStyle: "italic" }}>{partners.length} verified partners.</span>
-            </h1>
-            <div className="pg-sub">
-              Find verified delivery partners, compare pricing, and book shipments for your orders.
-              {nearbyCount > 0 ? ` ${nearbyCount} can support your store location.` : ""}
-            </div>
-          </div>
-          <div className="pg-acts">
-            <Link href="/marketplace" className="dbtn dBtn-ghost dBtn-sm">
-              Products
-            </Link>
-            <Link href="/marketplace/suppliers" className="dbtn dBtn-ghost dBtn-sm">
-              Suppliers
-            </Link>
-          </div>
-        </div>
+      <SellerPage
+        user={user}
+        store={storeSummary(store)}
+        title="Delivery partners"
+        sub={`${partners.length} verified partner${partners.length === 1 ? "" : "s"}. Compare prices and book deliveries for your orders.${nearbyCount > 0 ? ` ${nearbyCount} cover your area.` : ""}`}
+      >
+        <div className="grid gap-5">
+          <FilterChips
+            items={[
+              { label: "Products", href: "/marketplace" },
+              { label: "Suppliers", href: "/marketplace/suppliers" },
+              { label: "Delivery partners", href: "/marketplace/logistics", active: true },
+            ]}
+          />
 
-        <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap", alignItems: "center" }}>
-          <form method="GET" action="/marketplace/logistics" style={{ display: "flex", gap: 10, flex: 1, flexWrap: "wrap", alignItems: "center" }}>
-            <div className="sb-search" style={{ flex: "1 1 200px", maxWidth: 300 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
-              <input name="q" defaultValue={params?.q ?? ""} placeholder="Search partners..." style={{ border: "none", background: "none", outline: "none", flex: 1, fontFamily: "inherit", fontSize: 13 }} />
-            </div>
-            <div className="sel" style={{ minWidth: 150, fontSize: 12.5, padding: "7px 11px", display: "flex", alignItems: "center", gap: 6 }}>
-              <select name="zone" defaultValue={params?.zone ?? ""} style={{ border: "none", background: "none", outline: "none", flex: 1, fontFamily: "inherit", fontSize: 12.5, color: "inherit" }}>
-                <option value="">All zones</option>
-                {allZones.map((z) => <option key={z} value={z}>{z}</option>)}
-              </select>
-            </div>
-            <div className="sel" style={{ minWidth: 130, fontSize: 12.5, padding: "7px 11px", display: "flex", alignItems: "center", gap: 6 }}>
-              <select name="country" defaultValue={params?.country ?? ""} style={{ border: "none", background: "none", outline: "none", flex: 1, fontFamily: "inherit", fontSize: 12.5, color: "inherit" }}>
-                <option value="">All countries</option>
-                {allCountries.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="sel" style={{ minWidth: 130, fontSize: 12.5, padding: "7px 11px", display: "flex", alignItems: "center", gap: 6 }}>
-              <select name="near" defaultValue={params?.near ?? ""} style={{ border: "none", background: "none", outline: "none", flex: 1, fontFamily: "inherit", fontSize: 12.5, color: "inherit" }}>
-                <option value="">Best match</option>
-                <option value="city">Same city</option>
-                <option value="country">Same country</option>
-              </select>
-            </div>
-            <button type="submit" className="dbtn dBtn-ghost dBtn-sm">Filter</button>
-            {(params?.q || params?.zone || params?.country || params?.near) && (
-              <Link href="/marketplace/logistics" className="dbtn dBtn-ghost dBtn-sm" style={{ color: "var(--teal-700)" }}>Clear</Link>
-            )}
+          <form method="GET" action="/marketplace/logistics" role="search" className="flex flex-wrap items-center gap-2">
+            <label className="flex min-h-[44px] w-full items-center gap-2 rounded-full border border-app-line bg-white px-4 sm:w-[300px]">
+              <Icon name="search" size={16} className="shrink-0 text-app-ink-soft" />
+              <span className="sr-only">Search partners</span>
+              <input name="q" defaultValue={params?.q ?? ""} placeholder="Search partners" className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
+            </label>
+            <select name="zone" aria-label="Area covered" defaultValue={params?.zone ?? ""} className={selectClass}>
+              <option value="">All areas</option>
+              {allZones.map((z) => <option key={z} value={z}>{z}</option>)}
+            </select>
+            <select name="country" aria-label="Country" defaultValue={params?.country ?? ""} className={selectClass}>
+              <option value="">All countries</option>
+              {allCountries.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select name="near" aria-label="Sort" defaultValue={params?.near ?? ""} className={selectClass}>
+              <option value="">Best match</option>
+              <option value="city">Same city first</option>
+              <option value="country">Same country first</option>
+            </select>
+            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">Filter</button>
+            {filtered && <Link href="/marketplace/logistics" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">Clear</Link>}
           </form>
-        </div>
 
-        <div className="card" style={{ marginTop: 14, padding: 14, borderLeft: "3px solid var(--indigo-500)" }}>
-          <div style={{ fontSize: 11, color: "var(--indigo-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Peggy logistics picks</div>
-          <div style={{ fontSize: 12.5, color: "var(--ink-700)", lineHeight: 1.45 }}>
-            Ranked by coverage near {store.city ? `${store.city}, ` : ""}{store.country}, reliability, and listed base price. Request a quote before promising delivery dates at checkout.
-          </div>
-        </div>
+          <AssistantNote who="peggy">
+            Ranked by coverage near {store.city ? `${store.city}, ` : ""}{store.country}, reliability and starting price. Ask for a quote before you promise delivery dates at checkout.
+          </AssistantNote>
 
-        <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
           {partners.length === 0 ? (
-            <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--ink-500)", fontSize: 14 }}>
-              No verified logistics partners yet. Partners appear here once they complete onboarding and get verified by admin.
-            </div>
+            <EmptyState icon="truck" title={filtered ? "No partners match" : "No verified partners yet"} action={filtered ? <PillLink href="/marketplace/logistics" tone="ink">Clear filters</PillLink> : undefined}>
+              {filtered ? "Try a different search or filter." : "Delivery partners show up here once they finish signing up and we verify them."}
+            </EmptyState>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 14 }}>
+            <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 2xl:grid-cols-3 min-[1900px]:grid-cols-4">
               {partners.map((p) => (
-                <div key={p.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  <div style={{
-                    height: 80,
-                    background: "linear-gradient(135deg, #5b6ad0, #3a4ba6)",
-                    position: "relative",
-                  }}>
-                    {p.logoUrl && (
-                      <div style={{
-                        position: "absolute", bottom: -24, left: 16,
-                        width: 52, height: 52, borderRadius: 12, overflow: "hidden",
-                        border: "3px solid white", background: "white",
-                      }}>
-                        <Image src={p.logoUrl} alt={p.displayName} width={52} height={52} style={{ objectFit: "cover" }} unoptimized />
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ padding: p.logoUrl ? "32px 16px 16px" : "16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 15 }}>{p.displayName}</div>
-                        <div style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 2 }}>
-                          {p.city ?? ""}{p.city && p.country ? ", " : ""}{p.country ?? ""}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 20, fontWeight: 500, color: "var(--indigo-500)", lineHeight: 1 }}>{p.reliabilityScore}</div>
-                        <div style={{ fontSize: 10.5, color: "var(--ink-500)", textTransform: "uppercase" }}>Reliability</div>
-                      </div>
-                    </div>
-                    {p.description && (
-                      <div style={{ fontSize: 12.5, color: "var(--ink-600)", marginTop: 8, lineHeight: 1.5 }}>
-                        {p.description.length > 150 ? `${p.description.slice(0, 150)}...` : p.description}
-                      </div>
-                    )}
-                    <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                      {p.vehicleTypes.slice(0, 3).map((v) => (
-                        <span key={v} className="chip" style={{ fontSize: 11 }}>{v}</span>
-                      ))}
-                      {p.deliveryTypes.slice(0, 3).map((d) => (
-                        <span key={d} className="chip" style={{ fontSize: 11 }}>{d.replace(/_/g, " ")}</span>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 12 }}>
-                      {p.coverageZones.length > 0 && (
-                        <span style={{ color: "var(--ink-500)" }}>{p.coverageZones.length} zones</span>
+                <li key={p.id} className="flex min-w-0 flex-col rounded-[22px] border border-app-line bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="h-14 w-14 shrink-0 overflow-hidden rounded-[14px] border border-app-line bg-app-canvas">
+                      {p.logoUrl ? (
+                        <Image src={p.logoUrl} alt="" width={56} height={56} className="h-full w-full object-cover" unoptimized />
+                      ) : (
+                        <span className="grid h-full w-full place-items-center"><Icon name="truck" size={22} /></span>
                       )}
-                      {p.basePrice > 0 && (
-                        <span style={{ fontWeight: 600 }}>From {fmtMoney(p.basePrice)}</span>
-                      )}
-                      {p.estimatedSpeed && (
-                        <span style={{ color: "var(--ink-500)" }}>{p.estimatedSpeed}</span>
-                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="m-0 truncate text-[16px] font-extrabold">{p.displayName}</h2>
+                      <div className="truncate text-[13px] text-app-ink-soft">{p.city ?? ""}{p.city && p.country ? ", " : ""}{p.country ?? ""}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                      <ChatButton contactId={p.userId} />
-                      <Link href={`/home/logistics?partner=${p.slug}`} className="dbtn dBtn-soft dBtn-sm" style={{ flex: 1, justifyContent: "center", fontSize: 12 }}>
-                        Request quote
-                      </Link>
-                      <Link href={`/home/logistics?partner=${p.slug}`} className="dbtn dBtn-mint dBtn-sm" style={{ flex: 1, justifyContent: "center", fontSize: 12 }}>
-                        Book delivery
-                      </Link>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[22px] font-extrabold leading-none">{p.reliabilityScore}</div>
+                      <div className="text-[12px] text-app-ink-soft">Reliability</div>
                     </div>
                   </div>
-                </div>
+                  {p.description && <p className="mb-0 mt-3 line-clamp-3 text-[13.5px] leading-[1.5] text-app-ink-soft">{p.description}</p>}
+                  {(p.vehicleTypes.length > 0 || p.deliveryTypes.length > 0) && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {p.vehicleTypes.slice(0, 3).map((v) => <Pill key={v}>{v}</Pill>)}
+                      {p.deliveryTypes.slice(0, 3).map((d) => <Pill key={d} tone="info">{d.replace(/_/g, " ")}</Pill>)}
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[13.5px]">
+                    {p.basePrice > 0 && <span className="font-extrabold">From {fmtMoney(p.basePrice)}</span>}
+                    {p.coverageZones.length > 0 && <span className="text-app-ink-soft">{p.coverageZones.length} area{p.coverageZones.length === 1 ? "" : "s"}</span>}
+                    {p.estimatedSpeed && <span className="text-app-ink-soft">{p.estimatedSpeed}</span>}
+                  </div>
+                  <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
+                    <ChatButton contactId={p.userId} />
+                    <PillLink href={`/home/logistics?intent=quote&partner=${p.id}#quote`} size="sm" tone="ink" className="min-h-[40px]">Get a quote</PillLink>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
-      </div>
-    </AppFrame>
+      </SellerPage>
     </MarketplaceChatWrapper>
   );
 }

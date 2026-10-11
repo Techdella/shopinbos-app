@@ -122,6 +122,7 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
   const [selected, setSelected] = useState<string[]>(["home", "products"]);
   const [content, setContent] = useState<Record<string, string>>({});
   const [peggyLoading, setPeggyLoading] = useState<string | null>(null);
+  const [peggyError, setPeggyError] = useState<{ type: string; message: string } | null>(null);
 
   function togglePage(type: string) {
     const page = pages.find((p) => p.type === type);
@@ -136,35 +137,32 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
   async function askPeggy(type: string, page: PageDef) {
     if (!storeName || peggyLoading) return;
     setPeggyLoading(type);
-    const prompt = `You are writing content for the "${page.label}" page of a store called "${storeName}" (${category} category).\n\nUser notes: ${content[type] || "none provided"}\n\nWrite a short, compelling content brief for this page (3-4 sentences). Focus on what will resonate with the target customer. Return ONLY the content text.`;
+    setPeggyError(null);
     try {
-      const res = await fetch("/api/ai/store-builder", {
+      const res = await fetch("/api/ai/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: prompt }],
-          store: { name: storeName, products: [], changed: [] },
+          field: `content brief for the "${page.label}" page of an online store`,
+          instructions: "3-4 sentences describing what this page should tell the store's customers. Plain text, written as notes the store owner can edit.",
+          context: {
+            store: storeName,
+            category,
+            page: page.label,
+            "what the page needs": page.contentLabel ?? "",
+            "seller's notes so far": content[type] ?? "",
+          },
+          maxWords: 90,
         }),
       });
-      if (!res.body) throw new Error("no body");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        for (const line of decoder.decode(value, { stream: true }).split("\n").filter(Boolean)) {
-          try {
-            const ev = JSON.parse(line) as { type: string; text?: string };
-            if (ev.type === "token" && ev.text && !ev.text.includes("<store_config>")) {
-              text += ev.text;
-              setPageContent(type, text);
-            }
-          } catch { /* skip */ }
-        }
-      }
-    } catch { /* best-effort */ }
-    finally { setPeggyLoading(null); }
+      const json = (await res.json().catch(() => null)) as { data?: { text?: string }; error?: { message?: string } } | null;
+      if (!res.ok || !json?.data?.text) throw new Error(json?.error?.message ?? "Peggy couldn't write that right now.");
+      setPageContent(type, json.data.text);
+    } catch (error) {
+      setPeggyError({ type, message: error instanceof Error ? error.message : "Peggy couldn't write that right now." });
+    } finally {
+      setPeggyLoading(null);
+    }
   }
 
   function handleBuild() {
@@ -294,6 +292,9 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
                   className="w-full resize-none rounded-[10px] border px-3 py-2.5 text-[13px] leading-[1.6] outline-none transition-colors focus:border-[var(--color-mint)]"
                   style={INPUT_STYLE}
                 />
+                {peggyError?.type === type && (
+                  <p className="mt-2 text-[11px]" style={{ color: "var(--color-coral)" }}>{peggyError.message}</p>
+                )}
               </div>
             );
           })}

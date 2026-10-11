@@ -164,6 +164,7 @@ model User {
   avatarUrl          String?
   aiCredits          Int                @default(5)
   verificationStatus VerificationStatus @default(unverified)
+  preferences        Json               @default("{}") // menu items switched off, walkthrough progress (shared/preferences.ts)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1730,4 +1731,16 @@ model AdCampaign {
   orders RetailOrder[]
 
   @@index([storeId])
+}
+
+// ─── AI usage (daily limits for Rex and Peggy; aiCredits stays the plan tier) ─
+
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String // text | image | voice | build
+  units     Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@index([userId, kind, createdAt])
 }

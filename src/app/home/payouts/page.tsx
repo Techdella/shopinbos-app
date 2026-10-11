@@ -1,97 +1,97 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
+import { formatDate, humanize } from "@/components/growth/kit";
+import { naira } from "@shared/onboarding";
+import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Payouts" };
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
+const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 
-export default async function SellerPayoutsPage() {
+function isOnline(method: string | null) {
+  return !method || method === "paystack";
+}
+
+export default async function SellerPayoutsPage({ searchParams }: { searchParams?: Promise<{ show?: string }> }) {
+  const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
-  const workspace = await getSellerWorkspace(user.id);
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
 
-  const store = workspace?.store;
-  const paidOrders = store ? await db.retailOrder.findMany({
-    where: { storeId: store.id, status: { in: ["paid", "processing", "shipped", "delivered"] } },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: { id: true, orderNumber: true, buyerName: true, total: true, currency: true, status: true, createdAt: true },
-  }) : [];
+  const paidOrders = store
+    ? await db.retailOrder.findMany({
+        where: { storeId: store.id, status: { in: [...PAID] } },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: { id: true, orderNumber: true, buyerName: true, total: true, status: true, paymentMethod: true, createdAt: true },
+      })
+    : [];
 
-  const gross = paidOrders.reduce((s, o) => s + Number(o.total), 0);
+  const online = paidOrders.filter((order) => isOnline(order.paymentMethod));
+  const offline = paidOrders.filter((order) => !isOnline(order.paymentMethod));
+  const onlineTotal = online.reduce((sum, order) => sum + order.total, 0);
+  const offlineTotal = offline.reduce((sum, order) => sum + order.total, 0);
+  const show = params?.show === "offline" ? "offline" : params?.show === "all" ? "all" : "online";
+  const shown = show === "online" ? online : show === "offline" ? offline : paidOrders;
+  const brand = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as Record<string, unknown>) : {};
+  const hasBank = Boolean(brand.payoutBank && typeof brand.payoutBank === "object" && (brand.payoutBank as Record<string, unknown>).bankName);
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store?.name ?? "Store"}
-      storeSlug={store?.slug ?? ""}
-      storeInitial={store?.name?.charAt(0).toUpperCase() ?? "S"}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Payouts"
+      sub="Paid orders and where the money for each one went."
+      actions={<PillLink href="/home/payments" icon="coin">Money</PillLink>}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Payouts"
-          sub={`${paidOrders.length} eligible orders · ${fmt(gross)} gross eligible`}
+      <div className="grid gap-5">
+        {!hasBank && (
+          <AssistantNote action={<PillLink href="/home/payments" tone="ink" size="sm">Add payout bank</PillLink>}>
+            You haven&apos;t added a payout bank yet. Add one so money from online orders has somewhere to go.
+          </AssistantNote>
+        )}
+
+        <StatGrid>
+          <StatTile tone="card" label="Paid online" value={naira(onlineTotal)} hint={`${online.length} order${online.length === 1 ? "" : "s"}`} />
+          <StatTile tone="card" label="Collected yourself" value={naira(offlineTotal)} hint={`${offline.length} order${offline.length === 1 ? "" : "s"}`} />
+          <StatTile tone="card" label="Paid orders" value={paidOrders.length} hint="Latest 100" />
+          <StatTile tone="card" label="Payout bank" value={hasBank ? "Added" : "Not added"} />
+        </StatGrid>
+
+        <FilterChips
+          items={[
+            { label: "Paid online", href: "/home/payouts", count: online.length, active: show === "online" },
+            { label: "Collected yourself", href: "/home/payouts?show=offline", count: offline.length, active: show === "offline" },
+            { label: "All", href: "/home/payouts?show=all", count: paidOrders.length, active: show === "all" },
+          ]}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <div className="stat">
-            <div className="stat-lbl">Eligible orders</div>
-            <div className="stat-val">{paidOrders.length}</div>
-            <div className="stat-delta delta-up"><Icon name="cart" size={12} /><span>paid or fulfilled</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Gross eligible</div>
-            <div className="stat-val money">{fmt(gross)}</div>
-            <div className="stat-delta delta-up"><Icon name="coin" size={12} /><span>total value</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Payout batches</div>
-            <div className="stat-val">—</div>
-            <div className="stat-delta delta-flat"><Icon name="clock" size={12} /><span>coming next</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Store</div>
-            <div className="stat-val" style={{ fontSize: 20 }}>{store?.name ?? "Not created"}</div>
-            <div className="stat-delta delta-up"><Icon name="store" size={12} /><span>active</span></div>
-          </div>
-        </div>
+        {shown.length ? (
+          <ListCard>
+            {shown.map((order) => (
+              <ListRow key={order.id} href={`/home/orders/${order.id}`}>
+                <span className="min-w-0 flex-1 basis-full sm:basis-auto">
+                  <span className="block truncate text-[14.5px] font-extrabold">{order.buyerName || "Customer"}</span>
+                  <span className="block truncate font-mono text-[12.5px] text-app-ink-soft">{order.orderNumber}</span>
+                </span>
+                <span className="text-[13px] text-app-ink-soft sm:w-[150px]">
+                  {isOnline(order.paymentMethod) ? "Online, to your bank" : `${PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod}, kept by you`}
+                </span>
+                <span className="text-[13px] text-app-ink-soft sm:w-[100px]">{formatDate(order.createdAt)}</span>
+                <Pill tone={order.status === "delivered" ? "success" : "info"}>{humanize(order.status)}</Pill>
+                <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{naira(order.total)}</span>
+              </ListRow>
+            ))}
+          </ListCard>
+        ) : (
+          <EmptyState icon="coin" title="Nothing here yet">Paid orders show up here once customers start paying.</EmptyState>
+        )}
 
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paidOrders.slice(0, 30).map((o) => (
-                <tr key={o.id}>
-                  <td style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600 }}>{o.orderNumber}</td>
-                  <td style={{ fontWeight: 600, fontSize: 13 }}>{o.buyerName}</td>
-                  <td className="money" style={{ fontWeight: 600 }}>{fmt(Number(o.total))}</td>
-                  <td><Badge variant={o.status === "delivered" ? "mint" : "info"}>{o.status}</Badge></td>
-                  <td style={{ fontSize: 12.5, color: "var(--ink-500)" }}>
-                    {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                  </td>
-                </tr>
-              ))}
-              {paidOrders.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>No eligible orders yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">Shopinbos doesn&apos;t show individual bank transfers here yet. Check your bank or Paystack statement to match payments.</p>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

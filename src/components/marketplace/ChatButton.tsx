@@ -13,8 +13,7 @@ export function ChatButton({ contactId, label = "Chat" }: ChatButtonProps) {
   return (
     <button
       type="button"
-      className="dbtn dBtn-ghost dBtn-sm"
-      style={{ flex: 1, justifyContent: "center", fontSize: 12 }}
+      className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink transition hover:border-app-line-strong"
       onClick={() => openChat(contactId)}
     >
       {label}

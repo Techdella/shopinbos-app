@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BrandLogo } from "@/components/brand/BrandLogo";
-import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import intentRouting from "@/lib/intent-routing";
 
@@ -57,14 +56,6 @@ const DOCUMENTS: Document[] = [
   { id: "bank", name: "Bank account proof", type: "bank", status: "optional", notes: "Optional - upload bank proof that matches the business name." },
 ];
 
-const documentFindingsData = [
-  ["Registered name", "Waiting for upload"],
-  ["BN / RC number", "Waiting for upload"],
-  ["Registration type", "Waiting for upload"],
-  ["Director", "Waiting for upload"],
-  ["Address", "Waiting for upload"],
-];
-
 const requiredDocumentTypes = new Set<Document["type"]>(["registration", "identity", "product-images"]);
 
 function isDocumentComplete(doc: Document) {
@@ -100,8 +91,8 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
   const { extractIntentParams, getContinuationPath } = intentRouting;
 
   const [step, setStep] = useState(1);
-  const [businessName, setBusinessName] = useState(initialSupplier?.businessName ?? "Your supplier business");
-  const [displayName, setDisplayName] = useState(initialSupplier?.displayName ?? initialSupplier?.businessName ?? "Your supplier business");
+  const [businessName, setBusinessName] = useState(initialSupplier?.businessName ?? "");
+  const [displayName, setDisplayName] = useState(initialSupplier?.displayName ?? initialSupplier?.businessName ?? "");
   const [country, setCountry] = useState(initialSupplier?.country ?? initialUser?.country ?? "Nigeria");
   const [city, setCity] = useState(initialSupplier?.city ?? initialUser?.city ?? "Lagos");
   const [address, setAddress] = useState(initialSupplier?.address ?? "");
@@ -110,6 +101,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
   const [documents, setDocuments] = useState<Document[]>(() => normalizeDocuments(initialSupplier?.verificationDocuments));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(initialSupplier?.onboardingState?.completed ? "Submitted for admin review." : "");
+  const [error, setError] = useState("");
 
   function toggleCategory(cat: string) {
     setCategories((prev) =>
@@ -130,56 +122,69 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
   }
 
   function documentTone(status: Document["status"]) {
-    if (status === "read") return "success";
-    if (status === "uploaded" || status === "reading") return "info";
-    return "soft";
+    if (status === "read") return "bg-app-success-tint text-app-success";
+    if (status === "uploaded" || status === "reading") return "bg-[#E8EAFB] text-[#3D4FB8]";
+    if (status === "pending") return "bg-app-peach text-app-accent-ink";
+    return "bg-app-canvas text-app-ink-soft";
   }
 
   function documentLabel(doc: Document) {
     if (doc.status === "read") return "Read by Rex";
     if (doc.status === "uploaded") return "Uploaded";
     if (doc.status === "reading") return "Reading";
-    return doc.status;
+    if (doc.status === "pending") return "Needed";
+    return "Optional";
+  }
+
+  // Only send name fields once they're long enough for the API; blanks keep what's saved.
+  function textOrUndefined(value: string) {
+    const trimmed = value.trim();
+    return trimmed.length >= 2 ? trimmed : undefined;
   }
 
   async function save(completed: boolean) {
     setSaving(true);
     setSaved("");
+    setError("");
     try {
       const requiredDocs = documents.filter((d) => requiredDocumentTypes.has(d.type));
       const missingRequiredDocs = requiredDocs.filter((d) => !isDocumentComplete(d));
 
+      if (completed && !textOrUndefined(businessName)) {
+        setError("Add your business name before submitting.");
+        setStep(1);
+        return;
+      }
       if (completed && missingRequiredDocs.length > 0) {
-        setSaved(`Please upload ${missingRequiredDocs.map((doc) => doc.name).join(", ")} before submitting.`);
+        setError(`Please add ${missingRequiredDocs.map((doc) => doc.name).join(", ")} before submitting.`);
         return;
       }
 
       const readCount = requiredDocs.filter(isDocumentComplete).length;
       const readinessScore = Math.round((readCount / Math.max(requiredDocs.length, 1)) * 100);
 
-      await fetch("/api/supplier/onboarding", {
+      const response = await fetch("/api/supplier/onboarding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName,
-          displayName,
-          country,
-          city,
+          businessName: textOrUndefined(businessName),
+          displayName: textOrUndefined(displayName) ?? textOrUndefined(businessName),
+          country: textOrUndefined(country),
+          city: textOrUndefined(city),
           address,
           description,
           categories,
           documents,
-          documentFindings: {
-            registeredName: "Atelier 12 Trading Ltd",
-            rcNumber: "1,748,221",
-            businessType: "Limited Liability",
-            director: initialUser?.name || "Ifeanyi Okonkwo",
-            address,
-          },
           readinessScore,
           completed,
         }),
       }).catch(() => null);
+
+      if (!response?.ok) {
+        const body = await response?.json().catch(() => null);
+        setError(body?.error?.message ?? "We couldn't save that. Check your connection and try again.");
+        return;
+      }
 
       if (completed) {
         const intentParams = extractIntentParams(searchParams);
@@ -189,173 +194,174 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
         });
         router.push(destination || "/supplier/dashboard");
       } else {
-        setSaved("Progress saved. You can come back and finish verification later.");
+        setSaved("Progress saved. You can come back and finish later.");
       }
     } finally {
       setSaving(false);
     }
   }
 
+  const textareaClass = "w-full rounded-[16px] border border-app-line bg-white px-4 py-3 text-[16px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
+
   return (
-    <div className="stage bg-[var(--canvas)] px-7 py-6">
-      <div className="mb-6 flex items-center justify-between">
-        <BrandLogo className="w-[132px]" />
-        <div className="text-[13px] font-semibold text-[var(--ink-500)]">
-          Step {step} of 2 · manual admin verification required
-        </div>
-      </div>
-      {saved && (
-        <div className="mx-auto mb-5 max-w-[1100px] rounded-[12px] border border-[var(--teal-200)] bg-[var(--teal-50)] px-4 py-3 text-[13px] font-semibold text-[var(--teal-800)]">
-          {saved}
-        </div>
-      )}
+    <div className="min-h-dvh w-full bg-app-canvas font-app text-app-ink">
+      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-4 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 xl:px-8">
+        <Wordmark />
+        <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1"><ProgressBars total={2} current={step - 1} /></div>
+        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">Step {step} of 2</span>
+      </header>
 
-      {step === 1 && (
-        <div className="mx-auto flex max-w-[800px] flex-col">
-          <div className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-500)]">
-            Supplier onboarding
+      <main className="w-full px-4 pb-10 pt-4 sm:px-6 xl:px-8">
+        <div className="grid gap-3">
+          {error && <Notice tone="error">{error}</Notice>}
+          {saved && <Notice tone="success">{saved}</Notice>}
+        </div>
+
+        {step === 1 && (
+          <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section className="min-w-0">
+              <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Tell us about your business.</h1>
+              <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
+                Save any time. Your supplier tools open after manual admin verification by the Shopinbos team.
+              </p>
+
+              <div className="mt-6 grid gap-5 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <FieldLabel htmlFor="onb-business">Business name</FieldLabel>
+                    <TextInput id="onb-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your registered business name" />
+                  </div>
+                  <div>
+                    <FieldLabel htmlFor="onb-display">Name sellers see</FieldLabel>
+                    <TextInput id="onb-display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Same as above, or a shorter name" />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <FieldLabel htmlFor="onb-country">Country</FieldLabel>
+                    <TextInput id="onb-country" value={country} onChange={(e) => setCountry(e.target.value)} />
+                  </div>
+                  <div>
+                    <FieldLabel htmlFor="onb-city">City</FieldLabel>
+                    <TextInput id="onb-city" value={city} onChange={(e) => setCity(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel htmlFor="onb-address">Business address</FieldLabel>
+                  <TextInput id="onb-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, city, state" />
+                </div>
+                <div>
+                  <FieldLabel htmlFor="onb-description">What you make or sell</FieldLabel>
+                  <textarea id="onb-description" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Materials, how much you can make, how long orders take…" />
+                </div>
+                <fieldset className="m-0 border-0 p-0">
+                  <legend className="mb-2 text-[14px] font-bold">Product categories</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {categoryOptions.map((cat) => {
+                      const on = categories.includes(cat);
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => toggleCategory(cat)}
+                          className={cx(
+                            "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold transition",
+                            on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+                          )}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <PillButton tone="white" size="md" onClick={() => void save(false)} busy={saving}>Save progress</PillButton>
+                <PillButton tone="ink" size="md" onClick={() => setStep(2)}>
+                  Continue to documents <Icon name="arrow" size={15} />
+                </PillButton>
+              </div>
+            </section>
+
+            <aside className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5 xl:mt-[92px] xl:self-start">
+              <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
+              <p className="m-0 text-[14.5px] leading-[1.55]">
+                Once you&apos;re approved, I&apos;ll look out for sellers in your categories and suggest you when there&apos;s a match.
+              </p>
+            </aside>
           </div>
-          <h1 className="onb-title">Tell us about your business.</h1>
-          <p className="onb-sub">
-            Save progress anytime. You can use the platform after Shopinbos admin manually verifies your supplier profile.
-          </p>
+        )}
 
-          <div className="card mt-7" style={{ padding: 24 }}>
-            <div className="grid gap-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="field">
-                  <span className="label">Business name</span>
-                  <input className="inp" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your registered business name" />
-                </label>
-                <label className="field">
-                  <span className="label">Display name</span>
-                  <input className="inp" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Public-facing name" />
-                </label>
+        {step === 2 && (
+          <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section className="min-w-0">
+              <div className="text-[14px] text-app-ink-soft">{[displayName || businessName, city, country].filter(Boolean).join(" · ")}</div>
+              <h1 className="mb-0 mt-1 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Verify your business.</h1>
+              <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
+                Add your documents, then send them for review. Your public page and supplier tools stay locked until you&apos;re approved.
+              </p>
+
+              <ul className="m-0 mt-6 list-none divide-y divide-app-line overflow-hidden rounded-[22px] border border-app-line bg-white p-0">
+                {documents.map((doc) => (
+                  <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:flex-nowrap sm:px-5">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas">
+                      <Icon name={doc.status === "read" || doc.status === "uploaded" ? "check" : doc.status === "reading" ? "refresh" : "document"} size={18} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14.5px] font-extrabold">{doc.name}</span>
+                      <span className="block truncate text-[13px] text-app-ink-soft">{doc.fileName ?? doc.notes}</span>
+                    </span>
+                    <span className={cx("shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold", documentTone(doc.status))}>{documentLabel(doc)}</span>
+                    <label className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold transition hover:border-app-line-strong focus-within:outline focus-within:outline-2 focus-within:outline-app-ink">
+                      {doc.status === "pending" || doc.status === "optional" ? "Choose file" : "Replace"}
+                      <input type="file" className="sr-only" aria-label={`File for ${doc.name}`} onChange={(e) => handleDocumentUpload(doc.id, e.target.files)} />
+                    </label>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <PillButton tone="ghost" size="md" onClick={() => setStep(1)}>
+                  <Icon name="arrowLeft" size={15} /> Back
+                </PillButton>
+                <div className="flex flex-wrap gap-2">
+                  <PillButton tone="white" size="md" onClick={() => void save(false)} disabled={saving}>Save progress</PillButton>
+                  <PillButton tone="accent" size="md" onClick={() => void save(true)} busy={saving}>
+                    Submit for admin review <Icon name="arrow" size={15} />
+                  </PillButton>
+                </div>
               </div>
+            </section>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="field">
-                  <span className="label">Country</span>
-                  <input className="inp" value={country} onChange={(e) => setCountry(e.target.value)} />
-                </label>
-                <label className="field">
-                  <span className="label">City</span>
-                  <input className="inp" value={city} onChange={(e) => setCity(e.target.value)} />
-                </label>
-              </div>
-
-              <label className="field">
-                <span className="label">Business address</span>
-                <input className="inp" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, city, region" />
-              </label>
-
-              <label className="field">
-                <span className="label">Description of your business</span>
-                <textarea className="ta" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What do you manufacture? Materials, capacity, lead times..." />
-              </label>
-
-              <div className="field">
-                <span className="label">Product categories</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {categoryOptions.map((cat) => (
-                    <button key={cat} type="button" onClick={() => toggleCategory(cat)} className={`chip ${categories.includes(cat) ? "on" : ""}`}>
-                      {cat}
-                    </button>
+            <aside className="grid content-start gap-4 xl:mt-[118px]">
+              <div className="rounded-[22px] border border-app-line bg-white p-5">
+                <h2 className="m-0 text-[17px] font-extrabold">What happens next</h2>
+                <ol className="m-0 mt-3 grid list-none gap-3 p-0 text-[14px] leading-[1.5]">
+                  {[
+                    "You send your documents for review.",
+                    "The Shopinbos team checks them, usually within 1-2 business days.",
+                    "Once approved, your public page goes live and sellers can order and ask for quotes.",
+                  ].map((line, index) => (
+                    <li key={line} className="flex gap-3">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-[12px] font-extrabold text-white">{index + 1}</span>
+                      <span>{line}</span>
+                    </li>
                   ))}
-                </div>
+                </ol>
               </div>
-            </div>
+              <div className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5">
+                <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
+                <p className="m-0 text-[14.5px] leading-[1.55]">
+                  Once you&apos;re approved, I&apos;ll look out for sellers in your categories and suggest you when there&apos;s a match.
+                </p>
+              </div>
+            </aside>
           </div>
-
-          <div className="mt-6 flex items-center justify-between">
-            <button type="button" onClick={() => void save(false)} className="btn btn-ghost" disabled={saving}>
-              {saving ? "Saving..." : "Save progress"}
-            </button>
-            <button type="button" onClick={() => setStep(2)} className="btn btn-mint btn-lg">
-              Continue to verification <Icon name="arrow" size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="mx-auto grid w-full max-w-[1100px] gap-8 lg:grid-cols-[1.4fr_1fr]">
-          <div>
-            <div className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-500)]">
-              {displayName} - {city}, {country}
-            </div>
-            <h1 className="onb-title">Verify your business.</h1>
-            <p className="onb-sub max-w-[580px]">
-              Upload documents, then submit for manual admin verification. Your public page and supplier tools stay locked until approval.
-            </p>
-
-            <div className="mt-7 flex flex-col gap-3">
-              {documents.map((doc) => (
-                <div key={doc.id} className="card flex items-center gap-4" style={{ padding: 14, borderRadius: 12 }}>
-                  <div className="grid h-[42px] w-[42px] place-items-center rounded-[10px] bg-[var(--ink-75)] text-[var(--teal-700)]">
-                    <Icon name={doc.status === "read" ? "check" : doc.status === "uploaded" || doc.status === "reading" ? "refresh" : "upload"} size={19} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-semibold text-[var(--ink-900)]">{doc.name}</div>
-                    <div className="mt-0.5 text-[12px] text-[var(--ink-500)]">{doc.fileName ?? doc.notes}</div>
-                  </div>
-                  <label className="btn btn-ghost btn-sm cursor-pointer">
-                    {doc.status === "pending" || doc.status === "optional" ? "Upload" : "Replace"}
-                    <input type="file" className="sr-only" onChange={(e) => handleDocumentUpload(doc.id, e.target.files)} />
-                  </label>
-                  <span className={`badge badge-${documentTone(doc.status)}`}>{documentLabel(doc)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-7 flex items-center justify-between">
-              <button type="button" onClick={() => setStep(1)} className="btn btn-ghost">Back</button>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => void save(false)} className="btn btn-ghost" disabled={saving}>
-                  Save progress
-                </button>
-                <button type="button" onClick={() => void save(true)} className="btn btn-mint btn-lg" disabled={saving}>
-                  {saving ? "Saving..." : "Submit for admin review"} <Icon name="arrow" size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <aside>
-            <div className="card mb-4">
-              <div className="mb-4 flex gap-3">
-                <div className="grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-[var(--teal-100)]">
-                  <Icon name="sparkle" size={18} color="var(--teal-700)" />
-                </div>
-                <div>
-                  <div className="onb-card-kicker">Reading your documents</div>
-                  <div className="text-[15px] font-semibold text-[var(--ink-900)]">What Rex found in your registration</div>
-                </div>
-              </div>
-              {documentFindingsData.map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-3 py-1.5 text-[13px]">
-                  <span className="text-[var(--ink-500)]">{label}</span>
-                  <span className="text-right font-semibold text-[var(--ink-900)]">{value}</span>
-                </div>
-              ))}
-              <div className="mt-3 flex items-center gap-1 rounded-[10px] bg-[var(--success-bg)] px-3 py-2 text-[12.5px] font-semibold text-[var(--success)]">
-                <Icon name="check" size={14} /> Confirmed against business registration records
-              </div>
-            </div>
-            <div className="card bg-[linear-gradient(160deg,var(--teal-50),var(--teal-100))]">
-              <div className="flex gap-4">
-                <ChipAvatar mascot="peggy" size={56} />
-                <div>
-                  <div className="onb-card-kicker">From Peggy</div>
-                  <div className="mt-1 text-[13.5px] leading-6 text-[var(--ink-800)]">
-                    Once Shopinbos admin approves you, I&apos;ll watch for sellers in your category and suggest you when there&apos;s a match.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   );
 }

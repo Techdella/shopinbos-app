@@ -145,10 +145,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       (z) => z.regions.length === 0 || z.regions.some((r) => deliveryAddress.city.toLowerCase().includes(r.toLowerCase()) || deliveryAddress.state?.toLowerCase().includes(r.toLowerCase())),
     );
     if (matchingZone) {
-      const zoneRates = (Array.isArray(matchingZone.rates) ? matchingZone.rates : []) as Array<{ min?: number; max?: number; price?: number }>;
-      const matchedRate = zoneRates.find(
-        (r) => (!r.min || subtotal >= r.min) && (!r.max || subtotal <= r.max),
-      );
+      // Rates are stored as minValue/maxValue (ShippingRateSchema); min/max kept for older rows.
+      const zoneRates = (Array.isArray(matchingZone.rates) ? matchingZone.rates : []) as Array<{ minValue?: number; maxValue?: number; min?: number; max?: number; price?: number }>;
+      const matchedRate = zoneRates.find((r) => {
+        const min = r.minValue ?? r.min;
+        const max = r.maxValue ?? r.max;
+        return (!min || subtotal >= min) && (!max || subtotal <= max);
+      });
       shippingFee = matchedRate?.price ?? 0;
     }
   } else {

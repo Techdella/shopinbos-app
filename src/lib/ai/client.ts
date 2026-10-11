@@ -24,10 +24,25 @@ export function getOpenAIClient(): OpenAI | null {
   return _openai;
 }
 
-export const CHIP_MODEL = "claude-sonnet-4-6";
-export const REX_OPENAI_MODEL = process.env.OPENAI_REX_MODEL ?? "gpt-4o-mini";
-export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.OPENAI_REX_MODEL ?? "gpt-4o-mini";
-export const PEGGY_CLAUDE_MODEL = process.env.ANTHROPIC_PEGGY_MODEL ?? process.env.ANTHROPIC_MODEL ?? CHIP_MODEL;
+// Model ids. Every one can be overridden from the environment (see .env.local.example).
+// Claude: the main model does building, tool use and writing; the fast one does short, high-volume jobs.
+export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
+export const CLAUDE_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL ?? "claude-haiku-5-5";
+export const CHIP_MODEL = process.env.ANTHROPIC_REX_MODEL ?? CLAUDE_MODEL;
+export const REX_OPENAI_MODEL = process.env.OPENAI_REX_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.OPENAI_MODEL ?? REX_OPENAI_MODEL;
+export const PEGGY_CLAUDE_MODEL = process.env.ANTHROPIC_PEGGY_MODEL ?? CLAUDE_MODEL;
+export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
+
+/** Which provider to try first when both keys are set ("anthropic" or "openai"); the other is the fallback. */
+export function providerOrder(): Array<"anthropic" | "openai"> {
+  const first = process.env.AI_PRIMARY_PROVIDER === "openai" ? "openai" : "anthropic";
+  return first === "openai" ? ["openai", "anthropic"] : ["anthropic", "openai"];
+}
+
+export function aiConfigured() {
+  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
+}
 
 
 export const CHIP_SYSTEM_PROMPT = `You are Rex, the AI store builder for Shopinbos — Africa's AI commerce platform. You help entrepreneurs across Nigeria, Ghana, Kenya, and beyond build beautiful online stores through natural conversation.

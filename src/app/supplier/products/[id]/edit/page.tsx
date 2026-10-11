@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
-import { RolePage } from "@/components/role/RolePage";
+import { AppPage, PillLink } from "@/components/app-kit";
+import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { updateSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
 
@@ -55,18 +56,16 @@ export default async function EditSupplierProductPage({
   if (!product) notFound();
 
   return (
-    <RolePage
-      role="supplier"
-      eyebrow="Edit product"
+    <AppPage
+      frame={supplierFrame(user, supplier)}
       title={product.name}
-      description="Keep trade terms, media, stock, and fulfilment current. Public-facing changes go back through marketplace review."
-      actions={[{ label: "New product", href: "/supplier/products/new", icon: "plus" }]}
-      metrics={[
-        { label: "Status", value: product.status.replace("_", " "), sub: product.category.name, icon: "flag", tone: product.status === "published" ? "teal" : "amber" },
-        { label: "Stock", value: String(product.stockQuantity), sub: `MOQ ${product.moq}`, icon: "box", tone: "indigo" },
-        { label: "Dropship", value: product.dropshipAvailable ? "On" : "Off", sub: product.bulkOrderAvailable ? "Bulk enabled" : "Bulk off", icon: "truck", tone: "lime" },
-      ]}
-      assistantNote="Rex keeps an eye on the review path. Save as draft while working, then send it to review when the product is ready for sellers."
+      sub={`${product.category.name} · keep trade terms, photos, stock and fulfilment current. Changes to a live product go back through review.`}
+      actions={
+        <>
+          <PillLink href="/supplier/products">All products</PillLink>
+          <PillLink href="/supplier/products/new" icon="plus">New product</PillLink>
+        </>
+      }
     >
       <SupplierProductForm
         mode="edit"
@@ -76,6 +75,6 @@ export default async function EditSupplierProductPage({
         error={query?.error}
         saved={query?.saved === "1"}
       />
-    </RolePage>
+    </AppPage>
   );
 }

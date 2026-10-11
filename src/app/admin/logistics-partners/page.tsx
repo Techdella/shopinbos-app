@@ -1,25 +1,35 @@
+import Link from "next/link";
 import { updateLogisticsVerification, bulkUpdateLogisticsVerification } from "@/app/actions/admin";
-import { StatusPill } from "@/components/ops/OpsPrimitives";
-import { DataTable, RolePage, formatDate, formatMoney } from "@/components/role/RolePage";
-import { AutoSubmitSelect } from "@/components/ui/AutoSubmitSelect";
+import { AppPage, EmptyState, FilterChips, ListCard, PillLink, Pill, SearchForm, Thumb } from "@/components/app-kit";
+import {
+  CountRow,
+  DecisionButtons,
+  OnboardingPill,
+  onboardingSubmitted,
+  VERIFICATION_STATUSES,
+  VerificationPill,
+  adminFrame,
+  buttonClass,
+  fieldClass,
+  formatDate,
+  formatMoney,
+  verificationLabel,
+  withParams,
+} from "@/components/admin/AdminKit";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 
-const verificationStatuses = ["unverified", "pending", "verified", "rejected", "suspended"];
-
-function onboardingSubmitted(state: unknown) {
-  return Boolean(state && typeof state === "object" && !Array.isArray(state) && (state as { completed?: boolean }).completed === true);
-}
+const verificationStatuses: readonly string[] = VERIFICATION_STATUSES;
 
 export default async function AdminLogisticsPartnersPage(props: { searchParams?: Promise<{ status?: string; q?: string }> }) {
-  await requireRole(["admin"], "/admin/login");
+  const user = await requireRole(["admin"], "/admin/login");
 
   const searchParams = await props.searchParams;
-  const statusFilter = searchParams?.status;
-  const searchQuery = searchParams?.q?.trim();
+  const statusFilter = searchParams?.status && verificationStatuses.includes(searchParams.status) ? searchParams.status : undefined;
+  const searchQuery = searchParams?.q?.trim() || undefined;
 
   const where: Record<string, unknown> = {};
-  if (statusFilter && verificationStatuses.includes(statusFilter)) {
+  if (statusFilter) {
     where.verificationStatus = statusFilter;
   }
   if (searchQuery) {
@@ -30,185 +40,159 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     ];
   }
 
-  const partners = await db.logisticsPartner.findMany({
-    where,
-    orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
-    take: 100,
-    select: {
-      id: true,
-      companyName: true,
-      displayName: true,
-      slug: true,
-      country: true,
-      city: true,
-      verificationStatus: true,
-      status: true,
-      reliabilityScore: true,
-      onboardingState: true,
-      basePrice: true,
-      updatedAt: true,
-      coverageZones: true,
-      deliveryTypes: true,
-    },
-  });
+  const [partners, byStatus, total, submitted, suspended] = await Promise.all([
+    db.logisticsPartner.findMany({
+      where,
+      orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
+      take: 100,
+      select: {
+        id: true,
+        companyName: true,
+        displayName: true,
+        slug: true,
+        country: true,
+        city: true,
+        logoUrl: true,
+        verificationStatus: true,
+        status: true,
+        reliabilityScore: true,
+        basePrice: true,
+        coverageZones: true,
+        deliveryTypes: true,
+        onboardingState: true,
+        updatedAt: true,
+      },
+    }),
+    db.logisticsPartner.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
+    db.logisticsPartner.count(),
+    db.logisticsPartner.count({ where: { onboardingState: { path: ["completed"], equals: true } } }),
+    db.logisticsPartner.count({ where: { status: "suspended" } }),
+  ]);
 
-  const selectedIds = partners.map((p) => p.id);
+  const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
+  const selectedIds = partners.map((s) => s.id);
+  const backTo = withParams("/admin/logistics-partners", { status: statusFilter, q: searchQuery });
 
   return (
-    <RolePage
-      role="admin"
-      eyebrow="Admin logistics"
-      title="Logistics Partners"
-      description="Approve delivery partners, adjust reliability scores, and keep the public logistics directory limited to active verified operators."
-      metrics={[
-        { label: "Partners", value: String(partners.length) },
-        { label: "Pending", value: String(partners.filter((partner) => partner.verificationStatus === "pending").length) },
-        { label: "Verified", value: String(partners.filter((partner) => partner.verificationStatus === "verified").length) },
-        { label: "Submitted", value: String(partners.filter((partner) => onboardingSubmitted(partner.onboardingState)).length) },
-        { label: "Suspended", value: String(partners.filter((partner) => partner.status === "suspended").length) },
-      ]}
-    >
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <form method="GET" className="flex flex-wrap items-center gap-2">
-          <AutoSubmitSelect
-            name="status"
-            defaultValue={statusFilter ?? ""}
-            className="rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-2 text-[13px] text-navy outline-none"
-          >
-            <option value="">All verification statuses</option>
-            {verificationStatuses.map((s) => (
-              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-            ))}
-          </AutoSubmitSelect>
-          <input
-            name="q"
-            type="search"
-            placeholder="Search partners..."
-            defaultValue={searchQuery ?? ""}
-            className="rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-2 text-[13px] text-navy outline-none min-w-[200px]"
+    <AppPage
+      frame={adminFrame(user, "Search logistics partners")}
+      title="Logistics partners"
+      sub="Check delivery companies before sellers can book them. Only active, verified partners appear in the public logistics directory."
+      toolbar={
+        <>
+          <FilterChips
+            items={[
+              { label: "All", count: total, href: withParams("/admin/logistics-partners", { q: searchQuery }), active: !statusFilter },
+              ...(["pending", "verified", "unverified", "rejected", "suspended"] as const).map((status) => ({
+                label: verificationLabel(status),
+                count: countFor(status),
+                href: withParams("/admin/logistics-partners", { status, q: searchQuery }),
+                active: statusFilter === status,
+              })),
+            ]}
           />
-          <button type="submit" className="rounded-pill bg-mint px-4 py-2 text-sm font-semibold text-navy">
-            Filter
-          </button>
-          {statusFilter || searchQuery ? (
-            <a href="/admin/logistics-partners" className="text-sm text-muted underline">Clear</a>
-          ) : null}
-        </form>
-
-        <form action={bulkUpdateLogisticsVerification} className="flex items-center gap-2">
-          {selectedIds.map((id) => (
-            <input key={id} type="hidden" name="logisticsPartnerIds" value={id} />
-          ))}
-          <input type="hidden" name="redirectTo" value="/admin/logistics-partners" />
-          <select
-            name="status"
-            className="rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-2 text-[13px] text-navy outline-none"
-          >
-            <option value="">Bulk action...</option>
-            {verificationStatuses.map((s) => (
-              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-            ))}
-          </select>
-          <button type="submit" className="rounded-pill border border-[rgb(14_42_56_/_0.12)] bg-white px-4 py-2 text-sm font-semibold text-navy">
-            Apply to all
-          </button>
-        </form>
-      </div>
-
-      <DataTable
-        title="Partner Moderation"
-        empty="No logistics partners yet."
-        rows={partners}
-        columns={[
-          {
-            label: "Company",
-            value: (row) => (
-              <div className="min-w-[180px]">
-                <div className="font-semibold text-navy">{row.displayName}</div>
-                <div className="text-xs text-muted">{row.companyName}</div>
-                <div className="text-xs text-muted">/{row.slug}</div>
-              </div>
-            ),
-          },
-          { label: "Location", value: (row) => `${row.city}, ${row.country}` },
-          {
-            label: "Coverage",
-            value: (row) => (
-              <div className="min-w-[160px] text-xs leading-5 text-muted">
-                <div>{row.coverageZones.length} zones</div>
-                <div>{row.deliveryTypes.join(", ") || "No delivery types"}</div>
-              </div>
-            ),
-          },
-          {
-            label: "Onboarding",
-            value: (row) => (
-              <StatusPill
-                status={
-                  onboardingSubmitted(row.onboardingState) ? "submitted" : "draft"
-                }
-              />
-            ),
-          },
-          { label: "Verification", value: (row) => <StatusPill status={row.verificationStatus} /> },
-          { label: "Status", value: (row) => <StatusPill status={row.status} /> },
-          { label: "Base", value: (row) => formatMoney(row.basePrice) },
-          { label: "Updated", value: (row) => formatDate(row.updatedAt) },
-          {
-            label: "Documents",
-            value: (row) => (
-              <a
-                href={`/admin/logistics-partners/${row.id}`}
-                className="rounded-[8px] border border-[var(--teal-200)] bg-[var(--teal-50)] px-3 py-1.5 text-[12px] font-semibold text-[var(--teal-700)] no-underline transition-colors hover:bg-[var(--teal-100)]"
-              >
-                View docs
-              </a>
-            ),
-          },
-          {
-            label: "Moderation",
-            value: (row) => (
-              <form action={updateLogisticsVerification} className="grid min-w-[260px] gap-2">
-                <input type="hidden" name="logisticsPartnerId" value={row.id} />
-                <input type="hidden" name="redirectTo" value="/admin/logistics-partners" />
-                <div className="flex items-center gap-2">
-                  <select
-                    name="status"
-                    defaultValue={row.verificationStatus}
-                    className="flex-1 rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-2 text-[13px] text-navy outline-none"
-                  >
-                    {verificationStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status.replace(/_/g, " ")}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    name="reliabilityScore"
-                    type="number"
-                    min="0"
-                    max="100"
-                    defaultValue={row.reliabilityScore}
-                    className="w-[60px] rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-2 py-2 text-[13px] text-navy outline-none"
-                    title="Reliability score"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-pill bg-mint px-4 py-2 text-sm font-semibold text-navy"
-                  >
-                    Save
-                  </button>
-                </div>
-                <input
-                  name="note"
-                  placeholder="Moderation note..."
-                  className="rounded-[12px] border border-[rgb(14_42_56_/_0.12)] bg-white px-3 py-1.5 text-[12px] text-navy outline-none"
-                />
-              </form>
-            ),
-          },
+          <SearchForm action="/admin/logistics-partners" defaultValue={searchQuery} placeholder="Search by name or slug" keep={{ status: statusFilter }} />
+        </>
+      }
+    >
+      <CountRow
+        items={[
+          { label: "All partners", value: total },
+          { label: "Waiting for review", value: countFor("pending") },
+          { label: "Verified", value: countFor("verified") },
+          { label: "Onboarding sent", value: submitted },
+          { label: "Suspended", value: suspended },
         ]}
       />
-    </RolePage>
+
+      {partners.length === 0 ? (
+        <EmptyState icon="truck" title={statusFilter || searchQuery ? "No partners match" : "No logistics partners yet"} action={statusFilter || searchQuery ? <PillLink href="/admin/logistics-partners">Clear filters</PillLink> : undefined}>
+          {statusFilter || searchQuery ? "Try another filter or search word." : "Delivery partners show up here as soon as they sign up."}
+        </EmptyState>
+      ) : (
+        <>
+          <form action={bulkUpdateLogisticsVerification} className="mb-4 flex flex-wrap items-center gap-2 rounded-[18px] border border-app-line bg-white px-4 py-3">
+            {selectedIds.map((id) => (
+              <input key={id} type="hidden" name="logisticsPartnerIds" value={id} />
+            ))}
+            <input type="hidden" name="redirectTo" value={backTo} />
+            <label htmlFor="bulk-logistics-status" className="mr-1 text-[14px] font-bold">
+              Set all {partners.length} shown to
+            </label>
+            <select id="bulk-logistics-status" name="status" required defaultValue="" className={`${fieldClass} w-auto min-w-[180px]`}>
+              <option value="" disabled>Choose a status</option>
+              {VERIFICATION_STATUSES.map((s) => (
+                <option key={s} value={s}>{verificationLabel(s)}</option>
+              ))}
+            </select>
+            <button type="submit" className={buttonClass("white", "sm")}>Apply to all</button>
+          </form>
+
+          <ListCard>
+            {partners.map((row) => (
+              <li key={row.id} className="px-4 py-3.5 sm:px-5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 lg:flex-nowrap">
+                  <Thumb src={row.logoUrl} label={row.displayName} size={44} />
+                  <div className="min-w-0 flex-1 basis-[200px]">
+                    <Link href={`/admin/logistics-partners/${row.id}`} className="block truncate text-[15px] font-extrabold text-app-ink no-underline hover:underline">
+                      {row.displayName}
+                    </Link>
+                    <div className="truncate text-[13px] text-app-ink-soft">
+                      {row.companyName} · /{row.slug} · {row.city}, {row.country}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <VerificationPill status={row.verificationStatus} />
+                    {row.status !== "active" && <Pill tone="danger">{row.status === "suspended" ? "Account suspended" : row.status}</Pill>}
+                    <OnboardingPill status={onboardingSubmitted(row.onboardingState) ? "submitted" : "draft"} />
+                  </div>
+                  <div className="w-full text-[13px] text-app-ink-soft sm:w-auto lg:w-[200px] lg:shrink-0 lg:text-right">
+                    {row.coverageZones.length} zones · from {formatMoney(row.basePrice)}
+                    <div className="truncate">reliability {row.reliabilityScore} · {row.deliveryTypes.join(", ") || "no delivery types"}</div>
+                    <div>Updated {formatDate(row.updatedAt)}</div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PillLink href={`/admin/logistics-partners/${row.id}`} size="sm" icon="file">Documents</PillLink>
+                    {row.verificationStatus !== "verified" && (
+                      <DecisionButtons
+                        action={updateLogisticsVerification}
+                        fields={{ logisticsPartnerId: row.id, reliabilityScore: String(row.reliabilityScore), redirectTo: backTo }}
+                        approve="verified"
+                        reject="rejected"
+                        subject={row.displayName}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <details className="group mt-2">
+                  <summary className="inline-flex min-h-[40px] cursor-pointer list-none items-center gap-1 rounded-full text-[13px] font-bold text-app-ink-soft hover:text-app-ink [&::-webkit-details-marker]:hidden">
+                    <span className="group-open:hidden">Change status or reliability score</span>
+                    <span className="hidden group-open:inline">Hide</span>
+                  </summary>
+                  <form action={updateLogisticsVerification} className="mt-1 flex flex-wrap items-end gap-3 rounded-[16px] bg-app-canvas p-3">
+                    <input type="hidden" name="logisticsPartnerId" value={row.id} />
+                    <input type="hidden" name="redirectTo" value={backTo} />
+                    <div className="min-w-[180px] flex-1 sm:flex-none">
+                      <label htmlFor={`status-${row.id}`} className="mb-1 block text-[12.5px] font-bold">Verification</label>
+                      <select id={`status-${row.id}`} name="status" defaultValue={row.verificationStatus} className={fieldClass}>
+                        {VERIFICATION_STATUSES.map((status) => (
+                          <option key={status} value={status}>{verificationLabel(status)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-[120px]">
+                      <label htmlFor={`reliability-${row.id}`} className="mb-1 block text-[12.5px] font-bold">Reliability (0-100)</label>
+                      <input id={`reliability-${row.id}`} name="reliabilityScore" type="number" min="0" max="100" defaultValue={row.reliabilityScore} className={fieldClass} />
+                    </div>
+                    <button type="submit" className={buttonClass("ink", "sm")}>Save</button>
+                  </form>
+                </details>
+              </li>
+            ))}
+          </ListCard>
+        </>
+      )}
+    </AppPage>
   );
 }

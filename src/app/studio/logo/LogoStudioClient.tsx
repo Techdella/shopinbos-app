@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Badge, MascotAvatar } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
+import { FieldLabel, Notice, PillButton, Spinner, TextInput, cx } from "@/components/app-ui";
+import { AssistantNote, Pill } from "@/components/app-kit";
 
 interface LogoResult {
   style: string;
@@ -63,101 +65,97 @@ export function LogoStudioClient({ storeName }: { storeName: string }) {
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: "var(--ink-900)" }}>Brand details</div>
-          <div className="field" style={{ marginBottom: 14 }}>
-            <label className="label">Business name</label>
-            <input className="inp" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your store name" />
-          </div>
-          <div className="field" style={{ marginBottom: 14 }}>
-            <label className="label">Describe your business</label>
-            <textarea className="ta" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. African fashion boutique selling Ankara dresses and accessories" />
-          </div>
-          <div className="field" style={{ marginBottom: 14 }}>
-            <label className="label">Color hint (optional)</label>
-            <input className="inp" value={paletteHint} onChange={(e) => setPaletteHint(e.target.value)} placeholder="e.g. teal and gold, warm earth tones" />
-          </div>
-          <button className="dbtn dBtn-mint" onClick={generateLogos} disabled={loading || !businessName.trim()} style={{ width: "100%", justifyContent: "center" }}>
-            {loading ? <><Icon name="automation" size={14} /> Generating...</> : <><Icon name="sparkle" size={14} /> Generate logos</>}
-          </button>
-          {credits !== null && (
-            <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 8, textAlign: "center" }}>
-              {credits} AI credits remaining
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="grid min-w-0 content-start gap-5">
+        <section className="rounded-[22px] border border-app-line bg-white p-5">
+          <h2 className="m-0 text-[17px] font-extrabold">Your brand</h2>
+          <div className="mt-4 grid gap-4">
+            <div>
+              <FieldLabel htmlFor="logo-name">Business name</FieldLabel>
+              <TextInput id="logo-name" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your store name" />
             </div>
-          )}
-        </div>
-
-        {error && (
-          <div className="card" style={{ padding: 14, background: "var(--danger-bg)", borderColor: "var(--danger)" }}>
-            <div style={{ fontSize: 13, color: "var(--danger)" }}>{error}</div>
-          </div>
-        )}
-
-        <div className="card" style={{ padding: 14, background: "linear-gradient(160deg, var(--teal-50), var(--teal-100))" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <MascotAvatar role="supplier" size={36} />
-            <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--ink-800)" }}>
-              <strong>Rex's tip:</strong> Describe your brand style in detail — the more specific you are, the better the logos will match your vision.
+            <div>
+              <FieldLabel htmlFor="logo-desc">What do you sell?</FieldLabel>
+              <textarea
+                id="logo-desc"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. African fashion boutique selling Ankara dresses and accessories"
+                className="w-full resize-y rounded-[16px] border border-app-line bg-white px-4 py-3 text-[15px] leading-[1.55] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
+              />
             </div>
+            <div>
+              <FieldLabel htmlFor="logo-colours">Colours (optional)</FieldLabel>
+              <TextInput id="logo-colours" value={paletteHint} onChange={(e) => setPaletteHint(e.target.value)} placeholder="e.g. green and gold, warm earth tones" />
+            </div>
+            <PillButton tone="accent" size="md" className="w-full" onClick={generateLogos} disabled={loading || !businessName.trim()}>
+              {loading ? <><Spinner /> Drawing your logos…</> : <><Icon name="sparkle" size={16} /> Make logos</>}
+            </PillButton>
+            {credits !== null && <p className="m-0 text-center text-[13px] text-app-ink-soft">{credits} AI credits left</p>}
           </div>
-        </div>
+        </section>
+
+        {error && <Notice>{error}</Notice>}
+
+        <AssistantNote who="rex">
+          <strong>Rex&apos;s tip:</strong> the more you tell me about your style, the closer the logos get to what you have in mind.
+        </AssistantNote>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="grid min-w-0 content-start gap-5">
         {logos.length === 0 && !loading && (
-          <div className="card" style={{ padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--teal-100)", display: "grid", placeItems: "center", color: "var(--teal-600)" }}>
-              <Icon name="image" size={28} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-600)" }}>Your logos will appear here</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-400)", maxWidth: 280 }}>Fill in your brand details and click generate to create AI-powered logos.</div>
-          </div>
+          <section className="flex min-h-[320px] flex-col items-center justify-center rounded-[22px] border border-dashed border-app-line-strong bg-white px-6 py-10 text-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="palette" size={26} /></span>
+            <h2 className="mb-0 mt-3 text-[16px] font-extrabold">Your logos show here</h2>
+            <p className="mb-0 mt-1 max-w-[320px] text-[14px] text-app-ink-soft">Fill in your brand details, then press Make logos.</p>
+          </section>
         )}
 
         {loading && (
-          <div className="card" style={{ padding: "40px 24px", textAlign: "center" }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", border: "3px solid var(--teal-200)", borderTopColor: "var(--teal-600)", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-700)" }}>Rex is creating your logos...</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 4 }}>Generating 3 variations with DALL-E AI</div>
-          </div>
+          <section role="status" className="flex min-h-[320px] flex-col items-center justify-center rounded-[22px] border border-app-line bg-white px-6 py-10 text-center">
+            <span aria-hidden className="inline-block h-10 w-10 animate-spin rounded-full border-[3px] border-app-ink border-r-transparent" />
+            <h2 className="mb-0 mt-4 text-[16px] font-extrabold">Rex is drawing your logos…</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Three options, coming up.</p>
+          </section>
         )}
 
         {logos.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-600)", marginBottom: 4 }}>Select your preferred logo</div>
-            {logos.map((logo) => (
-              <div key={logo.style} className="card" style={{
-                padding: 16, cursor: "pointer",
-                border: selectedStyle === logo.url ? "2px solid var(--teal-600)" : "1px solid var(--ink-100)",
-                transition: "border 0.12s",
-              }} onClick={() => handleSelect(logo.url)}>
-                <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <div style={{
-                    width: 80, height: 80, borderRadius: 10, overflow: "hidden",
-                    background: logo.palette.accent, flexShrink: 0,
-                    display: "grid", placeItems: "center",
-                  }}>
-                    <img src={logo.url} alt={logo.label} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink-900)", marginBottom: 2 }}>{logo.label}</div>
-                    <Badge variant="mint">{logo.style}</Badge>
-                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                      {[logo.palette.primary, logo.palette.secondary, logo.palette.accent].map((c, i) => (
-                        <div key={i} style={{ width: 18, height: 18, borderRadius: "50%", background: c, border: "1px solid var(--ink-150)" }} title={c} />
-                      ))}
-                    </div>
-                  </div>
-                  {selectedStyle === logo.url && (
-                    <Badge variant="success">Selected</Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <section className="grid gap-3">
+            <h2 className="m-0 text-[17px] font-extrabold">Pick your favourite</h2>
+            <p className="m-0 text-[13.5px] text-app-ink-soft">Tap a logo to use it for your store.</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+              {logos.map((logo) => {
+                const on = selectedStyle === logo.url;
+                return (
+                  <button
+                    key={logo.style}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => handleSelect(logo.url)}
+                    className={cx("flex min-w-0 items-center gap-4 rounded-[22px] border-2 bg-white p-3 text-left transition", on ? "border-app-ink" : "border-app-line hover:border-app-line-strong")}
+                  >
+                    <span className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[16px]" style={{ background: logo.palette.accent }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={logo.url} alt={logo.label} className="h-full w-full object-contain" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-extrabold">{logo.label}</span>
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Pill>{logo.style}</Pill>
+                        {on && <Pill tone="success" dot>Your logo</Pill>}
+                      </span>
+                      <span className="mt-2 flex gap-1.5">
+                        {[logo.palette.primary, logo.palette.secondary, logo.palette.accent].map((c, i) => (
+                          <span key={i} className="h-5 w-5 rounded-full border border-app-line" style={{ background: c }} title={c} />
+                        ))}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         )}
       </div>
     </div>

@@ -1,268 +1,234 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { AppPage, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, Thumb, cx } from "@/components/app-kit";
+import { Icon } from "@/components/ui/Icon";
+import { sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
+import { stockLabel } from "@/lib/dashboard/compute";
+import { naira } from "@shared/onboarding";
 
 export const dynamic = "force-dynamic";
 
-function fmtMoney(n: number, sym = "₦") {
-  return `${sym}${Math.round(n).toLocaleString("en-US")}`;
+type ProductRow = {
+  status: string;
+  fulfillmentType: string;
+  inventoryType: string;
+  currentStock: number;
+  lowStockThreshold: number;
+};
+
+const isLive = (p: ProductRow) => p.status === "active" || p.status === "published";
+const isDropship = (p: ProductRow) => p.fulfillmentType === "dropship" || p.inventoryType === "dropshipping";
+const isLow = (p: ProductRow) => !isDropship(p) && p.currentStock <= p.lowStockThreshold;
+
+// Old links used ?status=active|draft|archived; they map onto the new chips.
+const FILTERS: Array<{ key: string; label: string; test: (p: ProductRow) => boolean }> = [
+  { key: "all", label: "All", test: (p) => p.status !== "archived" },
+  { key: "live", label: "Live", test: isLive },
+  { key: "draft", label: "Drafts", test: (p) => p.status === "draft" },
+  { key: "low_stock", label: "Low stock", test: (p) => p.status !== "archived" && isLow(p) },
+  { key: "dropship", label: "Dropship", test: (p) => p.status !== "archived" && isDropship(p) },
+  { key: "archived", label: "Archived", test: (p) => p.status === "archived" },
+];
+
+const VISIBILITY = [
+  { key: "all", label: "Anywhere" },
+  { key: "storefront", label: "On storefront" },
+  { key: "featured", label: "Featured" },
+  { key: "collection_only", label: "Collections only" },
+  { key: "hidden", label: "Hidden" },
+];
+
+function variantCount(variants: unknown) {
+  return Array.isArray(variants) ? variants.length : 0;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Draft",
-  published: "Active",
-  active: "Active",
-  archived: "Archived",
-};
-
-const STATUS_VARIANT: Record<string, string> = {
-  draft: "soft",
-  published: "success",
-  active: "success",
-  archived: "ink",
-};
-
-const VISIBILITY_LABEL: Record<string, string> = {
-  hidden: "Hidden",
-  storefront: "Storefront",
-  featured: "Featured",
-  collection_only: "Collection Only",
-};
-
-const VISIBILITY_VARIANT: Record<string, string> = {
-  hidden: "ink",
-  storefront: "mint",
-  featured: "amber",
-  collection_only: "indigo",
-};
-
-const INVENTORY_LABEL: Record<string, string> = {
-  seller: "Seller Inventory",
-  dropshipping: "Dropshipping",
-  source_on_demand: "Source-On-Demand",
-  print_on_demand: "Print-On-Demand",
-  digital: "Digital",
-};
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; visibility?: string }>
+  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string }>
 }) {
-  const { status, visibility } = await searchParams;
+  const { status, filter: rawFilter, visibility, q } = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   if (!workspace.store) redirect("/builder?firstRun=1");
 
   const storeId = workspace.store.id;
-  const where: Record<string, unknown> = { storeId };
-  if (status && status !== "all") where.status = status;
-  if (visibility && visibility !== "all") where.visibility = visibility;
+  const filterKey = rawFilter ?? (status === "active" || status === "published" ? "live" : status);
+  const filter = FILTERS.find((item) => item.key === filterKey) ?? FILTERS[0];
+  const visibilityKey = VISIBILITY.some((item) => item.key === visibility) ? visibility! : "all";
+  const query = q?.trim() ?? "";
 
-  const products = await db.storeProduct.findMany({
-    where,
+  const all = await db.storeProduct.findMany({
+    where: { storeId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
       name: true,
-      description: true,
+      sku: true,
       images: true,
       retailPrice: true,
       compareAtPrice: true,
       currency: true,
       status: true,
       visibility: true,
+      fulfillmentType: true,
       inventoryType: true,
       currentStock: true,
       lowStockThreshold: true,
+      soldStock: true,
+      supplierStock: true,
+      variants: true,
       featured: true,
-      tags: true,
-      createdAt: true,
-      category: { select: { id: true, name: true } },
+      category: { select: { name: true } },
     },
   });
 
-  const activeTab = status || "all";
-  const visibilityTab = visibility || "all";
-  const counts = {
-    all: products.length,
-    draft: await db.storeProduct.count({ where: { storeId, status: "draft" } }),
-    active: await db.storeProduct.count({ where: { storeId, status: { in: ["published", "active"] } } }),
-    archived: await db.storeProduct.count({ where: { storeId, status: "archived" } }),
+  const needle = query.toLowerCase();
+  const products = all.filter(
+    (p) =>
+      filter.test(p) &&
+      (visibilityKey === "all" || p.visibility === visibilityKey) &&
+      (!needle || p.name.toLowerCase().includes(needle) || (p.sku ?? "").toLowerCase().includes(needle)),
+  );
+
+  const href = (next: { filter?: string; visibility?: string }) => {
+    const params = new URLSearchParams();
+    const f = next.filter ?? filter.key;
+    const v = next.visibility ?? visibilityKey;
+    if (f !== "all") params.set("filter", f);
+    if (v !== "all") params.set("visibility", v);
+    if (query) params.set("q", query);
+    const qs = params.toString();
+    return `/products${qs ? `?${qs}` : ""}`;
   };
 
+  const chips = FILTERS.filter((item) => item.key !== "archived" || filter.key === "archived" || all.some(item.test)).map((item) => ({
+    label: item.label,
+    href: href({ filter: item.key }),
+    count: item.key === "all" ? all.filter(item.test).length : undefined,
+    active: item.key === filter.key,
+  }));
+
+  const money = (amount: number, currency: string) => (currency === "NGN" ? naira(amount) : `${currency} ${Math.round(amount).toLocaleString("en-NG")}`);
+
   return (
-    <AppFrame
-      role="seller"
-      storeName={workspace.store.name}
-      storeSlug={workspace.store.slug}
-      storeInitial={workspace.store.name?.[0]?.toUpperCase()}
-      storeLogoUrl={workspace.store.logoUrl}
-      userName={user.name}
-      userInitials={user.name?.split(" ").map((p: string) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={sellerFrame(user, workspace.store)}
+      title="Products"
+      actions={
+        <>
+          <PillLink href="/products/import" icon="upload">Import</PillLink>
+          <a
+            href="/api/products/export"
+            download
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
+          >
+            <Icon name="download" size={16} />
+            Export
+          </a>
+          <PillLink href="/products/new" tone="accent" icon="plus">Add product</PillLink>
+        </>
+      }
+      toolbar={
+        <>
+          <FilterChips items={chips} />
+          <SearchForm
+            action="/products"
+            defaultValue={query}
+            placeholder="Search name or SKU"
+            keep={{ filter: filter.key === "all" ? undefined : filter.key, visibility: visibilityKey === "all" ? undefined : visibilityKey }}
+          />
+        </>
+      }
     >
-      <div className="flex-1 overflow-y-auto" style={{ padding: "24px 28px 40px", background: "var(--canvas)" }}>
-        <PageHead
-          title="Products"
-          sub="Manage your products"
-          actions={
-            <div className="flex items-center gap-2">
-              <Link href="/products/import" className="dbtn dBtn-ghost dBtn-sm" style={{ textDecoration: "none" }}>
-                <Icon name="download" size={14} /> Import
-              </Link>
-              <Link href="/products/new" className="dbtn dBtn-mint dBtn-sm" style={{ textDecoration: "none" }}>
-                <Icon name="plus" size={14} /> Add product
-              </Link>
+      <nav aria-label="Where products show" className="-mt-1 mb-4 flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] text-app-ink-soft">
+        <span className="mr-1">Showing:</span>
+        {VISIBILITY.map((item) => (
+          <Link
+            key={item.key}
+            href={href({ visibility: item.key })}
+            aria-current={item.key === visibilityKey ? "page" : undefined}
+            className={cx(
+              "inline-flex min-h-[32px] items-center rounded-full px-2.5 no-underline",
+              item.key === visibilityKey ? "bg-white font-bold text-app-ink ring-1 ring-app-line" : "text-app-ink-soft hover:text-app-ink",
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      {all.length === 0 ? (
+        <EmptyState
+          icon="bag"
+          title="No products yet"
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <PillLink href="/products/new" tone="ink" icon="plus">Add product</PillLink>
+              <PillLink href="/products/import" icon="upload">Import a CSV</PillLink>
             </div>
           }
-        />
-
-        <div className="design-tabs">
-          {["all", "draft", "active", "archived"].map((t) => (
-            <Link
-              key={t}
-              href={`/products?status=${t}${visibility && visibility !== "all" ? `&visibility=${visibility}` : ""}`}
-              className={`tab${t === activeTab ? " on" : ""}`}
-              style={{ textDecoration: "none", textTransform: "capitalize" }}
-            >
-              {t === "all" ? "All" : STATUS_LABEL[t] ?? t}
-              {(counts as any)[t] !== undefined && (
-                <span className="tab-count">{(counts as any)[t]}</span>
-              )}
-            </Link>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[11.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: "var(--ink-500)" }}>
-            Visibility:
-          </span>
-          <div className="flex gap-1.5">
-            {["all", "storefront", "featured", "hidden"].map((v) => (
-              <Link
-                key={v}
-                href={`/products?visibility=${v}${status && status !== "all" ? `&status=${status}` : ""}`}
-                className="dbtn text-[12px] no-underline"
-                style={{
-                  background: v === visibilityTab ? "var(--teal-100)" : "transparent",
-                  color: v === visibilityTab ? "var(--teal-800)" : "var(--ink-600)",
-                  border: "1px solid var(--ink-150)",
-                  borderRadius: 8,
-                  padding: "4px 10px",
-                }}
-              >
-                {v === "all" ? "All" : VISIBILITY_LABEL[v] ?? v}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-[13px]" style={{ color: "var(--ink-500)" }}>
-          {products.length} product{products.length !== 1 ? "s" : ""}
-        </div>
-
-        {products.length === 0 ? (
-          <div className="card" style={{ padding: "48px 0", textAlign: "center" }}>
-            <div className="text-[40px] mb-3">📦</div>
-            <div className="font-semibold text-[16px]" style={{ color: "var(--ink-900)", marginBottom: 8 }}>No products found</div>
-            <div className="text-[13px]" style={{ color: "var(--ink-500)", marginBottom: 20 }}>
-              {status || visibility ? "Try different filters." : "Add your first product to get started."}
-            </div>
-            <Link href="/products/new" className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-              <Icon name="plus" size={14} /> Add product
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-[14px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
-            {products.map((p) => {
-              const stock = p.currentStock;
-              const isLow = stock > 0 && stock <= p.lowStockThreshold;
-              const isOos = stock === 0;
-              return (
-                <Link key={p.id} href={`/products/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div
-                    className="card card-hover overflow-hidden flex flex-col"
-                    style={{
-                      padding: 0,
-                      borderRadius: 14,
-                      background: "var(--paper)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ aspectRatio: "4/3", background: "var(--ink-50)", position: "relative", overflow: "hidden" }}>
-                      {p.images?.[0] ? (
-                        <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: "cover" }} unoptimized />
-                      ) : (
-                        <div style={{ display: "grid", placeItems: "center", height: "100%", color: "var(--ink-300)" }}>
-                          <Icon name="image" size={36} />
-                        </div>
-                      )}
-                      {p.featured && (
-                        <div style={{ position: "absolute", top: 8, right: 8 }}>
-                          <Badge variant="amber" dot>Featured</Badge>
-                        </div>
-                      )}
+        >
+          Add your first product, import a list, or pick dropship products from the marketplace.
+        </EmptyState>
+      ) : products.length === 0 ? (
+        <EmptyState icon="search" title="No products match" action={<PillLink href="/products">Show all products</PillLink>}>
+          {query ? `Nothing matches “${query}” here.` : "Try a different filter."}
+        </EmptyState>
+      ) : (
+        <ListCard>
+          {products.map((p) => {
+            const dropship = isDropship(p);
+            const stock = stockLabel(p);
+            const variants = variantCount(p.variants);
+            const detail = [variants > 0 ? `${variants} ${variants === 1 ? "variant" : "variants"}` : p.category?.name ?? p.sku, dropship ? "Dropship" : "Own stock"].filter(Boolean).join(" · ");
+            const statusPill = isLive(p) ? (
+              <Pill tone="success">Live</Pill>
+            ) : p.status === "archived" ? (
+              <Pill tone="muted">Archived</Pill>
+            ) : (
+              <Pill tone="muted">Draft</Pill>
+            );
+            const stockText = dropship
+              ? p.supplierStock ? `${p.supplierStock} at supplier` : "Supplier stock"
+              : stock.label;
+            return (
+              <ListRow key={p.id} href={`/products/${p.id}`}>
+                <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
+                  <Thumb src={p.images[0]} label={p.name} />
+                  <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_auto] xl:grid-cols-[minmax(0,2fr)_110px_minmax(0,0.9fr)_minmax(0,0.8fr)_120px]">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-[15px] font-extrabold">{p.name}</span>
+                        {p.featured && <span className="shrink-0 text-app-accent" title="Featured"><Icon name="star" size={14} /><span className="sr-only">Featured</span></span>}
+                      </div>
+                      <div className="truncate text-[13px] text-app-ink-soft">
+                        {detail}
+                        {p.visibility === "hidden" && isLive(p) ? " · Hidden from store" : ""}
+                      </div>
                     </div>
-
-                    <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-                      <div>
-                        <div className="font-semibold text-[14px] leading-tight" style={{ color: "var(--ink-900)", marginBottom: 2 }}>{p.name}</div>
-                        {p.description && (
-                          <div className="text-[12px] leading-snug line-clamp-2" style={{ color: "var(--ink-500)" }}>
-                            {p.description}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-[16px]" style={{ color: "var(--ink-900)", fontFamily: "var(--font-accent)" }}>
-                          {fmtMoney(p.retailPrice)}
-                        </span>
-                        {p.compareAtPrice && p.compareAtPrice > p.retailPrice && (
-                          <span className="text-[12px] line-through" style={{ color: "var(--ink-400)" }}>
-                            {fmtMoney(p.compareAtPrice)}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        <Badge variant={(STATUS_VARIANT[p.status] ?? "soft") as any}>
-                          {STATUS_LABEL[p.status] ?? p.status}
-                        </Badge>
-                        <Badge variant={(VISIBILITY_VARIANT[p.visibility] ?? "ink") as any}>
-                          {VISIBILITY_LABEL[p.visibility] ?? p.visibility}
-                        </Badge>
-                        <Badge variant="mint">
-                          {INVENTORY_LABEL[p.inventoryType] ?? p.inventoryType}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--ink-600)" }}>
-                        <Icon name="box" size={13} color="var(--ink-400)" />
-                        {isOos ? (
-                          <span style={{ color: "var(--danger)", fontWeight: 600 }}>Out of stock</span>
-                        ) : isLow ? (
-                          <span style={{ color: "var(--warning)", fontWeight: 600 }}>{stock} left — low stock</span>
-                        ) : (
-                          <span>{stock} in stock</span>
-                        )}
-                      </div>
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] xl:contents">
+                      <span>{statusPill}</span>
+                      <span className={cx("font-semibold", !dropship && stock.low ? "text-app-accent-ink" : "text-app-ink-soft")}>{stockText}</span>
+                      <span className="text-app-ink-soft">{p.soldStock.toLocaleString("en-NG")} sold</span>
+                    </div>
+                    <div className="text-[15px] font-extrabold md:text-right">
+                      {money(p.retailPrice, p.currency)}
+                      {p.compareAtPrice && p.compareAtPrice > p.retailPrice ? (
+                        <span className="ml-1.5 text-[12.5px] font-semibold text-app-ink-faint line-through">{money(p.compareAtPrice, p.currency)}</span>
+                      ) : null}
                     </div>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </AppFrame>
+                </div>
+              </ListRow>
+            );
+          })}
+        </ListCard>
+      )}
+    </AppPage>
   );
 }

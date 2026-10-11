@@ -1,34 +1,34 @@
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { db } from "@/lib/db/client";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { AppPage, EmptyState, FilterChips, ListCard, Pill, SearchForm, StatGrid, StatTile, Thumb, type Tone } from "@/components/app-kit";
 import { MessageBuyerButton } from "@/components/supplier/MessageBuyerButton";
+import { money, shortDate, supplierFrame } from "@/components/supplier/supplier-kit";
 
 export const dynamic = "force-dynamic";
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
+type Segment = "vip" | "repeat" | "new";
 
-function Av({ name, size = 36, seed = 0, square }: { name: string; size?: number; seed?: number; square?: boolean }) {
-  const initials = name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-  const gradients = [
-    ["#D4A574","#6B4A2C"],["#F2C8B4","#D4A574"],["#195754","#0c4a44"],["#E86A4F","#6B4A2C"],
-    ["#5b6ad0","#3a4ba6"],["#8aa843","#5a7a28"],["#b14a8a","#7a2a6a"],["#e8a647","#b97511"],
-  ];
-  const g = gradients[seed % gradients.length];
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: square ? 7 : "50%",
-      background: `linear-gradient(135deg, ${g[0]}, ${g[1]})`,
-      display: "grid", placeItems: "center",
-      color: "white", fontWeight: 700, fontSize: size * 0.38, flexShrink: 0,
-    }}>
-      {initials}
-    </div>
-  );
+const SEGMENT: Record<Segment, { label: string; tone: Tone }> = {
+  vip: { label: "VIP", tone: "accent" },
+  repeat: { label: "Repeat", tone: "success" },
+  new: { label: "New", tone: "info" },
+};
+
+type PageProps = {
+  searchParams?: Promise<{ segment?: string; q?: string }>;
+};
+
+function href(segment?: string, q?: string) {
+  const params = new URLSearchParams();
+  if (segment) params.set("segment", segment);
+  if (q) params.set("q", q);
+  const query = params.toString();
+  return `/supplier/buyers${query ? `?${query}` : ""}`;
 }
 
-export default async function SupplierBuyersPage() {
+export default async function SupplierBuyersPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
@@ -40,148 +40,95 @@ export default async function SupplierBuyersPage() {
     include: { seller: { select: { id: true, name: true, city: true, country: true } } },
   });
 
-  const buyerMap = new Map<string, { id: string; name: string; city: string; orders: number; total: number }>();
+  const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const buyerMap = new Map<string, { id: string; name: string; place: string; orders: number; total: number; first: Date; last: Date }>();
   for (const o of orders) {
     if (!o.seller) continue;
     const key = o.seller.id;
     const existing = buyerMap.get(key) ?? {
       id: key,
       name: o.seller.name,
-      city: `${o.seller.city ?? ""} · ${o.seller.country ?? ""}`,
+      place: [o.seller.city, o.seller.country].filter(Boolean).join(" · "),
       orders: 0,
       total: 0,
+      first: o.createdAt,
+      last: o.createdAt,
     };
     existing.orders++;
     existing.total += Number(o.totalPrice);
+    if (o.createdAt < existing.first) existing.first = o.createdAt;
+    if (o.createdAt > existing.last) existing.last = o.createdAt;
     buyerMap.set(key, existing);
   }
+  const segmentOf = (b: { total: number; orders: number }): Segment => (b.total > 1_000_000 ? "vip" : b.orders > 1 ? "repeat" : "new");
   const buyers = Array.from(buyerMap.values()).sort((a, b) => b.total - a.total);
+  const newThisMonth = buyers.filter((b) => b.first.getTime() >= monthAgo).length;
+  const repeatShare = buyers.length > 0 ? Math.round((buyers.filter((b) => b.orders > 1).length / buyers.length) * 100) : 0;
+  const avgOrder = orders.length > 0 ? orders.reduce((s, o) => s + Number(o.totalPrice), 0) / orders.length : 0;
+
+  const segment = params.segment && params.segment in SEGMENT ? (params.segment as Segment) : undefined;
+  const q = params.q?.trim().toLowerCase() || undefined;
+  const visible = buyers.filter((b) => (!segment || segmentOf(b) === segment) && (!q || b.name.toLowerCase().includes(q) || b.place.toLowerCase().includes(q)));
 
   return (
-    <AppFrame
-      role="supplier"
-      storeName={supplier.displayName}
-      storeSlug={`${supplier.city ?? "Aba"} · ${supplier.country ?? "Nigeria"}`}
-      storeInitial={supplier.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search buyers…" })}
+      title="Buyers"
+      sub={buyers.length
+        ? `${buyers.length} seller${buyers.length === 1 ? "" : "s"} stock your products. Top buyer: ${buyers[0].name}, ${money(buyers[0].total)} so far.`
+        : "The shops that buy from you show up here."}
+      toolbar={
+        buyers.length > 0 ? (
+          <>
+            <FilterChips
+              items={[
+                { label: "All", href: href(undefined, params.q), count: buyers.length, active: !segment },
+                ...(Object.keys(SEGMENT) as Segment[]).map((key) => ({
+                  label: SEGMENT[key].label,
+                  href: href(key, params.q),
+                  count: buyers.filter((b) => segmentOf(b) === key).length,
+                  active: segment === key,
+                })),
+              ]}
+            />
+            <SearchForm action="/supplier/buyers" defaultValue={params.q} placeholder="Search name or city" keep={{ segment }} />
+          </>
+        ) : undefined
+      }
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title={`Buyers · ${buyers.length} sellers stock you`}
-          sub={`The shops adding your products. Top spender: ${buyers[0]?.name ?? "—"} · ${fmt(buyers[0]?.total ?? 0)} LTV.`}
-          actions={<button className="dbtn dBtn-ghost"><Icon name="download" size={14} /> Export</button>}
-        />
+      <StatGrid className="mb-5">
+        <StatTile tone="card" label="Buyers" value={buyers.length} hint={`${newThisMonth} new in the last 30 days`} />
+        <StatTile tone="card" label="VIPs (over ₦1M)" value={buyers.filter((b) => b.total > 1_000_000).length} />
+        <StatTile tone="card" label="Buy again" value={`${repeatShare}%`} hint="ordered more than once" />
+        <StatTile tone="card" label="Average order" value={money(avgOrder)} />
+      </StatGrid>
 
-        {/* Stat tiles */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <div className="stat">
-            <div className="stat-lbl">Active buyers</div>
-            <div className="stat-val">{buyers.length}</div>
-            <div className="stat-delta delta-up">
-              <Icon name="users" size={12} />
-              <span>+{Math.round(buyers.length * 0.08)} new this month</span>
-            </div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">VIPs (&gt;₦1M LTV)</div>
-            <div className="stat-val">{buyers.filter((b) => b.total > 1_000_000).length}</div>
-            <div className="stat-delta delta-up">
-              <Icon name="star" size={12} />
-              <span>+2 promoted</span>
-            </div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Repeat orders</div>
-            <div className="stat-val">{buyers.length > 1 ? Math.round(buyers.filter((b) => b.orders > 1).length / buyers.length * 100) : 0}%</div>
-            <div className="stat-delta delta-up">
-              <Icon name="refresh" size={12} />
-              <span>industry avg 41%</span>
-            </div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Avg order value</div>
-            <div className="stat-val money">{fmt(orders.length > 0 ? orders.reduce((s, o) => s + Number(o.totalPrice), 0) / orders.length : 0)}</div>
-            <div className="stat-delta delta-up">
-              <Icon name="coin" size={12} />
-              <span>per order</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <div className="sb-search" style={{ flex: "1 1 240px", maxWidth: 380 }}>
-            <Icon name="search" size={14} />
-            <span style={{ color: "var(--ink-400)" }}>Search buyers…</span>
-          </div>
-          <div className="sel" style={{ minWidth: 120, fontSize: 12.5, padding: "7px 11px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--ink-500)" }}>Segment: All</span>
-            <Icon name="chevDown" size={12} />
-          </div>
-          <div className="sel" style={{ minWidth: 130, fontSize: 12.5, padding: "7px 11px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--ink-500)" }}>Country: Any</span>
-            <Icon name="chevDown" size={12} />
-          </div>
-          <div className="sel" style={{ minWidth: 120, fontSize: 12.5, padding: "7px 11px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--ink-500)" }}>Activity: Active</span>
-            <Icon name="chevDown" size={12} />
-          </div>
-        </div>
-
-        {/* Buyers table */}
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Buyer</th>
-                <th>Location</th>
-                <th>Orders</th>
-                <th>LTV</th>
-                <th>Segment</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {buyers.slice(0, 20).map((b, i) => {
-                const seg = b.total > 1_000_000 ? "VIP" : b.orders > 1 ? "Repeat" : "New";
-                return (
-                  <tr key={b.name}>
-                    <td>
-                      <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
-                        <Av name={b.name} size={36} seed={i + 10} square />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 13.5 }}>{b.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{b.city}</td>
-                    <td><strong>{b.orders}</strong></td>
-                    <td className="money" style={{ fontWeight: 600 }}>{fmt(b.total)}</td>
-                    <td>
-                      {seg === "VIP" && <Badge variant="amber" dot><Icon name="star" size={10} /> VIP</Badge>}
-                      {seg === "Repeat" && <Badge variant="mint" dot>Repeat</Badge>}
-                      {seg === "New" && <Badge variant="info" dot>New</Badge>}
-                    </td>
-                    <td>
-                      <MessageBuyerButton sellerUserId={b.id} sellerName={b.name} />
-                    </td>
-                  </tr>
-                );
-              })}
-              {buyers.length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>
-                    No buyers yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </AppFrame>
+      {visible.length === 0 ? (
+        <EmptyState icon="users" title={buyers.length === 0 ? "No buyers yet" : "No buyers match"}>
+          {buyers.length === 0
+            ? "When sellers place wholesale or dropship orders with you, each shop shows up here with what they've spent."
+            : "Try another filter or clear the search."}
+        </EmptyState>
+      ) : (
+        <ListCard>
+          {visible.slice(0, 50).map((b) => {
+            const seg = SEGMENT[segmentOf(b)];
+            return (
+              <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:flex-nowrap sm:px-5">
+                <Thumb label={b.name} size={44} />
+                <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
+                  <span className="block truncate text-[14.5px] font-extrabold">{b.name}</span>
+                  <span className="block truncate text-[13px] text-app-ink-soft">{b.place || "Location not set"} · last order {shortDate(b.last)}</span>
+                </span>
+                <Pill tone={seg.tone}>{seg.label}</Pill>
+                <span className="w-[80px] text-[13.5px] text-app-ink-soft">{b.orders} order{b.orders === 1 ? "" : "s"}</span>
+                <span className="w-[110px] text-right text-[14.5px] font-extrabold">{money(b.total)}</span>
+                <MessageBuyerButton sellerUserId={b.id} sellerName={b.name} />
+              </li>
+            );
+          })}
+        </ListCard>
+      )}
+    </AppPage>
   );
 }

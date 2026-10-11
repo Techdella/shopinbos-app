@@ -1,51 +1,32 @@
+import type { Metadata } from "next";
 import { addLogisticsTeamMember, updateLogisticsTeamMemberStatus } from "@/app/actions/logistics";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { Badge, FilterBar, Icon, PageHead, StatTile } from "@/components/ui";
+import { Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
 import { db } from "@/lib/db/client";
 import { LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser, isProPlan } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
+import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, lagosDate } from "@/components/logistics/kit";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Riders" };
 
-function Av({ name, size = 36, seed = 0, square }: { name: string; size?: number; seed?: number; square?: boolean }) {
-  const initials = name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
-  const gradients = [
-    ["#D4A574", "#6B4A2C"],
-    ["#F2C8B4", "#D4A574"],
-    ["#195754", "#0c4a44"],
-    ["#E86A4F", "#6B4A2C"],
-    ["#5b6ad0", "#3a4ba6"],
-    ["#8aa843", "#5a7a28"],
-    ["#b14a8a", "#7a2a6a"],
-    ["#e8a647", "#b97511"],
-  ];
-  const gradient = gradients[seed % gradients.length];
+const ROLES = [
+  { value: "rider", label: "Rider" },
+  { value: "dispatcher", label: "Dispatcher" },
+  { value: "manager", label: "Manager" },
+  { value: "support", label: "Support" },
+];
 
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: square ? 7 : "50%",
-        background: `linear-gradient(135deg, ${gradient[0]}, ${gradient[1]})`,
-        display: "grid",
-        placeItems: "center",
-        color: "white",
-        fontWeight: 700,
-        fontSize: size * 0.38,
-        flexShrink: 0,
-      }}
-    >
-      {initials}
-    </div>
-  );
+function initials(name: string) {
+  return name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "·";
 }
 
-export default async function LogisticsCouriersPage() {
+export default async function LogisticsCouriersPage({ searchParams }: { searchParams: Promise<{ role?: string; saved?: string; error?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const { role, saved, error } = await searchParams;
 
   const [teamMembers, dbUser] = await Promise.all([
     db.logisticsTeamMember.findMany({
@@ -54,146 +35,101 @@ export default async function LogisticsCouriersPage() {
     }),
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
   ]);
-  const activeTeamMembers = teamMembers.filter((member) => member.status === "active");
+  const active = teamMembers.filter((member) => member.status === "active");
+  const riders = teamMembers.filter((member) => member.role === "rider");
   const proPlan = isProPlan(dbUser ?? {});
-  const atStarterTeamLimit = !proPlan && activeTeamMembers.length >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT;
+  const atStarterLimit = !proPlan && active.length >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT;
+  const shown = role === "rider" ? riders : role === "staff" ? teamMembers.filter((member) => member.role !== "rider") : teamMembers;
+  const filterKey = role === "rider" || role === "staff" ? role : "all";
 
   return (
-    <AppFrame
-      role="logistics_partner"
-      storeName={partner.displayName}
-      storeSlug={`${partner.city ?? "Lagos"} - Fleet`}
-      storeInitial={partner.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <PartnerPage
+      frame={{ user, partner }}
+      title="Riders"
+      sub="The riders and dispatch staff who carry your jobs. Riders use the Shopinbos Riders app."
+      actions={<PillLink href="#add-rider" tone="accent" icon="plus">Add a rider</PillLink>}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Riders & couriers"
-          sub={`${partner.vehicleTypes.length} vehicles - ${activeTeamMembers.length} active team members`}
-          actions={
-            <>
-              <a className="dbtn dBtn-ghost" href="/logistics/profile?tab=Billing%20%26%20Plan" style={{ textDecoration: "none" }}>
-                <Icon name="upload" size={14} /> {proPlan ? "Pro team" : "Starter team"}
-              </a>
-              <button className="dbtn dBtn-mint" form="add-team-member-form" disabled={atStarterTeamLimit}>
-                <Icon name="plus" size={14} /> Add rider
-              </button>
-            </>
-          }
-        />
+      <ActionNotice saved={saved} error={error} savedText="Team updated." />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <StatTile label="Active fleet" value={String(partner.vehicleTypes.length)} delta={`${partner.vehicleTypes.length} vehicles`} deltaDir="flat" />
-          <StatTile
-            label="On shift now"
-            value={String(activeTeamMembers.length)}
-            delta={proPlan ? "Pro team" : `${Math.min(activeTeamMembers.length, LOGISTICS_FREE_TEAM_MEMBER_LIMIT)}/${LOGISTICS_FREE_TEAM_MEMBER_LIMIT} starter`}
-            deltaDir="flat"
+      <StatGrid className="mb-5">
+        <StatTile tone="card" label="Riders" value={riders.length} hint={`${riders.filter((member) => member.status === "active").length} active`} />
+        <StatTile tone="card" label="Whole team" value={teamMembers.length} hint={`${active.length} active`} />
+        <StatTile tone="card" label="Vehicles you run" value={partner.vehicleTypes.length} hint={partner.vehicleTypes.join(", ") || "Set them in Coverage and rates"} />
+        <StatTile tone="card" label="Plan" value={proPlan ? "Pro" : "Starter"} hint={proPlan ? "No team limit" : `${Math.min(active.length, LOGISTICS_FREE_TEAM_MEMBER_LIMIT)} of ${LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active people`} />
+      </StatGrid>
+
+      <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
+        <div className="min-w-0">
+          <FilterChips
+            className="mb-4"
+            items={[
+              { label: "Everyone", href: "/logistics/couriers", count: teamMembers.length, active: filterKey === "all" },
+              { label: "Riders", href: "/logistics/couriers?role=rider", count: riders.length, active: filterKey === "rider" },
+              { label: "Dispatch and staff", href: "/logistics/couriers?role=staff", count: teamMembers.length - riders.length, active: filterKey === "staff" },
+            ]}
           />
-          <StatTile label="Avg deliveries / day" value="0" delta="connect bookings to riders next" deltaDir="flat" />
-          <StatTile label="Best on-time rate" value="--" delta="starts after first delivery" deltaDir="flat" />
-        </div>
-
-        <form
-          id="add-team-member-form"
-          action={addLogisticsTeamMember}
-          className="card"
-          style={{ display: "grid", gridTemplateColumns: "1.2fr 1.2fr 0.9fr 0.9fr auto", gap: 10, alignItems: "end" }}
-        >
-          <label className="field">
-            <span className="label">Name</span>
-            <input className="inp" name="name" placeholder="Amina Dispatch" disabled={atStarterTeamLimit} required />
-          </label>
-          <label className="field">
-            <span className="label">Email</span>
-            <input className="inp" name="email" type="email" placeholder="amina@example.com" disabled={atStarterTeamLimit} required />
-          </label>
-          <label className="field">
-            <span className="label">Phone</span>
-            <input className="inp" name="phone" placeholder="+234..." disabled={atStarterTeamLimit} />
-          </label>
-          <label className="field">
-            <span className="label">Role</span>
-            <select className="inp" name="role" defaultValue="dispatcher" disabled={atStarterTeamLimit}>
-              <option value="dispatcher">Dispatcher</option>
-              <option value="rider">Rider</option>
-              <option value="manager">Manager</option>
-              <option value="support">Support</option>
-            </select>
-          </label>
-          <button className="dbtn dBtn-mint" type="submit" disabled={atStarterTeamLimit}>
-            Invite
-          </button>
-          {atStarterTeamLimit && (
-            <div style={{ gridColumn: "1 / -1", color: "var(--warning)", fontSize: 12.5, fontWeight: 600 }}>
-              Starter logistics includes {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Upgrade to Pro to add more riders, dispatchers, and managers.
-            </div>
-          )}
-        </form>
-
-        <FilterBar />
-
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Rider</th>
-                <th>Vehicle</th>
-                <th>Zone</th>
-                <th>Status</th>
-                <th>Today</th>
-                <th>Rating</th>
-                <th>On-time</th>
-                <th>This month</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamMembers.map((member, index) => (
-                <tr key={member.id}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <Av name={member.name} seed={index} />
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{member.name}</div>
-                        <div style={{ color: "var(--ink-500)", fontSize: 12 }}>{member.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{member.role}</td>
-                  <td>{partner.coverageZones[index % Math.max(partner.coverageZones.length, 1)] ?? partner.city}</td>
-                  <td>
-                    <Badge variant={member.status === "active" ? "mint" : "warn"}>{member.status}</Badge>
-                  </td>
-                  <td>0</td>
-                  <td>--</td>
-                  <td>--</td>
-                  <td>{new Date(member.invitedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</td>
-                  <td>
-                    <form action={updateLogisticsTeamMemberStatus}>
-                      <input type="hidden" name="teamMemberId" value={member.id} />
-                      <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
-                      <button className="dbtn dBtn-ghost" type="submit" style={{ padding: "5px 9px", fontSize: 12 }}>
-                        {member.status === "active" ? "Deactivate" : "Reactivate"}
-                      </button>
-                    </form>
-                  </td>
-                </tr>
+          {shown.length === 0 ? (
+            <EmptyState icon="truck" title={teamMembers.length ? "No one in this group" : "No riders yet"}>
+              {teamMembers.length ? "Try another filter." : "Add your first rider so you can see who is carrying each job."}
+            </EmptyState>
+          ) : (
+            <ListCard>
+              {shown.map((member) => (
+                <ListRow key={member.id}>
+                  <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas text-[14px] font-extrabold">{initials(member.name)}</span>
+                  <div className="min-w-0 flex-1 basis-[180px]">
+                    <div className="truncate text-[15px] font-extrabold">{member.name}</div>
+                    <div className="truncate text-[13px] text-app-ink-soft">{[member.email, member.phone].filter(Boolean).join(" · ")}</div>
+                  </div>
+                  <span className="text-[13.5px] capitalize text-app-ink-soft">{member.role}</span>
+                  <Pill tone={member.status === "active" ? "success" : "muted"} dot>{member.status === "active" ? "Active" : "Inactive"}</Pill>
+                  <span className="hidden text-[13px] text-app-ink-soft lg:inline">Added {lagosDate(member.invitedAt)}</span>
+                  <form action={updateLogisticsTeamMemberStatus} className="ml-auto">
+                    <input type="hidden" name="teamMemberId" value={member.id} />
+                    <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
+                    <SubmitButton tone="white" size="sm" aria-label={`${member.status === "active" ? "Deactivate" : "Reactivate"} ${member.name}`}>
+                      {member.status === "active" ? "Deactivate" : "Reactivate"}
+                    </SubmitButton>
+                  </form>
+                </ListRow>
               ))}
-              {teamMembers.length === 0 && (
-                <tr>
-                  <td colSpan={9} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>
-                    No riders yet. Add your first rider to start managing your fleet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </ListCard>
+          )}
         </div>
+
+        <Card className="h-fit p-5">
+          <div id="add-rider" className="scroll-mt-24" />
+          <CardHead title="Add someone" sub="They get an invite by email." />
+          <form action={addLogisticsTeamMember} className="mt-4 grid gap-3">
+            <div>
+              <label htmlFor="member-name" className={labelClass}>Name</label>
+              <input id="member-name" name="name" required autoComplete="off" placeholder="Musa Bello" disabled={atStarterLimit} className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="member-email" className={labelClass}>Email</label>
+              <input id="member-email" name="email" type="email" required placeholder="musa@example.com" disabled={atStarterLimit} className={inputClass} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              <div>
+                <label htmlFor="member-phone" className={labelClass}>Phone</label>
+                <input id="member-phone" name="phone" type="tel" placeholder="+234…" disabled={atStarterLimit} className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="member-role" className={labelClass}>Role</label>
+                <select id="member-role" name="role" defaultValue="rider" disabled={atStarterLimit} className={inputClass}>
+                  {ROLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
+              </div>
+            </div>
+            {atStarterLimit && (
+              <Notice tone="info">
+                Starter logistics includes {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Deactivate someone or move to Pro to add more.
+              </Notice>
+            )}
+            <SubmitButton disabled={atStarterLimit}>Send invite</SubmitButton>
+          </form>
+        </Card>
       </div>
-    </AppFrame>
+    </PartnerPage>
   );
 }

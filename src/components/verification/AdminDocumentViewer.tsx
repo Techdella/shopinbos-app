@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { Notice, PillButton, cx } from "@/components/app-ui";
 import type { VerificationDoc } from "@/lib/verification-utils";
 
 interface AdminDocumentViewerProps {
@@ -13,20 +14,20 @@ interface AdminDocumentViewerProps {
   trustScore: number;
 }
 
-const statusColors: Record<string, string> = {
-  draft: "var(--ink-400)",
-  uploaded: "var(--teal-600)",
-  submitted: "var(--amber-600)",
-  under_review: "var(--blue-600)",
-  approved: "var(--success)",
-  rejected: "var(--danger)",
+const statusTone: Record<string, string> = {
+  draft: "bg-app-canvas text-app-ink-soft",
+  uploaded: "bg-app-canvas text-app-ink-soft",
+  submitted: "bg-[#FDF0D5] text-[#8A5A00]",
+  under_review: "bg-[#E8EAFB] text-[#3D4FB8]",
+  approved: "bg-app-success-tint text-app-success",
+  rejected: "bg-app-danger-tint text-app-danger",
 };
 
 const statusLabels: Record<string, string> = {
   draft: "Draft",
   uploaded: "Uploaded",
   submitted: "Submitted",
-  under_review: "Under Review",
+  under_review: "Under review",
   approved: "Approved",
   rejected: "Rejected",
 };
@@ -79,13 +80,14 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Failed to update document");
+        const data = await res.json().catch(() => ({}));
+        const message = typeof data.error === "string" ? data.error : data.error?.message;
+        throw new Error(message ?? "Could not update the document.");
       }
 
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not update the document.");
     } finally {
       setModerating(null);
     }
@@ -96,160 +98,136 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
   const draftDocs = docs.filter((d) => d.status === "draft" || d.status === "uploaded");
 
   function renderDocList(items: VerificationDoc[], showActions: boolean) {
-    if (items.length === 0) {
-      return (
-        <div className="rounded-[12px] border border-dashed border-[var(--ink-200)] px-4 py-8 text-center text-[13px] text-[var(--ink-400)]">
-          No documents in this category
-        </div>
-      );
-    }
-
     return (
-      <div className="flex flex-col gap-2">
+      <ul className="m-0 list-none divide-y divide-app-line overflow-hidden rounded-[22px] border border-app-line bg-white p-0">
         {items.map((doc) => {
           const fileUrl = buildFileUrl(doc.filePath);
-          const color = statusColors[doc.status] ?? "var(--ink-400)";
+          const name = docTypeLabels[doc.type] ?? doc.label ?? doc.type;
 
           return (
-            <div
-              key={doc.id}
-              className="flex items-center gap-3 rounded-[12px] border border-[var(--ink-100)] bg-white px-4 py-3"
-            >
-              <div
-                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[8px] text-[var(--teal-600)]"
-                style={{ background: doc.status === "approved" ? "var(--success-bg)" : doc.status === "rejected" ? "var(--danger-bg)" : "var(--ink-50)", color: doc.status === "approved" ? "var(--success)" : doc.status === "rejected" ? "var(--danger)" : "var(--teal-600)" }}
+            <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-2.5 px-4 py-3.5 sm:px-5 md:flex-nowrap">
+              <span
+                className={cx(
+                  "grid h-11 w-11 shrink-0 place-items-center rounded-[12px]",
+                  doc.status === "approved" ? "bg-app-success-tint text-app-success" : doc.status === "rejected" ? "bg-app-danger-tint text-app-danger" : "bg-app-canvas text-app-ink",
+                )}
               >
-                {doc.type === "product-images" ? <Icon name="image" size={16} /> : <Icon name="file" size={16} />}
-              </div>
+                <Icon name={doc.type === "product-images" ? "image" : "file"} size={18} />
+              </span>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-[13px] font-semibold text-[var(--ink-800)]">
-                    {docTypeLabels[doc.type] ?? doc.label ?? doc.type}
-                  </span>
-                  {doc.rejectionReason && (
-                    <span className="truncate text-[11px] text-[var(--danger)]" title={doc.rejectionReason}>
-                      Reason: {doc.rejectionReason}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-[var(--ink-500)]">
-                  <span>{doc.fileName}</span>
+              <div className="min-w-0 flex-1 basis-[200px]">
+                <div className="truncate text-[15px] font-extrabold">{name}</div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-app-ink-soft">
+                  <span className="max-w-full truncate">{doc.fileName}</span>
                   <span>{(doc.fileSize / 1024).toFixed(0)} KB</span>
-                  <span style={{ color, fontWeight: 600 }}>{statusLabels[doc.status]}</span>
-                  {doc.updatedAt && (
-                    <span>{new Date(doc.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                  )}
+                  {doc.updatedAt && <span>{new Date(doc.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>}
                 </div>
+                {doc.rejectionReason && (
+                  <div className="mt-1 text-[13px] text-app-danger">Reason: {doc.rejectionReason}</div>
+                )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <span className={cx("inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[12px] font-bold", statusTone[doc.status] ?? statusTone.draft)}>
+                {statusLabels[doc.status] ?? doc.status}
+              </span>
+
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <a
                   href={fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[var(--ink-200)] text-[var(--ink-600)] transition-colors hover:border-[var(--teal-400)] hover:text-[var(--teal-600)]"
-                  title="View document"
+                  aria-label={`Open ${name}`}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-ink transition hover:border-app-line-strong"
                 >
-                  <Icon name="eye" size={14} />
+                  <Icon name="eye" size={16} />
                 </a>
                 <a
                   href={fileUrl}
                   download={doc.fileName}
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[var(--ink-200)] text-[var(--ink-600)] transition-colors hover:border-[var(--teal-400)] hover:text-[var(--teal-600)]"
-                  title="Download"
+                  aria-label={`Download ${name}`}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-ink transition hover:border-app-line-strong"
                 >
-                  <Icon name="download" size={14} />
+                  <Icon name="download" size={16} />
                 </a>
                 {showActions && (
                   <>
-                    <button
-                      onClick={() => handleAction(doc.id, "approve")}
-                      disabled={moderating === doc.id}
-                      className="flex h-[30px] items-center gap-1 rounded-[6px] border border-[var(--success)] bg-[var(--success-bg)] px-2.5 text-[11px] font-semibold text-[var(--success)] transition-colors hover:bg-[var(--success)] hover:text-white disabled:opacity-50"
-                    >
-                      <Icon name="check" size={12} />
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleAction(doc.id, "reject")}
-                      disabled={moderating === doc.id}
-                      className="flex h-[30px] items-center gap-1 rounded-[6px] border border-[var(--danger)] bg-[var(--danger-bg)] px-2.5 text-[11px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger)] hover:text-white disabled:opacity-50"
-                    >
-                      <Icon name="warn" size={12} />
+                    <PillButton tone="white" size="sm" className="text-app-danger" onClick={() => handleAction(doc.id, "reject")} disabled={moderating === doc.id} aria-label={`Reject ${name}`}>
                       Reject
-                    </button>
+                    </PillButton>
+                    <PillButton tone="ink" size="sm" busy={moderating === doc.id} onClick={() => handleAction(doc.id, "approve")} aria-label={`Approve ${name}`}>
+                      <Icon name="check" size={14} />
+                      Approve
+                    </PillButton>
                   </>
                 )}
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     );
   }
 
+  const scoreLabel = role === "supplier" ? "Trust score" : "Reliability score";
+
   return (
-    <div className="flex flex-col gap-6">
-      {error && (
-        <div className="rounded-[12px] border border-[var(--danger)] bg-[var(--danger-bg)] px-4 py-3 text-[13px] text-[var(--danger)]">
-          {error}
-        </div>
-      )}
+    <div className="grid gap-6 font-app text-app-ink">
+      {error && <Notice tone="error">{error}</Notice>}
 
       {docs.length === 0 && (
-        <div className="card flex flex-col items-center gap-3 px-8 py-12 text-center">
-          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] bg-[var(--ink-50)] text-[var(--ink-400)]">
-            <Icon name="file" size={24} />
-          </div>
-          <div className="text-[15px] font-semibold text-[var(--ink-700)]">No verification documents</div>
-          <div className="max-w-[360px] text-[13px] text-[var(--ink-500)]">
+        <section className="flex flex-col items-center rounded-[22px] border border-app-line bg-white px-6 py-12 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="file" size={22} /></span>
+          <h2 className="mb-0 mt-4 text-[18px] font-extrabold">No verification documents</h2>
+          <p className="mb-0 mt-1.5 max-w-[420px] text-[14.5px] leading-[1.55] text-app-ink-soft">
             This {role === "supplier" ? "supplier" : "logistics partner"} has not uploaded any verification documents yet.
-          </div>
-        </div>
+          </p>
+        </section>
       )}
 
       {submittedDocs.length > 0 && (
-        <div>
-          <h3 className="mb-2 flex items-center gap-2 text-[15px] font-semibold text-[var(--teal-700)]">
-            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[var(--amber-100)] text-[11px] font-bold text-[var(--amber-700)]">
-              {submittedDocs.length}
-            </span>
-            Pending Review
-          </h3>
+        <section>
+          <h2 className="mb-3 mt-0 flex items-center gap-2 text-[17px] font-extrabold">
+            Waiting for your review
+            <span className="rounded-full bg-[#FDF0D5] px-2.5 py-0.5 text-[12.5px] font-bold text-[#8A5A00]">{submittedDocs.length}</span>
+          </h2>
           {renderDocList(submittedDocs, true)}
-        </div>
+        </section>
       )}
 
       {processedDocs.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-[15px] font-semibold text-[var(--ink-700)]">Reviewed Documents</h3>
+        <section>
+          <h2 className="mb-3 mt-0 text-[17px] font-extrabold">Reviewed</h2>
           {renderDocList(processedDocs, false)}
-        </div>
+        </section>
       )}
 
       {draftDocs.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-[15px] font-semibold text-[var(--ink-500)]">Not Yet Submitted</h3>
+        <section>
+          <h2 className="mb-3 mt-0 text-[17px] font-extrabold text-app-ink-soft">Not sent yet</h2>
           {renderDocList(draftDocs, false)}
-        </div>
+        </section>
       )}
 
       {docs.length > 0 && (
-        <div className="mt-4 rounded-[12px] border border-[var(--ink-100)] p-4">
-          <div className="mb-3 text-[13px] font-semibold text-[var(--ink-600)]">
-            Overall {role === "supplier" ? "Trust" : "Reliability"} Score: {trustScore}/100 &middot; Status: {verificationStatus}
+        <section className="rounded-[22px] border border-app-line bg-white p-5">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-[14px]">
+            <span className="font-extrabold">{scoreLabel}: {trustScore}/100</span>
+            <span className="text-app-ink-soft">Verification: {verificationStatus.replace(/_/g, " ")}</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--ink-100)]">
+          <div
+            className="h-2.5 w-full overflow-hidden rounded-full bg-app-track"
+            role="meter"
+            aria-label={scoreLabel}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={trustScore}
+          >
             <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${trustScore}%`,
-                background: trustScore >= 60 ? "var(--success)" : trustScore >= 40 ? "var(--amber-500)" : "var(--danger)",
-              }}
+              className={cx("h-full rounded-full transition-all", trustScore >= 60 ? "bg-app-success" : trustScore >= 40 ? "bg-[#F2A93B]" : "bg-app-danger")}
+              style={{ width: `${Math.max(0, Math.min(100, trustScore))}%` }}
             />
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

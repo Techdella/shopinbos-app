@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Icon } from "@/components/ui/Icon";
 
 interface TopBarProps {
   eyebrow?: string;
@@ -8,33 +7,16 @@ interface TopBarProps {
   actions?: ReactNode;
 }
 
+// Page header inside the app shell, in the 2026 look (big bold title, soft subtitle, actions that wrap).
 export function TopBar({ eyebrow, title, subtitle, actions }: TopBarProps) {
   return (
-    <header
-      className="flex items-end justify-between gap-6 px-8 pt-5 pb-4 shrink-0"
-      style={{ borderBottom: "1px solid rgb(14 42 56 / 0.06)", background: "var(--color-paper)" }}
-    >
-      <div>
-        {eyebrow && (
-          <div className="font-mono text-[11px] tracking-[0.16em] uppercase mb-1.5"
-            style={{ color: "var(--color-teal-deep)" }}>
-            {eyebrow}
-          </div>
-        )}
-        <h1 className="font-display text-[30px] font-medium tracking-[-0.025em] leading-none m-0"
-          style={{ color: "var(--color-navy)" }}>
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-sm mt-1 m-0" style={{ color: "var(--color-muted)" }}>
-            {subtitle}
-          </p>
-        )}
+    <header className="flex shrink-0 flex-wrap items-end justify-between gap-3 px-4 pb-2 pt-6 font-app text-app-ink sm:px-6 xl:px-8">
+      <div className="min-w-0">
+        {eyebrow && <div className="mb-1 text-[13px] font-semibold text-app-ink-soft">{eyebrow.charAt(0) + eyebrow.slice(1).toLowerCase()}</div>}
+        <h1 className="m-0 break-words text-[28px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[30px]">{title}</h1>
+        {subtitle && <p className="m-0 mt-1.5 max-w-[720px] text-[14.5px] leading-[1.5] text-app-ink-soft">{subtitle}</p>}
       </div>
-
-      <div className="flex items-center gap-2.5 shrink-0">
-        {actions}
-      </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>
   );
 }

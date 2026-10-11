@@ -1,138 +1,161 @@
+import type { Metadata } from "next";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { updateDeliveryBookingStatus } from "@/app/actions/logistics";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, FilterBar, Icon } from "@/components/ui";
+import { EmptyState, FilterChips, ListCard, SearchForm } from "@/components/app-kit";
+import { Icon } from "@/components/ui/Icon";
+import {
+  ACTIVE_STATUSES,
+  ActionNotice,
+  BOOKING_STATUSES,
+  PartnerPage,
+  Route,
+  StatusPill,
+  SubmitButton,
+  bookingStage,
+  inputClass,
+  jobId,
+  lagosDate,
+  lagosTime,
+  naira,
+  packageSummary,
+  type BookingStatusValue,
+} from "@/components/logistics/kit";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Jobs" };
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
+const FILTERS: Array<{ key: string; label: string; statuses?: BookingStatusValue[] }> = [
+  { key: "all", label: "All" },
+  { key: "new", label: "New", statuses: ["pending"] },
+  { key: "active", label: "Active", statuses: ACTIVE_STATUSES },
+  { key: "delivered", label: "Delivered", statuses: ["delivered"] },
+  { key: "issues", label: "Failed or cancelled", statuses: ["failed", "cancelled"] },
+];
 
-export default async function LogisticsBookingsPage() {
+function filterHref(key: string, q?: string) {
+  const params = new URLSearchParams();
+  if (key !== "all") params.set("status", key);
+  if (q) params.set("q", q);
+  const query = params.toString();
+  return `/logistics/bookings${query ? `?${query}` : ""}`;
+}
+
+export default async function LogisticsBookingsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; saved?: string; error?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const { status, q: rawQ, saved, error } = await searchParams;
+  const q = rawQ?.trim() || undefined;
+  const filter = FILTERS.find((item) => item.key === status) ?? FILTERS[0];
 
-  const bookings = await db.deliveryBooking.findMany({
-    where: { logisticsPartnerId: partner.id },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      id: true, pickupLocation: true, destination: true, deliveryFee: true,
-      currency: true, status: true, trackingCode: true, estimatedDelivery: true,
-      createdAt: true, packageDetails: true,
-      seller: { select: { name: true } },
-    },
-  });
+  const base: Prisma.DeliveryBookingWhereInput = { logisticsPartnerId: partner.id };
+  const search: Prisma.DeliveryBookingWhereInput = q
+    ? {
+        OR: [
+          { pickupLocation: { contains: q, mode: "insensitive" } },
+          { destination: { contains: q, mode: "insensitive" } },
+          { trackingCode: { contains: q, mode: "insensitive" } },
+          { seller: { name: { contains: q, mode: "insensitive" } } },
+          { id: { endsWith: q.replace(/^J-/i, "").toLowerCase() } },
+        ],
+      }
+    : {};
 
-  const today = bookings.filter((b) => new Date(b.createdAt).toDateString() === new Date().toDateString());
+  const [bookings, counts] = await Promise.all([
+    db.deliveryBooking.findMany({
+      where: { ...base, ...search, ...(filter.statuses ? { status: { in: filter.statuses } } : {}) },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true, pickupLocation: true, destination: true, deliveryFee: true, status: true, trackingCode: true,
+        estimatedDelivery: true, createdAt: true, packageDetails: true, notes: true,
+        seller: { select: { name: true } },
+      },
+    }),
+    db.deliveryBooking.groupBy({ by: ["status"], where: base, _count: { _all: true } }),
+  ]);
+
+  const countOf = (statuses?: BookingStatusValue[]) =>
+    counts.filter((row) => !statuses || statuses.includes(row.status as BookingStatusValue)).reduce((sum, row) => sum + row._count._all, 0);
 
   return (
-    <AppFrame
-      role="logistics_partner"
-      storeName={partner.displayName}
-      storeSlug={`${partner.city ?? "Lagos"} · Fleet`}
-      storeInitial={partner.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <PartnerPage
+      frame={{ user, partner }}
+      title="Jobs"
+      sub="Every delivery sellers booked with you. Accept new ones, then move each job along as your rider picks up and delivers."
+      toolbar={
+        <>
+          <FilterChips items={FILTERS.map((item) => ({ label: item.label, href: filterHref(item.key, q), count: countOf(item.statuses), active: item.key === filter.key }))} />
+          <SearchForm action="/logistics/bookings" placeholder="Search route, seller or tracking code" defaultValue={q} keep={{ status: filter.key === "all" ? undefined : filter.key }} />
+        </>
+      }
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Bookings"
-          sub={`${today.length} active today · ${bookings.length} total`}
-          actions={<>
-            <button className="dbtn dBtn-ghost"><Icon name="download" size={14} /> Export</button>
-            <button className="dbtn dBtn-mint"><Icon name="plus" size={14} /> Manual booking</button>
-          </>}
-        />
+      <ActionNotice saved={saved} error={error} savedText="Job updated." />
 
-        <div style={{ display: "flex", gap: 6, marginBottom: 0, padding: 5, background: "var(--paper)", border: "1px solid var(--ink-150)", borderRadius: 10, alignSelf: "flex-start" }}>
-          {[
-            { l: "All today", n: today.length, on: true },
-            { l: "Pending pickup", n: bookings.filter((b) => b.status === "pending").length, color: "var(--warning)" },
-            { l: "Picked up", n: bookings.filter((b) => b.status === "picked_up").length },
-            { l: "In transit", n: bookings.filter((b) => b.status === "in_transit").length },
-            { l: "Out for delivery", n: bookings.filter((b) => b.status === "confirmed").length },
-            { l: "Delivered", n: bookings.filter((b) => b.status === "delivered").length },
-            { l: "Failed / returns", n: bookings.filter((b) => b.status === "failed").length, color: "var(--danger)" },
-          ].map((t, i) => (
-            <button key={i} className={"dbtn " + (t.on ? "dBtn-soft" : "dBtn-ghost")} style={{ padding: "6px 12px", fontSize: 12.5, color: t.on ? "var(--teal-800)" : t.color || "var(--ink-700)" }}>
-              {t.l} <span style={{ marginLeft: 4, fontFamily: "var(--font-mono)", opacity: 0.7, fontSize: 11 }}>{t.n}</span>
-            </button>
+      {bookings.length === 0 ? (
+        <EmptyState icon="box" title={q || filter.key !== "all" ? "No jobs match" : "No jobs yet"}>
+          {q || filter.key !== "all" ? "Try another filter or search." : "When a seller books a delivery with you, the job shows up here."}
+        </EmptyState>
+      ) : (
+        <ListCard>
+          {bookings.map((job) => (
+            <li key={job.id}>
+              <details className="group">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 hover:bg-app-canvas sm:flex-nowrap sm:px-5 [&::-webkit-details-marker]:hidden">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-app-line bg-app-canvas text-app-ink-soft"><Icon name="box" size={18} /></span>
+                  <div className="min-w-0 flex-1 basis-[200px]">
+                    <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
+                    <div className="truncate text-[13px] text-app-ink-soft">
+                      {jobId(job.id)} · {job.seller.name} · {packageSummary(job.packageDetails)}
+                    </div>
+                  </div>
+                  <div className="shrink-0"><StatusPill status={job.status} /></div>
+                  <div className="hidden w-[120px] shrink-0 text-[13px] text-app-ink-soft lg:block">
+                    {lagosDate(job.createdAt)}, {lagosTime(job.createdAt)}
+                  </div>
+                  <div className="ml-auto text-[15px] font-extrabold">{naira(job.deliveryFee)}</div>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-app-ink-soft transition group-open:rotate-180" aria-hidden>
+                    <Icon name="chevDown" size={16} />
+                  </span>
+                </summary>
+
+                <div className="border-t border-app-line bg-app-canvas/60 px-4 py-4 sm:px-5">
+                  {job.notes && <p className="m-0 mb-3 text-[13.5px] text-app-ink-soft">Seller note: {job.notes}</p>}
+                  <form action={updateDeliveryBookingStatus} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto] xl:items-end">
+                    <input type="hidden" name="bookingId" value={job.id} />
+                    <div className="min-w-0">
+                      <label htmlFor={`status-${job.id}`} className="mb-1.5 block text-[13px] font-bold">Stage</label>
+                      <select id={`status-${job.id}`} name="status" defaultValue={job.status} className={inputClass}>
+                        {BOOKING_STATUSES.map((value) => (
+                          <option key={value} value={value}>{bookingStage(value).label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="min-w-0">
+                      <label htmlFor={`tracking-${job.id}`} className="mb-1.5 block text-[13px] font-bold">Tracking code</label>
+                      <input id={`tracking-${job.id}`} name="trackingCode" defaultValue={job.trackingCode ?? ""} placeholder="Optional" className={inputClass} />
+                    </div>
+                    <div className="min-w-0">
+                      <label htmlFor={`eta-${job.id}`} className="mb-1.5 block text-[13px] font-bold">Estimated delivery</label>
+                      <input
+                        id={`eta-${job.id}`}
+                        name="estimatedDelivery"
+                        type="datetime-local"
+                        defaultValue={job.estimatedDelivery ? job.estimatedDelivery.toISOString().slice(0, 16) : ""}
+                        className={inputClass}
+                      />
+                    </div>
+                    <SubmitButton className="sm:col-span-2 xl:col-span-1">Update job</SubmitButton>
+                  </form>
+                </div>
+              </details>
+            </li>
           ))}
-        </div>
-
-        <FilterBar search="Search by booking #, seller, address…" />
-
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Booking</th>
-                <th>Seller</th>
-                <th>Route</th>
-                <th>Package</th>
-                <th>Fee</th>
-                <th>Pickup time</th>
-                <th>Rider</th>
-                <th>Status</th>
-                <th>SLA</th>
-                <th>Dispatch controls</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.slice(0, 20).map((b, i) => {
-                const pkg = b.packageDetails && typeof b.packageDetails === "object"
-                  ? (b.packageDetails as { description?: string; weight?: number }) 
-                  : null;
-                const pkgStr = pkg ? `${pkg.description ?? "Box"} · ${pkg.weight ?? "0.5"}kg` : "Package";
-                return (
-                  <tr key={b.id}>
-                    <td style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--teal-700)", fontSize: 12 }}>
-                      #{b.id.slice(-6).toUpperCase()}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{b.seller.name}</td>
-                    <td style={{ fontSize: 11.5 }}>
-                      <strong>{b.pickupLocation}</strong> → {b.destination}
-                    </td>
-                    <td style={{ fontSize: 11.5, color: "var(--ink-600)" }}>{pkgStr}</td>
-                    <td className="money" style={{ fontWeight: 600 }}>{fmt(b.deliveryFee)}</td>
-                    <td style={{ fontSize: 12, fontWeight: 600 }}>{new Date(b.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</td>
-                    <td style={{ fontSize: 11.5, color: b.trackingCode ? "var(--ink-700)" : "var(--warning)", fontWeight: b.trackingCode ? 400 : 600 }}>
-                      {b.trackingCode ?? "Auto-assigning…"}
-                    </td>
-                    <td>
-                      <Badge variant={b.status === "delivered" ? "mint" : b.status === "failed" || b.status === "cancelled" ? "danger" : b.status === "picked_up" || b.status === "in_transit" ? "info" : "warn"} dot>
-                        {b.status.replace(/_/g, " ")}
-                      </Badge>
-                    </td>
-                    <td style={{ fontSize: 11.5, color: "var(--ink-500)" }}>-</td>
-                    <td>
-                      <form action={updateDeliveryBookingStatus} style={{ display: "grid", gridTemplateColumns: "120px 120px 150px auto", gap: 6, alignItems: "center" }}>
-                        <input type="hidden" name="bookingId" value={b.id} />
-                        <select name="status" className="inp" defaultValue={b.status} aria-label="Dispatch status">
-                          {["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"].map((status) => (
-                            <option key={status} value={status}>{status.replace(/_/g, " ")}</option>
-                          ))}
-                        </select>
-                        <input name="trackingCode" className="inp" defaultValue={b.trackingCode ?? ""} placeholder="Tracking code" aria-label="Tracking code" />
-                        <input name="estimatedDelivery" className="inp" type="datetime-local" defaultValue={b.estimatedDelivery ? new Date(b.estimatedDelivery).toISOString().slice(0, 16) : ""} aria-label="Estimated delivery" />
-                        <button className="dbtn dBtn-mint" type="submit" style={{ padding: "7px 10px", fontSize: 12 }}>Update</button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
-              {bookings.length === 0 && (
-                <tr><td colSpan={10} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>No bookings yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </AppFrame>
+        </ListCard>
+      )}
+    </PartnerPage>
   );
 }

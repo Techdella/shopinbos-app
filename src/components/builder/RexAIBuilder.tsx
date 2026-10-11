@@ -10,6 +10,7 @@ import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/b
 import {
   createBlankEditorSnapshot,
   createSectionFromLibrary,
+  snapshotToStoreConfig,
   type StoreEditorSnapshot,
   type TemplatePageSeed,
   type TemplatePageType,
@@ -113,6 +114,63 @@ const rexToolInfo: Record<RexToolId, { title: string; eyebrow: string; descripti
   },
 };
 
+type RexMessage = { id: string; role: "user" | "assistant"; content: string; chips?: string[] };
+type StoreProductOption = { id: string; name: string; images: string[]; status?: string };
+type RexAsset = { url: string; label: string };
+type ImageEditKind = "enhance" | "remove_background" | "white_background" | "lifestyle";
+
+const IMAGE_EDIT_ACTIONS: Array<{ kind: ImageEditKind; label: string }> = [
+  { kind: "enhance", label: "Enhance quality" },
+  { kind: "remove_background", label: "Remove background" },
+  { kind: "white_background", label: "White studio background" },
+  { kind: "lifestyle", label: "Lifestyle scene" },
+];
+
+const BANNER_SIZES: Record<string, string> = {
+  "WhatsApp flyer": "1024x1536",
+  "Instagram post": "1024x1024",
+  "Store banner": "1536x1024",
+};
+
+let messageSeq = 0;
+const newMessage = (role: RexMessage["role"], content: string, chips?: string[]): RexMessage => ({
+  id: `m${Date.now().toString(36)}${(messageSeq++).toString(36)}`,
+  role,
+  content,
+  ...(chips ? { chips } : {}),
+});
+
+async function apiError(response: Response, fallback: string) {
+  const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+  return json?.error?.message ?? fallback;
+}
+
+/** Client-side resize / crop / compress with a canvas; returns a WebP file ready to upload. */
+async function processImageInBrowser(url: string, mode: "square" | "compress"): Promise<File> {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  image.src = url;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("This browser can't edit images.");
+  if (mode === "square") {
+    const side = Math.min(image.naturalWidth, image.naturalHeight);
+    const target = Math.min(side, 1200);
+    canvas.width = target;
+    canvas.height = target;
+    context.drawImage(image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, target, target);
+  } else {
+    const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+    canvas.width = Math.round(image.naturalWidth * scale);
+    canvas.height = Math.round(image.naturalHeight * scale);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  }
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", mode === "compress" ? 0.78 : 0.9));
+  if (!blob) throw new Error("Couldn't process this image.");
+  return new File([blob], `${mode === "square" ? "square" : "compressed"}-${Date.now()}.webp`, { type: "image/webp" });
+}
+
 export function RexAIBuilder() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -131,32 +189,32 @@ export function RexAIBuilder() {
   const [activeTool, setActiveTool] = useState<null | RexToolId>(null);
   const [rexPrompt, setRexPrompt] = useState("");
   const [rexBusy, setRexBusy] = useState(false);
-  const [rexMessages, setRexMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
-    {
-      role: "assistant",
-      content:
-        "Hi! I am Rex, your AI store builder. I can build sections, write copy, generate product layouts and redesign your store. What would you like to create today?",
-    },
+  const [rexMessages, setRexMessages] = useState<RexMessage[]>([
+    newMessage("assistant", "Hi! I am Rex, your AI store builder. Tell me what to change, or ask me to build the whole store."),
   ]);
+  const [activity, setActivity] = useState<Array<{ title: string; at: string }>>([]);
 
-  // Tool Specific Inputs
+  // Tool inputs
   const [logoName, setLogoName] = useState("");
   const [logoTagline, setLogoTagline] = useState("");
   const [logoStyle, setLogoStyle] = useState("Luxury / High-end");
-  const [productPrompt, setProductPrompt] = useState(
-    "Brazilian body wave hair on a black female model, studio lighting, white background, luxury feel"
-  );
+  const [productPrompt, setProductPrompt] = useState("");
   const [productFormat, setProductFormat] = useState("1:1 Square");
-  const [bannerHeadline, setBannerHeadline] = useState("Aso Ebi Season Sale — 20% off all bundles");
-  const [bannerFormat, setBannerFormat] = useState("WhatsApp flyer");
-  const [copyProductName, setCopyProductName] = useState("Brazilian Body Wave 18 inch");
+  const [bannerHeadline, setBannerHeadline] = useState("");
+  const [bannerFormat, setBannerFormat] = useState("Store banner");
+  const [copyProductName, setCopyProductName] = useState("");
   const [copyType, setCopyType] = useState("Product description");
-  const [paletteVibe, setPaletteVibe] = useState("Luxury Nigerian hair brand, elegant, premium, feminine");
+  const [copyResult, setCopyResult] = useState("");
+  const [paletteVibe, setPaletteVibe] = useState("");
   const [generatedLogos, setGeneratedLogos] = useState<Array<{ style: string; label: string; url: string; palette?: { primary: string; secondary: string; accent: string } }>>([]);
-  const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; label: string }>>([]);
+  const [generatedImages, setGeneratedImages] = useState<RexAsset[]>([]);
   const [generatedPalettes, setGeneratedPalettes] = useState<GeneratedPalette[]>([]);
-  const [uploadedAssets, setUploadedAssets] = useState<Array<{ url: string; label: string }>>([]);
+  const [uploadedAssets, setUploadedAssets] = useState<RexAsset[]>([]);
   const [uploadingAsset, setUploadingAsset] = useState(false);
+  const [toolBusy, setToolBusy] = useState<string | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [storeProducts, setStoreProducts] = useState<StoreProductOption[]>([]);
+  const [targetProductId, setTargetProductId] = useState("");
 
   // ── Unsaved changes guard ──
   const [hasChanges, setHasChanges] = useState(false);
@@ -178,17 +236,30 @@ export function RexAIBuilder() {
     return () => window.removeEventListener("beforeunload", h);
   }, [hasChanges]);
 
-  // Show Toast Toast Notification helper
   function showToast(msg: string) {
     setToastMessage(msg);
   }
 
+  function logActivity(title: string) {
+    setActivity((prev) => [{ title, at: new Date().toISOString() }, ...prev].slice(0, 30));
+  }
+
   useEffect(() => {
     if (toastMessage) {
-      const timer = setTimeout(() => setToastMessage(null), 3000);
+      const timer = setTimeout(() => setToastMessage(null), 3500);
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
+
+  async function reloadEnvelope() {
+    const response = await fetch("/api/store/editor", { cache: "no-store" });
+    const json = (await response.json().catch(() => null)) as { data?: EditorEnvelope } | null;
+    if (json?.data) {
+      setEnvelope(json.data);
+      if (json.data.draft) setDraft(json.data.draft);
+    }
+    return json?.data ?? null;
+  }
 
   // Load store and template draft state
   useEffect(() => {
@@ -215,12 +286,12 @@ export function RexAIBuilder() {
           setLogoTagline(json.data.store.description || "");
           const sellerName = json.data.seller?.name?.trim() || json.data.store.name || "there";
           setRexMessages([
-            {
-              role: "assistant",
-              content: fromOnboarding
-                ? `Hi ${sellerName}! I brought in your onboarding memory. I can now build the complete editable store for ${json.data.store.name}: pages, products, cart, checkout, blog, FAQ, and launch sections.`
-                : `Hi ${sellerName}! I am Rex, your AI store builder. I can build sections, write copy, generate product layouts and redesign ${json.data.store.name}. What would you like to create today?`,
-            },
+            newMessage(
+              "assistant",
+              fromOnboarding
+                ? `Hi ${sellerName}! I brought in your onboarding answers. Ask me to build the store for ${json.data.store.name} and I'll design it, write the pages, add sample products if you have none, and create a hero image. Nothing goes live until you publish.`
+                : `Hi ${sellerName}! I'm Rex. Tell me what to change on ${json.data.store.name}, or ask me to build the whole store. Nothing goes live until you publish.`,
+            ),
           ]);
           if (fromOnboarding) {
             window.localStorage.removeItem("shopinbos:first-run-walkthrough:seller");
@@ -237,9 +308,30 @@ export function RexAIBuilder() {
     };
   }, [searchParams]);
 
+  // Products for "Set as product photo" (all statuses, not just published).
+  useEffect(() => {
+    if (!activeTool || storeProducts.length) return;
+    void fetch("/api/store/products?limit=100", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { data?: StoreProductOption[] } | null) => {
+        const list = (json?.data ?? []).filter((product) => product.status !== "archived");
+        setStoreProducts(list);
+        if (list[0]) setTargetProductId((current) => current || list[0].id);
+      })
+      .catch(() => null);
+  }, [activeTool, storeProducts.length]);
+
   const currentPage: TemplatePageSeed | null = useMemo(() => {
     return draft?.pages.find((page) => page.pageType === selectedPage) ?? draft?.pages[0] ?? null;
   }, [draft, selectedPage]);
+
+  /** Every image Rex can work on: this session's uploads and generations, then the store's product photos. */
+  const imageLibrary: RexAsset[] = useMemo(() => {
+    const productImages = storeProducts.flatMap((product) => product.images.slice(0, 1).map((url) => ({ url, label: product.name })));
+    const all = [...generatedImages, ...uploadedAssets, ...productImages];
+    return all.filter((image, index) => all.findIndex((entry) => entry.url === image.url) === index);
+  }, [generatedImages, uploadedAssets, storeProducts]);
+  const selectedImage = imageLibrary.find((image) => image.url === selectedImageUrl) ?? imageLibrary[0] ?? null;
 
   function createRexPage(pageType: TemplatePageType): TemplatePageSeed {
     const titleMap: Record<TemplatePageType, string> = {
@@ -273,7 +365,7 @@ export function RexAIBuilder() {
       id: `rex-${pageType}`,
       pageType,
       title,
-      slug: pageType === "home" ? "" : pageType,
+      slug: pageType === "home" ? "home" : pageType,
       sections: sectionsMap[pageType].map((kind) => createSectionFromLibrary(kind)),
       seo: {
         metaTitle: pageType === "home" ? envelope?.store.name ?? "Store" : `${title} | ${envelope?.store.name ?? "Store"}`,
@@ -283,101 +375,340 @@ export function RexAIBuilder() {
   }
 
   async function saveSnapshot(next: StoreEditorSnapshot, message: string) {
-    const response = await fetch("/api/store/editor", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ snapshot: next }),
-    });
-    const json = (await response.json()) as { data?: { draft?: StoreEditorSnapshot | null } };
-    if (json.data?.draft) {
-      setDraft(json.data.draft);
-      showToast(message);
+    try {
+      const response = await fetch("/api/store/editor", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ snapshot: next }),
+      });
+      if (!response.ok) throw new Error(await apiError(response, "Couldn't save the draft."));
+      const json = (await response.json()) as { data?: { draft?: StoreEditorSnapshot | null } };
+      if (json.data?.draft) {
+        setDraft(json.data.draft);
+        setHasChanges(true);
+        logActivity(message);
+        showToast(message);
+        return true;
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Couldn't save the draft.");
     }
+    return false;
   }
 
-  async function buildFullEcommerceStore() {
+  /** Adds the standard ecommerce pages the draft is missing, from the section library. No AI involved. */
+  async function addMissingPages() {
     if (!draft) return;
     const requiredPages: TemplatePageType[] = ["home", "products", "product", "categories", "cart", "checkout", "wishlist", "blog", "about", "contact", "faq"];
     const existing = new Set(draft.pages.map((page) => page.pageType));
-    const pages = [
-      ...draft.pages.map((page) =>
-        page.sections.length > 0
-          ? page
-          : createRexPage(page.pageType),
-      ),
-      ...requiredPages.filter((page) => !existing.has(page)).map((page) => createRexPage(page)),
-    ];
+    const missing = requiredPages.filter((page) => !existing.has(page));
+    const emptied = draft.pages.filter((page) => page.sections.length === 0).map((page) => page.pageType);
+    if (!missing.length && !emptied.length) {
+      setRexMessages((prev) => [...prev, newMessage("assistant", "Your draft already has every standard store page (home, products, product detail, categories, cart, checkout, wishlist, blog, about, contact and FAQ).")]);
+      return;
+    }
     const next: StoreEditorSnapshot = {
       ...draft,
-      pages,
+      pages: [
+        ...draft.pages.map((page) => (page.sections.length > 0 ? page : createRexPage(page.pageType))),
+        ...missing.map((page) => createRexPage(page)),
+      ],
       updatedAt: new Date().toISOString(),
     };
-    await saveSnapshot(next, "Rex built a complete ecommerce store draft.");
-    setSelectedPage("home");
-    setRexMessages((prev) => [...prev, { role: "assistant", content: "I built the full ecommerce structure: home, products, product detail, categories, cart, checkout, wishlist, blog, about, contact, and FAQ. Review each page in preview, then apply changes." }]);
+    const saved = await saveSnapshot(next, "Added the missing store pages.");
+    if (saved) {
+      const added = [...missing, ...emptied];
+      setRexMessages((prev) => [
+        ...prev,
+        newMessage("assistant", `I added these pages from the standard section library: ${added.join(", ")}. They use template sections, not copy written for your store yet; ask me to write any of them.`),
+      ]);
+    }
+  }
+
+  /** The real builder: designs the store, saves the draft and pages, adds sample products and images. */
+  async function buildWholeStore(request: string) {
+    if (rexBusy) return;
+    const conversation = rexMessages.slice(1).map((m) => ({ role: m.role, content: m.content })).filter((m) => m.content.trim());
+    setRexMessages((prev) => [...prev, newMessage("user", request), newMessage("assistant", "Building your store: designing, writing pages, and creating images. This can take a minute…")]);
+    setRexBusy(true);
+    try {
+      const memory = (envelope?.store.brandSettings?.onboardingMemory ?? {}) as Record<string, unknown>;
+      const response = await fetch("/api/ai/build-store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...conversation, { role: "user", content: request }].slice(-30),
+          brief: [envelope?.store.description, typeof memory.businessDescription === "string" ? memory.businessDescription : ""].filter(Boolean).join("\n") || undefined,
+          brandContext: {
+            category: typeof memory.category === "string" ? memory.category : undefined,
+            businessDescription: typeof memory.businessDescription === "string" ? memory.businessDescription : envelope?.store.description ?? undefined,
+          },
+          templateContext: envelope?.template ? { templateId: envelope.template.templateId, templateName: envelope.template.templateName } : undefined,
+        }),
+      });
+      if (!response.ok) throw new Error(await apiError(response, "Rex couldn't build the store."));
+      const json = (await response.json()) as {
+        data: {
+          config: StoreConfig;
+          products: Array<{ name: string }>;
+          pages: Array<{ title: string }>;
+          images: { hero: string | null; product: string | null };
+          notes: string[];
+        };
+      };
+      await reloadEnvelope();
+      setStoreProducts([]);
+      setHasChanges(true);
+      const result = json.data;
+      const made = [
+        `designed "${result.config.name}" (${result.config.products.length} products in the layout)`,
+        `saved ${result.pages.length} draft pages`,
+        result.products.length ? `added ${result.products.length} sample products as drafts, marked "(sample)"` : "",
+        result.images.hero ? "generated a hero image" : "",
+        result.images.product ? "generated a product photo" : "",
+      ].filter(Boolean);
+      for (const url of [result.images.hero, result.images.product]) {
+        if (url) setGeneratedImages((prev) => [{ url, label: url === result.images.hero ? "Hero image" : "Product photo" }, ...prev]);
+      }
+      logActivity(`Built the store draft for ${result.config.name}`);
+      setRexMessages((prev) => [
+        ...prev.slice(0, -1),
+        newMessage(
+          "assistant",
+          [`Done: I ${made.join(", ")}.`, ...result.notes, "Review it in the preview. Press Publish changes when you're ready to go live."].join("\n\n"),
+          ["Make it more premium", "Write the About page", "Add missing store pages"],
+        ),
+      ]);
+    } catch (error) {
+      setRexMessages((prev) => [...prev.slice(0, -1), newMessage("assistant", error instanceof Error ? error.message : "Rex couldn't build the store.")]);
+    } finally {
+      setRexBusy(false);
+    }
   }
 
   async function generateLogo() {
-    const response = await fetch("/api/ai/generate-logo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessName: logoName || envelope?.store.name, businessDescription: logoTagline || envelope?.store.description, paletteHint: logoStyle }),
-    });
-    const json = (await response.json()) as { logos?: typeof generatedLogos; error?: { message?: string } };
-    if (json.logos?.length) {
-      setGeneratedLogos(json.logos);
-      setHasChanges(true);
-      showToast("Logo concepts generated.");
-    } else {
-      showToast(json.error?.message ?? "Logo generation failed.");
+    setToolBusy("logo");
+    try {
+      const response = await fetch("/api/ai/generate-logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessName: logoName || envelope?.store.name, businessDescription: logoTagline || envelope?.store.description, paletteHint: logoStyle }),
+      });
+      const json = (await response.json().catch(() => null)) as { logos?: typeof generatedLogos; error?: { message?: string } } | null;
+      if (json?.logos?.length) {
+        setGeneratedLogos(json.logos);
+        showToast("Logo concepts generated.");
+      } else {
+        showToast(json?.error?.message ?? "Logo generation failed.");
+      }
+    } finally {
+      setToolBusy(null);
     }
   }
 
   async function applyLogo(url: string) {
-    await fetch("/api/app/store", {
+    const response = await fetch("/api/app/store", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ logoUrl: url }),
     });
+    if (!response.ok) {
+      showToast(await apiError(response, "Couldn't save the logo."));
+      return;
+    }
     setEnvelope((prev) => prev ? { ...prev, store: { ...prev.store, logoUrl: url } } : prev);
-    showToast("Logo applied to store.");
+    logActivity("Applied a new logo");
+    showToast("Logo saved to your store.");
   }
 
-  async function generateProductImage() {
-    const size = productFormat === "4:3 Landscape" ? "1792x1024" : productFormat === "3:4 Portrait" ? "1024x1792" : "1024x1024";
+  async function generateImageFrom(prompt: string, size: string, label: string) {
     const response = await fetch("/api/ai/generate-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: productPrompt, size, style: "vivid" }),
+      body: JSON.stringify({ prompt, size }),
     });
-    const json = (await response.json()) as { image?: { url: string }; error?: { message?: string } };
-    if (json.image?.url) {
-      setGeneratedImages((prev) => [{ url: json.image!.url, label: "Generated product image" }, ...prev].slice(0, 6));
-      setHasChanges(true);
+    const json = (await response.json().catch(() => null)) as { image?: { url: string }; error?: { message?: string } } | null;
+    if (!response.ok || !json?.image?.url) throw new Error(json?.error?.message ?? "Image generation failed.");
+    const asset = { url: json.image.url, label };
+    setGeneratedImages((prev) => [asset, ...prev].slice(0, 12));
+    setSelectedImageUrl(asset.url);
+    logActivity(`Generated: ${label}`);
+    return asset;
+  }
+
+  async function generateProductImage() {
+    if (!productPrompt.trim()) {
+      showToast("Describe the product photo first.");
+      return;
+    }
+    const size = productFormat === "4:3 Landscape" ? "1536x1024" : productFormat === "3:4 Portrait" ? "1024x1536" : "1024x1024";
+    setToolBusy("product-img");
+    try {
+      await generateImageFrom(productPrompt, size, "Product photo");
       showToast("Product image generated.");
-    } else {
-      showToast(json.error?.message ?? "Image generation failed.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Image generation failed.");
+    } finally {
+      setToolBusy(null);
+    }
+  }
+
+  async function generateBanner() {
+    if (!bannerHeadline.trim()) {
+      showToast("Write the banner headline first.");
+      return;
+    }
+    setToolBusy("banner");
+    try {
+      const storeName = envelope?.store.name ?? "the store";
+      await generateImageFrom(
+        `Promotional ${bannerFormat.toLowerCase()} for the online store "${storeName}"${envelope?.store.description ? ` (${envelope.store.description})` : ""}. Show the headline "${bannerHeadline.trim()}" in large, clean, correctly spelled typography, with a short "Shop now" call to action. Bold, modern layout with strong contrast; no other text.`,
+        BANNER_SIZES[bannerFormat] ?? "1536x1024",
+        `${bannerFormat}: ${bannerHeadline.trim()}`,
+      );
+      showToast("Banner created.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Banner generation failed.");
+    } finally {
+      setToolBusy(null);
+    }
+  }
+
+  async function editSelectedImage(kind: ImageEditKind, label: string) {
+    if (!selectedImage) {
+      showToast("Upload or pick an image first.");
+      return;
+    }
+    setToolBusy(kind);
+    try {
+      const response = await fetch("/api/ai/enhance-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: selectedImage.url, kind }),
+      });
+      const json = (await response.json().catch(() => null)) as { image?: { url: string }; error?: { message?: string } } | null;
+      if (!response.ok || !json?.image?.url) throw new Error(json?.error?.message ?? "Couldn't edit that image.");
+      const asset = { url: json.image.url, label: `${label}: ${selectedImage.label}` };
+      setGeneratedImages((prev) => [asset, ...prev].slice(0, 12));
+      setSelectedImageUrl(asset.url);
+      logActivity(asset.label);
+      showToast(`${label} done.`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Couldn't edit that image.");
+    } finally {
+      setToolBusy(null);
+    }
+  }
+
+  async function processSelectedImage(mode: "square" | "compress") {
+    if (!selectedImage) {
+      showToast("Upload or pick an image first.");
+      return;
+    }
+    setToolBusy(mode);
+    try {
+      const file = await processImageInBrowser(selectedImage.url, mode);
+      const asset = await uploadRexAsset(file, "products");
+      if (asset) {
+        const label = mode === "square" ? "Square crop" : "Compressed";
+        setUploadedAssets((prev) => prev.map((entry) => (entry.url === asset.url ? { ...entry, label: `${label}: ${selectedImage.label}` } : entry)));
+        setSelectedImageUrl(asset.url);
+        logActivity(`${label}: ${selectedImage.label}`);
+      }
+    } catch (error) {
+      showToast(error instanceof Error && error.message ? error.message : "Couldn't process this image in the browser.");
+    } finally {
+      setToolBusy(null);
+    }
+  }
+
+  async function writeCopy() {
+    setToolBusy("copy");
+    setCopyResult("");
+    try {
+      const fieldByType: Record<string, { field: string; maxWords: number; instructions: string }> = {
+        "Product description": { field: "product description", maxWords: 120, instructions: "2 short paragraphs: what it is and why it's worth buying." },
+        "Short tagline": { field: "store tagline", maxWords: 8, instructions: "One line, memorable, no clichés." },
+        "WhatsApp caption": { field: "WhatsApp broadcast message", maxWords: 60, instructions: "Friendly, direct, ends with a call to order." },
+        "SEO meta": { field: "SEO meta description", maxWords: 28, instructions: "Under 155 characters, includes what is sold and where." },
+      };
+      const config = fieldByType[copyType] ?? fieldByType["Product description"];
+      const response = await fetch("/api/ai/copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...config,
+          context: {
+            store: envelope?.store.name ?? "",
+            "what the store sells": envelope?.store.description ?? "",
+            "product or offer": copyProductName,
+            location: [envelope?.store.city, envelope?.store.country].filter(Boolean).join(", "),
+          },
+        }),
+      });
+      const json = (await response.json().catch(() => null)) as { data?: { text?: string }; error?: { message?: string } } | null;
+      if (!response.ok || !json?.data?.text) throw new Error(json?.error?.message ?? "Couldn't write that copy.");
+      setCopyResult(json.data.text);
+      logActivity(`Wrote ${copyType.toLowerCase()}`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Couldn't write that copy.");
+    } finally {
+      setToolBusy(null);
+    }
+  }
+
+  /** Saves the copy where it belongs: a tagline becomes the hero subline; a description goes on the chosen product. */
+  async function applyCopy() {
+    if (!copyResult || !draft) return;
+    if (copyType === "Short tagline") {
+      const next: StoreEditorSnapshot = {
+        ...draft,
+        updatedAt: new Date().toISOString(),
+        pages: draft.pages.map((page) => page.pageType !== "home" ? page : {
+          ...page,
+          sections: page.sections.map((section) => section.kind !== "hero-split" ? section : {
+            ...section,
+            blocks: section.blocks.map((block) => block.type === "copy" ? { ...block, content: { ...block.content, body: copyResult } } : block),
+          }),
+        }),
+      };
+      await saveSnapshot(next, "Tagline saved to the homepage hero.");
+    } else if (copyType === "Product description" && targetProductId) {
+      const response = await fetch(`/api/store/products/${targetProductId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: copyResult }),
+      });
+      if (!response.ok) showToast(await apiError(response, "Couldn't save the description."));
+      else {
+        logActivity("Saved a product description");
+        showToast("Description saved to the product.");
+      }
     }
   }
 
   async function generatePalette() {
-    const response = await fetch("/api/ai/generate-palette", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        businessName: envelope?.store.name,
-        description: envelope?.store.description || envelope?.store.storeProducts.map((product) => product.name).join(", ") || "online products",
-        feeling: paletteVibe,
-        customers: "online shoppers",
-      }),
-    });
-    const json = (await response.json()) as { palettes?: GeneratedPalette[]; error?: { message?: string } };
-    if (json.palettes?.length) {
-      setGeneratedPalettes(json.palettes);
-      setHasChanges(true);
-      showToast("Brand palettes generated.");
-    } else {
-      showToast(json.error?.message ?? "Palette generation failed.");
+    setToolBusy("palette");
+    try {
+      const response = await fetch("/api/ai/generate-palette", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: envelope?.store.name,
+          description: envelope?.store.description || envelope?.store.storeProducts.map((product) => product.name).join(", ") || "online products",
+          feeling: paletteVibe || "professional",
+          customers: "online shoppers",
+        }),
+      });
+      const json = (await response.json().catch(() => null)) as { palettes?: GeneratedPalette[]; error?: { message?: string } } | null;
+      if (json?.palettes?.length) {
+        setGeneratedPalettes(json.palettes);
+        showToast("Brand palettes generated.");
+      } else {
+        showToast(json?.error?.message ?? "Palette generation failed.");
+      }
+    } finally {
+      setToolBusy(null);
     }
   }
 
@@ -399,11 +730,13 @@ export function RexAIBuilder() {
         muted: palette.colors.secondary,
       },
     };
-    await saveSnapshot(next, `${palette.name} applied to your store.`);
+    await saveSnapshot(next, `${palette.name} applied to your draft.`);
   }
 
+  /** Puts the image on the first image slot of the selected page (the hero on the homepage). */
   async function applyImageToSelectedPage(url: string) {
     if (!draft || !currentPage) return;
+    let applied = false;
     const next: StoreEditorSnapshot = {
       ...draft,
       updatedAt: new Date().toISOString(),
@@ -411,44 +744,99 @@ export function RexAIBuilder() {
         page.pageType === currentPage.pageType
           ? {
               ...page,
-              sections: page.sections.map((section) => ({
-                ...section,
-                items: section.items?.map((item, index) => index === 0 ? { ...item, imageUrl: url } : item),
-              })),
+              sections: page.sections.map((section) => {
+                if (applied || !section.items?.length) return section;
+                applied = true;
+                return { ...section, items: section.items.map((item, index) => index === 0 ? { ...item, imageUrl: url } : item) };
+              }),
             }
           : page,
       ),
     };
-    await saveSnapshot(next, "Image applied to selected page.");
+    if (!applied) {
+      showToast(`The ${currentPage.title} page has no image slot. Pick another page in the preview bar.`);
+      return;
+    }
+    await saveSnapshot(next, `Image placed on the ${currentPage.title} page.`);
+  }
+
+  async function setAsProductPhoto(url: string) {
+    const product = storeProducts.find((entry) => entry.id === targetProductId);
+    if (!product) {
+      showToast("Add a product first, then set its photo here.");
+      return;
+    }
+    const response = await fetch(`/api/store/products/${product.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images: [url, ...product.images.filter((image) => image !== url)].slice(0, 10) }),
+    });
+    if (!response.ok) {
+      showToast(await apiError(response, "Couldn't save the product photo."));
+      return;
+    }
+    setStoreProducts((prev) => prev.map((entry) => (entry.id === product.id ? { ...entry, images: [url, ...entry.images.filter((image) => image !== url)] } : entry)));
+    logActivity(`Set the main photo of ${product.name}`);
+    showToast(`Saved as the main photo of ${product.name}.`);
+  }
+
+  async function restoreLiveVersion() {
+    const published = envelope?.published;
+    if (!published) return;
+    const saved = await saveSnapshot({ ...published, updatedAt: new Date().toISOString() }, "Draft reset to the live version.");
+    if (saved) setHasChanges(false);
+  }
+
+  /** The store as Rex sees it: the current draft's design plus real products, for the builder prompt. */
+  function currentStoreConfig(): StoreConfig | null {
+    if (!draft || !envelope) return null;
+    const fromDraft = snapshotToStoreConfig(draft, envelope.store.name);
+    const realProducts = envelope.store.storeProducts.slice(0, 8).map((product, index) => ({
+      name: product.name,
+      subtitle: product.description?.slice(0, 80) ?? "",
+      price: `${product.currency} ${product.retailPrice}`,
+      color: fromDraft.products[index]?.color ?? "#2E7E78",
+      ...(product.images[0] ? { imageUrl: product.images[0] } : {}),
+    }));
+    return {
+      ...fromDraft,
+      name: envelope.store.name,
+      slug: envelope.store.slug,
+      logoUrl: envelope.store.logoUrl ?? null,
+      products: realProducts.length ? realProducts : fromDraft.products,
+    };
   }
 
   // Ask Rex to update the editable store draft (streaming store-builder).
   async function sendRexPrompt(prompt: string) {
-    if (!prompt.trim() || !draft) return;
-    if (/(full|complete|entire|all pages|checkout|cart|wishlist|categories|product page)/i.test(prompt)) {
-      setRexMessages((prev) => [...prev, { role: "user", content: prompt }]);
-      await buildFullEcommerceStore();
+    if (!prompt.trim() || !draft || rexBusy) return;
+    // "Build my store" / "Create a full online shop" goes to the real builder; edits stream through the chat.
+    if (/^(please\s+)?(build|create|generate)\s+(me\s+)?(my|a|the)?\s*(whole|full|complete|entire|new)?\s*(online\s+)?(store|shop)\b/i.test(prompt.trim())) {
       setRexPrompt("");
+      await buildWholeStore(prompt.trim());
       return;
     }
 
-    const userMessage = { role: "user" as const, content: prompt };
-    setRexMessages((prev) => [...prev, userMessage]);
+    const history = rexMessages.slice(1).map((m) => ({ role: m.role, content: m.content })).filter((m) => m.content.trim());
+    const userMessage = newMessage("user", prompt);
+    const placeholder = newMessage("assistant", "");
+    const setPlaceholder = (patch: Partial<RexMessage>) =>
+      setRexMessages((prev) => prev.map((m) => (m.id === placeholder.id ? { ...m, ...patch } : m)));
+    setRexMessages((prev) => [...prev, userMessage, placeholder]);
     setRexBusy(true);
-
-    // Placeholder assistant bubble that streams in
-    const placeholderIdx = rexMessages.length + 1;
-    setRexMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+    setRexPrompt("");
 
     try {
+      const memory = (envelope?.store.brandSettings?.onboardingMemory ?? {}) as Record<string, unknown>;
       const res = await fetch("/api/ai/store-builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...rexMessages, userMessage].map((m) => ({ role: m.role, content: m.content })),
+          messages: [...history, { role: "user", content: prompt }],
+          store: currentStoreConfig(),
           brandContext: {
-            businessDescription: envelope?.store.description,
-            category: undefined,
+            businessDescription: (typeof memory.businessDescription === "string" ? memory.businessDescription : null) ?? envelope?.store.description ?? undefined,
+            category: typeof memory.category === "string" ? memory.category : undefined,
           },
           templateContext: envelope?.template ? {
             templateId: envelope.template.templateId,
@@ -457,15 +845,25 @@ export function RexAIBuilder() {
         }),
       });
 
-      if (!res.ok || !res.body) {
-        throw new Error("Stream unavailable");
-      }
+      if (!res.ok || !res.body) throw new Error(await apiError(res, "Rex couldn't start. Try again."));
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let assistantText = "";
       let pendingConfig: StoreConfig | null = null;
+      let streamError: string | null = null;
+      let chips: string[] | undefined;
+
+      const handle = (chunk: { type: string; text?: string; data?: unknown; message?: string }) => {
+        if (chunk.type === "status" && chunk.message && !assistantText) setPlaceholder({ content: `${chunk.message}…` });
+        else if (chunk.type === "token" && typeof chunk.text === "string") {
+          assistantText += chunk.text;
+          setPlaceholder({ content: assistantText });
+        } else if (chunk.type === "store" && chunk.data && typeof chunk.data === "object") pendingConfig = chunk.data as StoreConfig;
+        else if (chunk.type === "chips" && Array.isArray(chunk.data)) chips = (chunk.data as unknown[]).filter((chip): chip is string => typeof chip === "string");
+        else if (chunk.type === "error") streamError = chunk.message ?? "Rex hit a problem.";
+      };
 
       while (true) {
         const { value, done } = await reader.read();
@@ -473,51 +871,43 @@ export function RexAIBuilder() {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
-
         for (const line of lines) {
           if (!line.trim()) continue;
-          try {
-            const chunk = JSON.parse(line) as { type: string; text?: string; data?: unknown; content?: unknown };
-            if (chunk.type === "token" && typeof chunk.text === "string") {
-              assistantText += chunk.text;
-              setRexMessages((prev) => prev.map((m, i) => i === placeholderIdx ? { ...m, content: assistantText } : m));
-            } else if (chunk.type === "store") {
-              pendingConfig = chunk.data as StoreConfig;
-            } else if (chunk.type === "chips" && Array.isArray(chunk.content)) {
-              // chips shown as quick-starts — for now just update message
-            }
-          } catch { /* partial JSON line */ }
+          try { handle(JSON.parse(line)); } catch { /* malformed line */ }
         }
       }
-
-      // Finalize message
-      if (!assistantText) {
-        setRexMessages((prev) => prev.map((m, i) => i === placeholderIdx ? { ...m, content: "Done! Check the preview for updates." } : m));
+      if (buffer.trim()) {
+        try { handle(JSON.parse(buffer)); } catch { /* ignore */ }
       }
 
-      // If Rex returned a store config, apply it to the draft
-      if (pendingConfig && draft) {
+      const config = pendingConfig as StoreConfig | null;
+      let saveNote = "";
+      if (config) {
+        // Persist through the editor's hydrate path so the change survives a reload.
         const patchRes = await fetch("/api/store/editor", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ storeConfig: pendingConfig }),
+          body: JSON.stringify({ hydrateFromStoreConfig: config }),
         });
-        const patchJson = (await patchRes.json()) as { data?: { draft?: StoreEditorSnapshot | null } };
-        if (patchJson.data?.draft) {
+        const patchJson = (await patchRes.json().catch(() => null)) as { data?: { draft?: StoreEditorSnapshot | null }; error?: { message?: string } } | null;
+        if (patchRes.ok && patchJson?.data?.draft) {
           setDraft(patchJson.data.draft);
           setHasChanges(true);
-          showToast("Rex updated your store! Review in the preview.");
+          logActivity(`Rex: ${prompt.slice(0, 60)}`);
+          showToast("Rex updated your draft. Review it in the preview.");
+        } else {
+          saveNote = `I couldn't save that change to your draft (${patchJson?.error?.message ?? "save failed"}). Try again.`;
         }
       }
-    } catch {
-      setRexMessages((prev) => prev.map((m, i) =>
-        i === placeholderIdx
-          ? { ...m, content: "Rex had trouble connecting. Check that your AI API keys are configured and try again." }
-          : m,
-      ));
+      const finalError = streamError as string | null;
+      setPlaceholder({
+        content: [assistantText || (config ? "Done. Check the preview." : ""), finalError ?? "", saveNote].filter(Boolean).join("\n\n") || "Rex didn't return anything. Try rephrasing.",
+        chips: finalError ? ["Try again"] : chips,
+      });
+    } catch (error) {
+      setPlaceholder({ content: error instanceof Error ? error.message : "Rex had trouble connecting. Try again." });
     } finally {
       setRexBusy(false);
-      setRexPrompt("");
     }
   }
 
@@ -527,21 +917,22 @@ export function RexAIBuilder() {
     setPublishing(true);
     try {
       const response = await fetch("/api/store/editor/publish", { method: "POST" });
-      const json = (await response.json()) as { data?: EditorEnvelope; billing?: StoreLaunchPricing; error?: { message?: string } };
-      if (response.status === 402 && json.billing) {
+      const json = (await response.json().catch(() => null)) as { data?: EditorEnvelope; billing?: StoreLaunchPricing; error?: { message?: string } } | null;
+      if (response.status === 402 && json?.billing) {
         setLaunchPricing(json.billing);
         return;
       }
-      if (!response.ok) throw new Error(json.error?.message ?? "Could not publish changes.");
-      if (json.data) {
+      if (!response.ok) throw new Error(json?.error?.message ?? "Could not publish changes.");
+      if (json?.data) {
         setEnvelope((prev) => (prev ? { ...prev, published: json.data?.published ?? prev.published } : prev));
         setHasChanges(false);
+        logActivity("Published to the live store");
         const storeSlug = json.data.store?.slug ?? envelope?.store?.slug;
         if (storeSlug) setPublishedStoreUrl(`/s/${storeSlug}`);
-        else showToast("Changes applied successfully to your live store!");
+        else showToast("Changes published to your live store.");
       }
-    } catch {
-      showToast("Error applying changes.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Error publishing changes.");
     } finally {
       setPublishing(false);
     }
@@ -563,10 +954,9 @@ export function RexAIBuilder() {
       if (!response.ok || !json.data?.publicUrl) {
         throw new Error(json.error?.message ?? "Upload failed.");
       }
-      const asset = { url: json.data.publicUrl, label: file.name.replace(/\.[^.]+$/, "") || "Uploaded asset" };
+      const asset = { url: json.data.publicUrl, label: file.name.replace(/\.[^.]+$/, "") || "Uploaded image" };
       setUploadedAssets((prev) => [asset, ...prev].slice(0, 12));
-      setGeneratedImages((prev) => [asset, ...prev].slice(0, 12));
-      setHasChanges(true);
+      setSelectedImageUrl(asset.url);
       showToast("Image uploaded and ready to use.");
       return asset;
     } catch (error) {
@@ -580,7 +970,7 @@ export function RexAIBuilder() {
   function downloadAsset(url: string, label = "shopinbos-asset") {
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "shopinbos-asset"}.png`;
+    link.download = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "shopinbos-asset"}.webp`;
     link.target = "_blank";
     link.rel = "noreferrer";
     document.body.appendChild(link);
@@ -678,7 +1068,7 @@ export function RexAIBuilder() {
                 Back to live preview
               </button>
               <button type="button" onClick={() => setPublishConfirmOpen(true)} disabled={publishing} style={{ ...primaryButtonStyle, opacity: publishing ? 0.6 : 1 }}>
-                {publishing ? "Applying..." : "Apply changes"}
+                {publishing ? "Publishing..." : "Publish changes"}
               </button>
             </div>
           </div>
@@ -707,8 +1097,8 @@ export function RexAIBuilder() {
                         <option>Traditional / Classic</option>
                       </select>
                     </label>
-                    <button type="button" onClick={() => void generateLogo()} style={primaryButtonStyle}>
-                      Generate logo concepts
+                    <button type="button" onClick={() => void generateLogo()} disabled={toolBusy === "logo"} style={{ ...primaryButtonStyle, opacity: toolBusy === "logo" ? 0.6 : 1 }}>
+                      {toolBusy === "logo" ? "Generating…" : "Generate logo concepts"}
                     </button>
                     <label style={{ ...secondaryButtonStyle, textAlign: "center" }}>
                       {uploadingAsset ? "Uploading..." : "Upload existing logo"}
@@ -731,25 +1121,43 @@ export function RexAIBuilder() {
 
                 {activeTool === "image" && (
                   <div style={{ display: "grid", gap: 12 }}>
-                    <div style={{ height: 180, borderRadius: 12, overflow: "hidden", background: "#DCE3EE" }}>
-                      <img src={uploadedAssets[0]?.url ?? generatedImages[0]?.url ?? "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=640&q=75"} alt="Image editor preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <div style={{ height: 180, borderRadius: 12, overflow: "hidden", background: "#DCE3EE", display: "grid", placeItems: "center" }}>
+                      {selectedImage ? (
+                        <img src={selectedImage.url} alt={selectedImage.label} style={{ width: "100%", height: "100%", objectFit: "contain", background: "#F3F6FA" }} />
+                      ) : (
+                        <span style={{ color: "#52627A", fontSize: 12, padding: 16, textAlign: "center" }}>Upload a photo, or pick one of your product photos on the right.</span>
+                      )}
                     </div>
-                    {["Remove background", "Enhance quality", "Remove object", "Resize for store", "Create clean product crop", "Compress for faster loading"].map((action) => (
-                      <button key={action} type="button" onClick={() => showToast(`${action} queued for the selected asset.`)} style={secondaryButtonStyle}>
-                        {action}
+                    <div style={{ fontSize: 11, color: "#52627A" }}>AI edits (OpenAI image model; each uses one image credit)</div>
+                    {IMAGE_EDIT_ACTIONS.map((action) => (
+                      <button
+                        key={action.kind}
+                        type="button"
+                        disabled={!selectedImage || Boolean(toolBusy)}
+                        onClick={() => void editSelectedImage(action.kind, action.label)}
+                        style={{ ...secondaryButtonStyle, opacity: !selectedImage || toolBusy ? 0.6 : 1 }}
+                      >
+                        {toolBusy === action.kind ? "Working…" : action.label}
                       </button>
                     ))}
+                    <div style={{ fontSize: 11, color: "#52627A" }}>Quick fixes (done in your browser, free)</div>
+                    <button type="button" disabled={!selectedImage || Boolean(toolBusy)} onClick={() => void processSelectedImage("square")} style={{ ...secondaryButtonStyle, opacity: !selectedImage || toolBusy ? 0.6 : 1 }}>
+                      {toolBusy === "square" ? "Cropping…" : "Square crop for product cards (1200px)"}
+                    </button>
+                    <button type="button" disabled={!selectedImage || Boolean(toolBusy)} onClick={() => void processSelectedImage("compress")} style={{ ...secondaryButtonStyle, opacity: !selectedImage || toolBusy ? 0.6 : 1 }}>
+                      {toolBusy === "compress" ? "Compressing…" : "Resize and compress for faster loading"}
+                    </button>
                     <label style={{ ...primaryButtonStyle, textAlign: "center" }}>
-                      {uploadingAsset ? "Uploading..." : "Upload or select image"}
+                      {uploadingAsset ? "Uploading..." : "Upload an image"}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp"
                         style={{ display: "none" }}
                         disabled={uploadingAsset}
                         onChange={(event) => {
                           const file = event.currentTarget.files?.[0];
                           event.currentTarget.value = "";
-                          if (file) void uploadRexAsset(file, "brand");
+                          if (file) void uploadRexAsset(file, "products");
                         }}
                       />
                     </label>
@@ -760,7 +1168,7 @@ export function RexAIBuilder() {
                   <div style={{ display: "grid", gap: 12 }}>
                     <label>
                       <span style={labelStyle}>Prompt</span>
-                      <textarea value={productPrompt} onChange={(e) => setProductPrompt(e.target.value)} placeholder="Describe the product photo you want..." style={{ ...inputStyle, minHeight: 130, resize: "vertical" }} />
+                      <textarea value={productPrompt} onChange={(e) => setProductPrompt(e.target.value)} placeholder="e.g. Shea butter in an amber jar on a wooden table, soft morning light, white background" style={{ ...inputStyle, minHeight: 130, resize: "vertical" }} />
                     </label>
                     <label>
                       <span style={labelStyle}>Output format</span>
@@ -770,14 +1178,14 @@ export function RexAIBuilder() {
                         <option>3:4 Portrait</option>
                       </select>
                     </label>
-                    <button type="button" onClick={() => void generateProductImage()} style={primaryButtonStyle}>
-                      Generate product image
+                    <button type="button" onClick={() => void generateProductImage()} disabled={toolBusy === "product-img"} style={{ ...primaryButtonStyle, opacity: toolBusy === "product-img" ? 0.6 : 1 }}>
+                      {toolBusy === "product-img" ? "Generating… (up to a minute)" : "Generate product image"}
                     </button>
                     <label style={{ ...secondaryButtonStyle, textAlign: "center" }}>
                       {uploadingAsset ? "Uploading..." : "Upload product image"}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp"
                         style={{ display: "none" }}
                         disabled={uploadingAsset}
                         onChange={(event) => {
@@ -794,24 +1202,24 @@ export function RexAIBuilder() {
                   <div style={{ display: "grid", gap: 12 }}>
                     <label>
                       <span style={labelStyle}>Campaign headline</span>
-                      <input value={bannerHeadline} onChange={(e) => setBannerHeadline(e.target.value)} placeholder="Summer sale - 20% off" style={inputStyle} />
+                      <input value={bannerHeadline} onChange={(e) => setBannerHeadline(e.target.value)} placeholder="e.g. Aso Ebi season: 20% off all bundles" style={inputStyle} />
                     </label>
                     <label>
                       <span style={labelStyle}>Placement</span>
                       <select value={bannerFormat} onChange={(e) => setBannerFormat(e.target.value)} style={inputStyle}>
+                        <option>Store banner</option>
                         <option>WhatsApp flyer</option>
                         <option>Instagram post</option>
-                        <option>Store banner</option>
                       </select>
                     </label>
-                    <button type="button" onClick={() => showToast("Banner template generated successfully.")} style={primaryButtonStyle}>
-                      Create banner
+                    <button type="button" onClick={() => void generateBanner()} disabled={toolBusy === "banner"} style={{ ...primaryButtonStyle, opacity: toolBusy === "banner" ? 0.6 : 1 }}>
+                      {toolBusy === "banner" ? "Creating… (up to a minute)" : "Create banner"}
                     </button>
                     <label style={{ ...secondaryButtonStyle, textAlign: "center" }}>
                       {uploadingAsset ? "Uploading..." : "Upload banner image"}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp"
                         style={{ display: "none" }}
                         disabled={uploadingAsset}
                         onChange={(event) => {
@@ -828,23 +1236,19 @@ export function RexAIBuilder() {
                   <div style={{ display: "grid", gap: 12 }}>
                     <label>
                       <span style={labelStyle}>Product or offer</span>
-                      <input value={copyProductName} onChange={(e) => setCopyProductName(e.target.value)} placeholder="Brazilian Body Wave 18 inch" style={inputStyle} />
+                      <input value={copyProductName} onChange={(e) => setCopyProductName(e.target.value)} placeholder="e.g. Brazilian Body Wave 18 inch" style={inputStyle} />
                     </label>
                     <label>
                       <span style={labelStyle}>Copy type</span>
-                      <select value={copyType} onChange={(e) => setCopyType(e.target.value)} style={inputStyle}>
+                      <select value={copyType} onChange={(e) => { setCopyType(e.target.value); setCopyResult(""); }} style={inputStyle}>
                         <option>Product description</option>
                         <option>Short tagline</option>
                         <option>WhatsApp caption</option>
                         <option>SEO meta</option>
                       </select>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => void sendRexPrompt(`Write ${copyType.toLowerCase()} for ${copyProductName || envelope?.store.name || "this store"}. Use the real store context and make it ready for shoppers.`)}
-                      style={primaryButtonStyle}
-                    >
-                      Write copy
+                    <button type="button" onClick={() => void writeCopy()} disabled={toolBusy === "copy"} style={{ ...primaryButtonStyle, opacity: toolBusy === "copy" ? 0.6 : 1 }}>
+                      {toolBusy === "copy" ? "Writing…" : "Write copy"}
                     </button>
                   </div>
                 )}
@@ -855,36 +1259,9 @@ export function RexAIBuilder() {
                       <span style={labelStyle}>Brand vibe</span>
                       <input value={paletteVibe} onChange={(e) => setPaletteVibe(e.target.value)} placeholder="Elegant, trusted, premium..." style={inputStyle} />
                     </label>
-                    <button type="button" onClick={() => void generatePalette()} style={primaryButtonStyle}>
-                      Generate palette
+                    <button type="button" onClick={() => void generatePalette()} disabled={toolBusy === "palette"} style={{ ...primaryButtonStyle, opacity: toolBusy === "palette" ? 0.6 : 1 }}>
+                      {toolBusy === "palette" ? "Generating…" : "Generate palettes"}
                     </button>
-                    {generatedPalettes.length > 0 && (
-                      <div style={{ display: "grid", gap: 8 }}>
-                        {generatedPalettes.slice(0, 5).map((palette) => (
-                          <button
-                            key={palette.id}
-                            type="button"
-                            onClick={() => void applyPalette(palette)}
-                            style={{
-                              border: "1px solid #E3EAE7",
-                              borderRadius: 10,
-                              background: "#FFFFFF",
-                              padding: 10,
-                              textAlign: "left",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <div style={{ display: "flex", gap: 5, marginBottom: 7 }}>
-                              {Object.values(palette.colors).slice(0, 5).map((color) => (
-                                <span key={color} style={{ width: 22, height: 22, borderRadius: 5, background: color, border: "1px solid rgba(0,0,0,.08)" }} />
-                              ))}
-                            </div>
-                            <div style={{ fontWeight: 800, color: "#122033", fontSize: 12 }}>{palette.name}</div>
-                            <div style={{ color: "#6B7890", fontSize: 11, marginTop: 2 }}>{palette.personality ?? "Tap to apply this palette."}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -895,11 +1272,11 @@ export function RexAIBuilder() {
                   ["Store", store.name],
                   ["Slug", `${store.slug}.shopinbos.store`],
                   ["Currency", store.currency],
-                  ["Products", `${store.storeProducts.length} connected`],
+                  ["Products", `${storeProducts.length || store.storeProducts.length} in your store`],
                   ["Pages", `${draft.pages.length} editable drafts`],
                   ["Current page", currentPage?.title ?? selectedPage],
                   ["Template", envelope.template?.templateName ?? draft.templateName],
-                  ["Uploaded assets", `${uploadedAssets.length} this session`],
+                  ["Images this session", `${uploadedAssets.length + generatedImages.length}`],
                 ].map(([label, value]) => (
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderTop: "1px solid #EEF2F6", fontSize: 12 }}>
                     <span style={{ color: "#6B7890" }}>{label}</span>
@@ -969,73 +1346,115 @@ export function RexAIBuilder() {
                 </div>
               )}
 
-              {activeTool === "product-img" && (
+              {(activeTool === "product-img" || activeTool === "image" || activeTool === "banner") && (
                 <div style={sectionStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "#122033", marginBottom: 12 }}>Generated images</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-                    {([...generatedImages, ...uploadedAssets].length ? [...generatedImages, ...uploadedAssets] : [
-                      { url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=75", label: "Lifestyle product card" },
-                      { url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500&q=75", label: "Studio product detail" },
-                      { url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=75", label: "Store banner crop" },
-                    ]).filter((image, index, array) => array.findIndex((entry) => entry.url === image.url) === index).map((image) => (
-                      <div key={image.url} style={{ border: "1px solid #DCE3EE", borderRadius: 12, background: "#FFFFFF", overflow: "hidden", textAlign: "left" }}>
-                        <img src={image.url} alt={image.label} style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
-                        <div style={{ padding: 10, color: "#122033", fontSize: 12, fontWeight: 700 }}>{image.label}</div>
-                        <div style={{ display: "flex", gap: 6, padding: "0 10px 10px" }}>
-                          <button type="button" onClick={() => void applyImageToSelectedPage(image.url)} style={{ ...primaryButtonStyle, flex: 1, padding: "7px 8px", fontSize: 11 }}>
-                            Apply
-                          </button>
-                          <button type="button" onClick={() => downloadAsset(image.url, image.label)} style={{ ...secondaryButtonStyle, flex: 1, padding: "7px 8px", fontSize: 11 }}>
-                            Download
-                          </button>
-                        </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-end", marginBottom: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#122033" }}>Your images</div>
+                      <div style={{ color: "#6B7890", fontSize: 12, marginTop: 3 }}>
+                        Click an image to select it. &ldquo;Use on {currentPage?.title ?? "page"}&rdquo; saves it to the draft page selected in the preview bar.
                       </div>
-                    ))}
+                    </div>
+                    {storeProducts.length > 0 && (
+                      <label style={{ fontSize: 11, color: "#52627A" }}>
+                        Product for &ldquo;Set as product photo&rdquo;{" "}
+                        <select value={targetProductId} onChange={(e) => setTargetProductId(e.target.value)} style={{ ...inputStyle, width: 200, padding: "6px 8px", fontSize: 12 }}>
+                          {storeProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                        </select>
+                      </label>
+                    )}
                   </div>
+                  {imageLibrary.length === 0 ? (
+                    <div style={{ border: "1px dashed #C9D3E1", borderRadius: 12, padding: 28, textAlign: "center", color: "#52627A", fontSize: 13 }}>
+                      No images yet. Generate one, or upload a photo on the left.
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+                      {imageLibrary.map((image) => (
+                        <div
+                          key={image.url}
+                          style={{ border: selectedImage?.url === image.url ? `2px solid ${rexUi.teal}` : "1px solid #DCE3EE", borderRadius: 12, background: "#FFFFFF", overflow: "hidden", textAlign: "left" }}
+                        >
+                          <button type="button" onClick={() => setSelectedImageUrl(image.url)} style={{ display: "block", width: "100%", padding: 0, border: "none", cursor: "pointer", background: "#F3F6FA" }}>
+                            <img src={image.url} alt={image.label} style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
+                          </button>
+                          <div style={{ padding: "8px 10px 4px", color: "#122033", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{image.label}</div>
+                          <div style={{ display: "grid", gap: 6, padding: "4px 10px 10px" }}>
+                            <button type="button" onClick={() => void applyImageToSelectedPage(image.url)} style={{ ...primaryButtonStyle, padding: "7px 8px", fontSize: 11 }}>
+                              Use on {currentPage?.title ?? "page"}
+                            </button>
+                            {storeProducts.length > 0 && (
+                              <button type="button" onClick={() => void setAsProductPhoto(image.url)} style={{ ...secondaryButtonStyle, padding: "7px 8px", fontSize: 11 }}>
+                                Set as product photo
+                              </button>
+                            )}
+                            <button type="button" onClick={() => downloadAsset(image.url, image.label)} style={{ ...secondaryButtonStyle, padding: "7px 8px", fontSize: 11 }}>
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {activeTool !== "logo" && activeTool !== "product-img" && (
+              {activeTool === "copy" && (
                 <div style={sectionStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "#122033", marginBottom: 12 }}>Output preview</div>
-                  <div style={{ border: "1px solid #DCE3EE", borderRadius: 12, overflow: "hidden", background: "#FFFFFF" }}>
-                    <div style={{ minHeight: 230, padding: 22, background: activeTool === "palette" ? "linear-gradient(135deg,#081329,#0FA493 48%,#C9A96E)" : "#F8FAFC" }}>
-                      {activeTool === "banner" ? (
-                        <div style={{ height: "100%", minHeight: 190, display: "grid", alignContent: "center", color: "#0D1830" }}>
-                          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1.4px", color: rexUi.tealDark, fontWeight: 800 }}>{bannerFormat}</div>
-                          <div style={{ fontFamily: "var(--serif)", fontSize: 42, lineHeight: 1, fontWeight: 900, maxWidth: 520, marginTop: 10 }}>{bannerHeadline}</div>
-                          <button type="button" style={{ ...primaryButtonStyle, width: "fit-content", marginTop: 18 }}>Shop now</button>
-                        </div>
-                      ) : activeTool === "copy" ? (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <div style={{ color: "#0D1830", fontSize: 20, fontWeight: 850 }}>{copyProductName || "Your product"}</div>
-                          <p style={{ color: "#52627A", margin: 0, lineHeight: 1.7 }}>
-                            A polished {copyType.toLowerCase()} draft will appear here, written for your store tone and ready to paste into a section, product, SEO field, or WhatsApp campaign.
-                          </p>
-                          <button type="button" onClick={() => handleCopyText(`${copyProductName} - premium quality, carefully selected and ready for fast delivery.`, "Draft copy")} style={{ ...secondaryButtonStyle, width: "fit-content" }}>
-                            Copy draft
-                          </button>
-                        </div>
-                      ) : activeTool === "palette" ? (
-                        <div style={{ display: "flex", gap: 10, alignItems: "end", minHeight: 190 }}>
-                          {["#081329", "#0FA493", "#E8614A", "#C9A96E", "#F8FAFC"].map((code) => (
-                            <button key={code} type="button" onClick={() => handleCopyText(code, code)} style={{ flex: 1, height: 150, border: "1px solid rgba(255,255,255,.45)", background: code, borderRadius: 12, cursor: "pointer", color: code === "#F8FAFC" ? "#122033" : "#FFFFFF", fontSize: 11, fontWeight: 800 }}>
-                              {code}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <div style={{ color: "#0D1830", fontSize: 20, fontWeight: 850 }}>Image actions</div>
-                          <p style={{ color: "#52627A", margin: 0, lineHeight: 1.7 }}>Choose an image from your store, run cleanup actions, then apply it back to the selected page or product media.</p>
-                        </div>
-                      )}
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#122033", marginBottom: 12 }}>Your copy</div>
+                  {copyResult ? (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <textarea value={copyResult} onChange={(e) => setCopyResult(e.target.value)} style={{ ...inputStyle, minHeight: 160, lineHeight: 1.6, resize: "vertical" }} />
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <button type="button" onClick={() => handleCopyText(copyResult, copyType)} style={secondaryButtonStyle}>Copy text</button>
+                        {copyType === "Short tagline" && (
+                          <button type="button" onClick={() => void applyCopy()} style={primaryButtonStyle}>Use as homepage tagline</button>
+                        )}
+                        {copyType === "Product description" && storeProducts.length > 0 && (
+                          <>
+                            <select value={targetProductId} onChange={(e) => setTargetProductId(e.target.value)} style={{ ...inputStyle, width: 220 }}>
+                              {storeProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                            </select>
+                            <button type="button" onClick={() => void applyCopy()} style={primaryButtonStyle}>Save to this product</button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ padding: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                      <button type="button" onClick={() => showToast("Output saved to your Rex assets.")} style={secondaryButtonStyle}>Save asset</button>
-                      <button type="button" onClick={() => showToast("Output applied to the selected store draft.")} style={primaryButtonStyle}>Apply to store</button>
+                  ) : (
+                    <p style={{ color: "#52627A", margin: 0, lineHeight: 1.7, fontSize: 13 }}>
+                      Pick a copy type and press &ldquo;Write copy&rdquo;. The text appears here for you to edit, copy, or save to your store.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {activeTool === "palette" && (
+                <div style={sectionStyle}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#122033", marginBottom: 12 }}>Palettes</div>
+                  {generatedPalettes.length === 0 ? (
+                    <p style={{ color: "#52627A", margin: 0, lineHeight: 1.7, fontSize: 13 }}>
+                      Describe the vibe and press &ldquo;Generate palettes&rdquo;. Click one to apply it to your draft; it goes live when you publish.
+                    </p>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+                      {generatedPalettes.slice(0, 5).map((palette) => (
+                        <button
+                          key={palette.id}
+                          type="button"
+                          onClick={() => void applyPalette(palette)}
+                          style={{ border: "1px solid #E3EAE7", borderRadius: 12, background: "#FFFFFF", padding: 12, textAlign: "left", cursor: "pointer" }}
+                        >
+                          <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+                            {Object.entries(palette.colors).map(([key, color]) => (
+                              <span key={key} title={`${key} ${color}`} style={{ flex: 1, height: 40, borderRadius: 6, background: color, border: "1px solid rgba(0,0,0,.08)" }} />
+                            ))}
+                          </div>
+                          <div style={{ fontWeight: 800, color: "#122033", fontSize: 13 }}>{palette.name}</div>
+                          <div style={{ color: "#6B7890", fontSize: 11, marginTop: 2 }}>{palette.personality || "Click to apply this palette."}</div>
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1198,7 +1617,7 @@ export function RexAIBuilder() {
               if (!publishing) e.currentTarget.style.background = "var(--teal)";
             }}
           >
-            {publishing ? "Applying..." : "Apply Changes"}
+            {publishing ? "Publishing..." : "Publish changes"}
           </button>
         </div>
       </header>
@@ -1315,7 +1734,7 @@ export function RexAIBuilder() {
               >
                 {rexMessages.map((msg, idx) => (
                   <div
-                    key={idx}
+                    key={msg.id}
                     style={{
                       background: msg.role === "user" ? rexUi.tealDark : "#F8FAFC",
                       alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
@@ -1344,7 +1763,21 @@ export function RexAIBuilder() {
                         Rex AI
                       </div>
                     )}
-                    {msg.content}
+                    <div style={{ whiteSpace: "pre-wrap" }}>{msg.content || (rexBusy ? "…" : "")}</div>
+                    {msg.role === "assistant" && msg.chips?.length && idx === rexMessages.length - 1 && !rexBusy ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+                        {msg.chips.map((chip) => (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => (/missing store pages/i.test(chip) ? void addMissingPages() : void sendRexPrompt(chip))}
+                            style={{ border: "1px solid rgba(15,29,56,.16)", background: "#FFFFFF", borderRadius: 999, padding: "4px 9px", fontSize: 10.5, color: rexUi.tealDark, cursor: "pointer", fontFamily: "inherit", fontWeight: 650 }}
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
 
@@ -1362,14 +1795,14 @@ export function RexAIBuilder() {
                     Quick starts
                   </div>
                   {[
-                    "Build my full ecommerce store with product, cart, checkout, wishlist, categories, filters and FAQ",
-                    "Make my store look more premium and conversion ready",
-                    "Add a strong product detail page with variations",
-                    "Create category, wishlist and checkout pages",
-                  ].map((chip) => (
+                    { label: "Build my whole store with Rex (design, pages, sample products, images)", run: () => buildWholeStore("Build my whole store: design, homepage, pages, products and images.") },
+                    { label: "Make my store look more premium and conversion ready", run: () => sendRexPrompt("Make my store look more premium and conversion ready") },
+                    { label: "Rewrite my homepage hero for my real customers", run: () => sendRexPrompt("Rewrite my homepage hero for my real customers") },
+                    { label: "Add any missing store pages (cart, checkout, wishlist, FAQ…)", run: () => addMissingPages() },
+                  ].map(({ label: chip, run }) => (
                     <button
                       key={chip}
-                      onClick={() => chip.startsWith("Build my full") ? void buildFullEcommerceStore() : void sendRexPrompt(chip)}
+                      onClick={() => void run()}
                       disabled={rexBusy}
                       style={{
                         background: rexUi.panelRaised,
@@ -1616,33 +2049,46 @@ export function RexAIBuilder() {
                   marginBottom: 10,
                 }}
               >
-                Build History
+                Versions
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {[
-                  { title: "Hero section redesigned", time: "Today, 11:32am · Applied" },
-                  { title: "4-column product grid added", time: "Yesterday, 3:14pm · Applied" },
-                  { title: "Product descriptions rewritten", time: "May 30, 9:05am · Applied" },
-                  { title: "Navy colour scheme applied", time: "May 28, 2:41pm · Applied" },
-                ].map((hist, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => showToast(`Restored version from historical checkpoint.`)}
-                    style={{
-                      background: rexUi.panelRaised,
-                      border: `1px solid ${rexUi.border}`,
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ color: rexUi.text, fontSize: 11, fontWeight: 500, marginBottom: 2 }}>
-                      {hist.title}
-                    </div>
-                    <div style={{ color: rexUi.muted, fontSize: 10 }}>{hist.time}</div>
+                <div style={{ background: rexUi.panelRaised, border: `1px solid ${rexUi.border}`, borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ color: rexUi.text, fontSize: 11, fontWeight: 600, marginBottom: 2 }}>Draft (what you&apos;re editing)</div>
+                  <div style={{ color: rexUi.muted, fontSize: 10 }}>
+                    Last saved {draft.updatedAt ? new Date(draft.updatedAt).toLocaleString() : "just now"}
                   </div>
-                ))}
+                </div>
+                <div style={{ background: rexUi.panelRaised, border: `1px solid ${rexUi.border}`, borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ color: rexUi.text, fontSize: 11, fontWeight: 600, marginBottom: 2 }}>Live store</div>
+                  <div style={{ color: rexUi.muted, fontSize: 10 }}>
+                    {envelope.published ? `Published version from ${new Date(envelope.published.updatedAt).toLocaleString()}` : "Not published yet"}
+                  </div>
+                  {envelope.published ? (
+                    <button
+                      type="button"
+                      onClick={() => void restoreLiveVersion()}
+                      style={{ marginTop: 8, background: "transparent", border: `1px solid ${rexUi.border}`, color: rexUi.text, borderRadius: 6, padding: "5px 9px", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      Discard draft changes (go back to the live version)
+                    </button>
+                  ) : null}
+                </div>
               </div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: rexUi.faint, textTransform: "uppercase", letterSpacing: ".7px", margin: "16px 0 8px" }}>
+                This session
+              </div>
+              {activity.length === 0 ? (
+                <div style={{ color: rexUi.muted, fontSize: 11 }}>Changes you make with Rex in this session are listed here.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {activity.map((entry) => (
+                    <div key={`${entry.at}-${entry.title}`} style={{ background: rexUi.panelRaised, border: `1px solid ${rexUi.border}`, borderRadius: 8, padding: "8px 12px" }}>
+                      <div style={{ color: rexUi.text, fontSize: 11, fontWeight: 500 }}>{entry.title}</div>
+                      <div style={{ color: rexUi.muted, fontSize: 10 }}>{new Date(entry.at).toLocaleTimeString()}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </aside>
@@ -1660,421 +2106,6 @@ export function RexAIBuilder() {
             position: "relative",
           }}
         >
-          {/* Dynamic AI Sub-tool panel overlay */}
-          {activeTool && (
-            <div style={{ display: "none", background: "white", borderBottom: "2px solid var(--teal)", flexShrink: 0 }}>
-              {/* Logo Builder Form */}
-              {activeTool === "logo" && (
-                <div style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Logo Builder</div>
-                    <button
-                      onClick={() => setActiveTool(null)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--g400)" }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                      <input
-                        placeholder="Brand name"
-                        value={logoName}
-                        onChange={(e) => setLogoName(e.target.value)}
-                        style={{ width: "100%", border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
-                      />
-                      <input
-                        placeholder="Tagline"
-                        value={logoTagline}
-                        onChange={(e) => setLogoTagline(e.target.value)}
-                        style={{ width: "100%", border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
-                      />
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <select
-                          value={logoStyle}
-                          onChange={(e) => setLogoStyle(e.target.value)}
-                          style={{ flex: 1, border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 9px", fontSize: 12, outline: "none" }}
-                        >
-                          <option>Luxury / High-end</option>
-                          <option>Modern / Minimal</option>
-                          <option>Bold / Playful</option>
-                          <option>Traditional / Classic</option>
-                        </select>
-                        <button
-                          onClick={() => void generateLogo()}
-                          style={{
-                            background: "var(--teal)",
-                            color: "white",
-                            border: "none",
-                            padding: "7px 16px",
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          Generate
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                      {(generatedLogos.length ? generatedLogos : [
-                        { style: "preview-1", label: "Concept 1", url: "", palette: { primary: "#0D1B35", secondary: "#0E9E85", accent: "#C9A96E" } },
-                        { style: "preview-2", label: "Concept 2", url: "", palette: { primary: "#F9FAFB", secondary: "#0E9E85", accent: "#0D1B35" } },
-                        { style: "preview-3", label: "Concept 3", url: "", palette: { primary: "#C9A96E", secondary: "#B8860B", accent: "#fff" } },
-                      ]).slice(0, 3).map((logo, index) => (
-                      <div
-                        key={logo.style}
-                        onClick={() => logo.url ? void applyLogo(logo.url) : showToast("Generate logo concepts first.")}
-                        style={{
-                          width: 90,
-                          height: 60,
-                          background: logo.url ? `url(${logo.url}) center/cover` : index === 1 ? "#F9FAFB" : index === 2 ? "linear-gradient(135deg,#C9A96E,#B8860B)" : "var(--navy)",
-                          borderRadius: 8,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          border: index === 0 ? "2px solid var(--teal)" : "1px solid var(--g200)",
-                        }}
-                      >
-                        {!logo.url ? <div style={{ textAlign: "center" }}>
-                          <div style={{ fontFamily: "var(--serif)", fontSize: 8, fontWeight: 600, color: "white", letterSpacing: ".5px" }}>
-                            {logoName.toUpperCase().split(" ")[0]}
-                          </div>
-                          <div style={{ width: 40, height: 1, background: "var(--teal)", margin: "3px auto" }} />
-                          <div style={{ fontSize: 6, color: "rgba(255,255,255,.5)", letterSpacing: "1px" }}>
-                            {logo.label.toUpperCase().slice(0, 15)}
-                          </div>
-                        </div> : null}
-                      </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* AI Image Editor Form */}
-              {activeTool === "image" && (
-                <div style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>AI Image Editor</div>
-                    <button
-                      onClick={() => setActiveTool(null)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--g400)" }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <div style={{ width: 100, height: 80, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200&q=70"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        alt="Preview"
-                      />
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                      {[
-                        "Remove background",
-                        "Enhance quality",
-                        "Remove object",
-                        "Resize for store",
-                      ].map((action) => (
-                        <button
-                          key={action}
-                          onClick={() => showToast(`Successfully triggers: ${action}!`)}
-                          style={{
-                            background: "var(--g50)",
-                            border: "1px solid var(--g200)",
-                            borderRadius: 6,
-                            padding: "5px 10px",
-                            fontSize: 11,
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          {action}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => showToast("Uploading new image asset...")}
-                        style={{
-                          background: "var(--teal)",
-                          color: "white",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "5px 12px",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        Upload image
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Product Image AI Form */}
-              {activeTool === "product-img" && (
-                <div style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Product Image AI</div>
-                    <button
-                      onClick={() => setActiveTool(null)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--g400)" }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <textarea
-                      value={productPrompt}
-                      onChange={(e) => setProductPrompt(e.target.value)}
-                      placeholder="Describe the product photo you want..."
-                      style={{
-                        flex: 1,
-                        border: "1px solid var(--g200)",
-                        borderRadius: 6,
-                        padding: "7px 10px",
-                        fontSize: 11,
-                        resize: "none",
-                        height: 48,
-                        fontFamily: "inherit",
-                      }}
-                    />
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5, flexShrink: 0 }}>
-                      <button
-                        onClick={() => void generateProductImage()}
-                        style={{
-                          background: "var(--teal)",
-                          color: "white",
-                          border: "none",
-                          padding: "7px 14px",
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        Generate image
-                      </button>
-                      <select
-                        value={productFormat}
-                        onChange={(e) => setProductFormat(e.target.value)}
-                        style={{ border: "1px solid var(--g200)", borderRadius: 6, padding: "5px 8px", fontSize: 11 }}
-                      >
-                        <option>1:1 Square</option>
-                        <option>4:3 Landscape</option>
-                        <option>3:4 Portrait</option>
-                      </select>
-                    </div>
-                  </div>
-                  {generatedImages.length > 0 ? (
-                    <div style={{ display: "flex", gap: 8, marginTop: 12, overflowX: "auto" }}>
-                      {generatedImages.map((image) => (
-                        <button key={image.url} type="button" onClick={() => void applyImageToSelectedPage(image.url)} style={{ width: 74, height: 74, borderRadius: 10, border: "1px solid var(--g200)", overflow: "hidden", padding: 0, cursor: "pointer", flex: "0 0 auto" }}>
-                          <img src={image.url} alt={image.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Banner Form */}
-              {activeTool === "banner" && (
-                <div style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Banner &amp; Ad Maker</div>
-                    <button
-                      onClick={() => setActiveTool(null)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--g400)" }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <input
-                      value={bannerHeadline}
-                      onChange={(e) => setBannerHeadline(e.target.value)}
-                      placeholder="Banner headline"
-                      style={{ flex: 1, border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
-                    />
-                    <select
-                      value={bannerFormat}
-                      onChange={(e) => setBannerFormat(e.target.value)}
-                      style={{ border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 9px", fontSize: 12 }}
-                    >
-                      <option>WhatsApp flyer</option>
-                      <option>Instagram post</option>
-                      <option>Store banner</option>
-                    </select>
-                    <button
-                      onClick={() => showToast("Banner template generated successfully!")}
-                      style={{
-                        background: "var(--teal)",
-                        color: "white",
-                        border: "none",
-                        padding: "7px 14px",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Create
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Copy Writer Form */}
-              {activeTool === "copy" && (
-                <div style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>AI Copy Writer</div>
-                    <button
-                      onClick={() => setActiveTool(null)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--g400)" }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <input
-                      value={copyProductName}
-                      onChange={(e) => setCopyProductName(e.target.value)}
-                      placeholder="Product name"
-                      style={{ flex: 1, border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
-                    />
-                    <select
-                      value={copyType}
-                      onChange={(e) => setCopyType(e.target.value)}
-                      style={{ border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 9px", fontSize: 12 }}
-                    >
-                      <option>Product description</option>
-                      <option>Short tagline</option>
-                      <option>WhatsApp caption</option>
-                      <option>SEO meta</option>
-                    </select>
-                    <button
-                      onClick={() => showToast("AI copy generated! Copy to your store section to apply.")}
-                      style={{
-                        background: "var(--teal)",
-                        color: "white",
-                        border: "none",
-                        padding: "7px 14px",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Write
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Brand Colour Palette Form */}
-              {activeTool === "palette" && (
-                <div style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Brand Colour Palette</div>
-                    <button
-                      onClick={() => setActiveTool(null)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--g400)" }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <input
-                      value={paletteVibe}
-                      onChange={(e) => setPaletteVibe(e.target.value)}
-                      placeholder="Describe your brand vibe..."
-                      style={{ flex: 1, border: "1px solid var(--g200)", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
-                    />
-                    <button
-                      onClick={() => showToast("Calculating tailored HSL color variables...")}
-                      style={{
-                        background: "var(--teal)",
-                        color: "white",
-                        border: "none",
-                        padding: "7px 14px",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Generate
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    {[
-                      { code: "#0D1B35", name: "Navy" },
-                      { code: "#0E9E85", name: "Teal" },
-                      { code: "#E8614A", name: "Coral" },
-                      { code: "#C9A96E", name: "Gold" },
-                      { code: "#F7F0E8", name: "Cream", isLight: true },
-                    ].map((col) => (
-                      <div
-                        key={col.code}
-                        onClick={() => handleCopyText(col.code, col.name)}
-                        style={{
-                          flex: 1,
-                          height: 32,
-                          background: col.code,
-                          borderRadius: 4,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          border: col.isLight ? "1px solid var(--g200)" : "none",
-                        }}
-                      >
-                        <span style={{ fontSize: 8, color: col.isLight ? "var(--g400)" : "white" }}>
-                          {col.code}
-                        </span>
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => showToast("Tailored theme tokens applied to preview storefront!")}
-                      style={{
-                        background: "var(--navy)",
-                        color: "white",
-                        border: "none",
-                        padding: "0 12px",
-                        borderRadius: 4,
-                        fontSize: 10,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* ── Address bar / Viewport toggle bar ── */}
           {activeTool ? renderAIToolWorkspace() : null}
 

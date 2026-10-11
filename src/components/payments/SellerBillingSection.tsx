@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { PaystackCheckoutButton } from "./PaystackCheckout";
 import { upgradeSellerToGrowth, upgradeSellerToMax } from "@/app/actions/payments";
 import { useToast } from "@/components/ui/Toast";
+import { cx } from "@/components/app-ui/cx";
 
 interface SellerBillingSectionProps {
   userEmail: string;
@@ -86,40 +87,31 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
     });
   };
 
+  const upgradeBase = "inline-flex min-h-[44px] w-full items-center justify-center rounded-full px-5 text-[14px] font-extrabold text-white transition disabled:opacity-55";
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div className="card" style={{ padding: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Billing & plan</div>
-            <div style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 2 }}>All prices in NGN. Cancel anytime.</div>
+    <div className="grid gap-5">
+      <section className="rounded-[22px] border border-app-line bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="m-0 text-[17px] font-extrabold">Plan and billing</h2>
+            <p className="mb-0 mt-0.5 text-[13px] text-app-ink-soft">All prices in naira. Cancel any time.</p>
           </div>
-          {/* Monthly / Annual toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 0, background: "var(--ink-100)", borderRadius: 999, padding: 3 }}>
+          <div role="tablist" aria-label="Billing period" className="flex rounded-full bg-app-canvas p-1">
             {(["monthly", "annual"] as const).map((b) => (
               <button
                 key={b}
                 type="button"
+                role="tab"
+                aria-selected={billing === b}
                 onClick={() => setBilling(b)}
-                style={{
-                  padding: "5px 14px",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  border: "none",
-                  cursor: "pointer",
-                  background: billing === b ? "white" : "transparent",
-                  color: billing === b ? "var(--ink-900)" : "var(--ink-500)",
-                  boxShadow: billing === b ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
-                  transition: "all 0.15s",
-                  textTransform: "capitalize",
-                }}
+                className={cx("min-h-[40px] rounded-full px-4 text-[13.5px] font-bold capitalize transition", billing === b ? "bg-app-ink text-white" : "text-app-ink hover:bg-white")}
               >{b}{b === "annual" ? " · save 17%" : ""}</button>
             ))}
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
           {PLANS.map((plan) => {
             const isCurrent = currentPlan === plan.key;
             const planCode = billing === "annual" ? plan.annualPlan : plan.monthlyPlan;
@@ -127,99 +119,76 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
             const displaySub = billing === "annual" ? "/year" : plan.priceSub;
 
             return (
-              <div
-                key={plan.key}
-                className="card"
-                style={{
-                  padding: 16,
-                  background: isCurrent ? "var(--teal-50)" : "var(--ink-50)",
-                  border: isCurrent ? "1.5px solid var(--teal-400)" : "1px solid var(--ink-100)",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                {plan.key === "pro" && !isCurrent && (
-                  <div style={{
-                    position: "absolute", top: 10, right: -28,
-                    background: "var(--teal-600)", color: "white",
-                    padding: "2px 30px", fontSize: 9, fontWeight: 700,
-                    textTransform: "uppercase", transform: "rotate(45deg)",
-                    letterSpacing: "0.06em",
-                  }}>
-                    Best
-                  </div>
-                )}
-                <div style={{
-                  fontSize: 10, color: isCurrent ? "var(--teal-700)" : "var(--ink-500)",
-                  fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4,
-                }}>
-                  {isCurrent ? "Current plan" : plan.label}
+              <div key={plan.key} className={cx("flex min-w-0 flex-col rounded-[18px] border-2 p-4", isCurrent ? "border-app-ink" : "border-app-line")}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[14px] font-extrabold">{plan.label}</span>
+                  {isCurrent ? (
+                    <span className="rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white">Your plan</span>
+                  ) : plan.key === "pro" ? (
+                    <span className="rounded-full bg-app-peach px-2.5 py-1 text-[12px] font-bold text-app-accent-ink">Best value</span>
+                  ) : null}
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--ink-900)" }}>
+                <div className="mt-2 text-[24px] font-extrabold tracking-[-0.4px]">
                   {displayPrice}
-                  <span style={{ fontSize: 12, fontWeight: 400, color: "var(--ink-500)" }}>{displaySub}</span>
+                  <span className="text-[13px] font-medium text-app-ink-soft">{displaySub}</span>
                 </div>
-                {billing === "annual" && plan.annualNote && (
-                  <div style={{ fontSize: 10.5, color: "var(--teal-700)", fontWeight: 600, marginTop: 2 }}>
-                    {plan.annualNote}
-                  </div>
-                )}
-                <ul style={{ fontSize: 11.5, color: "var(--ink-600)", paddingLeft: 14, marginTop: 10, lineHeight: 1.9, marginBottom: isCurrent || plan.key === "starter" ? 0 : 12 }}>
-                  {plan.features.map((f) => <li key={f}>{f}</li>)}
+                {billing === "annual" && plan.annualNote && <div className="mt-0.5 text-[12.5px] font-bold text-app-success">{plan.annualNote}</div>}
+                <ul className="m-0 mt-3 grid list-none gap-1.5 p-0 text-[13.5px] text-app-ink-soft">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{f}</li>
+                  ))}
                 </ul>
-                {!isCurrent && plan.key === "growth" && planCode && (
-                  <PaystackCheckoutButton
-                    plan={planCode}
-                    email={userEmail}
-                    firstName={firstName}
-                    lastName={lastName}
-                    metadata={{ plan: `seller_growth_${billing}` }}
-                    onSuccess={handleGrowthSuccess}
-                    className="dbtn dBtn-mint"
-                    label={isPending ? "Upgrading..." : "Upgrade"}
-                    disabled={isPending}
-                  />
-                )}
-                {!isCurrent && plan.key === "pro" && planCode && (
-                  <PaystackCheckoutButton
-                    plan={planCode}
-                    email={userEmail}
-                    firstName={firstName}
-                    lastName={lastName}
-                    metadata={{ plan: `seller_pro_${billing}` }}
-                    onSuccess={handleProSuccess}
-                    className="dbtn dBtn-mint"
-                    label={isPending ? "Upgrading..." : "Upgrade to Pro"}
-                    disabled={isPending}
-                  />
-                )}
+                <div className="mt-auto pt-4">
+                  {!isCurrent && plan.key === "growth" && planCode && (
+                    <PaystackCheckoutButton
+                      plan={planCode}
+                      email={userEmail}
+                      firstName={firstName}
+                      lastName={lastName}
+                      metadata={{ plan: `seller_growth_${billing}` }}
+                      onSuccess={handleGrowthSuccess}
+                      className={cx(upgradeBase, "bg-app-ink hover:bg-black")}
+                      label={isPending ? "Upgrading..." : "Upgrade"}
+                      disabled={isPending}
+                    />
+                  )}
+                  {!isCurrent && plan.key === "pro" && planCode && (
+                    <PaystackCheckoutButton
+                      plan={planCode}
+                      email={userEmail}
+                      firstName={firstName}
+                      lastName={lastName}
+                      metadata={{ plan: `seller_pro_${billing}` }}
+                      onSuccess={handleProSuccess}
+                      className={cx(upgradeBase, "bg-app-accent hover:brightness-95")}
+                      label={isPending ? "Upgrading..." : "Upgrade to Pro"}
+                      disabled={isPending}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <div style={{ background: "var(--ink-50)", borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 10, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>AI credits left</div>
-            <div style={{ fontSize: 26, fontWeight: 700 }}>{aiCredits}</div>
-          </div>
-          <div style={{ background: "var(--ink-50)", borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 10, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>Products</div>
-            <div style={{ fontSize: 26, fontWeight: 700 }}>
-              {productCount}
-              <span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink-400)", marginLeft: 4 }}>
-                / {currentPlan === "pro" ? "∞" : currentPlan === "growth" ? "200" : "10"}
-              </span>
-            </div>
-          </div>
-          <div style={{ background: "var(--ink-50)", borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 10, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>Plan</div>
-            <div style={{ fontSize: 16, fontWeight: 700, textTransform: "capitalize" }}>{currentPlan}</div>
+      <section className="grid grid-cols-1 gap-3 rounded-[22px] border border-app-line bg-white p-2 sm:grid-cols-3">
+        <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
+          <div className="text-[13px] text-app-ink-soft">AI credits left</div>
+          <div className="mt-1 text-[26px] font-extrabold leading-none">{aiCredits}</div>
+        </div>
+        <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
+          <div className="text-[13px] text-app-ink-soft">Products</div>
+          <div className="mt-1 text-[26px] font-extrabold leading-none">
+            {productCount}
+            <span className="ml-1 text-[14px] font-medium text-app-ink-soft">/ {currentPlan === "pro" ? "∞" : currentPlan === "growth" ? "200" : "10"}</span>
           </div>
         </div>
-      </div>
+        <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
+          <div className="text-[13px] text-app-ink-soft">Plan</div>
+          <div className="mt-1 text-[20px] font-extrabold capitalize leading-tight">{currentPlan}</div>
+        </div>
+      </section>
     </div>
   );
 }

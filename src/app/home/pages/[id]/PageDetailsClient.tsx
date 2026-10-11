@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Badge } from "@/components/ui";
-import type { IconName } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { Pill, type Tone } from "@/components/app-kit";
+import { FieldLabel, PillButton, TextInput, Toggle, cx } from "@/components/app-ui";
 import { toast } from "@/hooks/use-toast";
 
 type PageStatus = "draft" | "published" | "hidden" | "scheduled" | "archived";
@@ -41,17 +42,20 @@ const PAGE_ICONS: Record<string, IconName> = {
   blog: "document",
 };
 
-function getStatusBadge(status: PageStatus, storeIsLive: boolean): { label: string; variant: "mint" | "warn" | "soft" | "danger" | "info" } {
-  if (!storeIsLive && status === "published") return { label: "Draft · Store Not Live", variant: "warn" };
+function getStatusBadge(status: PageStatus, storeIsLive: boolean): { label: string; tone: Tone } {
+  if (!storeIsLive && status === "published") return { label: "Draft · store not live", tone: "warning" };
   switch (status) {
-    case "published": return { label: "Published", variant: "mint" };
-    case "draft": return { label: "Draft", variant: "warn" };
-    case "hidden": return { label: "Hidden", variant: "soft" };
-    case "scheduled": return { label: "Scheduled", variant: "info" };
-    case "archived": return { label: "Archived", variant: "danger" };
-    default: return { label: "Draft", variant: "warn" };
+    case "published": return { label: "Live", tone: "success" };
+    case "draft": return { label: "Draft", tone: "muted" };
+    case "hidden": return { label: "Hidden", tone: "muted" };
+    case "scheduled": return { label: "Scheduled", tone: "info" };
+    case "archived": return { label: "Archived", tone: "danger" };
+    default: return { label: "Draft", tone: "muted" };
   }
 }
+
+const AREA = "w-full resize-y rounded-[16px] border border-app-line bg-white px-4 py-3 text-[15px] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink";
+const fmtDate = (value: string) => new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 function hasUnsavedDraft(page: PageData): boolean {
   const dc = page.draftContent;
@@ -274,83 +278,82 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
   }, [page.id, router]);
 
   const previewUrl = `/preview/store/${storeSlug}/${page.id}`;
-  const liveUrl = isLive && page.status === "published" ? `/${storeSlug}/${page.slug}` : null;
+  const liveUrl = isLive && page.status === "published" ? `/s/${storeSlug}/${page.slug}` : null;
 
   const isArchived = page.status === "archived";
 
+  const cancelSchedule = async () => {
+    try {
+      await fetch(`/api/store/pages/${page.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "draft", publishAt: null }),
+      });
+      setPage((p) => ({ ...p, status: "draft", publishAt: null }));
+      setLocalScheduling((s) => ({ ...s, status: "draft", publishAt: "" }));
+      toast({ title: "Schedule cancelled", variant: "success" });
+      router.refresh();
+    } catch {
+      toast({ title: "Failed to cancel schedule", variant: "error" });
+    }
+  };
+
+  const TABS = [
+    { key: "details", label: "Details" },
+    { key: "seo", label: "Search" },
+    { key: "navigation", label: "Menu" },
+    { key: "scheduling", label: "Schedule" },
+  ] as const;
+
   return (
-    <>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: "var(--teal-100)", color: "var(--teal-700)",
-            display: "grid", placeItems: "center", flexShrink: 0,
-          }}>
-            <Icon name={PAGE_ICONS[page.type] ?? "document"} size={18} />
-          </div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, lineHeight: 1.3 }}>{page.title}</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-              <Badge variant={badge.variant} dot>{badge.label}</Badge>
-              {hasDraftChanges && page.status === "published" && (
-                <Badge variant="warn">Unsaved draft changes</Badge>
-              )}
-              <span style={{ fontSize: 12, color: "var(--ink-400)", fontFamily: "var(--font-mono)" }}>/{page.slug}</span>
-              {page.status === "published" && (
-                <span style={{ fontSize: 12, color: "var(--ink-400)" }}>
-                  · Published {new Date(page.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                </span>
-              )}
+    <div className="grid gap-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border border-app-line bg-white">
+            <Icon name={PAGE_ICONS[page.type] ?? "document"} size={20} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="m-0 truncate text-[28px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[30px]">{page.title || "Untitled page"}</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-app-ink-soft">
+              <Pill tone={badge.tone} dot>{badge.label}</Pill>
+              {hasDraftChanges && page.status === "published" && <Pill tone="warning">Unpublished changes</Pill>}
+              <span className="truncate">/{page.slug}</span>
+              {page.status === "published" && <span>· Published {fmtDate(page.updatedAt)}</span>}
             </div>
           </div>
         </div>
-
         {!isArchived && (
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <a href={previewUrl} target="_blank" className="dbtn dBtn-ghost" style={{ textDecoration: "none" }}>
-              <Icon name="eye" size={14} /> Preview
+          <div className="flex flex-wrap gap-2">
+            <a href={previewUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+              <Icon name="eye" size={16} /> Preview
             </a>
-            <a href={`/home/editor?page=${page.id}`} className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-              <Icon name="edit" size={14} /> Edit Page Design
+            <a href={`/home/editor?page=${page.id}`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline hover:bg-black">
+              <Icon name="edit" size={16} /> Edit design
             </a>
           </div>
         )}
-      </div>
+      </header>
 
       {isArchived ? (
-        <div style={{ padding: 40, textAlign: "center", background: "var(--red-50)", borderRadius: 12, border: "1px solid var(--red-200)" }}>
-          <Icon name="archive" size={28} />
-          <div style={{ fontSize: 16, fontWeight: 800, color: "var(--red-700)", marginTop: 8 }}>Page Archived</div>
-          <div style={{ fontSize: 13, color: "var(--red-500)", marginTop: 4 }}>
-            This page was archived on {page.archivedAt ? new Date(page.archivedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "unknown date"}.
-            It is not visible to customers.
-          </div>
-          <button onClick={handleRestore} disabled={saving} className="dbtn" style={{ marginTop: 16, background: "var(--teal-600)", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-            Restore Page
-          </button>
-        </div>
+        <section className="flex flex-col items-center rounded-[22px] border border-app-line bg-white px-6 py-12 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-app-danger-tint text-app-danger"><Icon name="archive" size={22} /></span>
+          <h2 className="mb-0 mt-4 text-[18px] font-extrabold">Page archived</h2>
+          <p className="mb-0 mt-1.5 max-w-[460px] text-[14.5px] text-app-ink-soft">
+            Archived on {page.archivedAt ? fmtDate(page.archivedAt) : "an unknown date"}. Shoppers can&apos;t see it.
+          </p>
+          <PillButton tone="ink" size="md" onClick={handleRestore} busy={saving} className="mt-5">Restore page</PillButton>
+        </section>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--ink-200)" }}>
-            {[
-              { key: "details", label: "Details" },
-              { key: "seo", label: "SEO" },
-              { key: "navigation", label: "Navigation" },
-              { key: "scheduling", label: "Scheduling" },
-            ].map((t) => (
+          <div role="tablist" aria-label="Page settings" className="flex w-full gap-1 overflow-x-auto rounded-full bg-white p-1 sm:w-fit">
+            {TABS.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key as typeof tab)}
-                style={{
-                  padding: "10px 18px",
-                  fontSize: 13, fontWeight: 700,
-                  background: "none", border: "none", cursor: "pointer",
-                  color: tab === t.key ? "var(--teal-700)" : "var(--ink-500)",
-                  borderBottom: tab === t.key ? "2px solid var(--teal-600)" : "2px solid transparent",
-                  marginBottom: -1,
-                  transition: "color 0.15s",
-                }}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.key}
+                onClick={() => setTab(t.key)}
+                className={cx("min-h-[42px] shrink-0 rounded-full px-5 text-[14px] font-bold transition", tab === t.key ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
               >
                 {t.label}
               </button>
@@ -358,461 +361,236 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           </div>
 
           {tab === "details" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 18, alignItems: "start" }}>
-              <div className="card" style={{ padding: 20 }}>
-                <h2 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 800 }}>Page Details</h2>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+              <section className="min-w-0 rounded-[22px] border border-app-line bg-white p-5">
+                <h2 className="m-0 text-[17px] font-extrabold">Page details</h2>
+                <div className="mt-4 grid gap-4">
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Title</label>
-                    <input
-                      type="text"
-                      value={page.title}
-                      onChange={(e) => setPage((p) => ({ ...p, title: e.target.value }))}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                    />
+                    <FieldLabel htmlFor="pg-title">Title</FieldLabel>
+                    <TextInput id="pg-title" value={page.title} onChange={(e) => setPage((p) => ({ ...p, title: e.target.value }))} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Slug</label>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-500)", marginBottom: 4 }}>
-                      <span>{storeSlug}</span><span>/</span>
+                    <FieldLabel htmlFor="pg-slug">Web address</FieldLabel>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="max-w-[45%] shrink-0 truncate text-[14px] text-app-ink-soft">{storeSlug}/</span>
+                      <TextInput id="pg-slug" value={page.slug} onChange={(e) => setPage((p) => ({ ...p, slug: e.target.value }))} />
                     </div>
-                    <input
-                      type="text"
-                      value={page.slug}
-                      onChange={(e) => setPage((p) => ({ ...p, slug: e.target.value }))}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13, fontFamily: "var(--font-mono)" }}
-                    />
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Page Type</label>
-                    <span className="chip" style={{ fontSize: 12, textTransform: "capitalize" }}>{page.type}</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <dl className="m-0 grid grid-cols-2 gap-4 sm:grid-cols-3">
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Created</label>
-                      <div style={{ fontSize: 13 }}>
-                        {new Date(page.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                      </div>
+                      <dt className="text-[13px] text-app-ink-soft">Page type</dt>
+                      <dd className="m-0 mt-1 text-[14px] font-bold capitalize">{page.type}</dd>
                     </div>
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Last Modified</label>
-                      <div style={{ fontSize: 13 }}>
-                        {new Date(page.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                      </div>
+                      <dt className="text-[13px] text-app-ink-soft">Created</dt>
+                      <dd className="m-0 mt-1 text-[14px] font-bold">{fmtDate(page.createdAt)}</dd>
                     </div>
-                  </div>
+                    <div>
+                      <dt className="text-[13px] text-app-ink-soft">Last changed</dt>
+                      <dd className="m-0 mt-1 text-[14px] font-bold">{fmtDate(page.updatedAt)}</dd>
+                    </div>
+                  </dl>
                 </div>
-              </div>
+              </section>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                <div className="card" style={{ padding: 20 }}>
-                  <h2 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 800 }}>Publishing</h2>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid var(--ink-100)" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>Status</span>
-                      <Badge variant={badge.variant} dot>{badge.label}</Badge>
+              <div className="grid min-w-0 content-start gap-5">
+                <section className="rounded-[22px] border border-app-line bg-white p-5">
+                  <h2 className="m-0 text-[17px] font-extrabold">Publishing</h2>
+                  <dl className="m-0 mt-3 divide-y divide-app-line">
+                    <div className="flex items-center justify-between gap-3 py-2.5">
+                      <dt className="text-[14px] font-bold">Page</dt>
+                      <dd className="m-0"><Pill tone={badge.tone} dot>{badge.label}</Pill></dd>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid var(--ink-100)" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>Store Status</span>
-                      <Badge variant={isLive ? "mint" : "warn"}>{isLive ? "Live" : "Not Published"}</Badge>
+                    <div className="flex items-center justify-between gap-3 py-2.5">
+                      <dt className="text-[14px] font-bold">Store</dt>
+                      <dd className="m-0"><Pill tone={isLive ? "success" : "warning"}>{isLive ? "Live" : "Not published"}</Pill></dd>
                     </div>
                     {hasDraftChanges && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid var(--ink-100)" }}>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>Unpublished changes</span>
-                        <Badge variant="warn" dot>Has draft edits</Badge>
+                      <div className="flex items-center justify-between gap-3 py-2.5">
+                        <dt className="text-[14px] font-bold">Changes</dt>
+                        <dd className="m-0"><Pill tone="warning" dot>Not published yet</Pill></dd>
                       </div>
                     )}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid var(--ink-100)" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>Visibility</span>
-                      <span style={{ fontSize: 13 }}>
+                    <div className="flex items-center justify-between gap-3 py-2.5">
+                      <dt className="text-[14px] font-bold">Shoppers see it</dt>
+                      <dd className="m-0 text-[14px]">
                         {liveUrl ? (
-                          <a href={liveUrl} target="_blank" style={{ color: "var(--teal-600)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
-                            <Icon name="eye" size={12} /> View live
+                          <a href={liveUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-extrabold text-app-accent-ink no-underline hover:underline">
+                            <Icon name="eye" size={14} /> View live
                           </a>
                         ) : (
-                          <span style={{ color: "var(--ink-400)" }}>Hidden</span>
+                          <span className="text-app-ink-soft">Not yet</span>
                         )}
-                      </span>
+                      </dd>
                     </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                    {page.status !== "published" && (
-                      <button
-                        onClick={handlePublishNow}
-                        disabled={saving}
-                        className="dbtn"
-                        style={{
-                          flex: 1, minWidth: 120,
-                          background: "var(--teal-600)", color: "white",
-                          border: "none", borderRadius: 8, padding: "8px 16px",
-                          fontSize: 13, fontWeight: 700, cursor: "pointer",
-                          opacity: saving ? 0.6 : 1,
-                        }}
-                      >
-                        {saving ? "..." : "Publish"}
-                      </button>
+                  </dl>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {page.status !== "published" ? (
+                      <PillButton tone="accent" size="md" onClick={handlePublishNow} busy={saving} className="flex-1">Publish</PillButton>
+                    ) : (
+                      <PillButton tone="white" size="md" onClick={handleUnpublish} disabled={saving} className="flex-1">Unpublish</PillButton>
                     )}
-                    {page.status === "published" && (
-                      <button
-                        onClick={handleUnpublish}
-                        disabled={saving}
-                        className="dbtn"
-                        style={{
-                          flex: 1, minWidth: 120,
-                          background: "var(--ink-200)", color: "var(--ink-700)",
-                          border: "none", borderRadius: 8, padding: "8px 16px",
-                          fontSize: 13, fontWeight: 700, cursor: "pointer",
-                        }}
-                      >
-                        Unpublish
-                      </button>
-                    )}
-                    <button
-                      onClick={handleArchive}
-                      disabled={saving}
-                      className="dbtn"
-                      style={{
-                        background: "var(--red-50)", color: "var(--red-600)",
-                        border: "1px solid var(--red-200)", borderRadius: 8, padding: "8px 16px",
-                        fontSize: 13, fontWeight: 700, cursor: "pointer",
-                      }}
-                    >
-                      Archive
-                    </button>
+                    <PillButton tone="white" size="md" onClick={handleArchive} disabled={saving}>
+                      <Icon name="archive" size={15} /> Archive
+                    </PillButton>
                     {page.type !== "home" && (
-                      <button
-                        onClick={handleDelete}
-                        className="dbtn"
-                        style={{
-                          background: "none", color: "var(--red-600)",
-                          border: "1px solid var(--red-200)", borderRadius: 8, padding: "8px 16px",
-                          fontSize: 13, fontWeight: 700, cursor: "pointer",
-                        }}
-                      >
-                        Delete
-                      </button>
+                      <PillButton tone="ghost" size="md" onClick={handleDelete} className="text-app-danger hover:bg-app-danger-tint">
+                        <Icon name="trash" size={15} /> Delete
+                      </PillButton>
                     )}
                   </div>
-                </div>
+                </section>
 
-                <div className="card" style={{ padding: 20 }}>
-                  <h2 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 800 }}>Page URL</h2>
-                  <div style={{ fontSize: 12, color: "var(--ink-400)", marginBottom: 8 }}>
-                    {liveUrl ? "Live URL" : hasDraftChanges ? "Preview URL (draft)" : "URL"}
-                  </div>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "8px 10px", borderRadius: 8,
-                    background: "var(--ink-50)", border: "1px solid var(--ink-100)",
-                    fontSize: 12, fontFamily: "var(--font-mono)",
-                    wordBreak: "break-all",
-                  }}>
-                    <Icon name="link" size={12} />
-                    <span style={{ flex: 1 }}>{liveUrl ?? previewUrl}</span>
-                    <button
+                <section className="rounded-[22px] border border-app-line bg-white p-5">
+                  <h2 className="m-0 text-[17px] font-extrabold">Page link</h2>
+                  <p className="mb-2 mt-1 text-[13px] text-app-ink-soft">{liveUrl ? "Live link" : hasDraftChanges ? "Preview link (draft)" : "Link"}</p>
+                  <div className="flex min-w-0 items-center gap-2 rounded-[14px] border border-app-line bg-app-canvas py-1.5 pl-3 pr-1.5">
+                    <Icon name="link" size={14} className="shrink-0 text-app-ink-soft" />
+                    <span className="min-w-0 flex-1 truncate text-[13px]">{liveUrl ?? previewUrl}</span>
+                    <PillButton
+                      tone="white"
+                      size="sm"
                       onClick={() => { navigator.clipboard.writeText(liveUrl ?? previewUrl); toast({ title: "Copied", variant: "success" }); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--teal-600)", fontSize: 12, fontWeight: 600 }}
                     >
-                      Copy
-                    </button>
+                      <Icon name="copy" size={14} /> Copy
+                    </PillButton>
                   </div>
-                </div>
+                </section>
               </div>
             </div>
           )}
 
           {tab === "seo" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 18, alignItems: "start" }}>
-              <div className="card" style={{ padding: 20 }}>
-                <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800 }}>Search Engine Optimization</h2>
-                <p style={{ fontSize: 12, color: "var(--ink-500)", margin: "0 0 16px" }}>
-                  Configure how this page appears in search results and social shares.
-                </p>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+              <section className="min-w-0 rounded-[22px] border border-app-line bg-white p-5">
+                <h2 className="m-0 text-[17px] font-extrabold">Search and sharing</h2>
+                <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">How this page shows up on Google and when people share it.</p>
+                <div className="mt-4 grid gap-4">
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>
-                      Meta Title <span style={{ fontWeight: 400, color: "var(--ink-400)" }}>({localSeo.metaTitle.length}/60)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={localSeo.metaTitle}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, metaTitle: e.target.value }))}
-                      maxLength={60}
-                      placeholder={page.title}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                    />
+                    <FieldLabel htmlFor="seo-title">Search title <span className="font-normal text-app-ink-soft">({localSeo.metaTitle.length}/60)</span></FieldLabel>
+                    <TextInput id="seo-title" value={localSeo.metaTitle} onChange={(e) => setLocalSeo((s) => ({ ...s, metaTitle: e.target.value }))} maxLength={60} placeholder={page.title} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>
-                      Meta Description <span style={{ fontWeight: 400, color: "var(--ink-400)" }}>({localSeo.metaDescription.length}/160)</span>
-                    </label>
-                    <textarea
-                      value={localSeo.metaDescription}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, metaDescription: e.target.value }))}
-                      maxLength={160}
-                      rows={3}
-                      placeholder="A brief description of this page..."
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13, resize: "vertical" }}
-                    />
+                    <FieldLabel htmlFor="seo-desc">Search description <span className="font-normal text-app-ink-soft">({localSeo.metaDescription.length}/160)</span></FieldLabel>
+                    <textarea id="seo-desc" value={localSeo.metaDescription} onChange={(e) => setLocalSeo((s) => ({ ...s, metaDescription: e.target.value }))} maxLength={160} rows={3} placeholder="A short description of this page" className={AREA} />
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Focus Keyword</label>
-                    <input
-                      type="text"
-                      value={localSeo.focusKeyword}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, focusKeyword: e.target.value }))}
-                      placeholder="e.g. handmade jewelry"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Canonical URL</label>
-                    <input
-                      type="text"
-                      value={localSeo.canonicalUrl}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, canonicalUrl: e.target.value }))}
-                      placeholder="https://example.com/this-page"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                    />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor="seo-kw">Main search phrase</FieldLabel>
+                      <TextInput id="seo-kw" value={localSeo.focusKeyword} onChange={(e) => setLocalSeo((s) => ({ ...s, focusKeyword: e.target.value }))} placeholder="e.g. handmade jewellery" />
+                    </div>
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor="seo-canon">Canonical link</FieldLabel>
+                      <TextInput id="seo-canon" value={localSeo.canonicalUrl} onChange={(e) => setLocalSeo((s) => ({ ...s, canonicalUrl: e.target.value }))} placeholder="https://example.com/this-page" />
+                    </div>
                   </div>
 
-                  <div style={{ height: 1, background: "var(--ink-100)", margin: "4px 0" }} />
-
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Social Share</h3>
+                  <h3 className="m-0 border-t border-app-line pt-4 text-[15px] font-extrabold">When shared on social</h3>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Social Title (og:title)</label>
-                    <input
-                      type="text"
-                      value={localSeo.socialTitle}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, socialTitle: e.target.value }))}
-                      placeholder={localSeo.metaTitle || page.title}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                    />
+                    <FieldLabel htmlFor="seo-og-title">Share title</FieldLabel>
+                    <TextInput id="seo-og-title" value={localSeo.socialTitle} onChange={(e) => setLocalSeo((s) => ({ ...s, socialTitle: e.target.value }))} placeholder={localSeo.metaTitle || page.title} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Social Description (og:description)</label>
-                    <textarea
-                      value={localSeo.socialDescription}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, socialDescription: e.target.value }))}
-                      rows={2}
-                      placeholder={localSeo.metaDescription || "A brief description..."}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13, resize: "vertical" }}
-                    />
+                    <FieldLabel htmlFor="seo-og-desc">Share description</FieldLabel>
+                    <textarea id="seo-og-desc" value={localSeo.socialDescription} onChange={(e) => setLocalSeo((s) => ({ ...s, socialDescription: e.target.value }))} rows={2} placeholder={localSeo.metaDescription || "A short description"} className={AREA} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Social Image URL</label>
-                    <input
-                      type="text"
-                      value={localSeo.socialImage}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, socialImage: e.target.value }))}
-                      placeholder="https://example.com/social-image.jpg"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                    />
+                    <FieldLabel htmlFor="seo-og-img">Share image link</FieldLabel>
+                    <TextInput id="seo-og-img" value={localSeo.socialImage} onChange={(e) => setLocalSeo((s) => ({ ...s, socialImage: e.target.value }))} placeholder="https://example.com/social-image.jpg" />
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
-                    <input
-                      type="checkbox"
-                      id="noIndex"
-                      checked={localSeo.noIndex}
-                      onChange={(e) => setLocalSeo((s) => ({ ...s, noIndex: e.target.checked }))}
-                      style={{ accentColor: "var(--teal-600)" }}
-                    />
-                    <label htmlFor="noIndex" style={{ fontSize: 13, fontWeight: 500 }}>Hide from search engines (noindex)</label>
+                  <div className="flex items-center justify-between gap-4 rounded-[16px] bg-app-canvas px-4 py-3">
+                    <span className="text-[14px] font-bold">Hide from search engines</span>
+                    <Toggle on={localSeo.noIndex} onChange={(on) => setLocalSeo((s) => ({ ...s, noIndex: on }))} label="Hide from search engines" />
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <h2 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700 }}>Search Preview</h2>
-                <div style={{
-                  padding: 12, borderRadius: 8,
-                  background: "white", border: "1px solid var(--ink-200)",
-                }}>
-                  <div style={{ fontSize: 11, color: "var(--ink-400)", marginBottom: 2 }}>{storeSlug}</div>
-                  <div style={{ fontSize: 14, color: "#1a0dab", fontWeight: 500, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {localSeo.metaTitle || page.title}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#545454", lineHeight: 1.4, marginTop: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                    {localSeo.metaDescription || "A page on " + storeSlug}
-                  </div>
+              <section className="min-w-0 self-start rounded-[22px] border border-app-line bg-white p-5">
+                <h2 className="m-0 text-[17px] font-extrabold">Google preview</h2>
+                <div className="mt-3 rounded-[14px] border border-app-line p-3">
+                  <div className="truncate text-[12px] text-app-ink-soft">{storeSlug}</div>
+                  <div className="truncate text-[15px] font-medium leading-snug text-[#1a0dab]">{localSeo.metaTitle || page.title}</div>
+                  <div className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[#545454]">{localSeo.metaDescription || "A page on " + storeSlug}</div>
                 </div>
-
-                <div style={{ marginTop: 14 }}>
-                  <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: 0.5 }}>Status</h3>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {(!localSeo.metaTitle || !localSeo.metaDescription) ? (
-                      <Badge variant="warn">Incomplete</Badge>
-                    ) : (
-                      <Badge variant="mint">Complete</Badge>
-                    )}
-                  </div>
+                <div className="mt-4">
+                  {!localSeo.metaTitle || !localSeo.metaDescription ? <Pill tone="warning">Add a title and description</Pill> : <Pill tone="success">Search ready</Pill>}
                 </div>
-              </div>
+              </section>
             </div>
           )}
 
           {tab === "navigation" && (
-            <div className="card" style={{ padding: 20, maxWidth: 600 }}>
-              <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800 }}>Navigation Settings</h2>
-              <p style={{ fontSize: 12, color: "var(--ink-500)", margin: "0 0 16px" }}>
-                Control where this page appears in your store navigation.
-              </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    id="showInMenu"
-                    checked={localNav.showInMenu}
-                    onChange={(e) => setLocalNav((s) => ({ ...s, showInMenu: e.target.checked }))}
-                    style={{ accentColor: "var(--teal-600)" }}
-                  />
-                  <label htmlFor="showInMenu" style={{ fontSize: 13, fontWeight: 500 }}>Show in main navigation menu</label>
+            <section className="rounded-[22px] border border-app-line bg-white p-5">
+              <h2 className="m-0 text-[17px] font-extrabold">Menu</h2>
+              <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">Where this page shows in your store menus.</p>
+              <div className="mt-4 grid max-w-[640px] gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[14px] font-bold">Show in the main menu</span>
+                  <Toggle on={localNav.showInMenu} onChange={(on) => setLocalNav((s) => ({ ...s, showInMenu: on }))} label="Show in the main menu" />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    id="showInFooter"
-                    checked={localNav.showInFooter}
-                    onChange={(e) => setLocalNav((s) => ({ ...s, showInFooter: e.target.checked }))}
-                    style={{ accentColor: "var(--teal-600)" }}
-                  />
-                  <label htmlFor="showInFooter" style={{ fontSize: 13, fontWeight: 500 }}>Show in footer</label>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[14px] font-bold">Show in the footer</span>
+                  <Toggle on={localNav.showInFooter} onChange={(on) => setLocalNav((s) => ({ ...s, showInFooter: on }))} label="Show in the footer" />
                 </div>
-
                 {localNav.showInMenu && (
                   <>
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Menu Label</label>
-                      <input
-                        type="text"
-                        value={localNav.menuLabel}
-                        onChange={(e) => setLocalNav((s) => ({ ...s, menuLabel: e.target.value }))}
-                        placeholder={page.title}
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                      />
+                      <FieldLabel htmlFor="nav-label">Menu label</FieldLabel>
+                      <TextInput id="nav-label" value={localNav.menuLabel} onChange={(e) => setLocalNav((s) => ({ ...s, menuLabel: e.target.value }))} placeholder={page.title} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Menu Order</label>
-                      <input
-                        type="number"
-                        value={localNav.menuOrder}
-                        onChange={(e) => setLocalNav((s) => ({ ...s, menuOrder: parseInt(e.target.value) || 0 }))}
-                        min={0}
-                        style={{ width: 80, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                      />
-                      <div style={{ fontSize: 11, color: "var(--ink-400)", marginTop: 2 }}>Lower numbers appear first</div>
+                      <FieldLabel htmlFor="nav-order">Menu position</FieldLabel>
+                      <TextInput id="nav-order" type="number" min={0} value={localNav.menuOrder} onChange={(e) => setLocalNav((s) => ({ ...s, menuOrder: parseInt(e.target.value) || 0 }))} className="w-[120px]" />
+                      <p className="mb-0 mt-1 text-[12.5px] text-app-ink-soft">Lower numbers come first.</p>
                     </div>
                     <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Parent Page</label>
-                      <select
-                        value={localNav.parentPage}
-                        onChange={(e) => setLocalNav((s) => ({ ...s, parentPage: e.target.value }))}
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
-                      >
-                        <option value="">None (top-level)</option>
+                      <FieldLabel htmlFor="nav-parent">Sits under</FieldLabel>
+                      <select id="nav-parent" value={localNav.parentPage} onChange={(e) => setLocalNav((s) => ({ ...s, parentPage: e.target.value }))} className="h-[54px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[15px] outline-none focus:border-app-ink">
+                        <option value="">Nothing (top level)</option>
                       </select>
                     </div>
                   </>
                 )}
               </div>
-            </div>
+            </section>
           )}
 
           {tab === "scheduling" && (
-            <div className="card" style={{ padding: 20, maxWidth: 600 }}>
-              <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800 }}>Scheduling</h2>
-              <p style={{ fontSize: 12, color: "var(--ink-500)", margin: "0 0 16px" }}>
-                Schedule this page to publish automatically at a future date.
-              </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <section className="rounded-[22px] border border-app-line bg-white p-5">
+              <h2 className="m-0 text-[17px] font-extrabold">Schedule</h2>
+              <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">Publish this page on its own at a later date.</p>
+              <div className="mt-4 grid max-w-[640px] gap-4">
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Publish at</label>
-                  <input
+                  <FieldLabel htmlFor="sched-at">Publish on</FieldLabel>
+                  <TextInput
+                    id="sched-at"
                     type="datetime-local"
                     value={localScheduling.publishAt ? localScheduling.publishAt.slice(0, 16) : ""}
                     onChange={(e) => setLocalScheduling((s) => ({ ...s, publishAt: e.target.value }))}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--ink-200)", fontSize: 13 }}
                   />
                 </div>
-
-                <div style={{ display: "flex", gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-600)", display: "block", marginBottom: 4 }}>Current status</label>
-                    <Badge variant={badge.variant} dot>{badge.label}</Badge>
-                  </div>
+                <div className="flex items-center gap-2 text-[14px]">
+                  <span className="font-bold">Now:</span> <Pill tone={badge.tone} dot>{badge.label}</Pill>
                 </div>
-
-                <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
+                <div className="flex flex-wrap gap-2">
                   {localScheduling.publishAt && (
-                    <button
-                      onClick={handleSchedule}
-                      disabled={saving}
-                      className="dbtn"
-                      style={{
-                        background: "var(--teal-600)", color: "white",
-                        border: "none", borderRadius: 8, padding: "8px 20px",
-                        fontSize: 13, fontWeight: 700, cursor: "pointer",
-                        opacity: saving ? 0.6 : 1,
-                      }}
-                    >
-                      {page.status === "scheduled" ? "Reschedule" : "Schedule Publish"}
-                    </button>
+                    <PillButton tone="ink" size="md" onClick={handleSchedule} busy={saving}>
+                      {page.status === "scheduled" ? "Change schedule" : "Schedule"}
+                    </PillButton>
                   )}
                   {page.status === "scheduled" && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await fetch(`/api/store/pages/${page.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ status: "draft", publishAt: null }),
-                          });
-                          setPage((p) => ({ ...p, status: "draft", publishAt: null }));
-                          setLocalScheduling((s) => ({ ...s, status: "draft", publishAt: "" }));
-                          toast({ title: "Schedule cancelled", variant: "success" });
-                          router.refresh();
-                        } catch {
-                          toast({ title: "Failed to cancel schedule", variant: "error" });
-                        }
-                      }}
-                      className="dbtn"
-                      style={{
-                        background: "none", color: "var(--red-600)",
-                        border: "1px solid var(--red-200)", borderRadius: 8, padding: "8px 20px",
-                        fontSize: 13, fontWeight: 700, cursor: "pointer",
-                      }}
-                    >
-                      Cancel Schedule
-                    </button>
+                    <PillButton tone="white" size="md" onClick={cancelSchedule} className="text-app-danger">Cancel schedule</PillButton>
                   )}
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid var(--ink-100)", paddingTop: 16 }}>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="dbtn"
-              style={{
-                background: "var(--teal-600)", color: "white",
-                border: "none", borderRadius: 8, padding: "8px 20px",
-                fontSize: 13, fontWeight: 700, cursor: "pointer",
-                opacity: saving ? 0.6 : 1,
-              }}
-            >
-              {saving ? "Saving..." : "Save Draft"}
-            </button>
+          <div className="flex justify-end border-t border-app-line pt-4">
+            <PillButton tone="ink" size="md" onClick={handleSave} busy={saving}>Save draft</PillButton>
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

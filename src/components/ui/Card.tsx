@@ -18,15 +18,15 @@ export function Card({ accent, padding = "md", dark, className, style, children,
   return (
     <div
       className={cn(
-        "rounded-lg border",
+        "border",
         dark
-          ? "bg-navy border-mint/10 text-cream"
-          : "bg-white border-navy/[0.06]",
+          ? "bg-app-ink border-transparent text-white"
+          : "bg-white border-app-line",
         paddings[padding],
         className,
       )}
       style={{
-        borderRadius: "var(--radius-lg)",
+        borderRadius: 22,
         borderTopWidth: accent ? "3px" : undefined,
         borderTopColor: accent ?? undefined,
         ...style,

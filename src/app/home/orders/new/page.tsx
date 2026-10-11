@@ -24,7 +24,6 @@ export default async function RecordSalePage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      width="max-w-[860px]"
       title="Record a sale"
       sub="Sold something on WhatsApp, Instagram or in person? Add it here so your sales, stock and customers stay right."
       actions={<Link href="/home/orders" className={pillLink.white}>All orders</Link>}

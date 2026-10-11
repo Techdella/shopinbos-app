@@ -168,6 +168,8 @@ const apiChecks = [
   ["/api/app/payout-bank", "seller", true],
   ["/api/app/affiliates", "seller", true],
   ["/api/app/ads", "seller", true],
+  ["/api/app/preferences", "seller", true],
+  ["/api/app/preferences", "logistics_partner", true],
   // A seller still in onboarding must reach the API, not be redirected to the onboarding page.
   ["/api/app/onboarding", "new_seller", true],
   ["/api/app/store", "new_seller", true],
@@ -228,6 +230,8 @@ if (productId) {
     await call("DELETE", `/api/app/ads/${ad.data.id}`, "seller", undefined, [200]);
   }
 }
+await call("PATCH", "/api/app/preferences", "seller", { hiddenNav: ["ads", "orders"] }, [200]);
+await call("PATCH", "/api/app/preferences", "seller", { hiddenNav: [], tour: "done" }, [200]);
 await call("POST", "/api/ai/video-script", "seller", { name: "Linen set", price: "₦29,500", language: "pidgin", photos: 3 }, [200]);
 // No OpenAI key in smoke runs: the voiceover says so instead of failing.
 await call("POST", "/api/ai/voiceover", "seller", { text: "Hello", language: "english" }, [200, 503]);

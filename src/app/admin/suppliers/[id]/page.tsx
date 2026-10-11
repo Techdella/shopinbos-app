@@ -1,13 +1,14 @@
+import { notFound } from "next/navigation";
+import { updateSupplierVerification } from "@/app/actions/admin";
+import { AppPage, Pill, PillLink, StatTile, Thumb } from "@/components/app-kit";
+import { DecisionButtons, VerificationPill, adminFrame, formatDate } from "@/components/admin/AdminKit";
+import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { RolePage, formatDate } from "@/components/role/RolePage";
-import { StatusPill } from "@/components/ops/OpsPrimitives";
-import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
-import { parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
-import { notFound } from "next/navigation";
+import { parseVerificationDocs } from "@/lib/verification-utils";
 
 export default async function AdminSupplierDetailPage(props: { params: Promise<{ id: string }> }) {
-  await requireRole(["admin"], "/admin/login");
+  const user = await requireRole(["admin"], "/admin/login");
 
   const { id } = await props.params;
 
@@ -20,6 +21,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
       slug: true,
       country: true,
       city: true,
+      logoUrl: true,
       verificationStatus: true,
       status: true,
       trustScore: true,
@@ -35,20 +37,39 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
   const docs = parseVerificationDocs(supplier.verificationDocuments);
 
   return (
-    <RolePage
-      role="admin"
-      eyebrow={`/admin/suppliers/${id}`}
-      title={supplier.displayName}
-      description={`${supplier.businessName} · /${supplier.slug} · ${supplier.city}, ${supplier.country}`}
-      metrics={[
-        { label: "Verification", value: <StatusPill status={supplier.verificationStatus} /> },
-        { label: "Status", value: <StatusPill status={supplier.status} /> },
-        { label: "Trust Score", value: `${supplier.trustScore ?? 0}/100` },
-        { label: "Products", value: String(supplier._count.products) },
-        { label: "Documents", value: String(docs.length) },
-        { label: "Created", value: formatDate(supplier.createdAt) },
-      ]}
+    <AppPage
+      frame={adminFrame(user, "Search suppliers")}
+      title={
+        <span className="flex min-w-0 items-center gap-3">
+          <Thumb src={supplier.logoUrl} label={supplier.displayName} size={48} />
+          <span className="min-w-0 break-words">{supplier.displayName}</span>
+        </span>
+      }
+      sub={`${supplier.businessName} · /${supplier.slug} · ${supplier.city}, ${supplier.country}`}
+      actions={
+        <>
+          <PillLink href="/admin/suppliers" icon="arrowLeft">All suppliers</PillLink>
+          {supplier.verificationStatus !== "verified" && (
+            <DecisionButtons
+              action={updateSupplierVerification}
+              fields={{ supplierId: supplier.id, trustScore: String(supplier.trustScore ?? 0), redirectTo: `/admin/suppliers/${supplier.id}` }}
+              approve="verified"
+              reject="rejected"
+              subject={supplier.displayName}
+            />
+          )}
+        </>
+      }
     >
+      <section aria-label="Supplier summary" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
+        <StatTile tone="card" label="Verification" value={<VerificationPill status={supplier.verificationStatus} />} />
+        <StatTile tone="card" label="Account" value={<Pill tone={supplier.status === "active" ? "success" : "danger"} dot>{supplier.status === "active" ? "Active" : supplier.status}</Pill>} />
+        <StatTile tone="card" label="Trust score" value={`${supplier.trustScore ?? 0}/100`} />
+        <StatTile tone="card" label="Products" value={supplier._count.products} />
+        <StatTile tone="card" label="Documents" value={docs.length} />
+        <StatTile tone="card" label="Joined" value={<span className="text-[20px]">{formatDate(supplier.createdAt)}</span>} />
+      </section>
+
       <AdminDocumentViewer
         role="supplier"
         entityId={supplier.id}
@@ -56,6 +77,6 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
         verificationStatus={supplier.verificationStatus}
         trustScore={supplier.trustScore ?? 0}
       />
-    </RolePage>
+    </AppPage>
   );
 }

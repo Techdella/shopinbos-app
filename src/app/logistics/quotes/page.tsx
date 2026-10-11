@@ -1,231 +1,149 @@
+import type { Metadata } from "next";
+import type { QuoteStatus } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { respondToDeliveryQuote } from "@/app/actions/logistics";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { Card, EmptyState, FilterChips, ListCard, ListRow, Pill } from "@/components/app-kit";
+import {
+  ActionNotice,
+  PartnerPage,
+  Route,
+  SubmitButton,
+  inputClass,
+  labelClass,
+  lagosDate,
+  lagosTime,
+  naira,
+  packageInfo,
+  packageSummary,
+  quoteStage,
+  textareaClass,
+  timeAgo,
+} from "@/components/logistics/kit";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Quote requests" };
 
-function Av({ name, size = 36, seed = 0, square }: { name: string; size?: number; seed?: number; square?: boolean }) {
-  const initials = name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-  const gradients = [
-    ["#D4A574","#6B4A2C"],["#F2C8B4","#D4A574"],["#195754","#0c4a44"],["#E86A4F","#6B4A2C"],
-    ["#5b6ad0","#3a4ba6"],["#8aa843","#5a7a28"],["#b14a8a","#7a2a6a"],["#e8a647","#b97511"],
-  ];
-  const g = gradients[seed % gradients.length];
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: square ? 7 : "50%",
-      background: `linear-gradient(135deg, ${g[0]}, ${g[1]})`,
-      display: "grid", placeItems: "center",
-      color: "white", fontWeight: 700, fontSize: size * 0.38, flexShrink: 0,
-    }}>
-      {initials}
-    </div>
-  );
-}
+const FILTERS: Array<{ key: string; label: string; statuses?: QuoteStatus[] }> = [
+  { key: "pending", label: "Waiting for you", statuses: ["pending"] },
+  { key: "quoted", label: "Quoted", statuses: ["responded"] },
+  { key: "won", label: "Won", statuses: ["accepted"] },
+  { key: "closed", label: "Declined or expired", statuses: ["rejected", "expired"] },
+  { key: "all", label: "All" },
+];
 
-export default async function LogisticsQuotesPage() {
+export default async function LogisticsQuotesPage({ searchParams }: { searchParams: Promise<{ status?: string; saved?: string; error?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const { status, saved, error } = await searchParams;
+  const filter = FILTERS.find((item) => item.key === status) ?? FILTERS[0];
 
-  const quotes = await db.deliveryQuoteRequest.findMany({
-    where: { logisticsPartnerId: partner.id },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    select: {
-      id: true, pickupLocation: true, destination: true,
-      preferredDate: true, status: true, quotedPrice: true, partnerResponse: true,
-      expiresAt: true, createdAt: true, packageDetails: true,
-      seller: { select: { name: true, country: true } },
-    },
-  });
-
-  const pending = quotes.filter((q) => q.status === "pending");
+  const [quotes, counts] = await Promise.all([
+    db.deliveryQuoteRequest.findMany({
+      where: { logisticsPartnerId: partner.id, ...(filter.statuses ? { status: { in: filter.statuses } } : {}) },
+      orderBy: { createdAt: filter.key === "pending" ? "asc" : "desc" },
+      take: 40,
+      select: {
+        id: true, pickupLocation: true, destination: true, preferredDate: true, status: true, quotedPrice: true,
+        partnerResponse: true, expiresAt: true, createdAt: true, packageDetails: true,
+        seller: { select: { name: true, city: true, country: true } },
+      },
+    }),
+    db.deliveryQuoteRequest.groupBy({ by: ["status"], where: { logisticsPartnerId: partner.id }, _count: { _all: true } }),
+  ]);
+  const countOf = (statuses?: QuoteStatus[]) => counts.filter((row) => !statuses || statuses.includes(row.status)).reduce((sum, row) => sum + row._count._all, 0);
+  const now = new Date();
+  const pending = quotes.filter((quote) => quote.status === "pending");
+  const others = quotes.filter((quote) => quote.status !== "pending");
 
   return (
-    <AppFrame
-      role="logistics_partner"
-      storeName={partner.displayName}
-      storeSlug={`${partner.city ?? "Lagos"} · Fleet`}
-      storeInitial={partner.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <PartnerPage
+      frame={{ user, partner }}
+      title="Quote requests"
+      sub="Sellers asking what you'd charge for a delivery. Send a price, and they can book you straight away."
+      toolbar={<FilterChips items={FILTERS.map((item) => ({ label: item.label, href: item.key === "pending" ? "/logistics/quotes" : `/logistics/quotes?status=${item.key}`, count: countOf(item.statuses), active: item.key === filter.key }))} />}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Quote requests"
-          sub={`${pending.length} sellers asking for delivery quotes · respond fast to win`}
-          actions={<button className="dbtn dBtn-ghost"><Icon name="clock" size={14} /> Avg response · 18m</button>}
-        />
+      <ActionNotice saved={saved} error={error} savedText="Sent. The seller can see your answer now." />
 
-        <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: 16, height: "calc(100vh - 60px - 180px)", minHeight: 500 }}>
-          {/* Inbox sidebar */}
-          <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--ink-100)", display: "flex", gap: 6 }}>
-              <button className="dbtn dBtn-soft" style={{ fontSize: 12, padding: "5px 10px" }}>Pending <span style={{ fontFamily: "var(--font-mono)", marginLeft: 3, opacity: 0.7, fontSize: 11 }}>{pending.length}</span></button>
-              <button className="dbtn dBtn-ghost" style={{ fontSize: 12, padding: "5px 10px", color: "var(--ink-600)" }}>Quoted <span style={{ fontFamily: "var(--font-mono)", marginLeft: 3, fontSize: 11 }}>{quotes.filter((q) => q.status === "responded").length}</span></button>
-              <button className="dbtn dBtn-ghost" style={{ fontSize: 12, padding: "5px 10px", color: "var(--ink-600)" }}>Won <span style={{ fontFamily: "var(--font-mono)", marginLeft: 3, fontSize: 11 }}>{quotes.filter((q) => q.status === "accepted").length}</span></button>
-            </div>
-            <div style={{ flex: 1, overflow: "auto" }}>
-              {quotes.map((q, i) => (
-                <div key={q.id} style={{
-                  padding: "13px 14px", borderTop: i ? "1px solid var(--ink-100)" : "none",
-                  display: "flex", gap: 11, cursor: "pointer",
-                  background: i === 0 ? "var(--teal-50)" : "transparent",
-                  borderLeft: i === 0 ? "3px solid var(--teal-700)" : "3px solid transparent",
-                }}>
-                  <Av name={q.seller.name} size={34} seed={i + 2} square />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{q.seller.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-500)" }}>
-                        {Math.round((Date.now() - new Date(q.createdAt).getTime()) / 60000)} min
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: "var(--ink-600)", marginBottom: 3 }}>{q.pickupLocation} → {q.destination}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>
-                      {q.packageDetails && typeof q.packageDetails === "object" 
-                        ? `Box · ${(q.packageDetails as { weight?: number }).weight ?? 0.5}kg`
-                        : "Package"}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                      {q.quotedPrice && <span style={{ fontSize: 11, color: "var(--ink-500)" }}>quoted <strong style={{ color: "var(--ink-800)" }}>₦{q.quotedPrice}</strong></span>}
-                      {(q.status === "responded" || q.status === "accepted") && <Badge variant={q.status === "accepted" ? "mint" : "info"}>{q.status}</Badge>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      {quotes.length === 0 && (
+        <EmptyState icon="chat" title={filter.key === "pending" ? "No one is waiting on you" : "Nothing here"}>
+          {filter.key === "pending" ? "New quote requests from sellers show up here." : "Try another filter."}
+        </EmptyState>
+      )}
 
-          {/* Quote detail */}
-          {pending.length > 0 && (() => {
-            const q = pending[0];
-            const pkg = q.packageDetails && typeof q.packageDetails === "object"
-              ? (q.packageDetails as { description?: string; weight?: number; fragile?: boolean; declaredValue?: number })
-              : null;
+      {pending.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {pending.map((quote) => {
+            const pkg = packageInfo(quote.packageDetails);
             return (
-              <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--ink-100)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                      <Av name={q.seller.name} size={28} seed={2} square />
-                      <div style={{ fontWeight: 600, fontSize: 15 }}>{q.seller.name}</div>
-                      <Badge variant="mint" dot>Verified seller</Badge>
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--ink-500)" }}>{q.seller.country ?? "Lagos, Nigeria"}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-500)" }}>
-                    Received {Math.round((Date.now() - new Date(q.createdAt).getTime()) / 60000)} min ago{q.expiresAt ? ` · expires ${new Date(q.expiresAt).toLocaleDateString()}` : ""}
-                  </div>
+              <Card key={quote.id} as="article" className="flex flex-col p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Pill tone="accent">{quote.expiresAt ? `Reply by ${lagosDate(quote.expiresAt)}, ${lagosTime(quote.expiresAt)}` : `Asked ${timeAgo(quote.createdAt, now)}`}</Pill>
+                  <span className="truncate text-[13.5px] text-app-ink-soft">{quote.seller.name}{quote.seller.city ? ` · ${quote.seller.city}` : ""}</span>
                 </div>
+                <Route from={quote.pickupLocation} to={quote.destination} className="mt-3 block break-words text-[16px]" />
+                <dl className="m-0 mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[13.5px]">
+                  <div><dt className="text-app-ink-soft">Package</dt><dd className="m-0 font-bold">{packageSummary(quote.packageDetails)}</dd></div>
+                  <div><dt className="text-app-ink-soft">Wanted</dt><dd className="m-0 font-bold">{quote.preferredDate ? lagosDate(quote.preferredDate, { weekday: "short", day: "numeric", month: "short" }) : "Any day"}</dd></div>
+                  {typeof pkg.declaredValue === "number" && (
+                    <div><dt className="text-app-ink-soft">Declared value</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
+                  )}
+                </dl>
 
-                <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>
-                  <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-                    <svg viewBox="0 0 600 200" width="100%" height="200" style={{ background: "#eef2ec", display: "block" }}>
-                      <defs><pattern id="qdot" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="11" cy="11" r="0.5" fill="#c8d4cd"/></pattern></defs>
-                      <rect width="600" height="200" fill="url(#qdot)"/>
-                      <path d="M120 100 Q300 130 480 80" stroke="var(--teal-700)" strokeWidth="3" fill="none" strokeDasharray="6 3"/>
-                      <circle cx="120" cy="100" r="13" fill="var(--success)" stroke="white" strokeWidth="3"/>
-                      <text x="120" y="105" textAnchor="middle" fontSize="11" fill="white" fontWeight="700">A</text>
-                      <text x="120" y="130" textAnchor="middle" fontSize="11" fontWeight="600">{q.pickupLocation}</text>
-                      <circle cx="480" cy="80" r="13" fill="var(--rose-500)" stroke="white" strokeWidth="3"/>
-                      <text x="480" y="85" textAnchor="middle" fontSize="11" fill="white" fontWeight="700">B</text>
-                      <text x="480" y="110" textAnchor="middle" fontSize="11" fontWeight="600">{q.destination}</text>
-                      <text x="300" y="60" textAnchor="middle" fontSize="11" fill="var(--teal-700)" fontWeight="700">est. same-day</text>
-                    </svg>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20, fontSize: 13 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Pickup</div>
-                      <div style={{ padding: 12, background: "var(--ink-50)", borderRadius: 10, lineHeight: 1.6 }}>
-                        <strong>{q.pickupLocation}</strong><br />
-                        <span style={{ color: "var(--ink-500)", fontSize: 11 }}>Window: today</span>
-                      </div>
+                <form action={respondToDeliveryQuote} className="mt-4 grid gap-3 border-t border-app-line pt-4">
+                  <input type="hidden" name="quoteId" value={quote.id} />
+                  <input type="hidden" name="intent" value="respond" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <label htmlFor={`price-${quote.id}`} className={labelClass}>Your price (₦)</label>
+                      <input id={`price-${quote.id}`} name="quotedPrice" type="number" min="1" step="1" required inputMode="numeric" defaultValue={partner.basePrice > 0 ? String(partner.basePrice) : ""} className={inputClass} />
                     </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Delivery</div>
-                      <div style={{ padding: 12, background: "var(--ink-50)", borderRadius: 10, lineHeight: 1.6 }}>
-                        <strong>{q.destination}</strong><br />
-                        <span style={{ color: "var(--ink-500)", fontSize: 11 }}>
-                          {q.preferredDate ? `By: ${new Date(q.preferredDate).toLocaleDateString()}` : "Need by: today"}
-                        </span>
-                      </div>
+                    <div className="min-w-0">
+                      <label htmlFor={`expires-${quote.id}`} className={labelClass}>Price good until</label>
+                      <input id={`expires-${quote.id}`} name="expiresAt" type="date" className={inputClass} />
                     </div>
                   </div>
-
-                  <div style={{ padding: 14, background: "var(--ink-50)", borderRadius: 10, marginBottom: 20, fontSize: 13 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8 }}>
-                      <span style={{ color: "var(--ink-500)" }}>Package</span>
-                      <strong>{pkg?.description ?? "Box"} · {pkg?.weight ?? 0.5}kg</strong>
-                      {pkg?.declaredValue && <><span style={{ color: "var(--ink-500)" }}>Declared value</span><strong>₦{pkg.declaredValue.toLocaleString()}</strong></>}
-                      <span style={{ color: "var(--ink-500)" }}>Fragile</span>
-                      <strong>{pkg?.fragile ? "Yes" : "No · standard handling"}</strong>
-                    </div>
+                  <div className="min-w-0">
+                    <label htmlFor={`note-${quote.id}`} className={labelClass}>Note to the seller</label>
+                    <textarea id={`note-${quote.id}`} name="partnerResponse" rows={2} maxLength={1000} placeholder="When you can pick up, how long it takes, anything they should know." className={textareaClass} />
                   </div>
-
-                  {/* Quote form */}
-                  <div style={{ fontSize: 11, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Rex route quote pad</div>
-                  <form action={respondToDeliveryQuote} className="card" style={{ padding: 18, background: "var(--paper)", borderColor: "var(--teal-200)" }}>
-                    <input type="hidden" name="quoteId" value={q.id} />
-                    <input type="hidden" name="intent" value="respond" />
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
-                      <div className="field">
-                        <label className="label">Price quoted (₦)</label>
-                        <input className="inp" name="quotedPrice" type="number" min="1" step="1" defaultValue={String(partner.basePrice)} required />
-                        <div className="help" style={{ color: "var(--success)" }}>Competitive price</div>
-                      </div>
-                      <div className="field">
-                        <label className="label">ETA</label>
-                        <div className="sel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          Today 12-3pm <Icon name="chevDown" size={12} />
-                        </div>
-                      </div>
-                      <div className="field">
-                        <label className="label">Service</label>
-                        <div className="sel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          Same-day <Icon name="chevDown" size={12} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="field" style={{ marginBottom: 14 }}>
-                      <label className="label">Note to seller</label>
-                      <textarea className="ta" rows={2} defaultValue={`Hi — we'd ship for ₦${partner.basePrice}, picks up today, delivers same-day. OTP on delivery.`} />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "var(--ink-50)", borderRadius: 10, marginBottom: 14 }}>
-                      <div>
-                        <div style={{ fontSize: 11, color: "var(--ink-500)" }}>Your margin after fees</div>
-                        <div style={{ fontFamily: "var(--font-accent)", fontSize: 22, fontWeight: 500, color: "var(--success)" }}>
-                          ₦{Math.round(partner.basePrice * 0.21)}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>21% margin</div>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <button className="dbtn dBtn-ghost" type="submit" form={`decline-${q.id}`}>Decline</button>
-                      <div style={{ display: "flex", gap: 7 }}>
-                        <button className="dbtn dBtn-ghost" type="button">Save draft</button>
-                        <button className="dbtn dBtn-mint" type="submit">Send quote <Icon name="chevRight" size={14} /></button>
-                      </div>
-                    </div>
-                  </form>
-                  <form id={`decline-${q.id}`} action={respondToDeliveryQuote}>
-                    <input type="hidden" name="quoteId" value={q.id} />
-                    <input type="hidden" name="intent" value="reject" />
-                    <input type="hidden" name="partnerResponse" value="Thanks for reaching out. This route is not available for us right now." />
-                  </form>
-                </div>
-              </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <SubmitButton tone="white" form={`decline-${quote.id}`}>Decline</SubmitButton>
+                    <SubmitButton>Send quote</SubmitButton>
+                  </div>
+                </form>
+                <form id={`decline-${quote.id}`} action={respondToDeliveryQuote} className="hidden">
+                  <input type="hidden" name="quoteId" value={quote.id} />
+                  <input type="hidden" name="intent" value="reject" />
+                </form>
+              </Card>
             );
-          })()}
+          })}
         </div>
-      </div>
-    </AppFrame>
+      )}
+
+      {others.length > 0 && (
+        <ListCard className={pending.length ? "mt-5" : ""}>
+          {others.map((quote) => {
+            const stage = quoteStage(quote.status);
+            return (
+              <ListRow key={quote.id}>
+                <div className="min-w-0 flex-1 basis-[220px]">
+                  <Route from={quote.pickupLocation} to={quote.destination} className="block truncate text-[15px]" />
+                  <div className="truncate text-[13px] text-app-ink-soft">
+                    {quote.seller.name} · {packageSummary(quote.packageDetails)} · asked {lagosDate(quote.createdAt)}
+                  </div>
+                  {quote.partnerResponse && <div className="mt-0.5 truncate text-[13px] text-app-ink-soft">You said: {quote.partnerResponse}</div>}
+                </div>
+                <Pill tone={stage.tone} dot>{stage.label}</Pill>
+                <div className="ml-auto text-[15px] font-extrabold">{quote.quotedPrice ? naira(quote.quotedPrice) : "No price"}</div>
+              </ListRow>
+            );
+          })}
+        </ListCard>
+      )}
+    </PartnerPage>
   );
 }

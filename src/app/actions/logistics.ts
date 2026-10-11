@@ -53,6 +53,12 @@ function parseCoverageRows(value: FormDataEntryValue | null, fallbackZones: stri
   return fallbackZones.map((name) => ({ name, service: "Same-day", basePrice: fallbackBasePrice, active: true }));
 }
 
+/** Where to send the partner after a dispatch action: a /logistics page they came from, or the fallback. */
+function returnPath(formData: FormData, fallback: string) {
+  const value = String(formData.get("returnTo") || "");
+  return /^\/logistics\/[a-z-]+$/.test(value) ? value : fallback;
+}
+
 async function getLogisticsActor() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id } });
@@ -95,6 +101,7 @@ export async function respondToDeliveryQuote(formData: FormData) {
   const quotedPrice = parsePositiveNumber(formData.get("quotedPrice"));
   const partnerResponse = String(formData.get("partnerResponse") || "").trim();
   const expiresAtRaw = String(formData.get("expiresAt") || "").trim();
+  const back = returnPath(formData, "/logistics/quotes");
 
   const quote = quoteId
     ? await db.deliveryQuoteRequest.findFirst({
@@ -103,9 +110,9 @@ export async function respondToDeliveryQuote(formData: FormData) {
       })
     : null;
 
-  if (!quote) redirect("/logistics/quotes?error=Quote%20not%20found.");
+  if (!quote) redirect(`${back}?error=Quote%20not%20found.`);
   if (quote.status !== "pending") {
-    redirect("/logistics/quotes?error=This%20quote%20has%20already%20been%20handled.");
+    redirect(`${back}?error=This%20quote%20has%20already%20been%20handled.`);
   }
 
   if (intent === "reject") {
@@ -118,7 +125,7 @@ export async function respondToDeliveryQuote(formData: FormData) {
     });
     revalidatePath("/logistics/quotes");
     revalidatePath("/logistics/dashboard");
-    redirect("/logistics/quotes?saved=1");
+    redirect(`${back}?saved=1`);
   }
 
   const parsed = DeliveryQuoteResponseSchema.safeParse({
@@ -128,7 +135,7 @@ export async function respondToDeliveryQuote(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/logistics/quotes?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the quote details.")}`);
+    redirect(`${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the quote details.")}`);
   }
 
   await db.deliveryQuoteRequest.update({
@@ -143,7 +150,7 @@ export async function respondToDeliveryQuote(formData: FormData) {
 
   revalidatePath("/logistics/quotes");
   revalidatePath("/logistics/dashboard");
-  redirect("/logistics/quotes?saved=1");
+  redirect(`${back}?saved=1`);
 }
 
 export async function updateDeliveryBookingStatus(formData: FormData) {
@@ -153,6 +160,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   const status = String(formData.get("status") || "");
   const trackingCode = String(formData.get("trackingCode") || "").trim();
   const estimatedDeliveryRaw = String(formData.get("estimatedDelivery") || "").trim();
+  const back = returnPath(formData, "/logistics/bookings");
   const parsed = BookingStatusUpdateSchema.safeParse({
     status,
     trackingCode: trackingCode || undefined,
@@ -161,7 +169,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   });
 
   if (!parsed.success || !bookingStatuses.includes(status as never)) {
-    redirect("/logistics/bookings?error=Choose%20a%20valid%20booking%20status.");
+    redirect(`${back}?error=Choose%20a%20valid%20booking%20status.`);
   }
 
   const booking = bookingId
@@ -171,7 +179,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
       })
     : null;
 
-  if (!booking) redirect("/logistics/bookings?error=Booking%20not%20found.");
+  if (!booking) redirect(`${back}?error=Booking%20not%20found.`);
 
   await db.deliveryBooking.update({
     where: { id: booking.id },
@@ -180,7 +188,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
 
   revalidatePath("/logistics/bookings");
   revalidatePath("/logistics/dashboard");
-  redirect("/logistics/bookings?saved=1");
+  redirect(`${back}?saved=1`);
 }
 
 export async function updateLogisticsCoverage(formData: FormData) {

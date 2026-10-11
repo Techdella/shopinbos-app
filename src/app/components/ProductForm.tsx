@@ -3,8 +3,9 @@
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { Notice, PillButton, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
+import { field } from "@/components/seller-core";
 
 interface Category {
   id: string;
@@ -59,11 +60,11 @@ interface ProductFormProps {
   isEdit: boolean;
 }
 
-const TABS = ["Details", "Visibility & Sales Channel", "Inventory & Pricing", "Description Builder", "Product Page"];
+const TABS = ["Details", "Visibility and channels", "Price and stock", "Description", "Product page"];
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
-  { value: "active", label: "Active" },
+  { value: "active", label: "Live" },
   { value: "archived", label: "Archived" },
 ];
 
@@ -71,14 +72,14 @@ const VISIBILITY_OPTIONS = [
   { value: "hidden", label: "Hidden" },
   { value: "storefront", label: "Storefront" },
   { value: "featured", label: "Featured" },
-  { value: "collection_only", label: "Collection Only" },
+  { value: "collection_only", label: "Collections only" },
 ];
 
 const INVENTORY_TYPES = [
-  { value: "seller", label: "Seller Inventory" },
+  { value: "seller", label: "My own stock" },
   { value: "dropshipping", label: "Dropshipping" },
-  { value: "source_on_demand", label: "Source-On-Demand" },
-  { value: "print_on_demand", label: "Print-On-Demand" },
+  { value: "source_on_demand", label: "Source on demand" },
+  { value: "print_on_demand", label: "Print on demand" },
   { value: "digital", label: "Digital" },
 ];
 
@@ -90,9 +91,9 @@ const SALES_CHANNELS = [
 ];
 
 const FULFILLMENT_OPTIONS = [
-  { value: "merchant_fulfilled", label: "Merchant Fulfilled" },
+  { value: "merchant_fulfilled", label: "I fulfil it" },
   { value: "dropship", label: "Dropship" },
-  { value: "wholesale_stocked", label: "Wholesale Stocked" },
+  { value: "wholesale_stocked", label: "Wholesale stock" },
 ];
 
 const PAGE_VARIANTS = [
@@ -102,32 +103,32 @@ const PAGE_VARIANTS = [
   { value: "minimal", label: "Minimal" },
   { value: "marketplace", label: "Marketplace" },
   { value: "fashion", label: "Fashion" },
-  { value: "mobile_first", label: "Mobile First" },
+  { value: "mobile_first", label: "Mobile first" },
 ];
 
 const ALL_MODULES = [
-  { value: "image_gallery", label: "Image Gallery" },
+  { value: "image_gallery", label: "Image gallery" },
   { value: "zoom", label: "Zoom" },
   { value: "video", label: "Video" },
-  { value: "360_view", label: "360 View" },
+  { value: "360_view", label: "360° view" },
   { value: "variants", label: "Variants" },
-  { value: "size_selector", label: "Size Selector" },
-  { value: "color_selector", label: "Color Selector" },
+  { value: "size_selector", label: "Size selector" },
+  { value: "color_selector", label: "Colour selector" },
   { value: "quantity", label: "Quantity" },
   { value: "price", label: "Price" },
   { value: "discount", label: "Discount" },
-  { value: "stock_status", label: "Stock Status" },
-  { value: "delivery_estimate", label: "Delivery Estimate" },
+  { value: "stock_status", label: "Stock status" },
+  { value: "delivery_estimate", label: "Delivery estimate" },
   { value: "wishlist", label: "Wishlist" },
   { value: "share", label: "Share" },
-  { value: "related_products", label: "Related Products" },
+  { value: "related_products", label: "Related products" },
   { value: "reviews", label: "Reviews" },
   { value: "description", label: "Description" },
   { value: "specifications", label: "Specifications" },
   { value: "faqs", label: "FAQs" },
-  { value: "supplier_info", label: "Supplier Info" },
-  { value: "return_policy", label: "Return Policy" },
-  { value: "trust_badges", label: "Trust Badges" },
+  { value: "supplier_info", label: "Supplier info" },
+  { value: "return_policy", label: "Return policy" },
+  { value: "trust_badges", label: "Trust badges" },
 ];
 
 type SpecItem = { id: string; name: string; value: string };
@@ -286,8 +287,9 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
       if (res.ok) {
         router.push("/products");
       } else {
-        const err = await res.json();
-        setError(err?.error ?? "Failed to save product");
+        const err = await res.json().catch(() => null);
+        // The API answers { error: { code, message } }; older handlers sent a plain string.
+        setError(typeof err?.error === "string" ? err.error : err?.error?.message ?? "Failed to save product");
       }
     } catch {
       setError("Something went wrong");
@@ -296,450 +298,417 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
     }
   };
 
+
+  const stockNumber = parseInt(currentStock);
+  const thresholdNumber = parseInt(lowStockThreshold);
+
   return (
-    <AppFrame role="seller" storeName="Products" storeInitial="P">
-      <div className="flex-1 overflow-y-auto" style={{ padding: "24px 28px 40px", background: "var(--canvas)" }}>
-        <PageHead
-          title={isEdit ? product!.name : "New product"}
-          sub={isEdit ? "Edit product details, visibility, inventory, and page settings" : "Add a new product to your store"}
-          crumbs={["Products", isEdit ? product!.name : "New"]}
-          actions={
-            <Link href="/products" className="dbtn dBtn-ghost dBtn-sm" style={{ textDecoration: "none" }}>
-              Cancel
-            </Link>
-          }
-        />
+    <div className="grid gap-4">
+      {error && <Notice>{error}</Notice>}
 
-        {error && (
-          <div className="card" style={{ padding: 12, marginBottom: 14, borderColor: "var(--danger)", color: "var(--danger)", fontSize: 13 }}>
-            {error}
-          </div>
-        )}
+      <div role="tablist" aria-label="Product sections" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {TABS.map((tab, i) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            id={`product-tab-${i}`}
+            aria-selected={i === activeTab}
+            aria-controls="product-tab-panel"
+            onClick={() => setActiveTab(i)}
+            className={cx(
+              "inline-flex min-h-[40px] shrink-0 items-center rounded-full border px-4 text-[14px] font-bold transition",
+              i === activeTab ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
-        <div className="design-tabs" style={{ marginBottom: 20 }}>
-          {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              type="button"
-              className={`tab${i === activeTab ? " on" : ""}`}
-              onClick={() => setActiveTab(i)}
-              style={{ cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={(e) => void handleSubmit(e)}>
+      <form onSubmit={(e) => void handleSubmit(e)} className="grid gap-4">
+        <div id="product-tab-panel" role="tabpanel" aria-labelledby={`product-tab-${activeTab}`} className="grid gap-4">
           {/* Tab 1 - Details */}
           {activeTab === 0 && (
-            <div className="flex flex-col gap-5">
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Basic Information</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Tell buyers what you&apos;re selling.</h2>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "1.2fr 0.8fr" }}>
-                  <label className="field">
-                    <span className="label">Product name *</span>
-                    <input value={name} onChange={(e) => setName(e.target.value)} className="inp" required minLength={2} maxLength={200} placeholder="e.g. Premium Leather Tote Bag" />
-                  </label>
-                  <label className="field">
-                    <span className="label">Tags</span>
-                    <input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} className="inp" placeholder="e.g. leather, premium, bags" />
-                    <div className="text-[11px] mt-1" style={{ color: "var(--ink-400)" }}>Comma-separated</div>
-                  </label>
+            <>
+              <Section title="Basic information" sub="Tell buyers what you're selling.">
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                  <Field label="Product name *">
+                    <input value={name} onChange={(e) => setName(e.target.value)} className={field.input} required minLength={2} maxLength={200} placeholder="e.g. Premium leather tote bag" />
+                  </Field>
+                  <Field label="Tags" hint="Separate with commas">
+                    <input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} className={field.input} placeholder="e.g. leather, premium, bags" />
+                  </Field>
                 </div>
-                <label className="field mt-4">
-                  <span className="label">Description</span>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="ta" rows={4} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
-                </label>
-                <div className="grid gap-4 mt-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <label className="field">
-                    <span className="label">Category</span>
-                    <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="inp">
+                <Field label="Description">
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={field.textarea} rows={4} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
+                </Field>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Category">
+                    <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={field.select}>
                       <option value="">No category</option>
                       {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>
-                  </label>
-                  <label className="field">
-                    <span className="label">Video URL</span>
-                    <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="inp" placeholder="https://youtube.com/watch?v=..." />
-                  </label>
+                  </Field>
+                  <Field label="Video link">
+                    <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className={field.input} placeholder="https://youtube.com/watch?v=..." />
+                  </Field>
                 </div>
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Images</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Upload product photos.</h2>
-                <div className="flex gap-2 mb-4">
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="dbtn dBtn-ghost dBtn-sm">
-                    <Icon name="upload" size={14} /> Upload images
-                  </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
-                </div>
+              <Section
+                title="Photos"
+                sub="Clear photos on a plain background sell best."
+                action={
+                  <>
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
+                      <Icon name="upload" size={15} /> Upload photos
+                    </button>
+                    <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" aria-label="Upload product photos" onChange={(e) => handleUpload(e.target.files)} />
+                  </>
+                }
+              >
                 {images.length > 0 ? (
-                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
+                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8">
                     {images.map((url, i) => (
-                      <div key={i} className="relative rounded-[10px] overflow-hidden" style={{ aspectRatio: "1/1", border: "1px solid var(--ink-100)" }}>
-                        <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-[12px]" style={{ background: "rgba(0,0,0,0.5)" }}>✕</button>
+                      <div key={i} className="relative aspect-square overflow-hidden rounded-[14px] border border-app-line bg-app-canvas">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`Product photo ${i + 1}`} className="h-full w-full object-cover" />
+                        <button type="button" onClick={() => removeImage(i)} aria-label={`Remove photo ${i + 1}`} className="absolute right-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full bg-app-ink/70 text-white hover:bg-app-ink">
+                          <Icon name="x" size={14} />
+                        </button>
+                        {i === 0 && <span className="absolute bottom-1.5 left-1.5 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold">Cover</span>}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-[13px] border-2 border-dashed rounded-[12px]" style={{ color: "var(--ink-400)", borderColor: "var(--ink-200)" }}>
-                    No images yet. Upload product photos above.
-                  </div>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="grid w-full place-items-center gap-2 rounded-[18px] border-2 border-dashed border-app-line px-4 py-10 text-[14px] text-app-ink-soft hover:border-app-line-strong">
+                    <Icon name="image" size={26} />
+                    No photos yet. Tap to upload.
+                  </button>
                 )}
-              </div>
-            </div>
+              </Section>
+            </>
           )}
 
           {/* Tab 2 - Visibility & Sales Channel */}
           {activeTab === 1 && (
-            <div className="flex flex-col gap-5">
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Status & Visibility</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Control where and how your product appears.</h2>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <label className="field">
-                    <span className="label">Status</span>
-                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="inp">
+            <>
+              <Section title="Status and visibility" sub="Control where and how your product appears.">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Status">
+                    <select value={status} onChange={(e) => setStatus(e.target.value)} className={field.select}>
                       {STATUS_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
-                  </label>
-                  <label className="field">
-                    <span className="label">Visibility</span>
-                    <select value={visibility} onChange={(e) => setVisibility(e.target.value)} className="inp">
+                  </Field>
+                  <Field label="Visibility">
+                    <select value={visibility} onChange={(e) => setVisibility(e.target.value)} className={field.select}>
                       {VISIBILITY_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
-                  </label>
+                  </Field>
                 </div>
 
-                <div className="mt-5">
-                  <div className="label mb-2">Sales Channels</div>
-                  <div className="flex flex-wrap gap-3">
-                    {SALES_CHANNELS.map((ch) => (
-                      <label key={ch.value} className="flex items-center gap-2 cursor-pointer text-[13px]" style={{ color: "var(--ink-800)" }}>
-                        <input
-                          type="checkbox"
-                          checked={salesChannels.includes(ch.value)}
-                          onChange={() => toggleSalesChannel(ch.value)}
-                          className="w-4 h-4 rounded"
-                          style={{ accentColor: "var(--teal-700)" }}
-                        />
-                        {ch.label}
-                      </label>
-                    ))}
+                <fieldset className="m-0 border-0 p-0">
+                  <legend className={field.label}>Sales channels</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {SALES_CHANNELS.map((ch) => {
+                      const on = salesChannels.includes(ch.value);
+                      return (
+                        <label key={ch.value} className={cx("inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-full border px-4 text-[14px] font-bold", on ? "border-app-ink bg-app-canvas" : "border-app-line bg-white")}>
+                          <input type="checkbox" checked={on} onChange={() => toggleSalesChannel(ch.value)} className={field.checkbox} />
+                          {ch.label}
+                        </label>
+                      );
+                    })}
                   </div>
-                </div>
+                </fieldset>
 
-                <div className="mt-5">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={featured}
-                      onChange={(e) => setFeatured(e.target.checked)}
-                      className="w-4 h-4 rounded"
-                      style={{ accentColor: "var(--teal-700)" }}
-                    />
-                    <span className="text-[13px] font-semibold" style={{ color: "var(--ink-800)" }}>Featured product</span>
-                  </label>
-                  <div className="text-[12px] mt-1" style={{ color: "var(--ink-500)" }}>Featured products are highlighted on your storefront and marketing materials.</div>
-                </div>
-              </div>
+                <label className="flex cursor-pointer items-start gap-3 rounded-[16px] bg-app-canvas p-4">
+                  <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className={cx(field.checkbox, "mt-0.5")} />
+                  <span>
+                    <span className="block text-[14px] font-bold">Featured product</span>
+                    <span className="block text-[13px] text-app-ink-soft">Featured products are highlighted on your storefront and marketing materials.</span>
+                  </span>
+                </label>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>SEO</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Optimize for search engines.</h2>
-                <label className="field">
-                  <span className="label">SEO Title</span>
-                  <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="inp" maxLength={70} placeholder="Product title for search results" />
-                  <div className="text-[11px] mt-1" style={{ color: "var(--ink-400)" }}>{seoTitle.length}/70 characters</div>
-                </label>
-                <label className="field mt-4">
-                  <span className="label">SEO Description</span>
-                  <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className="ta" rows={3} maxLength={160} placeholder="Brief description for search snippets" />
-                  <div className="text-[11px] mt-1" style={{ color: "var(--ink-400)" }}>{seoDescription.length}/160 characters</div>
-                </label>
-              </div>
-            </div>
+              <Section title="Search engines" sub="How this product shows up on Google.">
+                <Field label="Search title" hint={`${seoTitle.length}/70 characters`}>
+                  <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className={field.input} maxLength={70} placeholder="Product title for search results" />
+                </Field>
+                <Field label="Search description" hint={`${seoDescription.length}/160 characters`}>
+                  <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className={field.textarea} rows={3} maxLength={160} placeholder="Brief description for search snippets" />
+                </Field>
+              </Section>
+            </>
           )}
 
           {/* Tab 3 - Inventory & Pricing */}
           {activeTab === 2 && (
-            <div className="flex flex-col gap-5">
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Inventory Type</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>How do you manage this product?</h2>
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+            <>
+              <Section title="Where does it come from?" sub="How you hold or source this product.">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5" role="radiogroup" aria-label="Inventory type">
                   {INVENTORY_TYPES.map((t) => (
                     <button
                       key={t.value}
                       type="button"
+                      role="radio"
+                      aria-checked={inventoryType === t.value}
                       onClick={() => setInventoryType(t.value)}
-                      className="text-left rounded-[10px] p-3 text-[13px] font-semibold cursor-pointer"
-                      style={{
-                        border: inventoryType === t.value ? "2px solid var(--teal-600)" : "1px solid var(--ink-150)",
-                        background: inventoryType === t.value ? "var(--teal-50)" : "var(--paper)",
-                        color: inventoryType === t.value ? "var(--teal-800)" : "var(--ink-700)",
-                        transition: "all 0.12s",
-                      }}
+                      className={cx(
+                        "min-h-[48px] rounded-[14px] border px-4 py-3 text-left text-[14px] font-bold transition",
+                        inventoryType === t.value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong",
+                      )}
                     >
                       {t.label}
                     </button>
                   ))}
                 </div>
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Pricing</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Set your prices.</h2>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                  <label className="field">
-                    <span className="label">Retail price (₦) *</span>
-                    <input value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} type="number" className="inp" required min={1} step="0.01" placeholder="25000" />
-                  </label>
-                  <label className="field">
-                    <span className="label">Cost price (₦)</span>
-                    <input value={costPrice} onChange={(e) => setCostPrice(e.target.value)} type="number" className="inp" min={0} step="0.01" placeholder="15000" />
-                  </label>
-                  <label className="field">
-                    <span className="label">Compare-at price (₦)</span>
-                    <input value={compareAtPrice} onChange={(e) => setCompareAtPrice(e.target.value)} type="number" className="inp" min={0} step="0.01" placeholder="30000" />
-                  </label>
+              <Section title="Price" sub="What buyers pay, and what it costs you.">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Selling price (₦) *">
+                    <input value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} type="number" inputMode="decimal" className={field.input} required min={1} step="0.01" placeholder="25000" />
+                  </Field>
+                  <Field label="Cost price (₦)">
+                    <input value={costPrice} onChange={(e) => setCostPrice(e.target.value)} type="number" inputMode="decimal" className={field.input} min={0} step="0.01" placeholder="15000" />
+                  </Field>
+                  <Field label="Was price (₦)" hint="Shown crossed out">
+                    <input value={compareAtPrice} onChange={(e) => setCompareAtPrice(e.target.value)} type="number" inputMode="decimal" className={field.input} min={0} step="0.01" placeholder="30000" />
+                  </Field>
                 </div>
                 {retailPrice && costPrice && (
-                  <div className="mt-3 text-[13px]" style={{ color: "var(--ink-600)" }}>
-                    Margin: <strong style={{ color: "var(--teal-700)" }}>{Math.round((1 - parseFloat(costPrice) / parseFloat(retailPrice)) * 100)}%</strong>
-                  </div>
+                  <p className="m-0 text-[14px] text-app-ink-soft">
+                    Margin: <strong className="text-app-success">{Math.round((1 - parseFloat(costPrice) / parseFloat(retailPrice)) * 100)}%</strong>
+                  </p>
                 )}
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Stock</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Track your inventory levels.</h2>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                  <label className="field">
-                    <span className="label">Current stock</span>
-                    <input value={currentStock} onChange={(e) => setCurrentStock(e.target.value)} type="number" className="inp" min={0} />
-                  </label>
-                  <label className="field">
-                    <span className="label">Reserved stock</span>
-                    <input value={reservedStock} onChange={(e) => setReservedStock(e.target.value)} type="number" className="inp" min={0} />
-                  </label>
-                  <label className="field">
-                    <span className="label">Low stock threshold</span>
-                    <input value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} type="number" className="inp" min={0} />
-                  </label>
+              <Section title="Stock" sub="Track how many you have.">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="In stock">
+                    <input value={currentStock} onChange={(e) => setCurrentStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
+                  </Field>
+                  <Field label="Reserved">
+                    <input value={reservedStock} onChange={(e) => setReservedStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
+                  </Field>
+                  <Field label="Warn me when below">
+                    <input value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
+                  </Field>
                 </div>
-                {parseInt(currentStock) > 0 && (
-                  <div className="mt-3 flex items-center gap-2 text-[13px]" style={{ color: "var(--ink-600)" }}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: parseInt(currentStock) <= parseInt(lowStockThreshold) ? "var(--warning)" : "var(--success)" }} />
-                    {parseInt(currentStock) <= parseInt(lowStockThreshold) ? (
-                      <span style={{ color: "var(--warning)", fontWeight: 600 }}>{currentStock} left — below threshold</span>
+                {stockNumber > 0 && (
+                  <p className="m-0 flex items-center gap-2 text-[14px]">
+                    <span aria-hidden className={cx("h-2 w-2 rounded-full", stockNumber <= thresholdNumber ? "bg-app-accent" : "bg-app-success")} />
+                    {stockNumber <= thresholdNumber ? (
+                      <span className="font-bold text-app-accent-ink">{currentStock} left, below your warning level</span>
                     ) : (
-                      <span>{currentStock} available ({parseInt(currentStock) - parseInt(reservedStock)} after reservations)</span>
+                      <span className="text-app-ink-soft">{currentStock} available ({stockNumber - parseInt(reservedStock)} after reservations)</span>
                     )}
-                  </div>
+                  </p>
                 )}
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Shipping & Fulfillment</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Weight, dimensions, and fulfillment.</h2>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <label className="field">
-                    <span className="label">Weight</span>
+              <Section title="Shipping and fulfilment" sub="Weight, codes and who sends it out.">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Weight">
                     <div className="flex gap-2">
-                      <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" className="inp flex-1" min={0} step="0.01" placeholder="0.5" />
-                      <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className="inp" style={{ width: 80 }}>
+                      <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" inputMode="decimal" className={cx(field.input, "flex-1")} min={0} step="0.01" placeholder="0.5" aria-label="Weight" />
+                      <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className={cx(field.select, "w-[88px] shrink-0")} aria-label="Weight unit">
                         <option value="kg">kg</option>
                         <option value="g">g</option>
                         <option value="lb">lb</option>
                         <option value="oz">oz</option>
                       </select>
                     </div>
-                  </label>
-                  <label className="field">
-                    <span className="label">SKU</span>
-                    <input value={sku} onChange={(e) => setSku(e.target.value)} className="inp" placeholder="LTH-TOTE-001" />
-                  </label>
-                  <label className="field">
-                    <span className="label">Barcode</span>
-                    <input value={barcode} onChange={(e) => setBarcode(e.target.value)} className="inp" placeholder="UPC / EAN / ISBN" />
-                  </label>
-                  <label className="field">
-                    <span className="label">Fulfillment type</span>
-                    <select value={fulfillmentType} onChange={(e) => setFulfillmentType(e.target.value)} className="inp">
+                  </Field>
+                  <Field label="SKU">
+                    <input value={sku} onChange={(e) => setSku(e.target.value)} className={field.input} placeholder="LTH-TOTE-001" />
+                  </Field>
+                  <Field label="Barcode">
+                    <input value={barcode} onChange={(e) => setBarcode(e.target.value)} className={field.input} placeholder="UPC / EAN / ISBN" />
+                  </Field>
+                  <Field label="Fulfilment">
+                    <select value={fulfillmentType} onChange={(e) => setFulfillmentType(e.target.value)} className={field.select}>
                       {FULFILLMENT_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
-                  </label>
+                  </Field>
                 </div>
-              </div>
-            </div>
+              </Section>
+            </>
           )}
 
           {/* Tab 4 - Description Builder */}
           {activeTab === 3 && (
-            <div className="flex flex-col gap-5">
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Long Description</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Detailed product description.</h2>
-                <label className="field">
-                  <span className="label">Long description (rich text)</span>
-                  <textarea value={longDescription} onChange={(e) => setLongDescription(e.target.value)} className="ta" rows={8} placeholder="Full product description with details about materials, sizing, care, and features..." />
-                </label>
-              </div>
+            <>
+              <Section title="Full description" sub="Everything a buyer might want to know.">
+                <Field label="Long description">
+                  <textarea value={longDescription} onChange={(e) => setLongDescription(e.target.value)} className={field.textarea} rows={8} placeholder="Full product description with details about materials, sizing, care, and features..." />
+                </Field>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="flex items-center justify-between mb-1">
-                  <div>
-                    <div className="font-semibold text-[13px] uppercase tracking-[0.04em]" style={{ color: "var(--teal-700)" }}>Specifications</div>
-                    <h2 className="font-display text-[22px] font-normal m-0 mt-1 mb-3" style={{ color: "var(--ink-900)" }}>Key-value specs table.</h2>
-                  </div>
-                  <button type="button" onClick={addSpec} className="dbtn dBtn-ghost dBtn-sm">
+              <Section
+                title="Specifications"
+                sub="Short facts like material or size."
+                action={
+                  <button type="button" onClick={addSpec} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
                     <Icon name="plus" size={14} /> Add spec
                   </button>
-                </div>
+                }
+              >
                 {specs.length === 0 ? (
-                  <div className="text-center py-6 text-[13px] border-2 border-dashed rounded-[12px]" style={{ color: "var(--ink-400)", borderColor: "var(--ink-200)" }}>
+                  <p className="m-0 rounded-[16px] border-2 border-dashed border-app-line px-4 py-6 text-center text-[14px] text-app-ink-soft">
                     No specifications yet. Add specs like material, dimensions, or care instructions.
-                  </div>
+                  </p>
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    {specs.map((spec) => (
-                      <div key={spec.id} className="flex gap-2 items-center">
-                        <input value={spec.name} onChange={(e) => updateSpec(spec.id, "name", e.target.value)} className="inp text-[13px]" placeholder="e.g. Material" style={{ flex: 1 }} />
-                        <input value={spec.value} onChange={(e) => updateSpec(spec.id, "value", e.target.value)} className="inp text-[13px]" placeholder="e.g. 100% Cotton" style={{ flex: 1 }} />
-                        <button type="button" onClick={() => removeSpec(spec.id)} className="text-red-500 hover:text-red-700 text-[18px] leading-none">✕</button>
+                  <div className="grid gap-2">
+                    {specs.map((spec, index) => (
+                      <div key={spec.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                        <input value={spec.name} onChange={(e) => updateSpec(spec.id, "name", e.target.value)} className={cx(field.input, "flex-1 basis-[40%]")} placeholder="e.g. Material" aria-label={`Specification ${index + 1} name`} />
+                        <input value={spec.value} onChange={(e) => updateSpec(spec.id, "value", e.target.value)} className={cx(field.input, "flex-1 basis-[40%]")} placeholder="e.g. 100% Cotton" aria-label={`Specification ${index + 1} value`} />
+                        <button type="button" onClick={() => removeSpec(spec.id)} aria-label={`Remove specification ${index + 1}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-app-danger hover:bg-app-danger-tint">
+                          <Icon name="trash" size={16} />
+                        </button>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="flex items-center justify-between mb-1">
-                  <div>
-                    <div className="font-semibold text-[13px] uppercase tracking-[0.04em]" style={{ color: "var(--teal-700)" }}>FAQs</div>
-                    <h2 className="font-display text-[22px] font-normal m-0 mt-1 mb-3" style={{ color: "var(--ink-900)" }}>Frequently asked questions.</h2>
-                  </div>
-                  <button type="button" onClick={addFaq} className="dbtn dBtn-ghost dBtn-sm">
-                    <Icon name="plus" size={14} /> Add FAQ
+              <Section
+                title="Questions buyers ask"
+                sub="Answer them once here."
+                action={
+                  <button type="button" onClick={addFaq} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
+                    <Icon name="plus" size={14} /> Add question
                   </button>
-                </div>
+                }
+              >
                 {faqs.length === 0 ? (
-                  <div className="text-center py-6 text-[13px] border-2 border-dashed rounded-[12px]" style={{ color: "var(--ink-400)", borderColor: "var(--ink-200)" }}>
-                    No FAQs yet. Add common questions buyers ask about this product.
-                  </div>
+                  <p className="m-0 rounded-[16px] border-2 border-dashed border-app-line px-4 py-6 text-center text-[14px] text-app-ink-soft">
+                    No questions yet. Add common questions buyers ask about this product.
+                  </p>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                    {faqs.map((faq) => (
-                      <div key={faq.id} className="rounded-[10px] p-3" style={{ border: "1px solid var(--ink-100)", background: "var(--ink-50)" }}>
-                        <div className="flex gap-2 mb-2">
-                          <input value={faq.question} onChange={(e) => updateFaq(faq.id, "question", e.target.value)} className="inp text-[13px] flex-1" placeholder="Question" />
-                          <button type="button" onClick={() => removeFaq(faq.id)} className="text-red-500 hover:text-red-700 text-[18px] leading-none shrink-0">✕</button>
+                  <div className="grid gap-3">
+                    {faqs.map((faq, index) => (
+                      <div key={faq.id} className="grid gap-2 rounded-[16px] bg-app-canvas p-3">
+                        <div className="flex gap-2">
+                          <input value={faq.question} onChange={(e) => updateFaq(faq.id, "question", e.target.value)} className={cx(field.input, "flex-1")} placeholder="Question" aria-label={`Question ${index + 1}`} />
+                          <button type="button" onClick={() => removeFaq(faq.id)} aria-label={`Remove question ${index + 1}`} className="grid h-12 w-11 shrink-0 place-items-center rounded-full text-app-danger hover:bg-app-danger-tint">
+                            <Icon name="trash" size={16} />
+                          </button>
                         </div>
-                        <textarea value={faq.answer} onChange={(e) => updateFaq(faq.id, "answer", e.target.value)} className="ta text-[13px]" rows={2} placeholder="Answer" />
+                        <textarea value={faq.answer} onChange={(e) => updateFaq(faq.id, "answer", e.target.value)} className={field.textarea} rows={2} placeholder="Answer" aria-label={`Answer ${index + 1}`} />
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-4" style={{ color: "var(--teal-700)" }}>Additional Sections</div>
-                <div className="flex flex-col gap-4">
-                  <label className="field">
-                    <span className="label">Care Instructions</span>
-                    <textarea value={careInstructions} onChange={(e) => setCareInstructions(e.target.value)} className="ta" rows={3} placeholder="Washing, storage, and care instructions..." />
-                  </label>
-                  <label className="field">
-                    <span className="label">Shipping Info</span>
-                    <textarea value={shippingInfo} onChange={(e) => setShippingInfo(e.target.value)} className="ta" rows={3} placeholder="Processing times, delivery estimates, shipping carriers..." />
-                  </label>
-                  <label className="field">
-                    <span className="label">Return Policy</span>
-                    <textarea value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} className="ta" rows={3} placeholder="Return window, conditions, refund process..." />
-                  </label>
-                  <label className="field">
-                    <span className="label">Warranty</span>
-                    <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} className="ta" rows={3} placeholder="Warranty period, coverage, exclusions..." />
-                  </label>
-                  <label className="field">
-                    <span className="label">Support Info</span>
-                    <textarea value={supportInfo} onChange={(e) => setSupportInfo(e.target.value)} className="ta" rows={3} placeholder="Contact details, support hours, response times..." />
-                  </label>
+              <Section title="More details" sub="Shown on the product page when filled in.">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <Field label="Care instructions">
+                    <textarea value={careInstructions} onChange={(e) => setCareInstructions(e.target.value)} className={field.textarea} rows={3} placeholder="Washing, storage, and care instructions..." />
+                  </Field>
+                  <Field label="Shipping info">
+                    <textarea value={shippingInfo} onChange={(e) => setShippingInfo(e.target.value)} className={field.textarea} rows={3} placeholder="Processing times, delivery estimates, shipping carriers..." />
+                  </Field>
+                  <Field label="Return policy">
+                    <textarea value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} className={field.textarea} rows={3} placeholder="Return window, conditions, refund process..." />
+                  </Field>
+                  <Field label="Warranty">
+                    <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} className={field.textarea} rows={3} placeholder="Warranty period, coverage, exclusions..." />
+                  </Field>
+                  <Field label="Support info">
+                    <textarea value={supportInfo} onChange={(e) => setSupportInfo(e.target.value)} className={field.textarea} rows={3} placeholder="Contact details, support hours, response times..." />
+                  </Field>
                 </div>
-              </div>
-            </div>
+              </Section>
+            </>
           )}
 
           {/* Tab 5 - Product Page */}
           {activeTab === 4 && (
-            <div className="flex flex-col gap-5">
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Page Design</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Choose a layout variant for your product page.</h2>
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+            <>
+              <Section title="Page layout" sub="Choose a layout for this product's page.">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7" role="radiogroup" aria-label="Page layout">
                   {PAGE_VARIANTS.map((v) => (
                     <button
                       key={v.value}
                       type="button"
+                      role="radio"
+                      aria-checked={pageVariant === v.value}
                       onClick={() => setPageVariant(v.value)}
-                      className="text-center rounded-[10px] p-3 text-[13px] font-semibold cursor-pointer"
-                      style={{
-                        border: pageVariant === v.value ? "2px solid var(--teal-600)" : "1px solid var(--ink-150)",
-                        background: pageVariant === v.value ? "var(--teal-50)" : "var(--paper)",
-                        color: pageVariant === v.value ? "var(--teal-800)" : "var(--ink-700)",
-                        transition: "all 0.12s",
-                      }}
+                      className={cx(
+                        "min-h-[48px] rounded-[14px] border px-3 py-3 text-center text-[14px] font-bold transition",
+                        pageVariant === v.value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong",
+                      )}
                     >
                       {v.label}
                     </button>
                   ))}
                 </div>
-              </div>
+              </Section>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="font-semibold text-[13px] uppercase tracking-[0.04em] mb-1" style={{ color: "var(--teal-700)" }}>Page Modules</div>
-                <h2 className="font-display text-[22px] font-normal m-0 mb-4" style={{ color: "var(--ink-900)" }}>Enable or disable sections on the product page.</h2>
-                <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
-                  {ALL_MODULES.map((mod) => (
-                    <label key={mod.value} className="flex items-center gap-2 cursor-pointer text-[13px] p-2 rounded-[8px]" style={{ color: "var(--ink-800)", border: "1px solid var(--ink-100)", background: enabledModules.includes(mod.value) ? "var(--teal-50)" : "var(--paper)" }}>
-                      <input
-                        type="checkbox"
-                        checked={enabledModules.includes(mod.value)}
-                        onChange={() => toggleModule(mod.value)}
-                        className="w-4 h-4 rounded"
-                        style={{ accentColor: "var(--teal-700)" }}
-                      />
-                      {mod.label}
-                    </label>
-                  ))}
+              <Section title="Page sections" sub="Turn parts of the product page on or off.">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                  {ALL_MODULES.map((mod) => {
+                    const on = enabledModules.includes(mod.value);
+                    return (
+                      <label key={mod.value} className={cx("flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-[14px] border px-3 text-[14px]", on ? "border-app-ink bg-app-canvas font-bold" : "border-app-line bg-white")}>
+                        <input type="checkbox" checked={on} onChange={() => toggleModule(mod.value)} className={field.checkbox} />
+                        {mod.label}
+                      </label>
+                    );
+                  })}
                 </div>
-              </div>
-            </div>
+              </Section>
+            </>
           )}
+        </div>
 
-          <div className="flex items-center justify-end gap-3 mt-6 pt-5" style={{ borderTop: "1px solid var(--ink-100)" }}>
-            <Link href="/products" className="dbtn dBtn-ghost" style={{ textDecoration: "none" }}>
-              Cancel
-            </Link>
-            <button type="submit" className="dbtn dBtn-mint" disabled={saving} style={{ fontFamily: "inherit", cursor: "pointer", border: "none" }}>
-              {saving ? "Saving..." : isEdit ? "Update product" : "Save product"}
-            </button>
-          </div>
-        </form>
+        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-[22px] border border-app-line bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(22,20,31,0.08)] backdrop-blur">
+          <Link href="/products" className="inline-flex min-h-[48px] items-center rounded-full px-5 text-[15px] font-bold text-app-ink no-underline hover:bg-app-canvas">
+            Cancel
+          </Link>
+          <PillButton type="submit" tone="accent" size="md" busy={saving}>
+            {isEdit ? "Update product" : "Save product"}
+          </PillButton>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Section({ title, sub, action, children }: { title: string; sub?: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="grid gap-4 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="m-0 text-[17px] font-extrabold">{title}</h2>
+          {sub && <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">{sub}</p>}
+        </div>
+        {action}
       </div>
-    </AppFrame>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block min-w-0">
+      <span className={field.label}>{label}</span>
+      {children}
+      {hint && <span className={cx(field.hint, "block")}>{hint}</span>}
+    </label>
   );
 }

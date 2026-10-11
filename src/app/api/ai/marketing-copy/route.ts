@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { getAnthropicClient, CHIP_MODEL } from "@/lib/ai/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, firstJsonObject } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 import { MARKETING_PROMPTS, type MarketingCopyType } from "@/lib/ai/marketing-prompts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export const POST = withSeller(async (req: NextRequest) => {
+const AI_OFF_NOTICE = "AI isn't switched on, so these are starter templates, not copy written for your store. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to turn on Rex's writing.";
+
+export const POST = withSeller(async (req: NextRequest, { user }) => {
   const body = await req.json().catch(() => null);
   if (!body?.type) {
     return NextResponse.json({ error: { code: "BAD_REQUEST", message: "Copy type is required" } }, { status: 400 });
@@ -18,38 +22,37 @@ export const POST = withSeller(async (req: NextRequest) => {
     return NextResponse.json({ error: { code: "BAD_REQUEST", message: `Unknown copy type: ${body.type}` } }, { status: 400 });
   }
 
-  const storeName = body.storeName ?? "your store";
-  const userPrompt = Object.entries(body.fields ?? {})
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${k}: ${v}`)
+  // Canned templates only when no AI key is configured at all, and labelled as such.
+  if (!aiConfigured()) {
+    return NextResponse.json({ data: generateFallback(body.type), demo: true, aiOff: true, notice: AI_OFF_NOTICE });
+  }
+
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
+
+  const storeName = String(body.storeName ?? "your store").slice(0, 120);
+  const userPrompt = Object.entries((body.fields ?? {}) as Record<string, unknown>)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${k}: ${String(v).slice(0, 2000)}`)
     .join("\n");
 
-  const fullPrompt = `${promptConfig.systemPrompt}
-
-Store: ${storeName}
+  const prompt = `Store: ${storeName}
 ${userPrompt ? `Context:\n${userPrompt}\n` : ""}
 Generate the requested marketing copy now. Return ONLY valid JSON.`;
 
-  const client = getAnthropicClient();
-  if (!client) {
-    return NextResponse.json({ data: generateFallback(body.type), demo: true });
-  }
-
   try {
-    const response = await client.messages.create({
-      model: CHIP_MODEL,
-      max_tokens: 2000,
-      messages: [{ role: "user", content: fullPrompt }],
-    });
-
-    const text = response.content[0]?.type === "text" ? response.content[0].text : "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return NextResponse.json({ data: JSON.parse(jsonMatch[0]) });
+    const result = await aiText({ system: promptConfig.systemPrompt, prompt, maxTokens: 8000 });
+    if (!result) {
+      return NextResponse.json({ error: { code: "AI_FAILED", message: "Rex couldn't reach the AI right now. Try again in a moment." } }, { status: 502 });
     }
-    return NextResponse.json({ data: generateFallback(body.type) });
-  } catch {
-    return NextResponse.json({ data: generateFallback(body.type), demo: true });
+    const data = firstJsonObject(result.text);
+    if (!data) {
+      return NextResponse.json({ error: { code: "AI_FORMAT", message: "Rex's copy came back in a format that couldn't be read. Try again." } }, { status: 502 });
+    }
+    return NextResponse.json({ data, provider: result.provider });
+  } catch (error) {
+    console.error("[ai/marketing-copy] failed", error);
+    return NextResponse.json({ error: { code: "AI_FAILED", message: "Rex couldn't write that right now. Try again." } }, { status: 500 });
   }
 });
 

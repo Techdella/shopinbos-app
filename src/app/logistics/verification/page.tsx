@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Icon } from "@/components/ui";
+import { Card, CardHead, PageHead } from "@/components/app-kit";
+import { Notice, PillButton, Spinner } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
 import { VerificationProgress } from "@/components/verification/VerificationProgress";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
@@ -116,13 +118,17 @@ export default function LogisticsVerificationPage() {
 
   if (error) {
     return (
-      <div style={{ display: "grid", placeItems: "center", height: "100vh", color: "var(--danger)" }}>{error}</div>
+      <div className="grid min-h-dvh place-items-center bg-app-canvas p-6 font-app">
+        <div className="w-full max-w-[420px]"><Notice tone="error">{error}</Notice></div>
+      </div>
     );
   }
 
   if (!partner || !user) {
     return (
-      <div style={{ display: "grid", placeItems: "center", height: "100vh", color: "var(--ink-400)" }}>Loading...</div>
+      <div className="grid min-h-dvh place-items-center bg-app-canvas font-app text-app-ink-soft" role="status">
+        <span className="flex items-center gap-2 text-[14.5px]"><Spinner /> Loading verification</span>
+      </div>
     );
   }
 
@@ -134,7 +140,7 @@ export default function LogisticsVerificationPage() {
     { label: "Business profile", done: Boolean(partner.companyName && partner.city) },
     { label: "Documents uploaded", done: documents.some((d) => d.status === "uploaded" || d.status === "submitted") },
     { label: "Verification submitted", done: isPending || isVerified },
-    { label: "ShopinBos review", done: isPending || isVerified },
+    { label: "Shopinbos review", done: isPending || isVerified },
     { label: "Verification approved", done: isVerified },
   ];
 
@@ -145,75 +151,56 @@ export default function LogisticsVerificationPage() {
       : "bronze"
     : "none";
 
+  const failed = /fail|error/i.test(message);
+
   return (
     <AppFrame
-        role="logistics_partner"
-        storeName={partner.displayName}
-      storeSlug={`${partner.city ?? "Lagos"} · Fleet`}
+      role="logistics_partner"
+      storeName={partner.displayName}
+      storeSlug={partner.city ? `${partner.city} · Partner` : "Delivery partner"}
       storeInitial={partner.displayName.charAt(0).toUpperCase()}
+      storeLogoUrl={partner.logoUrl ?? null}
       userName={user.name}
       userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
       verificationStatus={partner.verificationStatus}
     >
-        <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-          <PageHead
-            title="Verification"
-            sub={`${partner.displayName} — ${isVerified ? "Verified" : partner.verificationStatus}`}
-            actions={
-              isVerified && trustData ? (
-                <VerificationBadge tier={badgeTier} trustScore={trustData.total} verificationStatus={partner.verificationStatus} size="md" />
-              ) : undefined
-            }
-          />
+      <div className="w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10">
+        <PageHead
+          title="Verification"
+          sub="Shopinbos checks your business papers before sellers can book you. It usually takes a day or two."
+          actions={
+            isVerified && trustData ? (
+              <VerificationBadge tier={badgeTier} trustScore={trustData.total} verificationStatus={partner.verificationStatus} size="md" />
+            ) : undefined
+          }
+        />
 
-          {message && (
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: message.includes("fail") || message.includes("error") ? "var(--danger-bg)" : "var(--teal-50)", border: `1px solid ${message.includes("fail") || message.includes("error") ? "var(--danger)" : "var(--teal-200)"}`, color: message.includes("fail") || message.includes("error") ? "var(--danger)" : "var(--teal-800)", fontSize: 13 }}>
-              {message}
-            </div>
-          )}
+        {message && <div className="mb-4"><Notice tone={failed ? "error" : "success"}>{message}</Notice></div>}
 
-          {isVerified ? (
-            <div className="card" style={{ padding: 24, background: "linear-gradient(135deg, #d1fae5, #b9e9d4)", border: "none" }}>
-              <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-                <div style={{ width: 62, height: 62, borderRadius: 18, background: "var(--success)", color: "white", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                  <Icon name="check" size={32} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "var(--font-accent)", fontSize: 26, fontWeight: 400, lineHeight: 1.1, color: "var(--success)" }}>
-                    Verified logistics partner
-                  </div>
-                  <div style={{ fontSize: 13.5, color: "var(--ink-700)", marginTop: 5 }}>
-                    Approved by ShopinBos — Trust score <strong>{trustData?.total ?? partner.reliabilityScore}/100</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="card" style={{ padding: 24, background: "linear-gradient(135deg, var(--amber-50), #fdecd4)", border: "1px solid var(--amber-200)" }}>
-              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                <div style={{ width: 50, height: 50, borderRadius: 14, background: "var(--amber-100)", color: "var(--amber-700)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                  <Icon name="clock" size={24} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-accent)", fontSize: 22, fontWeight: 400, color: "var(--amber-700)" }}>
-                    {isPending ? "Under review" : "Verification pending"}
-                  </div>
-                  <div style={{ fontSize: 13, color: "var(--ink-600)", marginTop: 3 }}>
-                    {isPending
-                      ? "Your documents are being reviewed by the ShopinBos team."
-                      : "Upload your documents below to get verified."
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+        <Card className={`mb-5 flex flex-wrap items-center gap-4 border-0 p-5 ${isVerified ? "bg-app-success-tint" : "bg-[#FDF0D5]"}`}>
+          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-white ${isVerified ? "bg-app-success" : "bg-[#F2A93B]"}`}>
+            <Icon name={isVerified ? "check" : "clock"} size={22} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="m-0 text-[18px] font-extrabold">
+              {isVerified ? "You're verified" : isPending ? "We're checking your papers" : "Not verified yet"}
+            </h2>
+            <p className="m-0 mt-0.5 text-[14px] text-app-ink-soft">
+              {isVerified
+                ? `Trust score ${trustData?.total ?? partner.reliabilityScore} out of 100.`
+                : isPending
+                  ? "The Shopinbos team is reviewing your documents. We'll let you know when it's done."
+                  : "Upload the documents below, then send them for review."}
+            </p>
+          </div>
+        </Card>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18 }}>
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Documents required</div>
+        <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
+          <Card className="min-w-0 p-5">
+            <CardHead title="Your documents" />
+            <div className="mt-4">
               <VerificationDocUploader
                 role="logistics_partner"
                 docs={documents}
@@ -222,33 +209,20 @@ export default function LogisticsVerificationPage() {
                 onDelete={handleDelete}
                 readOnly={isVerified}
               />
-              {!isVerified && !isPending && (
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  style={{
-                    marginTop: 16,
-                    padding: "10px 20px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: "var(--teal-600)",
-                    color: "white",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: submitting ? "wait" : "pointer",
-                    width: "100%",
-                  }}
-                >
-                  {submitting ? "Submitting..." : "Submit for admin review"}
-                </button>
-              )}
             </div>
+            {!isVerified && !isPending && (
+              <PillButton size="md" className="mt-4 w-full" onClick={handleSubmit} busy={submitting}>
+                Send for review
+              </PillButton>
+            )}
+          </Card>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <VerificationProgress steps={progressSteps} />
-              {trustData && (
-                <div className="card" style={{ padding: 18 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Trust score breakdown</div>
+          <div className="grid min-w-0 content-start gap-5">
+            <VerificationProgress steps={progressSteps} />
+            {trustData && (
+              <Card className="p-5">
+                <CardHead title="Trust score" />
+                <div className="mt-4">
                   <TrustScoreBreakdown
                     items={trustData.items}
                     total={trustData.total}
@@ -257,10 +231,11 @@ export default function LogisticsVerificationPage() {
                     nextLevelAt={trustData.nextLevelAt}
                   />
                 </div>
-              )}
-            </div>
+              </Card>
+            )}
           </div>
         </div>
-      </AppFrame>
+      </div>
+    </AppFrame>
   );
 }

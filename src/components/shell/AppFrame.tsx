@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { GlobalTopBar } from "./GlobalTopBar";
 import { RexDrawerProvider } from "@/components/rex/RexDrawerContext";
-import { FirstRunWalkthrough } from "./FirstRunWalkthrough";
+import { GuidedTour } from "./GuidedTour";
 import { AnnouncementBanner } from "@/components/verification/AnnouncementBanner";
 import type { Role } from "@/lib/nav";
 
@@ -44,7 +44,7 @@ export function AppFrame({
   children,
 }: AppFrameProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-app-canvas">
+    <div className="app-scope flex h-dvh w-full overflow-hidden bg-app-canvas font-app text-app-ink">
       <RexDrawerProvider chipMessage={_chipMessage}>
         <Sidebar
           role={role}
@@ -54,8 +54,8 @@ export function AppFrame({
           storeLogoUrl={storeLogoUrl}
           userName={userName}
         />
-        {/* Sellers get the Rex onboarding and the "Finish setting up" checklist instead of the demo tour. */}
-        {role !== "seller" && <FirstRunWalkthrough role={role} storeName={storeName} />}
+        {/* Short walkthrough on the first visit to the portal's home page (replayable from Customise your menu). */}
+        <GuidedTour role={role} />
 
         <main className="flex-1 flex flex-col overflow-hidden min-w-0">
           <GlobalTopBar

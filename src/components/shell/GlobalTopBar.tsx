@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Mascot } from "@/components/app-ui";
-import { NAV_BY_ROLE, type Role } from "@/lib/nav";
+import { navLinks, type Role } from "@/lib/nav";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { SearchModal } from "./SearchModal";
 import { ConversationsModal } from "./ConversationsModal";
@@ -30,11 +30,9 @@ function usePageTitle(role: Role) {
   const pathname = usePathname();
   return useMemo(() => {
     let best: { label: string; length: number } | null = null;
-    for (const group of NAV_BY_ROLE[role]) {
-      for (const item of group.items) {
-        const matches = pathname === item.href || pathname.startsWith(`${item.href}/`);
-        if (matches && (!best || item.href.length > best.length)) best = { label: item.label, length: item.href.length };
-      }
+    for (const link of navLinks(role)) {
+      const matches = pathname === link.href || pathname.startsWith(`${link.href}/`);
+      if (matches && (!best || link.href.length > best.length)) best = { label: link.label, length: link.href.length };
     }
     return best?.label ?? "";
   }, [pathname, role]);
@@ -90,6 +88,7 @@ export function GlobalTopBar({
         <div className="flex flex-1 justify-center">
           <button
             type="button"
+            data-tour="search"
             onClick={() => setSearchOpen(true)}
             className="hidden h-[42px] w-full max-w-[460px] items-center gap-2.5 rounded-full bg-app-canvas px-4 text-left text-[14px] text-app-ink-soft md:flex"
           >
@@ -102,7 +101,7 @@ export function GlobalTopBar({
           <Icon name="search" size={17} />
         </button>
         {role === "seller" && (
-          <Link href="/peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
+          <Link href="/peggy" data-tour="ask-peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
             <Mascot name="peggy" className="h-8 w-8" alt="" /> Ask Peggy
           </Link>
         )}
@@ -110,7 +109,7 @@ export function GlobalTopBar({
           <Icon name="chat" size={17} />
           {(counts?.inbox ?? 0) > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-app-forest ring-2 ring-white" />}
         </button>
-        <button type="button" aria-label={unread ? `Notifications, ${unread} new` : "Notifications"} onClick={() => setDrawerOpen(true)} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
+        <button type="button" data-tour="notifications" aria-label={unread ? `Notifications, ${unread} new` : "Notifications"} onClick={() => setDrawerOpen(true)} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
           <Icon name="bell" size={17} />
           {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-app-accent ring-2 ring-white" />}
         </button>

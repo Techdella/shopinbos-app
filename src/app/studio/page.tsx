@@ -1,42 +1,43 @@
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon, MascotAvatar } from "@/components/ui";
-import Link from "next/link";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Pill, PillLink } from "@/components/app-kit";
+import { Mascot } from "@/components/app-ui";
+import { Icon, type IconName } from "@/components/ui/Icon";
 
 export const dynamic = "force-dynamic";
 
-const tools = [
+const tools: Array<{ icon: IconName; title: string; description: string; features: string[]; cta: string; href: string }> = [
   {
-    icon: "image" as const,
-    title: "Logo Studio",
-    description: "Generate a custom logo for your store using AI. Describe your brand style and get multiple options.",
-    features: ["AI-generated logos", "Brand palette matching", "Multiple styles"],
-    cta: "Create Logo",
+    icon: "palette",
+    title: "Logo",
+    description: "Describe your brand and Rex draws logo ideas for your store.",
+    features: ["AI logos", "Matches your colours", "Three styles"],
+    cta: "Make a logo",
     href: "/studio/logo",
   },
   {
-    icon: "document" as const,
-    title: "Page Builder",
-    description: "Create and customize store pages with drag-and-drop. Pick from templates or start blank.",
-    features: ["Drag-and-drop sections", "Template library", "Mobile responsive"],
-    cta: "Build Pages",
+    icon: "document",
+    title: "Pages",
+    description: "Build and change store pages by dragging sections. Start from a template or a blank page.",
+    features: ["Drag and drop", "Templates", "Works on phones"],
+    cta: "Build pages",
     href: "/builder/editor",
   },
   {
-    icon: "image" as const,
-    title: "Image Generator",
-    description: "Generate product photos, banners, and brand visuals with DALL-E AI. Describe what you need.",
-    features: ["Product photography", "Banner creation", "Brand-consistent style"],
-    cta: "Generate Images",
+    icon: "image",
+    title: "Images",
+    description: "Product photos, banners and brand pictures. Describe what you need and Rex makes it.",
+    features: ["Product photos", "Banners", "On-brand style"],
+    cta: "Make images",
     href: "/studio/images",
   },
   {
-    icon: "palette" as const,
-    title: "Store Editor",
-    description: "Full visual store editor with live preview. Edit colors, layout, content and publish instantly.",
-    features: ["Live preview", "Theme customization", "One-click publish"],
-    cta: "Open Editor",
+    icon: "edit",
+    title: "Store editor",
+    description: "The full visual editor with a live preview. Change colours, layout and words, then publish.",
+    features: ["Live preview", "Your theme", "Publish in one tap"],
+    cta: "Open editor",
     href: "/builder/editor",
   },
 ];
@@ -46,65 +47,34 @@ export default async function StudioPage() {
   const workspace = await getSellerWorkspace(user.id);
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={workspace?.store?.name}
-      storeSlug={workspace?.store?.slug ? `${workspace.store.slug}.shopinbos.shop` : undefined}
-      storeInitial={workspace?.store?.name?.charAt(0)}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
-    >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead title="Build with Rex" sub="AI-powered store creation studio" />
-
-        <div className="card" style={{
-          padding: 18, display: "flex", gap: 16, alignItems: "flex-start",
-          background: "linear-gradient(160deg, var(--teal-50), var(--teal-100))",
-          border: "1px solid var(--teal-200)",
-        }}>
-          <MascotAvatar role="supplier" size={56} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--teal-800)", marginBottom: 2, fontFamily: "var(--font-display)" }}>
-              Hey, I&apos;m Rex
-            </div>
-            <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink-600)" }}>
-              I can help you build your store from scratch — logos, pages, images, and full store design. Pick a tool below and let&apos;s get started!
-            </div>
+    <SellerPage user={user} store={storeSummary(workspace?.store ?? null)} title="Rex Studio" sub="Build and dress your store with Rex.">
+      <div className="grid gap-5">
+        <section className="flex flex-wrap items-center gap-4 rounded-[22px] bg-app-peach p-5 sm:p-6">
+          <Mascot name="rex" className="h-16 w-16 shrink-0" />
+          <div className="min-w-0 flex-1 basis-[240px]">
+            <h2 className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Hey, I&apos;m Rex</h2>
+            <p className="mb-0 mt-1 text-[14.5px] leading-[1.55]">I help you build your store: logos, pages, pictures and the whole design. Pick a tool to start.</p>
           </div>
-        </div>
+        </section>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+        <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 2xl:grid-cols-4">
           {tools.map((tool) => (
-            <div key={tool.title} className="card" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--teal-100)", color: "var(--teal-700)", display: "grid", placeItems: "center" }}>
-                  <Icon name={tool.icon} size={18} />
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-900)", fontFamily: "var(--font-display)" }}>{tool.title}</div>
+            <li key={tool.title} className="flex min-w-0 flex-col gap-3 rounded-[22px] border border-app-line bg-white p-5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-canvas"><Icon name={tool.icon} size={20} /></span>
+                <h2 className="m-0 text-[17px] font-extrabold">{tool.title}</h2>
               </div>
-              <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--ink-600)" }}>{tool.description}</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {tool.features.map((f) => <Badge key={f} variant="mint">{f}</Badge>)}
+              <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">{tool.description}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {tool.features.map((f) => <Pill key={f}>{f}</Pill>)}
               </div>
-              <div style={{ marginTop: "auto", paddingTop: 4 }}>
-                <Link href={tool.href} className="dbtn dBtn-mint" style={{ textDecoration: "none" }}>
-                  {tool.cta} <Icon name="arrow" size={14} />
-                </Link>
+              <div className="mt-auto pt-2">
+                <PillLink href={tool.href} tone="ink" size="sm" className="min-h-[40px]">{tool.cta} <Icon name="arrow" size={14} /></PillLink>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
-
-        <div className="card" style={{ padding: "32px 24px", textAlign: "center" }}>
-          <MascotAvatar role="supplier" size={48} variant={1} />
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-900)", marginTop: 10 }}>No builds yet</div>
-          <div style={{ fontSize: 13, color: "var(--ink-500)", marginTop: 4 }}>
-            You haven&apos;t built anything yet. Pick a tool above to get started!
-          </div>
-        </div>
+        </ul>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

@@ -319,12 +319,15 @@ export const ShippingRateSchema = z.object({
   maxWeight: z.number().min(0).optional(),
   price: z.number().min(0),
   estimatedDays: z.string().max(40).optional(),
+  // Marks rates written by onboarding so re-running it replaces its own zones only.
+  source: z.string().max(40).optional(),
 });
 
 export const ShippingZoneCreateSchema = z.object({
   name: z.string().min(1).max(120),
   type: ShippingTypeSchema.default("flat_rate"),
-  regions: z.array(z.string()).min(1),
+  // Empty regions = catch-all zone that matches every address (as onboarding's "other states" zone does).
+  regions: z.array(z.string().trim().min(1).max(80)).max(200).default([]),
   rates: z.array(ShippingRateSchema).default([]),
   sortOrder: z.number().int().default(0),
   active: z.boolean().default(true),

@@ -387,3 +387,110 @@ body {
     radial-gradient(80% 60% at 60% 40%, #DDF4EE 0%, rgba(221, 244, 238, 0) 70%),
     #F6F5F9;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   2026 app look (the "Seller app · web" prototype) for every signed-in page.
+   AppFrame adds .app-scope. Older pages were built on the teal/navy tokens and
+   the .card/.dbtn/.tbl classes below; inside the app they're remapped here so the
+   whole app reads as one system. Storefronts and marketing pages are untouched.
+   ─────────────────────────────────────────────────────────────────────────── */
+.app-scope {
+  /* Legacy scale → prototype palette (ink, orange accent, lilac lines, canvas). */
+  --teal-900: #16141F; --teal-800: #16141F; --teal-700: #16141F; --teal-600: #2B2836;
+  --teal-500: #FF6A2B; --teal-400: #FF8F5E; --teal-300: #FFC3A6; --teal-200: #FFDCCB;
+  --teal-100: #FFEDE4; --teal-50: #FFF6F1;
+  --ink-900: #16141F; --ink-800: #24212F; --ink-700: #3A3746; --ink-600: #55515F;
+  --ink-500: #6B6779; --ink-400: #9C98A8; --ink-300: #C9C6D3; --ink-200: #DDDAE5;
+  --ink-150: #E7E5EE; --ink-100: #ECEAF2; --ink-75: #F2F1F6; --ink-50: #F8F7FB;
+  --paper: #FFFFFF; --canvas: #F6F5F9;
+  --success: #16794A; --success-bg: #E2F5EA; --warning: #8A5A00; --warning-bg: #FDF0D5;
+  --danger: #B42318; --danger-bg: #FDECEA; --info: #3D4FB8; --info-bg: #E8EAFB;
+  --amber-500: #8A5A00; --amber-100: #FDF0D5; --rose-500: #B42318; --rose-100: #FDECEA;
+  --berry-500: #8E3B76; --berry-100: #F6E4F0; --indigo-500: #3D4FB8; --indigo-100: #E8EAFB;
+  --lime-500: #4E6A12; --lime-100: #EDF5D9;
+  --bg: #FFFFFF; --bg-soft: #F8F7FB; --bg-card: #FFFFFF; --bg-tinted: #F2F1F6; --bg-dark: #16141F;
+  --ink: #16141F; --ink-2: #3A3746; --ink-3: #6B6779; --ink-4: #9C98A8;
+  --teal: #FF6A2B; --teal-soft: rgba(255,106,43,.12); --teal-deep: #B23E0A;
+  --line: #ECEAF2; --line-strong: #C9C6D3;
+  --surface: #FFFFFF; --surface-2: #F8F7FB; --surface-3: #F2F1F6; --border: #ECEAF2; --border-soft: rgba(22,20,31,.07);
+  --hover: #F6F5F9; --text: #16141F; --text-sec: #55515F; --muted: #6B6779; --faint: #9C98A8;
+  --mint: #FF6A2B; --mint-bright: #FF8F5E; --mint-deep: #B23E0A; --mint-bg: #FFEDE4; --mint-border: #FFC3A6;
+  --green: #16794A; --green-bg: #E2F5EA; --red: #B42318; --red-bg: #FDECEA; --amber: #8A5A00; --amber-bg: #FDF0D5;
+  --shd-xs: none; --shd-sm: 0 1px 2px rgba(22,20,31,.05); --shd-md: 0 6px 18px rgba(22,20,31,.07);
+  --shd-lg: 0 18px 40px -12px rgba(22,20,31,.18); --shd-pop: 0 24px 60px -20px rgba(22,20,31,.25);
+  --shadow-sm: 0 1px 2px rgba(22,20,31,.05); --shadow-md: 0 6px 18px rgba(22,20,31,.07); --shadow-lg: 0 18px 40px -12px rgba(22,20,31,.18);
+  --font-sans: var(--font-app); --font-serif: var(--font-app);
+  /* Tailwind theme colours older pages use (text-navy, bg-cream, text-teal-deep…). */
+  --color-navy: #16141F; --color-navy-soft: #24212F; --color-ink: #16141F; --color-charcoal: #16141F;
+  --color-mint: #FF6A2B; --color-mint-soft: #FF8F5E; --color-mint-pale: #FFEDE4;
+  --color-teal: #16794A; --color-teal-deep: #B23E0A;
+  --color-cream: #F6F5F9; --color-paper: #F6F5F9; --color-stone: #ECEAF2; --color-muted: #6B6779;
+  --color-coral: #B42318; --color-amber: #C27A00; --color-plum: #5B3F86;
+  --font-display: var(--font-app); --font-accent: var(--font-app);
+  font-family: var(--font-app);
+  color: #16141F;
+}
+
+/* Cards: white, lilac hairline, big radius, no shadow. */
+.app-scope .card { border-radius: 22px; border-color: #ECEAF2; padding: 20px; box-shadow: none; }
+.app-scope .card.tight { border-radius: 18px; padding: 16px; }
+.app-scope .card.card-hover:hover { border-color: #C9C6D3; box-shadow: none; }
+
+/* Buttons: pills. Primary is ink, soft is canvas, ghost is white with a hairline. */
+.app-scope .dbtn,
+.app-scope .btn { min-height: 40px; padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; gap: 8px; }
+.app-scope .dBtn-sm,
+.app-scope .btn-sm { min-height: 34px; padding: 6px 14px; font-size: 13px; border-radius: 999px; }
+.app-scope .btn-lg { min-height: 48px; padding: 12px 22px; font-size: 15px; border-radius: 999px; }
+.app-scope .dBtn-mint, .app-scope .btn-mint { background: #16141F; color: #fff; box-shadow: none; }
+.app-scope .dBtn-mint:hover, .app-scope .btn-mint:hover { background: #000; }
+.app-scope .dBtn-soft, .app-scope .btn-soft { background: #F2F1F6; color: #16141F; border-color: transparent; }
+.app-scope .dBtn-soft:hover, .app-scope .btn-soft:hover { background: #ECEAF2; }
+.app-scope .dBtn-ghost, .app-scope .btn-ghost { background: #fff; border-color: #ECEAF2; color: #16141F; }
+.app-scope .dBtn-ghost:hover, .app-scope .btn-ghost:hover { border-color: #C9C6D3; background: #fff; }
+.app-scope .btn:hover { transform: none; }
+.app-scope .btn-link { color: #B23E0A; font-size: 13.5px; font-weight: 800; }
+
+/* Tables: quiet header, roomy rows; scroll sideways inside their card on small screens. */
+.app-scope .tbl { font-size: 14px; }
+.app-scope .tbl thead th { padding: 12px 16px; font-size: 12.5px; font-weight: 700; letter-spacing: 0; text-transform: none; color: #6B6779; background: #fff; border-bottom-color: #ECEAF2; }
+.app-scope .tbl tbody td { padding: 14px 16px; border-bottom-color: #ECEAF2; }
+.app-scope .tbl tbody tr:hover td { background: #F8F7FB; }
+.app-scope .card:has(> .tbl), .app-scope .card:has(> div > .tbl) { overflow-x: auto; }
+@media (max-width: 760px) { .app-scope .tbl { min-width: 640px; } }
+
+/* Badges and chips: pills with tinted fills. */
+.app-scope .badge { padding: 3px 10px; font-size: 12px; font-weight: 700; }
+.app-scope .chip { padding: 7px 14px; font-size: 13px; font-weight: 700; background: #fff; color: #16141F; border-color: #ECEAF2; }
+.app-scope .chip.on { background: #16141F; color: #fff; border-color: #16141F; }
+
+/* Inputs */
+.app-scope .label { font-size: 13.5px; font-weight: 700; color: #16141F; margin-bottom: 8px; }
+.app-scope .inp, .app-scope .ta, .app-scope .sel { border-radius: 16px; border-color: #ECEAF2; box-shadow: none; font-size: 15px; }
+.app-scope .inp, .app-scope .sel { min-height: 48px; padding: 10px 16px; }
+.app-scope .ta { padding: 12px 16px; }
+.app-scope .inp:focus, .app-scope .ta:focus, .app-scope .sel:focus-within { border-color: #16141F; box-shadow: 0 0 0 3px rgba(22,20,31,.08); }
+.app-scope .help { font-size: 12.5px; color: #6B6779; }
+
+/* Page headers, stats and tabs */
+.app-scope .pg-hero { flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; }
+.app-scope .pg-hero h1 { font-family: var(--font-app); font-weight: 800; font-size: 30px; letter-spacing: -0.8px; line-height: 1.1; }
+.app-scope .pg-hero .pg-sub { color: #6B6779; font-size: 14.5px; margin-top: 4px; }
+.app-scope .pg-hero .pg-acts { flex-wrap: wrap; }
+.app-scope .stat { border-radius: 18px; border-color: #ECEAF2; padding: 14px 16px; box-shadow: none; }
+.app-scope .stat .stat-lbl { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #6B6779; }
+.app-scope .stat .stat-val { font-family: var(--font-app); font-weight: 800; font-size: 26px; letter-spacing: -0.5px; color: #16141F; }
+.app-scope .money { font-family: var(--font-app); font-weight: 700; }
+.app-scope .design-tabs { gap: 6px; border-bottom: 0; flex-wrap: wrap; }
+.app-scope .design-tabs .tab { border: 1px solid #ECEAF2; border-radius: 999px; margin: 0; padding: 8px 16px; background: #fff; color: #16141F; font-weight: 700; font-size: 13.5px; }
+.app-scope .design-tabs .tab.on { background: #16141F; color: #fff; border-color: #16141F; }
+.app-scope .page-stack { padding: 24px clamp(16px, 2.4vw, 40px) 40px; }
+.app-scope .hr { background: #ECEAF2; }
+
+/* Small screens: page padding, headers that wrap, nothing wider than the screen. */
+@media (max-width: 640px) {
+  .app-scope .page-stack { padding: 16px; }
+  .app-scope .pg-hero h1 { font-size: 26px; }
+  .app-scope .card { padding: 16px; border-radius: 18px; }
+}
+.app-scope img, .app-scope video, .app-scope canvas { max-width: 100%; }

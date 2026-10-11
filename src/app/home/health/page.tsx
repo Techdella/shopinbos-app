@@ -1,207 +1,136 @@
-"use client";
+import type { Metadata } from "next";
+import { requireRole } from "@/lib/server-auth";
+import { db } from "@/lib/db/client";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Card, CardHead, EmptyState, Pill, PillLink, SplitLayout, type Tone } from "@/components/app-kit";
+import { ShareBar, formatDate } from "@/components/growth/kit";
+import { RecalculateButton } from "./RecalculateButton";
 
-import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Icon, MascotAvatar } from "@/components/ui";
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Store health" };
 
-interface HealthFactor {
-  name: string;
-  score: number;
-  maxScore: number;
+const FACTORS: Array<{ key: string; label: string; weight: number; note?: string }> = [
+  { key: "inventory", label: "Products in stock", weight: 30 },
+  { key: "orders", label: "Orders", weight: 25 },
+  { key: "products", label: "Products listed", weight: 20 },
+  { key: "store", label: "Store setup", weight: 15, note: "Counted as 80 for every store for now" },
+  { key: "activity", label: "Activity this week", weight: 10 },
+];
+
+// The score API was written for the old /store routes; these are the matching seller pages.
+const ACTION_LINK: Record<string, { href: string; label: string }> = {
+  restock: { href: "/home/inventory", label: "Restock" },
+  add_products: { href: "/products/new", label: "Add products" },
+  drive_sales: { href: "/home/marketing", label: "Go to marketing" },
+  increase_activity: { href: "/home", label: "Open home" },
+};
+
+function band(score: number): { tone: Tone; label: string } {
+  if (score < 50) return { tone: "danger", label: "Needs attention" };
+  if (score < 75) return { tone: "warning", label: "Fair" };
+  return { tone: "success", label: "Good" };
 }
 
-interface HealthData {
-  score: number;
-  factors: HealthFactor[];
-  recommendations: Array<{ text: string; action?: string; actionUrl?: string }>;
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-function getScoreColor(score: number): string {
-  if (score < 50) return "var(--rose-500)";
-  if (score < 75) return "var(--amber-500)";
-  return "var(--success)";
-}
+export default async function StoreHealthPage() {
+  const user = await requireRole(["seller"], "/login");
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
+  const snapshot = store ? await db.storeHealthSnapshot.findFirst({ where: { storeId: store.id }, orderBy: { createdAt: "desc" } }) : null;
 
-function getScoreBg(score: number): string {
-  if (score < 50) return "var(--rose-50)";
-  if (score < 75) return "var(--amber-50)";
-  return "var(--success-bg)";
-}
-
-function getScoreLabel(score: number): string {
-  if (score < 50) return "Needs Attention";
-  if (score < 75) return "Fair";
-  return "Good";
-}
-
-export default function StoreHealthPage() {
-  const [data, setData] = useState<HealthData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [recalculating, setRecalculating] = useState(false);
-  const [notice, setNotice] = useState("");
-
-  const fetchHealth = async () => {
-    try {
-      const res = await fetch("/api/health-score");
-      const json = await res.json();
-      if (res.ok) setData(json);
-    } catch {
-      setNotice("Could not load health data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchHealth();
-  }, []);
-
-  const handleRecalculate = async () => {
-    setRecalculating(true);
-    try {
-      const res = await fetch("/api/health-score", { method: "POST" });
-      if (res.ok) {
-        await fetchHealth();
-        setNotice("Health score recalculated!");
-      }
-    } catch {
-      setNotice("Could not recalculate");
-    } finally {
-      setRecalculating(false);
-    }
-  };
-
-  const score = data?.score ?? 0;
-  const scoreColor = getScoreColor(score);
-  const scoreLabel = getScoreLabel(score);
-  const circumference = 2 * Math.PI * 60;
-  const offset = circumference - (score / 100) * circumference;
+  const factors = record(snapshot?.factors);
+  const recommendations = (Array.isArray(snapshot?.recommendations) ? snapshot.recommendations : [])
+    .map((item) => record(item))
+    .filter((item) => typeof item.label === "string");
+  const score = snapshot?.score ?? 0;
+  const status = band(score);
+  const ring = 2 * Math.PI * 60;
 
   return (
-    <AppFrame role="seller" storeName="Your Store">
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18, maxWidth: 900 }}>
-        <PageHead
-          title="Store Health"
-          sub="Your store performance score"
-          actions={
-            <button onClick={handleRecalculate} disabled={recalculating}
-              className="dbtn dBtn-mint"
-              style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-              <Icon name="refresh" size={14} /> {recalculating ? "Recalculating..." : "Recalculate"}
-            </button>
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Store health"
+      sub="A quick score from your stock, orders, products and activity."
+      actions={snapshot ? <RecalculateButton /> : undefined}
+    >
+      {!snapshot ? (
+        <EmptyState icon="pulse" title="No score yet" action={<RecalculateButton label="Work out my score" tone="ink" />}>
+          We look at your stock, orders, products and this week&apos;s activity and give your store a score out of 100.
+        </EmptyState>
+      ) : (
+        <SplitLayout
+          main={
+            <>
+              <Card className="flex flex-col items-center gap-6 p-6 sm:flex-row sm:p-8">
+                <div className="relative h-[150px] w-[150px] shrink-0">
+                  <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden>
+                    <circle cx="75" cy="75" r="60" fill="none" stroke="#ECEAF2" strokeWidth="12" />
+                    <circle
+                      cx="75" cy="75" r="60" fill="none"
+                      className={status.tone === "danger" ? "stroke-app-danger" : status.tone === "warning" ? "stroke-[#F2A93B]" : "stroke-app-success"}
+                      strokeWidth="12" strokeLinecap="round"
+                      strokeDasharray={ring} strokeDashoffset={ring - (Math.max(0, Math.min(100, score)) / 100) * ring}
+                      transform="rotate(-90 75 75)"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 grid place-items-center text-center">
+                    <div>
+                      <div className="text-[40px] font-extrabold leading-none">{score}</div>
+                      <div className="text-[12.5px] text-app-ink-soft">out of 100</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="min-w-0 text-center sm:text-left">
+                  <Pill tone={status.tone} dot>{status.label}</Pill>
+                  <h2 className="mb-0 mt-3 text-[22px] font-extrabold leading-tight">Your store scores {score}.</h2>
+                  <p className="mb-0 mt-1.5 text-[14px] text-app-ink-soft">Worked out {formatDate(snapshot.createdAt, true)}.</p>
+                </div>
+              </Card>
+
+              <Card className="p-5">
+                <CardHead title="What goes into it" />
+                <div className="mt-4 grid gap-4">
+                  {FACTORS.map((factor) => {
+                    const value = Math.round(Number(factors[factor.key] ?? 0));
+                    return (
+                      <div key={factor.key}>
+                        <ShareBar label={`${factor.label} (${factor.weight}% of score)`} value={`${value} / 100`} share={value / 100} tone={value >= 75 ? "success" : value >= 50 ? "ink" : "accent"} />
+                        {factor.note && <div className="mt-1 text-[12.5px] text-app-ink-soft">{factor.note}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </>
+          }
+          side={
+            <Card className="overflow-hidden">
+              <div className="px-5 pb-3 pt-5"><CardHead title="What to do next" /></div>
+              {recommendations.length ? (
+                <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
+                  {recommendations.map((rec, index) => {
+                    const link = ACTION_LINK[String(rec.action)];
+                    return (
+                      <li key={index} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[14px] font-bold">{String(rec.label)}</span>
+                          {rec.impact === "high" && <span className="text-[12.5px] text-app-ink-soft">Big effect on your score</span>}
+                        </span>
+                        {link && <PillLink href={link.href} size="sm" tone="ink">{link.label}</PillLink>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="m-0 border-t border-app-line px-5 py-6 text-[14px] text-app-ink-soft">Nothing to fix right now.</p>
+              )}
+            </Card>
           }
         />
-
-        {notice && (
-          <div style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, background: "var(--mint-bg)", color: "var(--mint)", border: "1px solid var(--mint-border)" }}>
-            {notice}
-            <button onClick={() => setNotice("")} style={{ float: "right", background: "none", border: "none", cursor: "pointer", color: "inherit", fontFamily: "inherit" }}>✕</button>
-          </div>
-        )}
-
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-sec)" }}>Loading health data...</div>
-        ) : data ? (
-          <>
-            <div className="card" style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ position: "relative", width: 150, height: 150, flexShrink: 0 }}>
-                <svg width="150" height="150" viewBox="0 0 150 150">
-                  <circle cx="75" cy="75" r="60" fill="none" stroke="var(--ink-100)" strokeWidth="10" />
-                  <circle
-                    cx="75" cy="75" r="60"
-                    fill="none" stroke={scoreColor}
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                    transform="rotate(-90 75 75)"
-                    style={{ transition: "stroke-dashoffset 0.6s ease" }}
-                  />
-                </svg>
-                <div style={{
-                  position: "absolute", inset: 0,
-                  display: "flex", flexDirection: "column",
-                  alignItems: "center", justifyContent: "center",
-                }}>
-                  <span style={{ fontSize: 36, fontWeight: 800, color: scoreColor, lineHeight: 1 }}>
-                    {score}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: scoreColor, marginTop: 2 }}>
-                    {scoreLabel}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: 18 }}>
-              <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>
-                Factor Breakdown
-              </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {data.factors.map(f => {
-                  const pct = f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) : 0;
-                  const barColor = getScoreColor(pct);
-                  return (
-                    <div key={f.name}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-700)" }}>{f.name}</span>
-                        <span style={{ fontSize: 12, color: "var(--ink-500)" }}>{f.score}/{f.maxScore}</span>
-                      </div>
-                      <div style={{
-                        height: 8, borderRadius: 4,
-                        background: "var(--ink-100)",
-                        overflow: "hidden",
-                      }}>
-                        <div style={{
-                          height: "100%", borderRadius: 4,
-                          background: barColor,
-                          width: `${pct}%`,
-                          transition: "width 0.4s ease",
-                        }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {data.recommendations.length > 0 && (
-              <div className="card" style={{ padding: 18 }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>
-                  Recommendations
-                </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {data.recommendations.map((rec, idx) => (
-                    <div key={idx} style={{
-                      display: "flex", alignItems: "flex-start", gap: 10,
-                      padding: "10px 12px", borderRadius: 10,
-                      background: "var(--ink-50)",
-                    }}>
-                      <Icon name="sparkle" size={16} color="var(--teal-600)" style={{ marginTop: 1, flexShrink: 0 }} />
-                      <div style={{ flex: 1, fontSize: 13, color: "var(--ink-700)", lineHeight: 1.4 }}>
-                        {rec.text}
-                      </div>
-                      {rec.action && (
-                        <button className="dbtn dBtn-sm dBtn-mint" style={{ border: "none", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                          {rec.action}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="card" style={{ padding: "60px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <MascotAvatar role="seller" size={56} />
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-600)" }}>No health data available</div>
-            <div style={{ fontSize: 13, color: "var(--ink-400)", maxWidth: 300 }}>
-              Store health score will appear once your store has sufficient activity.
-            </div>
-          </div>
-        )}
-      </div>
-    </AppFrame>
+      )}
+    </SellerPage>
   );
 }

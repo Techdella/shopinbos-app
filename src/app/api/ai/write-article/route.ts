@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withSeller } from "@/lib/auth/middleware";
-import { CHIP_MODEL, getAnthropicClient } from "@/lib/ai/client";
+import { withAuth } from "@/lib/auth/middleware";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, firstJsonObject } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,11 +62,11 @@ function fallbackArticle(body: ArticleRequest, targetWords: number): ArticleResp
   const bodyMarkdown = [
     `# ${title}`,
     "",
-    `This draft is ready for Peggy to expand into a full ${targetWords.toLocaleString()} word SEO article when the AI key is connected.`,
+    `AI isn't switched on, so this is an outline to write yourself (target: about ${targetWords.toLocaleString()} words). Add OPENAI_API_KEY or ANTHROPIC_API_KEY and Peggy will write the full article.`,
     "",
     ...sections.flatMap((section) => [
       `## ${section}`,
-      `${body.storeName || "This store"} can use this section to educate customers, answer objections, include relevant keywords, and guide shoppers toward the right product or next action.`,
+      "Write this section yourself: educate customers, answer objections, use your keywords naturally, and point shoppers to the right product.",
       "",
     ]),
   ].join("\n");
@@ -72,7 +74,7 @@ function fallbackArticle(body: ArticleRequest, targetWords: number): ArticleResp
   return {
     title,
     slug: slugify(title),
-    excerpt: "A conversion-focused article draft for your store audience.",
+    excerpt: "Outline only: AI isn't switched on, so the article still needs writing.",
     metaTitle: title,
     metaDescription: "A helpful SEO article designed to educate customers and support store conversion.",
     keywords,
@@ -81,19 +83,28 @@ function fallbackArticle(body: ArticleRequest, targetWords: number): ArticleResp
   };
 }
 
-export const POST = withSeller(async (req: NextRequest) => {
-  const body = (await req.json()) as ArticleRequest;
-  const prompt = body.prompt?.trim();
+// Sellers, suppliers and logistics partners all have a blog CMS that calls this.
+export const POST = withAuth(async (req: NextRequest, { user }) => {
+  const body = (await req.json().catch(() => ({}))) as ArticleRequest;
+  const prompt = typeof body.prompt === "string" ? body.prompt.trim().slice(0, 4000) : "";
   if (!prompt) {
     return NextResponse.json({ error: { code: "invalid", message: "Prompt is required" } }, { status: 400 });
   }
 
   const targetWords = clampWords(body.targetWords);
-  const client = getAnthropicClient();
 
-  if (!client) {
-    return NextResponse.json({ data: fallbackArticle(body, targetWords), demo: true });
+  // The outline is only for when no AI key is configured at all, and it says so.
+  if (!aiConfigured()) {
+    return NextResponse.json({
+      data: fallbackArticle({ ...body, prompt }, targetWords),
+      demo: true,
+      aiOff: true,
+      notice: "AI isn't switched on, so this is an outline, not a written article.",
+    });
   }
+
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
 
   const articlePrompt = `You are Peggy, the writing assistant for Shopinbos sellers.
 Write a complete, SEO-optimized, conversion-focused article for an ecommerce store.
@@ -132,35 +143,47 @@ Return ONLY valid JSON in this exact shape:
   "wordCount": 0
 }`;
 
-  const response = await client.messages.create({
-    model: CHIP_MODEL,
-    max_tokens: Math.min(14000, Math.max(3000, Math.round(targetWords * 2.2))),
-    messages: [{ role: "user", content: articlePrompt }],
-  });
-
-  const text = response.content[0]?.type === "text" ? response.content[0].text : "";
+  let text = "";
   try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const data = JSON.parse(jsonMatch ? jsonMatch[0] : text) as ArticleResponse;
-    return NextResponse.json({
-      data: {
-        ...data,
-        slug: data.slug || slugify(data.title),
-        wordCount: data.wordCount || data.bodyMarkdown.split(/\s+/).filter(Boolean).length,
-      },
+    const result = await aiText({
+      prompt: articlePrompt,
+      // Claude also spends tokens thinking; stay under the non-streaming request ceiling.
+      maxTokens: Math.min(20000, Math.max(6000, Math.round(targetWords * 3))),
     });
-  } catch {
-    const title = prompt.slice(0, 80);
+    if (!result) {
+      return NextResponse.json({ error: { code: "AI_FAILED", message: "Peggy couldn't reach the AI right now. Try again in a moment." } }, { status: 502 });
+    }
+    text = result.text;
+  } catch (error) {
+    console.error("[ai/write-article] failed", error);
+    return NextResponse.json({ error: { code: "AI_FAILED", message: "Peggy couldn't write the article right now. Try again." } }, { status: 500 });
+  }
+
+  const parsed = firstJsonObject(text) as Partial<ArticleResponse> | null;
+  if (parsed && typeof parsed.title === "string" && typeof parsed.bodyMarkdown === "string") {
     const data: ArticleResponse = {
-      title,
-      slug: slugify(title),
-      excerpt: "Peggy generated this article, but the response needed formatting cleanup.",
-      metaTitle: title,
-      metaDescription: "A long-form SEO article for your store.",
-      keywords: (body.keywords || "").split(",").map((item) => item.trim()).filter(Boolean),
-      bodyMarkdown: text,
-      wordCount: text.split(/\s+/).filter(Boolean).length,
+      title: parsed.title,
+      slug: parsed.slug || slugify(parsed.title),
+      excerpt: parsed.excerpt ?? "",
+      metaTitle: parsed.metaTitle ?? parsed.title,
+      metaDescription: parsed.metaDescription ?? parsed.excerpt ?? "",
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords.filter((item): item is string => typeof item === "string") : [],
+      bodyMarkdown: parsed.bodyMarkdown,
+      wordCount: parsed.bodyMarkdown.split(/\s+/).filter(Boolean).length,
     };
     return NextResponse.json({ data });
   }
-});
+
+  const title = prompt.slice(0, 80);
+  const data: ArticleResponse = {
+    title,
+    slug: slugify(title),
+    excerpt: "Peggy wrote this article, but it needs its title and SEO fields checked.",
+    metaTitle: title,
+    metaDescription: "A long-form SEO article for your store.",
+    keywords: (body.keywords || "").split(",").map((item) => item.trim()).filter(Boolean),
+    bodyMarkdown: text,
+    wordCount: text.split(/\s+/).filter(Boolean).length,
+  };
+  return NextResponse.json({ data });
+}, ["seller", "supplier", "logistics_partner"]);

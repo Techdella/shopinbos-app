@@ -1,21 +1,30 @@
 import { updateSupplierProfile } from "@/app/actions/supplier";
 import { billingEmail } from "@/lib/auth/billing-email";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSupplierWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { AppPage, AssistantNote, Card, CardHead, FilterChips, Pill, PillLink, SplitLayout } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
 import { SupplierCoverUpload, SupplierLogoUpload, SupplierPhotoUpload } from "@/components/supplier/SupplierProfileUploads";
+import { VERIFICATION_LABEL, buttonClass, fieldClass, hintClass, labelClass, supplierFrame, textareaClass } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { isProPlan } from "@/lib/role-queries";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams?: Promise<{ tab?: string; limit?: string }>;
+  searchParams?: Promise<{ tab?: string; limit?: string; saved?: string; error?: string }>;
 };
+
+const BILLING_TAB = "Billing & Plan";
+
+function workshopPhotos(state: unknown): string[] {
+  if (!state || typeof state !== "object" || Array.isArray(state)) return [];
+  const photos = (state as { workshopPhotos?: unknown }).workshopPhotos;
+  return Array.isArray(photos) ? photos.filter((url): url is string => typeof url === "string") : [];
+}
 
 export default async function SupplierProfilePage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -33,280 +42,188 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
   const isPro = isProPlan({ aiCredits });
 
   const { supplier } = workspace;
+  const billing = activeTab === BILLING_TAB;
+  const photos = workshopPhotos(supplier.onboardingState);
+  const place = [supplier.city, supplier.country].filter(Boolean).join(", ");
 
   return (
-    <AppFrame
-      role="supplier"
-      storeName={supplier.displayName}
-      storeSlug={`${supplier.city ?? "Aba"} · ${supplier.country ?? "Nigeria"}`}
-      storeInitial={supplier.displayName.charAt(0).toUpperCase()}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={billingEmail(user)}
-    >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        {supplier.verificationStatus !== "verified" && (
-          <div className="card" style={{ padding: 14, background: "var(--amber-100)", borderColor: "var(--amber-300)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--amber-900)", fontSize: 13, fontWeight: 600 }}>
-              <Icon name="flag" size={16} />
-              Finish onboarding and wait for manual admin verification before your public page or supplier tools become active.
-            </div>
-          </div>
-        )}
-        <PageHead
-          title={activeTab === "Billing & Plan" ? "Billing & plan" : "Supplier profile"}
-          sub={activeTab === "Billing & Plan" ? "Manage your AI credits, subscriptions, and invoicing details." : "What sellers see when they discover you on the marketplace"}
-          actions={
-            activeTab === "Profile" ? (
-              <>
-                <Link href={`/suppliers/${supplier.slug}`} className="dbtn dBtn-ghost" style={{ textDecoration: "none" }}><Icon name="eye" size={14} /> Public preview</Link>
-                <button className="dbtn dBtn-mint" form="profile-form">Save</button>
-              </>
-            ) : null
-          }
+    <AppPage
+      frame={supplierFrame({ ...user, email: billingEmail(user) }, supplier)}
+      title={billing ? "Billing and plan" : "Supplier profile"}
+      sub={billing ? `You're on ${isPro ? "Supplier Max" : "the free plan"}. Manage AI credits, your subscription and invoices.` : "What sellers see when they find you in the marketplace."}
+      actions={
+        billing ? undefined : (
+          <>
+            <PillLink href={`/suppliers/${supplier.slug}`} icon="eye">Public page</PillLink>
+            <button type="submit" form="profile-form" className={buttonClass.accent}>Save changes</button>
+          </>
+        )
+      }
+      toolbar={
+        <FilterChips
+          items={[
+            { label: "Profile", href: "/supplier/profile", active: !billing },
+            { label: "Billing and plan", href: `/supplier/profile?tab=${encodeURIComponent(BILLING_TAB)}`, active: billing },
+          ]}
         />
+      }
+    >
+      <div className="grid gap-5">
+        {(params?.error || params?.saved) && <Notice tone={params?.error ? "error" : "success"}>{params?.error ?? "Profile saved."}</Notice>}
+        {params?.limit && billing && (
+          <Notice tone="info">
+            You&apos;ve reached the free plan limit for {params.limit === "team" ? "team members" : "products"}. Upgrade to Supplier Max to add more.
+          </Notice>
+        )}
+        {supplier.verificationStatus !== "verified" && !billing && (
+          <AssistantNote who="rex" action={<PillLink href="/supplier/verification" tone="ink" size="sm">Verification</PillLink>}>
+            Your public page and supplier tools switch on after an admin verifies your business.
+          </AssistantNote>
+        )}
 
-        <div className="design-tabs" style={{ display: "flex", gap: 12, borderBottom: "1px solid var(--ink-100)", paddingBottom: 8, marginBottom: 8 }}>
-          {["Profile", "Billing & Plan"].map((t) => (
-            <a
-              key={t}
-              href={`/supplier/profile?tab=${encodeURIComponent(t)}`}
-              className={`tab${t === activeTab ? " on" : ""}`}
-              style={{
-                textDecoration: "none",
-                cursor: "pointer",
-                padding: "6px 12px",
-                fontSize: 14,
-                fontWeight: t === activeTab ? 600 : 500,
-                color: t === activeTab ? "var(--teal-700)" : "var(--ink-600)",
-                borderBottom: t === activeTab ? "2px solid var(--teal-600)" : "none",
-              }}
-            >
-              {t}
-            </a>
-          ))}
-        </div>
-
-        {activeTab === "Billing & Plan" ? (
-          <div>
-            <PlanUpgradeSection
-              userEmail={billingEmail(user)}
-              userName={user.name}
-              aiCredits={aiCredits}
-              productCount={workspace.metrics.productCount}
-            />
-          </div>
+        {billing ? (
+          <PlanUpgradeSection
+            userEmail={billingEmail(user)}
+            userName={user.name}
+            aiCredits={aiCredits}
+            productCount={workspace.metrics.productCount}
+          />
         ) : (
-          <form id="profile-form" action={updateSupplierProfile} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Hero & cover */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Hero & cover</div>
+          <SplitLayout
+            main={
+              <>
+                <Card className="p-5 sm:p-6">
+                  <CardHead title="Logo and cover" sub="Photos upload as soon as you pick them." />
+                  <div className="mt-4"><SupplierCoverUpload bannerUrl={supplier.bannerUrl} /></div>
+                  <div className="mt-4 flex items-center gap-4">
+                    <SupplierLogoUpload logoUrl={supplier.logoUrl} displayName={supplier.displayName} />
+                    <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">A square logo works best. It shows on your products and in seller searches.</p>
+                  </div>
+                </Card>
 
-              <SupplierCoverUpload bannerUrl={supplier.bannerUrl} />
-
-              {/* Logo and display name */}
-              <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 14, marginBottom: 14 }}>
-                <SupplierLogoUpload logoUrl={supplier.logoUrl} displayName={supplier.displayName} />
-                <div className="field">
-                  <label className="label">Display name</label>
-                  <input className="inp" name="displayName" defaultValue={supplier.displayName} style={{ fontFamily: "var(--font-accent)", fontSize: 16 }} />
-                  <div className="help">Public · how sellers see you</div>
-                </div>
-              </div>
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label className="label">Tagline · one line</label>
-                <input className="inp" name="tagline" defaultValue={supplier.description?.split("\n")[0] ?? "Hand-stitched leather goods · Aba, Nigeria · since 2019"} />
-              </div>
-              <div className="field">
-                <label className="label">About · 2-3 paragraphs</label>
-                <textarea className="ta" name="description" rows={5} defaultValue={supplier.description ?? ""} />
-                <div className="help">Sellers reference this when stocking you · Peggy uses it to suggest you for matches</div>
-              </div>
-            </div>
-
-            {/* Capabilities */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Capabilities · what sellers can search</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {["Dropship", "Bulk wholesale", "Sample first", "Custom orders", "Private label (50+)", "Hand-stitched", "Heritage leather", "Earth tones", "Made-to-measure", "Cross-border shipping", "Insurance covered", "Rush production"].map((t) => (
-                  <span key={t} className="chip on close" style={{ fontSize: 11.5 }}>{t} <Icon name="x" size={10} /></span>
-                ))}
-                <button type="button" className="chip" style={{ fontSize: 11.5 }}><Icon name="plus" size={11} /> Add</button>
-              </div>
-            </div>
-
-            {/* Workshop photos */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Workshop photos</div>
-                <SupplierPhotoUpload />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
-                {[
-                  ["#3a2614", "#6B4A2C"], ["#D4A574", "#3a2614"], ["#6B4A2C", "#1a1208"],
-                  ["#E86A4F", "#6B4A2C"], ["#D4A574", "#F2C8B4"], ["#3a2614", "#D4A574"],
-                ].map((c, i) => (
-                  <div key={i} style={{
-                    aspectRatio: "1/1", borderRadius: 8,
-                    background: `linear-gradient(135deg, ${c[0]}, ${c[1]})`,
-                    position: "relative",
-                  }}>
-                    <div style={{
-                      position: "absolute", top: 5, right: 5,
-                      padding: "2px 5px", background: "rgba(0,0,0,0.5)", color: "white",
-                      fontSize: 9, fontWeight: 600, borderRadius: 3,
-                    }}>
-                      {i + 1}
+                <Card className="p-5 sm:p-6">
+                  <CardHead title="Workshop photos" sub="Show sellers where and how you make things." action={<SupplierPhotoUpload />} />
+                  {photos.length ? (
+                    <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 2xl:grid-cols-6">
+                      {photos.map((url, index) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={`${url}-${index}`} src={url} alt={`Workshop photo ${index + 1}`} className="aspect-square w-full rounded-[14px] border border-app-line object-cover" />
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ) : (
+                    <p className="mb-0 mt-4 rounded-[16px] bg-app-canvas px-4 py-6 text-center text-[13.5px] text-app-ink-soft">No workshop photos yet.</p>
+                  )}
+                </Card>
 
-            {/* Default terms */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Default terms</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-                <div className="field">
-                  <label className="label">Default MOQ</label>
-                  <input className="inp" name="moq" defaultValue="1 (dropship)" />
-                </div>
-                <div className="field">
-                  <label className="label">Lead time</label>
-                  <input className="inp" name="leadTime" defaultValue="3 days (in stock)" />
-                </div>
-                <div className="field">
-                  <label className="label">Returns window</label>
-                  <input className="inp" name="returnsWindow" defaultValue="14 days · defects only" />
-                </div>
-              </div>
-            </div>
-
-            {/* Contact info */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Contact & account</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <div className="field">
-                  <label className="label">Account name</label>
-                  <input className="inp" name="name" defaultValue={user.name} />
-                </div>
-                <div className="field">
-                  <label className="label">City</label>
-                  <input className="inp" name="city" defaultValue={supplier.city ?? ""} />
-                </div>
-                <div className="field">
-                  <label className="label">Country</label>
-                  <input className="inp" name="country" defaultValue={supplier.country ?? ""} />
-                </div>
-                <div className="field">
-                  <label className="label">WhatsApp number</label>
-                  <input className="inp" name="whatsappNumber" defaultValue={supplier.whatsappNumber ?? ""} />
-                </div>
-                <div className="field">
-                  <label className="label">Response time label</label>
-                  <input className="inp" name="responseTimeLabel" defaultValue={supplier.responseTimeLabel ?? "Usually responds within 2 hours"} />
-                </div>
-                <div className="field">
-                  <label className="label">Website</label>
-                  <input className="inp" name="website" defaultValue={supplier.website ?? ""} placeholder="https://example.com" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Preview */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>What sellers see · preview</div>
-              <div style={{
-                height: 80, borderRadius: 8,
-                background: supplier.bannerUrl ? `url(${supplier.bannerUrl}) center/cover` : "linear-gradient(135deg, #D4A574, #6B4A2C 50%, #3a2614)",
-                marginBottom: 0, position: "relative",
-              }} />
-              <div style={{ padding: "0 12px 14px", marginTop: -22, position: "relative" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-                  <div style={{
-                    width: 54, height: 54, borderRadius: 10,
-                    background: supplier.logoUrl ? `url(${supplier.logoUrl}) center/cover` : "linear-gradient(135deg, var(--amber-500), var(--rose-500))",
-                    border: "3px solid var(--paper)",
-                    display: "grid", placeItems: "center", color: "white",
-                    fontFamily: "var(--font-accent)", fontWeight: 600, fontSize: 20,
-                  }}>
-                    {!supplier.logoUrl && supplier.displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, paddingBottom: 4 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{supplier.displayName}</div>
-                      {supplier.verificationStatus === "verified" && <Icon name="check" size={12} color="var(--teal-700)" />}
+                <form id="profile-form" action={updateSupplierProfile} className="grid gap-5">
+                  <Card className="p-5 sm:p-6">
+                    <CardHead title="About your business" />
+                    <div className="mt-4 grid gap-4">
+                      <div>
+                        <label htmlFor="displayName" className={labelClass}>Business name</label>
+                        <input id="displayName" className={fieldClass} name="displayName" defaultValue={supplier.displayName} required />
+                        <div className={hintClass}>Public. This is how sellers see you.</div>
+                      </div>
+                      <div>
+                        <label htmlFor="description" className={labelClass}>About</label>
+                        <textarea id="description" className={textareaClass} name="description" rows={6} defaultValue={supplier.description ?? ""} placeholder="What you make, where, since when, and how you work with sellers." />
+                        <div className={hintClass}>Two or three short paragraphs. The first line shows under your name.</div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 10.5, color: "var(--ink-500)" }}>
-                      {supplier.city ?? "Aba"} · {workspace.metrics.publishedProductCount} products · since 2019
+                  </Card>
+
+                  <Card className="p-5 sm:p-6">
+                    <CardHead title="Contact and account" />
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="name" className={labelClass}>Your name</label>
+                        <input id="name" className={fieldClass} name="name" defaultValue={user.name} />
+                      </div>
+                      <div>
+                        <label htmlFor="whatsappNumber" className={labelClass}>WhatsApp number</label>
+                        <input id="whatsappNumber" className={fieldClass} name="whatsappNumber" type="tel" defaultValue={supplier.whatsappNumber ?? ""} placeholder="+234…" />
+                      </div>
+                      <div>
+                        <label htmlFor="city" className={labelClass}>City</label>
+                        <input id="city" className={fieldClass} name="city" defaultValue={supplier.city ?? ""} />
+                      </div>
+                      <div>
+                        <label htmlFor="country" className={labelClass}>Country</label>
+                        <input id="country" className={fieldClass} name="country" defaultValue={supplier.country ?? ""} />
+                      </div>
+                      <div>
+                        <label htmlFor="responseTimeLabel" className={labelClass}>How fast you reply</label>
+                        <input id="responseTimeLabel" className={fieldClass} name="responseTimeLabel" defaultValue={supplier.responseTimeLabel ?? ""} placeholder="Usually replies within 2 hours" />
+                      </div>
+                      <div>
+                        <label htmlFor="website" className={labelClass}>Website</label>
+                        <input id="website" className={fieldClass} name="website" type="url" defaultValue={supplier.website ?? ""} placeholder="https://example.com" />
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--ink-700)", marginTop: 8, lineHeight: 1.5 }}>
-                  {supplier.description?.split("\n")[0] ?? "Hand-stitched leather goods · Aba, Nigeria · since 2019"}
-                </div>
-                <div style={{ display: "flex", gap: 5, marginTop: 8, flexWrap: "wrap" }}>
-                  {["Dropship", "Bulk", "Sample", "Heritage"].map((t) => (
-                    <span key={t} className="chip" style={{ fontSize: 10 }}>{t}</span>
-                  ))}
-                </div>
-                <div style={{
-                  display: "flex", justifyContent: "space-between",
-                  marginTop: 10, padding: "8px 10px",
-                  background: "var(--ink-50)", borderRadius: 8, fontSize: 11,
-                }}>
-                  <div><div style={{ color: "var(--ink-500)", fontSize: 9.5 }}>Trust</div><strong>{supplier.trustScore ?? 94}</strong></div>
-                  <div><div style={{ color: "var(--ink-500)", fontSize: 9.5 }}>On-time</div><strong>96%</strong></div>
-                  <div><div style={{ color: "var(--ink-500)", fontSize: 9.5 }}>★</div><strong>{supplier.rating.toFixed(1)}</strong></div>
-                </div>
-              </div>
-            </div>
+                  </Card>
 
-            {/* Approval status */}
-            <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Approval status</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
-                {[
-                  ["Verification", supplier.verificationStatus],
-                  ["Public status", supplier.status],
-                  ["Catalog count", `${workspace.metrics.productCount} products`],
-                  ["Published", `${workspace.metrics.publishedProductCount} products`],
-                  ["Slug", supplier.slug],
-                  ["Categories", supplier.categories?.join(", ") || "Not set"],
-                ].map((r, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: i ? "1px solid var(--ink-100)" : "none" }}>
-                    <span style={{ color: "var(--ink-500)" }}>{r[0]}</span>
-                    <strong style={{ fontSize: 12.5 }}>{r[1]}</strong>
+                  <div className="flex justify-end">
+                    <button type="submit" className={buttonClass.accent}>Save changes</button>
                   </div>
-                ))}
-              </div>
-            </div>
+                </form>
+              </>
+            }
+            side={
+              <>
+                <Card className="overflow-hidden">
+                  <div
+                    className="h-[96px] bg-app-canvas bg-cover bg-center"
+                    style={supplier.bannerUrl ? { backgroundImage: `url(${supplier.bannerUrl})` } : undefined}
+                  />
+                  <div className="-mt-7 px-5 pb-5">
+                    <div
+                      className="grid h-14 w-14 place-items-center rounded-[16px] border-[3px] border-white bg-app-ink bg-cover bg-center text-[20px] font-extrabold text-white"
+                      style={supplier.logoUrl ? { backgroundImage: `url(${supplier.logoUrl})` } : undefined}
+                    >
+                      {!supplier.logoUrl && supplier.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <h2 className="m-0 truncate text-[17px] font-extrabold">{supplier.displayName}</h2>
+                      {supplier.verificationStatus === "verified" && <><Icon name="checkCircle" size={16} className="shrink-0 text-app-success" /><span className="sr-only">Verified</span></>}
+                    </div>
+                    <div className="text-[13px] text-app-ink-soft">
+                      {place || "Location not set"} · {workspace.metrics.publishedProductCount} product{workspace.metrics.publishedProductCount === 1 ? "" : "s"} live
+                    </div>
+                    {supplier.description && <p className="mb-0 mt-2 line-clamp-3 text-[13.5px] leading-[1.5]">{supplier.description.split("\n")[0]}</p>}
+                    {supplier.categories.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {supplier.categories.map((category) => <Pill key={category} tone="muted">{category}</Pill>)}
+                      </div>
+                    )}
+                    <dl className="m-0 mt-4 grid grid-cols-2 gap-2 rounded-[16px] bg-app-canvas p-3 text-[13px]">
+                      <div><dt className="text-app-ink-soft">Trust score</dt><dd className="m-0 font-extrabold">{supplier.trustScore}</dd></div>
+                      <div><dt className="text-app-ink-soft">Rating</dt><dd className="m-0 font-extrabold">{supplier.ratingCount > 0 ? `${supplier.rating.toFixed(1)} (${supplier.ratingCount})` : "None yet"}</dd></div>
+                    </dl>
+                  </div>
+                </Card>
 
-            {/* Discovery */}
-            <div className="card" style={{ padding: 14, background: "linear-gradient(160deg, var(--teal-50), var(--paper))" }}>
-              <div style={{ fontSize: 11, color: "var(--teal-700)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
-                Discovery this week
-              </div>
-              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                <div style={{ fontFamily: "var(--font-accent)", fontSize: 30, fontWeight: 500 }}>1,284</div>
-                <div style={{ flex: 1, fontSize: 11.5, color: "var(--ink-600)" }}>
-                  profile views · <strong style={{ color: "var(--success)" }}>+22%</strong> from last week
-                </div>
-              </div>
-              <hr className="hr" />
-              <div style={{ fontSize: 11.5, color: "var(--ink-600)", lineHeight: 1.45 }}>
-                Sellers find you mostly via <strong>&ldquo;hand-stitched leather&rdquo;</strong> and <strong>&ldquo;Aba dropship&rdquo;</strong> searches.
-              </div>
-            </div>
-          </div>
-        </form>
+                <Card className="p-5">
+                  <CardHead title="Status" />
+                  <dl className="m-0 mt-2 divide-y divide-app-line text-[14px]">
+                    {[
+                      ["Verification", VERIFICATION_LABEL[supplier.verificationStatus] ?? supplier.verificationStatus],
+                      ["Account", supplier.status === "active" ? "Active" : supplier.status],
+                      ["Products", `${workspace.metrics.productCount} in catalogue`],
+                      ["Live", `${workspace.metrics.publishedProductCount} published`],
+                      ["Page address", `/suppliers/${supplier.slug}`],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between gap-3 py-2.5">
+                        <dt className="shrink-0 text-app-ink-soft">{label}</dt>
+                        <dd className="m-0 min-w-0 truncate text-right font-bold">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Card>
+              </>
+            }
+          />
         )}
       </div>
-    </AppFrame>
+    </AppPage>
   );
 }

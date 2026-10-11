@@ -1,14 +1,20 @@
 import { redirect } from "next/navigation";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead } from "@/components/ui";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, parseBrandSettings } from "@/lib/workspace";
 import { saveStoreNavigationSettings } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { Card, CardHead, PillLink } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
 
 export const dynamic = "force-dynamic";
 
 type NavPageProps = { searchParams?: Promise<{ saved?: string }> };
+
+function splitMenu(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
 
 export default async function NavigationSettingsPage({ searchParams }: NavPageProps) {
   const params = await searchParams;
@@ -29,74 +35,60 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
     : "Privacy, Terms, Returns, Contact";
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store.name}
-      storeSlug={store.slug}
-      storeInitial={store.name?.[0]?.toUpperCase()}
-      storeLogoUrl={store.logoUrl}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <SellerPage
+      user={user}
+      store={storeSummary(store)}
+      title="Navigation"
+      sub="The menu at the top of your store and the links in its footer."
+      actions={<PillLink href="/home/pages" icon="document">Pages</PillLink>}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageToast />
-        {params?.saved && (
-          <div style={{ padding: "10px 16px", borderRadius: 10, background: "var(--teal-50)", border: "1px solid var(--teal-200)", color: "var(--teal-800)", fontSize: 13, fontWeight: 600 }}>
-            Navigation settings saved.
-          </div>
-        )}
-        <PageHead
-          title="Navigation"
-          sub="Configure the main menu and footer links for your storefront."
-        />
+      <PageToast />
+      <div className="grid gap-5">
+        {params?.saved && <Notice tone="success">Navigation saved.</Notice>}
 
-        <form action={saveStoreNavigationSettings} style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 20 }}>
-          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+        <form action={saveStoreNavigationSettings} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="grid min-w-0 content-start gap-5">
+            <Card className="p-5">
+              <CardHead title="Main menu" sub="Links at the top of every page in your store." />
+              <div className="mt-4">
+                <label htmlFor="mainMenu" className={FIELD_LABEL}>Menu items</label>
+                <input id="mainMenu" name="mainMenu" className={FIELD_INPUT} placeholder="Home, Shop, About, Contact" defaultValue={mainMenu} />
+                <p className={FIELD_HELP}>Separate items with commas. Each one links to the page with the same name.</p>
+              </div>
+            </Card>
+
+            <Card className="p-5">
+              <CardHead title="Footer menu" sub="Links at the bottom, usually policies and help." />
+              <div className="mt-4">
+                <label htmlFor="footerMenu" className={FIELD_LABEL}>Footer links</label>
+                <input id="footerMenu" name="footerMenu" className={FIELD_INPUT} placeholder="Privacy, Terms, Returns, Contact" defaultValue={footerMenu} />
+                <p className={FIELD_HELP}>Separate items with commas.</p>
+              </div>
+            </Card>
+
             <div>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>Main menu</h2>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-500)" }}>
-                The top navigation links visible on every page of your storefront.
-              </p>
-            </div>
-            <div className="field">
-              <label className="label">Menu items</label>
-              <input
-                name="mainMenu"
-                className="inp"
-                title="Main menu items"
-                placeholder="Home, Shop, About, Contact"
-                defaultValue={mainMenu}
-              />
-              <div className="help">Enter comma-separated labels, e.g. <em>Home, Shop, About, Contact</em>. Labels link to matching page slugs automatically.</div>
+              <button className={SUBMIT_ACCENT} type="submit">Save navigation</button>
             </div>
           </div>
 
-          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>Footer menu</h2>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-500)" }}>
-                Links in the footer navigation bar, typically policies and support links.
-              </p>
-            </div>
-            <div className="field">
-              <label className="label">Footer links</label>
-              <input
-                name="footerMenu"
-                className="inp"
-                title="Footer menu items"
-                placeholder="Privacy, Terms, Returns, Contact"
-                defaultValue={footerMenu}
-              />
-              <div className="help">Enter comma-separated labels, e.g. <em>Privacy, Terms, Returns, Contact</em>.</div>
-            </div>
-          </div>
-
-          <div>
-            <button className="dbtn dBtn-mint" type="submit">Save navigation</button>
-          </div>
+          <aside className="min-w-0">
+            <Card className="p-5">
+              <CardHead title="What shoppers see now" />
+              <div className="mt-4 overflow-hidden rounded-[16px] border border-app-line">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-app-line bg-app-canvas px-4 py-3">
+                  <span className="mr-auto truncate text-[14px] font-extrabold">{store.name}</span>
+                  {splitMenu(mainMenu).map((item) => <span key={item} className="text-[13px] font-bold">{item}</span>)}
+                </div>
+                <div className="h-24" />
+                <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-app-line px-4 py-3">
+                  {splitMenu(footerMenu).map((item) => <span key={item} className="text-[12.5px] text-app-ink-soft">{item}</span>)}
+                </div>
+              </div>
+              <p className={FIELD_HELP}>This shows your saved menus.</p>
+            </Card>
+          </aside>
         </form>
       </div>
-    </AppFrame>
+    </SellerPage>
   );
 }

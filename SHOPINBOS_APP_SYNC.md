@@ -137,7 +137,7 @@ Status: built and verified locally (production build, route smoke incl. write fl
 - [x] Ads (`/home/ads`, `/api/app/ads`, `/r/ad/<code>`): Peggy writes the ad; the seller runs it on Instagram/Facebook/TikTok/WhatsApp status with the tracking link; we count taps and orders (`?ad=` at checkout), take logged spend for cost per order, and flag no orders by day 2. We don't buy ads on the seller's behalf.
 - [x] Video studio (`/home/video`): photos → 9:16 reel rendered in the browser (canvas + MediaRecorder; MP4 where supported, else WebM), Peggy's captions/voiceover in English, Pidgin, Yorùbá or Hausa (`/api/ai/video-script`), OpenAI TTS voiceover (`/api/ai/voiceover`, needs `OPENAI_API_KEY`), save to the product's video.
 - [x] Fixed: `PATCH /api/store/products/:id` reset images, specs and FAQs to empty when a client sent only some fields (Zod defaults on a partial schema).
-- [ ] Apply `docs/migrations/2026-10-11-growth-tools.sql` to the live database.
+- [x] Applied `docs/migrations/2026-10-11-growth-tools.sql` to the live database (2026-10-11).
 - [ ] Have a native speaker check the starter Yorùbá and Hausa reel lines in `shared/video.ts` (used when AI is unavailable).
 
 ## Current Todos

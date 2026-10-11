@@ -1242,11 +1242,53 @@ export function StoreEditor({ initialRexOpen = false }: EditorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [{ role: "user", content: msg }], context: { storeName, page, selectedSection: sel } }),
       });
-      const d = await r.json();
-      const reply = d?.data?.reply ?? d?.reply ?? "Done! Let me know what else you need.";
+      const d = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(d?.error?.message ?? "Rex couldn't make that change. Nothing was changed; try again.");
+      const ops: unknown[] = Array.isArray(d?.data?.ops) ? d.data.ops : [];
+      let reply: string = d?.data?.reply ?? d?.reply ?? "Done! Let me know what else you need.";
+      if (ops.length) {
+        // Ops apply to the stored draft, so save any unsaved local edits first or the refreshed draft would drop them.
+        if (draft && !saved) {
+          const saveRes = await fetch("/api/store/editor", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ snapshot: draft }),
+          });
+          if (!saveRes.ok) throw new Error("Couldn't save your latest edits, so Rex's change wasn't applied. Save and try again.");
+        }
+        const applyRes = await fetch("/api/store/editor", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ops }),
+        });
+        const applied = await applyRes.json().catch(() => null) as { data?: { draft?: StoreEditorSnapshot | null }; error?: { message?: string } } | null;
+        if (!applyRes.ok || !applied?.data?.draft) {
+          throw new Error(`Rex worked out the change but it couldn't be applied${applied?.error?.message ? `: ${applied.error.message}` : "."} Nothing was changed.`);
+        }
+        const nextDraft = applied.data.draft;
+        setDraft(nextDraft);
+        setPages(prev => {
+          const pageMap = { ...prev };
+          for (const draftPage of nextDraft.pages) {
+            pageMap[draftPage.pageType] = {
+              title: draftPage.title ?? prev[draftPage.pageType]?.title ?? PAGE_TYPE_LABELS[draftPage.pageType] ?? draftPage.pageType,
+              secs: draftPage.sections.map(section => section.id),
+            };
+          }
+          return pageMap;
+        });
+        setSaved(true);
+        showToast("Rex's change applied");
+      } else if (!d?.data?.reply && !d?.reply) {
+        reply = "I couldn't find anything to change for that. Try describing the section and what to change.";
+      }
       setRexMsgs(m => [...m.slice(0, -1), { role: "ai", text: reply, time: nowTime() }]);
-    } catch {
-      setRexMsgs(m => [...m.slice(0, -1), { role: "ai", text: "Sorry, I could not connect right now. Please try again.", time: nowTime() }]);
+    } catch (error) {
+      const text = error instanceof Error && error.message && !/fetch|network/i.test(error.message)
+        ? error.message
+        : "Sorry, I could not connect right now. Please try again.";
+      setRexMsgs(m => [...m.slice(0, -1), { role: "ai", text, time: nowTime() }]);
+      showToast("Rex's change wasn't applied", false);
     }
     setRexBusy(false);
   };

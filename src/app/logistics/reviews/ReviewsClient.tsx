@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Icon } from "@/components/ui";
+import { PillButton } from "@/components/app-ui";
 import { respondToReview } from "@/app/actions/reviews";
 import { useToast } from "@/components/ui/Toast";
 
@@ -16,6 +16,10 @@ interface ReviewData {
   booking: { pickup: string; dest: string } | null;
 }
 
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function ReviewsClient({ reviews }: { reviews: ReviewData[] }) {
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [replying, setReplying] = useState<Record<string, boolean>>({});
@@ -24,73 +28,60 @@ export function ReviewsClient({ reviews }: { reviews: ReviewData[] }) {
   async function handleReply(reviewId: string) {
     const text = replyText[reviewId]?.trim();
     if (!text) return;
-    setReplying((p) => ({ ...p, [reviewId]: true }));
+    setReplying((prev) => ({ ...prev, [reviewId]: true }));
     const formData = new FormData();
     formData.set("reviewId", reviewId);
     formData.set("response", text);
     const res = await respondToReview(formData);
-    setReplying((p) => ({ ...p, [reviewId]: false }));
+    setReplying((prev) => ({ ...prev, [reviewId]: false }));
     if (res.success) {
       toast("Reply posted", "success");
-      setReplyText((p) => ({ ...p, [reviewId]: "" }));
+      setReplyText((prev) => ({ ...prev, [reviewId]: "" }));
     } else {
       toast(res.error ?? "Failed", "error");
     }
   }
 
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-      {reviews.length === 0 ? (
-        <div style={{ padding: 40, textAlign: "center", color: "var(--ink-500)", fontSize: 13 }}>
-          No reviews yet. Reviews from sellers, suppliers, and customers appear here once deliveries are completed.
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {reviews.map((r) => (
-            <div key={r.id} style={{ padding: 16, borderBottom: "1px solid var(--ink-100)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{r.reviewer.name}</div>
-                  <Badge variant="info" style={{ fontSize: 10, textTransform: "capitalize" }}>{r.reviewer.role.replace(/_/g, " ")}</Badge>
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ink-500)" }}>{new Date(r.createdAt).toLocaleDateString()}</div>
-              </div>
-              <div style={{ display: "flex", gap: 2, marginBottom: 6 }}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <span key={s} style={{ fontSize: 14, color: s <= r.rating ? "var(--amber-500)" : "var(--ink-200)" }}>★</span>
-                ))}
-              </div>
-              {r.comment && <div style={{ fontSize: 12.5, color: "var(--ink-700)", lineHeight: 1.5, marginBottom: 4 }}>{r.comment}</div>}
-              {r.booking && <div style={{ fontSize: 10.5, color: "var(--ink-400)", marginBottom: 8 }}>{r.booking.pickup} → {r.booking.dest}</div>}
-
-              {r.response ? (
-                <div style={{ padding: "8px 12px", background: "var(--teal-50)", borderRadius: 8, marginTop: 8, fontSize: 12, color: "var(--teal-800)" }}>
-                  <div style={{ fontWeight: 600, fontSize: 10.5, marginBottom: 2 }}>Your reply · {r.respondedAt ? new Date(r.respondedAt).toLocaleDateString() : ""}</div>
-                  {r.response}
-                </div>
-              ) : (
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <input
-                    className="inp"
-                    placeholder="Write a public reply..."
-                    value={replyText[r.id] ?? ""}
-                    onChange={(e) => setReplyText((p) => ({ ...p, [r.id]: e.target.value }))}
-                    style={{ fontSize: 12, flex: 1 }}
-                  />
-                  <button
-                    className="dbtn dBtn-ghost"
-                    onClick={() => handleReply(r.id)}
-                    disabled={replying[r.id] || !replyText[r.id]?.trim()}
-                    style={{ fontSize: 12, padding: "6px 12px" }}
-                  >
-                    {replying[r.id] ? "..." : "Reply"}
-                  </button>
-                </div>
-              )}
+    <section className="overflow-hidden rounded-[22px] border border-app-line bg-white">
+      <ul className="m-0 list-none divide-y divide-app-line p-0">
+        {reviews.map((review) => (
+          <li key={review.id} className="px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="min-w-0 truncate text-[15px] font-extrabold">{review.reviewer.name}</span>
+              <span className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold text-app-ink-soft">{review.reviewer.role.replace(/_/g, " ")}</span>
+              <span className="ml-auto text-[13px] text-app-ink-soft">{shortDate(review.createdAt)}</span>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+            <div className="mt-1 text-[15px] tracking-[2px]" aria-label={`${review.rating} out of 5 stars`}>
+              <span className="text-[#F2A93B]">{"★".repeat(review.rating)}</span>
+              <span className="text-app-track">{"★".repeat(Math.max(0, 5 - review.rating))}</span>
+            </div>
+            {review.comment && <p className="m-0 mt-1.5 text-[14.5px] leading-[1.55]">{review.comment}</p>}
+            {review.booking && <p className="m-0 mt-1 text-[13px] text-app-ink-soft">{review.booking.pickup} → {review.booking.dest}</p>}
+
+            {review.response ? (
+              <div className="mt-3 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px]">
+                <div className="mb-0.5 text-[12.5px] font-bold text-app-ink-soft">Your reply{review.respondedAt ? ` · ${shortDate(review.respondedAt)}` : ""}</div>
+                {review.response}
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-wrap gap-2 sm:flex-nowrap">
+                <label htmlFor={`reply-${review.id}`} className="sr-only">Reply to {review.reviewer.name}</label>
+                <input
+                  id={`reply-${review.id}`}
+                  placeholder="Write a public reply"
+                  value={replyText[review.id] ?? ""}
+                  onChange={(event) => setReplyText((prev) => ({ ...prev, [review.id]: event.target.value }))}
+                  className="h-11 min-w-0 flex-1 basis-full rounded-full border border-app-line bg-white px-4 text-[15px] outline-none placeholder:text-app-ink-faint focus:border-app-ink sm:basis-auto"
+                />
+                <PillButton size="sm" className="min-h-[44px]" onClick={() => handleReply(review.id)} busy={replying[review.id]} disabled={!replyText[review.id]?.trim()}>
+                  Reply
+                </PillButton>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

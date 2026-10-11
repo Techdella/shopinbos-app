@@ -1,32 +1,54 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Icon } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
+import { Spinner } from "@/components/app-ui";
+import { useToast } from "@/components/ui/Toast";
 
 export function LogoUploadForm({ currentLogo, displayName }: { currentLogo: string | null; displayName: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  // The upload route answers with JSON, so post it with fetch instead of navigating to it.
+  async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.set("logo", file);
+    try {
+      const res = await fetch("/api/logistics/upload-logo", { method: "POST", body: formData });
+      if (!res.ok) throw new Error();
+      toast("Logo updated", "success");
+      window.location.reload();
+    } catch {
+      toast("Upload failed", "error");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
-    <div style={{ position: "relative", flexShrink: 0 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 12, overflow: "hidden", border: "3px solid white", background: "var(--ink-100)" }}>
+    <div className="relative shrink-0">
+      <div className="grid h-[76px] w-[76px] place-items-center overflow-hidden rounded-[18px] border-[3px] border-white bg-app-canvas text-[26px] font-extrabold text-app-ink-soft shadow-[0_1px_3px_rgba(22,20,31,0.12)]">
         {currentLogo ? (
-          <img src={currentLogo} alt="Logo" style={{ width: 64, height: 64, objectFit: "cover" }} />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={currentLogo} alt={`${displayName} logo`} className="h-full w-full object-cover" />
         ) : (
-          <div style={{ width: 64, height: 64, display: "grid", placeItems: "center", fontSize: 22, fontWeight: 700, color: "var(--ink-400)" }}>
-            {displayName.charAt(0).toUpperCase()}
-          </div>
+          displayName.charAt(0).toUpperCase()
         )}
       </div>
-      <form action="/api/logistics/upload-logo" method="POST" encType="multipart/form-data">
-        <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-          className="dbtn dBtn-ghost"
-          style={{ position: "absolute", bottom: -4, right: -4, padding: "3px 6px", fontSize: 10, background: "var(--paper)", borderRadius: 6, lineHeight: 1 }}
-        >
-          {uploading ? "..." : <Icon name="upload" size={10} />}
-        </button>
-        <input ref={fileRef} name="logo" type="file" accept="image/*" style={{ display: "none" }} onChange={() => { setUploading(true); fileRef.current?.form?.requestSubmit(); }} />
-      </form>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        aria-label="Change logo"
+        className="absolute -bottom-1.5 -right-1.5 grid h-9 w-9 place-items-center rounded-full border border-app-line bg-white text-app-ink shadow-sm transition hover:border-app-line-strong disabled:opacity-60"
+      >
+        {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={15} />}
+      </button>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </div>
   );
 }

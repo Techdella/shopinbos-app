@@ -52,7 +52,8 @@ export async function updateSupplierVerification(formData: FormData) {
 
   if (!parsed.success) redirect(getRedirectPath(formData, "/admin/suppliers"));
 
-  const parsedTrustScore = z.coerce.number().int().min(0).max(100).safeParse(trustScore);
+  // An absent or blank score keeps the current one (Number(null) would otherwise reset it to 0).
+  const parsedTrustScore = z.coerce.number().int().min(0).max(100).safeParse(typeof trustScore === "string" && trustScore.trim() ? trustScore : undefined);
 
   const supplier = await db.supplier.update({
     where: { id: parsed.data.supplierId },
@@ -85,7 +86,7 @@ export async function updateLogisticsVerification(formData: FormData) {
 
   if (!parsed.success) redirect(getRedirectPath(formData, "/admin/logistics-partners"));
 
-  const parsedScore = z.coerce.number().int().min(0).max(100).safeParse(reliabilityScore);
+  const parsedScore = z.coerce.number().int().min(0).max(100).safeParse(typeof reliabilityScore === "string" && reliabilityScore.trim() ? reliabilityScore : undefined);
 
   const partner = await db.logisticsPartner.update({
     where: { id: parsed.data.logisticsPartnerId },
@@ -211,7 +212,8 @@ export async function upsertCategory(formData: FormData) {
           slug,
           description: formData.has("description") ? data.description : undefined,
           imageUrl: formData.has("imageUrl") ? data.imageUrl : undefined,
-          parentId: data.parentId ?? undefined,
+          // "No parent" submits an empty value, which must clear the parent.
+          parentId: formData.has("parentId") ? data.parentId ?? null : undefined,
           sortOrder: data.sortOrder,
         },
         select: { slug: true },

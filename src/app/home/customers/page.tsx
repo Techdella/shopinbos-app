@@ -1,20 +1,17 @@
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge, Icon } from "@/components/ui";
+import { AppPage, EmptyState, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
+import { Avatar, sellerFrame, timeAgo } from "@/components/seller-core";
+import { naira } from "@shared/onboarding";
 
 export const dynamic = "force-dynamic";
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
-function Av({ name, size = 36, seed = 0 }: { name: string; size?: number; seed?: number }) {
-  const initials = name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-  const g = [["#D4A574","#6B4A2C"],["#F2C8B4","#D4A574"],["#195754","#0c4a44"],["#E86A4F","#6B4A2C"],["#5b6ad0","#3a4ba6"]][seed % 5];
-  return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "grid", placeItems: "center", color: "white", fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 }}>
-      {initials}
-    </div>
-  );
+const SHOWN = 100;
+
+function lastOrder(date: Date) {
+  const text = timeAgo(date);
+  return text === "Just now" || text === "Yesterday" ? text.toLowerCase() : /ago$/.test(text) ? text : `on ${text}`;
 }
 
 export default async function SellerCustomersPage() {
@@ -27,98 +24,65 @@ export default async function SellerCustomersPage() {
     select: { id: true, buyerName: true, buyerEmail: true, buyerPhone: true, total: true, createdAt: true, status: true },
   }) : [];
 
-  const map = new Map<string, { name: string; email: string; orders: number; total: number; last: Date }>();
+  const map = new Map<string, { key: string; name: string; email: string; orders: number; total: number; last: Date }>();
   for (const o of orders) {
     // Recorded sales may have no email: fall back to the phone, then the name.
     const key = o.buyerEmail.trim().toLowerCase() || o.buyerPhone?.replace(/\D/g, "") || `name:${o.buyerName.trim().toLowerCase()}`;
-    const e = map.get(key) ?? { name: o.buyerName, email: o.buyerEmail || o.buyerPhone || "", orders: 0, total: 0, last: o.createdAt };
+    const e = map.get(key) ?? { key, name: o.buyerName, email: o.buyerEmail || o.buyerPhone || "", orders: 0, total: 0, last: o.createdAt };
     e.orders++; e.total += Number(o.total); if (e.last < o.createdAt) e.last = o.createdAt;
     map.set(key, e);
   }
   const customers = [...map.values()].sort((a, b) => b.last.getTime() - a.last.getTime());
+  const repeat = customers.filter((c) => c.orders > 1).length;
+  const delivered = orders.filter((o) => o.status === "delivered").length;
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store?.name ?? "Store"}
-      storeSlug={store?.slug ?? ""}
-      storeInitial={store?.name?.charAt(0).toUpperCase() ?? "S"}
-      userName={user.name}
-      userInitials={user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
+    <AppPage
+      frame={sellerFrame(user, store)}
+      title="Customers"
+      sub={customers.length > 0 ? `${customers.length} customers · ${repeat} came back to buy again` : "Everyone who has bought from you, from your store or recorded sales."}
     >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        <PageHead
-          title="Customers"
-          sub={`${customers.length} customers · ${customers.filter((c) => c.orders > 1).length} repeat buyers · ${orders.length} orders`}
-        />
+      <StatGrid className="mb-5">
+        <StatTile tone="card" label="Customers" value={customers.length.toLocaleString("en-NG")} hint="All time" />
+        <StatTile tone="card" label="Repeat buyers" value={repeat.toLocaleString("en-NG")} hint="Bought more than once" />
+        <StatTile tone="card" label="Orders" value={orders.length.toLocaleString("en-NG")} hint="All time" />
+        <StatTile tone="card" label="Delivered" value={delivered.toLocaleString("en-NG")} hint="Orders that arrived" />
+      </StatGrid>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <div className="stat">
-            <div className="stat-lbl">Customers</div>
-            <div className="stat-val">{customers.length}</div>
-            <div className="stat-delta delta-up"><Icon name="users" size={12} /><span>lifetime</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Repeat buyers</div>
-            <div className="stat-val">{customers.filter((c) => c.orders > 1).length}</div>
-            <div className="stat-delta delta-up"><Icon name="refresh" size={12} /><span>returning</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Orders</div>
-            <div className="stat-val">{orders.length}</div>
-            <div className="stat-delta delta-up"><Icon name="cart" size={12} /><span>total</span></div>
-          </div>
-          <div className="stat">
-            <div className="stat-lbl">Delivered</div>
-            <div className="stat-val">{orders.filter((o) => o.status === "delivered").length}</div>
-            <div className="stat-delta delta-up"><Icon name="check" size={12} /><span>fulfilled</span></div>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Orders</th>
-                <th>Lifetime value</th>
-                <th>Segment</th>
-                <th>Last order</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.slice(0, 30).map((c, i) => (
-                <tr key={c.email}>
-                  <td>
-                    <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
-                      <Av name={c.name} size={34} seed={i} />
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</div>
-                        <div style={{ fontSize: 11.5, color: "var(--ink-500)" }}>{c.email}</div>
-                      </div>
+      {customers.length === 0 ? (
+        <EmptyState icon="users" title="No customers yet" action={<PillLink href="/home/orders/new" tone="ink" icon="plus">Record a sale</PillLink>}>
+          When someone buys from your store, or you record a sale, they show up here.
+        </EmptyState>
+      ) : (
+        <>
+          <ListCard>
+            {customers.slice(0, SHOWN).map((c) => (
+              <ListRow key={c.key}>
+                <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
+                  <Avatar name={c.name} size={44} />
+                  <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-1.5 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1.8fr)_100px_110px_minmax(0,0.8fr)_120px]">
+                    <div className="min-w-0">
+                      <div className="truncate text-[15px] font-extrabold">{c.name}</div>
+                      {c.email && <div className="truncate text-[13px] text-app-ink-soft">{c.email}</div>}
                     </div>
-                  </td>
-                  <td><strong>{c.orders}</strong></td>
-                  <td className="money" style={{ fontWeight: 600 }}>{fmt(c.total)}</td>
-                  <td>
-                    {c.orders > 5 ? <Badge variant="berry" dot>VIP</Badge>
-                      : c.orders > 1 ? <Badge variant="mint" dot>Repeat</Badge>
-                      : <Badge variant="info" dot>New</Badge>}
-                  </td>
-                  <td style={{ fontSize: 12.5, color: "var(--ink-500)" }}>
-                    {new Date(c.last).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                  </td>
-                </tr>
-              ))}
-              {customers.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 24, color: "var(--ink-500)", textAlign: "center" }}>No customers yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </AppFrame>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] xl:contents">
+                      <span>
+                        {c.orders > 5 ? <Pill tone="accent">VIP</Pill> : c.orders > 1 ? <Pill tone="success">Repeat</Pill> : <Pill tone="info">New</Pill>}
+                      </span>
+                      <span className="text-app-ink-soft">{c.orders} {c.orders === 1 ? "order" : "orders"}</span>
+                      <span className="text-app-ink-soft">Last order {lastOrder(c.last)}</span>
+                    </div>
+                    <div className="text-[15px] font-extrabold md:text-right">{naira(c.total)}</div>
+                  </div>
+                </div>
+              </ListRow>
+            ))}
+          </ListCard>
+          {customers.length > SHOWN && (
+            <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">Showing the {SHOWN} most recent of {customers.length.toLocaleString("en-NG")} customers.</p>
+          )}
+        </>
+      )}
+    </AppPage>
   );
 }

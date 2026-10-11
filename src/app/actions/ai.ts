@@ -1,11 +1,8 @@
 "use server";
 
-import {
-  getAnthropicClient,
-  getOpenAIClient,
-  PEGGY_CLAUDE_MODEL,
-  PEGGY_OPENAI_MODEL,
-} from "@/lib/ai/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { aiText, type ChatTurn } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 import {
   applyGuidedQuestionFallback,
   buildRexCommerceSystemPrompt,
@@ -133,11 +130,31 @@ export async function askPeggy(message: string, _storeContext?: string) {
   return answerPeggy(user.id, message);
 }
 
+/** Prior turns from the drawer, oldest first. Only plain text is kept, and only the most recent turns. */
+function cleanHistory(history: unknown): ChatTurn[] {
+  if (!Array.isArray(history)) return [];
+  const turns: ChatTurn[] = [];
+  for (const raw of history.slice(-16)) {
+    if (!raw || typeof raw !== "object") continue;
+    const turn = raw as { role?: unknown; content?: unknown };
+    const role = turn.role === "assistant" ? "assistant" : turn.role === "user" ? "user" : null;
+    const content = typeof turn.content === "string" ? turn.content.trim().slice(0, 4000) : "";
+    if (!role || !content) continue;
+    const previous = turns[turns.length - 1];
+    if (previous?.role === role) previous.content = `${previous.content}\n\n${content}`;
+    else turns.push({ role, content });
+  }
+  while (turns.length && turns[0].role === "assistant") turns.shift();
+  return turns;
+}
+
 export async function askRex(
   message: string,
   pageContext?: { path?: string; label?: string },
+  history?: Array<{ role: "user" | "assistant"; content: string }>,
 ) {
   try {
+    if (!message?.trim()) return { error: "Type a message for Rex first." };
     const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
     const sellerSnapshot = user.role === "seller" ? await buildSellerSnapshot(user.id) : null;
     const savedAnswers = await getSavedRexAnswers(user.id);
@@ -151,33 +168,25 @@ export async function askRex(
       pageContext,
     });
 
-    let raw = "";
-    const openai = getOpenAIClient();
-    if (openai) {
-      const response = await openai.responses.create({
-        model: process.env.OPENAI_REX_ASSISTANT_MODEL ?? PEGGY_OPENAI_MODEL,
-        input: [
-          { role: "system", content: system },
-          { role: "user", content: message },
-        ],
-      });
-      raw = response.output_text ?? "";
-    } else {
-      const anthropic = getAnthropicClient();
-      if (anthropic) {
-        const response = await anthropic.messages.create({
-          model: PEGGY_CLAUDE_MODEL,
-          max_tokens: 1600,
-          system,
-          messages: [{ role: "user", content: message }],
-        });
-        raw = response.content[0]?.type === "text" ? response.content[0].text : "";
-      }
+    if (!aiConfigured()) {
+      return { error: "Rex's AI isn't switched on yet. Ask your admin to add OPENAI_API_KEY or ANTHROPIC_API_KEY." };
+    }
+    const limited = await meterAi(user.id, "text");
+    if (limited) {
+      const body = (await limited.json().catch(() => null)) as { error?: { message?: string } } | null;
+      return { error: body?.error?.message ?? "You've reached today's limit for Rex. Try again later." };
     }
 
-    if (!raw) {
-      return { error: "Rex needs OPENAI_API_KEY or ANTHROPIC_API_KEY configured before he can answer with live AI." };
+    const turns = cleanHistory(history);
+    // A trailing unanswered user turn (e.g. one that failed) is folded into this message.
+    const unanswered = turns[turns.length - 1]?.role === "user" ? turns.pop()!.content : "";
+    turns.push({ role: "user", content: [unanswered, message.trim().slice(0, 4000)].filter(Boolean).join("\n\n") });
+    // OpenAI or Claude, whichever answers first (with fallback to the other).
+    const reply = await aiText({ system, messages: turns, maxTokens: 8000 });
+    if (!reply) {
+      return { error: "Rex couldn't reach the AI right now. Please try again in a moment." };
     }
+    const raw = reply.text;
 
     const parsed = parseRexStructuredResult(raw);
     if (!parsed) {
@@ -215,8 +224,12 @@ export async function askRex(
       }
       const draft = await createRexDraftFromPlan({ user, result: guided, savedAnswers: refreshedAnswers });
       const previewUrl = draft.homePageId ? `/preview/store/${draft.slug}/${draft.homePageId}` : `/builder/rex`;
+      const extras = [
+        draft.sampleProducts ? `I added ${draft.sampleProducts} sample product${draft.sampleProducts === 1 ? "" : "s"} as drafts, marked "(sample)"; check their prices and photos.` : "",
+        draft.live ? "Your store is live, so this is saved as a draft: shoppers see it only after you publish." : "Nothing is published yet: publish from the builder when you're happy with it.",
+      ].filter(Boolean).join(" ");
       return {
-        text: `${guided.reply}\n\nDraft created for ${draft.storeName}. Preview it at ${previewUrl} or continue editing in /builder/rex.`,
+        text: `${guided.reply}\n\nDraft created for ${draft.storeName}. ${extras}`,
         meta: {
           intent: guided.intent,
           draftCreated: true,

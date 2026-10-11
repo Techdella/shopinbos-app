@@ -19,7 +19,7 @@ export function SellerPage({
   title,
   sub,
   actions,
-  width = "max-w-[1180px]",
+  width = "",
   children,
 }: {
   user: AppUser;
@@ -41,7 +41,7 @@ export function SellerPage({
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
     >
-      <div className={cx("mx-auto w-full px-4 py-6 font-app text-app-ink sm:px-7", width)}>
+      <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", width)}>
         <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px]">{title}</h1>

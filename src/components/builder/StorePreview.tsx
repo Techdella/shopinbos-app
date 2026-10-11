@@ -76,7 +76,7 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     kicker: "Styled stories",
     title: "A fuller look at how your collection fits into everyday life.",
     sections: [
-      { heading: "New arrivals in context", body: "Rex creates a visual sequence that shows your products as outfits, routines, bundles, or use cases instead of isolated catalogue tiles." },
+      { heading: "New arrivals in context", body: "See our products styled as outfits, routines, bundles, and everyday use, not just catalogue tiles." },
       { heading: "Customer moments", body: "Use this page for launch drops, seasonal edits, social photos, campaign shoots, and product combinations that make buying decisions easier." },
       { heading: "Shop the look", body: "Every look can connect back to matching products, sizes, colors, or bundles so the gallery becomes a sales page, not just a mood board." },
     ],
@@ -86,8 +86,8 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     title: "Help customers pick the right size before they order.",
     sections: [
       { heading: "Measurements", body: "Add bust, waist, hips, shoulder, inseam, footwear, or accessory dimensions in a clear table that reduces wrong-size returns." },
-      { heading: "Fit notes", body: "Rex can describe whether items run fitted, relaxed, oversized, stretchy, structured, or adjustable." },
-      { heading: "Care guidance", body: "Peggy can write washing, storage, and handling instructions so customers keep every piece in good condition." },
+      { heading: "Fit notes", body: "Each item notes whether it runs fitted, relaxed, oversized, stretchy, structured, or adjustable." },
+      { heading: "Care guidance", body: "Washing, storage, and handling instructions to keep every piece in good condition." },
     ],
   },
   delivery: {
@@ -104,7 +104,7 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     title: "Turn one-time buyers into event and corporate customers.",
     sections: [
       { heading: "Event packages", body: "Show birthday, wedding, office, school, and corporate packages with minimum order sizes and recommended lead times." },
-      { heading: "Custom menus", body: "Peggy can write package descriptions for trays, boxes, bundles, tasting menus, and seasonal offers." },
+      { heading: "Custom menus", body: "Trays, boxes, bundles, tasting menus, and seasonal offers, tailored to your event." },
       { heading: "Booking process", body: "Customers can understand how to request a quote, confirm dates, pay deposits, and coordinate delivery." },
     ],
   },
@@ -113,7 +113,7 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     title: "A page for bundles, flash offers, and high-converting deals.",
     sections: [
       { heading: "Featured bundles", body: "Group related products together with clear savings, use cases, and urgency." },
-      { heading: "Limited offers", body: "Rex can write promotional sections for launch discounts, holiday drops, clearance sales, and loyalty rewards." },
+      { heading: "Limited offers", body: "Launch discounts, holiday drops, clearance sales, and loyalty rewards while they last." },
       { heading: "Upsell paths", body: "Each deal can point customers to add-ons, warranty coverage, or premium versions." },
     ],
   },
@@ -132,7 +132,7 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     sections: [
       { heading: "Setup help", body: "Use this page for installation, compatibility, charging, device pairing, product care, or usage notes." },
       { heading: "Contact channels", body: "Show WhatsApp, email, business hours, service center address, and expected response times." },
-      { heading: "Quick fixes", body: "Peggy can write troubleshooting articles that reduce repeated support questions." },
+      { heading: "Quick fixes", body: "Step-by-step answers to the most common product questions." },
     ],
   },
   "skin-guide": {
@@ -140,7 +140,7 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     title: "Help customers choose the right products for their skin goals.",
     sections: [
       { heading: "Skin type guide", body: "Explain routines for oily, dry, sensitive, combination, acne-prone, or hyperpigmentation concerns." },
-      { heading: "How to layer", body: "Peggy can write morning and evening routines with steps, frequency, and warnings." },
+      { heading: "How to layer", body: "Morning and evening routines with steps, frequency, and what to avoid." },
       { heading: "Ingredient notes", body: "Use plain language to explain what each ingredient does and who should use it." },
     ],
   },
@@ -150,7 +150,7 @@ const PAGE_COPY: Record<string, { title: string; kicker: string; sections: Array
     sections: [
       { heading: "Customer stories", body: "Collect detailed testimonials that explain the problem, product used, timeline, and outcome." },
       { heading: "Before and after", body: "Add galleries, usage notes, and disclaimers where needed for health, beauty, or wellness products." },
-      { heading: "Review prompts", body: "Peggy can create review questions that help customers submit useful social proof." },
+      { heading: "Review prompts", body: "Share your experience and help other customers choose with confidence." },
     ],
   },
 };
@@ -546,7 +546,7 @@ function StoreFooter({
       <div>
         <LogoMark store={store} theme={theme} />
         <p className="mt-3 max-w-sm text-[12px] leading-6" style={{ color: theme.muted }}>
-          {store.tagline}. Rex keeps the store structure editable, and Peggy can keep writing product copy, pages, and blog articles after launch.
+          {store.tagline}
         </p>
       </div>
       <div>
@@ -618,7 +618,7 @@ function ProductModal({
             </button>
           </div>
           <p className="mt-3 text-[13px] leading-6" style={{ color: theme.muted }}>
-            {product.subtitle}. Peggy can expand this into a full conversion-focused product description with benefits, use cases, ingredients or specs, care notes, and SEO keywords.
+            {product.subtitle}
           </p>
           <div className="mt-4 font-mono text-[20px] font-bold" style={{ color: theme.ink }}>{product.price}</div>
           <div className="mt-5 grid gap-2">
@@ -627,7 +627,7 @@ function ProductModal({
             <SecondaryButton theme={theme} block onClick={onViewPage}>Open single product page</SecondaryButton>
           </div>
           <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-            {["Fast delivery", "Secure checkout", "Rex editable"].map((item) => (
+            {["Fast delivery", "Secure checkout", "Easy returns"].map((item) => (
               <div key={item} className="rounded-[10px] border px-2 py-3 text-[10px] font-bold" style={{ borderColor: theme.line, color: theme.ink }}>
                 {item}
               </div>
@@ -749,8 +749,8 @@ function HomePage({
       <section className="grid gap-3 px-5 py-5 sm:grid-cols-3 sm:px-8" style={{ background: theme.paperBg }}>
         {[
           ["Built around trust", "Clear policies, visible contact details, and direct support make customers more comfortable buying."],
-          ["Designed to convert", "Rex sets up sections that move shoppers from first impression to product choice to checkout."],
-          ["Ready for content", "Peggy can write descriptions, page copy, captions, and long-form blog articles inside the workspace."],
+          ["Easy to shop", "Browse, compare, and check out in a few taps on any device."],
+          ["Here to help", "Questions about an order or a product? Reach us any time and we will get back to you."],
         ].map(([heading, body]) => (
           <div key={heading} className="border bg-white p-4" style={{ borderColor: theme.line, borderRadius: theme.radius }}>
             <h3 className="text-[13px] font-bold" style={{ color: theme.ink }}>{heading}</h3>
@@ -791,14 +791,14 @@ function HomePage({
         <div>
           <Kicker theme={theme}>Brand promise</Kicker>
           <h2 className="mt-2 text-[26px] font-bold leading-tight tracking-[-0.02em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
-            Every section is editable with Rex after the first build.
+            What you can expect from us.
           </h2>
         </div>
         <div className="grid gap-3">
           {[
-            "Add, remove, or rewrite page sections with natural language.",
-            "Turn selected pages into richer sales pages with product blocks and FAQs.",
-            "Publish blog articles from the CMS when Peggy finishes writing them.",
+            "Products described honestly, with clear photos and prices.",
+            "Careful packing and delivery updates from order to doorstep.",
+            "Friendly support before and after you buy.",
           ].map((item, index) => (
             <div key={item} className="flex gap-3 rounded-[14px] border bg-white p-4" style={{ borderColor: theme.line }}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold" style={{ background: theme.accent, color: theme.ink }}>{index + 1}</span>
@@ -931,8 +931,8 @@ function ProductDetailPage({
             <SecondaryButton theme={theme} block onClick={() => onWishlist(product)}>{wished ? "Remove from wishlist" : "Save to wishlist"}</SecondaryButton>
           </div>
           <div className="mt-5 grid gap-2 text-[12px]" style={{ color: theme.muted }}>
-            <p><strong style={{ color: theme.ink }}>Details:</strong> Peggy can write materials, ingredients, dimensions, variants, or product specs here.</p>
-            <p><strong style={{ color: theme.ink }}>Delivery:</strong> Rex connects this product to the cart and checkout flow.</p>
+            <p><strong style={{ color: theme.ink }}>Details:</strong> {product.subtitle}</p>
+            <p><strong style={{ color: theme.ink }}>Delivery:</strong> Delivery options and fees are shown at checkout.</p>
           </div>
         </div>
       </div>
@@ -971,7 +971,7 @@ function AboutPage({ store, theme, onNavigate }: { store: StoreConfig; theme: Pr
         </div>
         <div className="space-y-4 text-[13px] leading-6" style={{ color: theme.muted }}>
           <p>{store.name} exists to make buying easier: clear products, honest details, fast support, and a checkout experience customers can understand.</p>
-          <p>Rex can expand this into a founder story, mission section, team notes, process details, quality promise, and brand values. Peggy can handle the writing voice so it sounds like the business, not a template.</p>
+          <p>{store.tagline}</p>
         </div>
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -1036,11 +1036,11 @@ function ContactPage({ theme }: { theme: PreviewTheme }) {
 
 function FaqPage({ theme }: { theme: PreviewTheme }) {
   const faqs = [
-    ["How long does delivery take?", "Delivery timing depends on location and product availability. Rex can rewrite this with exact cities, shipping partners, and cutoff times."],
+    ["How long does delivery take?", "Delivery timing depends on your location and product availability. You will see the estimate at checkout."],
     ["Can I return or exchange an item?", "Yes. The final policy can include return windows, item condition, inspection steps, refunds, store credit, or exchange rules."],
     ["Do you support bulk orders?", "Yes. Add wholesale, event, corporate, or reseller details here so customers know how to request larger quantities."],
-    ["Can Peggy write the FAQ for me?", "Yes. Peggy can turn customer questions into clear, SEO-friendly answers that reduce support load."],
-    ["Can Rex edit this page later?", "Yes. Rex can add sections, remove sections, rewrite tone, or connect FAQs to products and checkout instructions."],
+    ["How do I pay?", "Choose a payment option at checkout. You will get an order confirmation as soon as payment goes through."],
+    ["How can I contact you?", "Use the contact page and we will get back to you as soon as we can."],
   ];
   const [open, setOpen] = useState(0);
 
@@ -1067,7 +1067,7 @@ function FaqPage({ theme }: { theme: PreviewTheme }) {
 
 function BlogPage({ store, theme }: { store: StoreConfig; theme: PreviewTheme }) {
   const posts = [
-    ["How to choose the right product for your needs", "Peggy can write a full buyer guide with comparisons, objections, and product links."],
+    ["How to choose the right product for your needs", "A simple buyer guide with comparisons and tips."],
     ["Behind the scenes at " + store.name, "Use storytelling to build trust, show process, and make the brand more memorable."],
     ["Customer questions answered", "Turn support questions into searchable content that improves SEO and conversion."],
   ];
@@ -1077,10 +1077,10 @@ function BlogPage({ store, theme }: { store: StoreConfig; theme: PreviewTheme })
       <div className="rounded-[18px] border p-5" style={{ borderColor: theme.line, background: "#FFFFFF" }}>
         <Kicker theme={theme}>Blog and CMS</Kicker>
         <h1 className="mt-3 text-[34px] font-bold leading-tight tracking-[-0.03em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
-          Your blog is set up.
+          From the journal
         </h1>
         <p className="mt-3 max-w-2xl text-[13px] leading-6" style={{ color: theme.muted }}>
-          Rex has prepared the blog structure. Go to Workspace, then CMS, to have Peggy write and publish long-form SEO articles for your store.
+          Stories, guides, and news from {store.name}.
         </p>
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -1101,9 +1101,9 @@ function GenericPage({ page, store, theme, onNavigate }: { page: string; store: 
     kicker: pageLabel(page),
     title: `${pageLabel(page)} for ${store.name}`,
     sections: [
-      { heading: "Page purpose", body: "Rex builds this page around the exact details customers need before they decide to buy." },
-      { heading: "Conversion copy", body: "Peggy can write headlines, section body copy, trust points, SEO descriptions, and calls to action." },
-      { heading: "Editable layout", body: "You can ask Rex to add, remove, reorder, or rewrite any section after the build." },
+      { heading: "What to know", body: "The details that help you choose the right product." },
+      { heading: "Why shop with us", body: "Clear prices, careful delivery, and support when you need it." },
+      { heading: "Need help?", body: "Reach out through the contact page and we will get back to you." },
     ],
   };
   const copy = PAGE_COPY[page] ?? fallback;
@@ -1114,7 +1114,7 @@ function GenericPage({ page, store, theme, onNavigate }: { page: string; store: 
         <Kicker theme={theme}>{copy.kicker}</Kicker>
         <h1 className="mt-3 max-w-2xl text-[34px] font-bold leading-tight tracking-[-0.03em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{copy.title}</h1>
         <p className="mt-3 max-w-2xl text-[13px] leading-6" style={{ color: theme.muted }}>
-          This page is intentionally fuller than a simple one-section placeholder. Rex creates a sales-ready structure, and Peggy handles the writing.
+          {store.tagline}
         </p>
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -1126,8 +1126,8 @@ function GenericPage({ page, store, theme, onNavigate }: { page: string; store: 
         ))}
       </div>
       <div className="mt-5 rounded-[18px] border p-5" style={{ borderColor: theme.line, background: rgba(theme.accent, 0.13) }}>
-        <h2 className="text-[20px] font-bold" style={{ color: theme.ink }}>Ready to connect this page to products?</h2>
-        <p className="mt-2 text-[12px]" style={{ color: theme.muted }}>Rex can add product blocks, forms, FAQs, and calls to action here.</p>
+        <h2 className="text-[20px] font-bold" style={{ color: theme.ink }}>Ready to shop?</h2>
+        <p className="mt-2 text-[12px]" style={{ color: theme.muted }}>Browse the full collection.</p>
         <div className="mt-4"><PrimaryButton theme={theme} onClick={() => onNavigate("products")}>View products</PrimaryButton></div>
       </div>
     </section>
@@ -1251,7 +1251,7 @@ function CheckoutPage({ theme, lines, samplePrice }: { theme: PreviewTheme; line
             </div>
           </div>
           <div className="mt-4 rounded-[12px] p-3 text-[11px] leading-5" style={{ background: rgba(theme.accent, 0.14), color: theme.ink }}>
-            Rex can connect the real payment provider and delivery options during launch setup.
+            Payment and delivery options are confirmed before you pay.
           </div>
         </aside>
       </div>

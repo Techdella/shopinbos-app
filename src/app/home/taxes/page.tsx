@@ -1,12 +1,16 @@
 import { redirect } from "next/navigation";
-import { AppFrame } from "@/components/shell/AppFrame";
-import { PageHead, Badge } from "@/components/ui";
+import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, parseBrandSettings } from "@/lib/workspace";
 import { saveStoreTaxSettings } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
+import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { AssistantNote, Card, CardHead, Pill } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { Field, buttonClass, checkClass, inputClass, selectClass } from "@/components/growth/kit";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Taxes" };
 
 type TaxPageProps = { searchParams?: Promise<{ saved?: string }> };
 
@@ -22,139 +26,72 @@ export default async function TaxesPage({ searchParams }: TaxPageProps) {
     ? settings.taxConfig as Record<string, string | boolean | number>
     : {};
 
-  const vatEnabled = tax.vatEnabled !== false && Boolean(tax.vatEnabled);
+  const vatEnabled = Boolean(tax.vatEnabled);
   const vatRate = typeof tax.vatRate === "number" ? tax.vatRate : 7.5;
-  const vatInclusive = String(tax.vatInclusive ?? "exclusive");
+  // Saved as a boolean by saveStoreTaxSettings; older records may hold the word.
+  const vatInclusive = tax.vatInclusive === true || tax.vatInclusive === "inclusive";
   const vatNumber = String(tax.vatNumber ?? "");
   const tinNumber = String(tax.tinNumber ?? "");
   const showTaxOnReceipts = Boolean(tax.showTaxOnReceipts ?? true);
   const country = store.country ?? "Nigeria";
 
-  const vatLabel = country === "Ghana" ? "VAT (12.5%)" : country === "Kenya" ? "VAT (16%)" : "VAT (7.5%)";
   const defaultRate = country === "Ghana" ? 12.5 : country === "Kenya" ? 16 : 7.5;
+  const authority = country === "Ghana" ? "GRA" : country === "Kenya" ? "KRA" : "FIRS";
+  const checkRow = "flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[14px] bg-app-canvas px-4 text-[14.5px] font-semibold";
 
   return (
-    <AppFrame
-      role="seller"
-      storeName={store.name}
-      storeSlug={store.slug}
-      storeInitial={store.name?.[0]?.toUpperCase()}
-      storeLogoUrl={store.logoUrl}
-      userName={user.name ?? "You"}
-      avatarUrl={user.avatarUrl}
-      userEmail={user.email}
-    >
-      <div style={{ padding: "24px 28px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-        {params?.saved && (
-          <div style={{ padding: "10px 16px", borderRadius: 10, background: "var(--teal-50)", border: "1px solid var(--teal-200)", color: "var(--teal-800)", fontSize: 13, fontWeight: 600 }}>
-            Tax settings saved.
-          </div>
-        )}
-        <PageToast />
-        <PageHead
-          title="Taxes"
-          sub="Configure how taxes are collected and displayed at checkout."
-        />
+    <SellerPage user={user} store={storeSummary(store)} title="Taxes" sub="How VAT is added at checkout and shown on receipts.">
+      <PageToast />
+      <form action={saveStoreTaxSettings} className="grid gap-5 xl:grid-cols-2">
+        {params?.saved && <div className="xl:col-span-2"><Notice tone="success">Tax settings saved.</Notice></div>}
 
-        <form action={saveStoreTaxSettings} style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>{vatLabel}</h2>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-500)" }}>
-                  Value Added Tax applied at checkout in {country}.
-                </p>
-              </div>
-              <Badge variant={vatEnabled ? "mint" : "soft"}>{vatEnabled ? "Enabled" : "Off"}</Badge>
-            </div>
-
-            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                name="vatEnabled"
-                defaultChecked={vatEnabled}
-                style={{ width: 18, height: 18, accentColor: "var(--teal-600)" }}
-              />
-              <span style={{ fontWeight: 600, fontSize: 13.5, color: "var(--ink-900)" }}>Charge VAT on sales</span>
+        <Card className="p-5 sm:p-6">
+          <CardHead title={`VAT (${defaultRate}%)`} sub={`Value added tax at checkout in ${country}.`} action={<Pill tone={vatEnabled ? "success" : "muted"} dot>{vatEnabled ? "On" : "Off"}</Pill>} />
+          <div className="mt-5 grid gap-4">
+            <label className={checkRow}>
+              <input type="checkbox" name="vatEnabled" defaultChecked={vatEnabled} className={checkClass} />
+              Charge VAT on sales
             </label>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div className="field">
-                <label className="label">VAT rate (%)</label>
-                <input
-                  name="vatRate"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  className="inp"
-                  title="VAT rate percentage"
-                  placeholder={String(defaultRate)}
-                  defaultValue={vatRate || defaultRate}
-                />
-                <div className="help">The standard rate for {country} is {defaultRate}%.</div>
-              </div>
-              <div className="field">
-                <label className="label">How prices are set</label>
-                <select name="vatInclusive" defaultValue={vatInclusive === "inclusive" ? "inclusive" : "exclusive"} className="inp" title="How prices are set relative to tax">
-                  <option value="exclusive">Tax-exclusive — tax added at checkout</option>
-                  <option value="inclusive">Tax-inclusive — prices already include tax</option>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="VAT rate (%)" htmlFor="vat-rate" hint={`The standard rate in ${country} is ${defaultRate}%.`}>
+                <input id="vat-rate" name="vatRate" type="number" min={0} max={100} step={0.5} className={inputClass} placeholder={String(defaultRate)} defaultValue={vatRate || defaultRate} />
+              </Field>
+              <Field label="Your prices" htmlFor="vat-inclusive" hint="Choose whether your listed prices already include VAT.">
+                <select id="vat-inclusive" name="vatInclusive" defaultValue={vatInclusive ? "inclusive" : "exclusive"} className={selectClass}>
+                  <option value="exclusive">Don&apos;t include VAT (added at checkout)</option>
+                  <option value="inclusive">Already include VAT</option>
                 </select>
-                <div className="help">Tax-inclusive means your listed price includes VAT. Tax-exclusive adds VAT on top at checkout.</div>
-              </div>
+              </Field>
             </div>
-
-            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                name="showTaxOnReceipts"
-                defaultChecked={showTaxOnReceipts}
-                style={{ width: 18, height: 18, accentColor: "var(--teal-600)" }}
-              />
-              <span style={{ fontSize: 13.5, color: "var(--ink-900)" }}>
-                Show tax breakdown on order receipts
-              </span>
+            <label className={checkRow}>
+              <input type="checkbox" name="showTaxOnReceipts" defaultChecked={showTaxOnReceipts} className={checkClass} />
+              Show the tax on order receipts
             </label>
           </div>
+        </Card>
 
-          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink-900)" }}>Tax registration</h2>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-500)" }}>
-                Your tax registration numbers appear on invoices and receipts when filled in.
-              </p>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div className="field">
-                <label className="label">VAT registration number</label>
-                <input
-                  name="vatNumber"
-                  className="inp"
-                  defaultValue={vatNumber}
-                  placeholder="e.g. VAT-0001234567"
-                />
-              </div>
-              <div className="field">
-                <label className="label">TIN (Tax Identification Number)</label>
-                <input
-                  name="tinNumber"
-                  className="inp"
-                  defaultValue={tinNumber}
-                  placeholder="e.g. 1234567-0001"
-                />
-              </div>
-            </div>
+        <Card className="p-5 sm:p-6">
+          <CardHead title="Tax registration" sub="These numbers show on invoices and receipts when you fill them in." />
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <Field label="VAT registration number" htmlFor="vat-number">
+              <input id="vat-number" name="vatNumber" className={inputClass} defaultValue={vatNumber} placeholder="e.g. VAT-0001234567" />
+            </Field>
+            <Field label="Tax ID (TIN)" htmlFor="tin-number">
+              <input id="tin-number" name="tinNumber" className={inputClass} defaultValue={tinNumber} placeholder="e.g. 1234567-0001" />
+            </Field>
           </div>
+        </Card>
 
-          <div style={{ padding: "12px 16px", borderRadius: 10, background: "var(--ink-50)", border: "1px solid var(--ink-100)", fontSize: 13, color: "var(--ink-600)", lineHeight: 1.6 }}>
-            <strong>Note:</strong> Shopinbos does not file or remit taxes on your behalf. You are responsible for declaring and paying applicable taxes to your local revenue authority (e.g. FIRS in Nigeria, GRA in Ghana, KRA in Kenya).
-          </div>
+        <div className="xl:col-span-2">
+          <AssistantNote>
+            Shopinbos doesn&apos;t file or pay taxes for you. You declare and pay them to your tax office ({authority} in {country}).
+          </AssistantNote>
+        </div>
 
-          <div>
-            <button className="dbtn dBtn-mint" type="submit">Save tax settings</button>
-          </div>
-        </form>
-      </div>
-    </AppFrame>
+        <div className="xl:col-span-2">
+          <button className={buttonClass("ink")} type="submit">Save tax settings</button>
+        </div>
+      </form>
+    </SellerPage>
   );
 }

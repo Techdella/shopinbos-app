@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Badge, MascotAvatar } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
+import { FieldLabel, Notice, PillButton, Spinner, cx } from "@/components/app-ui";
+import { AssistantNote, Pill } from "@/components/app-kit";
 import Image from "next/image";
 
 const SIZES = [
@@ -19,11 +21,12 @@ const QUICK_PROMPTS = [
   "Professional product photo of [item] on white background, studio lighting",
   "Lifestyle shot of [item] being used in a modern home setting, warm lighting",
   "Banner for online store sale: bold typography, discount offer, vibrant colors",
-  "Social media post template with [item], clean design, brand colors teal and gold",
+  "Social media post with [item], clean design, in my brand colours",
   "Hero image for ecommerce website: [item] displayed elegantly, premium feel",
 ];
 
-export function ImageGenClient({ storeName }: { storeName: string }) {
+// storeName is kept in the props for the page; the prompt carries the brand details.
+export function ImageGenClient({ storeName: _storeName }: { storeName: string }) {
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState<"1024x1024" | "1792x1024" | "1024x1792">("1024x1024");
   const [style, setStyle] = useState<"vivid" | "natural">("vivid");
@@ -58,134 +61,113 @@ export function ImageGenClient({ storeName }: { storeName: string }) {
     }
   };
 
+  const chip = (on: boolean) =>
+    cx(
+      "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[13.5px] font-bold transition",
+      on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+    );
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: "var(--ink-900)" }}>Describe your image</div>
-          <div className="field" style={{ marginBottom: 14 }}>
-            <label className="label">Prompt</label>
-            <textarea className="ta" rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the image you want to create, e.g. 'A professional product photo of handmade beaded earrings on a marble surface, natural lighting'"
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="grid min-w-0 content-start gap-5">
+        <section className="rounded-[22px] border border-app-line bg-white p-5">
+          <h2 className="m-0 text-[17px] font-extrabold">Describe your image</h2>
+          <div className="mt-4">
+            <FieldLabel htmlFor="img-prompt">What should Rex make?</FieldLabel>
+            <textarea
+              id="img-prompt"
+              rows={4}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. A product photo of handmade beaded earrings on a marble surface, natural light"
+              className="w-full resize-y rounded-[16px] border border-app-line bg-white px-4 py-3 text-[15px] leading-[1.55] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
             />
           </div>
-          <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-            <div className="field" style={{ flex: 1 }}>
-              <label className="label">Size</label>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <fieldset className="m-0 min-w-0 border-0 p-0">
+              <legend className="mb-2 p-0 text-[14px] font-bold">Shape</legend>
+              <div className="flex flex-wrap gap-2">
                 {SIZES.map((s) => (
-                  <button key={s.id} onClick={() => setSize(s.id as any)}
-                    style={{
-                      padding: "5px 10px", borderRadius: 7, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                      background: size === s.id ? "var(--teal-600)" : "var(--ink-50)",
-                      color: size === s.id ? "white" : "var(--ink-700)",
-                      border: size === s.id ? "1px solid var(--teal-600)" : "1px solid var(--ink-150)",
-                    }}
-                  >{s.label}</button>
+                  <button key={s.id} type="button" aria-pressed={size === s.id} onClick={() => setSize(s.id)} className={chip(size === s.id)}>{s.label}</button>
                 ))}
               </div>
-            </div>
-            <div className="field" style={{ flexShrink: 0 }}>
-              <label className="label">Style</label>
-              <div style={{ display: "flex", gap: 6 }}>
+            </fieldset>
+            <fieldset className="m-0 min-w-0 border-0 p-0">
+              <legend className="mb-2 p-0 text-[14px] font-bold">Look</legend>
+              <div className="flex flex-wrap gap-2">
                 {STYLES.map((s) => (
-                  <button key={s.id} onClick={() => setStyle(s.id)}
-                    style={{
-                      padding: "5px 10px", borderRadius: 7, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                      background: style === s.id ? "var(--teal-600)" : "var(--ink-50)",
-                      color: style === s.id ? "white" : "var(--ink-700)",
-                      border: style === s.id ? "1px solid var(--teal-600)" : "1px solid var(--ink-150)",
-                    }}
-                  >{s.label}</button>
+                  <button key={s.id} type="button" aria-pressed={style === s.id} onClick={() => setStyle(s.id)} className={chip(style === s.id)}>{s.label}</button>
                 ))}
               </div>
-            </div>
+            </fieldset>
           </div>
-          <button className="dbtn dBtn-mint" onClick={() => generateImage()} disabled={loading || !prompt.trim()} style={{ width: "100%", justifyContent: "center" }}>
-            {loading ? <><Icon name="automation" size={14} /> Generating...</> : <><Icon name="sparkle" size={14} /> Generate image</>}
-          </button>
-          {credits !== null && (
-            <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 8, textAlign: "center" }}>
-              {credits} AI credits remaining
-            </div>
-          )}
-        </div>
+          <PillButton tone="accent" size="md" className="mt-5 w-full" onClick={() => generateImage()} disabled={loading || !prompt.trim()}>
+            {loading ? <><Spinner /> Making your image…</> : <><Icon name="sparkle" size={16} /> Make image</>}
+          </PillButton>
+          {credits !== null && <p className="mb-0 mt-2 text-center text-[13px] text-app-ink-soft">{credits} AI credits left</p>}
+        </section>
 
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: "var(--ink-800)" }}>Quick prompts</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <section className="rounded-[22px] border border-app-line bg-white p-5">
+          <h2 className="m-0 text-[15px] font-extrabold">Ideas to start from</h2>
+          <ul className="m-0 mt-3 grid list-none gap-2 p-0">
             {QUICK_PROMPTS.map((qp, i) => (
-              <button key={i} onClick={() => { setPrompt(qp); }}
-                style={{
-                  textAlign: "left", padding: "8px 10px", borderRadius: 8, fontSize: 12,
-                  background: "var(--ink-50)", border: "1px solid var(--ink-100)",
-                  cursor: "pointer", color: "var(--ink-700)", fontFamily: "inherit", lineHeight: 1.4,
-                  transition: "background 0.12s",
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "var(--teal-50)"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "var(--ink-50)"}
-              >{qp}</button>
+              <li key={i}>
+                <button type="button" onClick={() => { setPrompt(qp); }} className="w-full rounded-[14px] border border-app-line bg-app-canvas px-3.5 py-2.5 text-left text-[13.5px] leading-[1.45] text-app-ink transition hover:border-app-line-strong hover:bg-white">
+                  {qp}
+                </button>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
 
-        <div className="card" style={{ padding: 14, background: "linear-gradient(160deg, var(--teal-50), var(--teal-100))" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <MascotAvatar role="supplier" size={36} />
-            <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--ink-800)" }}>
-              <strong>Rex's tip:</strong> For best results, describe the subject, setting, lighting, and mood. Reference your brand colors for consistent visuals.
-            </div>
-          </div>
-        </div>
+        <AssistantNote who="rex">
+          <strong>Rex&apos;s tip:</strong> say what&apos;s in the picture, where it is, the light and the mood. Mention your brand colours so everything matches.
+        </AssistantNote>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="grid min-w-0 content-start gap-5">
         {!image && !loading && (
-          <div className="card" style={{ padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--teal-100)", display: "grid", placeItems: "center", color: "var(--teal-600)" }}>
-              <Icon name="image" size={28} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-600)" }}>Your image will appear here</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-400)", maxWidth: 280 }}>Describe what you want and generate an AI-powered image with DALL-E.</div>
-          </div>
+          <section className="flex min-h-[320px] flex-col items-center justify-center rounded-[22px] border border-dashed border-app-line-strong bg-white px-6 py-10 text-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="image" size={26} /></span>
+            <h2 className="mb-0 mt-3 text-[16px] font-extrabold">Your image shows here</h2>
+            <p className="mb-0 mt-1 max-w-[320px] text-[14px] text-app-ink-soft">Describe what you want, then press Make image.</p>
+          </section>
         )}
 
         {loading && (
-          <div className="card" style={{ padding: "40px 24px", textAlign: "center" }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", border: "3px solid var(--teal-200)", borderTopColor: "var(--teal-600)", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-700)" }}>Rex is creating your image...</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 4 }}>Using DALL-E AI to generate your visual</div>
-          </div>
+          <section role="status" className="flex min-h-[320px] flex-col items-center justify-center rounded-[22px] border border-app-line bg-white px-6 py-10 text-center">
+            <span aria-hidden className="inline-block h-10 w-10 animate-spin rounded-full border-[3px] border-app-ink border-r-transparent" />
+            <h2 className="mb-0 mt-4 text-[16px] font-extrabold">Rex is making your image…</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">This usually takes a few seconds.</p>
+          </section>
         )}
 
         {image && (
-          <div className="card" style={{ padding: 14 }}>
-            <div style={{ position: "relative", width: "100%", aspectRatio: image.size === "1792x1024" ? "16/9" : image.size === "1024x1792" ? "9/16" : "1/1", borderRadius: 10, overflow: "hidden" }}>
-              <Image src={image.url} alt="Generated" fill style={{ objectFit: "contain" }} unoptimized />
+          <section className="rounded-[22px] border border-app-line bg-white p-3">
+            <div
+              className="relative mx-auto w-full overflow-hidden rounded-[16px] bg-app-canvas"
+              style={{ aspectRatio: image.size === "1792x1024" ? "16/9" : image.size === "1024x1792" ? "9/16" : "1/1", maxHeight: "75vh" }}
+            >
+              <Image src={image.url} alt="Generated image" fill className="object-contain" unoptimized />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <Badge variant="mint">{image.style}</Badge>
-                <Badge variant="soft">{image.size}</Badge>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+              <div className="flex gap-1.5">
+                <Pill tone="ink">{image.style}</Pill>
+                <Pill>{image.size}</Pill>
               </div>
-              <button className="dbtn dBtn-ghost dBtn-sm" onClick={() => {
+              <PillButton tone="white" size="sm" onClick={() => {
                 const a = document.createElement("a");
                 a.href = image.url;
                 a.download = `shopinbos-${Date.now()}.jpg`;
                 a.click();
               }}>
-                <Icon name="download" size={12} /> Download
-              </button>
+                <Icon name="download" size={14} /> Download
+              </PillButton>
             </div>
-          </div>
+          </section>
         )}
 
-        {error && (
-          <div className="card" style={{ padding: 14, background: "var(--danger-bg)", borderColor: "var(--danger)" }}>
-            <div style={{ fontSize: 13, color: "var(--danger)" }}>{error}</div>
-          </div>
-        )}
+        {error && <Notice>{error}</Notice>}
       </div>
     </div>
   );

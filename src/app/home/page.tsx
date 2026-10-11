@@ -139,7 +139,7 @@ export default async function HomePage() {
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
     >
-      <div className="mx-auto grid max-w-[1180px] gap-5 px-4 py-6 font-app text-app-ink sm:px-7 xl:grid-cols-[minmax(0,1fr)_405px]">
+      <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
         {/* Hero */}
         <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
           <div className="text-[14px] text-app-ink-soft">{lagosDate(now)}</div>

@@ -1,322 +1,256 @@
 import { NextRequest, NextResponse } from "next/server";
+import type Anthropic from "@anthropic-ai/sdk";
+import type { ResponseInputItem } from "openai/resources/responses/responses";
 import { withSeller } from "@/lib/auth/middleware";
 import {
+  CHIP_MODEL,
+  DEFAULT_STORE_CONFIG,
   getAnthropicClient,
   getOpenAIClient,
-  CHIP_MODEL,
-  CHIP_SYSTEM_PROMPT,
-  DEFAULT_STORE_CONFIG,
+  providerOrder,
   REX_OPENAI_MODEL,
   type StoreConfig,
 } from "@/lib/ai/client";
-import { getTemplateManifest, summarizeTemplateForAi } from "@/lib/store-templates";
+import { meterAi } from "@/lib/ai/usage";
+import { storeBuilderSystemPrompt, type BrandContext, type TemplateContext } from "@/lib/ai/rex/prompts";
+import { createVisibleTextFilter, parseBuilderReply } from "@/lib/ai/rex/stream-tags";
+import { validateStoreConfig } from "@/lib/ai/rex/store-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
-interface ChatMessage {
+// Rex's streaming store builder. NDJSON events:
+//   {type:"status", stage, message}  progress (thinking / writing / design / switching provider)
+//   {type:"token", text}             visible reply text (machine blocks never leak into it)
+//   {type:"store", data}             the validated StoreConfig
+//   {type:"chips", data}             follow-up suggestions
+//   {type:"error", code, message}    something went wrong (incl. a design that couldn't be read)
+//   {type:"done", provider}
+
+interface ApiChatMessage {
   role: "user" | "assistant";
   content: string;
-}
-
-function encode(controller: ReadableStreamDefaultController, data: object) {
-  controller.enqueue(new TextEncoder().encode(JSON.stringify(data) + "\n"));
-}
-
-interface BrandContext {
-  paletteName?: string;
-  paletteColors?: Record<string, string>;
-  logoUrl?: string | null;
-  logoLabel?: string;
-  customerWho?: string;
-  customerVibe?: string;
-  category?: string;
-  businessDescription?: string;
-  documentNotes?: string;
-}
-
-interface TemplateContext {
-  templateId: string;
-  templateName: string;
-  layoutFamily?: string;
-  category?: string;
-  sourcePack?: string;
-  sourcePath?: string;
-  supportedPages?: string[];
-  aiHints?: string[];
-}
-
-interface ApiChatMessage extends ChatMessage {
   imageDataUrls?: string[];
 }
 
-function buildSystemPrompt(brandContext?: BrandContext | null): string {
-  let prompt = CHIP_SYSTEM_PROMPT;
-  if (!brandContext) return prompt;
-
-  const lines: string[] = [];
-  if (brandContext.paletteName) lines.push(`Palette chosen in onboarding: "${brandContext.paletteName}"`);
-  if (brandContext.category) lines.push(`Product/business category from onboarding: ${brandContext.category}`);
-  if (brandContext.businessDescription) lines.push(`Business description from onboarding: ${brandContext.businessDescription}`);
-  if (brandContext.customerWho) lines.push(`Target customers: ${brandContext.customerWho}`);
-  if (brandContext.customerVibe) lines.push(`Brand vibe the user wants: ${brandContext.customerVibe}`);
-  if (brandContext.documentNotes) lines.push(`Useful notes from uploaded onboarding documents: ${brandContext.documentNotes}`);
-  if (brandContext.logoLabel) lines.push(`Logo style selected: "${brandContext.logoLabel}"`);
-  else if (brandContext.logoUrl) lines.push("User uploaded a custom logo in onboarding.");
-  if (brandContext.paletteColors) {
-    const c = brandContext.paletteColors;
-    lines.push(`Palette hex values: heroBg=${c.heroBg}, accent=${c.accent}, paperBg=${c.paperBg}`);
-  }
-
-  if (lines.length > 0) {
-    prompt += `\n\nBrand and business context already set up by the user in onboarding:\n${lines.map((l) => `- ${l}`).join("\n")}\n\nAcknowledge this context naturally. Do not ask the same setup questions again. When generating store_config, use the remembered category, customer, document, logo, and palette values unless the user explicitly asks to change them.`;
-  }
-  return prompt;
-}
-
-function buildTemplatePrompt(prompt: string, templateContext?: TemplateContext | null) {
-  if (!templateContext) return prompt;
-  const manifest = getTemplateManifest(templateContext.templateId);
-  const category = templateContext.category ?? manifest?.category;
-  const sourcePack = templateContext.sourcePack ?? manifest?.sourcePack;
-  const sourcePath = templateContext.sourcePath ?? manifest?.sourcePath;
-  const supportedPages = templateContext.supportedPages ?? manifest?.supportedPages;
-  const aiHints = templateContext.aiHints ?? manifest?.aiHints;
-  const templateSummary = summarizeTemplateForAi(templateContext.templateId);
-
-  return `${prompt}
-
-The seller has already selected a store template:
-- Template id: ${templateContext.templateId}
-- Template name: ${templateContext.templateName}
-- Layout family: ${templateContext.layoutFamily ?? manifest?.layoutFamily ?? "not specified"}
-- Category: ${category ?? "not specified"}
-- Source pack: ${sourcePack ?? "not specified"}
-- Source preview path: ${sourcePath ?? "not specified"}
-- Supported live pages: ${(supportedPages ?? []).join(", ") || "home, shop, product, categories, wishlist, cart, checkout, blog, contact, FAQ"}
-- Template design hints: ${(aiHints ?? []).join("; ") || "Use the selected template's visual rhythm, spacing, merchandising structure, and page depth."}
-- Editable template blueprint: ${JSON.stringify(templateSummary)}
-
-Keep the generated store aligned with that chosen template family instead of starting from a generic blank store. If the template comes from an imported static HTML pack, translate the style and page structure into live Shopinbos data-backed sections instead of copying dead mockup content. Use the blueprint pageTypes and section kinds exactly; product detail stays pageType "product" and must not be added to visible navigation.`;
-}
-
-const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational reply first, then end with exactly these two machine-readable blocks:
-
-<store_config>
-{
-  "name": "Store Name",
-  "slug": "store-name",
-  "tagline": "Distinctive tagline under 6 words",
-  "heroHeadline": "Bold headline selling the experience, not just the product\\non 1-3 lines",
-  "heroSubline": "One specific sentence for this store and audience.",
-  "heroCtaText": "Shop now",
-  "palette": {
-    "heroBg": "#0E2A38",
-    "heroText": "#FAF7F1",
-    "accent": "#73D8C8",
-    "ctaBg": "#73D8C8",
-    "ctaText": "#0E2A38",
-    "paperBg": "#FAF7F1"
-  },
-  "fontStyle": "fraunces",
-  "navLinks": ["Products", "About", "FAQ", "Contact"],
-  "products": [
-    {"name": "Product name", "subtitle": "Short descriptor", "price": "NGN 2500", "color": "#2E7E78"}
-  ],
-  "changed": ["name", "palette", "hero", "products"]
-}
-</store_config>
-
-<chips>["Refine hero text", "Adjust colors", "Add another product", "Publish this"]</chips>
-
-The JSON inside the tags must be valid JSON. Do not wrap it in Markdown.`;
-
+type Provider = "anthropic" | "openai";
 type AnthropicImageMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
-function toAnthropicMessages(
-  messages: ApiChatMessage[],
-  currentImageDataUrls?: string[],
-  currentDocNames?: string[],
-  currentStore?: StoreConfig,
-) {
-  return messages.map((m, idx) => {
-    const isLast = idx === messages.length - 1;
-    const images = isLast && currentImageDataUrls?.length ? currentImageDataUrls : (m.imageDataUrls ?? []);
-    const docs = isLast && currentDocNames?.length ? currentDocNames : [];
+const MAX_TURNS = 24;
+const MAX_IMAGES = 4;
+const MAX_IMAGE_CHARS = 7_000_000; // ~5 MB of base64
+const IMAGE_DATA_URL = /^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+/=]+)$/;
 
-    // Build text content
-    let text = m.content;
-    if (idx === 0 && currentStore && currentStore.name !== DEFAULT_STORE_CONFIG.name) {
-      text = `Current store: ${currentStore.name} / ${currentStore.tagline} / products: ${currentStore.products.map((p) => p.name).join(", ")}\n\n${text}`;
-    }
-    if (docs.length > 0) {
-      text += `\n\n[Documents attached: ${docs.join(", ")}]`;
-    }
+function cleanImages(urls: unknown): string[] {
+  if (!Array.isArray(urls)) return [];
+  return urls.filter((url): url is string => typeof url === "string" && url.length <= MAX_IMAGE_CHARS && IMAGE_DATA_URL.test(url));
+}
 
-    if (images.length === 0) {
-      return { role: m.role as "user" | "assistant", content: text };
+/** Prior turns plus the new one, trimmed, alternating cleanly and ending with the user's turn. */
+function normaliseMessages(messages: unknown, currentImages: string[], docNames: string[]): ApiChatMessage[] {
+  const list = Array.isArray(messages) ? messages : [];
+  const turns: ApiChatMessage[] = [];
+  for (const raw of list.slice(-MAX_TURNS)) {
+    if (!raw || typeof raw !== "object") continue;
+    const message = raw as Record<string, unknown>;
+    const role = message.role === "assistant" ? "assistant" : message.role === "user" ? "user" : null;
+    const content = typeof message.content === "string" ? message.content.trim().slice(0, 8000) : "";
+    const images = role === "user" ? cleanImages(message.imageDataUrls) : [];
+    if (!role || (!content && !images.length)) continue;
+    const previous = turns[turns.length - 1];
+    if (previous && previous.role === role) {
+      previous.content = `${previous.content}\n\n${content}`.trim();
+      previous.imageDataUrls = [...(previous.imageDataUrls ?? []), ...images];
+    } else {
+      turns.push({ role, content, imageDataUrls: images });
     }
+  }
+  while (turns.length && turns[0].role === "assistant") turns.shift();
+  const last = turns[turns.length - 1];
+  if (last?.role === "user") {
+    if (currentImages.length) last.imageDataUrls = currentImages;
+    if (docNames.length) last.content = `${last.content}\n\n[Documents attached: ${docNames.join(", ")}]`;
+    if (!last.content) last.content = "Use the attached image(s) for my store.";
+  }
+  // Only the most recent images are sent; older turns keep their text.
+  let budget = MAX_IMAGES;
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const images = turns[i].imageDataUrls ?? [];
+    turns[i].imageDataUrls = images.slice(0, budget);
+    budget = Math.max(0, budget - images.length);
+  }
+  return turns;
+}
 
-    // Multimodal: images + text
-    const imageParts = images.map((dataUrl) => {
-      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-      const mediaType = (match?.[1] ?? "image/jpeg") as AnthropicImageMediaType;
-      const data = match?.[2] ?? dataUrl;
-      return {
-        type: "image" as const,
-        source: { type: "base64" as const, media_type: mediaType, data },
-      };
+function toAnthropicMessages(turns: ApiChatMessage[]): Anthropic.MessageParam[] {
+  return turns.map((turn) => {
+    const images = turn.imageDataUrls ?? [];
+    if (!images.length) return { role: turn.role, content: turn.content };
+    const parts: Anthropic.ContentBlockParam[] = images.map((dataUrl) => {
+      const match = dataUrl.match(IMAGE_DATA_URL)!;
+      return { type: "image", source: { type: "base64", media_type: match[1] as AnthropicImageMediaType, data: match[2] } };
     });
+    parts.push({ type: "text", text: turn.content });
+    return { role: turn.role, content: parts };
+  });
+}
 
+function toOpenAIInput(turns: ApiChatMessage[]): ResponseInputItem[] {
+  return turns.map((turn): ResponseInputItem => {
+    const images = turn.imageDataUrls ?? [];
+    if (turn.role === "assistant" || !images.length) return { role: turn.role, content: turn.content };
     return {
-      role: m.role as "user" | "assistant",
-      content: [...imageParts, { type: "text" as const, text }],
+      role: "user",
+      content: [
+        { type: "input_text", text: turn.content },
+        ...images.map((url) => ({ type: "input_image" as const, image_url: url, detail: "auto" as const })),
+      ],
     };
   });
 }
 
-export const POST = withSeller(async (req: NextRequest) => {
-  const body = (await req.json()) as {
-    messages: ApiChatMessage[];
-    store: StoreConfig;
+class ProviderError extends Error {
+  constructor(message: string, readonly code: string) {
+    super(message);
+  }
+}
+
+async function streamAnthropic(system: string, turns: ApiChatMessage[], onDelta: (text: string) => void) {
+  const client = getAnthropicClient();
+  if (!client) throw new ProviderError("Claude isn't configured", "NOT_CONFIGURED");
+  const stream = client.messages.stream({
+    model: CHIP_MODEL,
+    max_tokens: 16000,
+    system,
+    output_config: { effort: "medium" },
+    messages: toAnthropicMessages(turns),
+  });
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") onDelta(event.delta.text);
+  }
+  const final = await stream.finalMessage();
+  if (final.stop_reason === "refusal") throw new ProviderError("Claude declined this request.", "REFUSAL");
+  if (final.stop_reason === "max_tokens") throw new ProviderError("Claude ran out of room before finishing.", "TRUNCATED");
+}
+
+async function streamOpenAI(system: string, turns: ApiChatMessage[], onDelta: (text: string) => void) {
+  const openai = getOpenAIClient();
+  if (!openai) throw new ProviderError("OpenAI isn't configured", "NOT_CONFIGURED");
+  const stream = await openai.responses.create({
+    model: REX_OPENAI_MODEL,
+    instructions: system,
+    input: toOpenAIInput(turns),
+    max_output_tokens: 8000,
+    stream: true,
+  });
+  for await (const event of stream) {
+    if (event.type === "response.output_text.delta") onDelta(event.delta);
+    else if (event.type === "response.refusal.delta") throw new ProviderError("OpenAI declined this request.", "REFUSAL");
+    else if (event.type === "response.failed") throw new ProviderError(event.response.error?.message ?? "OpenAI failed", "FAILED");
+    else if (event.type === "error") throw new ProviderError(event.message ?? "OpenAI stream error", "FAILED");
+    else if (event.type === "response.incomplete") throw new ProviderError("OpenAI stopped before finishing.", "TRUNCATED");
+  }
+}
+
+function available(): Provider[] {
+  return providerOrder().filter((provider) => (provider === "anthropic" ? getAnthropicClient() : getOpenAIClient()));
+}
+
+export const POST = withSeller(async (req: NextRequest, { user }) => {
+  const body = (await req.json().catch(() => null)) as {
+    messages?: unknown;
+    store?: StoreConfig;
     brandContext?: BrandContext | null;
     templateContext?: TemplateContext | null;
-    currentImageDataUrls?: string[];
-    currentDocNames?: string[];
-  };
-  const { messages, store: currentStore, brandContext, templateContext, currentImageDataUrls, currentDocNames } = body;
+    currentImageDataUrls?: unknown;
+    currentDocNames?: unknown;
+  } | null;
+  if (!body) return NextResponse.json({ error: { code: "BAD_REQUEST", message: "Send the conversation as JSON." } }, { status: 400 });
 
-  const client = getAnthropicClient();
-  const openai = getOpenAIClient();
+  const docNames = Array.isArray(body.currentDocNames)
+    ? body.currentDocNames.filter((name): name is string => typeof name === "string").map((name) => name.slice(0, 120)).slice(0, 10)
+    : [];
+  const turns = normaliseMessages(body.messages, cleanImages(body.currentImageDataUrls).slice(0, MAX_IMAGES), docNames);
+  if (!turns.length) {
+    return NextResponse.json({ error: { code: "BAD_REQUEST", message: "Tell Rex what to build first." } }, { status: 400 });
+  }
 
+  const providers = available();
+  if (!providers.length) {
+    return NextResponse.json(
+      { error: { code: "AI_OFF", message: "Rex's AI isn't switched on yet. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to the server, then try again." } },
+      { status: 503 },
+    );
+  }
+
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
+
+  const baseStore = validateStoreConfig(body.store ?? DEFAULT_STORE_CONFIG, DEFAULT_STORE_CONFIG);
+  const currentStore = baseStore.ok ? baseStore.config : DEFAULT_STORE_CONFIG;
+  const system = storeBuilderSystemPrompt({
+    brandContext: body.brandContext,
+    templateContext: body.templateContext,
+    currentStore,
+    docNames,
+  });
+
+  const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      try {
-        if (openai) {
-          const systemPrompt = buildTemplatePrompt(buildSystemPrompt(brandContext), templateContext);
-          const textHistory = messages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
-          const response = await openai.responses.create({
-            model: REX_OPENAI_MODEL,
-            input: `${systemPrompt}
+      const send = (data: object) => controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
+      let lastError: unknown = null;
 
-Build the store fully. The preview must render a complete premium storefront: strong hero with a headline that sells the experience, 3-8 products with realistic African pricing, proper nav links (Products, About, FAQ, Contact), category-appropriate palette with strong contrast, and product colors that match each item. Use section variety and image-led merchandising instead of a plain hero plus grid. Keep existing product imageUrl values from the current config unless the user asks to replace them. Do not use emojis.
-
-${STORE_BUILDER_OUTPUT_CONTRACT}
-
-Current store config:
-${JSON.stringify(currentStore)}
-
-Attached document names: ${(currentDocNames ?? []).join(", ") || "none"}
-
-Conversation:
-${textHistory}`,
-          });
-
-          const fullText = response.output_text ?? "";
-          const visibleText = fullText.split("<store_config>")[0]?.trim();
-          if (visibleText) encode(controller, { type: "token", text: visibleText });
-
-          const storeMatch = fullText.match(/<store_config>([\s\S]*?)<\/store_config>/);
-          if (storeMatch) {
-            try {
-              const storeData = JSON.parse(storeMatch[1].trim()) as Partial<StoreConfig>;
-              encode(controller, { type: "store", data: { ...currentStore, ...storeData } });
-            } catch {
-              // ignore parse errors
+      for (const [index, provider] of providers.entries()) {
+        const filter = createVisibleTextFilter();
+        let sentText = false;
+        let sentDesignStatus = false;
+        send({ type: "status", stage: "thinking", provider, message: index === 0 ? "Rex is thinking" : "Switching to the backup AI" });
+        try {
+          const onDelta = (delta: string) => {
+            const visible = filter.push(delta);
+            if (visible) {
+              if (!sentText) send({ type: "status", stage: "writing", provider, message: "Rex is replying" });
+              sentText = true;
+              send({ type: "token", text: visible });
+            } else if (!sentDesignStatus && filter.fullText.includes("<store_config")) {
+              sentDesignStatus = true;
+              send({ type: "status", stage: "design", provider, message: "Rex is laying out your store" });
             }
-          }
+          };
+          if (provider === "anthropic") await streamAnthropic(system, turns, onDelta);
+          else await streamOpenAI(system, turns, onDelta);
 
-          const chipsMatch = fullText.match(/<chips>([\s\S]*?)<\/chips>/);
-          if (chipsMatch) {
-            try {
-              const chips = JSON.parse(chipsMatch[1].trim()) as string[];
-              encode(controller, { type: "chips", data: chips });
-            } catch {
-              encode(controller, { type: "chips", data: ["Refine hero text", "Adjust palette", "Add a product", "Looks good"] });
-            }
-          }
+          const tail = filter.flush();
+          if (tail.trim()) send({ type: "token", text: tail });
 
-          encode(controller, { type: "done" });
+          const reply = parseBuilderReply(filter.fullText);
+          if (reply.config) {
+            const validated = validateStoreConfig(reply.config, currentStore);
+            if (validated.ok) send({ type: "store", data: validated.config });
+            else send({ type: "error", code: "CONFIG_INVALID", message: `${validated.error} Ask Rex to try again.` });
+          } else if (reply.configError) {
+            send({ type: "error", code: "CONFIG_PARSE", message: `${reply.configError} Ask Rex to try again.` });
+          }
+          send({ type: "chips", data: reply.chips ?? ["Refine hero text", "Adjust colors", "Add a product", "Looks good"] });
+          send({ type: "done", provider });
           controller.close();
           return;
+        } catch (error) {
+          lastError = error;
+          console.error(`[ai/store-builder] ${provider} failed`, error);
+          // Once text has reached the seller, switching providers would repeat it; report instead.
+          if (sentText) break;
         }
-
-        if (!client) {
-          encode(controller, {
-            type: "error",
-            message: "OPENAI_API_KEY or ANTHROPIC_API_KEY is required for Rex to build the store.",
-          });
-          encode(controller, {
-            type: "token",
-            text: "Rex needs an AI API key configured before he can build this store fully. Add OPENAI_API_KEY and try again.",
-          });
-          controller.close();
-          return;
-        }
-
-        // Real Claude mode with vision + brand context
-        const anthropicMessages = toAnthropicMessages(
-          messages,
-          currentImageDataUrls,
-          currentDocNames,
-          currentStore,
-        );
-
-        const systemPrompt = buildTemplatePrompt(buildSystemPrompt(brandContext), templateContext);
-
-        const response = await client.messages.stream({
-          model: CHIP_MODEL,
-          max_tokens: 3200,
-          system: `${systemPrompt}\n\nBuild the store fully. The preview must render a complete premium storefront: strong hero with a headline that sells the experience, 3-8 products with realistic African pricing, proper nav links (Products, About, FAQ, Contact), category-appropriate palette with strong contrast, and product colors that match each item. Use section variety and image-led merchandising instead of a plain hero plus grid. Keep existing product imageUrl values from the current config unless the user asks to replace them. Do not use emojis.\n\n${STORE_BUILDER_OUTPUT_CONTRACT}`,
-          messages: anthropicMessages as Parameters<typeof client.messages.stream>[0]["messages"],
-        });
-
-        let fullText = "";
-
-        for await (const chunk of response) {
-          if (
-            chunk.type === "content_block_delta" &&
-            chunk.delta.type === "text_delta"
-          ) {
-            const text = chunk.delta.text;
-            fullText += text;
-
-            // Stream visible text (before the store_config block)
-            if (!fullText.includes("<store_config>")) {
-              encode(controller, { type: "token", text });
-            }
-          }
-        }
-
-        // Parse store config
-        const storeMatch = fullText.match(/<store_config>([\s\S]*?)<\/store_config>/);
-        if (storeMatch) {
-          try {
-            const storeData = JSON.parse(storeMatch[1].trim()) as Partial<StoreConfig>;
-            encode(controller, { type: "store", data: { ...currentStore, ...storeData } });
-          } catch {
-            // ignore parse errors
-          }
-        }
-
-        // Parse chips
-        const chipsMatch = fullText.match(/<chips>([\s\S]*?)<\/chips>/);
-        if (chipsMatch) {
-          try {
-            const chips = JSON.parse(chipsMatch[1].trim()) as string[];
-            encode(controller, { type: "chips", data: chips });
-          } catch {
-            encode(controller, { type: "chips", data: ["Refine hero text", "Adjust palette", "Add a product", "Looks good"] });
-          }
-        }
-
-        encode(controller, { type: "done" });
-        controller.close();
-      } catch (err) {
-        encode(controller, { type: "error", message: String(err) });
-        controller.close();
       }
+
+      const message = lastError instanceof ProviderError && lastError.code === "TRUNCATED"
+        ? "Rex's reply was cut off before the store design finished. Try a shorter request."
+        : "Rex couldn't reach the AI right now. Please try again in a moment.";
+      send({ type: "error", code: "AI_FAILED", message });
+      send({ type: "done" });
+      controller.close();
     },
   });
 
