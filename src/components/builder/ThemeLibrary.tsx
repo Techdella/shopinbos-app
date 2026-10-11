@@ -5,20 +5,28 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type React from "react";
 import { AssistantNote } from "@/components/app-kit";
-import { Notice, PillButton, cx } from "@/components/app-ui";
+import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { BOUTIQUE_FONT_CLASS, BQ_GROTESK, BQ_SANS, BQ_SERIF } from "@/components/storefront/boutique/fonts";
+import { ownPreviewProducts } from "@/lib/store-templates/demo-catalogue";
 import {
   THEME_LIBRARY,
+  chipForStoreCategory,
   filterThemes,
+  searchThemes,
   themeCategoryChips,
   themeLibraryEntry,
+  themeMeaningLine,
   type ThemeChipId,
   type ThemeLibraryEntry,
 } from "@/lib/store-templates/theme-library";
+import { ThemePreviewDialog, ThemeThumbnail } from "./theme-preview/ThemePreview";
+import type { PreviewOwnStore } from "./theme-preview/preview-store";
 
-// The eight 2026 storefront themes as cards. Used by /builder/templates (mode "page") and the builder's
-// Themes view (mode "builder"). Switching changes the draft only on a live store; products, prices, orders
-// and the seller's own words carry over.
+// The 2026 storefront themes as cards with real previews (the storefront renderer, scaled down, with a sample
+// catalogue or the seller's own products). Used by /builder/templates (mode "page") and the builder's Themes view
+// (mode "builder"). Switching changes the draft only on a live store; products, prices, orders and the seller's
+// own words carry over.
 
 export interface ThemeSwitchedResult {
   templateId: string;
@@ -31,6 +39,7 @@ export interface ThemeSwitchedResult {
 export type ThemeLibraryProps = {
   mode: "page" | "builder";
   currentThemeId: string | null;
+  /** Builder only: open a theme in the builder canvas (used after Rex's pick and a switch). */
   onPreview?: (id: string) => void;
   onCustomize?: () => void;
   /** Optional: the store's onboarding category, to open on the matching chip. */
@@ -39,114 +48,42 @@ export type ThemeLibraryProps = {
   nextPath?: string | null;
   /** Optional: told after a successful switch (the builder reloads its draft). Also sent as a window event. */
   onSwitched?: (result: ThemeSwitchedResult) => void;
+  /** Optional: the seller's store, for "Show with my products" (needs 4 or more products with photos). */
+  ownStore?: PreviewOwnStore | null;
 };
 
 export const THEME_SWITCHED_EVENT = "shopinbos:theme-switched";
 
 type RexPick = { themeId: string; reason: string; source: "rex" | "rules"; note?: string };
 
-function chipFromCategory(value?: string | null): ThemeChipId {
-  const text = value?.toLowerCase() ?? "";
-  if (/shoe|sneaker|footwear/.test(text)) return "shoes";
-  if (/luxury|jewel|perfume|watch/.test(text)) return "luxury";
-  if (/food|drink|grocer|snack|bak/.test(text)) return "food";
-  if (/home|decor|furniture|living/.test(text)) return "home";
-  if (/gadget|phone|electr|tech/.test(text)) return "gadgets";
-  if (/fashion|cloth|wear|bag|fabric/.test(text)) return "fashion";
-  return "all";
-}
-
 function nameFont(theme: ThemeLibraryEntry): React.CSSProperties {
   const family = theme.preview.nameFont === "serif" ? BQ_SERIF : theme.preview.nameFont === "grotesk" ? BQ_GROTESK : BQ_SANS;
-  return { fontFamily: family, fontWeight: theme.preview.nameWeight, fontStyle: theme.preview.nameItalic ? "italic" : undefined, letterSpacing: theme.preview.nameFont === "sans" ? "-0.02em" : "-0.01em" };
+  return { fontFamily: family, fontWeight: Math.max(500, theme.preview.nameWeight), fontStyle: theme.preview.nameItalic ? "italic" : undefined, letterSpacing: theme.preview.nameFont === "sans" ? "-0.02em" : "-0.01em" };
 }
 
-/** A small layout sketch in the theme's colours: header line, its own hero shape and three product tiles. */
-function ThemeSketch({ theme, current }: { theme: ThemeLibraryEntry; current: boolean }) {
-  const p = theme.preview;
-  const box = { border: `1.5px solid ${p.line}` } as const;
-  const hero = (() => {
-    if (theme.id === "pantry") {
-      return (
-        <div className="grid flex-1 grid-cols-2 gap-1.5">
-          <div className="flex flex-col justify-end gap-1.5 rounded-[10px] p-3" style={{ background: p.accent }}>
-            <span className="h-2 w-3/4 rounded-full bg-white/80" />
-            <span className="h-2 w-1/2 rounded-full bg-white/60" />
-          </div>
-          <div className="rounded-[10px]" style={box} />
-        </div>
-      );
-    }
-    if (theme.id === "ile") {
-      return (
-        <div className="flex flex-1 flex-col gap-2">
-          <span className="h-2 w-1/2 rounded-full" style={{ background: p.ink, opacity: 0.55 }} />
-          <div className="flex-1 rounded-[6px]" style={box} />
-        </div>
-      );
-    }
-    if (theme.id === "plug") {
-      return (
-        <div className="grid flex-1 grid-cols-2 items-center gap-2">
-          <div className="flex flex-col gap-1.5">
-            <span className="h-1.5 w-8 rounded-full" style={{ background: p.accent }} />
-            <span className="h-2 w-full rounded-full" style={{ background: p.ink, opacity: 0.6 }} />
-            <span className="h-2 w-2/3 rounded-full" style={{ background: p.ink, opacity: 0.4 }} />
-          </div>
-          <div className="aspect-square rounded-[6px]" style={{ ...box, background: `radial-gradient(circle, ${p.accent}55, transparent 65%)` }} />
-        </div>
-      );
-    }
-    return (
-      <div className="relative flex-1" style={box}>
-        <span
-          className="absolute bottom-3 h-2"
-          style={{
-            left: theme.id === "adire" || theme.id === "noir" ? "30%" : 12,
-            width: theme.id === "stride" ? "55%" : "40%",
-            background: theme.id === "stride" ? p.accent : p.ink,
-            opacity: theme.id === "stride" ? 1 : 0.35,
-            borderRadius: 999,
-          }}
-        />
-      </div>
-    );
-  })();
-  return (
-    <div
-      aria-hidden
-      className={cx("flex aspect-[4/5] flex-col gap-2.5 rounded-[22px] p-4 transition", current && "ring-[3px] ring-app-accent ring-offset-[3px] ring-offset-white")}
-      style={{ background: p.bg, color: p.ink }}
-    >
-      <div className="flex items-start justify-between gap-2 border-b pb-2.5" style={{ borderColor: p.line }}>
-        <span className="truncate text-[22px] leading-none" style={nameFont(theme)}>{theme.name}</span>
-        <span className="flex shrink-0 items-center gap-1.5">
-          <span className="text-[11px] font-semibold opacity-80">{theme.categoryLabel}</span>
-          {theme.isNew ? <span className="rounded-full bg-app-accent px-2 py-0.5 text-[10.5px] font-bold text-white">New</span> : null}
-        </span>
-      </div>
-      {hero}
-      <div className="grid h-[22%] grid-cols-3 gap-1.5">
-        {[0, 1, 2].map((index) => <div key={index} style={{ ...box, borderRadius: theme.id === "pantry" || theme.id === "stride" ? 10 : 2 }} />)}
-      </div>
-    </div>
-  );
-}
-
-export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched }: ThemeLibraryProps) {
+export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore }: ThemeLibraryProps) {
   const router = useRouter();
   const chips = useMemo(() => themeCategoryChips(THEME_LIBRARY), []);
   const [category, setCategory] = useState<ThemeChipId>(() => {
-    const wanted = chipFromCategory(initialCategory);
+    const wanted = chipForStoreCategory(initialCategory);
     return chips.some((chip) => chip.id === wanted) ? wanted : "all";
   });
+  const [query, setQuery] = useState("");
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  // "Show with my products": only when the store has enough products with photos to fill a page.
+  const own = useMemo<PreviewOwnStore | null>(() => {
+    const products = ownStore ? ownPreviewProducts(ownStore.storeProducts) : null;
+    return ownStore && products ? { ...ownStore, storeProducts: products } : null;
+  }, [ownStore]);
+  const [useOwn, setUseOwn] = useState(false);
+  const thumbOwn = useOwn ? own : null;
   const [current, setCurrent] = useState<string | null>(currentThemeId);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [switched, setSwitched] = useState<ThemeSwitchedResult | null>(null);
   const [pick, setPick] = useState<RexPick | null>(null);
   const [picking, setPicking] = useState(false);
-  const themes = filterThemes(category);
+  const themes = searchThemes(query, filterThemes(category));
 
   async function applyTheme(id: string) {
     setBusyId(id);
@@ -228,6 +165,26 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         </div>
       ) : null}
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label className="flex h-11 min-w-[220px] max-w-[420px] flex-1 items-center gap-2 rounded-full border border-app-line bg-white px-4 focus-within:border-app-ink">
+          <Icon name="search" size={16} />
+          <span className="sr-only">Search themes</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search themes: afefe, hair, food…"
+            className="h-full min-w-0 flex-1 bg-transparent text-[14.5px] outline-none"
+          />
+        </label>
+        {own ? (
+          <label className="flex items-center gap-2.5 text-[14px] font-bold">
+            <Toggle on={useOwn} onChange={setUseOwn} label="Show with my products" />
+            Show with my products
+          </label>
+        ) : null}
+      </div>
+
       <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Filter themes by category">
         {chips.map((chip) => {
           const active = category === chip.id;
@@ -285,7 +242,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                 <span className="text-[13.5px] font-bold">Already your theme</span>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {onPreview ? <PillButton tone="white" size="sm" onClick={() => onPreview(picked.id)}>Preview</PillButton> : null}
+                  <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>Preview</PillButton>
                   <PillButton tone="ink" size="sm" busy={busyId === picked.id} onClick={() => void applyTheme(picked.id)}>Use {picked.name}</PillButton>
                 </div>
               )
@@ -297,46 +254,52 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         ) : null}
       </div>
 
-      <ul className="m-0 grid list-none gap-x-5 gap-y-7 p-0 sm:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4">
+      <ul className="m-0 grid list-none gap-x-5 gap-y-8 p-0 sm:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4">
         {themes.map((theme) => {
           const isCurrent = theme.id === current;
           const isPicked = pick?.themeId === theme.id && !isCurrent;
           return (
             <li key={theme.id} className="min-w-0">
               <article aria-labelledby={`theme-${theme.id}`} className={cx("rounded-[24px]", isPicked && "outline outline-2 outline-offset-4 outline-app-ink")}>
-                {mode === "builder" && onPreview && !isCurrent ? (
-                  <button type="button" onClick={() => onPreview(theme.id)} className="block w-full cursor-pointer border-0 bg-transparent p-0 text-left" aria-label={`Preview ${theme.name}`}>
-                    <ThemeSketch theme={theme} current={isCurrent} />
-                  </button>
-                ) : (
-                  <ThemeSketch theme={theme} current={isCurrent} />
-                )}
+                <div
+                  className={cx(
+                    "group relative overflow-hidden rounded-[22px] border border-app-line bg-white transition hover:border-app-line-strong",
+                    isCurrent && "ring-[3px] ring-app-accent ring-offset-[3px] ring-offset-white",
+                  )}
+                >
+                  <ThemeThumbnail themeId={theme.id} own={thumbOwn} />
+                  {/* The preview is a whole storefront (links, buttons), so it sits beside the button, never inside it. */}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewId(theme.id)}
+                    aria-label={`Preview ${theme.name}`}
+                    className="absolute inset-0 z-[1] block h-full w-full cursor-pointer rounded-[22px] border-0 bg-transparent p-0 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-app-ink"
+                  />
+                  <span className="pointer-events-none absolute left-3 top-3 z-[2] flex flex-wrap gap-1.5">
+                    {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">New</span> : null}
+                    {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">Current</span> : null}
+                  </span>
+                  <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-bold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Icon name="eye" size={14} /> Preview
+                  </span>
+                </div>
                 <div className="mt-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 id={`theme-${theme.id}`} className="m-0 text-[15px] font-extrabold">
+                    <h3 id={`theme-${theme.id}`} className="m-0 text-[18px] leading-tight" style={nameFont(theme)}>
                       {theme.name}
                       {isCurrent ? <span className="sr-only"> (current theme)</span> : null}
                     </h3>
-                    <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-app-ink-soft">{theme.blurb}</p>
+                    <p className="m-0 mt-0.5 text-[12.5px] font-semibold text-app-ink-soft">{themeMeaningLine(theme)}</p>
+                    <p className="m-0 mt-1 text-[13px] leading-[1.45] text-app-ink-soft">{theme.blurb}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {mode === "page" ? (
-                      isCurrent ? (
-                        <span className="px-2 text-[14px] font-extrabold">Current</span>
-                      ) : (
-                        <PillButton tone="ink" size="sm" busy={busyId === theme.id} disabled={Boolean(busyId)} onClick={() => void applyTheme(theme.id)} aria-label={`Use ${theme.name}`}>
-                          Use this
-                        </PillButton>
-                      )
-                    ) : isCurrent ? (
-                      onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>Customize</PillButton> : <span className="px-2 text-[14px] font-extrabold">Current</span>
+                  <div className="flex shrink-0 flex-col items-end gap-2 min-[420px]:flex-row min-[420px]:items-center">
+                    <PillButton tone="white" size="sm" onClick={() => setPreviewId(theme.id)} aria-label={`Preview ${theme.name}`}>Preview</PillButton>
+                    {isCurrent ? (
+                      mode === "builder" && onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>Customize</PillButton> : null
                     ) : (
-                      <>
-                        {onPreview ? <PillButton tone="white" size="sm" onClick={() => onPreview(theme.id)} aria-label={`Preview ${theme.name}`}>Preview</PillButton> : null}
-                        <PillButton tone="ink" size="sm" busy={busyId === theme.id} disabled={Boolean(busyId)} onClick={() => void applyTheme(theme.id)} aria-label={`Use ${theme.name}`}>
-                          Use
-                        </PillButton>
-                      </>
+                      <PillButton tone="ink" size="sm" busy={busyId === theme.id} disabled={Boolean(busyId)} onClick={() => void applyTheme(theme.id)} aria-label={`Use ${theme.name}`}>
+                        {mode === "page" ? "Use this" : "Use"}
+                      </PillButton>
                     )}
                   </div>
                 </div>
@@ -345,6 +308,28 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
           );
         })}
       </ul>
+      {!themes.length ? (
+        <p className="py-10 text-center text-[14.5px] text-app-ink-soft">
+          No theme matches &ldquo;{query}&rdquo;{category !== "all" ? " in this category" : ""}. Try another word, or{" "}
+          <button type="button" className="font-bold underline underline-offset-4" onClick={() => { setQuery(""); setCategory("all"); }}>see all themes</button>.
+        </p>
+      ) : null}
+
+      {previewId ? (
+        <ThemePreviewDialog
+          themeId={previewId}
+          onClose={() => setPreviewId(null)}
+          own={own}
+          useOwn={useOwn}
+          onUseOwnChange={setUseOwn}
+          isCurrent={previewId === current}
+          busy={busyId === previewId}
+          onUse={() => {
+            const id = previewId;
+            void applyTheme(id).then(() => setPreviewId((open) => (open === id ? null : open)));
+          }}
+        />
+      ) : null}
 
       {current && !themeLibraryEntry(current) ? (
         <p className="mt-6 text-[13.5px] text-app-ink-soft">

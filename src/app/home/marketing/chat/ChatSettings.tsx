@@ -23,10 +23,10 @@ export interface ChatSettingsValue {
 }
 
 const MODES: { value: ChatMode; label: string; sub: string; icon: IconName }[] = [
-  { value: "contact_form", label: "Contact form", sub: "Shoppers leave an email or phone number", icon: "mail" },
+  { value: "contact_form", label: "Message form", sub: "Shoppers leave a message with their email or phone", icon: "mail" },
   { value: "whatsapp", label: "WhatsApp", sub: "Shoppers chat with you on WhatsApp", icon: "whatsapp" },
-  { value: "messaging", label: "In-app messages", sub: "A chat box on your store", icon: "chat" },
-  { value: "multiple", label: "WhatsApp and form", sub: "Both, side by side", icon: "layers" },
+  { value: "messaging", label: "Live chat", sub: "A chat box on your store, answered from your inbox", icon: "chat" },
+  { value: "multiple", label: "WhatsApp and live chat", sub: "Both buttons, side by side", icon: "layers" },
 ];
 
 const WIDGET_STYLES = [

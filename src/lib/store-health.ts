@@ -79,7 +79,7 @@ export interface DraftHealthFacts {
   pages: StorePageStatus[];
   homeHasReviews: boolean;
   homeHasPayday: boolean;
-  /** The theme can show a payday countdown (Breeze, Noir and Plain). */
+  /** The theme can show a payday countdown (the 2026 boutique themes). */
   supportsPayday: boolean;
   /** A logo is set on the draft's header (counts as well as Store.logoUrl). */
   headerLogo: boolean;
@@ -209,7 +209,7 @@ export function computeStoreHealth(facts: StoreHealthFacts, now = new Date()): S
 
 // ─── Rex's suggestion chips ─────────────────────────────────────────────────────────────────────────────
 
-const THEME_NAMES: Record<string, string> = { breeze: "Breeze", noir: "Noir", plain: "Plain" };
+const THEME_NAMES: Record<string, string> = { breeze: "Afẹ́fẹ́", noir: "Dúdú", plain: "Jẹ́jẹ́" };
 
 /** Chips under Rex's chat, from what the store is missing right now. */
 export function rexSuggestionChips(facts: StoreHealthFacts, options: { hasDraft: boolean; exclude?: string[] } = { hasDraft: true }): string[] {

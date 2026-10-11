@@ -1245,6 +1245,7 @@ model Discount {
   startsAt    DateTime?
   expiresAt   DateTime?
   status      DiscountStatus @default(draft)
+  config      Json           @default("{}") // marketing: { automatic, buyQuantity, getQuantity, getPercent, productIds, segmentId, oncePerCustomer }
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -1461,6 +1462,7 @@ enum AutomationTrigger {
   win_back
   birthday
   low_stock
+  browse_abandonment // marketing: known visitor saved/viewed products and didn't buy
 }
 
 enum AutomationActionType {
@@ -1512,6 +1514,7 @@ model BroadcastCampaign {
   senderName      String?
   senderEmail     String?
   replyTo         String?
+  channel         String         @default("email") // marketing: email | sms | whatsapp (recipient address goes in CampaignRecipient.email)
   campaignType    String         @default("newsletter") // newsletter | promotion | product_launch | sale | announcement | abandoned_cart | welcome | custom
   recipientFilter Json           @default("[]") // JSON array of filters
   segmentId       String?        // FK to CustomerSegment
@@ -1587,19 +1590,30 @@ model AbandonedCartEvent {
   id        String   @id @default(cuid())
   storeId   String
   visitorId String?
-  email     String
+  email     String?
   name      String?
   items     Json     @default("[]")
   subtotal  Float    @default(0)
   currency  String   @default("NGN")
   status    String   @default("triggered")
   createdAt DateTime @default(now())
+  phone          String? // commerce: captured at checkout when no email yet
+  recoveryToken  String?   @unique // commerce: /s/[slug]/cart?recover=<token> restores the cart
+  checkoutStep   String? // commerce: furthest checkout step reached (contact | delivery | payment | review)
+  discountCode   String? // commerce: code the shopper applied, if any
+  remindersSent  Int       @default(0) // marketing: reminders sent for this cart
+  lastReminderAt DateTime? // marketing: when the last reminder went out
+  restoredAt     DateTime? // commerce: recovery link opened
+  recoveredAt    DateTime? // commerce: order placed from this cart
+  orderId        String? // commerce: RetailOrder.id that recovered it
+  updatedAt      DateTime  @default(now()) @updatedAt // commerce: last cart change
 
   store   Store @relation(fields: [storeId], references: [id])
   visitor StoreVisitor? @relation(fields: [visitorId], references: [id])
 
   @@index([storeId, createdAt])
   @@index([email])
+  @@index([storeId, recoveredAt])
 }
 
 // ─── Product Reviews ──────────────────────────────────────────────────────────
@@ -1624,6 +1638,7 @@ model ProductReview {
   status        ReviewStatus @default(pending)
   sellerReply   String?      @default("")
   repliedAt     DateTime?
+  featured      Boolean      @default(false) // shown first on the reviews wall and widget (agent F)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -1816,3 +1831,361 @@ model PartnerWebhook {
 
   @@index([logisticsPartnerId])
 }
+
+// ---- inbox (agent E) ----
+// All-in-one customer inbox: one conversation model for every channel (email, WhatsApp, SMS, Messenger,
+// Instagram, Telegram, phone calls, live chat, contact forms). Seller ↔ supplier/partner chats stay in
+// Conversation/Message and are shown alongside these.
+
+model InboxChannel {
+  id            String    @id @default(cuid())
+  storeId       String
+  channel       String // email | whatsapp | sms | messenger | instagram | telegram | voice
+  status        String    @default("disconnected") // connected | error | disconnected
+  externalId    String? // WhatsApp phone_number_id, Page id, IG account id, Telegram bot id, Twilio number, inbound address
+  displayName   String?
+  credentials   String? // AES-256-GCM encrypted JSON (src/lib/inbox/crypto.ts); never sent to the browser
+  webhookSecret String? // per-channel random secret (Meta verify token, Telegram secret token)
+  settings      Json      @default("{}")
+  lastError     String?
+  connectedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([storeId, channel])
+  @@index([channel, externalId])
+  @@index([webhookSecret])
+}
+
+model InboxConversation {
+  id                 String    @id @default(cuid())
+  storeId            String
+  channel            String // email | whatsapp | sms | messenger | instagram | telegram | voice | livechat | form
+  externalThreadId   String // phone number, PSID/IGSID, Telegram chat id, email address, live-chat visitor key, form submission id
+  subject            String?
+  contactName        String?
+  contactEmail       String?
+  contactPhone       String?
+  contactHandle      String?
+  visitorId          String?
+  status             String    @default("open") // open | snoozed | closed
+  snoozedUntil       DateTime?
+  assigneeEmail      String?
+  tags               String[]  @default([])
+  unreadCount        Int       @default(0)
+  lastMessageAt      DateTime  @default(now())
+  lastMessagePreview String?
+  lastInboundAt      DateTime?
+  autoRepliedAt      DateTime?
+  visitorSeenAt      DateTime? // live chat: when the shopper's widget last polled
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  messages InboxMessage[]
+
+  @@unique([storeId, channel, externalThreadId])
+  @@index([storeId, status, lastMessageAt(sort: Desc)])
+  @@index([storeId, contactEmail])
+  @@index([storeId, contactPhone])
+}
+
+model InboxMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  storeId        String
+  direction      String // inbound | outbound | note
+  kind           String   @default("text") // text | call | voicemail | form | auto_reply
+  body           String
+  bodyHtml       String?
+  attachments    Json     @default("[]") // [{ url, name, contentType }]
+  status         String   @default("received") // received | queued | sent | delivered | read | failed | logged
+  error          String?
+  externalId     String?
+  authorName     String?
+  meta           Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  conversation InboxConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([externalId])
+}
+
+model InboxCannedReply {
+  id        String   @id @default(cuid())
+  storeId   String
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+model InboxSettings {
+  id               String    @id @default(cuid())
+  storeId          String    @unique
+  autoReplyEnabled Boolean   @default(false)
+  autoReplyMode    String    @default("message") // message | peggy
+  awayMessage      String?
+  forwardCallsTo   String? // seller's own phone for Twilio Voice to ring before voicemail
+  sellerLastSeenAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+// ---- end inbox (agent E) ----
+
+// ---- reviews (agent F) ----
+
+// Reviews that didn't come through the store's own review form: Google Business Profile (API import or a
+// pasted review), WhatsApp/Instagram/Facebook screenshots, and marketplace reviews the seller copied in.
+// The customer's words are stored as received and never edited; sellers hide a review instead.
+model ExternalReview {
+  id             String    @id @default(cuid())
+  storeId        String
+  source         String // google | whatsapp | instagram | facebook | tiktok | x | jumia | konga | marketplace | other
+  importMethod   String    @default("manual") // api | manual | screenshot
+  externalId     String? // provider id (Google review name) for de-duplication
+  sourceUrl      String?
+  productId      String? // optional StoreProduct the review is about
+  authorName     String
+  authorPhotoUrl String?
+  rating         Int? // 1-5; null when the source has no stars (a WhatsApp message)
+  title          String    @default("")
+  body           String    @default("")
+  images         String[]  @default([])
+  status         String    @default("approved") // approved | pending | rejected (hidden)
+  featured       Boolean   @default(false)
+  verifiedBuyer  Boolean   @default(false)
+  orderId        String? // RetailOrder that proves the purchase, when the seller linked one
+  reply          String?
+  repliedAt      DateTime?
+  replySyncedAt  DateTime? // when the reply was posted to the source (Google)
+  replyError     String?
+  reviewedAt     DateTime  @default(now()) // when the customer wrote it
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([storeId, source, externalId])
+  @@index([storeId, createdAt])
+  @@index([storeId, status])
+}
+
+// A request sent to a buyer to review their order. The link /s/[slug]/review/<signed token> lets them
+// review every item without signing in.
+model ReviewRequest {
+  id           String    @id @default(cuid())
+  storeId      String
+  orderId      String
+  customerName String
+  email        String?
+  phone        String?
+  channel      String // email | sms | whatsapp | link
+  trigger      String    @default("manual") // manual | auto | peggy | automation
+  status       String    @default("pending") // pending | sent | failed | opened | completed
+  error        String?
+  sentAt       DateTime?
+  openedAt     DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([orderId])
+}
+
+// OAuth connection to a review source (Google Business Profile). Tokens are encrypted when
+// INTEGRATIONS_ENCRYPTION_KEY is set and are never sent to the browser.
+model ReviewSourceConnection {
+  id            String    @id @default(cuid())
+  storeId       String
+  provider      String // google_business
+  accessToken   String?
+  refreshToken  String?
+  expiresAt     DateTime?
+  accountName   String? // accounts/123
+  locationName  String? // locations/456
+  locationTitle String?
+  status        String    @default("connected") // connected | needs_location | error
+  lastSyncedAt  DateTime?
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([storeId, provider])
+}
+
+model ReviewSettings {
+  id               String   @id @default(cuid())
+  storeId          String   @unique
+  autoRequest      Boolean  @default(false) // ask buyers after delivery
+  requestDelayDays Int      @default(3)
+  requestChannel   String   @default("email") // email | sms | whatsapp
+  autoApprove      Boolean  @default(false) // publish new store reviews without moderation
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+// ---- end reviews (agent F) ----
+
+// ---- analytics + social selling (agent G) ----
+// Daily storefront counters (one row per store/day/metric/source/product). Written by the storefront
+// beacons in src/lib/analytics/storefront-events.ts; read by /home/analytics and /channels.
+model StoreMetricDaily {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       String // YYYY-MM-DD, Africa/Lagos
+  metric    String // visit | product_view | add_to_cart | checkout_start
+  channel   String   @default("") // shared/channels.ts key from ?ref / utm_source; "" = not tagged
+  campaign  String   @default("") // utm_campaign, lowercased; "" = none
+  productId String   @default("")
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day, metric, channel, campaign, productId])
+  @@index([storeId, day])
+}
+
+// A store's product catalog on a selling channel (Google Merchant Center, Meta/Instagram/Facebook, TikTok, WhatsApp).
+// Feeds work without any of this; a row records API credentials (token encrypted at rest) and sync/fetch history.
+model SocialChannelConnection {
+  id              String    @id @default(cuid())
+  storeId         String
+  channel         String // google | meta | tiktok | whatsapp
+  externalId      String? // Merchant Center ID, Meta catalog ID, TikTok catalog ID, WhatsApp catalog ID
+  tokenEnc        String? // encrypted access token (src/lib/social/secrets.ts); never sent to the browser
+  feedAddedAt     DateTime? // seller said they pasted the feed URL into the channel
+  lastFetchAt     DateTime? // the channel's crawler last downloaded the feed
+  lastFetchAgent  String?
+  lastSyncAt      DateTime?
+  lastSyncStatus  String? // ok | error
+  lastSyncMessage String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([storeId, channel])
+  @@index([storeId])
+}
+// ---- end analytics + social selling (agent G) ----
+
+// ---- marketing (agent A) ----
+// Automation flows live on AutomationRule (steps in actionConfig.steps). Each contact that enters a flow gets an
+// AutomationEnrollment that walks the steps; /api/cron/marketing runs the due ones. Every step outcome is logged.
+
+model AutomationEnrollment {
+  id           String    @id @default(cuid())
+  storeId      String
+  automationId String // AutomationRule.id
+  dedupeKey    String // e.g. cart:<AbandonedCartEvent.id>, order:<id>, winback:<email>:<lastOrderId>
+  email        String?
+  phone        String?
+  name         String?
+  context      Json      @default("{}") // variables for messages: order number, cart items, product names...
+  status       String    @default("active") // active | completed | exited | failed
+  currentStep  Int       @default(0)
+  nextRunAt    DateTime?
+  exitReason   String?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([automationId, dedupeKey])
+  @@index([storeId, createdAt])
+  @@index([status, nextRunAt])
+  @@index([automationId, status])
+}
+
+model AutomationLog {
+  id           String   @id @default(cuid())
+  storeId      String
+  automationId String
+  enrollmentId String?
+  stepIndex    Int      @default(0)
+  stepType     String // enrolled | wait | condition | send_email | send_sms | send_whatsapp | add_tag | give_discount | request_review | notify_seller | exit
+  status       String // ok | skipped | failed | exited
+  recipient    String?
+  message      String   @default("")
+  createdAt    DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([automationId, createdAt])
+}
+
+// Daily view / submit counts per storefront form or pop-up.
+model MarketingFormStat {
+  id          String   @id @default(cuid())
+  storeId     String
+  formId      String
+  day         DateTime @db.Date
+  views       Int      @default(0)
+  submissions Int      @default(0)
+
+  @@unique([formId, day])
+  @@index([storeId, day])
+}
+// ---- end marketing (agent A) ----
+
+// ---- cms (agent H) ----
+// Wix-style content collections: the seller defines a collection (Blog, Size guide, Recipe book, Course…) with
+// its own fields, then writes items in it. Shown on the storefront at /s/[slug]/<collection>/<item>.
+model CmsCollection {
+  id          String    @id @default(cuid())
+  storeId     String
+  name        String
+  slug        String // storefront path segment, unique per store
+  template    String    @default("blank") // blog | size_guide | recipe | course | faq | lookbook | team | events | blank
+  description String    @default("")
+  itemLabel   String    @default("Item") // "Post", "Recipe", "Lesson"
+  fields      Json      @default("[]") // [{ id, key, label, type, required, help, options, multiple }]
+  settings    Json      @default("{}") // { layout: grid | list, sort: newest | oldest | manual | title }
+  seo         Json      @default("{}") // list page SEO (same shape as page SEO)
+  isPublished Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  items       CmsItem[]
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+}
+
+model CmsItem {
+  id            String        @id @default(cuid())
+  storeId       String
+  collectionId  String
+  title         String
+  slug          String
+  status        String        @default("draft") // draft | published | scheduled (live once publishAt has passed)
+  publishAt     DateTime?
+  publishedAt   DateTime?
+  author        String        @default("")
+  featuredImage String?
+  excerpt       String        @default("")
+  data          Json          @default("{}") // field key → value; rich text is { json, html } with html rebuilt on the server
+  seo           Json          @default("{}")
+  legacyId      String? // id of the post in the old StorePage "blog" JSON this item was copied from
+  createdBy     String        @default("seller") // seller | peggy | rex | import
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  collection    CmsCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, slug])
+  @@unique([collectionId, legacyId])
+  @@index([storeId])
+  @@index([collectionId, status])
+}
+
+// SEO for things whose own table has no room for it (products keep seoTitle/seoDescription on the row; the
+// social card, canonical, noindex and focus phrase live here). resourceType: product | collection.
+model SeoMeta {
+  id           String   @id @default(cuid())
+  storeId      String
+  resourceType String
+  resourceId   String
+  data         Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([storeId, resourceType, resourceId])
+  @@index([storeId])
+}
+// ---- end cms (agent H) ----

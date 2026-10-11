@@ -11,6 +11,14 @@ import { updateOrderStatus } from "@/lib/orders/update-status";
 import { AD_PLATFORMS, adCode, fallbackAdCopy } from "@shared/ads";
 import { naira } from "@shared/onboarding";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
+import { SETUP_TOOL_RUNNERS } from "./setup-tools";
+import { INBOX_TOOL_RUNNERS } from "./inbox-tools";
+import { SOCIAL_TOOL_RUNNERS } from "./social-tools";
+import { REVIEWS_TOOL_RUNNERS } from "./reviews-tools";
+import { MARKETING_TOOL_RUNNERS } from "./marketing-tools";
+import { COMMERCE_TOOL_RUNNERS } from "./commerce-tools";
+import { CMS_TOOL_RUNNERS } from "./cms-tools";
+import { saveMarkdownPost } from "@/lib/cms/server";
 import {
   aggregateCustomers,
   lowStockProducts,
@@ -314,14 +322,6 @@ async function markOrder(ctx: PeggyToolContext, input: PeggyToolInput<"mark_orde
   return { content: summary, action: { summary, href } };
 }
 
-function slugify(input: string) {
-  return input.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 72);
-}
-
-function contentRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-}
-
 async function draftBlogPost(ctx: PeggyToolContext, input: PeggyToolInput<"draft_blog_post">): Promise<ToolOutput> {
   await meterExtra(ctx);
   const products = await db.storeProduct.findMany({ where: { storeId: ctx.store.id, status: "published" }, orderBy: { soldStock: "desc" }, take: 8, select: { name: true, retailPrice: true } });
@@ -343,39 +343,15 @@ async function draftBlogPost(ctx: PeggyToolContext, input: PeggyToolInput<"draft
   const metaDescription = typeof json?.metaDescription === "string" ? json.metaDescription.trim().slice(0, 160) : excerpt.slice(0, 160);
   const keywords = Array.isArray(json?.keywords) ? json.keywords.map(String).map((k) => k.trim()).filter(Boolean).slice(0, 8) : [];
 
-  const page = await db.storePage.findUnique({ where: { storeId_slug: { storeId: ctx.store.id, slug: "blog" } } });
-  const existing = contentRecord(page?.content);
-  const posts = Array.isArray(existing.posts) ? existing.posts : [];
-  const now = new Date().toISOString();
+  // Saved in the store's Blog collection (CMS) as a draft; the seller reviews and publishes it there.
   const title = input.title.trim();
-  const post = {
-    id: crypto.randomUUID(),
-    title,
-    slug: slugify(title),
-    excerpt,
-    bodyMarkdown: body,
-    metaTitle: title.slice(0, 70),
-    metaDescription,
-    keywords,
-    status: "draft" as const,
-    wordCount: body.split(/\s+/).filter(Boolean).length,
-    createdAt: now,
-    updatedAt: now,
-  };
-  const content = {
-    ...existing,
-    cms: { enabled: true, assistant: "Peggy", message: "Your blog is set up. Peggy can write and publish articles from the CMS." },
-    posts: [post, ...posts],
-  } as unknown as Prisma.InputJsonValue;
-  await db.storePage.upsert({
-    where: { storeId_slug: { storeId: ctx.store.id, slug: "blog" } },
-    create: { storeId: ctx.store.id, type: "blog", title: "Blog", slug: "blog", content, isPublished: true, order: 99 },
-    update: { title: "Blog", content, isPublished: true },
-  });
+  const item = await saveMarkdownPost(ctx.store.id, { title, excerpt, bodyMarkdown: body, metaTitle: title.slice(0, 70), metaDescription, keywords, status: "draft" }, "peggy");
+  const post = { id: item.id, wordCount: body.split(/\s+/).filter(Boolean).length };
+  const href = `/home/cms/${item.collectionId}/${item.id}`;
 
   const summary = `Wrote "${title}" (${post.wordCount} words) and saved it as a draft blog post. It is not published.`;
-  await recordActivity(ctx, { type: "content", title: `Peggy drafted a blog post: ${title}`, description: summary, tool: "draft_blog_post", link: "/home/cms/blog", data: { postId: post.id } });
-  return { content: `${summary}\nExcerpt: ${excerpt}`, action: { summary, href: "/home/cms/blog" } };
+  await recordActivity(ctx, { type: "content", title: `Peggy drafted a blog post: ${title}`, description: summary, tool: "draft_blog_post", link: href, data: { postId: post.id } });
+  return { content: `${summary}\nExcerpt: ${excerpt}`, action: { summary, href } };
 }
 
 const AUDIENCE_FILTER = {
@@ -495,6 +471,13 @@ export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
   draft_broadcast: draftBroadcast,
   draft_ad: draftAd,
   write_copy: writeCopy,
+  ...SETUP_TOOL_RUNNERS,
+  ...INBOX_TOOL_RUNNERS,
+  ...SOCIAL_TOOL_RUNNERS,
+  ...REVIEWS_TOOL_RUNNERS,
+  ...MARKETING_TOOL_RUNNERS,
+  ...COMMERCE_TOOL_RUNNERS,
+  ...CMS_TOOL_RUNNERS,
 };
 
 export const isWriteTool = (name: string) => name in PEGGY_TOOL_SPECS && PEGGY_TOOL_SPECS[name as PeggyToolName].write;

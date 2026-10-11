@@ -1,0 +1,397 @@
+// Sample catalogues for theme previews on /builder/templates and in the builder's Themes view: 6 to 12 made-up
+// products per industry with Nigerian names and naira prices, drawn as flat illustrations in the theme's palette
+// (demo-art.ts). They only ever render inside a preview marked "Sample products"; nothing here is saved to a
+// store, and there are no reviews, ratings or brands. Pure data, so tests can load it directly.
+
+import type { ThemeLibraryId } from "./theme-library";
+import { demoProductArt, demoSceneArt, type DemoArtKind } from "./demo-art.ts";
+
+export interface DemoProductSeed {
+  name: string;
+  /** Naira. */
+  price: number;
+  compareAt?: number;
+  category: string;
+  art: DemoArtKind;
+  /** The object's colour; falls back to the catalogue's palette. */
+  tint?: string;
+  description: string;
+}
+
+export interface DemoCatalogue {
+  storeName: string;
+  description: string;
+  city: string;
+  /** What the theme is for, in words ("hair and wigs"). */
+  industry: string;
+  heroArt: DemoArtKind[];
+  /** Object colours to cycle through when a product has no tint. */
+  mains: string[];
+  products: DemoProductSeed[];
+}
+
+const p = (name: string, price: number, category: string, art: DemoArtKind, description: string, tint?: string, compareAt?: number): DemoProductSeed => ({
+  name, price, category, art, description, tint, compareAt,
+});
+
+export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
+  breeze: {
+    storeName: "Tolu & Co.", city: "Lagos", industry: "fashion", description: "Easy, breathable pieces made in Lagos for the heat.",
+    heroArt: ["dress", "bag", "shirt"], mains: ["#C2410C", "#0F766E", "#1E3A8A"],
+    products: [
+      p("Ankara wrap dress", 28500, "Dresses", "dress", "A midi wrap in bold ankara print with a tie waist.", "#C2410C"),
+      p("Linen two-piece set", 34000, "Sets", "shirt", "Relaxed shirt and shorts in breathable linen.", "#C9B48A"),
+      p("Adire kimono", 22000, "Outerwear", "robe", "Hand-dyed indigo kimono to throw over anything.", "#1E3A8A"),
+      p("Wide-leg trousers", 18500, "Trousers", "trousers", "High-waisted, fluid and office-ready.", "#0F766E"),
+      p("Raffia tote bag", 15000, "Bags", "bag", "Woven raffia, roomy enough for the beach or the market.", "#C8A15A", 18000),
+      p("Silk bandana top", 12500, "Tops", "shirt", "A soft satin top with a tie back.", "#DB2777"),
+      p("Pleated midi dress", 19800, "Dresses", "dress", "Swishy pleats in a flattering A-line.", "#6B21A8"),
+      p("Beaded mini bag", 16500, "Bags", "bag", "Hand-beaded evening bag with a chain strap.", "#111827"),
+    ],
+  },
+  noir: {
+    storeName: "Maison Ayọ̀", city: "Lagos", industry: "luxury", description: "Considered pieces for evenings that matter.",
+    heroArt: ["dress", "watch", "heel"], mains: ["#7F1D1D", "#C8A96A", "#1F1F1F"],
+    products: [
+      p("Silk evening gown", 145000, "Gowns", "dress", "Bias-cut silk that moves with you.", "#7F1D1D"),
+      p("Gold-tone wristwatch", 98000, "Watches", "watch", "Slim case, sapphire-style glass, leather strap.", "#3A2A1A"),
+      p("Structured leather handbag", 120000, "Bags", "bag", "Top handle, gold hardware, suede lining.", "#1F1F1F"),
+      p("Velvet agbada set", 180000, "Menswear", "robe", "Three pieces in deep plum velvet with gold embroidery.", "#3F1D38"),
+      p("Pearl drop earrings", 45000, "Jewellery", "earrings", "Freshwater-style pearls on gold-tone hoops.", "#F5F0E6"),
+      p("Pointed satin heels", 65000, "Shoes", "heel", "A 9cm stiletto in liquid satin.", "#C8A96A"),
+    ],
+  },
+  plain: {
+    storeName: "Kemi's Corner", city: "Ibadan", industry: "a bit of everything", description: "Good everyday things, simply sold.",
+    heroArt: ["bag", "candle", "jar"], mains: ["#111111", "#6B6B6B", "#B91C1C"],
+    products: [
+      p("Cotton crew tee", 8500, "Clothing", "shirt", "Heavyweight cotton, boxy fit.", "#BDBDBD"),
+      p("Canvas tote", 9000, "Bags", "bag", "Sturdy canvas with an inside pocket.", "#D6D3CB"),
+      p("Scented soy candle", 7500, "Home", "candle", "Hand-poured, 40-hour burn.", "#F3EDE2"),
+      p("Shea body butter", 6000, "Beauty", "jar", "Whipped raw shea with a little coconut oil.", "#E9DCC3"),
+      p("Stoneware mug", 5500, "Home", "cup", "Speckled glaze, 350ml.", "#9CA3AF"),
+      p("Leather sandals", 14000, "Shoes", "sandal", "Hand-stitched in Aba.", "#92400E"),
+    ],
+  },
+  adire: {
+    storeName: "Indigo House", city: "Abẹ́òkúta", industry: "editorial fashion", description: "Hand-dyed adire, cut into pieces you'll wear for years.",
+    heroArt: ["dress", "robe", "fabric-roll"], mains: ["#1E3A8A", "#3730A3", "#B8612F"],
+    products: [
+      p("Adire indigo maxi dress", 32000, "Dresses", "dress", "Hand-dyed in Abẹ́òkúta, cut long and loose.", "#1E3A8A"),
+      p("Adire kaftan", 27000, "Kaftans", "robe", "A relaxed kaftan with side slits.", "#1E40AF"),
+      p("Tie-dye shirt", 16000, "Shirts", "shirt", "Cotton shirt with a cloud tie-dye.", "#3730A3"),
+      p("Adire fabric, 4 yards", 14500, "Fabrics", "fabric-roll", "Starch-resist adire, ready to sew.", "#1E3A8A"),
+      p("Batik headwrap", 6500, "Accessories", "gele", "Soft cotton batik, easy to tie.", "#B8612F"),
+      p("Indigo tote", 11000, "Bags", "bag", "Adire-dyed canvas tote.", "#312E81"),
+    ],
+  },
+  pantry: {
+    storeName: "Mama Bisi's", city: "Lagos", industry: "food and drinks", description: "Home-made drinks, sauces and small chops.",
+    heroArt: ["bottle", "jar", "bowl"], mains: ["#9F1239", "#E2541B", "#92400E"],
+    products: [
+      p("Zobo drink, 1 litre", 2500, "Drinks", "bottle", "Hibiscus with ginger and pineapple. Served chilled.", "#9F1239"),
+      p("Chapman, 1 litre", 3000, "Drinks", "bottle", "The party classic, with cucumber and lemon.", "#DC2626"),
+      p("Tigernut kunu", 2000, "Drinks", "bottle", "Creamy tigernut and dates, no added sugar.", "#D4A373"),
+      p("Pepper sauce, 350g", 4500, "Sauces", "jar", "Scotch bonnet, onion and palm oil.", "#B91C1C"),
+      p("Suya spice, 200g", 3500, "Spices", "jar", "Yaji the way the mallam makes it.", "#92400E"),
+      p("Small chops pack (20)", 9500, "Small chops", "bowl", "Puff puff, samosa, spring rolls and gizdodo.", "#E2541B"),
+      p("Party jollof & chicken", 4500, "Meals", "plate", "Smoky jollof, plantain and grilled chicken.", "#E2541B"),
+    ],
+  },
+  ile: {
+    storeName: "Ilé Living", city: "Abuja", industry: "home and living", description: "Calm, handmade pieces for the home.",
+    heroArt: ["lamp", "vase", "cushion"], mains: ["#5E7464", "#B08D57", "#C2410C"],
+    products: [
+      p("Woven raffia lamp", 38000, "Lighting", "lamp", "Hand-woven shade on a turned wood base.", "#C8A15A"),
+      p("Terracotta vase", 16000, "Decor", "vase", "Hand-thrown clay with a matte finish.", "#B45309"),
+      p("Aṣọ-òkè throw cushion", 12500, "Cushions", "cushion", "Woven aṣọ-òkè front, linen back.", "#5E7464"),
+      p("Lemongrass candle", 9000, "Decor", "candle", "Soy wax, 45-hour burn.", "#E7E5E4"),
+      p("Rattan side chair", 85000, "Furniture", "chair", "Rattan and iroko, made in Ikorodu.", "#8C6A43"),
+      p("Clay cooking pot", 14000, "Kitchen", "pot", "Traditional clay pot for slow soups.", "#9A3412"),
+    ],
+  },
+  plug: {
+    storeName: "Gadget Plug", city: "Lagos", industry: "gadgets", description: "Phones, audio and power, tested before they leave.",
+    heroArt: ["phone", "headphones", "speaker"], mains: ["#5B8CFF", "#2A2E37", "#9AA1AC"],
+    products: [
+      p("Smartphone, 128GB", 285000, "Phones", "phone", "6.5\" display, dual SIM, 5000mAh battery.", "#5B8CFF"),
+      p("Wireless headphones", 45000, "Audio", "headphones", "Over-ear, 30-hour battery, noise reduction.", "#2A2E37"),
+      p("Bluetooth speaker", 32000, "Audio", "speaker", "Splash-proof, 12-hour play.", "#5B8CFF"),
+      p("Power bank, 20,000mAh", 18500, "Power", "powerbank", "Two USB ports and fast charging.", "#E5E7EB", 22000),
+      p("14\" laptop, 512GB", 520000, "Laptops", "laptop", "16GB RAM, backlit keyboard.", "#9AA1AC"),
+      p("Smartwatch", 38000, "Wearables", "watch", "Heart rate, sleep and step tracking.", "#2A2E37"),
+    ],
+  },
+  stride: {
+    storeName: "Waka Kicks", city: "Lagos", industry: "shoes", description: "Sneakers and slides for every kind of waka.",
+    heroArt: ["sneaker", "sandal", "sneaker"], mains: ["#FF4D1F", "#141414", "#1D4ED8"],
+    products: [
+      p("Runner sneakers", 42000, "Sneakers", "sneaker", "Light mesh upper, cushioned sole.", "#F97316"),
+      p("Court sneakers", 38000, "Sneakers", "sneaker", "Clean white leather, goes with everything.", "#E5E7EB"),
+      p("Leather slides", 15000, "Slides", "sandal", "Hand-made in Aba, cushioned footbed.", "#78350F"),
+      p("Block heels", 26000, "Heels", "heel", "A steady 6cm block heel.", "#DB2777"),
+      p("High-top sneakers", 48000, "Sneakers", "sneaker", "Padded collar, grippy sole.", "#1D4ED8", 55000),
+      p("Sports cap", 7500, "Accessories", "cap", "Breathable, adjustable strap.", "#141414"),
+    ],
+  },
+  ewa: {
+    storeName: "Glow by Ifeoma", city: "Enugu", industry: "beauty and skincare", description: "Simple skincare with shea, black soap and botanicals.",
+    heroArt: ["jar", "dropper", "soap"], mains: ["#C2566B", "#E9C9B7", "#8A5A44"],
+    products: [
+      p("Whipped shea body butter", 8500, "Body", "jar", "Raw shea and cocoa butter, whipped light.", "#E9C9B7"),
+      p("Vitamin C serum, 30ml", 14000, "Face", "dropper", "Brightening serum for dull skin.", "#F59E0B"),
+      p("African black soap", 4500, "Cleansers", "soap", "Plantain-ash black soap with shea.", "#3F2A1E"),
+      p("Hydrating face cream", 11500, "Face", "jar", "Light daily moisturiser with aloe.", "#FCE7F3"),
+      p("Tinted lip balm", 6500, "Lips", "lipstick", "Sheer berry tint with shea.", "#C2566B"),
+      p("Sunscreen SPF 50", 12000, "Face", "tube", "No white cast on deep skin tones.", "#FDE68A"),
+      p("Glow body oil", 9000, "Body", "bottle", "Jojoba and sweet almond with a soft shimmer.", "#D97706"),
+    ],
+  },
+  suku: {
+    storeName: "Crown by Zainab", city: "Abuja", industry: "hair and wigs", description: "Wigs, braids and hair care, ready to wear.",
+    heroArt: ["wig", "wig", "comb"], mains: ["#1C1917", "#B45309", "#E0679E"],
+    products: [
+      p("Bone straight wig, 20\"", 185000, "Wigs", "wig", "13x4 lace frontal, pre-plucked.", "#1C1917"),
+      p("Kinky curly wig, 16\"", 145000, "Wigs", "wig", "Full, natural-looking curls.", "#3F2A1E"),
+      p("Knotless braid wig", 95000, "Braids", "wig", "Waist-length knotless braids on a lace cap.", "#111827"),
+      p("Honey blonde bob", 120000, "Wigs", "wig", "Blunt bob in honey blonde.", "#B45309", 135000),
+      p("Edge control", 4500, "Hair care", "jar", "Strong hold, no flakes.", "#E0679E"),
+      p("Wide-tooth comb", 2500, "Tools", "comb", "Gentle on curls and wigs.", "#2A1630"),
+      p("Satin bonnet", 5000, "Accessories", "cap", "Double-layer satin to protect your hair overnight.", "#E0679E"),
+    ],
+  },
+  asoebi: {
+    storeName: "Bímpé Fabrics", city: "Lagos", industry: "fabrics and lace", description: "Lace, ankara, aṣọ-òkè and george for every owambe.",
+    heroArt: ["fabric-fold", "gele", "fabric-roll"], mains: ["#7C3AED", "#D4A13A", "#BE123C"],
+    products: [
+      p("Swiss voile lace, 5 yards", 75000, "Lace", "fabric-fold", "Soft voile lace with stone detailing.", "#7C3AED"),
+      p("Cord lace, 5 yards", 95000, "Lace", "fabric-fold", "Heavy cord lace for a structured look.", "#B45309"),
+      p("Ankara wax print, 6 yards", 18000, "Ankara", "fabric-roll", "Bright, colour-fast cotton print.", "#EA580C"),
+      p("Aṣọ-òkè set", 65000, "Aṣọ-òkè", "fabric-roll", "Hand-woven gele, ipele and ìró.", "#6D28D9"),
+      p("George wrapper", 55000, "George", "fabric-fold", "Embroidered george for the big day.", "#BE123C"),
+      p("Gele headtie", 12000, "Gele", "gele", "Stiff, shiny and easy to tie.", "#D4A13A"),
+    ],
+  },
+  agbada: {
+    storeName: "Kọ́lá Tailors", city: "Ibadan", industry: "menswear", description: "Agbada, kaftans and native wear, cut to fit.",
+    heroArt: ["robe", "cap", "shirt"], mains: ["#E7E5E4", "#1E3A5F", "#B08D57"],
+    products: [
+      p("Three-piece agbada", 95000, "Agbada", "robe", "Agbada, buba and sokoto with hand embroidery.", "#E7E5E4"),
+      p("Senator kaftan", 48000, "Kaftan", "robe", "Clean senator cut in cashmere-feel fabric.", "#1E3A5F"),
+      p("Embroidered buba & sokoto", 62000, "Native wear", "shirt", "Matching set with neck embroidery.", "#6B7280"),
+      p("Tailored trousers", 22000, "Trousers", "trousers", "Slim cut with a clean break.", "#1A1F1C"),
+      p("Fila cap", 8500, "Caps", "cap", "Aṣọ-òkè fila to finish the look.", "#B08D57"),
+      p("Kaftan for boys", 18000, "Kids", "shirt", "Mini senator kaftan, ages 4 to 12.", "#7C2D12"),
+    ],
+  },
+  ileke: {
+    storeName: "Ìlẹ̀kẹ̀ Studio", city: "Lagos", industry: "jewellery and beads", description: "Beads strung by hand, one piece at a time.",
+    heroArt: ["necklace", "earrings", "bracelet"], mains: ["#C8462C", "#D4A13A", "#0F766E"],
+    products: [
+      p("Coral bead necklace", 38000, "Necklaces", "necklace", "Three-strand coral-style beads with a brass clasp.", "#C8462C"),
+      p("Waist beads set", 7500, "Waist beads", "bracelet", "Three strands, tie-on, made to your size.", "#F59E0B"),
+      p("Brass hoop earrings", 12000, "Earrings", "earrings", "Hand-hammered brass hoops.", "#D4A13A"),
+      p("Glass bead bracelet", 6500, "Bracelets", "bracelet", "Recycled glass beads from Bida.", "#0F766E"),
+      p("Gold-plated ring", 15000, "Rings", "ring", "A slim band with a small stone.", "#C8462C"),
+      p("Layered bead necklace", 24000, "Necklaces", "necklace", "Two lengths, worn together or apart.", "#7C2D12"),
+    ],
+  },
+  ounje: {
+    storeName: "Buka by Funmi", city: "Lagos", industry: "restaurant and food delivery", description: "Home-style Nigerian food, cooked fresh every day.",
+    heroArt: ["plate", "bowl", "cup"], mains: ["#E2541B", "#14532D", "#B45309"],
+    products: [
+      p("Jollof rice & chicken", 4500, "Rice", "plate", "Smoky party jollof, fried plantain and grilled chicken.", "#E2541B"),
+      p("Amala, ewédú & gbẹ̀gìrì", 3800, "Swallow", "bowl", "Soft amala with ewédú, gbẹ̀gìrì and stew.", "#3F6212"),
+      p("Pounded yam & egusi", 5000, "Swallow", "bowl", "Egusi with spinach, assorted meat and stockfish.", "#CA8A04"),
+      p("Fried rice & turkey", 5500, "Rice", "plate", "Vegetable fried rice with peppered turkey.", "#65A30D"),
+      p("Goat meat pepper soup", 4000, "Soups", "bowl", "Spicy, light and warming.", "#B91C1C"),
+      p("Ofada rice & ayamase", 4800, "Rice", "plate", "Local rice with green pepper sauce and egg.", "#4D7C0F"),
+      p("Chapman, 50cl", 1500, "Drinks", "cup", "Our house Chapman, served cold.", "#DC2626"),
+      p("Suya platter", 6000, "Grills", "plate", "Beef suya with onions, tomatoes and yaji.", "#92400E"),
+    ],
+  },
+  chinchin: {
+    storeName: "Sugar & Spice Bakery", city: "Port Harcourt", industry: "bakery and snacks", description: "Cakes, chin chin and pastries, baked to order.",
+    heroArt: ["cake", "cupcake", "snack-jar"], mains: ["#D9467A", "#F59E0B", "#7C2D12"],
+    products: [
+      p("Red velvet cake, 8\"", 32000, "Cakes", "cake", "Two layers with cream cheese frosting.", "#B91C1C"),
+      p("Chin chin jar, 1kg", 6500, "Snacks", "snack-jar", "Crunchy, lightly sweet, with a hint of nutmeg.", "#D97706"),
+      p("Meat pie, box of 6", 7200, "Pastries", "pie", "Buttery crust with minced beef and potato.", "#CA8A04"),
+      p("Cupcakes, box of 6", 9000, "Cupcakes", "cupcake", "Vanilla and chocolate with buttercream.", "#F9A8D4"),
+      p("Puff puff, pack of 20", 3000, "Snacks", "bowl", "Soft and golden, dusted with sugar.", "#D97706"),
+      p("Banana bread loaf", 5500, "Breads", "bread", "Moist, with walnuts.", "#92400E"),
+      p("Chocolate celebration cake", 45000, "Cakes", "cake", "Three layers of chocolate for big days.", "#4A2511", 50000),
+    ],
+  },
+  oja: {
+    storeName: "Ọjà Express", city: "Lagos", industry: "groceries", description: "Your weekly shop, delivered.",
+    heroArt: ["basket", "sack", "bottle"], mains: ["#0F7A3D", "#F59E0B", "#B91C1C"],
+    products: [
+      p("Long grain rice, 5kg", 12500, "Grains", "sack", "Stone-free parboiled rice.", "#D6C29A"),
+      p("Vegetable oil, 3 litres", 9800, "Oils", "bottle", "Cholesterol-free vegetable oil.", "#FACC15"),
+      p("Ijebu garri, 2kg", 3200, "Grains", "sack", "Sharp and crunchy, great for soaking.", "#E9D9A6"),
+      p("Instant noodles, carton of 40", 11000, "Pantry", "sack", "Chicken flavour, 70g packs.", "#F97316"),
+      p("Laundry detergent, 2kg", 5400, "Household", "soap", "Powder detergent for hand and machine wash.", "#3B82F6"),
+      p("Tomato paste, pack of 10", 4000, "Pantry", "jar", "Double-concentrated, 70g sachets.", "#DC2626"),
+      p("Crate of eggs (30)", 5800, "Fresh", "eggs", "Fresh large eggs.", "#D6B98C"),
+      p("Bathing soap, pack of 6", 3600, "Household", "soap", "Gentle, everyday bar soap.", "#A7F3D0"),
+      p("Chocolate drink tin, 900g", 4800, "Beverages", "jar", "Malted chocolate drink.", "#78350F"),
+      p("Plantain, bunch", 4500, "Fresh", "basket", "Firm, ripening plantain.", "#EAB308"),
+      p("Semolina, 2kg", 3900, "Grains", "sack", "Fine semolina for swallow.", "#FDE68A"),
+      p("Bottled water, pack of 12", 2800, "Beverages", "bottle", "75cl table water.", "#93C5FD"),
+    ],
+  },
+  omo: {
+    storeName: "Little Ọmọ", city: "Lagos", industry: "kids and baby", description: "Soft, sturdy things for little ones.",
+    heroArt: ["teddy", "blocks", "onesie"], mains: ["#3D7BF7", "#FF7A59", "#FFD54A"],
+    products: [
+      p("Cotton onesie set (3)", 12000, "Baby", "onesie", "Soft cotton, snap buttons, 0 to 12 months.", "#93C5FD"),
+      p("Plush teddy bear", 9500, "Toys", "teddy", "Extra soft, 30cm.", "#D6A26B"),
+      p("Alphabet building blocks", 8000, "Toys", "blocks", "26 wooden blocks with letters.", "#FF7A59"),
+      p("Kids' sneakers", 15000, "Shoes", "sneaker", "Velcro straps for quick mornings.", "#3D7BF7"),
+      p("Gentle baby lotion", 3500, "Baby care", "tube", "Fragrance-free with shea.", "#FDE68A"),
+      p("Girls' ankara dress", 11500, "Clothing", "dress", "Twirly ankara dress, ages 2 to 8.", "#EA580C"),
+      p("School backpack", 13500, "School", "bag", "Padded straps and a water bottle pocket.", "#1F2A44"),
+    ],
+  },
+  iwe: {
+    storeName: "Ìwé Books", city: "Yaba, Lagos", industry: "books and stationery", description: "New and loved books, notebooks and pens.",
+    heroArt: ["book", "notebook", "pen"], mains: ["#B4432F", "#1E2235", "#0F766E"],
+    products: [
+      p("Harmattan Letters (novel)", 7500, "Fiction", "book", "A sample title: letters between two sisters, Kano to Lagos.", "#B4432F"),
+      p("Lagos After Rain (novel)", 8500, "Fiction", "book", "A sample title: one wet weekend on the mainland.", "#1E2235"),
+      p("Small Joys (poems)", 5500, "Poetry", "book", "A sample title: short poems about ordinary days.", "#0F766E"),
+      p("Everyday Yorùbá phrasebook", 6000, "Learning", "book", "A sample title: phrases for markets, greetings and family.", "#CA8A04"),
+      p("Bedtime tales for kids", 4500, "Children", "book", "A sample title: ten short stories to read aloud.", "#7C3AED"),
+      p("A5 dotted notebook", 3500, "Stationery", "notebook", "160 pages, lay-flat binding.", "#1E2235"),
+      p("Gel pen set (6)", 2500, "Stationery", "pen", "Smooth 0.5mm gel pens.", "#B4432F"),
+      p("2027 weekly planner", 6500, "Stationery", "notebook", "Week-to-view with notes pages.", "#B4432F"),
+    ],
+  },
+  owambe: {
+    storeName: "Owambe Rentals", city: "Lagos", industry: "events and rentals", description: "Chairs, canopies and décor for your celebration.",
+    heroArt: ["balloons", "canopy", "chair"], mains: ["#F2B705", "#E85D9E", "#2D0B3A"],
+    products: [
+      p("Chiavari chair (hire, per day)", 1500, "Chairs", "chair", "Gold chiavari chair with cushion. Minimum 50.", "#D4A017"),
+      p("Canopy 20x20 (hire)", 35000, "Canopies", "canopy", "Set up and taken down by our crew.", "#F5F5F4"),
+      p("Balloon arch kit", 28000, "Décor", "balloons", "120 balloons, strip and glue dots.", "#E85D9E"),
+      p("Souvenir mugs (50)", 75000, "Souvenirs", "cup", "Printed with your names and date.", "#FFFFFF"),
+      p("Table centrepiece vase", 6000, "Décor", "vase", "Gold-rim glass vase.", "#F2B705"),
+      p("Candle light set (12)", 12000, "Décor", "candle", "Warm LED candles for tables.", "#FDE68A"),
+    ],
+  },
+  danfo: {
+    storeName: "Danfo Auto Parts", city: "Ladipo, Lagos", industry: "auto parts", description: "Genuine and quality parts, checked before dispatch.",
+    heroArt: ["tyre", "battery", "oil-can"], mains: ["#FFC400", "#111111", "#6B7280"],
+    products: [
+      p("205/55 R16 tyre", 68000, "Tyres", "tyre", "All-season tyre. Fitting available in Lagos.", "#4B5563"),
+      p("Car battery, 75Ah", 85000, "Electrical", "battery", "Maintenance-free, 12-month warranty.", "#FFC400"),
+      p("Engine oil 5W-30, 4L", 32000, "Oils", "oil-can", "Fully synthetic.", "#FFC400"),
+      p("Headlamp assembly (left)", 45000, "Lighting", "headlamp", "Tell us your car's make, model and year before ordering.", "#9CA3AF"),
+      p("Brake pad set (front)", 18500, "Brakes", "wrench", "Low-dust ceramic pads.", "#6B7280"),
+      p("Wiper blades (pair)", 6500, "Accessories", "wrench", "Frameless, quiet wipe.", "#111111"),
+      p("Spark plugs (set of 4)", 12000, "Engine", "wrench", "Iridium tip.", "#9CA3AF"),
+      p("Alloy rim, 16\"", 55000, "Tyres", "tyre", "Five-spoke alloy, sold singly.", "#D1D5DB"),
+      p("Coolant, 4L", 9500, "Oils", "oil-can", "Ready-mixed, long life.", "#22C55E"),
+      p("Tool kit (40 pieces)", 22000, "Tools", "wrench", "Sockets, spanners and screwdrivers in a case.", "#DC2626"),
+      p("Jump starter", 48000, "Electrical", "battery", "Starts cars up to 3.0L.", "#111111"),
+      p("Fog lamp pair", 24000, "Lighting", "headlamp", "Bright LED fog lamps.", "#FFC400"),
+    ],
+  },
+  turare: {
+    storeName: "Turare House", city: "Kano", industry: "perfume", description: "Oud, musk and perfume oils blended in Kano.",
+    heroArt: ["perfume", "dropper", "perfume"], mains: ["#7C2D12", "#C9A46A", "#BE185D"],
+    products: [
+      p("Oud Intense, 50ml", 38000, "Oud", "perfume", "Smoky oud with saffron and rose.", "#7C2D12"),
+      p("Rose Musk, 100ml", 29000, "Floral", "perfume", "Soft rose over white musk.", "#BE185D"),
+      p("Amber Nights, 50ml", 34000, "Oriental", "perfume", "Warm amber, vanilla and spice.", "#92400E"),
+      p("Vanilla body mist", 9500, "Body mists", "bottle", "Light vanilla for every day.", "#F5E6C8"),
+      p("Sandalwood perfume oil, 12ml", 7500, "Perfume oils", "dropper", "Alcohol-free, long-lasting.", "#B45309"),
+      p("Bakhoor, 40g", 6000, "Home scents", "candle", "Scented wood chips for the home.", "#4C1D95"),
+    ],
+  },
+  oko: {
+    storeName: "Oko Fresh Farms", city: "Ògùn", industry: "farm produce", description: "Eggs, tubers and greens from our farm to your door.",
+    heroArt: ["basket", "eggs", "leaf"], mains: ["#2F5D2A", "#E0A526", "#8C5E30"],
+    products: [
+      p("Crate of eggs (30)", 5800, "Poultry", "eggs", "Collected this week from free-range layers.", "#8C5E30"),
+      p("Yam tubers (5)", 12000, "Tubers", "yam", "Firm, white yam from the new harvest.", "#8C5E30"),
+      p("Fresh ugu leaves, bundle", 1500, "Vegetables", "leaf", "Cut the morning of delivery.", "#2F5D2A"),
+      p("Plantain, bunch", 4500, "Fruits", "basket", "Green to ripening, your choice.", "#E0A526"),
+      p("Garri, 10kg", 14000, "Grains", "sack", "White garri, sieved fine.", "#D9C99A"),
+      p("Fresh tomatoes, basket", 18000, "Vegetables", "basket", "Roma tomatoes, sorted.", "#DC2626", 21000),
+      p("Smoked catfish, pack of 4", 8000, "Fish", "bowl", "Pond-raised and oven-smoked.", "#7C2D12"),
+      p("Red palm oil, 5L", 11000, "Oils", "bottle", "Unbleached, from our own palms.", "#C2410C"),
+    ],
+  },
+};
+
+/** The fields of a storefront product the theme renderer reads (structurally a ShopperProduct). */
+export interface DemoShopperProduct {
+  id: string;
+  name: string;
+  description: string;
+  images: string[];
+  retailPrice: number;
+  compareAtPrice: number | null;
+  currency: "NGN";
+  category: { id: string; name: string; slug: string };
+  reviewCount: 0;
+}
+
+export interface DemoThemeColours {
+  accent: string;
+  ink: string;
+  cardBg: string;
+  paperBg: string;
+}
+
+function slug(value: string) {
+  return value.normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+export function demoCatalogueFor(themeId: string): DemoCatalogue {
+  return (DEMO_CATALOGUES as Record<string, DemoCatalogue>)[themeId] ?? DEMO_CATALOGUES.plain;
+}
+
+/** The sample products for a theme, drawn in its colours. Ids are prefixed "demo-" so they can never match a real product. */
+export function demoProducts(themeId: string, colours: DemoThemeColours): DemoShopperProduct[] {
+  const catalogue = demoCatalogueFor(themeId);
+  return catalogue.products.map((product, index) => {
+    const main = product.tint ?? catalogue.mains[index % catalogue.mains.length] ?? colours.accent;
+    return {
+      id: `demo-${themeId}-${index + 1}`,
+      name: product.name,
+      description: product.description,
+      images: [demoProductArt(product.art, { bg: colours.cardBg, main, accent: colours.accent, ink: colours.ink })],
+      retailPrice: product.price,
+      compareAtPrice: product.compareAt ?? null,
+      currency: "NGN",
+      category: { id: `demo-${slug(product.category)}`, name: product.category, slug: slug(product.category) },
+      reviewCount: 0,
+    };
+  });
+}
+
+/** Themes whose hero frames its picture tall (an arch, an oval, a circle): their sample banner is one object, 4:5. */
+const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare"]);
+
+/** Sample banner (16:9, or 4:5 for tall hero frames) and story (4:5) pictures for a theme. */
+export function demoBanners(themeId: string, colours: DemoThemeColours) {
+  const catalogue = demoCatalogueFor(themeId);
+  const palette = { bg: colours.cardBg, field: colours.cardBg, main: colours.accent, accent: colours.accent, ink: colours.ink, mains: catalogue.mains };
+  const tall = TALL_HERO_THEMES.has(themeId);
+  return {
+    hero: tall ? demoSceneArt(catalogue.heroArt.slice(0, 1), palette, 4 / 5) : demoSceneArt(catalogue.heroArt, palette, 16 / 9),
+    story: demoSceneArt(catalogue.heroArt.slice(0, 2).reverse(), { ...palette, field: colours.paperBg }, 4 / 5),
+  };
+}
+
+/** "Show with my products" needs at least this many products with a photo. */
+export const OWN_PREVIEW_MIN_PRODUCTS = 4;
+
+/** The seller's products that can stand in for the samples (those with a photo), or null when there are too few. */
+export function ownPreviewProducts<P extends { images?: string[] | null }>(products: readonly P[] | null | undefined): P[] | null {
+  const withPhoto = (products ?? []).filter((product) => Array.isArray(product.images) && product.images.some((src) => typeof src === "string" && src.trim()));
+  return withPhoto.length >= OWN_PREVIEW_MIN_PRODUCTS ? withPhoto : null;
+}

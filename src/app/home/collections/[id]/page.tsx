@@ -3,19 +3,20 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
-import { CollectionDetailClient } from "./CollectionDetailClient";
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
+import { CollectionTabs } from "./CollectionTabs";
 
 export const dynamic = "force-dynamic";
 
 export default async function CollectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
   if (!store) notFound();
 
   const collection = await db.collection.findFirst({
     where: { id, storeId: store.id },
-    select: { name: true, type: true },
+    select: { name: true, type: true, slug: true, description: true, imageUrl: true },
   });
   if (!collection) notFound();
 
@@ -26,7 +27,7 @@ export default async function CollectionDetailPage({ params }: { params: Promise
       sub={collection.type === "auto" ? "Automatic collection" : "Manual collection: you pick the products."}
       actions={<PillLink href="/home/collections" icon="arrowLeft">All collections</PillLink>}
     >
-      <CollectionDetailClient id={id} />
+      <CollectionTabs id={id} name={collection.name} slug={collection.slug} description={collection.description} imageUrl={collection.imageUrl} storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain })} storeName={store.name} />
     </AppPage>
   );
 }

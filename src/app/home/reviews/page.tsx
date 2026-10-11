@@ -1,261 +1,230 @@
-import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
-import { db } from "@/lib/db/client";
 import Link from "next/link";
-import { AppPage, Card, CardHead, EmptyState, Pill, PillLink, SearchForm, StatGrid, StatTile, cx } from "@/components/app-kit";
+import { AppPage, AssistantNote, Card, CardHead, EmptyState, FilterChips, Pill, PillLink, SearchForm, StatTile, cx } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
-import { Avatar, field, pillButton, sellerFrame } from "@/components/seller-core";
-import { moderateReview, deleteReview, replyToReview, ensureReviewTable } from "@/app/actions/reviews";
-import { ReviewCardExport } from "./ReviewCardExport";
+import { Avatar, pillButton, sellerFrame, timeAgo } from "@/components/seller-core";
+import { setReviewStatus } from "@/app/actions/reviews";
+import { distributionPercents, filterReviews, parseReviewFilters, sourceLabel, STATUS_LABEL, summarizeReviews, type ReviewSource } from "@/lib/reviews/pure";
+import { loadReviews, productNames } from "@/lib/reviews/server";
 import { ReviewFilters } from "./ReviewFilters";
+import { ReviewTabs, SourcePill, Stars, STATUS_TONE, reviewsContext } from "./_components/shared";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { searchParams?: Promise<{ rating?: string; status?: string; product?: string; q?: string }> };
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function fmtDate(d: Date | string | null | undefined) {
-  if (!d) return "—";
-  const diff = Date.now() - new Date(d).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const day = Math.floor(h / 24);
-  if (day === 1) return "Yesterday";
-  if (day < 30) return `${day}d ago`;
-  return new Date(d).toLocaleDateString("en-NG", { day: "numeric", month: "short" });
-}
+const PAGE_SIZE = 40;
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <span className="text-[14px] tracking-[1px] text-[#E8A23A]" role="img" aria-label={`${rating} out of 5 stars`}>
-      {"★".repeat(rating)}<span className="text-app-track">{"★".repeat(Math.max(0, 5 - rating))}</span>
-    </span>
-  );
-}
+export default async function SellerReviewsPage({ searchParams }: { searchParams?: SearchParams }) {
+  const sp = (await searchParams) ?? {};
+  const { user, store } = await reviewsContext();
+  const filters = parseReviewFilters(sp);
+  const page = Math.max(1, Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1);
 
-const STATUS_PILL: Record<string, { tone: "success" | "warning" | "danger" | "muted"; label: string }> = {
-  approved: { tone: "success", label: "Approved" },
-  pending: { tone: "warning", label: "Pending" },
-  rejected: { tone: "danger", label: "Rejected" },
-};
+  const [all, products] = await Promise.all([loadReviews(store.id), productNames(store.id)]);
+  const summary = summarizeReviews(all);
+  const filtered = filterReviews(all, filters);
+  const shown = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const percents = distributionPercents(summary.distribution);
 
-export default async function SellerReviewsPage({ searchParams }: SearchParams) {
-  const sp = await searchParams;
-  const filterRating = sp?.rating ? parseInt(sp.rating) : 0;
-  const filterStatus = sp?.status || "";
-  const filterProduct = sp?.product || "";
-  const searchQ = sp?.q || "";
-
-  const user = await requireRole(["seller"], "/login");
-  const workspace = await getSellerWorkspace(user.id);
-  if (!workspace) return null;
-  if (!workspace.store) redirect("/builder?firstRun=1");
-  const storeId = workspace.store.id;
-
-  await ensureReviewTable();
-
-  const reviews = await db.$queryRawUnsafe<Array<{
-    id: string; productId: string; orderId: string; buyerName: string; buyerEmail: string;
-    rating: number; title: string; body: string; images: string; status: string;
-    sellerReply: string | null; repliedAt: Date | null; createdAt: Date;
-  }>>(
-    `SELECT id, "productId", "orderId", "buyerName", "buyerEmail", rating, title, body,
-            array_to_string(images, ',') as images, status, "sellerReply", "repliedAt", "createdAt"
-     FROM "ProductReview" WHERE "storeId" = $1 ORDER BY "createdAt" DESC LIMIT 200`,
-    storeId,
-  );
-
-  const productIds = [...new Set(reviews.map((r) => r.productId))];
-  const products = productIds.length > 0
-    ? await db.$queryRawUnsafe<Array<{ id: string; name: string; images: string }>>(
-        `SELECT id, name, images[1] as images FROM "StoreProduct" WHERE id = ANY(ARRAY[${productIds.map((_, i) => `$${i + 1}`).join(",")}])`,
-        ...productIds,
-      )
-    : [];
-  const productMap = new Map(products.map((p) => [p.id, p]));
-
-  const ratingCounts = [0, 0, 0, 0, 0];
-  let totalRating = 0;
-  for (const r of reviews) {
-    if (r.rating >= 1 && r.rating <= 5) {
-      ratingCounts[r.rating - 1]++;
-      totalRating += r.rating;
-    }
-  }
-  const totalReviews = reviews.length;
-  const avgRating = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : "0.0";
-  const pendingCount = reviews.filter((r) => r.status === "pending").length;
-  const approvedCount = reviews.filter((r) => r.status === "approved").length;
-
-  let filtered = [...reviews];
-  if (filterRating > 0) filtered = filtered.filter((r) => r.rating === filterRating);
-  if (filterStatus) filtered = filtered.filter((r) => r.status === filterStatus);
-  if (filterProduct) filtered = filtered.filter((r) => r.productId === filterProduct);
-  if (searchQ) {
-    const q = searchQ.toLowerCase();
-    filtered = filtered.filter((r) =>
-      r.buyerName.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.body.toLowerCase().includes(q)
-    );
-  }
-
-  function setParam(key: string, val: string) {
-    const p = new URLSearchParams();
-    if (filterRating > 0 && key !== "rating") p.set("rating", String(filterRating));
-    if (filterStatus && key !== "status") p.set("status", filterStatus);
-    if (filterProduct && key !== "product") p.set("product", filterProduct);
-    if (searchQ && key !== "q") p.set("q", searchQ);
-    if (val) p.set(key, val);
-    const qs = p.toString();
+  const base = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) if (typeof value === "string" && value && key !== "page") base.set(key, value);
+  const withParam = (changes: Record<string, string | null>) => {
+    const next = new URLSearchParams(base);
+    for (const [key, value] of Object.entries(changes)) (value ? next.set(key, value) : next.delete(key));
+    next.delete("page");
+    const qs = next.toString();
     return `/home/reviews${qs ? `?${qs}` : ""}`;
-  }
-
-  const replied = reviews.filter((r) => r.sellerReply).length;
-  const hasFilters = Boolean(filterRating || filterStatus || filterProduct || searchQ);
+  };
+  const pageHref = (n: number) => {
+    const next = new URLSearchParams(base);
+    if (n > 1) next.set("page", String(n));
+    const qs = next.toString();
+    return `/home/reviews${qs ? `?${qs}` : ""}`;
+  };
+  const quick = [
+    { label: "All", href: "/home/reviews", count: summary.count, active: !Object.values(filters).some(Boolean) },
+    { label: "Needs a reply", href: "/home/reviews?reply=needed", count: summary.needsReply, active: Boolean(filters.needsReply) && !filters.status },
+    { label: "Waiting", href: "/home/reviews?status=pending", count: summary.pending, active: filters.status === "pending" && !filters.needsReply },
+    { label: "With photos", href: "/home/reviews?photo=1", count: summary.withPhotos, active: Boolean(filters.hasPhoto) && !filters.status },
+    { label: "Featured", href: "/home/reviews?featured=1", count: summary.featured, active: Boolean(filters.featured) },
+    { label: "Hidden", href: "/home/reviews?status=rejected", count: summary.hidden, active: filters.status === "rejected" },
+  ];
+  const sourceCounts = (Object.entries(summary.bySource) as Array<[ReviewSource, { count: number; average: number }]>).sort((a, b) => b[1].count - a[1].count);
+  const hasFilters = Object.values(filters).some(Boolean);
 
   return (
     <AppPage
-      frame={sellerFrame(user, workspace.store)}
+      frame={sellerFrame(user, store)}
       title="Reviews"
-      sub={totalReviews > 0 ? `${totalReviews} reviews · ${avgRating} average · ${pendingCount} waiting for you` : "What buyers say about your products. Approve reviews to show them on your store."}
-      toolbar={
+      sub={summary.count ? `${summary.count} reviews from ${sourceCounts.length} ${sourceCounts.length === 1 ? "source" : "sources"} · ${summary.average.toFixed(1)} average` : "Everything customers say about you, from your store, Google, WhatsApp, social and marketplaces, in one place."}
+      actions={
         <>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <ReviewFilters status={filterStatus} product={filterProduct} products={products} rating={filterRating} />
-            {hasFilters && <PillLink href="/home/reviews" size="sm">Clear filters</PillLink>}
-          </div>
-          <SearchForm
-            action="/home/reviews"
-            defaultValue={searchQ}
-            placeholder="Search reviews"
-            keep={{ rating: filterRating > 0 ? String(filterRating) : undefined, status: filterStatus || undefined, product: filterProduct || undefined }}
-          />
+          <PillLink href="/home/reviews/sources#import" icon="upload">Import a review</PillLink>
+          <PillLink href="/home/reviews/request" tone="accent" icon="send">Ask for reviews</PillLink>
         </>
       }
     >
-      <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
-        <StatGrid className="content-start md:grid-cols-3 xl:grid-cols-3">
-          <StatTile tone="card" label="Total reviews" value={String(totalReviews)} hint={`${approvedCount} approved`} />
-          <StatTile tone="card" label="Average rating" value={avgRating} hint="Out of 5" />
-          <StatTile tone="card" label="5 stars" value={String(ratingCounts[4])} hint={`${totalReviews > 0 ? Math.round(ratingCounts[4] / totalReviews * 100) : 0}% of reviews`} />
-          <StatTile tone="card" label="Waiting for you" value={String(pendingCount)} hint="Approve or reject" />
-          <StatTile tone="card" label="Replied" value={String(replied)} hint="Your answers" />
-        </StatGrid>
+      <ReviewTabs active="/home/reviews" />
 
-        {/* Rating distribution */}
+      {/* Overview */}
+      <div className="mb-5 grid gap-4 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <Card className="p-5">
-          <CardHead title="Ratings" action={filterRating > 0 ? <Link href={setParam("rating", "")} className="text-[13px] font-bold text-app-accent-ink no-underline hover:underline">Show all</Link> : undefined} />
-          <div className="mt-3 grid gap-1">
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+            <div>
+              <div className="text-[13px] text-app-ink-soft">Average rating</div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-[44px] font-extrabold leading-none tracking-[-1px]">{summary.rated ? summary.average.toFixed(1) : "–"}</span>
+                <Stars rating={summary.rated ? Math.round(summary.average) : null} size={18} />
+              </div>
+              <div className="mt-1 text-[13px] text-app-ink-soft">{summary.rated} rated · {summary.count} total</div>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-1">
             {[5, 4, 3, 2, 1].map((star) => {
-              const count = ratingCounts[star - 1];
-              const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+              const count = summary.distribution[star - 1];
+              const active = filters.rating === star;
               return (
                 <Link
                   key={star}
-                  href={setParam("rating", String(star))}
-                  aria-current={filterRating === star ? "true" : undefined}
-                  aria-label={`${star} stars: ${count} reviews. Show only these.`}
-                  className={cx("flex min-h-[32px] items-center gap-3 rounded-full px-2 text-app-ink no-underline hover:bg-app-canvas", filterRating === star && "bg-app-canvas")}
+                  href={active ? withParam({ rating: null }) : withParam({ rating: String(star) })}
+                  aria-current={active ? "true" : undefined}
+                  aria-label={`${star} stars: ${count} reviews. ${active ? "Show all ratings" : "Show only these"}.`}
+                  className={cx("flex min-h-[32px] items-center gap-3 rounded-full px-2 text-app-ink no-underline hover:bg-app-canvas", active && "bg-app-canvas")}
                 >
                   <span className="w-8 shrink-0 text-[13px] font-bold">{star} ★</span>
                   <span className="h-2 flex-1 overflow-hidden rounded-full bg-app-track">
-                    <span className={cx("block h-full rounded-full", star >= 4 ? "bg-app-success" : star === 3 ? "bg-[#F2A93B]" : "bg-app-danger")} style={{ width: `${pct}%` }} />
+                    <span className={cx("block h-full rounded-full", star >= 4 ? "bg-app-success" : star === 3 ? "bg-[#F2A93B]" : "bg-app-danger")} style={{ width: `${percents[star - 1]}%` }} />
                   </span>
-                  <span className="w-16 shrink-0 text-right text-[12.5px] text-app-ink-soft">{count} ({Math.round(pct)}%)</span>
+                  <span className="w-16 shrink-0 text-right text-[12.5px] text-app-ink-soft">{count} ({percents[star - 1]}%)</span>
                 </Link>
               );
             })}
           </div>
         </Card>
+
+        <div className="grid grid-cols-2 content-start gap-3">
+          <StatTile tone="card" label="Response rate" value={`${summary.responseRate}%`} hint="Reviews with your reply" />
+          <StatTile tone="card" label="Needs a reply" value={String(summary.needsReply)} hint={<Link href="/home/reviews?reply=needed" className="font-bold text-app-accent-ink no-underline hover:underline">Reply now</Link>} />
+          <StatTile tone="card" label="Waiting" value={String(summary.pending)} hint="Not on your store yet" />
+          <StatTile tone="card" label="With photos" value={String(summary.withPhotos)} hint={`${summary.featured} featured`} />
+        </div>
+
+        <Card className="p-5 lg:col-span-2 2xl:col-span-1">
+          <CardHead title="Sources" action={<Link href="/home/reviews/sources" className="text-[13px] font-bold text-app-accent-ink no-underline hover:underline">Connect more</Link>} />
+          {sourceCounts.length ? (
+            <ul className="m-0 mt-3 grid list-none gap-1 p-0">
+              {sourceCounts.map(([source, value]) => (
+                <li key={source}>
+                  <Link href={withParam({ source: filters.source === source ? null : source })} aria-current={filters.source === source ? "true" : undefined} className={cx("flex min-h-[40px] items-center justify-between gap-3 rounded-full px-3 text-app-ink no-underline hover:bg-app-canvas", filters.source === source && "bg-app-canvas")}>
+                    <span className="truncate text-[14px] font-bold">{sourceLabel(source)}</span>
+                    <span className="shrink-0 text-[13px] text-app-ink-soft">{value.count} · {value.average ? `${value.average.toFixed(1)} ★` : "no stars"}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="m-0 mt-2 text-[14px] text-app-ink-soft">No reviews yet. Connect Google or import a screenshot to bring them in.</p>
+          )}
+        </Card>
       </div>
 
-      {/* Reviews list */}
-      {filtered.length === 0 ? (
-        <EmptyState icon="star" title={totalReviews === 0 ? "No reviews yet" : "No reviews match"} action={hasFilters ? <PillLink href="/home/reviews">Show all reviews</PillLink> : undefined}>
-          {totalReviews === 0 ? "Buyers can review products after their order is delivered. Their reviews will show up here." : "Try a different filter or search."}
+      {summary.needsReply > 0 ? (
+        <div className="mb-5">
+          <AssistantNote who="peggy" action={<PillLink href="/home/peggy?ask=Draft%20replies%20to%20my%20reviews%20that%20need%20one" size="sm">Ask Peggy</PillLink>}>
+            {summary.needsReply === 1 ? "One review is" : `${summary.needsReply} reviews are`} waiting for a reply. Replies show customers you listen. I can draft them for you to check.
+          </AssistantNote>
+        </div>
+      ) : null}
+
+      <div className="mb-3">
+        <FilterChips items={quick} />
+      </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <ReviewFilters products={[...products.entries()].map(([id, p]) => ({ id, name: p.name }))} sources={sourceCounts.map(([value, v]) => ({ value, label: sourceLabel(value), count: v.count }))} />
+          {hasFilters ? <PillLink href="/home/reviews" size="sm">Clear filters</PillLink> : null}
+        </div>
+        <SearchForm action="/home/reviews" defaultValue={filters.q ?? ""} placeholder="Search reviews" keep={Object.fromEntries([...base.entries()].filter(([key]) => key !== "q"))} />
+      </div>
+
+      {shown.length === 0 ? (
+        <EmptyState
+          icon="star"
+          title={summary.count === 0 ? "No reviews yet" : "No reviews match"}
+          action={summary.count === 0 ? <PillLink href="/home/reviews/request" tone="accent">Ask your buyers</PillLink> : <PillLink href="/home/reviews">Show all reviews</PillLink>}
+        >
+          {summary.count === 0
+            ? "Ask buyers after delivery, connect Google Business Profile, or import reviews customers sent you on WhatsApp or Instagram."
+            : "Try a different filter or search."}
         </EmptyState>
       ) : (
-        <div className="grid gap-3 2xl:grid-cols-2">
-          {filtered.map((r) => {
-            const product = productMap.get(r.productId);
-            const pill = STATUS_PILL[r.status] ?? { tone: "muted" as const, label: r.status };
-            return (
-              <article key={r.id} id={`review-${r.id}`} className="min-w-0 rounded-[22px] border border-app-line bg-white p-5">
-                <div className="flex items-start gap-3.5">
-                  <Avatar name={r.buyerName} size={42} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                      <h2 className="m-0 truncate text-[15px] font-extrabold">{r.buyerName}</h2>
-                      <StarRating rating={r.rating} />
-                      <Pill tone={pill.tone}>{pill.label}</Pill>
+        <Card className="overflow-hidden">
+          <ul className="m-0 list-none divide-y divide-app-line p-0">
+            {shown.map((item) => {
+              const product = item.productId ? products.get(item.productId) : null;
+              const text = (item.body || item.title).trim();
+              return (
+                <li key={item.key} className="flex flex-col gap-3 px-4 py-4 sm:px-5 lg:flex-row lg:items-start">
+                  <Link href={`/home/reviews/${item.key}`} className="flex min-w-0 flex-1 items-start gap-3.5 text-app-ink no-underline">
+                    {item.authorPhotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.authorPhotoUrl} alt="" width={42} height={42} className="h-[42px] w-[42px] shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <Avatar name={item.authorName} size={42} />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span className="truncate text-[15px] font-extrabold">{item.authorName}</span>
+                        <Stars rating={item.rating} />
+                        <SourcePill item={item} />
+                        {item.status !== "approved" ? <Pill tone={STATUS_TONE[item.status]}>{STATUS_LABEL[item.status]}</Pill> : null}
+                        {item.featured ? <Pill tone="accent">Featured</Pill> : null}
+                        {item.verifiedBuyer ? <Pill tone="success">Verified buyer</Pill> : null}
+                      </div>
+                      <div className="mt-0.5 truncate text-[13px] text-app-ink-soft">
+                        {timeAgo(item.createdAt)}
+                        {product ? <> · <span className="font-semibold text-app-ink">{product.name}</span></> : null}
+                        {item.images.length ? <> · {item.images.length} photo{item.images.length === 1 ? "" : "s"}</> : null}
+                      </div>
+                      {text ? <p className="m-0 mt-1.5 line-clamp-2 text-[14px] leading-[1.5]">{text}</p> : null}
+                      <div className="mt-1.5 text-[13px] font-semibold">
+                        {item.reply ? <span className="text-app-success">Replied</span> : item.status === "rejected" ? <span className="text-app-ink-soft">Hidden from your store</span> : <span className="text-app-accent-ink">Needs a reply</span>}
+                      </div>
                     </div>
-                    <div className="mt-0.5 truncate text-[13px] text-app-ink-soft">
-                      {fmtDate(r.createdAt)}
-                      {product ? <> · <span className="font-semibold text-app-ink">{product.name}</span></> : null}
-                    </div>
-                  </div>
-                </div>
-
-                {r.title ? <h3 className="m-0 mt-3 text-[15px] font-bold">{r.title}</h3> : null}
-                {r.body ? <p className="m-0 mt-1 whitespace-pre-line text-[14px] leading-[1.55]">{r.body}</p> : null}
-
-                {r.sellerReply ? (
-                  <div className="mt-3 rounded-[16px] bg-app-mint px-4 py-3">
-                    <div className="text-[12.5px] font-bold text-app-forest">Your reply{r.repliedAt ? ` · ${fmtDate(r.repliedAt)}` : ""}</div>
-                    <p className="m-0 mt-0.5 whitespace-pre-line text-[14px] leading-[1.5]">{r.sellerReply}</p>
-                  </div>
-                ) : null}
-
-                {/* Actions */}
-                <div data-export-skip="true" className="mt-4 grid gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {r.status !== "approved" ? (
-                      <form action={moderateReview}>
-                        <input type="hidden" name="id" value={r.id} />
+                  </Link>
+                  <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
+                    {item.status !== "approved" ? (
+                      <form action={setReviewStatus}>
+                        <input type="hidden" name="key" value={item.key} />
                         <input type="hidden" name="status" value="approved" />
-                        <button type="submit" className={pillButton.ink}><Icon name="check" size={14} /> Approve</button>
+                        <button type="submit" className={pillButton.ink} aria-label={`Publish review by ${item.authorName}`}><Icon name="check" size={14} /> Publish</button>
                       </form>
-                    ) : null}
-                    {r.status !== "rejected" ? (
-                      <form action={moderateReview}>
-                        <input type="hidden" name="id" value={r.id} />
+                    ) : (
+                      <form action={setReviewStatus}>
+                        <input type="hidden" name="key" value={item.key} />
                         <input type="hidden" name="status" value="rejected" />
-                        <button type="submit" className={pillButton.white}><Icon name="x" size={14} /> Reject</button>
+                        <button type="submit" className={pillButton.white} aria-label={`Hide review by ${item.authorName}`}><Icon name="eye" size={14} /> Hide</button>
                       </form>
-                    ) : null}
-                    {r.status !== "pending" ? (
-                      <form action={moderateReview}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="status" value="pending" />
-                        <button type="submit" className={pillButton.white}>Unapprove</button>
-                      </form>
-                    ) : null}
-                    <form action={deleteReview}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <button type="submit" className={pillButton.danger}><Icon name="trash" size={14} /> Delete</button>
-                    </form>
-                    <div className="ml-auto">
-                      <ReviewCardExport reviewId={r.id} />
-                    </div>
+                    )}
+                    <Link href={`/home/reviews/${item.key}`} className={pillButton.white}>{item.reply ? "Open" : "Reply"}</Link>
                   </div>
-                  <details className="group">
-                    <summary className={cx(pillButton.white, "w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden")}>
-                      <Icon name="chat" size={14} /> {r.sellerReply ? "Edit reply" : "Reply"}
-                    </summary>
-                    <form action={replyToReview} className="mt-2 grid gap-2">
-                      <input type="hidden" name="id" value={r.id} />
-                      <label className="sr-only" htmlFor={`reply-${r.id}`}>Reply to {r.buyerName}</label>
-                      <textarea id={`reply-${r.id}`} name="reply" rows={3} className={field.textarea} placeholder="Write your reply…" defaultValue={r.sellerReply ?? ""} />
-                      <button type="submit" className={cx(pillButton.accent, "w-fit")}>Send reply</button>
-                    </form>
-                  </details>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
       )}
+
+      {pages > 1 ? (
+        <nav aria-label="Pages" className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[14px]">
+          <span className="text-app-ink-soft">Page {page} of {pages} · {filtered.length} reviews</span>
+          <div className="flex gap-2">
+            {page > 1 ? <PillLink href={pageHref(page - 1)} size="sm">Previous</PillLink> : null}
+            {page < pages ? <PillLink href={pageHref(page + 1)} size="sm">Next</PillLink> : null}
+          </div>
+        </nav>
+      ) : null}
     </AppPage>
   );
 }

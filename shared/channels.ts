@@ -1,11 +1,11 @@
 // Where an order came from. Storefront links carry ?ref= (our share buttons) or ?utm_source=; checkout
 // stores the normalised value on RetailOrder.channel and the seller dashboard groups orders by it.
 
-export const ORDER_CHANNELS = ["whatsapp", "instagram", "facebook", "tiktok", "email", "online_store", "in_person"] as const;
+export const ORDER_CHANNELS = ["whatsapp", "instagram", "facebook", "tiktok", "google", "email", "online_store", "in_person"] as const;
 export type OrderChannel = (typeof ORDER_CHANNELS)[number];
 
 /** Channels a storefront link can claim at checkout ("in person" is only for sales the seller records). */
-export const LINK_CHANNELS = ["whatsapp", "instagram", "facebook", "tiktok", "email", "online_store"] as const;
+export const LINK_CHANNELS = ["whatsapp", "instagram", "facebook", "tiktok", "google", "email", "online_store"] as const;
 export type LinkChannel = (typeof LINK_CHANNELS)[number];
 
 /** Where a sale the seller records by hand came from. */
@@ -17,6 +17,7 @@ export const CHANNEL_LABEL: Record<OrderChannel, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  google: "Google",
   email: "Email",
   online_store: "Online store",
   in_person: "In person",
@@ -32,6 +33,7 @@ const ALIASES: Record<string, LinkChannel> = {
   facebook: "facebook",
   tt: "tiktok",
   tiktok: "tiktok",
+  google: "google", // Merchant Center product feed links (utm_source=google)
   email: "email",
   newsletter: "email",
 };
@@ -44,6 +46,6 @@ export function channelFromRef(value: string | null | undefined): LinkChannel | 
 
 /** Appends the share ref to a storefront link, e.g. for the WhatsApp Status button. */
 export function withChannelRef(url: string, channel: Exclude<OrderChannel, "online_store" | "in_person">) {
-  const ref = channel === "whatsapp" ? "wa" : channel === "instagram" ? "ig" : channel === "facebook" ? "fb" : channel === "tiktok" ? "tt" : "email";
+  const ref = channel === "whatsapp" ? "wa" : channel === "instagram" ? "ig" : channel === "facebook" ? "fb" : channel === "tiktok" ? "tt" : channel === "google" ? "google" : "email";
   return `${url}${url.includes("?") ? "&" : "?"}ref=${ref}`;
 }

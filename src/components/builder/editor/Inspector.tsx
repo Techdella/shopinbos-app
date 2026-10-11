@@ -5,6 +5,8 @@ import { cx, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import type { TemplatePageSeed, TemplateSectionNode } from "@/lib/store-templates";
 import { normalizeImage } from "@/lib/store-templates/images";
+import { SeoTab } from "@/components/seo/SeoTab";
+import { normalizeSeo } from "@/lib/seo/fields";
 import { insertLabel, setSectionCopy, setSectionSetting, type RendererKind } from "./editor-logic";
 import {
   blockVariationsFor,
@@ -196,12 +198,11 @@ function fieldKeyFor(field: SchemaField) {
 function PageSettings(props: InspectorProps & { page: TemplatePageSeed | null }) {
   const { page } = props;
   const titleId = useId();
-  const seoTitleId = useId();
-  const seoDescId = useId();
+  const [tab, setTab] = useState<"page" | "seo">("page");
   if (!page) {
     return <p className="p-4 text-[13.5px] text-app-ink-soft">Pick a page to edit.</p>;
   }
-  const slug = page.slug && page.slug !== "home" ? `/${page.slug}` : "";
+  const slug = page.slug && page.slug !== "home" ? page.slug : "";
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-start gap-2 px-4 pt-4">
@@ -211,23 +212,34 @@ function PageSettings(props: InspectorProps & { page: TemplatePageSeed | null })
         </div>
         {props.onClose ? <IconButton icon="x" label="Close" onClick={props.onClose} className="h-9 w-9" /> : null}
       </div>
+      <div role="tablist" aria-label="Page settings" className="flex gap-1.5 px-4 pt-3">
+        {(["page", "seo"] as const).map((key) => (
+          <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`min-h-9 rounded-full border px-3.5 text-[13px] font-bold ${tab === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
+            {key === "page" ? "Page" : "SEO"}
+          </button>
+        ))}
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-        <p className="mt-2 rounded-[12px] bg-app-canvas px-3 py-2.5 text-[12.5px] leading-5 text-app-ink-soft">Select a section on the page, or in the list, to edit it.</p>
-        <FieldShell id={titleId} label="Page name">
-          <input id={titleId} className={inputClass} value={page.title} onChange={(event) => props.onChangePage((current) => ({ ...current, title: event.target.value }), "page:title")} />
-        </FieldShell>
-        <h3 className="pb-1 pt-3 text-[14px] font-bold text-app-ink">Search engines</h3>
-        <FieldShell id={seoTitleId} label="Title">
-          <input id={seoTitleId} className={inputClass} value={page.seo?.metaTitle ?? ""} onChange={(event) => props.onChangePage((current) => ({ ...current, seo: { metaTitle: event.target.value, metaDescription: current.seo?.metaDescription ?? "" } }), "page:seoTitle")} />
-        </FieldShell>
-        <FieldShell id={seoDescId} label="Description" help="About 155 characters. Shown under your link on Google.">
-          <textarea id={seoDescId} rows={3} className={textareaClass} value={page.seo?.metaDescription ?? ""} onChange={(event) => props.onChangePage((current) => ({ ...current, seo: { metaTitle: current.seo?.metaTitle ?? "", metaDescription: event.target.value } }), "page:seoDesc")} />
-        </FieldShell>
-        <div className="mt-2 rounded-[14px] border border-app-line p-3">
-          <p className="truncate text-[14px] font-semibold text-[#1A0DAB]">{page.seo?.metaTitle || `${page.title} | ${props.storeName}`}</p>
-          <p className="truncate text-[12px] text-[#0B6B2E]">{props.storeHost ?? "your store"}{slug}</p>
-          <p className="mt-1 line-clamp-2 text-[12.5px] text-app-ink-soft">{page.seo?.metaDescription || "Add a description so shoppers know what this page is about."}</p>
-        </div>
+        {tab === "page" ? (
+          <>
+            <p className="mt-2 rounded-[12px] bg-app-canvas px-3 py-2.5 text-[12.5px] leading-5 text-app-ink-soft">Select a section on the page, or in the list, to edit it.</p>
+            <FieldShell id={titleId} label="Page name">
+              <input id={titleId} className={inputClass} value={page.title} onChange={(event) => props.onChangePage((current) => ({ ...current, title: event.target.value }), "page:title")} />
+            </FieldShell>
+          </>
+        ) : (
+          <div className="pt-3">
+            <SeoTab
+              compact
+              value={normalizeSeo(page.seo ?? {})}
+              onChange={(next) => props.onChangePage((current) => ({ ...current, seo: { ...next } }), "page:seo")}
+              title={`${page.title} | ${props.storeName}`}
+              slug={slug}
+              urlPrefix={`${props.storeHost ?? "your store"}/`}
+              siteName={props.storeName}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

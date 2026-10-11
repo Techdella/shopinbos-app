@@ -1,141 +1,79 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import type { InboxConversationSummary } from "@/components/messaging/InboxClient";
-import { AppPage } from "@/components/app-kit";
+import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { db } from "@/lib/db/client";
+import { hasAiProvider } from "@/lib/inbox/ai";
+import { listInbox, teamOptions } from "@/lib/inbox/queries";
+import { touchSellerSeen } from "@/lib/inbox/service";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, safeQuery } from "@/lib/workspace";
-import { SellerInbox } from "./SellerInbox";
+import { UnifiedInbox } from "./UnifiedInbox";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Inbox" };
 
-type ContactUser = {
-  id: string;
-  name: string;
-  role: string;
-  avatarUrl: string | null;
-};
+// The all-in-one inbox: customer conversations from every channel (WhatsApp, Instagram, Messenger, SMS,
+// email, Telegram, phone calls, live chat, contact forms) and the seller's supplier and delivery-partner chats.
 
-function serializeConversation(
-  conversation: {
-    id: string;
-    updatedAt: Date;
-    participant1: ContactUser;
-    participant2: ContactUser;
-    messages: Array<{ text: string; createdAt: Date; read: boolean; senderId: string }>;
-  },
-): InboxConversationSummary {
-  const lastMessage = conversation.messages[0];
-  return {
-    id: conversation.id,
-    participant1: conversation.participant1,
-    participant2: conversation.participant2,
-    lastMessage: lastMessage
-      ? {
-          text: lastMessage.text,
-          createdAt: lastMessage.createdAt.toISOString(),
-          read: lastMessage.read,
-          senderId: lastMessage.senderId,
-        }
-      : null,
-    updatedAt: conversation.updatedAt.toISOString(),
-  };
-}
-
-async function ensureConversation(currentUserId: string, contactUserId: string) {
-  const ids = [currentUserId, contactUserId].sort();
-  return db.conversation.upsert({
-    where: {
-      participant1Id_participant2Id: {
-        participant1Id: ids[0],
-        participant2Id: ids[1],
-      },
-    },
-    create: {
-      participant1Id: ids[0],
-      participant2Id: ids[1],
-    },
-    update: {},
-    include: {
-      participant1: { select: { id: true, name: true, avatarUrl: true, role: true } },
-      participant2: { select: { id: true, name: true, avatarUrl: true, role: true } },
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { text: true, createdAt: true, read: true, senderId: true },
-      },
-    },
-  });
-}
-
-export default async function SellerMessagesPage() {
+export default async function SellerMessagesPage({ searchParams }: { searchParams?: Promise<{ c?: string; p?: string }> }) {
+  const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   if (!workspace.store) redirect("/builder?firstRun=1");
+  const store = workspace.store;
 
-  const existingConversations = await db.conversation.findMany({
-    where: {
-      OR: [{ participant1Id: user.id }, { participant2Id: user.id }],
-    },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      participant1: { select: { id: true, name: true, avatarUrl: true, role: true } },
-      participant2: { select: { id: true, name: true, avatarUrl: true, role: true } },
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { text: true, createdAt: true, read: true, senderId: true },
-      },
-    },
-  });
-
-  const existingContactIds = new Set(
-    existingConversations.map((conversation) =>
-      conversation.participant1Id === user.id ? conversation.participant2Id : conversation.participant1Id,
-    ),
-  );
-
-  const [suppliers, logisticsPartners] = await Promise.all([
+  await touchSellerSeen(store.id);
+  const [items, team, canned, channels, settings, suppliers, partners] = await Promise.all([
+    listInbox(store.id, user.id),
+    teamOptions(store.id, { email: user.email ?? "", name: user.name ?? "You" }),
+    safeQuery(() => db.inboxCannedReply.findMany({ where: { storeId: store.id }, orderBy: { title: "asc" }, select: { id: true, title: true, body: true } }), []),
+    safeQuery(() => db.inboxChannel.findMany({ where: { storeId: store.id, status: "connected" }, select: { channel: true } }), []),
+    safeQuery(() => db.inboxSettings.findUnique({ where: { storeId: store.id }, select: { autoReplyEnabled: true } }), null),
     safeQuery(() => db.supplier.findMany({
-      where: { status: "active", verificationStatus: "verified", userId: { notIn: Array.from(existingContactIds) } },
+      where: { status: "active", verificationStatus: "verified" },
       orderBy: [{ trustScore: "desc" }, { createdAt: "desc" }],
       take: 20,
-      select: { userId: true },
+      select: { userId: true, businessName: true },
     }), []),
     safeQuery(() => db.logisticsPartner.findMany({
-      where: { status: "active", verificationStatus: "verified", userId: { notIn: Array.from(existingContactIds) } },
+      where: { status: "active", verificationStatus: "verified" },
       orderBy: [{ reliabilityScore: "desc" }, { createdAt: "desc" }],
       take: 20,
-      select: { userId: true },
+      select: { userId: true, companyName: true },
     }), []),
   ]);
 
-  const seeded = [];
-  for (const contactUserId of [...suppliers.map((item) => item.userId), ...logisticsPartners.map((item) => item.userId)]) {
-    if (contactUserId && contactUserId !== user.id) {
-      seeded.push(await ensureConversation(user.id, contactUserId));
-    }
-  }
-
-  const conversations = [...existingConversations, ...seeded]
-    .map(serializeConversation)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-  const unreadCount = conversations.reduce((count, conv) => {
-    return count + (conv.lastMessage && !conv.lastMessage.read && conv.lastMessage.senderId !== user.id ? 1 : 0);
-  }, 0);
+  const connected = channels.map((c) => c.channel);
+  const unread = items.filter((item) => item.unread > 0 && item.status !== "closed").length;
+  const contacts = [
+    ...suppliers.filter((s) => s.userId && s.userId !== user.id).map((s) => ({ userId: s.userId, name: s.businessName, role: "Supplier" })),
+    ...partners.filter((p) => p.userId && p.userId !== user.id).map((p) => ({ userId: p.userId, name: p.companyName, role: "Delivery partner" })),
+  ];
 
   return (
     <AppPage
-      frame={sellerFrame(user, workspace.store)}
-      title="Messages"
-      sub={conversations.length > 0 ? `${conversations.length} conversations with suppliers and delivery partners · ${unreadCount} unread` : "Message suppliers and delivery partners directly."}
+      frame={sellerFrame(user, store)}
+      title="Inbox"
+      sub={unread ? `${unread} conversation${unread === 1 ? "" : "s"} waiting for you, across every channel.` : "Every customer message in one place: WhatsApp, Instagram, Messenger, SMS, email, Telegram, calls, live chat and forms."}
+      actions={
+        <>
+          <PillLink href="/home/inbox/settings" icon="settings">Auto-reply and saved replies</PillLink>
+          <PillLink href="/home/inbox/channels" icon="plug" tone="ink">Channels · {connected.length + 2} on</PillLink>
+        </>
+      }
     >
-      <SellerInbox
-        conversations={conversations}
-        currentUserId={user.id}
-        emptyMessage="No conversations yet. Verified suppliers and delivery partners will appear here."
+      <UnifiedInbox
+        initialItems={items}
+        initialKey={params?.c ? `c:${params.c}` : params?.p ? `p:${params.p}` : null}
+        me={{ id: user.id, email: user.email ?? "", name: user.name ?? "You", phone: user.phone ?? null }}
+        team={team}
+        canned={canned}
+        connected={connected}
+        aiAvailable={hasAiProvider()}
+        autoReplyOn={Boolean(settings?.autoReplyEnabled)}
+        partnerContacts={contacts}
       />
     </AppPage>
   );

@@ -5,9 +5,12 @@ import { AppFrame } from "@/components/shell/AppFrame";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Mascot } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
+import { cookies } from "next/headers";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { getSellerDashboard, type SellerDashboard } from "@/lib/dashboard";
+import { START_SEEN_COOKIE } from "@/lib/setup/checklist";
+import { getSetupOverview, syncStartNav } from "@/lib/setup/server";
 import type { Tone } from "@/lib/dashboard/compute";
 import { naira } from "@shared/onboarding";
 import type { OrderChannel } from "@shared/channels";
@@ -38,6 +41,7 @@ const CHANNEL_BAR: Record<OrderChannel, string> = {
   instagram: "bg-[#B0479A]",
   facebook: "bg-[#2D5BD0]",
   tiktok: "bg-app-ink",
+  google: "bg-[#4285F4]",
   email: "bg-app-accent",
   online_store: "bg-app-forest",
   in_person: "bg-[#F2A93B]",
@@ -120,12 +124,15 @@ export default async function HomePage() {
     if (state === "BUILDING_TEMPLATE") redirect("/builder/templates?onboarding=true");
   }
 
-  const dashboard = await getSellerDashboard(user.id);
+  const [dashboard, setup] = await Promise.all([getSellerDashboard(user.id), getSetupOverview(user.id)]);
   if (!dashboard) redirect("/onboarding/rex");
+  // New sellers land on Start here (once per visit) until their checklist is done or dismissed.
+  if (setup?.checklist.showStart && !(await cookies()).get(START_SEEN_COOKIE)) redirect("/home/start");
+  // Setup finished elsewhere (or dismissed): take "Start here" out of the menu. Writes only when it changes.
+  if (setup && !setup.checklist.showStart) await syncStartNav(user.id, false).catch(() => undefined);
 
   const now = new Date();
   const firstName = user.name.split(/\s+/)[0] || user.name;
-  const doneCount = dashboard.checklist.filter((item) => item.done).length;
   const storeHost = dashboard.store.url?.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
   return (
@@ -201,29 +208,32 @@ export default async function HomePage() {
 
         <SalesChart daily={dashboard.daily} week={dashboard.sales.week} change={dashboard.sales.weekChange} />
 
-        {/* Finish setting up */}
-        <Card className="p-5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="m-0 text-[17px] font-extrabold">Finish setting up</h2>
-            <span className="text-[13px] text-app-ink-soft">{doneCount} of {dashboard.checklist.length}</span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-app-canvas">
-            <div className="h-full rounded-full bg-app-success" style={{ width: `${(doneCount / Math.max(1, dashboard.checklist.length)) * 100}%` }} />
-          </div>
-          <ul className="m-0 mt-1 list-none divide-y divide-app-line p-0">
-            {dashboard.checklist.map((item) => (
-              <li key={item.key} className="flex min-h-[48px] items-center gap-3 py-2">
-                {item.done ? <Icon name="check" size={16} className="text-app-success" /> : <span className="h-4 w-4 rounded-full border-2 border-app-toggle-off" />}
-                <span className={cx("flex-1 text-[14px]", item.done ? "text-app-ink-soft line-through" : "font-semibold")}>{item.label}</span>
-                {!item.done && (
-                  <Link href={item.href} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
-                    Set up
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        {/* Finish setting up: a compact link back to Start here while steps are left */}
+        {setup && !setup.checklist.complete ? (
+          <Link href="/home/start" className="flex items-center gap-4 rounded-[22px] border border-app-line bg-white p-5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="flag" size={20} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="text-[16px] font-extrabold">Finish setting up</span>
+                <span className="shrink-0 text-[13px] text-app-ink-soft">{setup.checklist.done} of {setup.checklist.total}</span>
+              </span>
+              <span className="mt-2 block h-2 overflow-hidden rounded-full bg-app-canvas">
+                <span className="block h-full rounded-full bg-app-success" style={{ width: `${setup.checklist.percent}%` }} />
+              </span>
+              {setup.checklist.next && <span className="mt-2 block truncate text-[13px] text-app-ink-soft">Next: {setup.checklist.next.title}</span>}
+            </span>
+            <Icon name="chevRight" size={16} className="shrink-0 text-app-ink-soft" />
+          </Link>
+        ) : (
+          <Card className="flex items-center gap-4 p-5">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-success-tint text-app-success"><Icon name="shop" size={20} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[16px] font-extrabold">Your shop</span>
+              <span className="block truncate text-[13px] text-app-ink-soft">{storeHost ?? dashboard.store.name}</span>
+            </span>
+            <Link href="/home/store" className="shrink-0 rounded-full border border-app-line px-3.5 py-2 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">Manage</Link>
+          </Card>
+        )}
 
         {/* Latest orders */}
         <Card className="overflow-hidden">

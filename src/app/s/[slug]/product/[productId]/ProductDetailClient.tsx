@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { readCartSettings } from "@shared/cart-checkout";
 import { useState } from "react";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
+import { useStoreProductView } from "@/lib/analytics/storefront-events";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { CartDrawer } from "../../CartDrawer";
 import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
 import type { ShopperProduct } from "@/components/storefront/shopper/catalog";
+import { ProductReviewForm } from "@/components/storefront/reviews/ProductReviewForm";
 
 interface Review {
   id: string;
@@ -22,6 +25,7 @@ interface Review {
   sellerReply: string;
   repliedAt: string | null;
   createdAt: string;
+  images?: string[];
 }
 
 interface ProductDetailClientProps {
@@ -119,6 +123,7 @@ export function ProductDetailClient({
   const cart = useCart(store.slug);
   useCampaignAttribution(store.slug);
   useStoreVisitBeacon(store.slug);
+  useStoreProductView(store.slug, product.id);
   const wishlist = useWishlist(store.slug);
   const [selectedImage, setSelectedImage] = useState(0);
   const variants = readVariants(product.variants);
@@ -136,7 +141,6 @@ export function ProductDetailClient({
     ? store.brandSettings.cartConfig as Record<string, string | boolean>
     : {};
   const addToCartLabel = String(cartConfig.addToCartLabel || "add_to_cart");
-  const addToCartBehavior = String(cartConfig.addToCartBehavior || "drawer");
   const enableWishlist = cartConfig.enableWishlist !== false;
   const buttonLabel = CART_LABELS[addToCartLabel] ?? "Add to Cart";
 
@@ -154,10 +158,9 @@ export function ProductDetailClient({
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
-    if (addToCartBehavior === "drawer") setCartOpen(true);
-    if (addToCartBehavior === "checkout") {
-      router.push(getPublicStorefrontPath(storeBasePath, "/checkout"));
-    }
+    const afterAdd = readCartSettings(store.brandSettings).afterAdd;
+    if (afterAdd === "drawer") setCartOpen(true);
+    else router.push(getPublicStorefrontPath(storeBasePath, afterAdd === "checkout" ? "/checkout" : "/cart"));
   }
 
   function handleBuyNow() {
@@ -398,6 +401,16 @@ export function ProductDetailClient({
                     </div>
                     {review.title ? <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{review.title}</div> : null}
                     {review.body ? <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "#4a4a4a" }}>{review.body}</p> : null}
+                    {review.images?.length ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                        {review.images.slice(0, 4).map((src, index) => (
+                          <a key={src} href={src} target="_blank" rel="noopener noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={src} alt={`Photo ${index + 1} from ${review.buyerName}`} loading="lazy" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }} />
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
                     {review.sellerReply ? (
                       <div style={{ marginTop: 12, padding: "10px 14px", background: "#f9f9f7", borderRadius: 8, borderLeft: `3px solid ${accent}` }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#6a6a6a", marginBottom: 4 }}>{store.name} replied {review.repliedAt ? formatDate(review.repliedAt) : ""}</div>
@@ -417,6 +430,11 @@ export function ProductDetailClient({
           </section>
         )}
 
+        <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}>
+          <ProductReviewForm slug={store.slug} productId={product.id} productName={product.name} accent={accent} ink={ink} />
+          <a href={getPublicStorefrontPath(storeBasePath, "/reviews")} style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, color: ink }}>All shop reviews</a>
+        </div>
+
         <div style={{ marginTop: 40, textAlign: "center" }}>
           <Link href={getPublicStorefrontPath(storeBasePath, "/")}
             style={{ display: "inline-block", padding: "13px 32px", borderRadius: 8, background: accent, color: "white", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
@@ -430,8 +448,8 @@ export function ProductDetailClient({
         storeName={store.name}
         basePath={storeBasePath}
         products={catalog.some((entry) => entry.id === product.id) ? catalog : [product, ...catalog]}
-        wishlistIds={wishlist.productIds}
-        onToggleWishlist={wishlist.toggle}
+        wishlistIds={enableWishlist ? wishlist.productIds : []}
+        onToggleWishlist={enableWishlist ? wishlist.toggle : undefined}
         cartCount={cart.count}
         onOpenBag={() => setCartOpen(true)}
         colors={{ active: ink, activeText: "#ffffff", badge: accent }}

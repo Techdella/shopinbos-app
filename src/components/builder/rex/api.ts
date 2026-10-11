@@ -4,6 +4,7 @@ import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
 import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { StudioChange } from "./types";
+import type { RexCard } from "@/lib/ai/rex/cards";
 
 // Browser calls for Rex Studio. They rely on the Supabase session cookie.
 
@@ -85,4 +86,31 @@ export async function uploadStudioPhoto(file: File) {
   const result = (await response.json().catch(() => null)) as { data?: { publicUrl?: string }; error?: { message?: string } } | null;
   if (!response.ok || !result?.data?.publicUrl) throw new Error(result?.error?.message ?? "That photo didn't upload. Try another one.");
   return result.data.publicUrl;
+}
+
+export interface RexAgentReply {
+  text: string;
+  cards: RexCard[];
+  draft: StoreEditorSnapshot | null;
+  versions: RexVersionSummary[] | null;
+}
+
+/** One turn with Rex's agent (tools: pictures, logos, videos, store edits, copy, marketing). */
+export async function askRex(input: { messages: Array<{ role: "user" | "assistant"; content: string }>; imageUrls: string[] }): Promise<RexAgentReply> {
+  const response = await fetch("/api/ai/rex", json(input));
+  if (!response.ok) throw new Error(await readError(response, "Rex couldn't answer just now. Nothing was changed; try again."));
+  return ((await response.json()) as { data: RexAgentReply }).data;
+}
+
+export type RexCardAction =
+  | { action: "save_product_image"; productId: string; imageUrl: string; mode: "add" | "main" | "replace"; replaceIndex: number | null }
+  | { action: "set_logo"; imageUrl: string }
+  | { action: "apply_product_copy"; productId: string; description: string }
+  | { action: "activate_automation"; id: string };
+
+/** A tap on one of Rex's cards: the seller's confirmation. */
+export async function rexCardAction(payload: RexCardAction): Promise<{ message: string; href?: string }> {
+  const response = await fetch("/api/ai/rex/actions", json(payload));
+  if (!response.ok) throw new Error(await readError(response, "That didn't save. Try again."));
+  return ((await response.json()) as { data: { message: string; href?: string } }).data;
 }

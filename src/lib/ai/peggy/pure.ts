@@ -6,6 +6,13 @@ import { z } from "zod";
 import { startOfLagosDay } from "../../dashboard/compute.ts";
 import { PAID_ORDER_STATUSES } from "../../insights.ts";
 import { AD_PLATFORM_KEYS } from "../../../../shared/ads.ts";
+import { SETUP_TOOL_SPECS } from "./setup-specs.ts";
+import { INBOX_TOOL_SPECS } from "./inbox-specs.ts";
+import { SOCIAL_TOOL_SPECS } from "./social-specs.ts";
+import { REVIEWS_TOOL_SPECS } from "./reviews-specs.ts";
+import { MARKETING_TOOL_SPECS } from "./marketing-specs.ts";
+import { COMMERCE_TOOL_SPECS } from "./commerce-specs.ts";
+import { CMS_TOOL_SPECS } from "./cms-specs.ts";
 
 const DAY = 86_400_000;
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
@@ -177,6 +184,13 @@ export const PEGGY_TOOL_SPECS = {
     description: "Write marketing text (a WhatsApp status, an Instagram caption or a product description). Returns text only; changes nothing in the shop.",
     schema: z.object({ kind: z.enum(["whatsapp_status", "instagram_caption", "product_description"]), about: z.string().trim().min(3).max(1000) }).strict(),
   },
+  ...SETUP_TOOL_SPECS,
+  ...INBOX_TOOL_SPECS,
+  ...SOCIAL_TOOL_SPECS,
+  ...REVIEWS_TOOL_SPECS,
+  ...MARKETING_TOOL_SPECS,
+  ...COMMERCE_TOOL_SPECS,
+  ...CMS_TOOL_SPECS,
 } as const;
 
 export type PeggyToolName = keyof typeof PEGGY_TOOL_SPECS;

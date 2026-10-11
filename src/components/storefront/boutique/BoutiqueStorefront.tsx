@@ -59,6 +59,8 @@ export interface BoutiqueStorefrontProps {
   onToggleWishlist?: (productId: string) => void;
   /** ?q= from the URL opens search with this query. */
   initialQuery?: string;
+  /** Theme gallery previews: sample products, no editor outlines or "add this" hints. */
+  demo?: boolean;
 }
 
 const PAGE_LABELS: Record<string, string> = { home: "Home", products: "Shop", about: "About", contact: "Contact", faq: "FAQ", wishlist: "Wishlist" };
@@ -244,7 +246,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function wrap(section: TemplateSectionNode, node: React.ReactNode) {
     if (!node) return null;
-    if (live) return <div key={section.id}>{node}</div>;
+    if (live || props.demo) return <div key={section.id}>{node}</div>;
     const selected = props.selectedSectionId === section.id;
     return (
       <div
@@ -262,7 +264,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   }
 
   function editorHint(message: string) {
-    if (live) return null;
+    if (live || props.demo) return null;
     return (
       <div className="bq-wrap py-6">
         <div className="rounded-[12px] border border-dashed px-4 py-5 text-center text-[13px]" style={{ borderColor: t.border, color: t.muted }}>{message}</div>
@@ -288,6 +290,304 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const img = image ? <img src={image} alt="" width={1600} height={900} loading="eager" fetchPriority="high" decoding="async" /> : null;
 
     const eyebrow = text(copy.eyebrow);
+
+    // ─── Industry theme heroes (Ẹwà, Ṣùkú, Aṣọ Ẹbí, Agbada, Ìlẹ̀kẹ̀, Oúnjẹ, Chin Chin, Ọjà, Ọmọ, Ìwé, Owambe, Danfo, Turare, Oko) ──
+    const eyebrowEl = (color: string, extra?: React.CSSProperties) =>
+      eyebrow ? <p className="text-[12px] font-semibold uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color, ...extra }}>{eyebrow}</p> : null;
+    const ctaButton = (style: React.CSSProperties = look.primaryButton) => <button type="button" className="bq-btn" style={style} onClick={() => go(action)}>{cta}</button>;
+    const searchForm = (placeholder: string, dark: boolean) => (
+      <form
+        role="search"
+        className="flex w-full max-w-[560px] items-center gap-2 rounded-full p-1.5 pl-4"
+        style={{ background: dark ? "#FFFFFF" : t.cardBg, color: "#111" }}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const q = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+          setFilter((prev) => ({ ...prev, q, category: "all", collection: "" }));
+          go("products");
+        }}
+      >
+        <Icon name="search" size={17} color="#555" />
+        <label htmlFor={`${headingId}-q`} className="sr-only">{placeholder}</label>
+        <input id={`${headingId}-q`} name="q" type="search" placeholder={placeholder} className="h-10 w-0 min-w-0 flex-1 bg-transparent text-[15px] outline-none" />
+        <button type="submit" className="bq-btn" style={{ ...look.primaryButton, minHeight: 40 }}>Search</button>
+      </form>
+    );
+
+    if (layout === "ewa-arch") {
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 76px)", lineHeight: 1.02 }}>{title}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] leading-7 opacity-85">{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="bq-media mx-auto w-full max-w-[460px]" style={{ aspectRatio: "4 / 5", borderRadius: "999px 999px 24px 24px" }}>{img}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "suku-crown") {
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1fr_0.9fr] @3xl:items-center @3xl:py-14">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: "#fff", letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(42px, 7.5cqi, 96px)", lineHeight: 0.95 }}>{title}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="relative mx-auto w-full max-w-[420px]">
+              <div className="absolute -inset-3 rounded-[999px] border-2" style={{ borderColor: t.accent, opacity: 0.6 }} aria-hidden />
+              <div className="bq-media" style={{ aspectRatio: "3 / 4", borderRadius: 999 }}>{img}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "asoebi-collage") {
+      // Uploaded banners first, then product photos, so the collage is full with a single upload.
+      const pool = [...new Set([...uploaded, ...fromProducts])];
+      const tiles = [0, 1, 2].map((i) => pool[i] ?? null);
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[0.9fr_1.1fr] @3xl:items-center @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.6cqi, 72px)", lineHeight: 1.04 }}>{title}</h1>
+              <span className="block h-[2px] w-16" style={{ background: t.accent }} aria-hidden />
+              {body ? <p className="max-w-[460px] text-[15.5px] leading-7 opacity-85">{body}</p> : null}
+              {ctaButton({ background: t.accent, color: t.heroBg, border: `1.5px solid ${t.accent}` })}
+            </div>
+            <div className="bq-collage" style={{ aspectRatio: "6 / 5" }}>
+              {tiles.map((src, i) => (
+                <div key={i} className="bq-media" style={{ borderRadius: look.cardRadius, minHeight: 0, border: `1px solid ${t.accent}55` }}>
+                  {src ? <img src={src} alt="" width={800} height={1000} loading={i === 0 ? "eager" : "lazy"} decoding="async" /> : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "agbada-tailored") {
+      return (
+        <section aria-labelledby={headingId} className="bq-split" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-media" style={{ aspectRatio: "4 / 5", minHeight: "100%" }}>{img}</div>
+          <div className="flex flex-col justify-center gap-5 px-6 py-12 @3xl:px-14">
+            {eyebrowEl(t.accent)}
+            <span className="block h-px w-full max-w-[420px]" style={{ background: `${t.heroText}40` }} aria-hidden />
+            <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5cqi, 64px)", lineHeight: 1.05 }}>{title}</h1>
+            <span className="block h-px w-full max-w-[420px]" style={{ background: `${t.heroText}40` }} aria-hidden />
+            {body ? <p className="max-w-[440px] text-[15.5px] leading-7 opacity-85">{body}</p> : null}
+            <div>{ctaButton({ background: t.heroText, color: t.heroBg, border: `1.5px solid ${t.heroText}` })}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ileke-frame") {
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap flex flex-col items-center gap-6 py-12 text-center @3xl:py-16">
+            {eyebrowEl(t.accent)}
+            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.4cqi, 84px)", lineHeight: 1 }}>{title}</h1>
+            {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            {ctaButton(look.solidButton)}
+            <div className="mt-2 w-full max-w-[720px] p-3" style={{ border: `1px solid ${t.accent}66`, borderRadius: look.cardRadius + 6 }}>
+              <div className="bq-media" style={{ aspectRatio: "16 / 9", borderRadius: look.cardRadius }}>{img}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ounje-menu") {
+      // Theme previews show where the button goes; a real store shows it only with a real number.
+      const whatsapp = shopper.whatsappNumber ?? (props.demo ? "sample" : null);
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:py-14">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.4cqi, 80px)", lineHeight: 0.98 }}>{title}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] opacity-85">{body}</p> : null}
+              <div className="flex flex-wrap gap-3">
+                {whatsapp ? (
+                  <a href={live && shopper.whatsappNumber ? whatsappLink(shopper.whatsappNumber, `Hi ${store.name}, I'd like to order`) : undefined} target="_blank" rel="noopener noreferrer" className="bq-btn" style={{ background: "#25D366", color: "#fff", border: "1.5px solid #25D366" }}>
+                    <Icon name="whatsapp" size={17} /> Order on WhatsApp
+                  </a>
+                ) : null}
+                {ctaButton(whatsapp ? { background: "transparent", color: t.heroText, border: `1.5px solid ${t.heroText}` } : look.primaryButton)}
+              </div>
+              {!whatsapp && !live && !props.demo ? <p className="text-[12.5px] opacity-70">Add your WhatsApp number in Live chat settings to show Order on WhatsApp here.</p> : null}
+            </div>
+            <div className="relative mx-auto aspect-square w-full max-w-[440px]">
+              <div className="absolute inset-0 rounded-full" style={{ background: `${t.accent}33` }} aria-hidden />
+              <div className="absolute inset-[7%]">
+                <div className="bq-media h-full w-full rounded-full" style={{ border: `6px solid ${t.paperBg}` }}>{img}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "chinchin-sweet") {
+      return (
+        <section aria-labelledby={headingId} className="relative" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 pb-16 pt-10 @3xl:grid-cols-2 @3xl:items-center @3xl:pb-20 @3xl:pt-14">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 76px)", lineHeight: 1.02 }}>{title}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="bq-media mx-auto w-full max-w-[460px]" style={{ aspectRatio: "1 / 1", borderRadius: "46% 54% 42% 58% / 52% 44% 56% 48%", border: `8px solid ${t.paperBg}` }}>{img}</div>
+          </div>
+          <svg aria-hidden viewBox="0 0 120 8" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 block h-4 w-full" style={{ color: t.paperBg }}>
+            <path fill="currentColor" d={`M0 8 ${Array.from({ length: 12 }, (_, i) => `Q${i * 10 + 5} 0 ${i * 10 + 10} 8`).join(" ")} Z`} />
+          </svg>
+        </section>
+      );
+    }
+
+    if (layout === "oja-market") {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-4">
+          <div className="grid overflow-hidden @3xl:grid-cols-[1.4fr_1fr]" style={{ background: t.heroBg, color: t.heroText, borderRadius: look.cardRadius + 6 }}>
+            <div className="flex flex-col items-start gap-4 px-5 py-8 @3xl:px-10 @3xl:py-10">
+              {eyebrowEl(t.heroText, { opacity: 0.85 })}
+              <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.4cqi, 54px)", lineHeight: 1.05 }}>{title}</h1>
+              {body ? <p className="max-w-[480px] text-[15px] opacity-90">{body}</p> : null}
+              {searchForm("Search rice, oil, detergent…", true)}
+            </div>
+            <div className="bq-media bq-only-wide" style={{ minHeight: "100%" }}>{img}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "omo-play") {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-4">
+          <div className="grid gap-6 overflow-hidden px-6 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:px-12 @3xl:py-14" style={{ background: t.heroBg, color: t.heroText, borderRadius: 32 }}>
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="rounded-full bg-white px-3 py-1 text-[12.5px] font-bold" style={{ color: t.accent }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.8cqi, 72px)", lineHeight: 1 }}>{title}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="relative mx-auto w-full max-w-[400px] py-4">
+              <span className="absolute -left-2 top-2 h-16 w-16 rounded-full" style={{ background: t.accent, opacity: 0.85 }} aria-hidden />
+              <span className="absolute -right-1 bottom-0 h-10 w-10 rounded-[12px]" style={{ background: "#FF7A59" }} aria-hidden />
+              <div className="bq-media relative" style={{ aspectRatio: "1 / 1", borderRadius: 28, transform: "rotate(-3deg)", border: "6px solid #fff" }}>{img}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "iwe-shelf") {
+      const covers = [...new Set([...uploaded, ...fromProducts])].slice(0, 4);
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid gap-10 py-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:items-end @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.6cqi, 70px)", lineHeight: 1.04 }}>{title}</h1>
+              {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {ctaButton(look.solidButton)}
+            </div>
+            <div>
+              <div className="bq-shelf px-2">
+                {(covers.length ? covers : [null, null, null, null]).map((src, i) => (
+                  <div key={i} className="bq-media" style={{ aspectRatio: "2 / 3", borderRadius: 2, boxShadow: "0 10px 24px rgba(0,0,0,.18)", transform: `translateY(${i % 2 ? -10 : 0}px)` }}>
+                    {src ? <img src={src} alt="" width={400} height={600} loading="eager" decoding="async" /> : null}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-0 h-3 rounded-[2px]" style={{ background: t.ink, opacity: 0.85 }} aria-hidden />
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "owambe-party") {
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
+          <div aria-hidden className="absolute inset-0" style={{ backgroundImage: `radial-gradient(${t.accent} 1.5px, transparent 1.6px), radial-gradient(#E85D9E 1.5px, transparent 1.6px)`, backgroundSize: "46px 46px, 46px 46px", backgroundPosition: "0 0, 23px 23px", opacity: 0.35 }} />
+          <div className="bq-wrap relative grid gap-8 py-12 @3xl:grid-cols-[1fr_1fr] @3xl:items-center @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 6.4cqi, 84px)", lineHeight: 0.98 }}>{title}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="bq-media" style={{ aspectRatio: "5 / 4", borderRadius: look.cardRadius + 6, border: `3px solid ${t.accent}` }}>{img}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "danfo-garage") {
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div aria-hidden className="h-3" style={{ background: `repeating-linear-gradient(135deg, ${t.accent} 0 16px, ${t.heroBg} 16px 32px)` }} />
+          <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1.2fr_1fr] @3xl:items-center @3xl:py-14">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[15ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 76px)", lineHeight: 0.98 }}>{title}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] opacity-85">{body}</p> : null}
+              {searchForm("Search by part, car or model", true)}
+            </div>
+            <div className="bq-media" style={{ aspectRatio: "4 / 3", borderRadius: look.cardRadius, border: `2px solid ${t.accent}` }}>{img}</div>
+          </div>
+          <div aria-hidden className="h-3" style={{ background: `repeating-linear-gradient(135deg, ${t.accent} 0 16px, ${t.heroBg} 16px 32px)` }} />
+        </section>
+      );
+    }
+
+    if (layout === "turare-glow") {
+      return (
+        <section aria-labelledby={headingId} style={{ background: `radial-gradient(circle at 70% 50%, ${t.accent}55, transparent 55%), ${t.heroBg}`, color: t.heroText }}>
+          <div className="bq-wrap grid gap-8 py-12 @3xl:grid-cols-2 @3xl:items-center @3xl:py-20">
+            <div className="flex flex-col items-start gap-5">
+              {eyebrowEl(t.accent)}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 80px)", lineHeight: 1.02 }}>{title}</h1>
+              {body ? <p className="max-w-[440px] text-[15.5px] leading-7 opacity-80">{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="mx-auto grid w-full max-w-[420px] place-items-center" style={{ aspectRatio: "1 / 1", borderRadius: 999, background: `radial-gradient(circle, ${t.accent}66, transparent 68%)` }}>
+              <div className="bq-media h-[78%] w-[62%]" style={{ borderRadius: look.cardRadius + 10 }}>{img}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "oko-field") {
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: image ? look.placeholder : t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(18,32,14,.7), rgba(18,32,14,0) 60%)" : "transparent" }} />
+            <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 text-white">
+              {eyebrow ? <p className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: t.accent, color: t.ink }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 80px)", lineHeight: 1 }}>{title}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] opacity-90">{body}</p> : null}
+              {ctaButton({ background: "#fff", color: t.ink, border: "1.5px solid #fff" })}
+            </div>
+          </div>
+        </section>
+      );
+    }
 
     if (layout === "adire-banner") {
       return (
@@ -494,7 +794,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function productRail(section: TemplateSectionNode) {
     const copy = copyOf(section);
-    const list = sectionProducts(section).slice(0, 8);
+    const railLayout = text(section.settings?.layout);
+    const list = sectionProducts(section).slice(0, railLayout === "dense" ? 12 : 8);
     const headingId = `${uid}-${section.id}`;
     if (!list.length) {
       return live ? (
@@ -504,6 +805,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         </section>
       ) : editorHint("Your best sellers show here once you add products.");
     }
+    if (railLayout === "menu") return menuList(section, list, headingId);
     const scroll = (direction: number) => {
       const rail = railRefs.current[section.id];
       if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.9, behavior: "smooth" });
@@ -532,12 +834,56 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10" style={look.dark ? { background: t.paperBg } : undefined}>
-        <SectionTitle look={look} id={headingId} action={section.settings?.layout === "tiles" ? shopAllAlways : <>{shopAll}{arrows}</>}>{text(copy.title) || "Best sellers"}</SectionTitle>
-        <div className={section.settings?.layout === "tiles" ? "bq-tiles" : "bq-rail"} ref={(el) => { railRefs.current[section.id] = el; }}>
+        <SectionTitle look={look} id={headingId} action={railLayout === "tiles" || railLayout === "dense" ? shopAllAlways : <>{shopAll}{arrows}</>}>{text(copy.title) || "Best sellers"}</SectionTitle>
+        <div className={railLayout === "tiles" ? "bq-tiles" : railLayout === "dense" ? "bq-dense" : "bq-rail"} ref={(el) => { railRefs.current[section.id] = el; }}>
           {list.map((product, i) => (
             <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} />
           ))}
         </div>
+      </section>
+    );
+  }
+
+  /** Oúnjẹ's menu: dish, what's in it and price, in a list; orders go through the product page or WhatsApp. */
+  function menuList(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
+    const copy = copyOf(section);
+    const whatsapp = shopper.whatsappNumber ?? (props.demo ? "sample" : null);
+    const item = (product: ShopperProduct, i: number) => {
+      const inner = (
+        <>
+          <span className="bq-media block">
+            {product.images[0] ? <img src={product.images[0]} alt="" width={224} height={224} loading={i < 4 ? "eager" : "lazy"} decoding="async" /> : null}
+          </span>
+          <span className="flex min-w-0 flex-col gap-1">
+            <span className="text-[16px] font-semibold leading-snug" style={{ fontFamily: look.headingFont }}>{product.name}</span>
+            {text(product.description) ? <span className="line-clamp-2 text-[13.5px] leading-5" style={{ color: t.muted }}>{text(product.description)}</span> : null}
+            <span className="mt-1 text-[15px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span>
+          </span>
+        </>
+      );
+      const href = productHref(product.id);
+      return href ? (
+        <Link key={product.id} href={href} prefetch={false} className="bq-menu-item">{inner}</Link>
+      ) : (
+        <button key={product.id} type="button" className="bq-menu-item" onClick={live ? undefined : () => openProduct(product.id)}>{inner}</button>
+      );
+    };
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-10">
+        <SectionTitle look={look} id={headingId} action={(
+          <button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>
+            {text(copy.cta) || "Full menu"}
+          </button>
+        )}>{text(copy.title) || "Today's menu"}</SectionTitle>
+        <div className="bq-menu">{list.map(item)}</div>
+        {whatsapp ? (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--bq-card-radius)] px-5 py-4" style={{ background: t.heroBg, color: t.heroText }}>
+            <p className="m-0 text-[15px] font-semibold">Prefer to order by chat? Send us your order on WhatsApp.</p>
+            <a href={live && shopper.whatsappNumber ? whatsappLink(shopper.whatsappNumber, `Hi ${store.name}, I'd like to order`) : undefined} target="_blank" rel="noopener noreferrer" className="bq-btn" style={{ background: "#25D366", color: "#fff", border: "1.5px solid #25D366" }}>
+              <Icon name="whatsapp" size={17} /> Order on WhatsApp
+            </a>
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -680,7 +1026,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const copy = copyOf(section);
     const items = (section.items ?? [])
       .map((item, index) => ({ id: `${section.id}-${index}`, question: text(item.question), answer: faqAnswer(item, shopper, store.currency) }))
-      .filter((item) => item.question && (item.answer || !live));
+      .filter((item) => item.question && (item.answer || (!live && !props.demo)));
     if (!items.length) return editorHint("Add questions and answers for shoppers.");
     const headingId = `${uid}-${section.id}`;
     return (
@@ -848,7 +1194,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       case "testimonials":
         return reviewsSection(section);
       case "payday-countdown":
-        return <Countdown settings={section.settings} look={look} copy={copyOf(section)} onShop={() => go("products")} editor={!live} />;
+        return <Countdown settings={section.settings} look={look} copy={copyOf(section)} onShop={() => go("products")} editor={!live && !props.demo} />;
       case "story-split":
       case "about-section":
         return story(section);
@@ -904,7 +1250,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} style={{ ...lookVars(look), ...editorStyle }} onClick={live ? undefined : () => props.onSelectSection?.(null)}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to products</a>
-      {announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live ? null : (
+      {announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live || props.demo ? null : (
         <div className="px-4 py-2 text-center text-[12px]" style={{ ...look.announcement, opacity: 0.55 }}>Announcement shows your free-delivery and pay-on-delivery settings (none set yet)</div>
       )) : null}
       {headerSection ? wrap(headerSection, (
@@ -918,7 +1264,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           onShopAll={() => { setFilter((prev) => ({ ...prev, category: "all", collection: "" })); go("products"); }}
           onCategory={shopCategory}
           onSearch={live ? () => setSheet("search") : () => undefined}
-          onWishlist={live ? () => setSheet("wishlist") : () => undefined}
+          onWishlist={live ? (props.onToggleWishlist ? () => setSheet("wishlist") : undefined) : () => undefined}
           onBag={live ? props.onOpenCart : () => undefined}
           cartCount={props.cartCount}
           wishlistCount={wished.length}

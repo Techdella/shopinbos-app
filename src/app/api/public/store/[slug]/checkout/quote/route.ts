@@ -1,0 +1,49 @@
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/db/client";
+import { withCors, handleOptions } from "@/lib/api/cors";
+import { ok, apiError } from "@/lib/api/response";
+import { priceOrder } from "@/lib/commerce/pricing.server";
+import { readCheckoutSettings } from "@shared/cart-checkout";
+
+// The totals the checkout API will charge for this bag, address, delivery option and code, so the checkout
+// page shows exactly that (automatic discounts, buy X get Y and product-scoped codes included). Nothing is saved.
+
+const CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
+
+export async function OPTIONS(req: NextRequest) {
+  return handleOptions(req, CORS);
+}
+
+const QuoteSchema = z.object({
+  items: z.array(z.object({ productId: z.string().max(64), quantity: z.number().int().positive().max(999), variant: z.string().max(120).optional() })).min(1).max(100),
+  address: z.object({ city: z.string().max(120).optional(), state: z.string().max(120).optional() }).default({}),
+  deliveryOptionId: z.string().max(64).optional(),
+  discountCode: z.string().max(40).optional(),
+  buyerEmail: z.string().max(200).optional(),
+});
+
+export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const store = await db.store.findUnique({
+    where: { slug },
+    select: { id: true, status: true, brandSettings: true, checkoutConfig: { select: { enableCoupon: true } } },
+  });
+  if (!store || store.status !== "active") return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
+
+  const parsed = QuoteSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid bag"), CORS);
+
+  const priced = await priceOrder({ store, ...parsed.data, settings: readCheckoutSettings(store.checkoutConfig) });
+  if (!priced.ok) return withCors(req, apiError("BAD_REQUEST", priced.message), CORS);
+
+  const res = withCors(req, ok({
+    totals: priced.totals,
+    discount: priced.discount ? { code: priced.discount.code, label: priced.discount.label, automatic: priced.discount.automatic } : null,
+    codeError: priced.codeError,
+    delivery: { covered: priced.delivery.choice.covered, optionId: priced.delivery.option?.id ?? null },
+    items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity })),
+  }), CORS);
+  res.headers.set("Cache-Control", "no-store");
+  return res;
+}

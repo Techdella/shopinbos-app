@@ -26,7 +26,7 @@ const SEARCH_INDEX: SearchResult[] = [
   { label: "Marketing", href: "/home/marketing", icon: "megaphone", description: "Campaigns & promotions" },
   { label: "Store editor", href: "/builder/editor", icon: "palette", description: "Customize storefront" },
   { label: "Payments", href: "/home/payments", icon: "coin", description: "Transactions & payouts" },
-  { label: "Analytics", href: "/home/insights", icon: "chart", description: "Sales & traffic reports" },
+  { label: "Analytics", href: "/home/analytics", icon: "chart", description: "Sales, visits, channels and marketing" },
   { label: "Ask Peggy", href: "/home/peggy", icon: "sparkle", description: "AI assistant" },
   { label: "Build with Rex", href: "/studio", icon: "bolt", description: "Creative studio" },
   { label: "Settings", href: "/home/settings", icon: "settings", description: "Store & account settings" },

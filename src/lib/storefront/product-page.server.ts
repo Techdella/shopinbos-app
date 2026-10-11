@@ -107,8 +107,8 @@ export const loadProductPage = cache(async (slug: string, productId: string) => 
 
   await ensureReviewTable();
   const reviews = await db
-    .$queryRawUnsafe<Array<{ id: string; productId: string; buyerName: string; rating: number; title: string; body: string; sellerReply: string; repliedAt: Date | null; createdAt: Date }>>(
-      `SELECT id, "productId", "buyerName", rating, title, body, "sellerReply", "repliedAt", "createdAt"
+    .$queryRawUnsafe<Array<{ id: string; productId: string; buyerName: string; rating: number; title: string; body: string; images: string[] | null; sellerReply: string; repliedAt: Date | null; createdAt: Date }>>(
+      `SELECT id, "productId", "buyerName", rating, title, body, images, "sellerReply", "repliedAt", "createdAt"
        FROM "ProductReview"
        WHERE "storeId" = $1 AND "productId" = $2 AND status = 'approved'
        ORDER BY "createdAt" DESC
@@ -142,6 +142,7 @@ export const loadProductPage = cache(async (slug: string, productId: string) => 
     product: publicProduct,
     reviews: reviews.map((review) => ({
       ...review,
+      images: review.images ?? [],
       createdAt: review.createdAt instanceof Date ? review.createdAt.toISOString() : String(review.createdAt),
       repliedAt: review.repliedAt instanceof Date ? review.repliedAt.toISOString() : null,
     })),

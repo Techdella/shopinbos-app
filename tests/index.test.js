@@ -105,6 +105,7 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
     "src/app/home/dropship/page.tsx",
     "src/app/home/customers/page.tsx",
     "src/app/home/insights/page.tsx",
+    "src/app/home/analytics/page.tsx",
     "src/app/home/settings/page.tsx",
     "src/app/seller/inventory/page.tsx",
     "src/app/seller/invoices/page.tsx",
@@ -153,7 +154,7 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
   assert.doesNotMatch(navText, /href: "\/home\/apps"/);
   assert.match(navText, /href: "\/home\/marketing\/campaigns"/);
   assert.match(navText, /href: "\/home\/customers"/);
-  assert.match(navText, /href: "\/home\/insights"/);
+  assert.match(navText, /href: "\/home\/analytics"/);
   assert.match(navText, /href: "\/home\/settings"/);
   assert.doesNotMatch(navText, /href: "\/logistics"(?!\/)/);
   assert.doesNotMatch(navText, /href: "\/settings"(?!\/)/);
@@ -778,8 +779,11 @@ test("launch QA regressions stay fixed", () => {
 
   assert.match(middleware, /params: \(await params\) \?\? \{\}/);
   assert.match(storefrontCheckout, /import \{ useRouter, useSearchParams \} from "next\/navigation"/);
-  assert.match(checkoutRoute, /redemptionError\(discount, subtotal\)/);
-  assert.match(checkoutRoute, /redemptionError\(coupon, subtotal\)/);
+  // Discount limits and expiry are enforced server-side in the pricing the checkout route charges with.
+  const pricing = read("src/lib/commerce/pricing.server.ts");
+  assert.match(checkoutRoute, /priceOrder\(\{/);
+  assert.match(pricing, /redemptionError\(discount, subtotal\)/);
+  assert.match(pricing, /redemptionError\(coupon, subtotal\)/);
   assert.match(validateRoute, /redemptionError/);
   assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
   assert.match(productsRoute, /\n\s+retailPrice,\n/);
@@ -787,7 +791,7 @@ test("launch QA regressions stay fixed", () => {
 });
 
 test("seller insights are computed from real orders, not sample data", () => {
-  const page = read("src/app/home/insights/page.tsx");
+  const page = read("src/app/home/analytics/page.tsx");
   const lib = read("src/lib/insights.ts");
 
   assert.match(page, /computeSellerInsights\(orders\)/);

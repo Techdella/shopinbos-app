@@ -11,6 +11,9 @@ import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
 import { buildStorefrontOrigin, buildStorefrontUrl } from "@/lib/domains/storefront";
 import { RexStudio } from "@/components/builder/rex/RexStudio";
 
+// Rex Studio opens on a chat with Rex (pictures, logos, videos, store edits, copy, marketing via /api/ai/rex);
+// the store preview opens beside it on demand. `?prompt=` prefills the composer, `?preview=1` opens the preview.
+
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Rex Studio" };
 
@@ -18,7 +21,7 @@ function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-export default async function StudioPage({ searchParams }: { searchParams?: Promise<{ onboarding?: string }> }) {
+export default async function StudioPage({ searchParams }: { searchParams?: Promise<{ onboarding?: string; prompt?: string | string[]; preview?: string }> }) {
   const user = await requireRole(["seller"], "/login");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: studioStoreSelect });
   if (!store) redirect("/onboarding?role=seller");
@@ -55,6 +58,8 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
     <RexStudio
       firstName={firstName}
       fromOnboarding={params?.onboarding === "true"}
+      initialPrompt={(Array.isArray(params?.prompt) ? params.prompt[0] : params?.prompt)?.slice(0, 2000) ?? ""}
+      openPreview={params?.preview === "1"}
       store={{
         id: store.id,
         name: store.name,

@@ -27,7 +27,7 @@ export default async function ChatPage() {
   };
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Live chat and contact" sub="Choose how shoppers reach you from your store.">
+    <SellerPage user={user} store={storeSummary(store)} title="Live chat and contact" sub="Choose how shoppers reach you from your store. Chats and messages arrive in your inbox, and your replies show up in the chat box.">
       <ChatSettings initial={initial} />
     </SellerPage>
   );

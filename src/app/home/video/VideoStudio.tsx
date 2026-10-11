@@ -7,6 +7,7 @@ import { naira } from "@shared/onboarding";
 import { MAX_PHOTOS, VIDEO_LANGUAGES, fallbackScript, type VideoLanguage, type VideoScript } from "@shared/video";
 import { loadReelImage, reelSupported, renderReel, type ReelResult } from "@/lib/video/render-reel";
 import { uploadFile } from "@/lib/supabase/storage";
+import { REX_REEL_HANDOFF_KEY } from "@/lib/ai/rex/cards";
 
 interface StudioProduct {
   id: string;
@@ -47,6 +48,22 @@ export function VideoStudio({ products, storeName, storeHost, initialProductId }
   const product = products.find((item) => item.id === productId) ?? null;
 
   useEffect(() => setSupported(reelSupported()), []);
+
+  // A reel Rex prepared in Rex Studio arrives with its script and language (see RexCards' video card).
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(REX_REEL_HANDOFF_KEY);
+      if (!raw) return;
+      window.sessionStorage.removeItem(REX_REEL_HANDOFF_KEY);
+      const handoff = JSON.parse(raw) as { productId?: string; language?: string; script?: VideoScript };
+      if (!handoff.script || handoff.productId !== initialProductId) return;
+      if (VIDEO_LANGUAGES.some((option) => option.key === handoff.language)) setLanguage(handoff.language as VideoLanguage);
+      setScript({ captions: handoff.script.captions ?? [], voiceover: handoff.script.voiceover ?? "", cta: handoff.script.cta ?? "" });
+      setNotice({ tone: "info", text: "Rex wrote this script. Check it, then press Make my reel." });
+    } catch {
+      // Storage can be blocked; the studio works without the handoff.
+    }
+  }, [initialProductId]);
   useEffect(() => () => { if (result) URL.revokeObjectURL(result.url); }, [result]);
 
   // Keep the captions in step with the number of photos.

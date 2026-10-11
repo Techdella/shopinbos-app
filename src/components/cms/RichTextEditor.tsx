@@ -1,0 +1,426 @@
+"use client";
+
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
+import { Node, mergeAttributes, type JSONContent } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import TextAlign from "@tiptap/extension-text-align";
+import Image from "@tiptap/extension-image";
+import Youtube from "@tiptap/extension-youtube";
+import { TableKit } from "@tiptap/extension-table";
+import { Placeholder } from "@tiptap/extensions";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { PillButton, Spinner, cx } from "@/components/app-ui";
+import { CMS_PROSE_CSS } from "@/components/cms/prose-css";
+import { Modal, RecordPicker, uploadCmsFile } from "@/components/cms/pickers";
+import { markdownToDoc } from "@/lib/cms/markdown";
+import { youtubeEmbedUrl, type RichDoc } from "@/lib/cms/richtext";
+
+// Block editor for CMS rich text fields (WordPress/Notion feel): headings, marks, links, lists, quotes, code,
+// alignment, images (uploaded to the store's media), YouTube, tables, info boxes, dividers, buttons and
+// product cards. It hands back Tiptap JSON; the server keeps only known nodes and builds the HTML itself.
+
+const Callout = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+  addAttributes() {
+    return {
+      tone: {
+        default: "info",
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-tone") || "info",
+        renderHTML: (attrs: Record<string, unknown>) => ({ "data-tone": attrs.tone, class: `cms-callout cms-callout-${String(attrs.tone)}` }),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "aside[data-tone]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["aside", HTMLAttributes, 0];
+  },
+});
+
+const CmsButton = Node.create({
+  name: "button",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return { href: { default: "" }, label: { default: "" }, variant: { default: "solid" } };
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-type="cms-button"]', getAttrs: (element: HTMLElement) => ({ href: element.getAttribute("data-href") ?? "", label: element.textContent ?? "", variant: element.getAttribute("data-variant") ?? "solid" }) }];
+  },
+  renderHTML({ node }) {
+    return ["div", { "data-type": "cms-button", "data-href": node.attrs.href, "data-variant": node.attrs.variant, class: "cms-button-row" }, ["span", { class: "cms-ed-button", "data-variant": node.attrs.variant }, node.attrs.label || "Button"]];
+  },
+});
+
+const ProductCard = Node.create({
+  name: "productCard",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return { productId: { default: "" }, name: { default: "" }, image: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-type="cms-product"]', getAttrs: (element: HTMLElement) => ({ productId: element.getAttribute("data-product-id") ?? "", name: element.getAttribute("data-name") ?? "" }) }];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const children: unknown[] = [];
+    if (node.attrs.image) children.push(["img", { src: node.attrs.image, alt: "" }]);
+    children.push(["span", {}, ["strong", {}, node.attrs.name || "Product"], ["small", {}, "Product card · shows the live price"]]);
+    return ["div", mergeAttributes(HTMLAttributes, { "data-type": "cms-product", "data-product-id": node.attrs.productId, "data-name": node.attrs.name, class: "cms-ed-product" }), ...children] as never;
+  },
+});
+
+type DialogState =
+  | { kind: "link"; href: string; newTab: boolean }
+  | { kind: "youtube"; url: string }
+  | { kind: "image"; src: string; alt: string; caption: string; editing: boolean }
+  | { kind: "button"; href: string; label: string; variant: "solid" | "outline"; editing: boolean }
+  | { kind: "product" }
+  | { kind: "markdown"; text: string }
+  | null;
+
+const field = "min-h-[44px] w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[14.5px] outline-none focus:border-app-ink";
+
+function ToolButton({ icon, label, onClick, active, disabled, children }: { icon?: IconName; label: string; onClick: () => void; active?: boolean; disabled?: boolean; children?: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={active}
+      disabled={disabled}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onClick}
+      className={cx(
+        "inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-[10px] px-2 text-[13.5px] font-bold transition disabled:opacity-40",
+        active ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas",
+      )}
+    >
+      {icon ? <Icon name={icon} size={16} /> : null}
+      {children}
+    </button>
+  );
+}
+
+const Sep = () => <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-app-line" />;
+
+export function RichTextEditor({ value, onChange, label, placeholder = "Start writing, or use the toolbar to add headings, pictures and more" }: { value: RichDoc | null; onChange: (doc: RichDoc) => void; label: string; placeholder?: string }) {
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const labelId = useId();
+  const changeRef = useRef(onChange);
+  changeRef.current = onChange;
+  const emitted = useRef<RichDoc | null>(null);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4] }, link: { openOnClick: false, autolink: true, defaultProtocol: "https" } }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Image.configure({ allowBase64: false }),
+      Youtube.configure({ nocookie: true, controls: true, modestBranding: true }),
+      TableKit.configure({ table: { resizable: false } }),
+      Placeholder.configure({ placeholder }),
+      Callout,
+      CmsButton,
+      ProductCard,
+    ],
+    content: (value as JSONContent | null) ?? undefined,
+    editorProps: { attributes: { class: "cms-prose cms-editor-surface", "aria-labelledby": labelId, role: "textbox", "aria-multiline": "true" } },
+    onUpdate: ({ editor: current }) => {
+      const doc = current.getJSON() as RichDoc;
+      emitted.current = doc;
+      changeRef.current(doc);
+    },
+  });
+
+  const state = useEditorState({
+    editor,
+    selector: ({ editor: e }: { editor: Editor | null }) => {
+      if (!e) return null;
+      return {
+        block: e.isActive("heading", { level: 1 }) ? "h1" : e.isActive("heading", { level: 2 }) ? "h2" : e.isActive("heading", { level: 3 }) ? "h3" : e.isActive("heading", { level: 4 }) ? "h4" : "p",
+        bold: e.isActive("bold"),
+        italic: e.isActive("italic"),
+        underline: e.isActive("underline"),
+        strike: e.isActive("strike"),
+        code: e.isActive("code"),
+        link: e.isActive("link"),
+        bullet: e.isActive("bulletList"),
+        ordered: e.isActive("orderedList"),
+        quote: e.isActive("blockquote"),
+        codeBlock: e.isActive("codeBlock"),
+        center: e.isActive({ textAlign: "center" }),
+        right: e.isActive({ textAlign: "right" }),
+        justify: e.isActive({ textAlign: "justify" }),
+        table: e.isActive("table"),
+        callout: e.isActive("callout"),
+        calloutTone: (e.getAttributes("callout").tone as string) ?? "info",
+        image: e.isActive("image"),
+        button: e.isActive("button"),
+        canUndo: e.can().undo(),
+        canRedo: e.can().redo(),
+      };
+    },
+  });
+
+  // Replace the document when a different item is loaded (not on every keystroke).
+  const loaded = useRef(value);
+  useEffect(() => {
+    if (!editor || value === loaded.current || value === emitted.current) return;
+    loaded.current = value;
+    const current = JSON.stringify(editor.getJSON());
+    if (value && JSON.stringify(value) !== current) editor.commands.setContent(value as JSONContent, { emitUpdate: false });
+  }, [editor, value]);
+
+  if (!editor || !state) {
+    return (
+      <div className="rounded-[18px] border border-app-line bg-white">
+        <p id={labelId} className="sr-only">{label}</p>
+        <div className="flex min-h-[220px] items-center justify-center gap-2 text-[14px] text-app-ink-soft"><Spinner /> Loading editor</div>
+      </div>
+    );
+  }
+
+  const chain = () => editor.chain().focus();
+
+  async function onFile(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const uploaded = await uploadCmsFile(file);
+      if (!uploaded.type.startsWith("image/")) throw new Error("Pick a picture (JPG, PNG, WebP or GIF)");
+      setDialog({ kind: "image", src: uploaded.url, alt: file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " "), caption: "", editing: false });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function applyDialog() {
+    if (!dialog || !editor) return;
+    switch (dialog.kind) {
+      case "link": {
+        const href = dialog.href.trim();
+        if (!href) chain().extendMarkRange("link").unsetLink().run();
+        else chain().extendMarkRange("link").setLink({ href: /^(https?:|mailto:|tel:|\/|#)/.test(href) ? href : `https://${href}`, target: dialog.newTab ? "_blank" : null }).run();
+        break;
+      }
+      case "youtube":
+        if (!youtubeEmbedUrl(dialog.url)) {
+          setError("That isn't a YouTube link. Paste a link like https://youtu.be/…");
+          return;
+        }
+        chain().setYoutubeVideo({ src: dialog.url.trim() }).run();
+        break;
+      case "image":
+        if (dialog.editing) chain().updateAttributes("image", { alt: dialog.alt, title: dialog.caption || null }).run();
+        else chain().setImage({ src: dialog.src, alt: dialog.alt, title: dialog.caption || undefined }).run();
+        break;
+      case "button": {
+        const href = dialog.href.trim();
+        if (!href || !dialog.label.trim()) {
+          setError("A button needs words and a link");
+          return;
+        }
+        const attrs = { href: /^(https?:|mailto:|tel:|\/|#)/.test(href) ? href : `https://${href}`, label: dialog.label.trim(), variant: dialog.variant };
+        if (dialog.editing) chain().updateAttributes("button", attrs).run();
+        else chain().insertContent({ type: "button", attrs }).run();
+        break;
+      }
+      case "markdown": {
+        const doc = markdownToDoc(dialog.text);
+        chain().insertContent(doc.content as JSONContent[]).run();
+        break;
+      }
+    }
+    setError("");
+    setDialog(null);
+  }
+
+  return (
+    <div className="overflow-hidden rounded-[18px] border border-app-line bg-white focus-within:border-app-ink">
+      <style>{CMS_PROSE_CSS + EDITOR_CSS}</style>
+      <p id={labelId} className="sr-only">{label}</p>
+      <div role="toolbar" aria-label={`${label} formatting`} className="sticky top-0 z-10 flex items-center gap-0.5 overflow-x-auto border-b border-app-line bg-white px-2 py-1.5">
+        <label className="sr-only" htmlFor={`${labelId}-block`}>Text style</label>
+        <select
+          id={`${labelId}-block`}
+          value={state.block}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (next === "p") chain().setParagraph().run();
+            else chain().toggleHeading({ level: Number(next.slice(1)) as 1 | 2 | 3 | 4 }).run();
+          }}
+          className="h-9 shrink-0 rounded-[10px] border border-app-line bg-white px-2 text-[13.5px] font-bold"
+        >
+          <option value="p">Paragraph</option>
+          <option value="h2">Heading</option>
+          <option value="h3">Subheading</option>
+          <option value="h4">Small heading</option>
+          <option value="h1">Large heading</option>
+        </select>
+        <Sep />
+        <ToolButton label="Bold" active={state.bold} onClick={() => chain().toggleBold().run()}><strong>B</strong></ToolButton>
+        <ToolButton label="Italic" active={state.italic} onClick={() => chain().toggleItalic().run()}><em className="font-serif">I</em></ToolButton>
+        <ToolButton label="Underline" active={state.underline} onClick={() => chain().toggleUnderline().run()}><span className="underline">U</span></ToolButton>
+        <ToolButton label="Strikethrough" active={state.strike} onClick={() => chain().toggleStrike().run()}><span className="line-through">S</span></ToolButton>
+        <ToolButton label="Inline code" icon="code" active={state.code} onClick={() => chain().toggleCode().run()} />
+        <ToolButton label="Link" icon="link" active={state.link} onClick={() => setDialog({ kind: "link", href: (editor.getAttributes("link").href as string) ?? "", newTab: editor.getAttributes("link").target === "_blank" })} />
+        <Sep />
+        <ToolButton label="Bulleted list" icon="list" active={state.bullet} onClick={() => chain().toggleBulletList().run()} />
+        <ToolButton label="Numbered list" active={state.ordered} onClick={() => chain().toggleOrderedList().run()}><span className="text-[12px]">1.</span></ToolButton>
+        <ToolButton label="Quote" active={state.quote} onClick={() => chain().toggleBlockquote().run()}><span className="text-[17px] leading-none">&ldquo;</span></ToolButton>
+        <ToolButton label="Code block" active={state.codeBlock} onClick={() => chain().toggleCodeBlock().run()}><span className="font-mono text-[12px]">{"{}"}</span></ToolButton>
+        <Sep />
+        <ToolButton label="Align left" active={!state.center && !state.right && !state.justify} onClick={() => chain().setTextAlign("left").run()}><AlignGlyph align="left" /></ToolButton>
+        <ToolButton label="Align centre" active={state.center} onClick={() => chain().setTextAlign("center").run()}><AlignGlyph align="center" /></ToolButton>
+        <ToolButton label="Align right" active={state.right} onClick={() => chain().setTextAlign("right").run()}><AlignGlyph align="right" /></ToolButton>
+        <Sep />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" tabIndex={-1} aria-hidden onChange={(event) => void onFile(event.target.files?.[0])} />
+        <ToolButton label={uploading ? "Uploading picture" : "Add a picture"} icon="image" disabled={uploading} onClick={() => fileRef.current?.click()} />
+        <ToolButton label="Add a YouTube video" icon="play" onClick={() => setDialog({ kind: "youtube", url: "" })} />
+        <ToolButton label="Add a table" icon="grid" active={state.table} onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
+        <ToolButton label="Add an info box" icon="info" active={state.callout} onClick={() => (state.callout ? chain().lift("callout").run() : chain().wrapIn("callout", { tone: "info" }).run())} />
+        <ToolButton label="Add a divider" icon="minus" onClick={() => chain().setHorizontalRule().run()} />
+        <ToolButton label="Add a button" icon="arrow" onClick={() => setDialog({ kind: "button", href: "", label: "", variant: "solid", editing: false })} />
+        <ToolButton label="Add a product card" icon="bag" onClick={() => setDialog({ kind: "product" })} />
+        <Sep />
+        <ToolButton label="Import Markdown" icon="download" onClick={() => setDialog({ kind: "markdown", text: "" })} />
+        <ToolButton label="Undo" icon="undo" disabled={!state.canUndo} onClick={() => chain().undo().run()} />
+        <ToolButton label="Redo" icon="refresh" disabled={!state.canRedo} onClick={() => chain().redo().run()} />
+      </div>
+
+      {(state.table || state.callout || state.image || state.button) && (
+        <div className="flex flex-wrap items-center gap-1 border-b border-app-line bg-app-canvas px-2 py-1.5 text-[13px]">
+          {state.table && (
+            <>
+              <span className="px-1.5 font-bold text-app-ink-soft">Table</span>
+              <ToolButton label="Add row below" onClick={() => chain().addRowAfter().run()}>+ Row</ToolButton>
+              <ToolButton label="Add column right" onClick={() => chain().addColumnAfter().run()}>+ Column</ToolButton>
+              <ToolButton label="Delete row" onClick={() => chain().deleteRow().run()}>− Row</ToolButton>
+              <ToolButton label="Delete column" onClick={() => chain().deleteColumn().run()}>− Column</ToolButton>
+              <ToolButton label="Header row on or off" onClick={() => chain().toggleHeaderRow().run()}>Header</ToolButton>
+              <ToolButton label="Delete table" icon="trash" onClick={() => chain().deleteTable().run()} />
+            </>
+          )}
+          {state.callout && (
+            <>
+              <span className="px-1.5 font-bold text-app-ink-soft">Info box</span>
+              {(["info", "tip", "success", "warning"] as const).map((tone) => (
+                <ToolButton key={tone} label={`${tone} style`} active={state.calloutTone === tone} onClick={() => chain().updateAttributes("callout", { tone }).run()}>
+                  <span className="capitalize">{tone === "info" ? "Note" : tone}</span>
+                </ToolButton>
+              ))}
+              <ToolButton label="Remove info box" onClick={() => chain().lift("callout").run()}>Remove</ToolButton>
+            </>
+          )}
+          {state.image && (
+            <>
+              <span className="px-1.5 font-bold text-app-ink-soft">Picture</span>
+              <ToolButton label="Edit description and caption" onClick={() => setDialog({ kind: "image", src: editor.getAttributes("image").src as string, alt: (editor.getAttributes("image").alt as string) ?? "", caption: (editor.getAttributes("image").title as string) ?? "", editing: true })}>Description</ToolButton>
+              <ToolButton label="Remove picture" icon="trash" onClick={() => chain().deleteSelection().run()} />
+            </>
+          )}
+          {state.button && (
+            <>
+              <span className="px-1.5 font-bold text-app-ink-soft">Button</span>
+              <ToolButton label="Edit button" onClick={() => { const attrs = editor.getAttributes("button"); setDialog({ kind: "button", href: attrs.href ?? "", label: attrs.label ?? "", variant: attrs.variant === "outline" ? "outline" : "solid", editing: true }); }}>Edit</ToolButton>
+              <ToolButton label="Remove button" icon="trash" onClick={() => chain().deleteSelection().run()} />
+            </>
+          )}
+        </div>
+      )}
+
+      {error && <p className="m-0 bg-app-danger-tint px-4 py-2 text-[13.5px] text-app-danger" role="alert">{error}</p>}
+      <EditorContent editor={editor} className="px-4 py-4 sm:px-6 sm:py-5" />
+
+      {dialog?.kind === "link" && (
+        <Modal title="Link" onClose={() => setDialog(null)} footer={<><PillButton tone="white" size="sm" onClick={() => { chain().extendMarkRange("link").unsetLink().run(); setDialog(null); }}>Remove link</PillButton><PillButton tone="ink" size="sm" onClick={applyDialog}>Save link</PillButton></>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-href`}>Web address</label>
+          <input id={`${labelId}-href`} className={field} value={dialog.href} placeholder="https://… or /product/…" onChange={(e) => setDialog({ ...dialog, href: e.target.value })} onKeyDown={(e) => e.key === "Enter" && applyDialog()} />
+          <label className="mt-3 flex items-center gap-2 text-[14px]"><input type="checkbox" checked={dialog.newTab} onChange={(e) => setDialog({ ...dialog, newTab: e.target.checked })} /> Open in a new tab</label>
+        </Modal>
+      )}
+      {dialog?.kind === "youtube" && (
+        <Modal title="YouTube video" onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>Add video</PillButton>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-yt`}>YouTube link</label>
+          <input id={`${labelId}-yt`} className={field} value={dialog.url} placeholder="https://youtu.be/…" onChange={(e) => setDialog({ ...dialog, url: e.target.value })} onKeyDown={(e) => e.key === "Enter" && applyDialog()} />
+        </Modal>
+      )}
+      {dialog?.kind === "image" && (
+        <Modal title="Picture" onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? "Save" : "Add picture"}</PillButton>}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={dialog.src} alt="" className="mb-3 max-h-[220px] w-full rounded-[14px] object-contain bg-app-canvas" />
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-alt`}>Describe the picture <span className="block text-[12.5px] font-normal text-app-ink-soft">For people using screen readers and for Google.</span></label>
+          <input id={`${labelId}-alt`} className={field} value={dialog.alt} onChange={(e) => setDialog({ ...dialog, alt: e.target.value })} />
+          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-cap`}>Caption (optional)</label>
+          <input id={`${labelId}-cap`} className={field} value={dialog.caption} onChange={(e) => setDialog({ ...dialog, caption: e.target.value })} />
+        </Modal>
+      )}
+      {dialog?.kind === "button" && (
+        <Modal title="Button" onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? "Save" : "Add button"}</PillButton>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-bl`}>Button words</label>
+          <input id={`${labelId}-bl`} className={field} value={dialog.label} maxLength={80} placeholder="Shop the collection" onChange={(e) => setDialog({ ...dialog, label: e.target.value })} />
+          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-bh`}>Link</label>
+          <input id={`${labelId}-bh`} className={field} value={dialog.href} placeholder="https://… or /product/…" onChange={(e) => setDialog({ ...dialog, href: e.target.value })} />
+          <fieldset className="m-0 mt-3 flex gap-4 border-0 p-0">
+            <legend className="mb-1.5 text-[13.5px] font-bold">Style</legend>
+            {(["solid", "outline"] as const).map((variant) => (
+              <label key={variant} className="flex items-center gap-2 text-[14px] capitalize"><input type="radio" name={`${labelId}-variant`} checked={dialog.variant === variant} onChange={() => setDialog({ ...dialog, variant })} /> {variant === "solid" ? "Filled" : "Outline"}</label>
+            ))}
+          </fieldset>
+        </Modal>
+      )}
+      {dialog?.kind === "product" && (
+        <RecordPicker
+          kind="products"
+          multiple={false}
+          selected={[]}
+          title="Add a product card"
+          onClose={() => setDialog(null)}
+          onPick={([row]) => row && chain().insertContent({ type: "productCard", attrs: { productId: row.id, name: row.name, image: row.image } }).run()}
+        />
+      )}
+      {dialog?.kind === "markdown" && (
+        <Modal title="Import Markdown" wide onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" disabled={!dialog.text.trim()} onClick={applyDialog}>Insert</PillButton>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-md`}>Paste Markdown <span className="block text-[12.5px] font-normal text-app-ink-soft">Headings (#), lists, **bold**, links, pictures and | tables | are converted.</span></label>
+          <textarea id={`${labelId}-md`} rows={12} className="w-full rounded-[14px] border border-app-line p-3 font-mono text-[13.5px] outline-none focus:border-app-ink" value={dialog.text} onChange={(e) => setDialog({ ...dialog, text: e.target.value })} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function AlignGlyph({ align }: { align: "left" | "center" | "right" }) {
+  const lines = align === "left" ? ["M3 6h18", "M3 10h12", "M3 14h18", "M3 18h10"] : align === "center" ? ["M3 6h18", "M6 10h12", "M3 14h18", "M7 18h10"] : ["M3 6h18", "M9 10h12", "M3 14h18", "M11 18h10"];
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      {lines.map((d) => <path key={d} d={d} />)}
+    </svg>
+  );
+}
+
+const EDITOR_CSS = `
+.cms-editor-surface{min-height:280px;outline:none}
+.cms-editor-surface p.is-editor-empty:first-child::before{content:attr(data-placeholder);color:#9A97A8;float:left;height:0;pointer-events:none}
+.cms-editor-surface .selectedCell{background:rgba(232,89,12,.08)}
+.cms-editor-surface .ProseMirror-selectednode{outline:2px solid #E8590C;outline-offset:2px;border-radius:12px}
+.cms-editor-surface img.ProseMirror-selectednode{outline-offset:3px}
+.cms-editor-surface .cms-ed-product small{color:#5D5A6B;font-size:12px}
+.cms-editor-surface div[data-youtube-video]{pointer-events:none}
+`;

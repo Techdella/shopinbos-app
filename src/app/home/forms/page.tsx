@@ -49,9 +49,10 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
       user={user}
       store={storeSummary(store)}
       title="Form submissions"
-      sub="Messages, sign-ups and leads from the forms on your store."
+      sub="Messages, sign-ups and leads from the forms on your store. Messages also arrive in your inbox, where you can reply."
       actions={
         <>
+          <PillLink href="/home/messages" icon="chat" tone="ink">Reply in inbox</PillLink>
           <PillLink href="/home/marketing/forms" icon="settings">Manage forms</PillLink>
           <PillLink href={`/s/${store.slug}`} icon="globe">View store</PillLink>
         </>

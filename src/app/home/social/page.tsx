@@ -1,2 +1,6 @@
 import { redirect } from "next/navigation";
-export default function SocialHubRedirect() { redirect("/home/marketing?tab=Social%20Selling"); }
+
+// Social selling lives at /channels (catalog feeds, tagged links, the post composer and per-channel results).
+export default function SocialHubRedirect() {
+  redirect("/channels");
+}

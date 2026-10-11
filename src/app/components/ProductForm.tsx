@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
+import { SeoTab } from "@/components/seo/SeoTab";
+import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 
 interface Category {
   id: string;
@@ -58,9 +60,12 @@ interface ProductFormProps {
   product: Product | null;
   categories: Category[];
   isEdit: boolean;
+  /** For the SEO tab's previews: the storefront origin and store name. */
+  storeOrigin?: string;
+  storeName?: string;
 }
 
-const TABS = ["Details", "Visibility and channels", "Price and stock", "Description", "Product page"];
+const TABS = ["Details", "Visibility and channels", "Price and stock", "Description", "Product page", "SEO"];
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -138,7 +143,7 @@ function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
+export function ProductForm({ product, categories, isEdit, storeOrigin = "", storeName = "Your store" }: ProductFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -158,8 +163,25 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
   const [visibility, setVisibility] = useState(product?.visibility ?? "hidden");
   const [salesChannels, setSalesChannels] = useState<string[]>(product?.salesChannel ? [product.salesChannel] : ["website"]);
   const [featured, setFeatured] = useState(product?.featured ?? false);
-  const [seoTitle, setSeoTitle] = useState(product?.seoTitle ?? "");
-  const [seoDescription, setSeoDescription] = useState(product?.seoDescription ?? "");
+  // Search title/description live on the product; the rest of the SEO tab (share card, canonical, noindex,
+  // main phrase) is saved to /api/app/seo after the product itself.
+  const [seo, setSeo] = useState<SeoFields>(() => normalizeSeo({ metaTitle: product?.seoTitle ?? "", metaDescription: product?.seoDescription ?? "" }));
+  const productId = product?.id ?? null;
+  useEffect(() => {
+    if (!productId) return;
+    let active = true;
+    fetch(`/api/app/seo?${new URLSearchParams({ resourceType: "product", resourceId: productId })}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { data?: unknown } | null) => {
+        if (!active || !json?.data) return;
+        const stored = normalizeSeo(json.data);
+        setSeo((current) => ({ ...stored, metaTitle: current.metaTitle, metaDescription: current.metaDescription }));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [productId]);
 
   const [inventoryType, setInventoryType] = useState(product?.inventoryType ?? "seller");
   const [retailPrice, setRetailPrice] = useState(product?.retailPrice?.toString() ?? "");
@@ -272,8 +294,8 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
       lowStockThreshold: parseInt(lowStockThreshold) || 10,
       pageVariant,
       enabledModules,
-      seoTitle: seoTitle || undefined,
-      seoDescription: seoDescription || undefined,
+      seoTitle: seo.metaTitle.slice(0, 70) || undefined,
+      seoDescription: seo.metaDescription.slice(0, 160) || undefined,
     };
 
     try {
@@ -285,6 +307,11 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        const saved = await res.json().catch(() => null);
+        const savedId = productId ?? (saved?.data?.id as string | undefined);
+        if (savedId) {
+          await fetch("/api/app/seo", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resourceType: "product", resourceId: savedId, seo }) }).catch(() => null);
+        }
         router.push("/products");
       } else {
         const err = await res.json().catch(() => null);
@@ -438,14 +465,6 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
                 </label>
               </Section>
 
-              <Section title="Search engines" sub="How this product shows up on Google.">
-                <Field label="Search title" hint={`${seoTitle.length}/70 characters`}>
-                  <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className={field.input} maxLength={70} placeholder="Product title for search results" />
-                </Field>
-                <Field label="Search description" hint={`${seoDescription.length}/160 characters`}>
-                  <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className={field.textarea} rows={3} maxLength={160} placeholder="Brief description for search snippets" />
-                </Field>
-              </Section>
             </>
           )}
 
@@ -672,6 +691,21 @@ export function ProductForm({ product, categories, isEdit }: ProductFormProps) {
                 </div>
               </Section>
             </>
+          )}
+
+          {/* Tab 6 - SEO */}
+          {activeTab === 5 && (
+            <SeoTab
+              value={seo}
+              onChange={setSeo}
+              title={name ? `${name} | ${storeName}` : "Product name"}
+              fallbackDescription={description}
+              slug={product?.id ?? ""}
+              urlPrefix={`${storeOrigin || "yourstore"}/product/`}
+              siteName={storeName}
+              fallbackImage={images[0] ?? null}
+              content={{ bodyText: [description, longDescription].filter(Boolean).join(" ") }}
+            />
           )}
         </div>
 

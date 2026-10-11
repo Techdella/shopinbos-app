@@ -1,18 +1,26 @@
-// The 2026 theme library: the eight storefront themes the seller picks from on /builder/templates and in the
+// The 2026 theme library: the storefront themes the seller picks from on /builder/templates and in the
 // builder's Themes view. Pure data and helpers (no imports with side effects), so tests can load it directly.
+//
+// Display names are Nigerian (Yoruba, Hausa, Pidgin and Naija slang). Ids never change (stores keep working
+// on old ids); search folds diacritics, so "afefe", "Afẹ́fẹ́" and "breeze" all find the same theme.
 
 import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from "./types";
 
-export type ThemeLibraryId = "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride";
-export type ThemeLibraryCategory = "fashion" | "shoes" | "luxury" | "food" | "home" | "gadgets" | "any";
+export type ThemeLibraryId =
+  | "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride"
+  | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko";
+
+/** Category chips in the gallery (plus "any" for themes that suit every shop). */
+export type ThemeLibraryCategory =
+  | "fashion" | "beauty" | "food" | "home" | "gadgets" | "kids" | "books" | "events" | "auto" | "groceries" | "jewellery" | "agro" | "any";
 
 export interface ThemeLibraryPreview {
-  /** Card background, text and hairline colours for the mini preview. */
+  /** Card background, text and hairline colours (Rex's theme cards use these as swatches). */
   bg: string;
   ink: string;
   line: string;
   accent: string;
-  /** How the theme name is set on its card, in the theme's own type. */
+  /** How the theme name is set, in the theme's own type. */
   nameFont: "serif" | "sans" | "grotesk";
   nameWeight: number;
   nameItalic?: boolean;
@@ -21,97 +29,183 @@ export interface ThemeLibraryPreview {
 
 export interface ThemeLibraryEntry {
   id: ThemeLibraryId;
+  /** Display name, with correct diacritics. */
   name: string;
+  /** ASCII form of the name for URLs and search ("afefe", "aso-ebi"). */
+  slug: string;
+  /** One line under the name: what the word means. */
+  meaning: string;
+  /** Main chip. */
   category: ThemeLibraryCategory;
+  /** Every chip the theme shows under (the first is `category`). */
+  categories: ThemeLibraryCategory[];
   categoryLabel: string;
+  /** Industries the theme is built for (search and Rex's pick). */
+  industries: string[];
   blurb: string;
   isNew: boolean;
   preview: ThemeLibraryPreview;
 }
 
+type EntryInput = Omit<ThemeLibraryEntry, "slug" | "category"> & { slug?: string };
+
+/** Lower case, accents and tone marks removed: "Ẹwà" → "ewa", "Aṣọ Ẹbí" → "aso ebi". */
+export function foldText(value: string | null | undefined) {
+  return (value ?? "").normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
+}
+
+export function slugifyName(value: string) {
+  return foldText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function entry(input: EntryInput): ThemeLibraryEntry {
+  return { ...input, name: input.name.normalize("NFC"), slug: input.slug ?? slugifyName(input.name), category: input.categories[0] ?? "any" };
+}
+
 export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
-  {
-    id: "breeze",
-    name: "Breeze",
-    category: "fashion",
-    categoryLabel: "Fashion",
-    blurb: "Airy and clean, big product pages. For fashion",
-    isNew: true,
+  entry({
+    id: "breeze", name: "Afẹ́fẹ́", meaning: "Yoruba for breeze", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "clothing", "boutique", "bags"], blurb: "Airy and clean, big product pages. For fashion", isNew: false,
     preview: { bg: "#E8F6F7", ink: "#1A1D21", line: "#C9DFE1", accent: "#1FC6D6", nameFont: "grotesk", nameWeight: 400, dark: false },
-  },
-  {
-    id: "noir",
-    name: "Noir",
-    category: "luxury",
-    categoryLabel: "Luxury",
-    blurb: "Dark and premium, with countdowns. For luxury",
-    isNew: true,
+  }),
+  entry({
+    id: "noir", name: "Dúdú", meaning: "Yoruba for black", categories: ["fashion", "jewellery"], categoryLabel: "Luxury",
+    industries: ["luxury", "designer", "watches", "premium fashion"], blurb: "Dark and premium, with payday countdowns. For luxury", isNew: false,
     preview: { bg: "#141414", ink: "#F5F2EA", line: "#3A3936", accent: "#C8A96A", nameFont: "serif", nameWeight: 600, dark: true },
-  },
-  {
-    id: "plain",
-    name: "Plain",
-    category: "any",
-    categoryLabel: "Any shop",
-    blurb: "Simple and fast. Works for anything",
-    isNew: true,
+  }),
+  entry({
+    id: "plain", name: "Jẹ́jẹ́", meaning: "Yoruba for gentle, easy-going", categories: ["any"], categoryLabel: "Any shop",
+    industries: ["any", "general", "minimal"], blurb: "Simple and fast. Works for anything", isNew: false,
     preview: { bg: "#F2F2F2", ink: "#111111", line: "#DADADA", accent: "#111111", nameFont: "grotesk", nameWeight: 400, dark: false },
-  },
-  {
-    id: "adire",
-    name: "Adire",
-    category: "fashion",
-    categoryLabel: "Fashion",
-    blurb: "Editorial, photo-led. For fashion",
-    isNew: false,
+  }),
+  entry({
+    id: "adire", name: "Adire", meaning: "Yoruba indigo tie-dye cloth", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "adire", "ankara", "editorial"], blurb: "Editorial, photo-led. For fashion", isNew: false,
     preview: { bg: "#F3ECE5", ink: "#2B1D14", line: "#DDCFC1", accent: "#B8612F", nameFont: "serif", nameWeight: 400, dark: false },
-  },
-  {
-    id: "pantry",
-    name: "Pantry",
-    category: "food",
-    categoryLabel: "Food and drinks",
-    blurb: "Warm and bold. For food and drinks",
-    isNew: false,
+  }),
+  entry({
+    id: "pantry", name: "Mama Put", meaning: "Naija for the neighbourhood food seller", categories: ["food"], categoryLabel: "Food and drinks",
+    industries: ["food", "drinks", "zobo", "spices", "sauces", "small chops"], blurb: "Warm and bold. For food and drinks", isNew: false,
     preview: { bg: "#FFF2D8", ink: "#3A1E0B", line: "#EBD7AE", accent: "#E2541B", nameFont: "sans", nameWeight: 800, dark: false },
-  },
-  {
-    id: "ile",
-    name: "Ilé",
-    category: "home",
-    categoryLabel: "Home and living",
-    blurb: "Calm and roomy. For home and decor",
-    isNew: false,
+  }),
+  entry({
+    id: "ile", name: "Ilé", meaning: "Yoruba for home", categories: ["home"], categoryLabel: "Home and living",
+    industries: ["home", "decor", "furniture", "homeware"], blurb: "Calm and roomy. For home and decor", isNew: false,
     preview: { bg: "#E6EDE8", ink: "#1F2A24", line: "#CBD6CE", accent: "#5E7464", nameFont: "serif", nameWeight: 700, dark: false },
-  },
-  {
-    id: "plug",
-    name: "Plug",
-    category: "gadgets",
-    categoryLabel: "Gadgets",
-    blurb: "Dark and sharp. For gadgets",
-    isNew: false,
+  }),
+  entry({
+    id: "plug", name: "Plug", meaning: "Naija slang for the person who can get it for you", categories: ["gadgets"], categoryLabel: "Gadgets",
+    industries: ["gadgets", "phones", "electronics", "accessories"], blurb: "Dark and sharp. For gadgets", isNew: false,
     preview: { bg: "#17181D", ink: "#F2F4F7", line: "#33363F", accent: "#5B8CFF", nameFont: "grotesk", nameWeight: 500, dark: true },
-  },
-  {
-    id: "stride",
-    name: "Stride",
-    category: "shoes",
-    categoryLabel: "Shoes",
-    blurb: "Loud and sporty. For shoes",
-    isNew: false,
+  }),
+  entry({
+    id: "stride", name: "Waka", meaning: "Pidgin for walk", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["shoes", "sneakers", "footwear", "sportswear"], blurb: "Loud and sporty. For shoes", isNew: false,
     preview: { bg: "#FDE6DA", ink: "#141414", line: "#F0C9B5", accent: "#FF4D1F", nameFont: "sans", nameWeight: 800, dark: false },
-  },
+  }),
+  entry({
+    id: "ewa", name: "Ẹwà", meaning: "Yoruba for beauty", categories: ["beauty"], categoryLabel: "Beauty and skincare",
+    industries: ["beauty", "skincare", "cosmetics", "makeup", "body care"], blurb: "Soft and glowing, ingredient-led. For beauty and skincare", isNew: true,
+    preview: { bg: "#F9E7E1", ink: "#3B1F1A", line: "#F0D9D1", accent: "#C2566B", nameFont: "serif", nameWeight: 500, nameItalic: true, dark: false },
+  }),
+  entry({
+    id: "suku", name: "Ṣùkú", meaning: "Yoruba crown braid style", categories: ["beauty"], categoryLabel: "Hair and wigs",
+    industries: ["hair", "wigs", "braids", "hair extensions", "hair care"], blurb: "Bold and glam, made for units and lengths. For hair and wigs", isNew: true,
+    preview: { bg: "#F6E7F0", ink: "#2A1630", line: "#EFDCE7", accent: "#E0679E", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "asoebi", name: "Aṣọ Ẹbí", meaning: "Yoruba for family cloth, the owambe uniform", categories: ["fashion"], categoryLabel: "Fabrics and lace",
+    industries: ["fabrics", "lace", "ankara", "aso oke", "george", "gele"], blurb: "Rich and regal, fabric up close. For lace, ankara and aso-ebi", isNew: true,
+    preview: { bg: "#F5EBDD", ink: "#2B1530", line: "#EADCC8", accent: "#D4A13A", nameFont: "serif", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "agbada", name: "Agbada", meaning: "The flowing Yoruba robe for big occasions", categories: ["fashion"], categoryLabel: "Menswear",
+    industries: ["menswear", "tailoring", "native wear", "kaftan", "senator"], blurb: "Sharp and tailored. For menswear and tailors", isNew: true,
+    preview: { bg: "#ECE8DF", ink: "#1A1F1C", line: "#DDD8CC", accent: "#B08D57", nameFont: "serif", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "ileke", name: "Ìlẹ̀kẹ̀", meaning: "Yoruba for beads", categories: ["jewellery"], categoryLabel: "Jewellery and beads",
+    industries: ["jewellery", "beads", "accessories", "waist beads", "coral"], blurb: "Delicate and close-up. For jewellery and beads", isNew: true,
+    preview: { bg: "#F6EBDD", ink: "#2E1B12", line: "#EADBC8", accent: "#C8462C", nameFont: "serif", nameWeight: 400, nameItalic: true, dark: false },
+  }),
+  entry({
+    id: "ounje", name: "Oúnjẹ", meaning: "Yoruba for food", categories: ["food"], categoryLabel: "Restaurant",
+    industries: ["restaurant", "food delivery", "kitchen", "catering", "buka"], blurb: "A menu, not a catalogue: order on WhatsApp up front. For restaurants", isNew: true,
+    preview: { bg: "#FEF3C7", ink: "#1C1917", line: "#F1E3B8", accent: "#F59E0B", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "chinchin", name: "Chin Chin", meaning: "Naija's favourite crunchy snack", categories: ["food"], categoryLabel: "Bakery and snacks",
+    industries: ["bakery", "cakes", "pastries", "snacks", "desserts"], blurb: "Sweet and playful. For cakes, pastries and snacks", isNew: true,
+    preview: { bg: "#FBE7D9", ink: "#4A2511", line: "#F2DCCB", accent: "#D9467A", nameFont: "serif", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "oja", name: "Ọjà", meaning: "Yoruba for market", categories: ["groceries"], categoryLabel: "Groceries",
+    industries: ["groceries", "supermarket", "foodstuff", "provisions", "household"], blurb: "Dense and quick, aisles first. For groceries and general stores", isNew: true,
+    preview: { bg: "#F1F6F2", ink: "#14231A", line: "#E1E9E3", accent: "#0F7A3D", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "omo", name: "Ọmọ", meaning: "Yoruba for child", categories: ["kids"], categoryLabel: "Kids and baby",
+    industries: ["kids", "baby", "toys", "children's clothing", "maternity"], blurb: "Bright and friendly. For kids and baby", isNew: true,
+    preview: { bg: "#FFF3C4", ink: "#1F2A44", line: "#F2E2A0", accent: "#3D7BF7", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "iwe", name: "Ìwé", meaning: "Yoruba for book", categories: ["books"], categoryLabel: "Books and stationery",
+    industries: ["books", "bookshop", "stationery", "school supplies"], blurb: "Quiet and literary, covers on a shelf. For books and stationery", isNew: true,
+    preview: { bg: "#F1E9DA", ink: "#1E2235", line: "#E4DCCB", accent: "#B4432F", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "owambe", name: "Owambe", meaning: "Naija for a big, joyful party", categories: ["events"], categoryLabel: "Events and rentals",
+    industries: ["events", "party supplies", "rentals", "decor hire", "souvenirs"], blurb: "Festive and gold. For party supplies, rentals and events", isNew: true,
+    preview: { bg: "#2D0B3A", ink: "#FFF4D6", line: "#4A2459", accent: "#F2B705", nameFont: "serif", nameWeight: 600, nameItalic: true, dark: true },
+  }),
+  entry({
+    id: "danfo", name: "Danfo", meaning: "Lagos' yellow bus", categories: ["auto"], categoryLabel: "Auto parts",
+    industries: ["auto parts", "car accessories", "spare parts", "tyres", "lubricants"], blurb: "Yellow, black and search-first. For auto parts", isNew: true,
+    preview: { bg: "#FFC400", ink: "#111111", line: "#E0AC00", accent: "#111111", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "turare", name: "Turare", meaning: "Hausa for perfume", categories: ["beauty"], categoryLabel: "Perfume",
+    industries: ["perfume", "fragrance", "oud", "body mist", "perfume oils"], blurb: "Moody and elegant, bottles on a glow. For perfume and fragrance", isNew: true,
+    preview: { bg: "#1B1420", ink: "#F7EFE3", line: "#3A2E40", accent: "#C9A46A", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
+  entry({
+    id: "oko", name: "Oko", meaning: "Yoruba for farm", categories: ["agro"], categoryLabel: "Farm produce",
+    industries: ["farm produce", "agro", "poultry", "fresh produce", "livestock"], blurb: "Earthy and fresh. For farm produce and agro sellers", isNew: true,
+    preview: { bg: "#EEF0DD", ink: "#1F2B1A", line: "#E0E2CB", accent: "#2F5D2A", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
 ];
 
-export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((entry) => entry.id);
+export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
 
 export function isLibraryTheme(id: string | null | undefined): id is ThemeLibraryId {
   return typeof id === "string" && (THEME_LIBRARY_IDS as readonly string[]).includes(id);
 }
 
 export function themeLibraryEntry(id: string | null | undefined) {
-  return THEME_LIBRARY.find((entry) => entry.id === id) ?? null;
+  return THEME_LIBRARY.find((item) => item.id === id) ?? null;
+}
+
+/** "Afẹ́fẹ́ · Yoruba for breeze" */
+export function themeMeaningLine(theme: Pick<ThemeLibraryEntry, "name" | "meaning">) {
+  return `${theme.name} · ${theme.meaning}`;
+}
+
+/** A theme by id, slug or name, with or without diacritics ("Jẹ́jẹ́", "jeje", "plain" all find Jẹ́jẹ́). */
+export function findLibraryTheme(query: string | null | undefined) {
+  const folded = foldText(query).trim();
+  if (!folded) return null;
+  const slug = slugifyName(folded);
+  return THEME_LIBRARY.find((theme) => theme.id === folded || theme.slug === slug || foldText(theme.name) === folded) ?? null;
+}
+
+/** Free-text search over names (diacritics optional), meanings, categories and industries. */
+export function searchThemes(query: string | null | undefined, themes: readonly ThemeLibraryEntry[] = THEME_LIBRARY) {
+  const words = foldText(query).split(/[^a-z0-9]+/).filter(Boolean);
+  if (!words.length) return [...themes];
+  return themes.filter((theme) => {
+    const haystack = foldText([theme.id, theme.slug, theme.name, theme.meaning, theme.categoryLabel, theme.blurb, ...theme.categories, ...theme.industries].join(" "));
+    return words.every((word) => haystack.includes(word));
+  });
 }
 
 // ─── Category chips ─────────────────────────────────────────────────────────
@@ -121,44 +215,80 @@ export type ThemeChipId = "all" | Exclude<ThemeLibraryCategory, "any">;
 export const THEME_CATEGORY_CHIPS: ReadonlyArray<{ id: ThemeChipId; label: string }> = [
   { id: "all", label: "All" },
   { id: "fashion", label: "Fashion" },
-  { id: "shoes", label: "Shoes" },
-  { id: "luxury", label: "Luxury" },
+  { id: "beauty", label: "Beauty" },
   { id: "food", label: "Food" },
   { id: "home", label: "Home" },
   { id: "gadgets", label: "Gadgets" },
+  { id: "kids", label: "Kids" },
+  { id: "books", label: "Books" },
+  { id: "events", label: "Events" },
+  { id: "auto", label: "Auto" },
+  { id: "groceries", label: "Groceries" },
+  { id: "jewellery", label: "Jewellery" },
+  { id: "agro", label: "Agro" },
 ];
 
 /** "All" plus only the chips that have at least one theme. */
 export function themeCategoryChips(themes: readonly ThemeLibraryEntry[] = THEME_LIBRARY) {
-  return THEME_CATEGORY_CHIPS.filter((chip) => chip.id === "all" || themes.some((theme) => theme.category === chip.id));
+  return THEME_CATEGORY_CHIPS.filter((chip) => chip.id === "all" || themes.some((theme) => (theme.categories as string[]).includes(chip.id)));
 }
 
 export function filterThemes(category: string, themes: readonly ThemeLibraryEntry[] = THEME_LIBRARY) {
   if (!category || category === "all") return [...themes];
-  return themes.filter((theme) => theme.category === category);
+  return themes.filter((theme) => (theme.categories as string[]).includes(category));
 }
 
 // ─── Rule-based pick (used when no AI key is set, and to check what Rex says) ─
 
-const CATEGORY_WORDS: Array<{ category: Exclude<ThemeLibraryCategory, "any">; words: string[] }> = [
-  { category: "shoes", words: ["shoe", "sneaker", "trainer", "footwear", "heel", "sandal", "slipper", "boot", "loafer", "slide"] },
-  { category: "luxury", words: ["luxury", "jewel", "jewellery", "jewelry", "gold", "watch", "perfume", "fragrance", "designer", "premium", "diamond"] },
-  { category: "food", words: ["food", "drink", "snack", "grocer", "juice", "spice", "bakery", "cake", "pastry", "restaurant", "zobo", "wine", "coffee", "tea", "kitchen", "chops", "meal", "soup"] },
-  { category: "home", words: ["home", "decor", "furniture", "living", "candle", "bedding", "interior", "homeware", "rug", "cushion", "vase", "lamp"] },
-  { category: "gadgets", words: ["gadget", "phone", "electronic", "tech", "laptop", "charger", "earbud", "headphone", "speaker", "power bank", "smartwatch", "console", "camera"] },
-  { category: "fashion", words: ["fashion", "cloth", "wear", "dress", "ankara", "adire", "fabric", "bag", "tailor", "shirt", "apparel", "boutique", "kaftan", "agbada", "aso", "beauty", "skincare", "hair"] },
+/**
+ * Words per theme, most specific first: ties go to the earlier rule, so "lace wigs" lands on Ṣùkú (hair)
+ * rather than Aṣọ Ẹbí (lace), and the general themes (Afẹ́fẹ́, Mama Put) only win when nothing narrower fits.
+ * Matched on whole words with an optional plural, after folding accents.
+ */
+const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: string[] }> = [
+  { themeId: "suku", industry: "hair and wigs", words: ["hair", "wig", "lace wig", "braid", "weave", "bundle", "frontal", "closure", "hair extension", "bonnet", "attachment", "crochet"] },
+  { themeId: "turare", industry: "perfume", words: ["perfume", "fragrance", "oud", "cologne", "body mist", "scent", "attar", "turare", "humra", "turaren wuta", "perfume oil"] },
+  { themeId: "ewa", industry: "beauty and skincare", words: ["beauty", "skincare", "skin care", "skin", "cosmetic", "makeup", "make-up", "make up", "lipstick", "lip gloss", "serum", "body butter", "shea butter", "black soap", "lotion", "face cream", "toner", "sunscreen", "nail", "lash", "spa", "glow", "wellness", "health", "supplement", "herbal"] },
+  { themeId: "ileke", industry: "jewellery and beads", words: ["jewellery", "jewelry", "jewel", "bead", "waist bead", "coral", "necklace", "bracelet", "earring", "anklet", "pendant", "gold", "silver", "brooch"] },
+  { themeId: "stride", industry: "shoes", words: ["shoe", "sneaker", "trainer", "footwear", "heel", "sandal", "slipper", "boot", "loafer", "slide", "kicks"] },
+  { themeId: "agbada", industry: "menswear", words: ["agbada", "kaftan", "caftan", "senator", "menswear", "men's wear", "mens wear", "men's clothing", "tailor", "tailoring", "bespoke", "native wear", "suit", "babanriga", "buba", "sokoto", "cap", "fila"] },
+  { themeId: "asoebi", industry: "fabrics and lace", words: ["fabric", "lace", "aso ebi", "asoebi", "aso-ebi", "aso oke", "george", "gele", "headtie", "head tie", "textile", "yard", "voile", "cord lace", "brocade", "ankara fabric", "wax print"] },
+  { themeId: "adire", industry: "editorial fashion", words: ["adire", "tie-dye", "tie and dye", "batik", "kampala", "resort wear", "linen", "editorial"] },
+  { themeId: "noir", industry: "luxury", words: ["luxury", "designer", "premium", "high-end", "high end", "watch", "wristwatch", "diamond"] },
+  { themeId: "omo", industry: "kids and baby", words: ["kid", "kiddies", "child", "children", "children's", "baby", "babies", "toddler", "infant", "toy", "diaper", "nappy", "school bag", "school uniform", "maternity", "newborn", "teen"] },
+  { themeId: "iwe", industry: "books and stationery", words: ["book", "novel", "bookshop", "bookstore", "stationery", "stationer", "notebook", "journal", "pen", "textbook", "magazine", "comic", "school supplies", "planner", "diary", "reading"] },
+  { themeId: "owambe", industry: "events and rentals", words: ["event", "party", "party supplies", "rental", "rent", "hire", "canopy", "chair", "balloon", "souvenir", "owambe", "wedding", "birthday", "celebration", "backdrop", "decoration", "event decor"] },
+  { themeId: "danfo", industry: "auto parts", words: ["car", "auto", "automobile", "automotive", "spare part", "car part", "auto part", "vehicle", "motor", "tyre", "tire", "brake", "brake pad", "engine", "car battery", "headlight", "headlamp", "wiper", "keke", "okada", "motorcycle", "mechanic", "rim", "lubricant", "engine oil", "car accessory", "car accessories"] },
+  { themeId: "oko", industry: "farm produce", words: ["farm", "farmer", "agro", "agric", "agriculture", "agricultural", "poultry", "egg", "crate of eggs", "livestock", "fish farm", "catfish", "fertiliser", "fertilizer", "seed", "seedling", "produce", "harvest", "yam", "tuber", "cassava", "plantain", "fruit", "vegetable", "tomato", "organic", "cattle", "goat", "feed", "palm oil", "ugu"] },
+  { themeId: "oja", industry: "groceries", words: ["grocery", "groceries", "grocer", "foodstuff", "provision", "supermarket", "mini mart", "minimart", "mart", "market", "household", "toiletries", "detergent", "beverage", "noodle", "indomie", "garri", "beans", "semovita", "rice", "vegetable oil", "general store", "essentials"] },
+  { themeId: "chinchin", industry: "bakery and snacks", words: ["bakery", "bake", "baker", "baked", "baking", "cake", "cupcake", "pastry", "pastries", "bread", "chin chin", "chinchin", "puff puff", "puff-puff", "doughnut", "donut", "cookie", "biscuit", "meat pie", "pie", "plantain chips", "dessert", "sweets", "snack", "parfait", "waffle"] },
+  { themeId: "ounje", industry: "restaurant and food delivery", words: ["restaurant", "food delivery", "meal", "meals", "jollof", "amala", "eba", "soup", "swallow", "buka", "chef", "catering", "caterer", "shawarma", "suya", "grill", "grilled", "lunch", "dinner", "breakfast", "menu", "kitchen", "takeaway", "take-away", "eatery", "fried rice", "pepper soup", "asun"] },
+  { themeId: "pantry", industry: "food and drinks", words: ["food", "drink", "juice", "zobo", "kunu", "tigernut", "smoothie", "spice", "seasoning", "sauce", "pepper sauce", "honey", "tea", "coffee", "wine", "palm wine", "yoghurt", "yogurt", "small chops", "chops", "condiment"] },
+  { themeId: "ile", industry: "home and living", words: ["home", "decor", "furniture", "living", "candle", "bedding", "interior", "homeware", "rug", "cushion", "vase", "lamp", "kitchenware", "cookware", "curtain", "throw pillow", "duvet", "bedsheet", "diffuser", "wall art"] },
+  { themeId: "plug", industry: "gadgets", words: ["gadget", "phone", "iphone", "android", "electronic", "electronics", "tech", "laptop", "charger", "earbud", "earpod", "airpod", "headphone", "speaker", "power bank", "smartwatch", "console", "playstation", "camera", "tablet", "ipad", "phone accessories", "solar"] },
+  { themeId: "breeze", industry: "fashion", words: ["fashion", "clothing", "clothes", "cloth", "wear", "dress", "gown", "top", "shirt", "t-shirt", "trouser", "jean", "apparel", "boutique", "bag", "handbag", "outfit", "skirt", "jumpsuit", "thrift", "okrika", "ankara", "abaya", "hijab", "kimono", "two-piece", "co-ord"] },
 ];
 
-const THEME_FOR_CATEGORY: Record<Exclude<ThemeLibraryCategory, "any">, ThemeLibraryId> = {
-  fashion: "breeze",
-  shoes: "stride",
-  luxury: "noir",
-  food: "pantry",
-  home: "ile",
-  gadgets: "plug",
-};
+/** Fashion shops that mention prints or tie-dye get the editorial Adire rather than Afẹ́fẹ́. */
+const EDITORIAL_WORDS = ["adire", "ankara", "aso", "kampala", "batik", "linen"];
 
-const EDITORIAL_WORDS = ["adire", "ankara", "aso", "tailor", "fabric", "kaftan", "agbada", "linen"];
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const WORD_PATTERNS = new Map<string, RegExp>();
+function wordPattern(word: string) {
+  let pattern = WORD_PATTERNS.get(word);
+  if (!pattern) {
+    pattern = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(word)}(?:s|es)?(?=$|[^a-z0-9])`);
+    WORD_PATTERNS.set(word, pattern);
+  }
+  return pattern;
+}
+
+function countMatches(text: string, words: string[]) {
+  return words.reduce((total, word) => total + (wordPattern(word).test(text) ? 1 : 0), 0);
+}
 
 export interface ThemePickInput {
   /** What the seller said they sell during onboarding (free text). */
@@ -170,30 +300,41 @@ export interface ThemePickInput {
 
 export interface ThemePick {
   themeId: ThemeLibraryId;
+  /** The chip the pick sits under, or null when nothing matched. */
   category: Exclude<ThemeLibraryCategory, "any"> | null;
+  /** What we think the shop sells ("hair and wigs"), or null. */
+  industry: string | null;
   reason: string;
 }
 
-function countMatches(text: string, words: string[]) {
-  return words.reduce((total, word) => total + (text.includes(word) ? 1 : 0), 0);
-}
-
 export function pickThemeByRules(input: ThemePickInput): ThemePick {
-  const stated = (input.storeCategory ?? "").toLowerCase();
-  const catalog = [...(input.productNames ?? []), ...(input.productCategories ?? [])].join(" · ").toLowerCase();
-  let best: { category: Exclude<ThemeLibraryCategory, "any">; score: number } | null = null;
-  for (const { category, words } of CATEGORY_WORDS) {
-    const score = countMatches(stated, words) * 3 + countMatches(catalog, words);
-    if (score > 0 && (!best || score > best.score)) best = { category, score };
+  const stated = foldText(input.storeCategory).replace(/&/g, " and ");
+  const catalog = foldText([...(input.productNames ?? []), ...(input.productCategories ?? [])].join(" · "));
+  let best: { rule: (typeof THEME_RULES)[number]; score: number } | null = null;
+  for (const rule of THEME_RULES) {
+    const score = countMatches(stated, rule.words) * 3 + countMatches(catalog, rule.words);
+    if (score > 0 && (!best || score > best.score)) best = { rule, score };
   }
   if (!best) {
-    return { themeId: "plain", category: null, reason: "I couldn't tell what you sell yet, so Plain is the safe pick: simple, fast and it works for any shop." };
+    return { themeId: "plain", category: null, industry: null, reason: "I couldn't tell what you sell yet, so Jẹ́jẹ́ is the safe pick: simple, fast and it works for any shop." };
   }
-  let themeId = THEME_FOR_CATEGORY[best.category];
-  if (best.category === "fashion" && countMatches(`${stated} ${catalog}`, EDITORIAL_WORDS) > 0) themeId = "adire";
-  const entry = themeLibraryEntry(themeId)!;
-  const label = THEME_CATEGORY_CHIPS.find((chip) => chip.id === best!.category)?.label.toLowerCase() ?? best.category;
-  return { themeId, category: best.category, reason: `Your shop looks like ${label}, so ${entry.name} fits: ${entry.blurb.split(". For")[0].toLowerCase()}.` };
+  let themeId = best.rule.themeId;
+  if (themeId === "breeze" && countMatches(`${stated} ${catalog}`, EDITORIAL_WORDS) > 0) themeId = "adire";
+  const theme = themeLibraryEntry(themeId)!;
+  const category = theme.category === "any" ? null : theme.category;
+  return {
+    themeId,
+    category,
+    industry: best.rule.industry,
+    reason: `Your shop looks like ${best.rule.industry}, so ${theme.name} fits: ${theme.blurb.split(". For")[0].toLowerCase()}.`,
+  };
+}
+
+/** The gallery chip to open on for an onboarding category ("Hair and wigs" → beauty), or "all". */
+export function chipForStoreCategory(value: string | null | undefined): ThemeChipId {
+  if (!value || !value.trim()) return "all";
+  const pick = pickThemeByRules({ storeCategory: value });
+  return pick.category ?? "all";
 }
 
 // ─── Switching themes without losing the seller's content ──────────────────────

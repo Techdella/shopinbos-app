@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { landingSource } from "@/lib/analytics/storefront-events";
 
 function makeVisitorKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -76,7 +77,7 @@ export function useStoreVisitBeacon(storeSlug: string) {
     void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/visit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitorKey }),
+      body: JSON.stringify({ visitorKey, ...landingSource() }),
       keepalive: true,
     }).catch(() => null);
   }, [storeSlug, visitorKey]);

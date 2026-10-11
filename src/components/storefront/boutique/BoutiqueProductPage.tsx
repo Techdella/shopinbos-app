@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { CartDrawer } from "@/app/s/[slug]/CartDrawer";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { useCart } from "@/hooks/useCart";
+import { readCartSettings } from "@shared/cart-checkout";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
+import { useStoreProductView } from "@/lib/analytics/storefront-events";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
@@ -45,8 +47,10 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const router = useRouter();
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
+  const cartSettings = readCartSettings(store.brandSettings);
   useCampaignAttribution(store.slug);
   useStoreVisitBeacon(store.slug);
+  useStoreProductView(store.slug, product.id);
   const [cartOpen, setCartOpen] = useState(false);
   const [sheet, setSheet] = useState<ShopperSheet>(null);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
@@ -88,7 +92,8 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
 
   function add(input: AddToBagInput) {
     cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, maxQuantity: input.maxQuantity, quantity: input.quantity });
-    setCartOpen(true);
+    if (cartSettings.afterAdd === "drawer") setCartOpen(true);
+    else router.push(getPublicStorefrontPath(storeBasePath, cartSettings.afterAdd === "checkout" ? "/checkout" : "/cart"));
   }
 
   function buyNow(input: AddToBagInput) {
@@ -115,7 +120,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         onShopAll={() => go("products")}
         onCategory={() => go("products")}
         onSearch={() => setSheet("search")}
-        onWishlist={() => setSheet("wishlist")}
+        onWishlist={cartSettings.wishlist ? () => setSheet("wishlist") : undefined}
         onBag={() => setCartOpen(true)}
         cartCount={cart.count}
         wishlistCount={wishlist.productIds.length}
@@ -128,14 +133,15 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
           look={look}
           shopper={shopper}
           storeName={store.name}
+          reviewSlug={store.slug}
           currency={store.currency}
           reviews={reviews}
           avgRating={avgRating}
           reviewCount={reviewCount}
           related={related}
           relatedHref={(id) => getPublicStorefrontPath(storeBasePath, `/product/${id}`)}
-          wishlistIds={wishlist.productIds}
-          onToggleWishlist={wishlist.toggle}
+          wishlistIds={cartSettings.wishlist ? wishlist.productIds : []}
+          onToggleWishlist={cartSettings.wishlist ? wishlist.toggle : undefined}
           onAddToBag={add}
           onBuyNow={buyNow}
           crumbs={[
@@ -154,8 +160,8 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         storeName={store.name}
         basePath={storeBasePath}
         products={searchable}
-        wishlistIds={wishlist.productIds}
-        onToggleWishlist={wishlist.toggle}
+        wishlistIds={cartSettings.wishlist ? wishlist.productIds : []}
+        onToggleWishlist={cartSettings.wishlist ? wishlist.toggle : undefined}
         cartCount={cart.count}
         onOpenBag={() => setCartOpen(true)}
         colors={navColors(look)}

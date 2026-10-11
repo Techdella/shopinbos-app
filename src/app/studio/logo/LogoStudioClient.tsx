@@ -53,14 +53,18 @@ export function LogoStudioClient({ storeName }: { storeName: string }) {
 
   const handleSelect = async (url: string) => {
     setSelectedStyle(url);
+    setError("");
     try {
-      await fetch("/api/store/logo", {
-        method: "POST",
+      // The logo is saved on the store itself (the old /api/store/logo route never existed).
+      const res = await fetch("/api/app/store", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logoUrl: url }),
       });
+      if (!res.ok) throw new Error();
     } catch {
-      // silent
+      setSelectedStyle(null);
+      setError("Couldn't save that logo to your store. Try again.");
     }
   };
 

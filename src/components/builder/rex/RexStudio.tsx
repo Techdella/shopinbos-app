@@ -9,38 +9,62 @@ import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import { computeStoreHealth, draftHealthFacts, rexSuggestionChips, type StorePageKey, type StorePageStatus } from "@/lib/store-health";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
-import { askRexStudio, buildWholeStore, publishDraft, restoreVersion } from "./api";
+import { cardNote } from "@/lib/ai/rex/cards";
+import { isPreviewRequest } from "@/lib/ai/rex/starters";
+import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
 import { RexChat } from "./RexChat";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
 
+// Rex Studio, chat first: the seller talks to Rex (pictures, logos, videos, store edits, copy, marketing) and
+// the store preview opens beside the chat (full screen on phones) when they ask for it or Rex changes the
+// store. The preview keeps the page tabs, desktop/mobile, versions with undo, and Publish.
+
 const BUILD_REQUEST = /^(please\s+)?(build|create|generate|make)\s+(me\s+)?(my|a|the)?\s*(whole|full|complete|entire|new)?\s*(online\s+)?(store|shop)\b/i;
+const MAX_HISTORY = 20;
 
 let seq = 0;
 const nextId = () => `m${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-function greeting(firstName: string, fromOnboarding: boolean, draftSaved: boolean) {
+/** Tool page names to the preview's tabs. */
+function previewTab(page: string | null | undefined): StorePageKey | null {
+  if (!page) return null;
+  if (page === "categories" || page === "products" || page === "collections") return "collections";
+  if (page === "home" || page === "product" || page === "about" || page === "faq") return page;
+  return "home";
+}
+
+function greeting(firstName: string, fromOnboarding: boolean, draftSaved: boolean): Extract<ChatMessage, { role: "rex" }> {
   if (!draftSaved) {
-    return `Hi ${firstName}. Your store isn't built yet. Say "Build my store" and I'll design it, write the pages and add sample products as drafts. Nothing goes to your shoppers until you press Publish.`;
+    return {
+      id: "hello",
+      role: "rex",
+      text: `Hi ${firstName}. I'm Rex. I can design your store, edit your product photos, make a logo or a product video, write descriptions and set up campaigns. Your store isn't built yet, so let's start there: I'll design it, write the pages and add sample products as drafts. Nothing goes to shoppers until you press Publish.`,
+      offer: "Build my store",
+    };
   }
-  if (fromOnboarding) {
-    return `Hi ${firstName}. I brought in your answers from setup. Tell me what to change and I'll do it on the live preview. Nothing goes to your shoppers until you press Publish.`;
-  }
-  return `Hi ${firstName}. Tell me what to change and I'll do it on the live preview. Nothing goes to your shoppers until you press Publish.`;
+  return {
+    id: "hello",
+    role: "rex",
+    text: fromOnboarding
+      ? `Hi ${firstName}. Your store draft is ready and I brought in your answers from setup. Have a look, or pick something below and I'll get on it. Nothing goes to shoppers until you press Publish.`
+      : `Hi ${firstName}. What are we making today? I can edit product photos, make images, a logo or a video, change any part of your store, and set up campaigns and automations.`,
+    offer: "Show me my store",
+  };
 }
 
 export function RexStudio(props: RexStudioProps) {
   const [draft, setDraft] = useState<StoreEditorSnapshot>(props.initialDraft);
   const [draftSaved, setDraftSaved] = useState(props.draftSaved);
   const [versions, setVersions] = useState<RexVersionSummary[]>(props.versions);
-  const [messages, setMessages] = useState<ChatMessage[]>([{ id: "hello", role: "rex", text: greeting(props.firstName, props.fromOnboarding, props.draftSaved) }]);
-  const [busy, setBusy] = useState<null | "edit" | "build">(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([greeting(props.firstName, props.fromOnboarding, props.draftSaved)]);
+  const [busy, setBusy] = useState<null | "chat" | "build">(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [tab, setTab] = useState<StorePageKey>("home");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const [phoneView, setPhoneView] = useState<"chat" | "preview">("chat");
+  const [previewOpen, setPreviewOpen] = useState(props.openPreview);
   const [panelOpen, setPanelOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -50,6 +74,7 @@ export function RexStudio(props: RexStudioProps) {
   const [toast, setToast] = useState<{ text: string; href?: string } | null>(null);
   const [isPhone, setIsPhone] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
+  const closePreviewRef = useRef<HTMLButtonElement>(null);
 
   // Phones always preview at phone width (the desktop toggle is hidden there).
   useEffect(() => {
@@ -89,6 +114,17 @@ export function RexStudio(props: RexStudioProps) {
     };
   }, [toolsOpen]);
 
+  // Escape closes the preview (it covers the chat on phones); focus moves to its close button when it opens.
+  useEffect(() => {
+    if (!previewOpen) return;
+    closePreviewRef.current?.focus({ preventScroll: true });
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !panelOpen && !pricing) setPreviewOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [previewOpen, panelOpen, pricing]);
+
   const facts = useMemo(() => ({ ...props.healthFacts, draft: draftHealthFacts(draft) }), [props.healthFacts, draft]);
   const health = useMemo(() => computeStoreHealth(facts), [facts]);
   const pages = facts.draft.pages;
@@ -98,15 +134,34 @@ export function RexStudio(props: RexStudioProps) {
   const themeName = themeLibraryEntry(draft.templateId)?.name ?? (draft.templateId === props.initialDraft.templateId ? props.themeName : draft.templateName);
   const busyLabel = busy === "build" ? "Building your store. This can take a minute…" : "Rex is working on it…";
 
+  /** The conversation for Rex: his words plus a note of what each card made, and the seller's photo links. */
   function history() {
     return messages
-      .filter((message) => message.id !== "hello" && message.text.trim())
-      .map((message) => ({ role: message.role === "seller" ? ("user" as const) : ("assistant" as const), content: message.text }))
-      .slice(-12);
+      .filter((message) => message.id !== "hello" && !(message.role === "rex" && message.tone === "error"))
+      .map((message) =>
+        message.role === "seller"
+          ? { role: "user" as const, content: message.images?.length ? `${message.text}\n[Photos attached: ${message.images.join(" ")}]` : message.text }
+          : { role: "assistant" as const, content: [message.text, ...(message.cards ?? []).map(cardNote)].filter(Boolean).join("\n") },
+      )
+      .filter((turn) => turn.content.trim())
+      .slice(-MAX_HISTORY);
   }
 
   function rexSays(message: Omit<Extract<ChatMessage, { role: "rex" }>, "id" | "role">) {
     setMessages((prev) => [...prev, { id: nextId(), role: "rex", ...message }]);
+  }
+
+  function showPreview(target?: string | null) {
+    const key = previewTab(target);
+    if (key) setTab(key);
+    setPreviewOpen(true);
+  }
+
+  function takeDraft(next: StoreEditorSnapshot, nextVersions?: RexVersionSummary[] | null) {
+    setDraft(next);
+    setDraftSaved(true);
+    setUnpublished(true);
+    if (nextVersions) setVersions(nextVersions);
   }
 
   async function send(text: string, imageUrls: string[] = []) {
@@ -114,7 +169,12 @@ export function RexStudio(props: RexStudioProps) {
     if (!request || busy) return;
     const past = history();
     setMessages((prev) => [...prev, { id: nextId(), role: "seller", text: request, ...(imageUrls.length ? { images: imageUrls } : {}) }]);
-    setPhoneView("chat");
+
+    if (!imageUrls.length && isPreviewRequest(request)) {
+      showPreview("home");
+      rexSays({ text: draftSaved ? "Here's your store's draft. Tell me what to change and I'll do it." : "Here's the starting design. Say \"Build my store\" and I'll fill it in for you." });
+      return;
+    }
 
     if (BUILD_REQUEST.test(request)) {
       setBusy("build");
@@ -126,13 +186,11 @@ export function RexStudio(props: RexStudioProps) {
           brandContext: { category: props.buildContext.category, businessDescription: props.buildContext.businessDescription },
           templateContext: props.buildContext.template,
         });
-        setDraft(result.draft);
-        setDraftSaved(true);
-        setUnpublished(true);
-        if (result.versions) setVersions(result.versions);
+        takeDraft(result.draft, result.versions);
         setTab("home");
+        setPreviewOpen(true);
         rexSays({
-          text: ["I built the store as a draft. Have a look in the preview.", ...result.notes].join("\n\n"),
+          text: ["I built the store as a draft. It's open in the preview.", ...result.notes].join("\n\n"),
           changes: [
             `Designed the store and saved ${result.pages.length} pages`,
             result.products.length ? `Added ${result.products.length} sample products as drafts, marked "(sample)"` : "Kept your products and prices",
@@ -150,40 +208,39 @@ export function RexStudio(props: RexStudioProps) {
       return;
     }
 
-    setBusy("edit");
+    setBusy("chat");
     try {
-      const result = await askRexStudio({ message: request, history: past, imageUrls });
-      if (result.draft) {
-        setDraft(result.draft);
-        setDraftSaved(true);
-        setUnpublished(true);
-        if (result.versions) setVersions(result.versions);
-        // Show the page Rex just wrote.
-        const written = (["about", "faq", "collections", "product"] as StorePageKey[]).find((key) =>
-          result.changes.some((change) => change.toLowerCase().includes(pages.find((entry) => entry.key === key)?.label.toLowerCase() ?? "@")),
-        );
-        if (written) setTab(written);
-      }
-      rexSays({ text: result.reply, changes: result.changes, version: result.version, undoTo: result.undoTo });
+      const messagesForRex = [
+        ...past,
+        { role: "user" as const, content: imageUrls.length ? `${request}\n[Photos attached: ${imageUrls.join(" ")}]` : request },
+      ];
+      const result = await askRex({ messages: messagesForRex, imageUrls });
+      if (result.draft) takeDraft(result.draft, result.versions);
+      rexSays({ text: result.text, cards: result.cards });
+      // Rex changed the store or was asked to show it: open the preview on the page he worked on.
+      const storeCard = [...result.cards].reverse().find((card) => card.type === "store" || card.type === "preview");
+      if (result.draft || storeCard) showPreview(storeCard && "page" in storeCard ? storeCard.page : null);
     } catch (error) {
-      rexSays({ text: error instanceof Error ? error.message : "Rex couldn't make that change.", tone: "error" });
+      rexSays({ text: error instanceof Error ? error.message : "Rex couldn't answer just now.", tone: "error" });
     } finally {
       setBusy(null);
     }
   }
 
-  async function undo(message: Extract<ChatMessage, { role: "rex" }>) {
-    if (!message.undoTo || undoingId) return;
-    setUndoingId(message.id);
+  async function undo(undoTo: string) {
+    if (undoingId) return false;
+    setUndoingId(undoTo);
     try {
-      const result = await restoreVersion(message.undoTo);
+      const result = await restoreVersion(undoTo);
       setDraft(result.draft);
       setVersions(result.versions);
       setUnpublished(true);
-      setMessages((prev) => prev.map((entry) => (entry.id === message.id ? { ...entry, undone: true } as ChatMessage : entry)));
+      setMessages((prev) => prev.map((entry) => (entry.role === "rex" && entry.undoTo === undoTo ? { ...entry, undone: true } : entry)));
       rexSays({ text: `Undone. Your draft is back to version ${result.restored.n}.` });
+      return true;
     } catch (error) {
       rexSays({ text: error instanceof Error ? error.message : "Couldn't undo that.", tone: "error" });
+      return false;
     } finally {
       setUndoingId(null);
     }
@@ -223,7 +280,7 @@ export function RexStudio(props: RexStudioProps) {
             text: "Before your store can go live, every page needs a search title and a short description. I can write them for you.",
             offer: "Write the search titles and descriptions for every page",
           });
-          setPhoneView("chat");
+          if (isPhone) setPreviewOpen(false);
         }
       }
     } finally {
@@ -232,14 +289,26 @@ export function RexStudio(props: RexStudioProps) {
   }
 
   function writePage(target: StorePageStatus) {
+    if (isPhone) setPreviewOpen(false);
     void send(target.key === "home" ? "Write my homepage." : `Write my ${target.label} page.`);
   }
 
   function viewPage(target: StorePageStatus) {
     setTab(target.key);
     setPanelOpen(false);
-    setPhoneView("preview");
+    setPreviewOpen(true);
   }
+
+  const publishButton = (
+    <button
+      type="button"
+      onClick={() => void publish()}
+      disabled={publishing || busy !== null}
+      className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full bg-app-accent px-4 text-[13.5px] font-bold text-white hover:brightness-95 disabled:opacity-60"
+    >
+      {publishing ? "Publishing…" : "Publish"}
+    </button>
+  );
 
   const tabs = (
     <nav aria-label="Store pages" className="min-w-0">
@@ -293,6 +362,7 @@ export function RexStudio(props: RexStudioProps) {
       tokens={draft.themeTokens}
       onAskRex={(prompt) => {
         setPanelOpen(false);
+        if (isPhone) setPreviewOpen(false);
         void send(prompt);
       }}
       onViewPage={viewPage}
@@ -308,19 +378,14 @@ export function RexStudio(props: RexStudioProps) {
             <Icon name="arrowLeft" size={18} />
           </Link>
           <Mascot name="rex" alt="" className="hidden h-9 w-9 shrink-0 sm:block" />
-          <div className="min-w-0 flex-1 lg:flex-none lg:basis-[230px]">
+          <div className="min-w-0 flex-1">
             <h1 className="m-0 truncate text-[16px] font-extrabold leading-tight">Rex Studio</h1>
             <p className="m-0 truncate text-[12.5px] text-app-ink-soft">
               {props.store.name} · {themeName} theme
             </p>
           </div>
 
-          <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex">
-            {tabs}
-            {deviceToggle}
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div ref={toolsRef} className="relative hidden sm:block">
               <button
                 type="button"
@@ -329,102 +394,119 @@ export function RexStudio(props: RexStudioProps) {
                 onClick={() => setToolsOpen((open) => !open)}
                 className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 text-[13.5px] font-bold hover:bg-app-canvas"
               >
-                <Icon name="image" size={16} />
-                <span className="hidden xl:inline">Images and logo</span>
-                <span className="sr-only xl:hidden">Images and logo</span>
+                <Icon name="wand" size={16} />
+                <span className="hidden xl:inline">Studio tools</span>
+                <span className="sr-only xl:hidden">Studio tools</span>
                 <Icon name="chevDown" size={14} />
               </button>
               {toolsOpen ? (
-                <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-[230px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
+                <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-[240px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
                   <Link role="menuitem" href="/studio/images" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
                     <Icon name="image" size={16} /> Make images
                   </Link>
                   <Link role="menuitem" href="/studio/logo" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
                     <Icon name="palette" size={16} /> Make a logo
                   </Link>
+                  <Link role="menuitem" href="/home/video" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
+                    <Icon name="play" size={16} /> Video studio
+                  </Link>
                   <Link role="menuitem" href="/home/brand-kit" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
                     <Icon name="tag" size={16} /> Brand kit
+                  </Link>
+                  <Link role="menuitem" href="/seller/store/builder" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
+                    <Icon name="monitor" size={16} /> Open in builder
                   </Link>
                 </div>
               ) : null}
             </div>
-            <Link
-              href="/seller/store/builder"
-              className="hidden min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong md:inline-flex"
-            >
-              <Icon name="monitor" size={16} /> Open in builder
-            </Link>
             <button
               type="button"
-              onClick={() => setPanelOpen(true)}
-              aria-label={`Store health ${health.score}`}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[13.5px] font-bold xl:hidden"
+              onClick={() => setPreviewOpen((open) => !open)}
+              aria-pressed={previewOpen}
+              className={cx(
+                "inline-flex min-h-[40px] items-center gap-1.5 rounded-full border px-3.5 text-[13.5px] font-bold",
+                previewOpen ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong",
+              )}
             >
-              <Icon name="pulse" size={16} /> {health.score}
+              <Icon name="eye" size={16} />
+              <span className="hidden sm:inline">{previewOpen ? "Hide store" : "Preview store"}</span>
+              <span className="sm:hidden">Store</span>
+              {unpublished ? <span className="h-2 w-2 rounded-full bg-app-accent" aria-hidden /> : null}
             </button>
-            <button
-              type="button"
-              onClick={() => setPhoneView((view) => (view === "chat" ? "preview" : "chat"))}
-              aria-pressed={phoneView === "preview"}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[13.5px] font-bold md:hidden"
-            >
-              <Icon name={phoneView === "chat" ? "eye" : "chat"} size={16} /> {phoneView === "chat" ? "Preview" : "Chat"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void publish()}
-              disabled={publishing || busy !== null}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-accent px-4 text-[13.5px] font-bold text-white hover:brightness-95 disabled:opacity-60"
-            >
-              {publishing ? "Publishing…" : "Publish"}
-            </button>
+            {publishButton}
           </div>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside
+        <section
           aria-label="Chat with Rex"
-          className={cx("min-h-0 w-full shrink-0 flex-col border-r border-app-line bg-white md:flex md:w-[340px] lg:w-[360px]", phoneView === "chat" ? "flex" : "hidden")}
+          className={cx("flex min-h-0 min-w-0 flex-col bg-white", previewOpen ? "w-full lg:w-[420px] lg:shrink-0 lg:border-r lg:border-app-line xl:w-[460px] 2xl:w-[520px]" : "w-full")}
         >
           <RexChat
             messages={messages}
             busy={busy !== null}
             busyLabel={busyLabel}
             chips={chips}
-            disabledReason={props.aiReady ? null : "Rex's AI isn't switched on for this account yet, so he can't make changes right now. You can still edit everything in the advanced builder."}
+            wide={!previewOpen}
+            initialText={props.initialPrompt}
+            disabledReason={props.aiReady ? null : "Rex's AI isn't switched on for this account yet (the server needs ANTHROPIC_API_KEY or OPENAI_API_KEY), so he can't make changes right now. You can still edit everything in the builder."}
             onSend={send}
-            onUndo={(message) => void undo(message)}
+            onUndo={undo}
+            onOpenPreview={showPreview}
             undoingId={undoingId}
           />
-        </aside>
+        </section>
 
-        <main className={cx("min-h-0 min-w-0 flex-1 flex-col md:flex", phoneView === "preview" ? "flex" : "hidden")}>
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 pt-3 lg:justify-center">
-            <p className="m-0 flex items-center gap-2 text-[13px] text-app-ink-soft">
-              <span className={cx("h-2 w-2 rounded-full", unpublished ? "bg-app-accent" : "bg-app-success")} aria-hidden />
-              <span>
-                Live preview · <span className="font-bold text-app-ink">{page.key === "home" ? "Home page" : page.label}</span>
-                <span className="sr-only">{unpublished ? ", changes not published yet" : live ? ", matches your live store" : ""}</span>
-              </span>
-            </p>
-            <div className="hidden md:block lg:hidden">{deviceToggle}</div>
-          </div>
-          <div className="shrink-0 px-4 pt-2 lg:hidden">{tabs}</div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-8 pt-3 sm:px-5">
-            <RexPreview store={props.store} draft={draft} page={page} device={isPhone ? "mobile" : device} busy={busy !== null} onWrite={writePage} />
-          </div>
-        </main>
-
-        <aside aria-label="Store health and versions" className="hidden w-[310px] shrink-0 overflow-y-auto border-l border-app-line bg-white xl:block">
-          {side}
-        </aside>
+        {previewOpen ? (
+          <section
+            aria-label="Store preview"
+            role={isPhone ? "dialog" : undefined}
+            aria-modal={isPhone ? true : undefined}
+            className="fixed inset-0 z-40 flex min-h-0 min-w-0 flex-col bg-app-canvas lg:static lg:z-auto lg:flex-1"
+          >
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-app-line bg-white px-3 py-2.5 sm:px-4">
+              <button
+                ref={closePreviewRef}
+                type="button"
+                onClick={() => setPreviewOpen(false)}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[13.5px] font-bold hover:border-app-line-strong"
+              >
+                <Icon name={isPhone ? "arrowLeft" : "x"} size={16} />
+                <span className="lg:sr-only">{isPhone ? "Back to Rex" : "Close preview"}</span>
+              </button>
+              <p className="m-0 flex min-w-0 items-center gap-2 text-[13px] text-app-ink-soft">
+                <span className={cx("h-2 w-2 shrink-0 rounded-full", unpublished ? "bg-app-accent" : "bg-app-success")} aria-hidden />
+                <span className="truncate">
+                  {unpublished ? "Draft, not published yet" : live ? "Matches your live store" : "Draft"}
+                </span>
+              </p>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="hidden md:block">{deviceToggle}</div>
+                <button
+                  type="button"
+                  onClick={() => setPanelOpen(true)}
+                  aria-label={`Store health ${health.score} and versions`}
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[13.5px] font-bold hover:border-app-line-strong"
+                >
+                  <Icon name="pulse" size={16} /> {health.score}
+                  <span className="hidden sm:inline">· Versions</span>
+                </button>
+                <div className="md:hidden">{publishButton}</div>
+              </div>
+              <div className="w-full">{tabs}</div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-8 pt-3 sm:px-5">
+              <RexPreview store={props.store} draft={draft} page={page} device={isPhone ? "mobile" : device} busy={busy !== null} onWrite={writePage} />
+            </div>
+          </section>
+        ) : null}
       </div>
 
       {panelOpen ? (
-        <div className="fixed inset-0 z-40 xl:hidden" role="dialog" aria-modal="true" aria-label="Store health and versions">
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Store health and versions">
           <button type="button" aria-label="Close" className="absolute inset-0 bg-app-ink/30" onClick={() => setPanelOpen(false)} />
-          <div className="absolute inset-y-0 right-0 flex w-[min(360px,100%)] flex-col bg-white shadow-[-18px_0_50px_rgba(22,20,31,0.16)]">
+          <div className="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col bg-white shadow-[-18px_0_50px_rgba(22,20,31,0.16)]">
             <div className="flex shrink-0 items-center justify-between border-b border-app-line px-4 py-3">
               <p className="m-0 text-[15px] font-extrabold">Your store</p>
               <button type="button" onClick={() => setPanelOpen(false)} aria-label="Close panel" className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas">
@@ -433,14 +515,11 @@ export function RexStudio(props: RexStudioProps) {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {side}
-              <div className="flex flex-col gap-2 px-5 pb-6 sm:hidden">
+              <div className="flex flex-col gap-3 px-5 pb-6 sm:hidden">
                 <Link href="/studio/images" className="text-[14px] font-bold">Make images</Link>
                 <Link href="/studio/logo" className="text-[14px] font-bold">Make a logo</Link>
-              </div>
-              <div className="px-5 pb-6 md:hidden">
-                <Link href="/seller/store/builder" className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-4 text-[13.5px] font-bold">
-                  <Icon name="monitor" size={16} /> Open in builder
-                </Link>
+                <Link href="/home/video" className="text-[14px] font-bold">Video studio</Link>
+                <Link href="/seller/store/builder" className="text-[14px] font-bold">Open in builder</Link>
               </div>
             </div>
           </div>
@@ -448,7 +527,7 @@ export function RexStudio(props: RexStudioProps) {
       ) : null}
 
       {toast ? (
-        <div role="status" className="fixed bottom-5 left-1/2 z-50 flex max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-3 rounded-full bg-app-ink px-5 py-3 text-[13.5px] font-bold text-white shadow-[0_18px_50px_rgba(22,20,31,0.24)]">
+        <div role="status" className="fixed bottom-5 left-1/2 z-[60] flex max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-3 rounded-full bg-app-ink px-5 py-3 text-[13.5px] font-bold text-white shadow-[0_18px_50px_rgba(22,20,31,0.24)]">
           {toast.href ? <Icon name="checkCircle" size={16} className="shrink-0 text-[#6FE3C8]" /> : null}
           <span className="min-w-0 truncate">{toast.text}</span>
           {toast.href ? (

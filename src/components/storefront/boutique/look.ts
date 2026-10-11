@@ -19,11 +19,11 @@ export interface BoutiqueLook {
   headingFont: string;
   headingStyle: React.CSSProperties;
   bodyFont: string;
-  /** Small labels above headlines (Plug sets these in mono). */
+  /** Small labels above headlines (Plug, Agbada and Danfo set these in mono). */
   eyebrowFont: string;
   buttonRadius: number;
   cardRadius: number;
-  /** Primary button: filled accent (Breeze), filled ink (Plain) or outlined (Noir). */
+  /** Primary button: filled accent (Afẹ́fẹ́), filled ink (Jẹ́jẹ́) or outlined (Dúdú). */
   primaryButton: React.CSSProperties;
   secondaryButton: React.CSSProperties;
   /** Add to bag, subscribe, send: the theme's solid button. */
@@ -241,6 +241,299 @@ function themeLook(id: BoutiqueThemeId, tokens: ThemeTokenSet): LookOverrides {
         pdp: "wide",
         defaultHero: "stride-loud",
       };
+    case "ewa":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontStyle: "italic", fontWeight: 500, letterSpacing: "-0.01em" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.015em" },
+        buttonRadius: 999,
+        cardRadius: 18,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.heroBg, color: tokens.heroText, fontSize: 12.5, letterSpacing: "0.04em" },
+        placeholder: "#F3DED6",
+        headerBg: "rgba(255,248,245,.96)",
+        storyBg: tokens.cardBg,
+        countBg: tokens.accent,
+        heartActive: tokens.accent,
+        tileRatio: "4 / 5",
+        centredHeader: true,
+        defaultHero: "ewa-arch",
+      };
+    case "suku":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em", textTransform: "uppercase" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        buttonRadius: 999,
+        cardRadius: 20,
+        secondaryButton: { background: "#FFFFFF", color: tokens.ink, border: "1.5px solid #FFFFFF" },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.heroBg, color: tokens.heroText, fontSize: 12, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" },
+        navStyle: { fontSize: 13.5, fontWeight: 600, letterSpacing: "0.02em" },
+        placeholder: "#EFDCE7",
+        tileRatio: "3 / 4",
+        pdp: "wide",
+        defaultHero: "suku-crown",
+      };
+    case "asoebi":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 500, letterSpacing: "-0.01em" },
+        buttonRadius: 0,
+        cardRadius: 0,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.accent}` },
+        announcement: { background: tokens.heroBg, color: tokens.accent, fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase" },
+        navStyle: { fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase" },
+        placeholder: "#EADCC8",
+        headerBg: "rgba(255,251,243,.96)",
+        storyBg: tokens.cardBg,
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "3 / 4",
+        pdp: "left",
+        centredHeader: true,
+        defaultHero: "asoebi-collage",
+      };
+    case "agbada":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 500, letterSpacing: "0.01em" },
+        eyebrowFont: MONO,
+        buttonRadius: 0,
+        cardRadius: 0,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: tokens.heroBg, color: tokens.heroText, fontSize: 11.5, letterSpacing: "0.18em", textTransform: "uppercase" },
+        navStyle: { fontSize: 12.5, letterSpacing: "0.14em", textTransform: "uppercase" },
+        placeholder: "#E2DDD2",
+        headerBg: "rgba(247,245,240,.96)",
+        storyBg: tokens.cardBg,
+        countBg: tokens.ink,
+        heartActive: tokens.ink,
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "3 / 4",
+        pdp: "left",
+        centredHeader: true,
+        defaultHero: "agbada-tailored",
+      };
+    case "ileke":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontStyle: "italic", fontWeight: 400, letterSpacing: "-0.01em" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 400, letterSpacing: "-0.01em" },
+        buttonRadius: 999,
+        cardRadius: 10,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: tokens.cardBg, color: tokens.ink, fontSize: 12.5, letterSpacing: "0.06em" },
+        placeholder: "#F1E4D3",
+        headerBg: "rgba(255,252,247,.96)",
+        storyBg: tokens.cardBg,
+        countBg: tokens.accent,
+        tileRatio: "4 / 5",
+        pdp: "left",
+        centredHeader: true,
+        defaultHero: "ileke-frame",
+      };
+    case "ounje":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        buttonRadius: 999,
+        cardRadius: 18,
+        secondaryButton: { background: "#FFFFFF", color: tokens.ink, border: "1.5px solid #FFFFFF" },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.ink, color: "#FFFBEB", fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#F7E7B4",
+        headerBg: "rgba(255,251,235,.96)",
+        countBg: tokens.heroBg,
+        tileRatio: "4 / 3",
+        pdp: "stacked",
+        defaultHero: "ounje-menu",
+      };
+    case "chinchin":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.02em" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 600, letterSpacing: "-0.02em" },
+        buttonRadius: 999,
+        cardRadius: 24,
+        secondaryButton: { background: tokens.accent, color: "#FFFFFF", border: `1.5px solid ${tokens.accent}` },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.accent, color: "#FFFFFF", fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#F7DCCB",
+        headerBg: "rgba(255,247,238,.96)",
+        countBg: tokens.accent,
+        tileRatio: "1 / 1",
+        pdp: "stacked",
+        centredHeader: true,
+        defaultHero: "chinchin-sweet",
+      };
+    case "oja":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.02em" },
+        buttonRadius: 10,
+        cardRadius: 12,
+        secondaryButton: { background: "#FFFFFF", color: tokens.ink, border: "1.5px solid #FFFFFF" },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: tokens.heroBg, color: "#FFFFFF", fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#EEF3EF",
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "1 / 1",
+        defaultHero: "oja-market",
+      };
+    case "omo":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        buttonRadius: 999,
+        cardRadius: 24,
+        secondaryButton: { background: "#FFFFFF", color: tokens.ink, border: "1.5px solid #FFFFFF" },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.accent, color: "#FFFFFF", fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#EEF2FA",
+        newsletterBg: "#FFF3C4",
+        storyBg: "#FFF3C4",
+        tileRatio: "1 / 1",
+        defaultHero: "omo-play",
+      };
+    case "iwe":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 500, letterSpacing: "-0.01em" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 500, letterSpacing: "-0.015em" },
+        buttonRadius: 2,
+        cardRadius: 2,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: tokens.ink, color: "#F8F4EC", fontSize: 12.5, letterSpacing: "0.04em" },
+        placeholder: "#E9E0CE",
+        headerBg: "rgba(251,248,242,.96)",
+        countBg: tokens.accent,
+        heartActive: tokens.accent,
+        tileRatio: "2 / 3",
+        pdp: "left",
+        centredHeader: true,
+        defaultHero: "iwe-shelf",
+      };
+    case "owambe":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontStyle: "italic", fontWeight: 600, letterSpacing: "-0.01em" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 600, fontStyle: "italic", letterSpacing: "-0.015em" },
+        buttonRadius: 999,
+        cardRadius: 18,
+        secondaryButton: { background: tokens.heroBg, color: tokens.accent, border: `1.5px solid ${tokens.heroBg}` },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.heroBg, color: tokens.accent, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.06em" },
+        placeholder: "#F1E0EA",
+        headerBg: "rgba(255,250,240,.96)",
+        countBg: tokens.heroBg,
+        heartActive: tokens.heroBg,
+        onAccent: tokens.heroBg,
+        tileRatio: "1 / 1",
+        pdp: "wide",
+        centredHeader: true,
+        defaultHero: "owambe-party",
+      };
+    case "danfo":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.02em", textTransform: "uppercase" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.02em", textTransform: "uppercase" },
+        eyebrowFont: MONO,
+        buttonRadius: 4,
+        cardRadius: 4,
+        secondaryButton: { background: tokens.ink, color: "#FFFFFF", border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        announcement: { background: tokens.accent, color: tokens.ink, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" },
+        navStyle: { fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" },
+        placeholder: "#ECECE7",
+        headerBg: "rgba(255,255,255,.97)",
+        footerBg: "#FFFFFF",
+        countBg: tokens.ink,
+        heartActive: tokens.ink,
+        onAccent: tokens.ink,
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "1 / 1",
+        defaultHero: "danfo-garage",
+      };
+    case "turare":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 400, letterSpacing: "-0.01em" },
+        buttonRadius: 999,
+        cardRadius: 12,
+        primaryButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1.5px solid ${tokens.ctaBg}` },
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        solidButton: { background: tokens.heroBg, color: tokens.heroText, border: `1.5px solid ${tokens.heroBg}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: tokens.heroBg, color: tokens.accent, fontSize: 11.5, letterSpacing: "0.18em", textTransform: "uppercase" },
+        navStyle: { fontSize: 12.5, letterSpacing: "0.14em", textTransform: "uppercase" },
+        placeholder: "#EADFD1",
+        headerBg: "rgba(251,247,241,.96)",
+        storyBg: tokens.cardBg,
+        countBg: tokens.heroBg,
+        onAccent: tokens.heroBg,
+        tileRatio: "3 / 4",
+        pdp: "left",
+        centredHeader: true,
+        defaultHero: "turare-glow",
+      };
+    case "oko":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.025em" },
+        buttonRadius: 999,
+        cardRadius: 16,
+        secondaryButton: { background: tokens.accent, color: tokens.ink, border: `1.5px solid ${tokens.accent}` },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.heroBg, color: tokens.heroText, fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#E6E9D2",
+        headerBg: "rgba(251,248,239,.96)",
+        storyBg: tokens.cardBg,
+        countBg: tokens.heroBg,
+        tileRatio: "1 / 1",
+        pdp: "stacked",
+        defaultHero: "oko-field",
+      };
     default:
       return base;
   }
@@ -375,6 +668,27 @@ export const BOUTIQUE_CSS = `
   .bq[data-pdp="stacked"] .bq-pdp-gallery{order:0;position:static}
   .bq[data-pdp="stacked"] .bq-gallery > *{aspect-ratio:1/1}
   .bq[data-pdp="left"] .bq-gallery > *{aspect-ratio:4/5}
+}
+/* Dense catalogue (Ọjà, Danfo): 2 across on phones, 6 on desktop, up to 12 tiles. */
+.bq-dense{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 10px}
+.bq-dense > *:nth-child(n+9){display:none}
+/* Menu list (Oúnjẹ): photo, dish, what's in it, price. */
+.bq-menu{display:grid;gap:12px}
+.bq-menu-item{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;align-items:center;padding:12px;border-radius:var(--bq-card-radius);background:var(--bq-card);text-align:left;width:100%;border:0;color:inherit;cursor:pointer}
+.bq-menu-item .bq-media{width:88px;height:88px;border-radius:calc(var(--bq-card-radius) - 4px)}
+.bq-collage{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bq-collage > :first-child{grid-row:span 2}
+.bq-shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.bq-shelf > *:nth-child(n+4){display:none}
+@container bq (min-width: 760px){
+  .bq-dense{grid-template-columns:repeat(6,minmax(0,1fr));gap:22px 14px}
+  .bq-dense > *:nth-child(n+9){display:block}
+  .bq-dense > *:nth-child(n+13){display:none}
+  .bq-menu{grid-template-columns:1fr 1fr;gap:14px}
+  .bq-menu-item{grid-template-columns:112px minmax(0,1fr)}
+  .bq-menu-item .bq-media{width:112px;height:112px}
+  .bq-shelf{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .bq-shelf > *:nth-child(n+4){display:block}
 }
 @media (prefers-reduced-motion: reduce){.bq *{scroll-behavior:auto !important;transition:none !important}}
 `;

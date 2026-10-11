@@ -45,7 +45,19 @@ function productJsonLd(data: ProductPageData, url: string) {
     image: product.images.length ? product.images : undefined,
     sku: product.sku ?? undefined,
     category: product.category?.name,
-    ...(data.reviewCount > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: data.avgRating, reviewCount: data.reviewCount } } : {}),
+    ...(data.reviewCount > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: data.avgRating, reviewCount: data.reviewCount, bestRating: 5, worstRating: 1 } } : {}),
+    ...(data.reviews.length
+      ? {
+          review: data.reviews.slice(0, 10).map((review) => ({
+            "@type": "Review",
+            author: { "@type": "Person", name: review.buyerName },
+            datePublished: review.createdAt.slice(0, 10),
+            reviewRating: { "@type": "Rating", ratingValue: review.rating, bestRating: 5, worstRating: 1 },
+            ...(review.title ? { name: review.title } : {}),
+            ...(review.body ? { reviewBody: review.body } : {}),
+          })),
+        }
+      : {}),
     offers: {
       "@type": "Offer",
       price: product.retailPrice,

@@ -648,6 +648,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
             onPreview={previewTheme}
             onCustomize={() => { setPreview(null); setView("editor"); }}
             onSwitched={onSwitched}
+            ownStore={b.surfaceStore}
           />
         </div>
       ) : phone ? (

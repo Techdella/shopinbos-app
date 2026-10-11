@@ -5,6 +5,7 @@ import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, created, apiError } from "@/lib/api/response";
 import { sendSellerNotification } from "@/lib/notifications/resend";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
+import { ingestFormMessage } from "@/lib/inbox/forms";
 
 const CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -62,6 +63,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     input.message ?? "",
     JSON.stringify(input.payload ?? {}),
   );
+
+  // Messages from contact forms land in the seller's inbox so they can reply from there.
+  if (input.message?.trim()) {
+    await ingestFormMessage({ storeId: store.id, submissionId: rows[0]?.id ?? null, type: input.type, name: input.name, email: input.email, phone: input.phone, message: input.message, visitorId }).catch((error) => console.error("[forms] inbox copy failed", error));
+  }
 
   if (input.email || input.message) {
     void sendSellerNotification(store.user.email, {

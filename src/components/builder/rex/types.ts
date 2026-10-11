@@ -2,9 +2,14 @@ import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSur
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import type { StoreHealthFacts } from "@/lib/store-health";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
+import type { RexCard } from "@/lib/ai/rex/cards";
 
 export interface RexStudioProps {
   firstName: string;
+  /** `?prompt=` from a link (e.g. "Rebrand my store" on Your store): prefilled in the composer. */
+  initialPrompt: string;
+  /** `?preview=1`: open with the store preview showing. */
+  openPreview: boolean;
   fromOnboarding: boolean;
   store: SurfaceStore & { id: string; slug: string };
   /** "adaeze.shopinbos.com" or the custom domain, for the publish toast. */
@@ -41,6 +46,8 @@ export type ChatMessage =
       tone?: "error";
       /** A follow-up Rex offers (e.g. after a blocked publish). */
       offer?: string;
+      /** Results of Rex's tools: pictures, logos, store changes, copy, campaigns. */
+      cards?: RexCard[];
     };
 
 export interface StudioChange {

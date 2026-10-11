@@ -9,7 +9,7 @@ import { THEME_LIBRARY, isLibraryTheme, pickThemeByRules, themeLibraryEntry } fr
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// "Let Rex pick one": Rex reads what the store sells and picks one of the eight themes. Without an AI key (or
+// "Let Rex pick one": Rex reads what the store sells and picks one of the library's themes. Without an AI key (or
 // when the model answers with something unusable) the pick comes from simple category rules, and says so.
 
 function readJson(text: string): { themeId?: unknown; reason?: unknown } | null {
@@ -49,11 +49,11 @@ export const POST = withSeller(async (_req: NextRequest, { user }) => {
   const rules = pickThemeByRules({ storeCategory, productNames, productCategories, currentThemeId });
 
   if (aiConfigured()) {
-    const themes = THEME_LIBRARY.map((theme) => `- ${theme.id}: ${theme.name} (${theme.categoryLabel}). ${theme.blurb}`).join("\n");
+    const themes = THEME_LIBRARY.map((theme) => `- ${theme.id}: ${theme.name}, ${theme.meaning} (${theme.categoryLabel}; for ${theme.industries.join(", ")}). ${theme.blurb}`).join("\n");
     const result = await aiText({
       fast: true,
       maxTokens: 2000,
-      system: "You are Rex, the store designer at Shopinbos. Pick the one storefront theme that best suits the seller's shop. Reply with JSON only: {\"themeId\": string, \"reason\": string}. The reason is one short, plain sentence to the seller (no emojis, under 25 words).",
+      system: "You are Rex, the store designer at Shopinbos. Pick the one storefront theme that best suits the seller's shop. Reply with JSON only: {\"themeId\": string, \"reason\": string}. themeId is the id before the colon. The reason is one short, plain sentence to the seller (no emojis, under 25 words); call the theme by its name exactly as written.",
       prompt: [
         `Store: ${store.name}`,
         storeCategory ? `What they sell: ${storeCategory}` : "What they sell: not stated",

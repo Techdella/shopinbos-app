@@ -1,0 +1,392 @@
+import "server-only";
+
+import { after } from "next/server";
+import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db/client";
+import { aiText } from "@/lib/ai/text";
+import { createNotification } from "@/lib/notifications/create";
+import { PAID_ORDER_STATUSES } from "@/lib/insights";
+import { decryptJson } from "./crypto";
+import { sendInboxEmail } from "./channels/email";
+import { sendMetaMessage } from "./channels/meta";
+import { sendTelegram } from "./channels/telegram";
+import { sendTwilioSms } from "./channels/twilio";
+import type { SendResult } from "./channels/types";
+import { sendWhatsApp } from "./channels/whatsapp";
+import { CHANNELS, isSellerOnline, previewText, shouldAutoReply, type InboundAttachment, type InboxChannelKey } from "./pure";
+
+// The inbox core: every webhook and the live-chat widget call ingestInbound; every reply goes through
+// sendReply, which picks the adapter for the conversation's channel. Nothing here pretends to send: a
+// message is "sent" only when the provider accepted it, and "failed" with the provider's reason otherwise.
+
+const LIVECHAT_EMAIL_AFTER_MS = 2 * 60_000;
+const DEFAULT_AWAY = "Thanks for your message! We're away right now and will reply as soon as we're back.";
+
+type StoreRef = { id: string; name: string; slug: string; userId: string };
+
+async function storeById(storeId: string): Promise<StoreRef | null> {
+  return db.store.findUnique({ where: { id: storeId }, select: { id: true, name: true, slug: true, userId: true } });
+}
+
+// ─── Channels ────────────────────────────────────────────────────────────────
+
+export async function getChannel(storeId: string, channel: InboxChannelKey) {
+  const row = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId, channel } } });
+  if (!row || row.status !== "connected") return null;
+  return { row, credentials: decryptJson<Record<string, string>>(row.credentials) ?? {} };
+}
+
+/** The connected channel a webhook belongs to, found by the provider's account id. */
+export async function findChannelByAccount(channel: InboxChannelKey, externalId: string) {
+  if (!externalId) return null;
+  const row = await db.inboxChannel.findFirst({ where: { channel, externalId, status: "connected" } });
+  if (!row) return null;
+  return { row, credentials: decryptJson<Record<string, string>>(row.credentials) ?? {} };
+}
+
+export async function markChannelError(id: string, message: string) {
+  await db.inboxChannel.update({ where: { id }, data: { lastError: message.slice(0, 300) } }).catch(() => null);
+}
+
+// ─── Inbound ─────────────────────────────────────────────────────────────────
+
+export interface IngestInput {
+  storeId: string;
+  channel: InboxChannelKey;
+  threadId: string;
+  subject?: string | null;
+  contact: { name?: string | null; email?: string | null; phone?: string | null; handle?: string | null; visitorId?: string | null };
+  message: {
+    body: string;
+    bodyHtml?: string | null;
+    externalId?: string | null;
+    attachments?: InboundAttachment[];
+    kind?: "text" | "call" | "voicemail" | "form";
+    status?: string;
+    meta?: Record<string, unknown>;
+    createdAt?: Date;
+  };
+  /** Live chat from the widget: the shopper is looking at it right now. */
+  visitorSeen?: boolean;
+  notify?: boolean;
+}
+
+/** Adds an inbound message to its conversation (creating or reopening it). Duplicate provider ids are ignored. */
+export async function ingestInbound(input: IngestInput) {
+  const externalId = input.message.externalId || null;
+  if (externalId) {
+    const dupe = await db.inboxMessage.findFirst({ where: { externalId, storeId: input.storeId }, select: { id: true, conversationId: true } });
+    if (dupe) return { conversationId: dupe.conversationId, messageId: dupe.id, duplicate: true };
+  }
+
+  const body = input.message.body.slice(0, 20000);
+  const preview = previewText(body || (input.message.attachments?.length ? "Sent an attachment" : ""));
+  const now = input.message.createdAt ?? new Date();
+  const existing = await db.inboxConversation.findUnique({
+    where: { storeId_channel_externalThreadId: { storeId: input.storeId, channel: input.channel, externalThreadId: input.threadId } },
+  });
+
+  const conversation = existing
+    ? await db.inboxConversation.update({
+        where: { id: existing.id },
+        data: {
+          status: "open",
+          snoozedUntil: null,
+          unreadCount: { increment: 1 },
+          lastMessageAt: now,
+          lastInboundAt: now,
+          lastMessagePreview: preview,
+          contactName: existing.contactName ?? input.contact.name ?? null,
+          contactEmail: existing.contactEmail ?? input.contact.email ?? null,
+          contactPhone: existing.contactPhone ?? input.contact.phone ?? null,
+          contactHandle: existing.contactHandle ?? input.contact.handle ?? null,
+          visitorId: existing.visitorId ?? input.contact.visitorId ?? null,
+          subject: existing.subject ?? input.subject ?? null,
+          ...(input.visitorSeen ? { visitorSeenAt: new Date() } : {}),
+        },
+      })
+    : await db.inboxConversation.create({
+        data: {
+          storeId: input.storeId,
+          channel: input.channel,
+          externalThreadId: input.threadId,
+          subject: input.subject ?? null,
+          contactName: input.contact.name ?? null,
+          contactEmail: input.contact.email ?? null,
+          contactPhone: input.contact.phone ?? null,
+          contactHandle: input.contact.handle ?? null,
+          visitorId: input.contact.visitorId ?? null,
+          unreadCount: 1,
+          lastMessageAt: now,
+          lastInboundAt: now,
+          lastMessagePreview: preview,
+          visitorSeenAt: input.visitorSeen ? new Date() : null,
+        },
+      });
+
+  const message = await db.inboxMessage.create({
+    data: {
+      conversationId: conversation.id,
+      storeId: input.storeId,
+      direction: "inbound",
+      kind: input.message.kind ?? "text",
+      body,
+      bodyHtml: input.message.bodyHtml ?? null,
+      attachments: (input.message.attachments ?? []) as unknown as Prisma.InputJsonValue,
+      status: input.message.status ?? "received",
+      externalId,
+      meta: (input.message.meta ?? {}) as Prisma.InputJsonValue,
+      createdAt: now,
+    },
+  });
+
+  const later = (task: () => Promise<unknown>) => {
+    try {
+      after(() => task().catch((error) => console.error("[inbox] background task failed", error)));
+    } catch {
+      void task().catch((error) => console.error("[inbox] background task failed", error));
+    }
+  };
+
+  if (input.notify !== false) later(() => notifySeller(input.storeId, conversation.id, input.channel, conversation.contactName ?? conversation.contactEmail ?? conversation.contactPhone, preview));
+  later(() => maybeAutoReply(conversation.id));
+
+  return { conversationId: conversation.id, messageId: message.id, duplicate: false };
+}
+
+async function notifySeller(storeId: string, conversationId: string, channel: InboxChannelKey, who: string | null, preview: string) {
+  const store = await storeById(storeId);
+  if (!store) return;
+  const settings = await db.inboxSettings.findUnique({ where: { storeId }, select: { sellerLastSeenAt: true } });
+  // No bell notification while the seller has the inbox open; the list updates by itself.
+  if (isSellerOnline(settings?.sellerLastSeenAt)) return;
+  await createNotification({
+    userId: store.userId,
+    type: "customers",
+    priority: "info",
+    title: channel === "voice" ? `Call from ${who ?? "an unknown number"}` : `New ${CHANNELS[channel].label} message${who ? ` from ${who}` : ""}`,
+    description: preview || "Open your inbox to read it.",
+    link: `/home/messages?c=${conversationId}`,
+    actionLabel: "Reply",
+    actionUrl: `/home/messages?c=${conversationId}`,
+    metadata: { source: "inbox", channel, conversationId },
+  }).catch((error) => console.error("[inbox] notification failed", error));
+}
+
+/** Provider delivery receipts (WhatsApp statuses, Twilio status callbacks, Resend email events). */
+export async function updateMessageStatus(externalId: string, status: string, error?: string | null) {
+  const order = ["queued", "sent", "delivered", "read"];
+  const message = await db.inboxMessage.findFirst({ where: { externalId, direction: "outbound" }, select: { id: true, status: true } });
+  if (!message) return;
+  // Receipts can arrive out of order; never move "read" back to "delivered".
+  if (status !== "failed" && order.indexOf(status) <= order.indexOf(message.status)) return;
+  await db.inboxMessage.update({ where: { id: message.id }, data: { status, error: status === "failed" ? (error ?? "The provider couldn't deliver it.").slice(0, 300) : null } });
+}
+
+// ─── Outbound ────────────────────────────────────────────────────────────────
+
+export interface ReplyInput {
+  storeId: string;
+  conversationId: string;
+  body: string;
+  authorName: string;
+  kind?: "text" | "auto_reply";
+}
+
+async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null }, body: string, sellerEmail: string | null): Promise<SendResult & { via?: string }> {
+  const channel = conversation.channel as InboxChannelKey;
+  const base = { body, store: { id: store.id, name: store.name, slug: store.slug } };
+
+  if (channel === "livechat") {
+    // The widget polls for replies. If the shopper has left the page, also email the reply when we can.
+    const away = !conversation.visitorSeenAt || Date.now() - conversation.visitorSeenAt.getTime() > LIVECHAT_EMAIL_AFTER_MS;
+    if (away && conversation.contactEmail) {
+      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, replyTo: sellerEmail });
+      return emailed.ok ? { ok: true, externalId: emailed.externalId, via: "livechat+email" } : { ok: true, externalId: null, via: "livechat" };
+    }
+    return { ok: true, externalId: null, via: "livechat" };
+  }
+
+  if (channel === "email" || channel === "form") {
+    if (conversation.contactEmail) {
+      const subject = conversation.subject ?? (channel === "form" ? `Your message to ${store.name}` : null);
+      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail })), via: "email" };
+    }
+    if (channel === "form" && conversation.contactPhone) {
+      const sms = await getChannel(store.id, "sms");
+      if (sms) return { ...(await sendTwilioSms({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
+    }
+    return { ok: false, error: "This person didn't leave an email address, so there's no way to reply here." };
+  }
+
+  if (channel === "voice") {
+    const sms = await getChannel(store.id, "sms");
+    if (!sms || !conversation.contactPhone) return { ok: false, error: "Connect SMS to text callers back, or call them back." };
+    return { ...(await sendTwilioSms({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
+  }
+
+  if (channel === "tiktok") return { ok: false, error: "TikTok doesn't let apps reply to messages yet. Reply in the TikTok app." };
+
+  const connected = await getChannel(store.id, channel);
+  if (!connected) return { ok: false, error: `${CHANNELS[channel].label} isn't connected. Connect it in Inbox → Channels.` };
+  const input = { ...base, to: conversation.externalThreadId, credentials: connected.credentials };
+  switch (channel) {
+    case "whatsapp":
+      return { ...(await sendWhatsApp(input)), via: "whatsapp" };
+    case "sms":
+      return { ...(await sendTwilioSms(input)), via: "sms" };
+    case "messenger":
+    case "instagram":
+      return { ...(await sendMetaMessage(input)), via: channel };
+    case "telegram":
+      return { ...(await sendTelegram(input)), via: "telegram" };
+    default:
+      return { ok: false, error: "This channel can't send replies." };
+  }
+}
+
+/** Sends a reply on the conversation's own channel and records it (sent or failed, never pretend). */
+export async function sendReply(input: ReplyInput) {
+  const body = input.body.trim().slice(0, 4000);
+  if (!body) return { ok: false as const, error: "Write a message first." };
+  const [store, conversation] = await Promise.all([
+    storeById(input.storeId),
+    db.inboxConversation.findFirst({ where: { id: input.conversationId, storeId: input.storeId } }),
+  ]);
+  if (!store || !conversation) return { ok: false as const, error: "Conversation not found." };
+  const seller = await db.user.findUnique({ where: { id: store.userId }, select: { email: true } });
+
+  const message = await db.inboxMessage.create({
+    data: { conversationId: conversation.id, storeId: store.id, direction: "outbound", kind: input.kind ?? "text", body, status: "queued", authorName: input.authorName },
+  });
+  const result = await deliver(store, conversation, body, seller?.email ?? null).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
+  const saved = await db.inboxMessage.update({
+    where: { id: message.id },
+    data: result.ok
+      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null } }
+      : { status: "failed", error: result.error.slice(0, 300) },
+  });
+  await db.inboxConversation.update({
+    where: { id: conversation.id },
+    data: {
+      lastMessageAt: saved.createdAt,
+      lastMessagePreview: previewText(body),
+      unreadCount: 0,
+      ...(input.kind === "auto_reply" ? { autoRepliedAt: new Date() } : {}),
+    },
+  });
+  return result.ok ? { ok: true as const, message: saved } : { ok: false as const, error: result.error, message: saved };
+}
+
+/** A private note or a manual call log. Never sent to the customer. */
+export async function addNote(input: { storeId: string; conversationId: string; body: string; authorName: string; kind?: "text" | "call"; meta?: Record<string, unknown> }) {
+  const conversation = await db.inboxConversation.findFirst({ where: { id: input.conversationId, storeId: input.storeId }, select: { id: true } });
+  if (!conversation) return null;
+  return db.inboxMessage.create({
+    data: {
+      conversationId: conversation.id,
+      storeId: input.storeId,
+      direction: "note",
+      kind: input.kind ?? "text",
+      body: input.body.trim().slice(0, 4000),
+      status: "logged",
+      authorName: input.authorName,
+      meta: (input.meta ?? {}) as Prisma.InputJsonValue,
+    },
+  });
+}
+
+// ─── Away auto-reply and Peggy ───────────────────────────────────────────────
+
+async function storeFacts(storeId: string) {
+  const [store, products] = await Promise.all([
+    db.store.findUnique({ where: { id: storeId }, select: { name: true, description: true, city: true, country: true, currency: true, slug: true } }),
+    db.storeProduct.findMany({
+      where: { storeId, status: "published" },
+      orderBy: { soldStock: "desc" },
+      take: 30,
+      select: { name: true, retailPrice: true, currentStock: true },
+    }).catch(() => []),
+  ]);
+  if (!store) return "";
+  return [
+    `Shop: ${store.name}${store.city ? ` in ${store.city}` : ""}${store.country ? `, ${store.country}` : ""}. Currency ${store.currency}.`,
+    store.description ? `About: ${store.description.slice(0, 400)}` : "",
+    products.length ? `Products (name, price, stock): ${products.map((p) => `${p.name} ${Math.round(Number(p.retailPrice))} ${p.currentStock > 0 ? "in stock" : "out of stock"}`).join("; ")}` : "",
+    `Store link: ${(process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com").replace(/\/$/, "")}/s/${store.slug}`,
+  ].filter(Boolean).join("\n");
+}
+
+async function threadForAi(conversationId: string) {
+  const messages = await db.inboxMessage.findMany({
+    where: { conversationId, direction: { in: ["inbound", "outbound"] } },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: { direction: true, body: true },
+  });
+  return messages.reverse().map((m) => `${m.direction === "inbound" ? "Customer" : "Shop"}: ${m.body.slice(0, 1200)}`).join("\n");
+}
+
+/** Peggy's draft reply to the latest customer message. Never sends. Null when no AI provider is configured. */
+export async function draftReplyWithPeggy(storeId: string, conversationId: string, extra?: { order?: string; instruction?: string | null }) {
+  const [facts, thread] = await Promise.all([storeFacts(storeId), threadForAi(conversationId)]);
+  if (!thread) return null;
+  const result = await aiText({
+    fast: true,
+    system:
+      "You are Peggy, writing a reply for a small online shop in Nigeria to send to a customer. Warm, brief, plain Nigerian English. " +
+      "Only use facts from the shop details and the conversation; never invent prices, stock, delivery times, discounts or policies. If you don't know, say the shop will confirm. " +
+      "Return only the message text, no greeting line like 'Subject:', no signature placeholders, no emojis unless the customer used them.",
+    prompt: `${facts}\n${extra?.order ? `${extra.order}\n` : ""}\nConversation (oldest first):\n${thread}\n\n${extra?.instruction ? `The seller wants: ${extra.instruction}\n` : ""}Write the shop's next reply.`,
+  });
+  return result?.text.trim() || null;
+}
+
+async function maybeAutoReply(conversationId: string) {
+  const conversation = await db.inboxConversation.findUnique({ where: { id: conversationId } });
+  if (!conversation) return;
+  const settings = await db.inboxSettings.findUnique({ where: { storeId: conversation.storeId } });
+  const channel = conversation.channel as InboxChannelKey;
+  const canReply = CHANNELS[channel]?.replies && !(channel === "form" && !conversation.contactEmail);
+  if (!settings || !shouldAutoReply({ enabled: settings.autoReplyEnabled, sellerLastSeenAt: settings.sellerLastSeenAt, lastAutoReplyAt: conversation.autoRepliedAt, channelReplies: Boolean(canReply) })) return;
+
+  let body = settings.awayMessage?.trim() || DEFAULT_AWAY;
+  if (settings.autoReplyMode === "peggy") {
+    const drafted = await draftReplyWithPeggy(conversation.storeId, conversation.id, {
+      instruction: "The owner is away right now. Answer what you can from the shop details, and say the owner will follow up soon.",
+    }).catch(() => null);
+    if (drafted) body = drafted;
+  }
+  await sendReply({ storeId: conversation.storeId, conversationId: conversation.id, body, authorName: settings.autoReplyMode === "peggy" ? "Peggy (auto-reply)" : "Auto-reply", kind: "auto_reply" });
+}
+
+// ─── Customer sidebar ────────────────────────────────────────────────────────
+
+const PAID = new Set<string>(PAID_ORDER_STATUSES);
+
+/** Orders and spend for the person behind a conversation, matched by email or the last 10 digits of their phone. */
+export async function customerSummary(storeId: string, contact: { email: string | null; phone: string | null }) {
+  const or: Prisma.RetailOrderWhereInput[] = [];
+  if (contact.email) or.push({ buyerEmail: { equals: contact.email, mode: "insensitive" } });
+  const digits = contact.phone?.replace(/\D/g, "") ?? "";
+  if (digits.length >= 10) or.push({ buyerPhone: { endsWith: digits.slice(-10) } });
+  if (!or.length) return { matched: false, orders: [], orderCount: 0, totalSpent: 0, firstOrderAt: null as string | null };
+  const orders = await db.retailOrder.findMany({
+    where: { storeId, OR: or },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: { id: true, orderNumber: true, total: true, status: true, createdAt: true, currency: true },
+  });
+  const paid = orders.filter((o) => PAID.has(o.status));
+  return {
+    matched: orders.length > 0,
+    orders: orders.slice(0, 6).map((o) => ({ id: o.id, orderNumber: o.orderNumber, total: Number(o.total), status: o.status, createdAt: o.createdAt.toISOString() })),
+    orderCount: orders.length,
+    totalSpent: paid.reduce((sum, o) => sum + Number(o.total), 0),
+    firstOrderAt: orders.length ? orders[orders.length - 1].createdAt.toISOString() : null,
+  };
+}
+
+export async function touchSellerSeen(storeId: string) {
+  await db.inboxSettings.upsert({ where: { storeId }, create: { storeId, sellerLastSeenAt: new Date() }, update: { sellerLastSeenAt: new Date() } }).catch(() => null);
+}
