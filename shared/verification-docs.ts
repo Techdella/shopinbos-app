@@ -1,0 +1,201 @@
+// Verification document types and rules shared by supplier/logistics onboarding, the verification
+// pages, the upload API and the admin document viewer, so every screen agrees on what a document is
+// and when it really has a file behind it.
+
+export const DOC_TYPES = ["cac", "identity", "product-images", "tax", "utility", "bank", "insurance", "fleet", "other"] as const;
+export type DocType = (typeof DOC_TYPES)[number];
+
+export type DocStatus = "draft" | "uploaded" | "submitted" | "under_review" | "approved" | "rejected";
+
+export interface VerificationDoc {
+  id: string;
+  type: DocType;
+  label: string;
+  fileName: string;
+  /** Storage path inside the media bucket. Empty for old onboarding records that never uploaded a file. */
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  status: DocStatus;
+  uploadedAt: string;
+  updatedAt: string;
+  rejectionReason?: string;
+}
+
+export interface DocConfig {
+  type: DocType;
+  label: string;
+  required: boolean;
+  hint: string;
+}
+
+export const DOC_TYPE_LABELS: Record<DocType, string> = {
+  cac: "Business registration or CAC certificate",
+  identity: "Owner identity document (NIN)",
+  "product-images": "Product images",
+  tax: "Tax Identification Number (TIN)",
+  utility: "Utility bill",
+  bank: "Bank account proof",
+  insurance: "Insurance certificate",
+  fleet: "Fleet or vehicle documents",
+  other: "Other document",
+};
+
+export const SUPPLIER_DOC_TYPES: DocConfig[] = [
+  { type: "cac", label: DOC_TYPE_LABELS.cac, required: true, hint: "BN or RC document accepted" },
+  { type: "identity", label: DOC_TYPE_LABELS.identity, required: true, hint: "NIN slip or NIN-backed ID" },
+  { type: "product-images", label: DOC_TYPE_LABELS["product-images"], required: true, hint: "Photos of your products, combined into one PDF or a single clear image" },
+  { type: "tax", label: DOC_TYPE_LABELS.tax, required: false, hint: "TIN certificate or tax document. Boosts your trust score" },
+  { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification. Boosts your trust score" },
+  { type: "bank", label: DOC_TYPE_LABELS.bank, required: false, hint: "Bank letter or statement header that matches your business name" },
+  { type: "insurance", label: DOC_TYPE_LABELS.insurance, required: false, hint: "Public liability. Unlocks badges" },
+];
+
+export const LOGISTICS_DOC_TYPES: DocConfig[] = [
+  { type: "cac", label: DOC_TYPE_LABELS.cac, required: true, hint: "BN or RC document accepted" },
+  { type: "insurance", label: DOC_TYPE_LABELS.insurance, required: true, hint: "Required for fleet operations" },
+  { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification" },
+  { type: "identity", label: DOC_TYPE_LABELS.identity, required: false, hint: "NIN slip or NIN-backed ID" },
+  { type: "fleet", label: DOC_TYPE_LABELS.fleet, required: false, hint: "Vehicle registration, road worthiness" },
+];
+
+export function docTypesForRole(role: "supplier" | "logistics_partner"): DocConfig[] {
+  return role === "supplier" ? SUPPLIER_DOC_TYPES : LOGISTICS_DOC_TYPES;
+}
+
+// ─── Files ────────────────────────────────────────────────────────────────────
+
+export const MAX_DOC_BYTES = 10 * 1024 * 1024;
+export const DOC_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
+const DOC_EXTENSIONS: Record<string, (typeof DOC_MIME_TYPES)[number]> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+/** Value for `<input type="file" accept>`. */
+export const DOC_FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp";
+
+/** Resolves the file's MIME type, trusting the extension only when the browser sent none. */
+export function docMimeType(file: { name: string; type?: string | null }): string | null {
+  const declared = (file.type ?? "").toLowerCase();
+  if (declared) return (DOC_MIME_TYPES as readonly string[]).includes(declared) ? declared : null;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return DOC_EXTENSIONS[ext] ?? null;
+}
+
+/** Returns a message the person can act on, or null when the file is fine. */
+export function validateDocFile(file: { name: string; type?: string | null; size: number }): string | null {
+  if (!docMimeType(file)) return `${file.name} isn't a PDF, JPG, PNG or WebP file.`;
+  if (file.size <= 0) return `${file.name} is empty.`;
+  if (file.size > MAX_DOC_BYTES) return `${file.name} is ${formatBytes(file.size)}. The limit is 10 MB.`;
+  return null;
+}
+
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ─── Records ──────────────────────────────────────────────────────────────────
+
+export function isDocType(value: unknown): value is DocType {
+  return typeof value === "string" && (DOC_TYPES as readonly string[]).includes(value);
+}
+
+// Types the old supplier onboarding wrote before it uploaded real files.
+const LEGACY_TYPES: Record<string, DocType> = { registration: "cac", factory: "other" };
+// Statuses the old onboarding used. "pending"/"optional" meant nothing was chosen, so those rows are dropped.
+const LEGACY_STATUSES: Record<string, DocStatus | null> = { pending: null, optional: null, reading: "uploaded", read: "uploaded" };
+const STATUSES: DocStatus[] = ["draft", "uploaded", "submitted", "under_review", "approved", "rejected"];
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+/** Reads `verificationDocuments` JSON into clean records, mapping old onboarding rows onto the shared types. */
+export function normalizeVerificationDocs(value: unknown): VerificationDoc[] {
+  if (!Array.isArray(value)) return [];
+  const docs: VerificationDoc[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const row = raw as Record<string, unknown>;
+    const rawType = text(row.type);
+    const type: DocType = isDocType(rawType) ? rawType : LEGACY_TYPES[rawType] ?? "other";
+    const rawStatus = text(row.status);
+    const status = STATUSES.includes(rawStatus as DocStatus) ? (rawStatus as DocStatus) : LEGACY_STATUSES[rawStatus];
+    if (status === null) continue;
+    const uploadedAt = text(row.uploadedAt);
+    docs.push({
+      id: text(row.id) || `${type}-${docs.length}`,
+      type,
+      label: text(row.label) || text(row.name) || DOC_TYPE_LABELS[type],
+      fileName: text(row.fileName),
+      filePath: text(row.filePath),
+      fileSize: typeof row.fileSize === "number" && Number.isFinite(row.fileSize) ? row.fileSize : 0,
+      mimeType: text(row.mimeType),
+      status: status ?? "draft",
+      uploadedAt,
+      updatedAt: text(row.updatedAt) || uploadedAt,
+      ...(typeof row.rejectionReason === "string" && row.rejectionReason ? { rejectionReason: row.rejectionReason } : {}),
+    });
+  }
+  return docs;
+}
+
+export function docHasFile(doc: Pick<VerificationDoc, "filePath"> | null | undefined): boolean {
+  return Boolean(doc?.filePath && doc.filePath.trim());
+}
+
+/** A document counts towards verification only when a stored file backs it and it hasn't been rejected. */
+export function isDocComplete(doc: VerificationDoc | null | undefined): boolean {
+  return Boolean(doc && docHasFile(doc) && doc.status !== "draft" && doc.status !== "rejected");
+}
+
+export function findDoc(docs: VerificationDoc[], type: DocType): VerificationDoc | undefined {
+  // Prefer a row with a file if an old record and a real upload share a type.
+  return docs.find((doc) => doc.type === type && docHasFile(doc)) ?? docs.find((doc) => doc.type === type);
+}
+
+export function missingRequiredDocs(configs: DocConfig[], docs: VerificationDoc[]): DocConfig[] {
+  return configs.filter((config) => config.required && !isDocComplete(findDoc(docs, config.type)));
+}
+
+export type DocDisplayState = "missing" | "needs_file" | DocStatus;
+
+export function docDisplayState(doc: VerificationDoc | null | undefined): DocDisplayState {
+  if (!doc) return "missing";
+  if (!docHasFile(doc) && doc.status !== "draft" && doc.status !== "rejected") return "needs_file";
+  return doc.status;
+}
+
+/** Status wording. The owner is told to re-upload; admins are told there is nothing to look at. */
+export function docStatusLabel(doc: VerificationDoc | null | undefined, audience: "owner" | "admin", required = false): string {
+  const state = docDisplayState(doc);
+  switch (state) {
+    case "missing":
+      return required ? "Needed" : "Optional";
+    case "needs_file":
+      return audience === "owner" ? "Needs re-upload" : "No file";
+    case "draft":
+      return "Draft";
+    case "uploaded":
+      return audience === "owner" ? "Uploaded" : "Not sent yet";
+    case "submitted":
+      return audience === "owner" ? "Sent for review" : "Submitted";
+    case "under_review":
+      return "Under review";
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+  }
+}
+
+/** Marks uploaded documents as sent for review. Rows without a file are left alone. */
+export function submitUploadedDocs(docs: VerificationDoc[], now = new Date().toISOString()): VerificationDoc[] {
+  return docs.map((doc) => (doc.status === "uploaded" && docHasFile(doc) ? { ...doc, status: "submitted", updatedAt: now } : doc));
+}

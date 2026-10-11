@@ -27,7 +27,7 @@ export function PaymentMethods({ initial }: { initial: Record<PaymentMethodKey, 
 
   return (
     <Card className="p-5">
-      <CardHead title="Ways customers can pay" sub={pending ? "Saving" : "Your saved choices"} />
+      <CardHead title="Ways customers can pay" sub={pending ? "Saving" : "Customers see these at checkout"} />
       <ul className="m-0 mt-2 list-none divide-y divide-app-line p-0">
         {PAYMENT_METHODS.map((method) => (
           <li key={method.key} className="flex min-h-[60px] items-center gap-3 py-2.5">
@@ -39,6 +39,9 @@ export function PaymentMethods({ initial }: { initial: Record<PaymentMethodKey, 
           </li>
         ))}
       </ul>
+      <p className="m-0 mt-2 text-[12.5px] leading-[1.45] text-app-ink-soft">
+        Bank transfer shows at checkout once your payout bank is verified. Pay on delivery shows for orders up to ₦50,000 in your delivery zones.
+      </p>
       {error && <div className="mt-3"><Notice>{error}</Notice></div>}
     </Card>
   );

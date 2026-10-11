@@ -6,12 +6,14 @@ import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { SupplierOnboardingSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
-
-const REQUIRED_DOCUMENT_TYPES = ["registration", "identity", "factory"] as const;
-
-function isCompleteDocument(document: { status: string }) {
-  return document.status === "read" || document.status === "uploaded";
-}
+import {
+  SUPPLIER_DOC_TYPES,
+  isDocComplete,
+  findDoc,
+  missingRequiredDocs,
+  normalizeVerificationDocs,
+  submitUploadedDocs,
+} from "@shared/verification-docs";
 
 export const GET = withSupplier(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const supplier = await db.supplier.findUnique({
@@ -33,7 +35,7 @@ export const GET = withSupplier(async (_req: NextRequest, { user }: { user: Auth
   });
 
   if (!supplier) return apiError("NOT_FOUND", "Supplier profile not found", 404);
-  return ok(supplier);
+  return ok({ ...supplier, verificationDocuments: normalizeVerificationDocs(supplier.verificationDocuments) });
 });
 
 export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: AuthUser }) => {
@@ -46,24 +48,20 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid onboarding details");
   }
 
+  // Documents are uploaded one by one through /api/supplier/verification/upload, which stores the
+  // file and records it. Any document list in the body is ignored so a client can't mark files as
+  // uploaded without sending them.
   const now = new Date().toISOString();
-  const documents = parsed.data.documents.map((document) => ({
-    ...document,
-    id: document.id === "cac" ? "registration" : document.id,
-    status: REQUIRED_DOCUMENT_TYPES.includes(document.type as (typeof REQUIRED_DOCUMENT_TYPES)[number]) && document.status === "optional" ? "pending" : document.status,
-    uploadedAt: document.uploadedAt ?? now,
-  }));
-  const requiredDocuments = documents.filter((document) => REQUIRED_DOCUMENT_TYPES.includes(document.type as (typeof REQUIRED_DOCUMENT_TYPES)[number]));
-  const missingRequiredDocuments = parsed.data.completed
-    ? REQUIRED_DOCUMENT_TYPES.filter((type) => !requiredDocuments.some((document) => document.type === type && isCompleteDocument(document)))
-    : [];
+  const storedDocuments = normalizeVerificationDocs(supplier.verificationDocuments);
+  const missingRequiredDocuments = parsed.data.completed ? missingRequiredDocs(SUPPLIER_DOC_TYPES, storedDocuments) : [];
 
   if (missingRequiredDocuments.length > 0) {
-    return apiError("BAD_REQUEST", "Business registration, owner NIN, and factory or product warehouse photo are required before submission.");
+    return apiError("BAD_REQUEST", `Upload ${missingRequiredDocuments.map((config) => config.label).join(", ")} before submitting.`);
   }
 
-  const readCount = requiredDocuments.filter(isCompleteDocument).length;
-  const readinessScore = Math.max(parsed.data.readinessScore, Math.round((readCount / Math.max(requiredDocuments.length, 1)) * 100));
+  const requiredTypes = SUPPLIER_DOC_TYPES.filter((config) => config.required);
+  const readCount = requiredTypes.filter((config) => isDocComplete(findDoc(storedDocuments, config.type))).length;
+  const readinessScore = Math.round((readCount / Math.max(requiredTypes.length, 1)) * 100);
   const onboardingState = {
     source: "supplier-onboarding",
     completed: parsed.data.completed,
@@ -93,7 +91,10 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
       address: parsed.data.address ?? supplier.address,
       description: parsed.data.description ?? supplier.description,
       categories: parsed.data.categories?.length ? parsed.data.categories : supplier.categories,
-      verificationDocuments: documents as unknown as Prisma.InputJsonValue,
+      // Only rewritten on submit, so a save never races an upload that is still in flight.
+      ...(parsed.data.completed
+        ? { verificationDocuments: submitUploadedDocs(storedDocuments, now) as unknown as Prisma.InputJsonValue }
+        : {}),
       onboardingState: onboardingState as Prisma.InputJsonValue,
       verificationStatus: supplier.verificationStatus === "verified" ? "verified" : parsed.data.completed ? "pending" : "unverified",
       trustScore: Math.max(supplier.trustScore, Math.min(readinessScore, 100)),

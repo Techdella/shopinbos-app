@@ -5,6 +5,8 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { respondToDeliveryQuote, updateDeliveryBookingStatus } from "@/app/actions/logistics";
 import { Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
+import { AcceptAssignForm, riderPresence, riderSelect } from "@/components/logistics/dispatch";
+import { cashToPayIn } from "@/lib/logistics/job-rules";
 import {
   ACTIVE_STATUSES,
   ActionNotice,
@@ -47,11 +49,11 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
   const startOfToday = lagosStartOfToday(now);
   const bookingSelect = {
     id: true, orderId: true, pickupLocation: true, destination: true, deliveryFee: true, platformFee: true, netAmount: true,
-    status: true, trackingCode: true, estimatedDelivery: true, createdAt: true, packageDetails: true,
-    seller: { select: { name: true } },
+    status: true, trackingCode: true, estimatedDelivery: true, createdAt: true, packageDetails: true, codAmount: true,
+    seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
-  const [newBookings, newQuotes, activeJobs, deliveredToday, pendingBookingCount, pendingQuoteCount, activeCount, riders] = await Promise.all([
+  const [newBookings, newQuotes, activeJobs, deliveredToday, pendingBookingCount, pendingQuoteCount, activeCount, riders, unremittedCash] = await Promise.all([
     db.deliveryBooking.findMany({ where: { logisticsPartnerId: partner.id, status: "pending" }, orderBy: { createdAt: "asc" }, take: 6, select: bookingSelect }),
     db.deliveryQuoteRequest.findMany({
       where: { logisticsPartnerId: partner.id, status: "pending" },
@@ -62,12 +64,16 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     db.deliveryBooking.findMany({ where: { logisticsPartnerId: partner.id, status: { in: ACTIVE_STATUSES } }, orderBy: { createdAt: "desc" }, take: 8, select: bookingSelect }),
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: "delivered", deliveredAt: { gte: startOfToday } },
-      select: { id: true, orderId: true, deliveryFee: true, platformFee: true, netAmount: true },
+      select: { id: true, orderId: true, deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, codCollected: true },
     }),
     db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id, status: "pending" } }),
     db.deliveryQuoteRequest.count({ where: { logisticsPartnerId: partner.id, status: "pending" } }),
     db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id, status: { in: ACTIVE_STATUSES } } }),
-    db.logisticsTeamMember.groupBy({ by: ["status"], where: { logisticsPartnerId: partner.id, role: "rider" }, _count: { _all: true } }),
+    db.logisticsTeamMember.findMany({ where: { logisticsPartnerId: partner.id, role: "rider" }, orderBy: { name: "asc" }, select: riderSelect }),
+    db.deliveryBooking.findMany({
+      where: { logisticsPartnerId: partner.id, codMethod: "cash", remittanceId: null, codCollected: { gt: 0 } },
+      select: { codCollected: true, codMethod: true, remittanceId: true },
+    }),
   ]);
 
   const orderIds = [...newBookings, ...activeJobs, ...deliveredToday].map((booking) => booking.orderId).filter((id): id is string => Boolean(id));
@@ -75,13 +81,15 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, total: true, status: true, paymentMethod: true } })
     : [];
   const orderById = new Map(orders.map((order) => [order.id, order]));
-  const collectFor = (orderId: string | null) => (orderId ? cashToCollect(orderById.get(orderId)) : 0);
+  const collectFor = (job: { orderId: string | null; codAmount: number | null }) =>
+    job.codAmount ?? (job.orderId ? cashToCollect(orderById.get(job.orderId)) : 0);
 
   const earnedToday = deliveredToday.reduce((sum, booking) => sum + bookingNet(booking), 0);
-  const cashCollectedToday = deliveredToday.reduce((sum, booking) => sum + collectFor(booking.orderId), 0);
-  const cashOnActiveJobs = activeJobs.reduce((sum, booking) => sum + collectFor(booking.orderId), 0);
-  const ridersActive = riders.find((group) => group.status === "active")?._count._all ?? 0;
-  const ridersInactive = riders.filter((group) => group.status !== "active").reduce((sum, group) => sum + group._count._all, 0);
+  const cashCollectedToday = deliveredToday.reduce((sum, booking) => sum + (booking.codCollected ?? (booking.codAmount === null ? collectFor(booking) : 0)), 0);
+  const cashOnActiveJobs = activeJobs.reduce((sum, booking) => sum + collectFor(booking), 0);
+  const cashOwed = cashToPayIn(unremittedCash);
+  const presence = riderPresence(riders, now);
+  const activeRiders = riders.filter((rider) => rider.status === "active");
   const newCount = pendingBookingCount + pendingQuoteCount;
   const taking = partner.status === "active";
   const areas = partner.coverageZones.length ? partner.coverageZones.join(", ") : partner.city;
@@ -108,13 +116,13 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="truck" size={22} /></span>
             <div className="min-w-0 flex-1">
               <h2 className="m-0 text-[17px] font-extrabold">
-                {ridersActive + ridersInactive === 0 ? "No riders added yet" : `${ridersActive} ${ridersActive === 1 ? "rider" : "riders"} active${ridersInactive ? ` · ${ridersInactive} inactive` : ""}`}
+                {riders.length === 0 ? "No riders added yet" : `${presence.out} ${presence.out === 1 ? "rider" : "riders"} out · ${presence.offline} offline`}
               </h2>
               <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
-                {ridersActive + ridersInactive === 0 ? "Add the riders who carry your jobs so you can manage them here." : "Riders use the Shopinbos Riders app."}
+                {riders.length === 0 ? "Add the riders who carry your jobs so you can manage them here." : "Riders go online in the Shopinbos Riders app."}
               </p>
             </div>
-            <PillLink href="/logistics/couriers" size="sm">{ridersActive + ridersInactive === 0 ? "Add a rider" : "See riders"}</PillLink>
+            <PillLink href="/logistics/couriers" size="sm">{riders.length === 0 ? "Add a rider" : "See riders"}</PillLink>
           </Card>
 
           <section aria-labelledby="active-jobs" className="min-w-0">
@@ -128,7 +136,6 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
               <ListCard>
                 {activeJobs.map((job) => {
                   const stage = bookingStage(job.status);
-                  const collect = collectFor(job.orderId);
                   return (
                     <ListRow key={job.id} href="/logistics/bookings">
                       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-app-line bg-app-canvas text-app-ink-soft"><Icon name="box" size={18} /></span>
@@ -137,8 +144,8 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                         <div className="truncate text-[13px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name}</div>
                       </div>
                       <div className="min-w-0 basis-full sm:basis-[200px]"><StageDot tone={stage.tone}>{stage.label}</StageDot></div>
-                      <div className="min-w-0 truncate text-[13.5px] text-app-ink-soft sm:w-[140px]">
-                        {job.trackingCode ? `Tracking ${job.trackingCode}` : collect > 0 ? `Collect ${naira(collect)}` : "No tracking code"}
+                      <div className={`min-w-0 truncate text-[13.5px] sm:w-[140px] ${job.rider ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
+                        {job.rider?.name ?? "No rider yet"}
                       </div>
                       <div className="ml-auto text-[15px] font-extrabold">{naira(job.deliveryFee)}</div>
                     </ListRow>
@@ -162,7 +169,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
           )}
 
           {newBookings.map((job) => {
-            const collect = collectFor(job.orderId);
+            const collect = collectFor(job);
             return (
               <Card key={job.id} as="article" className="p-5">
                 <div className="flex items-center justify-between gap-3">
@@ -176,22 +183,15 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                     {job.estimatedDelivery ? ` · Deliver by ${lagosTime(job.estimatedDelivery)}, ${lagosDate(job.estimatedDelivery)}` : ""}
                   </p>
                 </div>
+                {collect > 0 && <div className="mt-3"><Pill tone="warning">Collect {naira(collect)}</Pill></div>}
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {collect > 0 && <Pill tone="warning">Collect {naira(collect)}</Pill>}
-                  <div className="ml-auto flex flex-1 gap-2 sm:flex-none">
-                    <form action={updateDeliveryBookingStatus} className="flex-1 sm:flex-none">
-                      <input type="hidden" name="bookingId" value={job.id} />
-                      <input type="hidden" name="status" value="cancelled" />
-                      <input type="hidden" name="returnTo" value={RETURN} />
-                      <SubmitButton tone="white" size="sm" className="w-full" aria-label={`Decline job ${jobId(job.id)}`}>Decline</SubmitButton>
-                    </form>
-                    <form action={updateDeliveryBookingStatus} className="flex-1 sm:flex-none">
-                      <input type="hidden" name="bookingId" value={job.id} />
-                      <input type="hidden" name="status" value="confirmed" />
-                      <input type="hidden" name="returnTo" value={RETURN} />
-                      <SubmitButton size="sm" className="w-full" aria-label={`Accept job ${jobId(job.id)}`}>Accept job</SubmitButton>
-                    </form>
-                  </div>
+                  <form action={updateDeliveryBookingStatus}>
+                    <input type="hidden" name="bookingId" value={job.id} />
+                    <input type="hidden" name="status" value="cancelled" />
+                    <input type="hidden" name="returnTo" value={RETURN} />
+                    <SubmitButton tone="white" size="sm" aria-label={`Decline job ${jobId(job.id)}`}>Decline</SubmitButton>
+                  </form>
+                  <AcceptAssignForm bookingId={job.id} riders={activeRiders} returnTo={RETURN} className="flex-1" />
                 </div>
               </Card>
             );
@@ -240,14 +240,15 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
             </Card>
           ))}
 
-          {(cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
+          {(cashOwed > 0 || cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
             <Card className="border-0 bg-[#FDF0D5] p-5">
               <CardHead
-                title="Cash on delivery"
-                action={<span className="text-[18px] font-extrabold">{naira(cashCollectedToday)}</span>}
+                title="Cash to pay in"
+                action={<span className="text-[18px] font-extrabold">{naira(cashOwed)}</span>}
               />
               <p className="m-0 mt-1 text-[13.5px] leading-[1.5] text-[#5C4100]">
-                Collected today from pay-on-delivery orders
+                Cash your riders collected on pay-on-delivery orders and you haven&apos;t paid in yet
+                {cashCollectedToday > 0 ? ` · ${naira(cashCollectedToday)} collected today` : ""}
                 {cashOnActiveJobs > 0 ? ` · ${naira(cashOnActiveJobs)} more to collect on active jobs` : ""}.
               </p>
               <PillLink href="/logistics/cash" tone="ink" size="sm" className="mt-3">Open cash</PillLink>

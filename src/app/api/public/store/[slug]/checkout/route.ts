@@ -11,6 +11,16 @@ import { triggerAutomations } from "@/lib/automations/engine";
 import { redemptionError } from "@/lib/discounts";
 import { validCampaignToken } from "@/lib/campaigns/send";
 import { cleanAffiliateCode, commissionFor } from "@shared/affiliates";
+import {
+  checkoutPaymentOptions,
+  checkoutPaymentSettings,
+  deliveryFeeFor,
+  normalizeCheckoutMethod,
+  paymentChoiceText,
+  payOnDeliveryBlock,
+  paystackSecretReady,
+  readTransferAccount,
+} from "@shared/checkout-payments";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -37,7 +47,8 @@ const CheckoutSchema = z.object({
     image: z.string().optional(),
   })).min(1),
   notes: z.string().optional(),
-  paymentMethod: z.enum(["redirect", "inline"]).optional(),
+  // "redirect" and "inline" are older clients asking for Paystack.
+  paymentMethod: z.enum(["paystack", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
   discountCode: z.string().optional(),
   campaignToken: z.string().max(64).optional(),
   channel: z.enum(LINK_CHANNELS).optional(),
@@ -80,7 +91,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid body"), CHECKOUT_CORS);
   }
 
-  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod, discountCode, campaignToken: rawCampaignToken, channel: linkChannel, affiliateCode, adCode } = parsed.data;
+  const { buyerName, buyerEmail, buyerPhone, deliveryAddress, items, notes, paymentMethod: requestedMethod, discountCode, campaignToken: rawCampaignToken, channel: linkChannel, affiliateCode, adCode } = parsed.data;
 
   const requestedQuantities = new Map<string, number>();
   for (const item of items) {
@@ -139,25 +150,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     select: { name: true, type: true, regions: true, rates: true },
   });
 
-  let shippingFee = 0;
-  if (shippingZones.length > 0) {
-    const matchingZone = shippingZones.find(
-      (z) => z.regions.length === 0 || z.regions.some((r) => deliveryAddress.city.toLowerCase().includes(r.toLowerCase()) || deliveryAddress.state?.toLowerCase().includes(r.toLowerCase())),
-    );
-    if (matchingZone) {
-      // Rates are stored as minValue/maxValue (ShippingRateSchema); min/max kept for older rows.
-      const zoneRates = (Array.isArray(matchingZone.rates) ? matchingZone.rates : []) as Array<{ minValue?: number; maxValue?: number; min?: number; max?: number; price?: number }>;
-      const matchedRate = zoneRates.find((r) => {
-        const min = r.minValue ?? r.min;
-        const max = r.maxValue ?? r.max;
-        return (!min || subtotal >= min) && (!max || subtotal <= max);
-      });
-      shippingFee = matchedRate?.price ?? 0;
-    }
-  } else {
-    const settings = store.brandSettings as any;
-    shippingFee = settings?.shippingConfig?.flatRate ?? 0;
-  }
+  const shippingFee = deliveryFeeFor(shippingZones, Number((store.brandSettings as any)?.shippingConfig?.flatRate ?? 0), deliveryAddress, subtotal);
 
   // Validate and apply discount
   let discountAmount = 0;
@@ -197,6 +190,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   const total = Math.max(0, subtotal - discountAmount) + shippingFee;
+
+  // Only the ways to pay this seller turned on (and that can work right now) are accepted.
+  const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+  const paymentMethod = normalizeCheckoutMethod(requestedMethod);
+  const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, paystackSecretReady(paystackSecret));
+  const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
+  if (!checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
+    const reason = paymentMethod === "pay_on_delivery" && paymentSettings.methods?.cod ? payOnDeliveryBlock(paymentSettings, paymentContext) : null;
+    return withCors(req, apiError("BAD_REQUEST", reason ?? "This store doesn't take that payment method. Choose another way to pay."), CHECKOUT_CORS);
+  }
+  if (paymentMethod === "pay_on_delivery" && !buyerPhone?.trim()) {
+    return withCors(req, apiError("BAD_REQUEST", "Add a phone number so the rider can reach you for pay on delivery."), CHECKOUT_CORS);
+  }
+  const transferAccount = paymentMethod === "transfer" ? readTransferAccount(store.brandSettings) : null;
   // Only keep attribution tokens issued by this store's campaigns.
   const campaignToken = await validCampaignToken(store.id, rawCampaignToken);
   const orderNumber = generateOrderNumber();
@@ -267,6 +274,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           discountAmount,
           currency: store.currency,
           notes: notes ?? null,
+          // Null keeps meaning "Paystack checkout" for older readers; transfer and pay on delivery wait as pending.
+          paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
+          status: "pending",
         },
       });
     });
@@ -276,6 +286,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       : "Could not place this order. Please try again.";
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);
   }
+
+  const sellerDescription = `${buyerName} placed an order worth ${new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(total)}. ${paymentChoiceText(paymentMethod)}`;
 
   await Promise.allSettled([
     sendOrderConfirmationEmail(
@@ -291,15 +303,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     ),
     sendSellerNotification(store.user.email, {
       title: `New order ${order.orderNumber}`,
-      description: `${buyerName} placed an order worth ${new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(total)}.`,
+      description: sellerDescription,
       type: "order",
     }),
     db.notification.create({
       data: {
         userId: store.userId,
         title: `New order ${order.orderNumber}`,
-        description: `${buyerName} placed an order worth ${new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(total)}.`,
+        description: sellerDescription,
         type: "order",
+        link: `/home/orders/${order.id}`,
+        metadata: { orderId: order.id, paymentMethod },
       },
     }),
     triggerAutomations("order_placed", {
@@ -313,11 +327,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }),
   ]);
 
-  // Initialize Paystack payment if keys are configured (skip for inline client-side payment)
-  const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+  // Initialize Paystack payment if keys are configured (skip for inline client-side payment, transfer and pay on delivery)
   let paystackData: { authorization_url: string; reference: string } | null = null;
 
-  if (paymentMethod !== "inline" && paystackSecret && !paystackSecret.includes("your_")) {
+  if (paymentMethod === "paystack" && requestedMethod !== "inline" && paystackSecretReady(paystackSecret)) {
     try {
       const callbackUrl = buildStorefrontUrl(store, `/order/${order.id}`);
       const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
@@ -360,7 +373,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       total: order.total,
       currency: order.currency,
       status: order.status,
+      paymentMethod,
     },
     paystack: paystackData,
+    // Where to send a bank transfer: the exact total, with the order number as the reference.
+    transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber } : null,
   }), CHECKOUT_CORS);
 }

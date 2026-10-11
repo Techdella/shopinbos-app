@@ -4,7 +4,20 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
+import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
 import intentRouting from "@/lib/intent-routing";
+import {
+  SUPPLIER_DOC_TYPES,
+  docDisplayState,
+  findDoc,
+  missingRequiredDocs,
+  normalizeVerificationDocs,
+  type DocType,
+  type VerificationDoc,
+} from "@shared/verification-docs";
+
+const UPLOAD_ENDPOINT = "/api/supplier/verification/upload";
 
 interface InitialUser {
   name: string | null;
@@ -22,19 +35,9 @@ interface SupplierOnboardingProps {
     address: string | null;
     description: string | null;
     categories: string[];
-    verificationDocuments?: Document[] | null;
+    verificationDocuments?: unknown;
     onboardingState?: { completed?: boolean; readinessScore?: number } | null;
   } | null;
-}
-
-interface Document {
-  id: string;
-  name: string;
-  type: "registration" | "tax" | "bank" | "identity" | "product-images" | "factory" | "other";
-  fileName?: string;
-  status: "pending" | "uploaded" | "reading" | "read" | "optional";
-  notes?: string;
-  uploadedAt?: string;
 }
 
 const categoryOptions = [
@@ -47,43 +50,6 @@ const categoryOptions = [
   "Health & wellness",
   "Other",
 ];
-
-const DOCUMENTS: Document[] = [
-  { id: "registration", name: "Business Name registration or CAC certificate", type: "registration", status: "pending", notes: "Upload your BN registration or CAC certificate." },
-  { id: "owner", name: "Owner NIN", type: "identity", status: "pending", notes: "NIN slip or NIN-backed identity document." },
-  { id: "product-images", name: "Product images", type: "product-images", status: "pending", notes: "At least 5 images showing your products (min 5, max 20)." },
-  { id: "tax", name: "Tax identification", type: "tax", status: "optional", notes: "Optional - upload your TIN certificate or tax document." },
-  { id: "bank", name: "Bank account proof", type: "bank", status: "optional", notes: "Optional - upload bank proof that matches the business name." },
-];
-
-const requiredDocumentTypes = new Set<Document["type"]>(["registration", "identity", "product-images"]);
-
-function isDocumentComplete(doc: Document) {
-  return doc.status === "read" || doc.status === "uploaded";
-}
-
-function normalizeDocuments(documents?: Document[] | null) {
-  const incoming = documents?.map((doc) => (doc.id === "cac" ? { ...doc, id: "registration" } : doc)) ?? [];
-  const normalized = DOCUMENTS.map((defaultDoc) => {
-    const uploadedDoc = incoming.find((doc) => doc.id === defaultDoc.id || doc.type === defaultDoc.type);
-
-    return {
-      ...defaultDoc,
-      ...uploadedDoc,
-      id: defaultDoc.id,
-      name: defaultDoc.name,
-      notes: uploadedDoc?.fileName ? defaultDoc.notes : defaultDoc.notes,
-      status: requiredDocumentTypes.has(defaultDoc.type)
-        ? uploadedDoc && isDocumentComplete(uploadedDoc)
-          ? uploadedDoc.status
-          : "pending"
-        : uploadedDoc?.status ?? defaultDoc.status,
-    };
-  });
-
-  const extraDocuments = incoming.filter((doc) => !normalized.some((normalizedDoc) => normalizedDoc.id === doc.id || normalizedDoc.type === doc.type));
-  return [...normalized, ...extraDocuments];
-}
 
 export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnboardingProps) {
   const router = useRouter();
@@ -98,7 +64,8 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
   const [address, setAddress] = useState(initialSupplier?.address ?? "");
   const [description, setDescription] = useState(initialSupplier?.description ?? "");
   const [categories, setCategories] = useState<string[]>(initialSupplier?.categories?.length ? initialSupplier.categories : []);
-  const [documents, setDocuments] = useState<Document[]>(() => normalizeDocuments(initialSupplier?.verificationDocuments));
+  const [documents, setDocuments] = useState<VerificationDoc[]>(() => normalizeVerificationDocs(initialSupplier?.verificationDocuments));
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(initialSupplier?.onboardingState?.completed ? "Submitted for admin review." : "");
   const [error, setError] = useState("");
@@ -109,31 +76,25 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
     );
   }
 
-  function handleDocumentUpload(id: string, files: FileList | null) {
-    const file = files?.[0];
-    if (!file) return;
-    setDocuments((current) =>
-      current.map((doc) =>
-        doc.id === id
-          ? { ...doc, fileName: file.name, status: "uploaded" as const, uploadedAt: new Date().toISOString() }
-          : doc,
-      ),
-    );
+  // The file goes to the same upload route the verification page uses; the row only shows as
+  // uploaded once the server returns the stored record. Errors are thrown back to the row.
+  async function handleDocumentUpload(type: DocType, file: File, onProgress?: (percent: number) => void) {
+    setError("");
+    setSaved("");
+    setUploadsInFlight((count) => count + 1);
+    try {
+      const doc = await uploadVerificationFile(UPLOAD_ENDPOINT, type, file, onProgress);
+      setDocuments((current) => [...current.filter((d) => d.type !== type), doc]);
+    } finally {
+      setUploadsInFlight((count) => count - 1);
+    }
   }
 
-  function documentTone(status: Document["status"]) {
-    if (status === "read") return "bg-app-success-tint text-app-success";
-    if (status === "uploaded" || status === "reading") return "bg-[#E8EAFB] text-[#3D4FB8]";
-    if (status === "pending") return "bg-app-peach text-app-accent-ink";
-    return "bg-app-canvas text-app-ink-soft";
-  }
-
-  function documentLabel(doc: Document) {
-    if (doc.status === "read") return "Read by Rex";
-    if (doc.status === "uploaded") return "Uploaded";
-    if (doc.status === "reading") return "Reading";
-    if (doc.status === "pending") return "Needed";
-    return "Optional";
+  async function handleDocumentRemove(docId: string) {
+    setError("");
+    setSaved("");
+    await deleteVerificationFile(UPLOAD_ENDPOINT, docId);
+    setDocuments((current) => current.filter((d) => d.id !== docId));
   }
 
   // Only send name fields once they're long enough for the API; blanks keep what's saved.
@@ -147,21 +108,25 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
     setSaved("");
     setError("");
     try {
-      const requiredDocs = documents.filter((d) => requiredDocumentTypes.has(d.type));
-      const missingRequiredDocs = requiredDocs.filter((d) => !isDocumentComplete(d));
+      const missingDocs = missingRequiredDocs(SUPPLIER_DOC_TYPES, documents);
 
       if (completed && !textOrUndefined(businessName)) {
         setError("Add your business name before submitting.");
         setStep(1);
         return;
       }
-      if (completed && missingRequiredDocs.length > 0) {
-        setError(`Please add ${missingRequiredDocs.map((doc) => doc.name).join(", ")} before submitting.`);
+      if (completed && uploadsInFlight > 0) {
+        setError("Wait for your files to finish uploading, then submit.");
+        return;
+      }
+      if (completed && missingDocs.length > 0) {
+        setError(`Please upload ${missingDocs.map((doc) => doc.label).join(", ")} before submitting.`);
         return;
       }
 
-      const readCount = requiredDocs.filter(isDocumentComplete).length;
-      const readinessScore = Math.round((readCount / Math.max(requiredDocs.length, 1)) * 100);
+      // Documents are saved as they upload; the server re-checks them on submit.
+      const requiredCount = SUPPLIER_DOC_TYPES.filter((config) => config.required).length;
+      const readinessScore = Math.round(((requiredCount - missingDocs.length) / Math.max(requiredCount, 1)) * 100);
 
       const response = await fetch("/api/supplier/onboarding", {
         method: "PATCH",
@@ -174,7 +139,6 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
           address,
           description,
           categories,
-          documents,
           readinessScore,
           completed,
         }),
@@ -201,6 +165,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
     }
   }
 
+  const needsReupload = SUPPLIER_DOC_TYPES.filter((config) => docDisplayState(findDoc(documents, config.type)) === "needs_file").length;
   const textareaClass = "w-full rounded-[16px] border border-app-line bg-white px-4 py-3 text-[16px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
 
   return (
@@ -304,24 +269,24 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                 Add your documents, then send them for review. Your public page and supplier tools stay locked until you&apos;re approved.
               </p>
 
-              <ul className="m-0 mt-6 list-none divide-y divide-app-line overflow-hidden rounded-[22px] border border-app-line bg-white p-0">
-                {documents.map((doc) => (
-                  <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:flex-nowrap sm:px-5">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas">
-                      <Icon name={doc.status === "read" || doc.status === "uploaded" ? "check" : doc.status === "reading" ? "refresh" : "document"} size={18} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[14.5px] font-extrabold">{doc.name}</span>
-                      <span className="block truncate text-[13px] text-app-ink-soft">{doc.fileName ?? doc.notes}</span>
-                    </span>
-                    <span className={cx("shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold", documentTone(doc.status))}>{documentLabel(doc)}</span>
-                    <label className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold transition hover:border-app-line-strong focus-within:outline focus-within:outline-2 focus-within:outline-app-ink">
-                      {doc.status === "pending" || doc.status === "optional" ? "Choose file" : "Replace"}
-                      <input type="file" className="sr-only" aria-label={`File for ${doc.name}`} onChange={(e) => handleDocumentUpload(doc.id, e.target.files)} />
-                    </label>
-                  </li>
-                ))}
-              </ul>
+              {needsReupload > 0 && (
+                <div className="mt-6">
+                  <Notice tone="error">
+                    {needsReupload === 1 ? "One document" : `${needsReupload} documents`} from an earlier visit never finished uploading. Please upload {needsReupload === 1 ? "it" : "them"} again.
+                  </Notice>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <VerificationDocUploader
+                  role="supplier"
+                  docs={documents}
+                  docConfigs={SUPPLIER_DOC_TYPES}
+                  onUpload={handleDocumentUpload}
+                  onDelete={handleDocumentRemove}
+                />
+              </div>
+              <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">PDF, JPG, PNG or WebP, up to 10 MB each. Files save as soon as they upload.</p>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <PillButton tone="ghost" size="md" onClick={() => setStep(1)}>
@@ -329,7 +294,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                 </PillButton>
                 <div className="flex flex-wrap gap-2">
                   <PillButton tone="white" size="md" onClick={() => void save(false)} disabled={saving}>Save progress</PillButton>
-                  <PillButton tone="accent" size="md" onClick={() => void save(true)} busy={saving}>
+                  <PillButton tone="accent" size="md" onClick={() => void save(true)} busy={saving} disabled={uploadsInFlight > 0}>
                     Submit for admin review <Icon name="arrow" size={15} />
                   </PillButton>
                 </div>

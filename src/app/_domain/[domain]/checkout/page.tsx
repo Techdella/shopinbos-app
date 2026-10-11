@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { CheckoutClient } from "@/app/s/[slug]/checkout/CheckoutClient";
+import { loadCheckoutPayments } from "@/app/s/[slug]/checkout/payment-props";
 import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 
@@ -27,5 +28,7 @@ export default async function CustomDomainCheckoutPage({ params }: Props) {
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), storeRef.slug);
 
-  return <CheckoutClient store={store} storeBasePath={storeBasePath} />;
+  const { payments, feeZones } = await loadCheckoutPayments(storeRef.slug);
+
+  return <CheckoutClient store={store} storeBasePath={storeBasePath} payments={payments} feeZones={feeZones} />;
 }

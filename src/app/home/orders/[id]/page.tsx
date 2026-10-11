@@ -38,6 +38,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   const order = await db.retailOrder.findFirst({ where: { id, storeId: store.id } });
   if (!order) notFound();
+  const booking = await db.deliveryBooking.findFirst({
+    where: { orderId: order.id, sellerId: user.id, status: { not: "cancelled" } },
+    orderBy: { createdAt: "desc" },
+    select: { status: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
+  });
 
   const items = (Array.isArray(order.items) ? order.items : []) as OrderItem[];
   const address = addressLines(order.deliveryAddress);
@@ -150,6 +155,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       {logistics.type === "pickup" ? "Buyer pickup" : logistics.type === "network" ? "Delivery partner" : "Personal logistics"}
                     </div>
                   ) : null}
+                  {booking && (
+                    <div className="grid gap-1">
+                      <div className="text-[12.5px] text-app-ink-soft">{booking.logisticsPartner.displayName}</div>
+                      <div className="font-bold">
+                        {booking.rider ? `${booking.rider.name} · ` : ""}{booking.status === "pending" ? "Waiting for the partner to accept" : booking.status.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
+                      </div>
+                      {booking.deliveryCode && !["delivered", "failed"].includes(booking.status) && (
+                        <div className="mt-1 rounded-[14px] bg-app-mint px-3.5 py-2.5">
+                          <div className="text-[12.5px] text-app-forest">Share this code with your buyer</div>
+                          <div className="font-mono text-[22px] font-extrabold tracking-[0.2em]">{booking.deliveryCode}</div>
+                          <div className="text-[12.5px] text-app-forest">The rider asks for it at the door before handing over the parcel.</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {order.trackingCode && (
                     <div>
                       <div className="text-[12.5px] text-app-ink-soft">Tracking code</div>

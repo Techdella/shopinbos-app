@@ -4,6 +4,8 @@ import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { DeliveryBookingCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { emitPartnerEvent } from "@/lib/logistics/webhooks";
+import { partnerJob } from "@/lib/logistics/partner-api-core";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -46,9 +48,16 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 
+  // Unpaid (pay-on-delivery) orders: the rider collects the order total at the door.
+  const order = parsed.data.orderId
+    ? await db.retailOrder.findFirst({ where: { id: parsed.data.orderId, store: { userId: user.id } }, select: { total: true, status: true } })
+    : null;
+  const codAmount = order && (order.status === "pending" || order.status === "awaiting_payment") && order.total > 0 ? order.total : undefined;
+
   const booking = await db.deliveryBooking.create({
-    data: { sellerId: user.id, ...parsed.data },
+    data: { sellerId: user.id, ...parsed.data, codAmount },
   });
+  void emitPartnerEvent(partner.id, "job.offered", partnerJob(booking)).catch(() => undefined);
 
   return ok(booking, 201);
 });

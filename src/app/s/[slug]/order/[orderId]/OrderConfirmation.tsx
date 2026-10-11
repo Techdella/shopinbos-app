@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { TransferInstructions, type TransferDetails } from "./TransferInstructions";
 
 interface Props {
   order: {
@@ -23,6 +24,8 @@ interface Props {
     total: number;
     currency: string;
     status: string;
+    /** null or "paystack" for Paystack checkout; "transfer" or "pay_on_delivery" otherwise. */
+    paymentMethod?: string | null;
     deliveryAddress: { street?: string; city?: string; state?: string } | null;
     createdAt: string;
     trackingCode?: string | null;
@@ -38,6 +41,10 @@ interface Props {
     brandSettings: any;
   };
   storeBasePath: string;
+  /** Account details while a bank-transfer order is unpaid. */
+  transfer?: TransferDetails | null;
+  /** Code the buyer gives the rider, once a delivery is booked. */
+  deliveryCode?: string | null;
 }
 
 function Stars({ rating, interactive = false, onChange }: {
@@ -57,7 +64,7 @@ function Stars({ rating, interactive = false, onChange }: {
   );
 }
 
-export function OrderConfirmation({ order, store, storeBasePath }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null }: Props) {
   const cart = useCart(store.slug);
   const palette = store.brandSettings?.palette ?? {};
   const ctaBg = palette.ctaBg ?? "#73D8C8";
@@ -66,11 +73,23 @@ export function OrderConfirmation({ order, store, storeBasePath }: Props) {
   const heroText = palette.heroText ?? "#F4F1EA";
   const paperBg = palette.paperBg ?? "#FAF7F1";
 
-  useEffect(() => {
-    if (["paid", "processing", "packed", "shipped", "delivered"].includes(order.status)) cart.clear();
-  }, [cart, order.status]);
-
+  const method = order.paymentMethod === "transfer" || order.paymentMethod === "pay_on_delivery" ? order.paymentMethod : "paystack";
   const isPaid = ["paid", "processing", "packed", "shipped", "delivered"].includes(order.status);
+  const isOpen = !["cancelled", "returned", "refunded", "partially_refunded", "delivered"].includes(order.status);
+  const amount = new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(Number(order.total));
+
+  // Transfer and pay-on-delivery orders are placed without paying online, so the cart is done with either way.
+  useEffect(() => {
+    if (isPaid || method !== "paystack") cart.clear();
+  }, [cart, isPaid, method]);
+
+  const subline = isPaid
+    ? `Thanks, ${order.buyerName.split(" ")[0]}. A confirmation has been sent to ${order.buyerEmail}.`
+    : method === "transfer"
+      ? "Send your bank transfer below. The store confirms your order once the money arrives."
+      : method === "pay_on_delivery"
+        ? `You pay when your order arrives. Have ${amount} ready for the rider.`
+        : "Your order is being processed. Payment will be confirmed shortly.";
 
   function statusColor(status: string): { bg: string; text: string } {
     if (["paid", "processing", "packed"].includes(status)) return { bg: "#fef3c7", text: "#92400e" };
@@ -95,9 +114,22 @@ export function OrderConfirmation({ order, store, storeBasePath }: Props) {
           </div>
           <h1 style={{ margin: "16px 0 8px", fontSize: 28, fontWeight: 800, color: "#0E2A38" }}>{isPaid ? "Order Confirmed" : "Order Received"}</h1>
           <p style={{ margin: 0, color: "#6E6E68", fontSize: 16 }}>
-            {isPaid ? `Thanks, ${order.buyerName.split(" ")[0]}. A confirmation has been sent to ${order.buyerEmail}.` : "Your order is being processed. Payment will be confirmed shortly."}
+            {subline}
           </p>
         </div>
+
+        <NextSteps
+          method={method}
+          isPaid={isPaid}
+          isOpen={isOpen}
+          amount={amount}
+          orderId={order.id}
+          currency={order.currency}
+          transfer={transfer}
+          deliveryCode={deliveryCode}
+          ctaBg={ctaBg}
+          ctaText={ctaText}
+        />
 
         <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 6px rgba(14,42,56,0.08)", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", background: "#f4f1ea", borderBottom: "1px solid rgba(14,42,56,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -195,6 +227,62 @@ export function OrderConfirmation({ order, store, storeBasePath }: Props) {
       </div>
     </div>
   );
+}
+
+function NextSteps({ method, isPaid, isOpen, amount, orderId, currency, transfer, deliveryCode, ctaBg, ctaText }: {
+  method: "paystack" | "transfer" | "pay_on_delivery";
+  isPaid: boolean;
+  isOpen: boolean;
+  amount: string;
+  orderId: string;
+  currency: string;
+  transfer: TransferDetails | null;
+  deliveryCode: string | null;
+  ctaBg: string;
+  ctaText: string;
+}) {
+  const box: React.CSSProperties = { background: "#fff", borderRadius: 22, border: "1px solid rgba(22,20,31,0.08)", padding: 20, fontFamily: "var(--font-app, inherit)" };
+  const heading: React.CSSProperties = { margin: "0 0 4px", fontSize: 18, fontWeight: 800, color: "#16141F" };
+  const text: React.CSSProperties = { margin: 0, fontSize: 14, lineHeight: 1.5, color: "#6E6E68" };
+  const blocks: React.ReactNode[] = [];
+
+  if (method === "transfer" && !isPaid && isOpen) {
+    blocks.push(transfer
+      ? <TransferInstructions key="transfer" orderId={orderId} currency={currency} details={transfer} ctaBg={ctaBg} ctaText={ctaText} />
+      : (
+        <section key="transfer" style={box}>
+          <h2 style={heading}>Pay by bank transfer</h2>
+          <p style={text}>The store will send you their account details. Send exactly {amount} and use your order number as the reference.</p>
+        </section>
+      ));
+  } else if (method === "pay_on_delivery" && !isPaid && isOpen) {
+    blocks.push(
+      <section key="pod" style={box}>
+        <h2 style={heading}>Have {amount} ready</h2>
+        <p style={text}>Pay the rider in cash or by transfer when your order arrives. Check your items before you pay.</p>
+      </section>,
+    );
+  } else if (isPaid) {
+    blocks.push(
+      <section key="paid" style={box}>
+        <h2 style={heading}>{method === "paystack" ? "Paid online" : "Payment received"}</h2>
+        <p style={text}>{method === "paystack" ? "Your card, bank or USSD payment went through with Paystack." : "The store has your payment."} We&apos;ll keep you posted as your order moves.</p>
+      </section>,
+    );
+  }
+
+  if (deliveryCode && isOpen) {
+    blocks.push(
+      <section key="code" style={box} aria-labelledby="delivery-code-heading">
+        <h2 id="delivery-code-heading" style={heading}>Your delivery code</h2>
+        <p style={{ ...text, marginBottom: 10 }}>Give this code to the rider only when you have your order.</p>
+        <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 28, fontWeight: 800, letterSpacing: "0.2em", color: "#16141F" }}>{deliveryCode}</div>
+      </section>,
+    );
+  }
+
+  if (blocks.length === 0) return null;
+  return <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>{blocks}</div>;
 }
 
 function ReviewForm({ item, storeSlug, orderId, buyerName, buyerEmail }: {

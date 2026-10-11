@@ -18,7 +18,7 @@ const GUEST_ROUTES = [
 ];
 const AUTH_ROUTES = ["/home", "/onboarding", "/supplier", "/logistics", "/admin"];
 // Public pages that live under a portal prefix and must stay open to guests and other roles.
-const PUBLIC_ROUTES = ["/logistics/partners", "/email"];
+const PUBLIC_ROUTES = ["/logistics/partners", "/email", "/rider"];
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand|api/public|s/).*)"],

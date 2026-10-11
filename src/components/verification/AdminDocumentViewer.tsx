@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import type { VerificationDoc } from "@/lib/verification-utils";
+import { DOC_TYPE_LABELS, docDisplayState, docHasFile, docStatusLabel, formatBytes, type DocDisplayState } from "@shared/verification-docs";
+import { docFileUrl } from "./upload-client";
 
 interface AdminDocumentViewerProps {
   role: "supplier" | "logistics_partner";
@@ -14,40 +16,15 @@ interface AdminDocumentViewerProps {
   trustScore: number;
 }
 
-const statusTone: Record<string, string> = {
+const statusTone: Record<DocDisplayState, string> = {
+  missing: "bg-app-canvas text-app-ink-soft",
+  needs_file: "bg-app-danger-tint text-app-danger",
   draft: "bg-app-canvas text-app-ink-soft",
   uploaded: "bg-app-canvas text-app-ink-soft",
   submitted: "bg-[#FDF0D5] text-[#8A5A00]",
   under_review: "bg-[#E8EAFB] text-[#3D4FB8]",
   approved: "bg-app-success-tint text-app-success",
   rejected: "bg-app-danger-tint text-app-danger",
-};
-
-const statusLabels: Record<string, string> = {
-  draft: "Draft",
-  uploaded: "Uploaded",
-  submitted: "Submitted",
-  under_review: "Under review",
-  approved: "Approved",
-  rejected: "Rejected",
-};
-
-function buildFileUrl(filePath: string): string {
-  if (filePath.startsWith("http")) return filePath;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const bucket = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
-  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${filePath}`;
-}
-
-const docTypeLabels: Record<string, string> = {
-  cac: "Business registration / CAC certificate",
-  tax: "Tax Identification Number (TIN)",
-  utility: "Utility bill",
-  identity: "Owner identity document (NIN)",
-  "product-images": "Product images",
-  insurance: "Insurance certificate",
-  fleet: "Fleet / vehicle documents",
-  other: "Other document",
 };
 
 export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, trustScore }: AdminDocumentViewerProps) {
@@ -101,63 +78,77 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
     return (
       <ul className="m-0 list-none divide-y divide-app-line overflow-hidden rounded-[22px] border border-app-line bg-white p-0">
         {items.map((doc) => {
-          const fileUrl = buildFileUrl(doc.filePath);
-          const name = docTypeLabels[doc.type] ?? doc.label ?? doc.type;
+          const hasFile = docHasFile(doc);
+          const fileUrl = hasFile ? docFileUrl(doc.filePath) : null;
+          const name = DOC_TYPE_LABELS[doc.type] ?? doc.label ?? doc.type;
+          const state = docDisplayState(doc);
 
           return (
             <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-2.5 px-4 py-3.5 sm:px-5 md:flex-nowrap">
               <span
                 className={cx(
                   "grid h-11 w-11 shrink-0 place-items-center rounded-[12px]",
-                  doc.status === "approved" ? "bg-app-success-tint text-app-success" : doc.status === "rejected" ? "bg-app-danger-tint text-app-danger" : "bg-app-canvas text-app-ink",
+                  doc.status === "approved" ? "bg-app-success-tint text-app-success" : doc.status === "rejected" || !hasFile ? "bg-app-danger-tint text-app-danger" : "bg-app-canvas text-app-ink",
                 )}
               >
-                <Icon name={doc.type === "product-images" ? "image" : "file"} size={18} />
+                <Icon name={!hasFile ? "warn" : doc.type === "product-images" ? "image" : "file"} size={18} />
               </span>
 
               <div className="min-w-0 flex-1 basis-[200px]">
                 <div className="truncate text-[15px] font-extrabold">{name}</div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-app-ink-soft">
-                  <span className="max-w-full truncate">{doc.fileName}</span>
-                  <span>{(doc.fileSize / 1024).toFixed(0)} KB</span>
-                  {doc.updatedAt && <span>{new Date(doc.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>}
+                  {hasFile ? (
+                    <>
+                      {doc.fileName && <span className="max-w-full truncate">{doc.fileName}</span>}
+                      {formatBytes(doc.fileSize) && <span>{formatBytes(doc.fileSize)}</span>}
+                    </>
+                  ) : (
+                    <span>No file was stored{doc.fileName ? ` (${doc.fileName} was picked but never uploaded)` : ""}. Ask for a re-upload.</span>
+                  )}
+                  {doc.updatedAt && !Number.isNaN(Date.parse(doc.updatedAt)) && <span>{new Date(doc.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>}
                 </div>
                 {doc.rejectionReason && (
                   <div className="mt-1 text-[13px] text-app-danger">Reason: {doc.rejectionReason}</div>
                 )}
               </div>
 
-              <span className={cx("inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[12px] font-bold", statusTone[doc.status] ?? statusTone.draft)}>
-                {statusLabels[doc.status] ?? doc.status}
+              <span className={cx("inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[12px] font-bold", statusTone[state])}>
+                {docStatusLabel(doc, "admin")}
               </span>
 
               <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <a
-                  href={fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Open ${name}`}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-ink transition hover:border-app-line-strong"
-                >
-                  <Icon name="eye" size={16} />
-                </a>
-                <a
-                  href={fileUrl}
-                  download={doc.fileName}
-                  aria-label={`Download ${name}`}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-ink transition hover:border-app-line-strong"
-                >
-                  <Icon name="download" size={16} />
-                </a>
+                {fileUrl && (
+                  <>
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open ${name}`}
+                      className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-ink transition hover:border-app-line-strong"
+                    >
+                      <Icon name="eye" size={16} />
+                    </a>
+                    <a
+                      href={fileUrl}
+                      download={doc.fileName || undefined}
+                      aria-label={`Download ${name}`}
+                      className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-app-ink transition hover:border-app-line-strong"
+                    >
+                      <Icon name="download" size={16} />
+                    </a>
+                  </>
+                )}
                 {showActions && (
                   <>
                     <PillButton tone="white" size="sm" className="text-app-danger" onClick={() => handleAction(doc.id, "reject")} disabled={moderating === doc.id} aria-label={`Reject ${name}`}>
                       Reject
                     </PillButton>
-                    <PillButton tone="ink" size="sm" busy={moderating === doc.id} onClick={() => handleAction(doc.id, "approve")} aria-label={`Approve ${name}`}>
-                      <Icon name="check" size={14} />
-                      Approve
-                    </PillButton>
+                    {hasFile && (
+                      <PillButton tone="ink" size="sm" busy={moderating === doc.id} onClick={() => handleAction(doc.id, "approve")} aria-label={`Approve ${name}`}>
+                        <Icon name="check" size={14} />
+                        Approve
+                      </PillButton>
+                    )}
                   </>
                 )}
               </div>

@@ -8,6 +8,8 @@ import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
 import { VerificationBadge } from "@/components/verification/VerificationBadge";
+import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
+import { isDocComplete } from "@shared/verification-docs";
 import {
   type VerificationDoc,
   type DocType,
@@ -76,45 +78,23 @@ export default function SupplierVerificationPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleUpload = useCallback(async (type: DocType, file: File) => {
+  // Errors are thrown so the uploader shows them on the document's own row.
+  const handleUpload = useCallback(async (type: DocType, file: File, onProgress?: (percent: number) => void) => {
     setMessage("");
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("docType", type);
-
-    try {
-      const r = await fetch("/api/supplier/verification/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await r.json();
-      if (!result.success) { setMessageTone("error"); setMessage(result.error ?? "Upload failed"); return; }
-      setMessageTone("success");
-      setMessage("Document uploaded.");
-      fetchData();
-    } catch {
-      setMessageTone("error");
-      setMessage("Upload failed. Please try again.");
-    }
+    const doc = await uploadVerificationFile("/api/supplier/verification/upload", type, file, onProgress);
+    setDocuments((current) => [...current.filter((d) => d.type !== type), doc]);
+    setMessageTone("success");
+    setMessage(`${doc.fileName} uploaded.`);
+    fetchData();
   }, [fetchData]);
 
   const handleDelete = useCallback(async (docId: string) => {
     setMessage("");
-    try {
-      const r = await fetch(`/api/supplier/verification/upload`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docId }),
-      });
-      const result = await r.json();
-      if (!result.success) { setMessageTone("error"); setMessage(result.error ?? "Delete failed"); return; }
-      setMessageTone("success");
-      setMessage("Document removed.");
-      fetchData();
-    } catch {
-      setMessageTone("error");
-      setMessage("Delete failed. Please try again.");
-    }
+    await deleteVerificationFile("/api/supplier/verification/upload", docId);
+    setDocuments((current) => current.filter((d) => d.id !== docId));
+    setMessageTone("success");
+    setMessage("Document removed.");
+    fetchData();
   }, [fetchData]);
 
   const handleSubmit = useCallback(async () => {
@@ -158,7 +138,7 @@ export default function SupplierVerificationPage() {
   const progressSteps = [
     { label: "Account setup", done: true },
     { label: "Business profile", done: Boolean(supplier.businessName && supplier.city) },
-    { label: "Documents uploaded", done: documents.some((d) => d.status === "uploaded" || d.status === "submitted") },
+    { label: "Documents uploaded", done: documents.some(isDocComplete) },
     { label: "Verification submitted", done: isPending || isVerified },
     { label: "ShopinBos review", done: isPending || isVerified },
     { label: "Verification approved", done: isVerified },

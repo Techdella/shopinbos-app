@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { updateOrderPayment } from "@/app/actions/payments";
 import { OrderConfirmation } from "./OrderConfirmation";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { loadOrderNextSteps } from "./order-props";
 
 interface Props {
   params: Promise<{ slug: string; orderId: string }>;
@@ -25,12 +26,23 @@ export default async function OrderPage({ params, searchParams }: Props) {
 
   const store = await db.store.findUnique({
     where: { id: order.storeId },
-    select: { id: true, name: true, slug: true, logoUrl: true, currency: true, brandSettings: true },
+    select: { id: true, userId: true, name: true, slug: true, logoUrl: true, currency: true, brandSettings: true },
   });
   if (!store || store.slug !== slug) notFound();
 
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), slug);
 
-  return <OrderConfirmation order={JSON.parse(JSON.stringify(order))} store={store} storeBasePath={storeBasePath} />;
+  const next = await loadOrderNextSteps(order, store);
+  const publicStore = { name: store.name, slug: store.slug, logoUrl: store.logoUrl, currency: store.currency, brandSettings: next.brandSettings };
+
+  return (
+    <OrderConfirmation
+      order={JSON.parse(JSON.stringify(order))}
+      store={publicStore}
+      storeBasePath={storeBasePath}
+      transfer={next.transfer}
+      deliveryCode={next.deliveryCode}
+    />
+  );
 }

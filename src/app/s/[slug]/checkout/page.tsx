@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { CheckoutClient } from "./CheckoutClient";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { loadCheckoutPayments } from "./payment-props";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -22,5 +23,7 @@ export default async function CheckoutPage({ params }: Props) {
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), slug);
 
-  return <CheckoutClient store={store} storeBasePath={storeBasePath} />;
+  const { payments, feeZones } = await loadCheckoutPayments(slug);
+
+  return <CheckoutClient store={store} storeBasePath={storeBasePath} payments={payments} feeZones={feeZones} />;
 }
