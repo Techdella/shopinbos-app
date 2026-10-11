@@ -495,8 +495,8 @@ export async function uploadLogisticsLogo(formData: FormData) {
   if (!file) redirect("/logistics/profile?error=No+file+selected");
 
   try {
-    const { uploadFileServer } = await import("@/lib/supabase/storage.server");
-    const { publicUrl } = await uploadFileServer("logistics-logos", file, `logistics-logos/${partner.id}/${file.name}`);
+    const { uploadFileServer, uploadPath } = await import("@/lib/supabase/storage.server");
+    const { publicUrl } = await uploadFileServer("logistics-logos", file, uploadPath(`logistics-logos/${partner.id}`, file));
     await db.logisticsPartner.update({ where: { id: partner.id }, data: { logoUrl: publicUrl } });
     redirect("/logistics/profile?saved=true");
   } catch {

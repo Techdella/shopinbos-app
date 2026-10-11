@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import Script from "next/script";
 import { StorefrontClient } from "./StorefrontClient";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { storePageSeo } from "@/lib/seo/page-seo";
+import { seoMetadata } from "@/lib/seo/fields";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -42,10 +44,25 @@ function getSeoSettings(brandSettings?: Record<string, unknown>) {
   };
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props & { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const { slug } = await params;
   const store = await fetchStore(slug);
   if (!store) return { title: "Store not found" };
+
+  // ?page=about etc.: that page's own SEO tab.
+  const requested = (await searchParams).page;
+  const pageSeo = typeof requested === "string" ? storePageSeo(store, requested) : null;
+  if (pageSeo) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
+    return seoMetadata(pageSeo.seo, {
+      title: pageSeo.title,
+      titleSuffix: store.name,
+      description: store.description ?? "",
+      image: store.logoUrl,
+      canonical: `${appUrl}/s/${slug}?page=${encodeURIComponent(requested as string)}`,
+      siteName: store.name,
+    }) as Metadata;
+  }
 
   const seo = getSeoSettings(store.brandSettings);
   const { gaSiteVerification } = getIntegrations(store.brandSettings);

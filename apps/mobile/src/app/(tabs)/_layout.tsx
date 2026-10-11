@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router, Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, type AppIconName } from "@/components/icons";
@@ -16,8 +16,11 @@ const ICONS: Record<string, { icon: AppIconName; label: string }> = {
   more: { icon: "grid", label: "More" },
 };
 
-function TabBar({ state, navigation }: TabBarProps) {
+function TabBar({ state, navigation, descriptors }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  // A screen hides the bar with options.tabBarStyle = { display: "none" } (Home does while it shows a full-screen loading state).
+  const focusedOptions = descriptors[state.routes[state.index].key]?.options;
+  if ((StyleSheet.flatten(focusedOptions?.tabBarStyle) as { display?: string } | undefined)?.display === "none") return null;
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: 14, right: 14, bottom: Math.max(insets.bottom, 12), flexDirection: "row", alignItems: "center", gap: 10 }}>
       <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-between", backgroundColor: colors.surface, borderRadius: 999, padding: 6, shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>

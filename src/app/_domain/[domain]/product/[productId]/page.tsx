@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import { withProductSeo } from "@/lib/cms/storefront";
 import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { getStorefrontBasePathForHost, normalizeDomain } from "@/lib/domains/storefront";
 import { loadProductPage } from "@/lib/storefront/product-page.server";
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const storeRef = await getStoreByCustomDomain(domain);
   if (!storeRef) return { title: "Product not found" };
   const data = await loadProductPage(storeRef.slug, productId);
-  return productMetadata(data, data ? canonicalProductUrl(data, normalizeDomain(decodeURIComponent(domain))) : "");
+  return withProductSeo(productMetadata(data, data ? canonicalProductUrl(data, normalizeDomain(decodeURIComponent(domain))) : ""), data?.product.id);
 }
 
 export default async function CustomDomainProductPage({ params }: Props) {

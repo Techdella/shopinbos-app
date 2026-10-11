@@ -6,6 +6,8 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Pill, type Tone } from "@/components/app-kit";
 import { FieldLabel, PillButton, TextInput, Toggle, cx } from "@/components/app-ui";
 import { toast } from "@/hooks/use-toast";
+import { SeoTab } from "@/components/seo/SeoTab";
+import { normalizeSeo } from "@/lib/seo/fields";
 
 type PageStatus = "draft" | "published" | "hidden" | "scheduled" | "archived";
 
@@ -54,7 +56,6 @@ function getStatusBadge(status: PageStatus, storeIsLive: boolean): { label: stri
   }
 }
 
-const AREA = "w-full resize-y rounded-[16px] border border-app-line bg-white px-4 py-3 text-[15px] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink";
 const fmtDate = (value: string) => new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 function hasUnsavedDraft(page: PageData): boolean {
@@ -300,7 +301,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
 
   const TABS = [
     { key: "details", label: "Details" },
-    { key: "seo", label: "Search" },
+    { key: "seo", label: "SEO" },
     { key: "navigation", label: "Menu" },
     { key: "scheduling", label: "Schedule" },
   ] as const;
@@ -461,61 +462,15 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           )}
 
           {tab === "seo" && (
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
-              <section className="min-w-0 rounded-[22px] border border-app-line bg-white p-5">
-                <h2 className="m-0 text-[17px] font-extrabold">Search and sharing</h2>
-                <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">How this page shows up on Google and when people share it.</p>
-                <div className="mt-4 grid gap-4">
-                  <div>
-                    <FieldLabel htmlFor="seo-title">Search title <span className="font-normal text-app-ink-soft">({localSeo.metaTitle.length}/60)</span></FieldLabel>
-                    <TextInput id="seo-title" value={localSeo.metaTitle} onChange={(e) => setLocalSeo((s) => ({ ...s, metaTitle: e.target.value }))} maxLength={60} placeholder={page.title} />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="seo-desc">Search description <span className="font-normal text-app-ink-soft">({localSeo.metaDescription.length}/160)</span></FieldLabel>
-                    <textarea id="seo-desc" value={localSeo.metaDescription} onChange={(e) => setLocalSeo((s) => ({ ...s, metaDescription: e.target.value }))} maxLength={160} rows={3} placeholder="A short description of this page" className={AREA} />
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="min-w-0">
-                      <FieldLabel htmlFor="seo-kw">Main search phrase</FieldLabel>
-                      <TextInput id="seo-kw" value={localSeo.focusKeyword} onChange={(e) => setLocalSeo((s) => ({ ...s, focusKeyword: e.target.value }))} placeholder="e.g. handmade jewellery" />
-                    </div>
-                    <div className="min-w-0">
-                      <FieldLabel htmlFor="seo-canon">Canonical link</FieldLabel>
-                      <TextInput id="seo-canon" value={localSeo.canonicalUrl} onChange={(e) => setLocalSeo((s) => ({ ...s, canonicalUrl: e.target.value }))} placeholder="https://example.com/this-page" />
-                    </div>
-                  </div>
-
-                  <h3 className="m-0 border-t border-app-line pt-4 text-[15px] font-extrabold">When shared on social</h3>
-                  <div>
-                    <FieldLabel htmlFor="seo-og-title">Share title</FieldLabel>
-                    <TextInput id="seo-og-title" value={localSeo.socialTitle} onChange={(e) => setLocalSeo((s) => ({ ...s, socialTitle: e.target.value }))} placeholder={localSeo.metaTitle || page.title} />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="seo-og-desc">Share description</FieldLabel>
-                    <textarea id="seo-og-desc" value={localSeo.socialDescription} onChange={(e) => setLocalSeo((s) => ({ ...s, socialDescription: e.target.value }))} rows={2} placeholder={localSeo.metaDescription || "A short description"} className={AREA} />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="seo-og-img">Share image link</FieldLabel>
-                    <TextInput id="seo-og-img" value={localSeo.socialImage} onChange={(e) => setLocalSeo((s) => ({ ...s, socialImage: e.target.value }))} placeholder="https://example.com/social-image.jpg" />
-                  </div>
-                  <div className="flex items-center justify-between gap-4 rounded-[16px] bg-app-canvas px-4 py-3">
-                    <span className="text-[14px] font-bold">Hide from search engines</span>
-                    <Toggle on={localSeo.noIndex} onChange={(on) => setLocalSeo((s) => ({ ...s, noIndex: on }))} label="Hide from search engines" />
-                  </div>
-                </div>
-              </section>
-
-              <section className="min-w-0 self-start rounded-[22px] border border-app-line bg-white p-5">
-                <h2 className="m-0 text-[17px] font-extrabold">Google preview</h2>
-                <div className="mt-3 rounded-[14px] border border-app-line p-3">
-                  <div className="truncate text-[12px] text-app-ink-soft">{storeSlug}</div>
-                  <div className="truncate text-[15px] font-medium leading-snug text-[#1a0dab]">{localSeo.metaTitle || page.title}</div>
-                  <div className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[#545454]">{localSeo.metaDescription || "A page on " + storeSlug}</div>
-                </div>
-                <div className="mt-4">
-                  {!localSeo.metaTitle || !localSeo.metaDescription ? <Pill tone="warning">Add a title and description</Pill> : <Pill tone="success">Search ready</Pill>}
-                </div>
-              </section>
+            <div className="grid gap-4">
+              <SeoTab
+                value={normalizeSeo(localSeo)}
+                onChange={(next) => setLocalSeo(next)}
+                title={page.title}
+                slug={page.type === "home" ? "" : page.slug}
+                urlPrefix={`${storeSlug}.shopinbos.shop/`}
+                siteName={storeSlug}
+              />
             </div>
           )}
 

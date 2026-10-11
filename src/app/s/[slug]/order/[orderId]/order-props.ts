@@ -14,7 +14,7 @@ const UNPAID = ["pending", "awaiting_payment"];
 export async function loadOrderNextSteps(
   order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null },
   store: { userId: string; brandSettings: unknown },
-): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; brandSettings: { palette?: Record<string, string> } }> {
+): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
   const account = order.paymentMethod === "transfer" && UNPAID.includes(order.status) ? readTransferAccount(store.brandSettings) : null;
   const booking = await db.deliveryBooking.findFirst({
     where: { orderId: order.id, sellerId: store.userId, deliveryCode: { not: null }, status: { notIn: ["cancelled", "delivered", "failed"] } },
@@ -23,9 +23,13 @@ export async function loadOrderNextSteps(
   });
   const settings = store.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings) ? (store.brandSettings as Record<string, unknown>) : {};
   const palette = settings.palette && typeof settings.palette === "object" ? (settings.palette as Record<string, string>) : undefined;
+  // The storefront's published colours, so the confirmation looks like the store the buyer just used.
+  const editor = settings.editor && typeof settings.editor === "object" ? (settings.editor as Record<string, unknown>) : {};
+  const published = editor.published && typeof editor.published === "object" ? (editor.published as Record<string, unknown>) : {};
+  const tokens = [published.themeTokens, settings.themeTokens].find((value) => value && typeof value === "object") as Record<string, unknown> | undefined;
   return {
     transfer: account ? { ...account, amount: order.total, reference: order.orderNumber } : null,
     deliveryCode: booking?.deliveryCode ?? null,
-    brandSettings: palette ? { palette } : {},
+    brandSettings: { ...(palette ? { palette } : {}), ...(tokens ? { themeTokens: tokens } : {}) },
   };
 }

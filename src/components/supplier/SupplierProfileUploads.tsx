@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
-import { uploadSupplierCover, uploadSupplierLogo, uploadSupplierPhoto } from "@/app/actions/supplier";
+import { uploadSupplierCover, uploadSupplierPhoto } from "@/app/actions/supplier";
 import { Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 
@@ -47,30 +47,6 @@ export function SupplierCoverUpload({ bannerUrl }: { bannerUrl: string | null })
       </button>
       <input ref={inputRef} type="file" accept="image/*" hidden onChange={onChange} aria-label="Cover photo" />
     </div>
-  );
-}
-
-export function SupplierLogoUpload({ logoUrl, displayName }: { logoUrl: string | null; displayName: string }) {
-  const { inputRef, busy, onChange, open } = useUpload("logo", uploadSupplierLogo);
-  const letters = displayName.split(/\s+/).filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={open}
-        disabled={busy}
-        aria-label={logoUrl ? "Change logo" : "Add logo"}
-        className="group relative grid h-[96px] w-[96px] shrink-0 place-items-center overflow-hidden rounded-[22px] border border-app-line bg-app-canvas bg-cover bg-center text-[30px] font-extrabold text-app-ink"
-        style={logoUrl ? { backgroundImage: `url(${logoUrl})` } : undefined}
-      >
-        {!logoUrl && letters}
-        <span className="absolute inset-x-0 bottom-0 flex h-7 items-center justify-center bg-app-ink/75 text-[11.5px] font-bold text-white">
-          {busy ? <Spinner /> : logoUrl ? "Change" : "Add logo"}
-        </span>
-      </button>
-      <input ref={inputRef} type="file" accept="image/*" hidden onChange={onChange} aria-label="Logo" />
-    </>
   );
 }
 

@@ -43,8 +43,8 @@ export default async function LogisticsInboxPage() {
       <InboxClient
         conversations={conversations.map((c) => ({
           id: c.id,
-          participant1: { id: c.participant1.id, name: c.participant1.name, role: c.participant1.role },
-          participant2: { id: c.participant2.id, name: c.participant2.name, role: c.participant2.role },
+          participant1: { id: c.participant1.id, name: c.participant1.name, role: c.participant1.role, avatarUrl: c.participant1.avatarUrl },
+          participant2: { id: c.participant2.id, name: c.participant2.name, role: c.participant2.role, avatarUrl: c.participant2.avatarUrl },
           lastMessage: c.messages[0] ? { text: c.messages[0].text, createdAt: c.messages[0].createdAt.toISOString(), read: c.messages[0].read, senderId: c.messages[0].senderId } : null,
           updatedAt: c.updatedAt.toISOString(),
         }))}

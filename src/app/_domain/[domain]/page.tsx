@@ -3,7 +3,9 @@ import { Metadata } from "next";
 import { headers } from "next/headers";
 import { StorefrontClient } from "@/app/s/[slug]/StorefrontClient";
 import { getStoreByCustomDomain } from "@/lib/domains/lookup";
-import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { buildStorefrontUrl, getStorefrontBasePathForHost, normalizeDomain } from "@/lib/domains/storefront";
+import { storePageSeo } from "@/lib/seo/page-seo";
+import { seoMetadata } from "@/lib/seo/fields";
 
 interface Props {
   params: Promise<{ domain: string }>;
@@ -17,12 +19,24 @@ async function fetchStore(slug: string) {
   return json.data ?? null;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props & { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const { domain } = await params;
   const storeRef = await getStoreByCustomDomain(domain);
   if (!storeRef) return { title: "Store not found" };
   const store = await fetchStore(storeRef.slug);
   if (!store) return { title: "Store not found" };
+  const requested = (await searchParams).page;
+  const pageSeo = typeof requested === "string" ? storePageSeo(store, requested) : null;
+  if (pageSeo) {
+    return seoMetadata(pageSeo.seo, {
+      title: pageSeo.title,
+      titleSuffix: store.name,
+      description: store.description ?? "",
+      image: store.logoUrl,
+      canonical: buildStorefrontUrl({ slug: storeRef.slug, customDomain: normalizeDomain(decodeURIComponent(domain)) }, `/?page=${encodeURIComponent(requested as string)}`),
+      siteName: store.name,
+    }) as Metadata;
+  }
   return {
     title: store.name,
     description: store.description ?? `Shop at ${store.name}`,

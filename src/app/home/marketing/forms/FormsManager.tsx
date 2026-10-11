@@ -2,336 +2,354 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EmptyState, ListCard, ListRow, Pill } from "@/components/app-kit";
-import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
+import { Card, EmptyState, ListCard, ListRow, Pill } from "@/components/app-kit";
+import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/growth/Modal";
-import { Field, buttonClass, checkClass, formatDate, humanize, inputClass, selectClass } from "@/components/growth/kit";
-
-interface FormField {
-  key: string;
-  type: string;
-  label: string;
-  required: boolean;
-}
-
-interface PopupSettings {
-  timing: "immediate" | "delay" | "exit_intent";
-  delaySeconds: number;
-  pages: "all" | "home" | "product";
-  frequency: "once" | "session" | "always";
-  devices: ("mobile" | "desktop")[];
-  afterSubmit: "message" | "add_subscriber" | "notify" | "redirect";
-  redirectUrl: string;
-  message: string;
-}
+import { Field, buttonClass, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
+import type { FormDesign, FormField, PopupConfig } from "@/lib/marketing/forms";
+import { api, errorText } from "../_kit/client";
 
 export interface ManagedForm {
   id: string;
   name: string;
-  purpose: string;
+  type: string;
   isPopup: boolean;
   active: boolean;
   createdAt: string;
   fields: FormField[];
-  popup: PopupSettings | null;
+  design: FormDesign;
+  config: PopupConfig;
+  views: number;
+  signups: number;
 }
 
-const FIELD_TYPES = [
-  { value: "text", label: "Text" },
-  { value: "email", label: "Email" },
-  { value: "phone", label: "Phone" },
-  { value: "textarea", label: "Long text" },
-  { value: "select", label: "Dropdown" },
-  { value: "checkbox", label: "Tick box" },
-  { value: "radio", label: "Choice" },
-];
+const TRIGGER_TEXT: Record<PopupConfig["trigger"], (c: PopupConfig) => string> = {
+  immediate: () => "as the page opens",
+  delay: (c) => `after ${c.delaySeconds} seconds`,
+  exit_intent: () => "when they're about to leave",
+  scroll: (c) => `after scrolling ${c.scrollPercent}%`,
+};
+const LAYOUT_TEXT: Record<PopupConfig["layout"], string> = { modal: "Centre pop-up", flyout: "Corner flyout", bar: "Bottom bar" };
 
-const PURPOSES = [
-  { value: "newsletter", label: "Newsletter sign-up" },
-  { value: "contact", label: "Contact" },
-  { value: "lead", label: "Lead" },
-  { value: "waitlist", label: "Waitlist" },
-  { value: "product_inquiry", label: "Product question" },
-  { value: "wholesale_inquiry", label: "Wholesale enquiry" },
-  { value: "request_quote", label: "Quote request" },
-  { value: "support", label: "Support" },
-  { value: "custom", label: "Other" },
-];
-
-const FILTERS = [
-  { value: "all", label: "All" },
-  { value: "popup", label: "Popups" },
-  { value: "inline", label: "Forms on a page" },
-] as const;
-
-function emptyPopup(): PopupSettings {
-  return { timing: "immediate", delaySeconds: 5, pages: "all", frequency: "once", devices: ["mobile", "desktop"], afterSubmit: "add_subscriber", redirectUrl: "", message: "" };
-}
-
-function newKey() {
-  return `field_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-async function send(url: string, method: string, body?: unknown) {
-  const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  if (!res.ok) {
-    const json = await res.json().catch(() => null);
-    throw new Error(json?.error?.message ?? "Something went wrong. Try again.");
-  }
-}
+const DEFAULT_CONFIG: PopupConfig = { layout: "modal", trigger: "delay", delaySeconds: 8, scrollPercent: 50, pages: "all", frequency: "once", frequencyDays: 7, devices: ["mobile", "desktop"], reward: null, afterSubmit: "message", redirectUrl: "" };
+const DEFAULT_DESIGN: FormDesign = {
+  headline: "Get 10% off your first order",
+  body: "Join our list for new arrivals and offers.",
+  buttonText: "Sign me up",
+  successMessage: "You're in! Here's your code.",
+  imageUrl: "",
+  consentText: "I agree to get emails about offers and new arrivals. I can unsubscribe at any time.",
+  askSmsConsent: false,
+};
 
 interface Draft {
   name: string;
-  purpose: string;
   isPopup: boolean;
-  fields: FormField[];
-  popup: PopupSettings;
+  active: boolean;
+  design: FormDesign;
+  config: PopupConfig;
+  askName: boolean;
+  askPhone: boolean;
+  askBirthday: boolean;
+  extra: FormField[];
+}
+
+function toDraft(form: ManagedForm | null): Draft {
+  if (!form) {
+    return { name: "Welcome pop-up", isPopup: true, active: true, design: DEFAULT_DESIGN, config: { ...DEFAULT_CONFIG, reward: { type: "percentage", value: 10, days: 14 } }, askName: true, askPhone: false, askBirthday: false, extra: [] };
+  }
+  const has = (type: string, key?: string) => form.fields.some((f) => f.type === type && (!key || f.key === key));
+  return {
+    name: form.name,
+    isPopup: form.isPopup,
+    active: form.active,
+    design: form.design,
+    config: form.config,
+    askName: has("text", "name"),
+    askPhone: has("phone"),
+    askBirthday: has("birthday"),
+    extra: form.fields.filter((f) => f.type !== "email" && !(f.type === "text" && f.key === "name") && f.type !== "phone" && f.type !== "birthday"),
+  };
+}
+
+function fieldsFor(draft: Draft): FormField[] {
+  return [
+    { key: "email", type: "email", label: "Email", required: true },
+    ...(draft.askName ? [{ key: "name", type: "text" as const, label: "First name", required: false }] : []),
+    ...(draft.askPhone ? [{ key: "phone", type: "phone" as const, label: "WhatsApp number", required: false }] : []),
+    ...(draft.askBirthday ? [{ key: "birthday", type: "birthday" as const, label: "Birthday", required: false }] : []),
+    ...draft.extra.filter((f) => f.label.trim()),
+  ];
+}
+
+function Preview({ draft }: { draft: Draft }) {
+  const fields = fieldsFor(draft);
+  const reward = draft.config.reward;
+  return (
+    <div className="rounded-[18px] bg-app-canvas p-4" aria-label="Preview">
+      <div className={draft.isPopup && draft.config.layout === "bar" ? "rounded-[14px] bg-white p-4" : "mx-auto max-w-[360px] rounded-[22px] bg-white p-5 shadow-sm"}>
+        <div className="text-[19px] font-extrabold leading-tight">{draft.design.headline}</div>
+        <p className="mb-3 mt-1.5 text-[13.5px] text-app-ink-soft">
+          {draft.design.body}
+          {draft.isPopup && reward ? <strong className="block text-app-ink">{reward.type === "percentage" ? `Get ${reward.value}% off your first order.` : `Get ₦${reward.value.toLocaleString("en-NG")} off your first order.`}</strong> : null}
+        </p>
+        <div className="grid gap-2">
+          {fields.map((field) => (
+            <div key={field.key} className="h-10 rounded-[10px] border border-app-line px-3 text-[13px] leading-10 text-app-ink-faint">{field.label}</div>
+          ))}
+          <div className="flex items-start gap-2 text-[11.5px] text-app-ink-soft"><span className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border border-app-line-strong" />{draft.design.consentText}</div>
+          <div className="grid h-10 place-items-center rounded-full bg-app-ink text-[13px] font-bold text-white">{draft.design.buttonText}</div>
+        </div>
+      </div>
+      <p className="mb-0 mt-3 text-[12.5px] text-app-ink-soft">On your store it uses your store's colours.</p>
+    </div>
+  );
 }
 
 function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: ManagedForm | null; startAsPopup: boolean; onClose: () => void; onSaved: () => void }) {
-  const [draft, setDraft] = useState<Draft>(() =>
-    editing
-      ? { name: editing.name, purpose: editing.purpose === "popup" ? "newsletter" : editing.purpose, isPopup: editing.isPopup, fields: editing.fields, popup: editing.popup ?? emptyPopup() }
-      : { name: "", purpose: "newsletter", isPopup: startAsPopup, fields: [{ key: "email", type: "email", label: "Email", required: true }], popup: emptyPopup() },
-  );
+  const [draft, setDraft] = useState<Draft>(() => ({ ...toDraft(editing), ...(editing ? {} : { isPopup: startAsPopup, name: startAsPopup ? "Welcome pop-up" : "Newsletter sign-up" }) }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const popup = draft.popup;
-  const setPopup = (patch: Partial<PopupSettings>) => setDraft((current) => ({ ...current, popup: { ...current.popup, ...patch } }));
-  const updateField = (key: string, patch: Partial<FormField>) => setDraft((current) => ({ ...current, fields: current.fields.map((field) => (field.key === key ? { ...field, ...patch } : field)) }));
+  const design = (patch: Partial<FormDesign>) => setDraft((d) => ({ ...d, design: { ...d.design, ...patch } }));
+  const config = (patch: Partial<PopupConfig>) => setDraft((d) => ({ ...d, config: { ...d.config, ...patch } }));
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
     setError(null);
     try {
-      const ps = draft.isPopup ? popup : null;
-      await send(editing ? `/api/store/forms/${editing.id}` : "/api/store/forms", editing ? "PATCH" : "POST", {
+      const body = {
         name: draft.name,
-        type: draft.purpose,
+        type: editing && ["newsletter", "lead", "waitlist", "popup"].includes(editing.type) ? editing.type : "newsletter",
         isPopup: draft.isPopup,
-        fields: draft.fields.filter((field) => field.label.trim()),
-        popupConfig: ps ? { timing: ps.timing, delaySeconds: ps.delaySeconds, pages: ps.pages, frequency: ps.frequency, devices: ps.devices, afterSubmit: ps.afterSubmit, redirectUrl: ps.redirectUrl, message: ps.message } : {},
-        actions: ps
-          ? [{ type: ps.afterSubmit === "add_subscriber" ? "add_subscriber" : ps.afterSubmit === "notify" ? "notify_seller" : ps.afterSubmit === "redirect" ? "redirect" : "show_message", config: { message: ps.message, redirectUrl: ps.redirectUrl } }]
-          : [],
-      });
+        active: draft.active,
+        fields: fieldsFor(draft),
+        design: draft.design,
+        popupConfig: { ...draft.config, redirectUrl: draft.config.redirectUrl || undefined },
+      };
+      if (editing) await api(`/api/app/marketing/forms/${editing.id}`, "PATCH", body);
+      else await api("/api/app/marketing/forms", "POST", body);
       onSaved();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Couldn't save this form.");
+      setError(errorText(saveError));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal title={editing ? `Edit ${editing.name}` : draft.isPopup ? "New popup" : "New form"} onClose={onClose} wide>
-      <form onSubmit={(event) => void save(event)} className="grid gap-4">
+    <Modal title={editing ? `Edit ${editing.name}` : draft.isPopup ? "New pop-up" : "New sign-up page"} onClose={onClose} wide>
+      <form onSubmit={(event) => void save(event)} className="grid gap-5">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name" htmlFor="form-name">
-            <input id="form-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} required maxLength={120} />
-          </Field>
-          <Field label="What it's for" htmlFor="form-purpose">
-            <select id="form-purpose" value={draft.purpose} onChange={(e) => setDraft({ ...draft, purpose: e.target.value })} className={selectClass}>
-              {PURPOSES.map((purpose) => <option key={purpose.value} value={purpose.value}>{purpose.label}</option>)}
-            </select>
+          <Field label="Name (only you see this)" htmlFor="f-name"><input id="f-name" required value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} /></Field>
+          <Field label="Shows as">
+            <Segmented options={[{ value: "popup", label: "Pop-up on my store" }, { value: "page", label: "Sign-up page" }]} value={draft.isPopup ? "popup" : "page"} onChange={(v) => setDraft({ ...draft, isPopup: v === "popup" })} />
           </Field>
         </div>
 
-        <div className="flex min-h-[52px] items-center justify-between gap-3 rounded-[14px] bg-app-canvas px-4">
-          <span className="text-[14px] font-semibold">Show as a popup</span>
-          <Toggle on={draft.isPopup} onChange={(on) => setDraft({ ...draft, isPopup: on })} label="Show as a popup" />
-        </div>
-
-        <fieldset className="m-0 min-w-0 border-0 p-0">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <legend className="p-0 text-[15px] font-extrabold">Fields</legend>
-            <button type="button" onClick={() => setDraft({ ...draft, fields: [...draft.fields, { key: newKey(), type: "text", label: "", required: false }] })} className={buttonClass("white", "sm")}>
-              <Icon name="plus" size={14} /> Add field
-            </button>
+        <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
+          <legend className="mb-2 p-0 text-[16px] font-extrabold">What it says</legend>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Headline" htmlFor="f-head"><input id="f-head" value={draft.design.headline} onChange={(e) => design({ headline: e.target.value })} className={inputClass} maxLength={120} /></Field>
+            <Field label="Button" htmlFor="f-btn"><input id="f-btn" value={draft.design.buttonText} onChange={(e) => design({ buttonText: e.target.value })} className={inputClass} maxLength={40} /></Field>
           </div>
-          <div className="grid gap-2">
-            {draft.fields.map((field, index) => (
-              <div key={field.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[14px] border border-app-line p-2 sm:grid-cols-[130px_minmax(0,1fr)_auto_auto]">
-                <select aria-label={`Field ${index + 1} type`} value={field.type} onChange={(e) => updateField(field.key, { type: e.target.value })} className={cx(selectClass, "h-[44px]")}>
-                  {FIELD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                </select>
-                <input aria-label={`Field ${index + 1} label`} value={field.label} onChange={(e) => updateField(field.key, { label: e.target.value })} className={cx(inputClass, "col-span-2 h-[44px] sm:col-span-1")} placeholder="Label, like Phone number" />
-                <label className="flex min-h-[40px] items-center gap-2 px-1 text-[13px] font-semibold">
-                  <input type="checkbox" checked={field.required} onChange={(e) => updateField(field.key, { required: e.target.checked })} className={checkClass} /> Required
-                </label>
-                <button type="button" aria-label={`Remove field ${field.label || index + 1}`} onClick={() => setDraft({ ...draft, fields: draft.fields.filter((item) => item.key !== field.key) })} className="grid h-10 w-10 place-items-center justify-self-end rounded-full text-app-danger hover:bg-app-danger-tint">
-                  <Icon name="trash" size={16} />
-                </button>
-              </div>
-            ))}
-            {draft.fields.length === 0 && <p className="m-0 text-[13.5px] text-app-ink-soft">No fields yet. Add one so shoppers have something to fill in.</p>}
+          <Field label="Message" htmlFor="f-body"><textarea id="f-body" rows={2} value={draft.design.body} onChange={(e) => design({ body: e.target.value })} className={textareaClass} maxLength={400} /></Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="After they sign up" htmlFor="f-done"><input id="f-done" value={draft.design.successMessage} onChange={(e) => design({ successMessage: e.target.value })} className={inputClass} maxLength={300} /></Field>
+            <Field label="Picture (optional, https link)" htmlFor="f-img"><input id="f-img" value={draft.design.imageUrl} onChange={(e) => design({ imageUrl: e.target.value })} className={inputClass} placeholder="https://" inputMode="url" /></Field>
           </div>
+          <Field label="Consent wording (shown next to an unticked box)" htmlFor="f-consent"><textarea id="f-consent" rows={2} value={draft.design.consentText} onChange={(e) => design({ consentText: e.target.value })} className={textareaClass} maxLength={400} /></Field>
         </fieldset>
 
-        {draft.isPopup && (
-          <fieldset className="m-0 grid min-w-0 gap-4 rounded-[18px] bg-app-canvas p-4">
-            <legend className="sr-only">Popup settings</legend>
-            <h3 className="m-0 text-[15px] font-extrabold">Popup settings</h3>
+        <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
+          <legend className="mb-2 p-0 text-[16px] font-extrabold">What it asks</legend>
+          <p className="m-0 text-[13.5px] text-app-ink-soft">Email is always asked. Fewer fields means more sign-ups.</p>
+          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askName} onChange={(e) => setDraft({ ...draft, askName: e.target.checked })} /> First name</label>
+          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askPhone} onChange={(e) => setDraft({ ...draft, askPhone: e.target.checked })} /> WhatsApp number</label>
+          {draft.askPhone ? (
+            <label className="ml-7 flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.design.askSmsConsent} onChange={(e) => design({ askSmsConsent: e.target.checked })} /> Ask permission for SMS and WhatsApp offers too</label>
+          ) : null}
+          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askBirthday} onChange={(e) => setDraft({ ...draft, askBirthday: e.target.checked })} /> Birthday (for the birthday automation)</label>
+        </fieldset>
+
+        {draft.isPopup ? (
+          <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
+            <legend className="mb-2 p-0 text-[16px] font-extrabold">When and where it shows</legend>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="When it shows" htmlFor="pop-timing">
-                <select id="pop-timing" value={popup.timing} onChange={(e) => setPopup({ timing: e.target.value as PopupSettings["timing"] })} className={selectClass}>
-                  <option value="immediate">Straight away</option>
-                  <option value="delay">After a few seconds</option>
-                  <option value="exit_intent">When they&apos;re about to leave</option>
+              <Field label="Style" htmlFor="f-layout">
+                <select id="f-layout" className={selectClass} value={draft.config.layout} onChange={(e) => config({ layout: e.target.value as PopupConfig["layout"] })}>
+                  <option value="modal">Centre pop-up</option>
+                  <option value="flyout">Corner flyout</option>
+                  <option value="bar">Bottom bar</option>
                 </select>
               </Field>
-              {popup.timing === "delay" && (
-                <Field label="Seconds to wait" htmlFor="pop-delay">
-                  <input id="pop-delay" type="number" value={popup.delaySeconds} min={1} max={60} onChange={(e) => setPopup({ delaySeconds: Number(e.target.value) })} className={inputClass} />
-                </Field>
-              )}
-              <Field label="Pages" htmlFor="pop-pages">
-                <select id="pop-pages" value={popup.pages} onChange={(e) => setPopup({ pages: e.target.value as PopupSettings["pages"] })} className={selectClass}>
+              <Field label="Show it" htmlFor="f-trigger">
+                <select id="f-trigger" className={selectClass} value={draft.config.trigger} onChange={(e) => config({ trigger: e.target.value as PopupConfig["trigger"] })}>
+                  <option value="delay">After a few seconds</option>
+                  <option value="scroll">After scrolling down</option>
+                  <option value="exit_intent">When they're about to leave (computers)</option>
+                  <option value="immediate">Straight away</option>
+                </select>
+              </Field>
+              {draft.config.trigger === "delay" ? (
+                <Field label="Seconds to wait" htmlFor="f-delay"><input id="f-delay" type="number" min={0} max={600} value={draft.config.delaySeconds} onChange={(e) => config({ delaySeconds: Number(e.target.value) })} className={inputClass} /></Field>
+              ) : null}
+              {draft.config.trigger === "scroll" ? (
+                <Field label="How far down (%)" htmlFor="f-scroll"><input id="f-scroll" type="number" min={5} max={100} value={draft.config.scrollPercent} onChange={(e) => config({ scrollPercent: Number(e.target.value) })} className={inputClass} /></Field>
+              ) : null}
+              {draft.config.trigger === "exit_intent" ? <p className="m-0 self-end text-[13px] text-app-ink-soft">Phones have no mouse to leave with, so there it shows after scrolling halfway.</p> : null}
+              <Field label="On" htmlFor="f-pages">
+                <select id="f-pages" className={selectClass} value={draft.config.pages} onChange={(e) => config({ pages: e.target.value as PopupConfig["pages"] })}>
                   <option value="all">Every page</option>
                   <option value="home">Home page only</option>
-                  <option value="product">Product pages</option>
+                  <option value="product">Product pages only</option>
                 </select>
               </Field>
-              <Field label="How often" htmlFor="pop-frequency">
-                <select id="pop-frequency" value={popup.frequency} onChange={(e) => setPopup({ frequency: e.target.value as PopupSettings["frequency"] })} className={selectClass}>
-                  <option value="once">Once per shopper</option>
+              <Field label="How often" htmlFor="f-freq">
+                <select id="f-freq" className={selectClass} value={draft.config.frequency} onChange={(e) => config({ frequency: e.target.value as PopupConfig["frequency"] })}>
+                  <option value="once">Once per visitor</option>
+                  <option value="days">Again after some days</option>
                   <option value="session">Once per visit</option>
-                  <option value="always">Every time</option>
+                  <option value="always">Every page load</option>
                 </select>
               </Field>
-              <Field label="After they send it" htmlFor="pop-after">
-                <select id="pop-after" value={popup.afterSubmit} onChange={(e) => setPopup({ afterSubmit: e.target.value as PopupSettings["afterSubmit"] })} className={selectClass}>
-                  <option value="add_subscriber">Add them as a subscriber</option>
-                  <option value="message">Show a message</option>
-                  <option value="notify">Tell me</option>
-                  <option value="redirect">Open another page</option>
-                </select>
-              </Field>
-              {popup.afterSubmit === "message" && (
-                <Field label="Thank-you message" htmlFor="pop-message">
-                  <input id="pop-message" value={popup.message} onChange={(e) => setPopup({ message: e.target.value })} className={inputClass} placeholder="Thanks for joining!" />
-                </Field>
-              )}
-              {popup.afterSubmit === "redirect" && (
-                <Field label="Page address" htmlFor="pop-url">
-                  <input id="pop-url" type="url" value={popup.redirectUrl} onChange={(e) => setPopup({ redirectUrl: e.target.value })} className={inputClass} placeholder="https://" />
-                </Field>
-              )}
+              {draft.config.frequency === "days" ? (
+                <Field label="Days between" htmlFor="f-days"><input id="f-days" type="number" min={1} max={365} value={draft.config.frequencyDays} onChange={(e) => config({ frequencyDays: Number(e.target.value) })} className={inputClass} /></Field>
+              ) : null}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-4 text-[14px]">
               {(["mobile", "desktop"] as const).map((device) => (
-                <label key={device} className="flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-[14px] border border-app-line bg-white px-3.5 text-[14px]">
+                <label key={device} className="flex min-h-[40px] items-center gap-2.5">
                   <input
                     type="checkbox"
-                    checked={popup.devices.includes(device)}
-                    onChange={() => setPopup({ devices: popup.devices.includes(device) ? popup.devices.filter((d) => d !== device) : [...popup.devices, device] })}
                     className={checkClass}
+                    checked={draft.config.devices.includes(device)}
+                    onChange={(e) => config({ devices: e.target.checked ? [...new Set([...draft.config.devices, device])] : draft.config.devices.filter((d) => d !== device).length ? draft.config.devices.filter((d) => d !== device) : draft.config.devices })}
                   />
-                  Show on {device === "mobile" ? "phones" : "computers"}
+                  {device === "mobile" ? "Phones" : "Computers"}
                 </label>
               ))}
             </div>
+            <div className="grid gap-3 rounded-[16px] border border-app-line p-4">
+              <label className="flex items-center gap-2.5 text-[14px] font-bold">
+                <input type="checkbox" className={checkClass} checked={Boolean(draft.config.reward)} onChange={(e) => config({ reward: e.target.checked ? { type: "percentage", value: 10, days: 14 } : null })} />
+                Give a sign-up reward
+              </label>
+              {draft.config.reward ? (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Field label="Kind" htmlFor="f-rtype">
+                    <select id="f-rtype" className={selectClass} value={draft.config.reward.type} onChange={(e) => config({ reward: { ...draft.config.reward!, type: e.target.value as "percentage" | "fixed_amount" } })}>
+                      <option value="percentage">% off</option>
+                      <option value="fixed_amount">₦ off</option>
+                    </select>
+                  </Field>
+                  <Field label={draft.config.reward.type === "percentage" ? "Percent" : "Naira"} htmlFor="f-rvalue"><input id="f-rvalue" type="number" min={1} value={draft.config.reward.value} onChange={(e) => config({ reward: { ...draft.config.reward!, value: Number(e.target.value) } })} className={inputClass} /></Field>
+                  <Field label="Valid for (days)" htmlFor="f-rdays"><input id="f-rdays" type="number" min={1} max={365} value={draft.config.reward.days} onChange={(e) => config({ reward: { ...draft.config.reward!, days: Number(e.target.value) } })} className={inputClass} /></Field>
+                  <p className="m-0 text-[12.5px] text-app-ink-soft sm:col-span-3">Each new subscriber gets their own one-use code, shown on screen and available to the welcome email as {"{{discount_code}}"}.</p>
+                </div>
+              ) : null}
+            </div>
           </fieldset>
-        )}
+        ) : null}
 
-        {error && <Notice>{error}</Notice>}
+        <Preview draft={draft} />
+
+        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px] font-bold"><input type="checkbox" className={checkClass} checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> Live</label>
+        {error ? <Notice>{error}</Notice> : null}
         <div className="flex flex-wrap justify-end gap-2">
           <PillButton size="md" tone="white" onClick={onClose}>Cancel</PillButton>
-          <PillButton size="md" type="submit" busy={saving}>{editing ? "Save changes" : "Create"}</PillButton>
+          <PillButton size="md" type="submit" busy={saving}>{editing ? "Save" : "Create"}</PillButton>
         </div>
       </form>
     </Modal>
   );
 }
 
-export function FormsManager({ forms }: { forms: ManagedForm[] }) {
+export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; storeSlug: string }) {
   const router = useRouter();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["value"]>("all");
   const [editor, setEditor] = useState<{ editing: ManagedForm | null; popup: boolean } | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
-  async function act(id: string, run: () => Promise<void>) {
-    setBusy(id);
+  async function toggle(form: ManagedForm, active: boolean) {
     setError(null);
     try {
-      await run();
+      await api(`/api/app/marketing/forms/${form.id}`, "PATCH", { active });
       router.refresh();
-    } catch (actError) {
-      setError(actError instanceof Error ? actError.message : "Something went wrong. Try again.");
-    } finally {
-      setBusy(null);
+    } catch (toggleError) {
+      setError(errorText(toggleError));
     }
   }
 
-  const shown = forms.filter((form) => (filter === "all" ? true : filter === "popup" ? form.isPopup : !form.isPopup));
-  const count = (value: (typeof FILTERS)[number]["value"]) => forms.filter((form) => (value === "all" ? true : value === "popup" ? form.isPopup : !form.isPopup)).length;
+  async function remove(form: ManagedForm) {
+    if (!window.confirm(`Delete "${form.name}"? Sign-ups it collected stay on your list.`)) return;
+    try {
+      await api(`/api/app/marketing/forms/${form.id}`, "DELETE");
+      router.refresh();
+    } catch (deleteError) {
+      setError(errorText(deleteError));
+    }
+  }
+
+  function copyLink(form: ManagedForm) {
+    const link = `${window.location.origin}/s/${storeSlug}/join/${form.id}`;
+    void navigator.clipboard?.writeText(link).then(() => {
+      setCopied(form.id);
+      window.setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  const livePopups = forms.filter((f) => f.isPopup && f.active).length;
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
-          {FILTERS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              aria-pressed={filter === item.value}
-              onClick={() => setFilter(item.value)}
-              className={cx("inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold", filter === item.value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong")}
-            >
-              {item.label}
-              <span className={cx("ml-1", filter === item.value ? "text-white" : "text-app-ink-soft")}>· {count(item.value)}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <PillButton size="md" tone="white" onClick={() => setEditor({ editing: null, popup: false })}><Icon name="plus" size={16} /> New form</PillButton>
-          <PillButton size="md" tone="accent" onClick={() => setEditor({ editing: null, popup: true })}><Icon name="plus" size={16} /> New popup</PillButton>
-        </div>
+      <div className="flex flex-wrap gap-2">
+        <PillButton size="md" tone="accent" onClick={() => setEditor({ editing: null, popup: true })}><Icon name="plus" size={16} /> New pop-up</PillButton>
+        <PillButton size="md" tone="white" onClick={() => setEditor({ editing: null, popup: false })}><Icon name="link" size={16} /> New sign-up page</PillButton>
       </div>
+      {livePopups > 1 ? <Notice tone="info">{livePopups} pop-ups are live. Shoppers see at most one per visit: the most recently edited one that fits the page.</Notice> : null}
+      {error ? <Notice>{error}</Notice> : null}
 
-      {error && <Notice>{error}</Notice>}
-
-      {shown.length ? (
+      {forms.length ? (
         <ListCard>
-          {shown.map((form) => (
-            <ListRow key={form.id}>
-              <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                <div className="truncate text-[15px] font-extrabold">{form.name}</div>
-                <div className="truncate text-[13px] text-app-ink-soft">
-                  {PURPOSES.find((purpose) => purpose.value === form.purpose)?.label ?? humanize(form.purpose)} · {form.fields.length} field{form.fields.length === 1 ? "" : "s"} · made {formatDate(form.createdAt)}
+          {forms.map((form) => {
+            const rate = form.views ? Math.round((form.signups / form.views) * 1000) / 10 : null;
+            return (
+              <ListRow key={form.id}>
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-canvas"><Icon name={form.isPopup ? "sparkle" : "link"} size={18} /></span>
+                <div className="min-w-0 flex-1 basis-[200px]">
+                  <div className="truncate text-[15px] font-extrabold">{form.name}</div>
+                  <div className="truncate text-[13px] text-app-ink-soft">
+                    {form.isPopup ? `${LAYOUT_TEXT[form.config.layout]} ${TRIGGER_TEXT[form.config.trigger](form.config)}` : "Sign-up page"}
+                    {form.isPopup && form.config.reward ? ` · ${form.config.reward.type === "percentage" ? `${form.config.reward.value}%` : `₦${form.config.reward.value.toLocaleString("en-NG")}`} reward` : ""}
+                  </div>
                 </div>
-              </div>
-              <Pill tone={form.isPopup ? "accent" : "muted"}>{form.isPopup ? "Popup" : "Form"}</Pill>
-              <div className="flex items-center gap-2 text-[13px] font-bold">
-                {form.active ? "On" : "Off"}
-                <Toggle on={form.active} onChange={(on) => void act(form.id, () => send(`/api/store/forms/${form.id}`, "PATCH", { active: on }))} label={`${form.name} is ${form.active ? "on" : "off"}`} />
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setEditor({ editing: form, popup: form.isPopup })} className={buttonClass("white", "sm")}>Edit</button>
-                <button
-                  type="button"
-                  disabled={busy === form.id}
-                  onClick={() => {
-                    if (window.confirm(`Delete "${form.name}"?`)) void act(form.id, () => send(`/api/store/forms/${form.id}`, "DELETE"));
-                  }}
-                  className={buttonClass("danger", "sm")}
-                >
-                  Delete
-                </button>
-              </div>
-            </ListRow>
-          ))}
+                <div className="text-[13px] text-app-ink-soft sm:w-[190px]">
+                  <strong className="text-app-ink">{form.signups}</strong> sign-ups{form.isPopup ? <> · {form.views} views{rate !== null ? ` · ${rate}%` : ""}</> : null}
+                  <div>last 30 days</div>
+                </div>
+                <Toggle on={form.active} onChange={(on) => void toggle(form, on)} label={`${form.name} live`} />
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                  {!form.isPopup ? <button type="button" className={buttonClass("white", "sm")} onClick={() => copyLink(form)}>{copied === form.id ? "Copied" : "Copy link"}</button> : null}
+                  <button type="button" className={buttonClass("white", "sm")} onClick={() => setEditor({ editing: form, popup: form.isPopup })}>Edit</button>
+                  <button type="button" className={buttonClass("danger", "sm")} onClick={() => void remove(form)} aria-label={`Delete ${form.name}`}><Icon name="trash" size={14} /></button>
+                </div>
+              </ListRow>
+            );
+          })}
         </ListCard>
       ) : (
-        <EmptyState icon="file" title={forms.length ? "Nothing here" : "No forms yet"}>
-          Make a form or popup to collect emails and questions from shoppers.
+        <EmptyState icon="mail" title="No forms yet" action={<PillButton size="md" onClick={() => setEditor({ editing: null, popup: true })}>Make a welcome pop-up</PillButton>}>
+          A pop-up with a small reward is the fastest way to turn visitors into subscribers you can message again.
         </EmptyState>
       )}
 
-      {editor && (
+      {forms.some((f) => !f.isPopup && f.active) ? (
+        <Card className="p-4 text-[13.5px] text-app-ink-soft">Sign-up pages live at <code className="text-app-ink">/s/{storeSlug}/join/…</code>. Put the link in your Instagram bio, WhatsApp status or on a QR code at your stand.</Card>
+      ) : null}
+
+      {editor ? (
         <FormEditor
           editing={editor.editing}
           startAsPopup={editor.popup}
@@ -341,7 +359,7 @@ export function FormsManager({ forms }: { forms: ManagedForm[] }) {
             router.refresh();
           }}
         />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { ProductForm } from "@/app/components/ProductForm";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function NewProductPage() {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true },
     }),
-    db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true } }),
+    db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true, customDomain: true } }),
   ]);
 
   return (
@@ -28,6 +29,8 @@ export default async function NewProductPage() {
         product={null}
         categories={categories}
         isEdit={false}
+        storeOrigin={store ? buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain }) : ""}
+        storeName={store?.name}
       />
     </AppPage>
   );

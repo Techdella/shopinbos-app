@@ -1,4 +1,5 @@
-import { AppPage, ListCard, ListRow, Pill } from "@/components/app-kit";
+import { AppPage, Card, CardHead, ListCard, ListRow, Pill } from "@/components/app-kit";
+import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { adminFrame } from "@/components/admin/AdminKit";
 import { requireRole } from "@/lib/server-auth";
 
@@ -26,6 +27,13 @@ export default async function AdminSettingsPage() {
       title="Settings"
       sub="Settings behind invite-only admin access and the read-only sync with the marketing website."
     >
+      <Card className="mb-6 p-5">
+        <CardHead title="Your profile" sub={user.email ?? undefined} />
+        <div className="mt-4">
+          <IdentityImageUploader kind="avatar" initialUrl={user.avatarUrl ?? null} name={user.name} title="Your photo" hint="Shows in the top bar and the menu." />
+        </div>
+      </Card>
+
       <h2 className="mb-3 mt-0 text-[17px] font-extrabold">Operational settings</h2>
       <ListCard>
         {settings.map((row) => (

@@ -105,6 +105,7 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
     "src/app/home/dropship/page.tsx",
     "src/app/home/customers/page.tsx",
     "src/app/home/insights/page.tsx",
+    "src/app/home/analytics/page.tsx",
     "src/app/home/settings/page.tsx",
     "src/app/seller/inventory/page.tsx",
     "src/app/seller/invoices/page.tsx",
@@ -153,7 +154,7 @@ test("seller nav targets and role namespaces resolve to real pages", () => {
   assert.doesNotMatch(navText, /href: "\/home\/apps"/);
   assert.match(navText, /href: "\/home\/marketing\/campaigns"/);
   assert.match(navText, /href: "\/home\/customers"/);
-  assert.match(navText, /href: "\/home\/insights"/);
+  assert.match(navText, /href: "\/home\/analytics"/);
   assert.match(navText, /href: "\/home\/settings"/);
   assert.doesNotMatch(navText, /href: "\/logistics"(?!\/)/);
   assert.doesNotMatch(navText, /href: "\/settings"(?!\/)/);
@@ -334,7 +335,8 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(builder, /Do not ask the same setup questions again|what I remember/);
   assert.match(builder, /real products and product images/);
 
-  assert.match(templatesPage, /initialCategory=\{workspace\.settings\.onboardingMemory\?\.category\}/);
+  // The onboarding category opens the matching chip while the seller picks their first theme.
+  assert.match(templatesPage, /initialCategory=\{currentThemeId \? null : workspace\.settings\.onboardingMemory\?\.category\}/);
   assert.match(templateGallery, /initialCategory/);
   assert.match(templateGallery, /text\.includes\("food"\)/);
   assert.match(templateGallery, /TEMPLATE_ID_TO_IMAGE/);
@@ -575,12 +577,15 @@ test("portal namespaces have shared empty, loading, and error states", () => {
     assert.ok(exists(filePath), `${filePath} should exist`);
   });
 
-  assert.match(states, /export function PortalLoadingState/);
+  const loading = read("src/components/shell/AppLoading.tsx");
+  ["home", "seller", "supplier", "logistics", "admin", "products", "peggy"].forEach((segment) => {
+    assert.match(read(`src/app/${segment}/loading.tsx`), /<AppLoading role=/, `${segment} uses the shared loading screen`);
+  });
+  assert.match(loading, /Opening \$\{name \|\| FALLBACK_NAME\[role\]\}/);
+  assert.match(loading, /SLOW_AFTER_MS = 8000/);
+  assert.match(loading, /Your network is slow/);
   assert.match(states, /export function PortalErrorState/);
   assert.match(states, /unstable_retry/);
-  assert.match(states, /Opening your shop workspace/);
-  assert.match(states, /Preparing your supplier desk/);
-  assert.match(states, /Preparing your route desk/);
   assert.match(rolePage, /We will surface the next item here when it arrives/);
   assert.match(rolePage, /Icon name="list"/);
   assert.match(sync, /\[x\] Add empty, loading, and error states across seller, supplier, and logistics portals/);
@@ -774,8 +779,11 @@ test("launch QA regressions stay fixed", () => {
 
   assert.match(middleware, /params: \(await params\) \?\? \{\}/);
   assert.match(storefrontCheckout, /import \{ useRouter, useSearchParams \} from "next\/navigation"/);
-  assert.match(checkoutRoute, /redemptionError\(discount, subtotal\)/);
-  assert.match(checkoutRoute, /redemptionError\(coupon, subtotal\)/);
+  // Discount limits and expiry are enforced server-side in the pricing the checkout route charges with.
+  const pricing = read("src/lib/commerce/pricing.server.ts");
+  assert.match(checkoutRoute, /priceOrder\(\{/);
+  assert.match(pricing, /redemptionError\(discount, subtotal\)/);
+  assert.match(pricing, /redemptionError\(coupon, subtotal\)/);
   assert.match(validateRoute, /redemptionError/);
   assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
   assert.match(productsRoute, /\n\s+retailPrice,\n/);
@@ -783,7 +791,7 @@ test("launch QA regressions stay fixed", () => {
 });
 
 test("seller insights are computed from real orders, not sample data", () => {
-  const page = read("src/app/home/insights/page.tsx");
+  const page = read("src/app/home/analytics/page.tsx");
   const lib = read("src/lib/insights.ts");
 
   assert.match(page, /computeSellerInsights\(orders\)/);
@@ -853,7 +861,7 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   const lookup = read("src/app/api/public/store/[slug]/orders/lookup/route.ts");
 
   assert.match(catalog, /\.\.\.BOUTIQUE_TEMPLATE_MANIFESTS\]/);
-  for (const id of ["breeze", "noir", "plain"]) assert.match(themes, new RegExp(`id: "${id}"`));
+  for (const id of ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride"]) assert.match(themes, new RegExp(`id: "${id}"`));
   assert.doesNotMatch(themes, /unsplash|images\.pexels/, "no stock photos presented as the seller's");
   assert.match(surface, /isBoutiqueTheme\(themeId\)/);
   assert.match(client, /<ShopperBottomNav/);
@@ -867,4 +875,37 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   assert.match(productView, /shopper\.whatsappNumber/);
   assert.match(publicStore, /loadShopperInfo\(store\.id/);
   assert.match(lookup, /order numbers can't be probed/);
+});
+
+test("Your store hub links to Rex Studio, the builder, brand kit, templates and domain", () => {
+  const nav = read("src/lib/nav.ts");
+  const hub = read("src/app/home/store/page.tsx");
+  const look = read("src/app/home/store/look.ts");
+  const editorRedirect = read("src/app/home/editor/page.tsx");
+  const brandKit = read("src/app/home/brand-kit/page.tsx");
+  const brandControls = read("src/app/home/brand-kit/BrandKitControls.tsx");
+  const domain = read("src/app/home/domain/DomainConnect.tsx");
+  const builder = read("src/components/builder/ChipBuilder.tsx");
+
+  assert.match(nav, /id: "your-store", label: "Your store", icon: "shop", href: "\/home\/store"/);
+  assert.ok(exists("src/app/home/store/page.tsx"));
+  assert.match(hub, /title="Your store"/);
+  assert.match(hub, /href="\/studio"/);
+  assert.match(hub, /`\/studio\?prompt=\$\{encodeURIComponent\(REBRAND_PROMPT\)\}`/);
+  assert.match(look, /export const REBRAND_PROMPT = /);
+  assert.match(hub, /href="\/seller\/store\/builder"/);
+  assert.match(hub, /href="\/home\/brand-kit"/);
+  assert.match(hub, /href="\/builder\/templates"/);
+  assert.match(hub, /href="\/home\/domain"/);
+  assert.match(hub, /<ShareStoreButton/);
+  assert.match(hub, /<StorePreviewCard/);
+  assert.match(editorRedirect, /redirect\(query \? `\/seller\/store\/builder\?\$\{query\}` : "\/seller\/store\/builder"\)/);
+
+  assert.match(brandKit, /href="\/studio\/logo"/);
+  assert.match(brandKit, /href="\/home\/brand-kit\/sheet"/);
+  assert.match(brandControls, /\/api\/app\/me\/images/);
+  assert.match(brandControls, /op: "update-theme"/);
+  assert.match(domain, /<DomainSetup/);
+  assert.match(builder, /router\.push\("\/home\/store"\)/);
+  assert.doesNotMatch(builder, /\/builder\/editor/);
 });

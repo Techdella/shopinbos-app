@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProductForm } from "@/app/components/ProductForm";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function ProductEditPage({
   const { id } = await params;
   const user = await requireRole(["seller"], "/login");
 
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
   if (!store) {
     notFound();
   }
@@ -48,6 +49,8 @@ export default async function ProductEditPage({
         product={product as any}
         categories={categories}
         isEdit
+        storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain })}
+        storeName={store.name}
       />
     </AppPage>
   );

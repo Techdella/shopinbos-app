@@ -1,13 +1,13 @@
-import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
-import { StoreEditor } from "@/components/builder/StoreEditor";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditorPage() {
-  const user = await requireRole(["seller"], "/login");
-  const workspace = await getSellerWorkspace(user.id);
-  void workspace;
-
-  return <StoreEditor />;
+// The old store editor lives on as the advanced builder. Old links (/home/editor?page=…) keep their query.
+export default async function EditorPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries((await searchParams) ?? {})) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) params.append(key, item);
+  }
+  const query = params.toString();
+  redirect(query ? `/seller/store/builder?${query}` : "/seller/store/builder");
 }

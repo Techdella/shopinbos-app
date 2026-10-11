@@ -17,6 +17,13 @@ export function SignOutButton({ label = "Sign out", iconSize = 14, variant = "fu
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
     await supabase.auth.signOut();
+    try {
+      // On a shared computer the next person shouldn't see this account's shop name, photo or menu choices.
+      localStorage.removeItem("shopinbos:identity");
+      localStorage.removeItem("shopinbos:prefs");
+    } catch {
+      // Storage unavailable: nothing was cached.
+    }
     router.push("/login");
   };
 

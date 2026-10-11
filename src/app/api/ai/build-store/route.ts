@@ -4,6 +4,9 @@ import { withSeller } from "@/lib/auth/middleware";
 import { aiConfigured } from "@/lib/ai/client";
 import { meterAi } from "@/lib/ai/usage";
 import { buildStore, BuildStoreError } from "@/lib/ai/rex/build-store";
+import { db } from "@/lib/db/client";
+import { pushRexVersion, recordDraftBeforeChange, summariseRexVersions } from "@/lib/ai/rex/studio-versions";
+import { saveStudioDraft, studioDraft, studioStoreSelect, versionsOf } from "@/lib/ai/rex/studio.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +29,8 @@ const BodySchema = z.object({
     .optional(),
   sampleProducts: z.boolean().optional(),
   generateImages: z.boolean().optional(),
+  /** Rex Studio: record the build as a version of the draft, labelled with the seller's request. */
+  versionLabel: z.string().max(200).optional(),
 });
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
@@ -44,6 +49,10 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const limited = await meterAi(user.id, "build");
   if (limited) return limited;
 
+  // The draft before the build, so Rex Studio can undo it.
+  const beforeStore = body.versionLabel ? await db.store.findUnique({ where: { userId: user.id }, select: studioStoreSelect }) : null;
+  const beforeDraft = beforeStore ? studioDraft(beforeStore).draft : null;
+
   try {
     const result = await buildStore({
       user,
@@ -56,7 +65,16 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       generateImages: body.generateImages,
       source: "rex-build-store",
     });
-    return NextResponse.json({ data: result });
+    if (!body.versionLabel) return NextResponse.json({ data: result });
+
+    const afterStore = await db.store.findUnique({ where: { userId: user.id }, select: studioStoreSelect });
+    if (!afterStore) return NextResponse.json({ data: result });
+    const before = beforeDraft ? recordDraftBeforeChange(versionsOf(afterStore), beforeDraft) : versionsOf(afterStore);
+    const { state, version } = pushRexVersion(before, { label: body.versionLabel, snapshot: result.draft });
+    await saveStudioDraft(afterStore, result.draft, state);
+    return NextResponse.json({
+      data: { ...result, version: { id: version.id, n: version.n }, undoTo: before.current, versions: summariseRexVersions(state, result.draft.updatedAt) },
+    });
   } catch (error) {
     if (error instanceof BuildStoreError) {
       return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.status });

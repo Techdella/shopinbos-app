@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { readRememberedStoreVisitor, useStoreVisitor } from "./useStoreVisitor";
 
 export function useWishlist(storeSlug: string) {
   const visitorKey = useStoreVisitor(storeSlug);
   const [productIds, setProductIds] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const idsRef = useRef<string[]>([]);
+  idsRef.current = productIds;
 
   useEffect(() => {
     if (!visitorKey) return;
@@ -15,19 +18,20 @@ export function useWishlist(storeSlug: string) {
       .then((json) => {
         if (!cancelled && Array.isArray(json?.data?.productIds)) setProductIds(json.data.productIds);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [storeSlug, visitorKey]);
 
-  const toggle = useCallback(async (productId: string) => {
+  const send = useCallback(async (productId: string, method: "POST" | "DELETE") => {
     if (!visitorKey) return;
-    const exists = productIds.includes(productId);
-    setProductIds((prev) => exists ? prev.filter((id) => id !== productId) : [...prev, productId]);
     const remembered = readRememberedStoreVisitor(storeSlug);
     await fetch(`/api/public/store/${storeSlug}/wishlist`, {
-      method: exists ? "DELETE" : "POST",
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         visitorKey,
@@ -36,7 +40,24 @@ export function useWishlist(storeSlug: string) {
         name: remembered.name || undefined,
       }),
     }).catch(() => {});
-  }, [productIds, storeSlug, visitorKey]);
+  }, [storeSlug, visitorKey]);
 
-  return useMemo(() => ({ visitorKey, productIds, toggle }), [visitorKey, productIds, toggle]);
+  const add = useCallback(async (productId: string) => {
+    if (!visitorKey || idsRef.current.includes(productId)) return;
+    setProductIds((prev) => (prev.includes(productId) ? prev : [productId, ...prev]));
+    await send(productId, "POST");
+  }, [send, visitorKey]);
+
+  const remove = useCallback(async (productId: string) => {
+    if (!visitorKey) return;
+    setProductIds((prev) => prev.filter((id) => id !== productId));
+    await send(productId, "DELETE");
+  }, [send, visitorKey]);
+
+  const toggle = useCallback(async (productId: string) => {
+    if (idsRef.current.includes(productId)) await remove(productId);
+    else await add(productId);
+  }, [add, remove]);
+
+  return useMemo(() => ({ visitorKey, productIds, loaded, toggle, add, remove }), [visitorKey, productIds, loaded, toggle, add, remove]);
 }

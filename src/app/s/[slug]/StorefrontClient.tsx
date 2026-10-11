@@ -6,12 +6,14 @@ import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { CartDrawer } from "./CartDrawer";
+import { MarketingMount } from "@/components/storefront/marketing/MarketingMount";
 import { TemplateStorefrontSurface } from "@/components/storefront/TemplateStorefrontSurface";
 import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
 import { freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { readCartSettings } from "@shared/cart-checkout";
 import {
   createSnapshotFromTemplate,
   getTemplateManifest,
@@ -554,6 +556,9 @@ export function StorefrontClient({
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
+  const cartSettings = readCartSettings(store.brandSettings);
+  // Sellers can turn wishlists off; hearts and the wishlist tab then disappear on the live store.
+  const wishlistOn = previewMode || cartSettings.wishlist;
   // Live storefronts own the current page so the phone bottom nav can go Home, and ?page= / ?q= links work.
   const [livePage, setLivePage] = useState("home");
   const [initialQuery, setInitialQuery] = useState<string | undefined>(undefined);
@@ -599,6 +604,9 @@ export function StorefrontClient({
       price: product.retailPrice,
       image: product.images[0],
     });
+    // The seller's "after adding to bag" setting (Cart settings).
+    if (cartSettings.afterAdd === "drawer") setCartOpen(true);
+    else window.location.assign(getPublicStorefrontPath(storeBasePath, cartSettings.afterAdd === "checkout" ? "/checkout" : "/cart"));
   }
 
   useEffect(() => {
@@ -623,8 +631,8 @@ export function StorefrontClient({
         selectedSectionId={selectedSectionId}
         onSelectSection={onSelectSection}
         visitorKey={wishlist.visitorKey}
-        wishlistProductIds={wishlist.productIds}
-        onToggleWishlist={wishlist.toggle}
+        wishlistProductIds={wishlistOn ? wishlist.productIds : []}
+        onToggleWishlist={wishlistOn ? wishlist.toggle : undefined}
         cartCount={cart.count}
         onOpenCart={previewMode ? undefined : () => setCartOpen(true)}
         onAddToCart={previewMode ? undefined : handleAdd}
@@ -637,8 +645,8 @@ export function StorefrontClient({
           storeName={store.name}
           basePath={storeBasePath}
           products={store.storeProducts}
-          wishlistIds={wishlist.productIds}
-          onToggleWishlist={wishlist.toggle}
+          wishlistIds={wishlistOn ? wishlist.productIds : []}
+          onToggleWishlist={wishlistOn ? wishlist.toggle : undefined}
           cartCount={cart.count}
           onOpenBag={() => setCartOpen(true)}
           onHome={() => selectLivePage("home")}
@@ -647,6 +655,8 @@ export function StorefrontClient({
           activeTab={livePage === "home" ? "home" : undefined}
         />
       ) : null}
+
+      {!previewMode ? <MarketingMount storeSlug={store.slug} colors={{ ink: snapshot.themeTokens.ink, paper: snapshot.themeTokens.paperBg, accent: snapshot.themeTokens.ctaBg, accentText: snapshot.themeTokens.ctaText }} /> : null}
 
       {!previewMode ? (
         <CartDrawer

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type React from "react";
 import Link from "next/link";
+import { Icon } from "@/components/ui/Icon";
 import { useCart } from "@/hooks/useCart";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { formatStoreMoney } from "@/lib/storefront/shopper-info";
+import { ItemThumb, Panel, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
+import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, type TransferDetails } from "./TransferInstructions";
 
 interface Props {
@@ -12,21 +17,26 @@ interface Props {
     orderNumber: string;
     buyerName: string;
     buyerEmail: string;
+    buyerPhone?: string | null;
     items: Array<{
       name: string;
       image?: string;
       quantity: number;
       price: number;
       productId?: string;
+      variant?: string;
     }>;
     subtotal: number;
     shippingFee: number;
+    discountAmount?: number | null;
+    discountCode?: string | null;
     total: number;
     currency: string;
     status: string;
     /** null or "paystack" for Paystack checkout; "transfer" or "pay_on_delivery" otherwise. */
     paymentMethod?: string | null;
-    deliveryAddress: { street?: string; city?: string; state?: string } | null;
+    deliveryAddress: { street?: string; city?: string; state?: string; country?: string; landmark?: string; deliveryOption?: { name?: string; estimatedDays?: string | null; pickup?: boolean } } | null;
+    notes?: string | null;
     createdAt: string;
     trackingCode?: string | null;
     logisticsDetails?: Record<string, unknown> | null;
@@ -47,189 +57,165 @@ interface Props {
   deliveryCode?: string | null;
 }
 
-function Stars({ rating, interactive = false, onChange }: {
-  rating: number;
-  interactive?: boolean;
-  onChange?: (r: number) => void;
-}) {
-  return (
-    <span style={{ fontSize: 22, lineHeight: 1, cursor: interactive ? "pointer" : "default" }}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span key={star} onClick={() => interactive && onChange?.(star)}
-          style={{ color: star <= rating ? "#c9a96e" : "#e0dcd5", transition: "color .15s" }}>
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}
+const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
 export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null }: Props) {
   const cart = useCart(store.slug);
-  const palette = store.brandSettings?.palette ?? {};
-  const ctaBg = palette.ctaBg ?? "#73D8C8";
-  const ctaText = palette.ctaText ?? "#0E2A38";
-  const heroBg = palette.heroBg ?? "#0E2A38";
-  const heroText = palette.heroText ?? "#F4F1EA";
-  const paperBg = palette.paperBg ?? "#FAF7F1";
+  const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
+  const clearCart = cart.clear;
 
   const method = order.paymentMethod === "transfer" || order.paymentMethod === "pay_on_delivery" ? order.paymentMethod : "paystack";
-  const isPaid = ["paid", "processing", "packed", "shipped", "delivered"].includes(order.status);
+  const isPaid = PAID.includes(order.status);
   const isOpen = !["cancelled", "returned", "refunded", "partially_refunded", "delivered"].includes(order.status);
-  const amount = new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(Number(order.total));
+  const money = (amount: number) => formatStoreMoney(Number(amount), order.currency);
+  const amount = money(order.total);
+  const firstName = order.buyerName.split(" ")[0] || "there";
 
-  // Transfer and pay-on-delivery orders are placed without paying online, so the cart is done with either way.
+  // Transfer and pay-on-delivery orders are placed without paying online, so the bag is done with either way.
   useEffect(() => {
-    if (isPaid || method !== "paystack") cart.clear();
-  }, [cart, isPaid, method]);
+    if (isPaid || method !== "paystack") clearCart();
+  }, [clearCart, isPaid, method]);
 
-  const subline = isPaid
-    ? `Thanks, ${order.buyerName.split(" ")[0]}. A confirmation has been sent to ${order.buyerEmail}.`
-    : method === "transfer"
-      ? "Send your bank transfer below. The store confirms your order once the money arrives."
-      : method === "pay_on_delivery"
-        ? `You pay when your order arrives. Have ${amount} ready for the rider.`
-        : "Your order is being processed. Payment will be confirmed shortly.";
+  const headline = order.status === "cancelled" ? "Order cancelled" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
+  const subline = order.status === "cancelled"
+    ? "This order was cancelled. Contact the store if you think this is a mistake."
+    : isPaid
+      ? `Your order is confirmed. We've sent the details to ${order.buyerEmail}.`
+      : method === "transfer"
+        ? "Your order is placed. Send your bank transfer below and the store confirms it once the money arrives."
+        : method === "pay_on_delivery"
+          ? `Your order is placed. You pay ${amount} when it arrives.`
+          : "We haven't received your payment yet. If you paid, this page updates once Paystack confirms it.";
 
-  function statusColor(status: string): { bg: string; text: string } {
-    if (["paid", "processing", "packed"].includes(status)) return { bg: "#fef3c7", text: "#92400e" };
-    if (["shipped", "delivered"].includes(status)) return { bg: "#d1fae5", text: "#065f46" };
-    if (status === "cancelled") return { bg: "#fee2e2", text: "#991b1b" };
-    return { bg: "#fef3c7", text: "#92400e" };
-  }
+  const address = order.deliveryAddress;
+  const option = address?.deliveryOption;
+  const productDiscount = Number(order.discountAmount ?? 0);
 
   return (
-    <div style={{ background: paperBg, minHeight: "100vh", fontFamily: "var(--font-space-grotesk, sans-serif)" }}>
-      <nav style={{ background: heroBg, padding: "0 24px", display: "flex", alignItems: "center", height: 60 }}>
-        <Link href={getPublicStorefrontPath(storeBasePath, "/")} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          {store.logoUrl && <img src={store.logoUrl} alt={store.name} style={{ width: 28, height: 28, borderRadius: 8, objectFit: "cover" }} />}
-          <span style={{ color: heroText, fontWeight: 700, fontSize: 17 }}>{store.name}</span>
-        </Link>
-      </nav>
-
-      <div style={{ maxWidth: 580, margin: "0 auto", padding: "60px 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div className="inline-flex rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.14em]" style={{ background: isPaid ? "#d1fae5" : "#fef3c7", color: isPaid ? "#065f46" : "#92400e" }}>
-            {isPaid ? "Payment confirmed" : "Order received"}
-          </div>
-          <h1 style={{ margin: "16px 0 8px", fontSize: 28, fontWeight: 800, color: "#0E2A38" }}>{isPaid ? "Order Confirmed" : "Order Received"}</h1>
-          <p style={{ margin: 0, color: "#6E6E68", fontSize: 16 }}>
-            {subline}
-          </p>
-        </div>
-
-        <NextSteps
-          method={method}
-          isPaid={isPaid}
-          isOpen={isOpen}
-          amount={amount}
-          orderId={order.id}
-          currency={order.currency}
-          transfer={transfer}
-          deliveryCode={deliveryCode}
-          ctaBg={ctaBg}
-          ctaText={ctaText}
-        />
-
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 6px rgba(14,42,56,0.08)", overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px", background: "#f4f1ea", borderBottom: "1px solid rgba(14,42,56,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#6E6E68", textTransform: "uppercase", letterSpacing: "0.1em" }}>Order Number</p>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0E2A38" }}>{order.orderNumber}</p>
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: statusColor(order.status).bg, color: statusColor(order.status).text }}>
-              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Order">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:gap-12">
+        <div className="grid min-w-0 gap-5">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-semibold" style={isPaid ? { background: "#E7F5EC", color: "#14532D" } : { background: "#FFF4E0", color: "#7A4A00" }}>
+              <Icon name={isPaid ? "checkCircle" : "clock"} size={14} /> {isPaid ? "Payment confirmed" : order.status === "cancelled" ? "Cancelled" : "Order received"}
             </span>
+            <h1 className="mt-3 text-[30px] font-semibold leading-tight sm:text-[36px]" style={{ fontFamily: theme.heading }}>{headline}</h1>
+            <p className="mt-2 max-w-[60ch] text-[15.5px] leading-7" style={{ color: theme.muted }}>{subline}</p>
+            <p className="mt-2 text-[14px]">Order number <strong className="tabular-nums">{order.orderNumber}</strong></p>
           </div>
 
-          <div style={{ padding: "20px" }}>
-            <div style={{ marginBottom: 20 }}>
-              {order.items.map((item, idx) => (
-                <div key={`${item.name}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 8, background: "#f4f1ea", overflow: "hidden", flexShrink: 0 }}>
-                    {item.image
-                      ? <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#6E6E68", textTransform: "uppercase", letterSpacing: "0.12em" }}>Item</div>}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0E2A38" }}>{item.name}</p>
-                    <p style={{ margin: 0, fontSize: 13, color: "#6E6E68" }}>Qty: {item.quantity}</p>
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#0E2A38" }}>{order.currency} {(item.price * item.quantity).toLocaleString()}</span>
-                </div>
+          <NextSteps
+            theme={theme}
+            method={method}
+            isPaid={isPaid}
+            isOpen={isOpen}
+            amount={amount}
+            orderId={order.id}
+            currency={order.currency}
+            transfer={transfer}
+            deliveryCode={deliveryCode}
+          />
+
+          <Panel theme={theme} className="p-5" aria-labelledby="whats-next">
+            <h2 id="whats-next" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>What happens next</h2>
+            <Timeline theme={theme} status={order.status} createdAt={order.createdAt} shippedAt={order.shippedAt} deliveredAt={order.deliveredAt} isPaid={isPaid} method={method} />
+            <p className="mt-4 text-[13.5px] leading-6" style={{ color: theme.muted }}>
+              Keep your order number. You can come back to this page any time, or use <strong>Track an order</strong> in the store menu with your email or phone.
+            </p>
+            {order.trackingCode ? (
+              <p className="mt-3 rounded-[14px] px-4 py-3 text-[14px]" style={{ background: theme.paper }}>
+                Tracking code <strong className="tabular-nums">{order.trackingCode}</strong>
+                {order.logisticsDetails?.type === "pickup" ? <><br /><span style={{ color: theme.muted }}>You chose to pick up. Contact the store to arrange collection.</span></> : null}
+              </p>
+            ) : null}
+          </Panel>
+
+          {isPaid && order.items.some((item) => item.productId) ? (
+            <section aria-labelledby="review-heading" className="grid gap-3">
+              <h2 id="review-heading" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Tell others what you think</h2>
+              {order.items.filter((item) => item.productId).map((item, idx) => (
+                <ReviewForm key={`${item.productId}-${idx}`} item={item} storeSlug={store.slug} orderId={order.id} buyerName={order.buyerName} buyerEmail={order.buyerEmail} />
               ))}
-            </div>
+            </section>
+          ) : null}
 
-            <div style={{ borderTop: "1px solid rgba(14,42,56,0.08)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#6E6E68" }}><span>Subtotal</span><span>{order.currency} {Number(order.subtotal).toLocaleString()}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#6E6E68" }}><span>Shipping</span><span>{Number(order.shippingFee) === 0 ? "Free" : `${order.currency} ${Number(order.shippingFee).toLocaleString()}`}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, color: "#0E2A38", marginTop: 4 }}><span>Total</span><span>{order.currency} {Number(order.total).toLocaleString()}</span></div>
-            </div>
-
-            {order.deliveryAddress && (
-              <div style={{ marginTop: 20, padding: 14, background: "#f9f9f7", borderRadius: 10 }}>
-                <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "#6E6E68", textTransform: "uppercase", letterSpacing: "0.1em" }}>Delivery To</p>
-                <p style={{ margin: 0, fontSize: 14, color: "#0E2A38" }}>{[order.deliveryAddress.street, order.deliveryAddress.city, order.deliveryAddress.state].filter(Boolean).join(", ")}</p>
-              </div>
-            )}
-
-            {order.trackingCode && (
-              <div style={{ marginTop: 20, padding: 14, background: "#f9f9f7", borderRadius: 10 }}>
-                <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "#6E6E68", textTransform: "uppercase", letterSpacing: "0.1em" }}>Tracking Code</p>
-                <p style={{ margin: 0, fontSize: 14, color: "#0E2A38", fontWeight: 700 }}>{order.trackingCode}</p>
-                {order.logisticsDetails?.type === "pickup" && (
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6E6E68" }}>You selected buyer pickup. Contact the seller to arrange collection.</p>
-                )}
-              </div>
-            )}
-
-            {["paid", "processing", "packed", "shipped", "delivered"].includes(order.status) && (
-              <div style={{ marginTop: 20 }}>
-                <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: "#6E6E68", textTransform: "uppercase", letterSpacing: "0.1em" }}>Order Timeline</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  {[
-                    { label: "Order placed", done: true, time: order.createdAt },
-                    { label: "Payment confirmed", done: ["paid", "processing", "packed", "shipped", "delivered"].includes(order.status), time: null },
-                    { label: "Processing", done: ["processing", "packed", "shipped", "delivered"].includes(order.status), time: null },
-                    { label: "Shipped", done: ["shipped", "delivered"].includes(order.status), time: order.shippedAt || null },
-                    { label: "Delivered", done: order.status === "delivered", time: order.deliveredAt || null },
-                  ].map((step, i, arr) => (
-                    <div key={step.label} style={{ display: "flex", gap: 12 }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 20 }}>
-                        <div style={{ width: 12, height: 12, borderRadius: "50%", background: step.done ? "#059669" : "#e0dcd5", flexShrink: 0 }} />
-                        {i < arr.length - 1 && <div style={{ width: 2, flex: 1, background: step.done ? "#059669" : "#e0dcd5" }} />}
-                      </div>
-                      <div style={{ paddingBottom: i < arr.length - 1 ? 16 : 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: step.done ? 600 : 400, color: step.done ? "#065f46" : "#9ca3af" }}>{step.label}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="flex flex-wrap gap-3">
+            <Link href={getPublicStorefrontPath(storeBasePath, "/")} className="inline-flex min-h-12 items-center rounded-full px-7 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ background: theme.cta, color: theme.ctaText }}>
+              Continue shopping
+            </Link>
           </div>
         </div>
 
-        {isPaid ? (
-          <div style={{ marginTop: 28 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0E2A38", margin: "0 0 16px" }}>Review Your Purchase</h3>
-            {order.items.filter((i) => i.productId).map((item, idx) => (
-              <ReviewForm key={item.productId ?? idx} item={item} storeSlug={store.slug} orderId={order.id} buyerName={order.buyerName} buyerEmail={order.buyerEmail} />
+        <Panel theme={theme} as="aside" className="grid gap-4 p-5 lg:sticky lg:top-24" aria-label="Order summary">
+          <h2 className="text-[17px] font-semibold" style={{ fontFamily: theme.heading }}>Order summary</h2>
+          <ul className="m-0 grid list-none gap-3 p-0">
+            {order.items.map((item, idx) => (
+              <li key={`${item.name}-${idx}`} className="flex items-center gap-3">
+                <ItemThumb theme={theme} src={item.image} alt="" size={52} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-medium">{item.name}</span>
+                  <span className="block text-[12.5px]" style={{ color: theme.muted }}>Qty {item.quantity}</span>
+                </span>
+                <span className="text-[14px] font-medium tabular-nums">{money(item.price * item.quantity)}</span>
+              </li>
             ))}
-          </div>
-        ) : null}
-
-        <div style={{ marginTop: 24, textAlign: "center" }}>
-          <Link href={getPublicStorefrontPath(storeBasePath, "/")} style={{ display: "inline-block", background: ctaBg, color: ctaText, borderRadius: 999, padding: "13px 32px", fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
-            Continue Shopping
-          </Link>
-        </div>
+          </ul>
+          <dl className="grid gap-2 border-t pt-4 text-[14.5px]" style={{ borderColor: theme.border }}>
+            <div className="flex justify-between"><dt>Subtotal</dt><dd className="m-0 tabular-nums">{money(order.subtotal)}</dd></div>
+            {productDiscount > 0 ? <div className="flex justify-between"><dt>Discount{order.discountCode ? ` (${order.discountCode})` : ""}</dt><dd className="m-0 tabular-nums">−{money(productDiscount)}</dd></div> : null}
+            <div className="flex justify-between"><dt>Delivery</dt><dd className="m-0 tabular-nums">{Number(order.shippingFee) === 0 ? "Free" : money(order.shippingFee)}</dd></div>
+            <div className="mt-1 flex justify-between border-t pt-3 text-[17px] font-semibold" style={{ borderColor: theme.border }}><dt>Total</dt><dd className="m-0 tabular-nums">{amount}</dd></div>
+          </dl>
+          {address ? (
+            <div className="border-t pt-4 text-[14px] leading-6" style={{ borderColor: theme.border }}>
+              <h3 className="text-[13.5px] font-semibold" style={{ color: theme.muted }}>Delivering to</h3>
+              <p>{order.buyerName}<br />{[address.street, address.city, address.state].filter(Boolean).join(", ")}{address.landmark ? <><br />Near {address.landmark}</> : null}</p>
+              {option?.name ? <p style={{ color: theme.muted }}>{option.name}{option.estimatedDays ? ` · ${option.estimatedDays}` : ""}</p> : null}
+            </div>
+          ) : null}
+          {order.notes ? (
+            <div className="border-t pt-4 text-[14px] leading-6" style={{ borderColor: theme.border }}>
+              <h3 className="text-[13.5px] font-semibold" style={{ color: theme.muted }}>Your note</h3>
+              <p className="whitespace-pre-line">{order.notes}</p>
+            </div>
+          ) : null}
+        </Panel>
       </div>
-    </div>
+    </ShopperShell>
   );
 }
 
-function NextSteps({ method, isPaid, isOpen, amount, orderId, currency, transfer, deliveryCode, ctaBg, ctaText }: {
+function Timeline({ theme, status, createdAt, shippedAt, deliveredAt, isPaid, method }: { theme: ShopperTheme; status: string; createdAt: string; shippedAt?: string | null; deliveredAt?: string | null; isPaid: boolean; method: string }) {
+  const date = (value?: string | null) => (value ? new Date(value).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : null);
+  const steps = [
+    { label: "Order placed", done: true, when: date(createdAt) },
+    { label: method === "pay_on_delivery" ? "Pay when it arrives" : "Payment confirmed", done: isPaid, when: null },
+    { label: "Being prepared", done: ["processing", "packed", "shipped", "delivered"].includes(status), when: null },
+    { label: "On the way", done: ["shipped", "delivered"].includes(status), when: date(shippedAt) },
+    { label: "Delivered", done: status === "delivered", when: date(deliveredAt) },
+  ];
+  return (
+    <ol className="m-0 mt-4 grid list-none gap-0 p-0">
+      {steps.map((step, index) => (
+        <li key={step.label} className="flex gap-3">
+          <span className="flex w-5 flex-col items-center">
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full" style={{ background: step.done ? theme.cta : theme.border, color: theme.ctaText }}>
+              {step.done ? <Icon name="check" size={11} /> : null}
+            </span>
+            {index < steps.length - 1 ? <span className="w-0.5 flex-1" style={{ background: step.done ? theme.cta : theme.border, minHeight: 18 }} /> : null}
+          </span>
+          <span className="pb-4 text-[14.5px]" style={{ color: step.done ? theme.ink : theme.muted, fontWeight: step.done ? 600 : 400 }}>
+            {step.label}{step.when ? <span className="font-normal" style={{ color: theme.muted }}> · {step.when}</span> : null}
+            <span className="sr-only">{step.done ? " (done)" : " (not yet)"}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, transfer, deliveryCode }: {
+  theme: ShopperTheme;
   method: "paystack" | "transfer" | "pay_on_delivery";
   isPaid: boolean;
   isOpen: boolean;
@@ -238,51 +224,60 @@ function NextSteps({ method, isPaid, isOpen, amount, orderId, currency, transfer
   currency: string;
   transfer: TransferDetails | null;
   deliveryCode: string | null;
-  ctaBg: string;
-  ctaText: string;
 }) {
-  const box: React.CSSProperties = { background: "#fff", borderRadius: 22, border: "1px solid rgba(22,20,31,0.08)", padding: 20, fontFamily: "var(--font-app, inherit)" };
-  const heading: React.CSSProperties = { margin: "0 0 4px", fontSize: 18, fontWeight: 800, color: "#16141F" };
-  const text: React.CSSProperties = { margin: 0, fontSize: 14, lineHeight: 1.5, color: "#6E6E68" };
   const blocks: React.ReactNode[] = [];
 
   if (method === "transfer" && !isPaid && isOpen) {
     blocks.push(transfer
-      ? <TransferInstructions key="transfer" orderId={orderId} currency={currency} details={transfer} ctaBg={ctaBg} ctaText={ctaText} />
+      ? <TransferInstructions key="transfer" orderId={orderId} currency={currency} details={transfer} ctaBg={theme.cta} ctaText={theme.ctaText} />
       : (
-        <section key="transfer" style={box}>
-          <h2 style={heading}>Pay by bank transfer</h2>
-          <p style={text}>The store will send you their account details. Send exactly {amount} and use your order number as the reference.</p>
-        </section>
+        <Panel key="transfer" theme={theme} className="p-5">
+          <h2 className="text-[18px] font-semibold">Pay by bank transfer</h2>
+          <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>The store will send you their account details. Send exactly {amount} and use your order number as the reference.</p>
+        </Panel>
       ));
   } else if (method === "pay_on_delivery" && !isPaid && isOpen) {
     blocks.push(
-      <section key="pod" style={box}>
-        <h2 style={heading}>Have {amount} ready</h2>
-        <p style={text}>Pay the rider in cash or by transfer when your order arrives. Check your items before you pay.</p>
-      </section>,
-    );
-  } else if (isPaid) {
-    blocks.push(
-      <section key="paid" style={box}>
-        <h2 style={heading}>{method === "paystack" ? "Paid online" : "Payment received"}</h2>
-        <p style={text}>{method === "paystack" ? "Your card, bank or USSD payment went through with Paystack." : "The store has your payment."} We&apos;ll keep you posted as your order moves.</p>
-      </section>,
+      <Panel key="pod" theme={theme} className="p-5">
+        <h2 className="text-[18px] font-semibold">Have {amount} ready</h2>
+        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>Pay the rider in cash or by transfer when your order arrives. Check your items before you pay.</p>
+      </Panel>,
     );
   }
 
   if (deliveryCode && isOpen) {
     blocks.push(
-      <section key="code" style={box} aria-labelledby="delivery-code-heading">
-        <h2 id="delivery-code-heading" style={heading}>Your delivery code</h2>
-        <p style={{ ...text, marginBottom: 10 }}>Give this code to the rider only when you have your order.</p>
-        <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 28, fontWeight: 800, letterSpacing: "0.2em", color: "#16141F" }}>{deliveryCode}</div>
-      </section>,
+      <Panel key="code" theme={theme} className="p-5" aria-labelledby="delivery-code-heading">
+        <h2 id="delivery-code-heading" className="text-[18px] font-semibold">Your delivery code</h2>
+        <p className="mt-1 text-[14.5px]" style={{ color: theme.muted }}>Give this code to the rider only when you have your order.</p>
+        <p className="mt-2 font-mono text-[28px] font-bold tracking-[0.2em]">{deliveryCode}</p>
+      </Panel>,
     );
   }
 
   if (blocks.length === 0) return null;
-  return <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>{blocks}</div>;
+  return <div className="grid gap-4">{blocks}</div>;
+}
+
+function Stars({ rating, onChange }: { rating: number; onChange: (r: number) => void }) {
+  return (
+    <span role="radiogroup" aria-label="Your rating" className="inline-flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          role="radio"
+          aria-checked={rating === star}
+          aria-label={`${star} star${star === 1 ? "" : "s"}`}
+          onClick={() => onChange(star)}
+          className="grid h-10 w-10 place-items-center rounded-full text-[24px] leading-none focus-visible:outline focus-visible:outline-2"
+          style={{ color: star <= rating ? "#C9A96E" : "#E0DCD5" }}
+        >
+          ★
+        </button>
+      ))}
+    </span>
+  );
 }
 
 function ReviewForm({ item, storeSlug, orderId, buyerName, buyerEmail }: {
@@ -322,7 +317,7 @@ function ReviewForm({ item, storeSlug, orderId, buyerName, buyerEmail }: {
       setSubmitted(true);
     } else {
       const data = await res.json();
-      setError(data?.error ?? "Failed to submit review");
+      setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? "Couldn't send your review. Try again.");
     }
   }
 
@@ -344,7 +339,7 @@ function ReviewForm({ item, storeSlug, orderId, buyerName, buyerEmail }: {
         <span style={{ fontWeight: 600, fontSize: 14, color: "#0E2A38" }}>{item.name}</span>
       </div>
       <div style={{ marginBottom: 10 }}>
-        <Stars rating={rating} interactive onChange={setRating} />
+        <Stars rating={rating} onChange={setRating} />
       </div>
       {error ? <div style={{ fontSize: 12, color: "#c0392b", marginBottom: 8 }}>{error}</div> : null}
       <input type="text" placeholder="Review title (optional)" value={title} onChange={(e) => setTitle(e.target.value)}

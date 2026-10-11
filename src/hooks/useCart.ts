@@ -1,95 +1,104 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { readRememberedStoreVisitor, visitorStorageKey } from "./useStoreVisitor";
+import { cartCount, cartSubtotal, clampQuantity, lineKey, mergeLines, sanitizeLines, type CartLine } from "@shared/cart-checkout";
+import { captureCart } from "@/components/storefront/shopper/cart-capture";
+import { trackStoreEvent } from "@/lib/analytics/storefront-events";
 
-export interface CartItem {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  variant?: string;
-  maxQuantity?: number;
-}
+export type CartItem = CartLine;
 
 function storageKey(slug: string) {
   return `cart:${slug}`;
 }
 
+// Every useCart on the page (header count, drawer, cart page) and every tab shares one bag.
+const SYNC_EVENT = "shopinbos:cart";
+
+/** The stored bag, or null when this browser won't let us read storage. */
+function readStored(slug: string): CartItem[] | null {
+  try {
+    const raw = localStorage.getItem(storageKey(slug));
+    return raw ? sanitizeLines(JSON.parse(raw)) : [];
+  } catch {
+    return null;
+  }
+}
+
 export function useCart(storeSlug: string) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItemsState] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const itemsRef = useRef<CartItem[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(storeSlug));
-      if (raw) setItems(JSON.parse(raw));
-    } catch {}
+    const stored = readStored(storeSlug) ?? [];
+    itemsRef.current = stored;
+    setItemsState(stored);
     setLoaded(true);
+    const sync = (event: Event) => {
+      if (event instanceof StorageEvent && event.key !== storageKey(storeSlug)) return;
+      if (event instanceof CustomEvent && event.detail !== storeSlug) return;
+      const next = readStored(storeSlug);
+      if (!next) return;
+      itemsRef.current = next;
+      setItemsState(next);
+    };
+    window.addEventListener("storage", sync);
+    window.addEventListener(SYNC_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener(SYNC_EVENT, sync);
+    };
   }, [storeSlug]);
 
-  useEffect(() => {
-    if (!loaded) return;
+  // Writes straight to storage (not inside a state update), so navigating right after adding keeps the item.
+  const setItems = useCallback((next: (prev: CartItem[]) => CartItem[]) => {
+    const prev = readStored(storeSlug) ?? itemsRef.current;
+    const value = next(prev);
+    if (value === prev) return;
+    itemsRef.current = value;
+    setItemsState(value);
     try {
-      localStorage.setItem(storageKey(storeSlug), JSON.stringify(items));
+      localStorage.setItem(storageKey(storeSlug), JSON.stringify(value));
+      window.dispatchEvent(new CustomEvent(SYNC_EVENT, { detail: storeSlug }));
     } catch {}
-  }, [items, storeSlug, loaded]);
+  }, [storeSlug]);
 
+  // A returning shopper we already know (they gave an email before) gets their bag saved for reminders.
   useEffect(() => {
     if (!loaded || items.length === 0) return;
+    let visitorKey = "";
     try {
-      const visitorKey = localStorage.getItem(visitorStorageKey(storeSlug));
-      const remembered = readRememberedStoreVisitor(storeSlug);
-      if (!visitorKey || !remembered.email) return;
-      const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-      const signature = `${remembered.email}:${items.map((item) => `${item.productId}:${item.quantity}`).join("|")}:${subtotal}`;
-      const sentKey = `abandoned-cart:${storeSlug}:${signature}`;
-      if (localStorage.getItem(sentKey)) return;
-      const timer = window.setTimeout(() => {
-        fetch(`/api/public/store/${storeSlug}/abandoned-cart`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ visitorKey, email: remembered.email, name: remembered.name || undefined, items, subtotal }),
-        })
-          .then((res) => {
-            if (res.ok) localStorage.setItem(sentKey, "1");
-          })
-          .catch(() => {});
-      }, 1200);
-      return () => window.clearTimeout(timer);
+      visitorKey = localStorage.getItem(visitorStorageKey(storeSlug)) ?? "";
     } catch {}
+    const remembered = readRememberedStoreVisitor(storeSlug);
+    if (!visitorKey || !remembered.email) return;
+    const timer = window.setTimeout(() => {
+      void captureCart(storeSlug, { visitorKey, email: remembered.email, name: remembered.name || undefined, items });
+    }, 1500);
+    return () => window.clearTimeout(timer);
   }, [items, loaded, storeSlug]);
 
   const add = useCallback((item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
-    setItems(prev => {
-      const existing = prev.find(i => i.productId === item.productId && i.variant === item.variant);
-      if (existing) {
-        return prev.map(i =>
-          i.productId === item.productId && i.variant === item.variant
-            ? { ...i, quantity: i.quantity + (item.quantity ?? 1) }
-            : i
-        );
-      }
-      return [...prev, { ...item, quantity: item.quantity ?? 1 }];
-    });
-  }, []);
+    setItems((prev) => mergeLines(prev, [{ ...item, quantity: item.quantity ?? 1 }]));
+    // Add-to-bag count for the store funnel in /home/analytics.
+    trackStoreEvent(storeSlug, "add_to_cart", item.productId);
+  }, [setItems, storeSlug]);
 
   const remove = useCallback((productId: string, variant?: string) => {
-    setItems(prev => prev.filter(i => !(i.productId === productId && i.variant === variant)));
-  }, []);
+    setItems((prev) => prev.filter((i) => lineKey(i) !== lineKey({ productId, variant })));
+  }, [setItems]);
 
   const update = useCallback((productId: string, quantity: number, variant?: string) => {
-    if (quantity <= 0) {
-      remove(productId, variant);
-      return;
-    }
-    setItems(prev => prev.map(i => i.productId === productId && i.variant === variant ? { ...i, quantity } : i));
-  }, [remove]);
+    const key = lineKey({ productId, variant });
+    setItems((prev) =>
+      quantity <= 0 ? prev.filter((i) => lineKey(i) !== key) : prev.map((i) => (lineKey(i) === key ? { ...i, quantity: clampQuantity(quantity, i.maxQuantity) } : i)),
+    );
+  }, [setItems]);
 
-  const clear = useCallback(() => setItems([]), []);
+  /** Swaps the whole bag, e.g. for a restored cart. */
+  const replace = useCallback((next: CartItem[]) => setItems(() => sanitizeLines(next)), [setItems]);
 
-  const count = items.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const clear = useCallback(() => setItems((prev) => (prev.length ? [] : prev)), [setItems]);
 
-  return { items, add, remove, update, clear, count, subtotal, loaded };
+  return { items, add, remove, update, replace, clear, count: cartCount(items), subtotal: cartSubtotal(items), loaded };
 }

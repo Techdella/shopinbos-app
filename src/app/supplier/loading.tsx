@@ -1,5 +1,5 @@
-import { PortalLoadingState } from "@/components/role/PortalStates";
+import { AppLoading } from "@/components/shell/AppLoading";
 
 export default function Loading() {
-  return <PortalLoadingState role="supplier" />;
+  return <AppLoading role="supplier" />;
 }

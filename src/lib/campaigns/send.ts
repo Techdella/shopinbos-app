@@ -4,6 +4,11 @@ import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { formatFromAddress, isEmailConfigured, sendEmailBatch } from "@/lib/notifications/resend";
+import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "@/lib/marketing/brand";
+import { channelStatus, sendMarketingText } from "@/lib/marketing/channels";
+import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
+import { wrapEmail } from "@/lib/marketing/email-layout";
+import { fillVariables, firstName } from "@/lib/marketing/flows";
 import { extractCampaignLinks, renderCampaignEmail } from "./render";
 
 export type RecipientFilter =
@@ -11,7 +16,10 @@ export type RecipientFilter =
   | { mode: "subscribers" }
   | { mode: "min_orders"; value: number }
   | { mode: "min_spend"; value: number }
-  | { mode: "specific"; emails: string[] };
+  | { mode: "specific"; emails: string[] }
+  | { mode: "segment"; segmentId: string };
+
+export type CampaignChannel = "email" | "sms" | "whatsapp";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BATCH_SIZE = 100;
@@ -40,6 +48,8 @@ export function parseRecipientFilter(raw: unknown): RecipientFilter {
       return { mode: filter.mode, value: Number(filter.value) || 0 };
     case "specific":
       return { mode: "specific", emails: Array.isArray(filter.emails) ? filter.emails.map(String) : [] };
+    case "segment":
+      return typeof filter.segmentId === "string" && filter.segmentId ? { mode: "segment", segmentId: filter.segmentId } : { mode: "all" };
     default:
       return { mode: "all" };
   }
@@ -48,6 +58,18 @@ export function parseRecipientFilter(raw: unknown): RecipientFilter {
 /** Unique, valid recipient emails for a filter, minus anyone who unsubscribed, bounced or complained. */
 export async function resolveCampaignRecipients(storeId: string, filter: RecipientFilter) {
   const recipients = new Map<string, { email: string; name: string | null }>();
+  if (filter.mode === "segment") {
+    // Saved segment: everyone it matches with an email. A segment with no rules matches nobody here.
+    const rules = await segmentRules(storeId, filter.segmentId);
+    if (rules?.conditions.length) {
+      for (const contact of await contactsInSegment(storeId, rules)) {
+        if (contact.email && EMAIL_PATTERN.test(contact.email) && !recipients.has(contact.email)) recipients.set(contact.email, { email: contact.email, name: contact.name });
+      }
+    }
+    const suppressedRows = await db.subscriber.findMany({ where: { storeId, status: { not: "active" } }, select: { email: true } });
+    for (const { email } of suppressedRows) recipients.delete(email.trim().toLowerCase());
+    return Array.from(recipients.values());
+  }
   const add = (email: string, name: string | null) => {
     const normalized = email.trim().toLowerCase();
     if (EMAIL_PATTERN.test(normalized) && !recipients.has(normalized)) recipients.set(normalized, { email: normalized, name });
@@ -91,9 +113,21 @@ export async function resolveCampaignRecipients(storeId: string, filter: Recipie
 
 export type SendCampaignResult = { ok: true; sent: number; failed: number } | { ok: false; error: string };
 
+/** The audience a campaign goes to: its saved segment if it has one, else its recipient filter. */
+export function campaignFilter(campaign: { segmentId: string | null; recipientFilter: unknown }): RecipientFilter {
+  return campaign.segmentId ? { mode: "segment", segmentId: campaign.segmentId } : parseRecipientFilter(campaign.recipientFilter);
+}
+
 export async function sendCampaign(storeId: string, campaignId: string): Promise<SendCampaignResult> {
-  if (!isEmailConfigured()) {
+  const head = await db.broadcastCampaign.findFirst({ where: { id: campaignId, storeId }, select: { channel: true } });
+  if (!head) return { ok: false, error: "Campaign not found" };
+  const channel = (head.channel || "email") as CampaignChannel;
+  if (channel === "email" && !isEmailConfigured()) {
     return { ok: false, error: "Email sending isn't set up yet. Add RESEND_API_KEY to the app environment." };
+  }
+  if (channel !== "email") {
+    const status = (await channelStatus(storeId))[channel];
+    if (!status.ready) return { ok: false, error: `${channel === "sms" ? "SMS" : "WhatsApp"} isn't set up yet. ${status.howTo}` };
   }
 
   // Claim the campaign so a double click or an overlapping scheduler run can't send it twice.
@@ -103,7 +137,7 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
   });
   const campaign = await db.broadcastCampaign.findFirst({
     where: { id: campaignId, storeId },
-    include: { store: { select: { name: true } } },
+    include: { store: { select: MARKETING_STORE_SELECT } },
   });
   if (!campaign) return { ok: false, error: "Campaign not found" };
   if (claimed.count === 0) {
@@ -116,10 +150,19 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
   try {
     if (!campaign.bodyHtml.trim()) {
       await restoreStatus();
-      return { ok: false, error: "Add email content before sending" };
+      return { ok: false, error: channel === "email" ? "Add email content before sending" : "Write the message before sending" };
+    }
+    if (channel !== "email") return await sendTextCampaign(campaign, channel, restoreStatus);
+
+    // {{store_url}} is the same for every recipient: resolve it once and save it, so click tracking
+    // (which only follows links in the saved body) recognises the shop link.
+    let bodyHtml = campaign.bodyHtml;
+    if (/{{\s*store_url\s*}}/.test(bodyHtml)) {
+      bodyHtml = bodyHtml.replace(/{{\s*store_url\s*}}/g, storeUrl(campaign.store));
+      await db.broadcastCampaign.update({ where: { id: campaignId }, data: { bodyHtml } });
     }
 
-    const recipients = await resolveCampaignRecipients(storeId, parseRecipientFilter(campaign.recipientFilter));
+    const recipients = await resolveCampaignRecipients(storeId, campaignFilter(campaign));
     if (recipients.length === 0) {
       await restoreStatus();
       return { ok: false, error: "No recipients match this audience" };
@@ -140,6 +183,7 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
 
     const from = formatFromAddress(campaign.senderName ?? campaign.store.name);
     const subject = campaign.subject.replace(/{{\s*store\s*}}/g, campaign.store.name);
+    const brand = emailBrand(campaign.store);
     let batchError: string | null = null;
 
     for (;;) {
@@ -149,7 +193,7 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
       const result = await sendEmailBatch(
         batch.map((recipient) => {
           const rendered = renderCampaignEmail({
-            html: campaign.bodyHtml,
+            html: bodyHtml,
             recipientName: recipient.name,
             storeName: campaign.store.name,
             token: recipient.token,
@@ -157,8 +201,8 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
           });
           return {
             to: recipient.email,
-            subject,
-            html: rendered.html,
+            subject: subject.replace(/{{\s*name\s*}}/g, firstName(recipient.name) || "there"),
+            html: wrapEmail({ bodyHtml: rendered.html, brand, preheader: campaign.preheader }),
             from,
             replyTo: campaign.replyTo ?? undefined,
             headers: {
@@ -198,6 +242,89 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
     await restoreStatus().catch(() => null);
     throw error;
   }
+}
+
+type ClaimedCampaign = {
+  id: string;
+  storeId: string;
+  segmentId: string | null;
+  recipientFilter: unknown;
+  bodyHtml: string;
+  sentAt: Date | null;
+  store: { id: string; name: string; slug: string; customDomain: string | null };
+};
+
+/** Phone numbers a text campaign reaches: the segment (or everyone) with a phone and SMS/WhatsApp permission. */
+export async function resolveTextRecipients(storeId: string, filter: RecipientFilter, channel: "sms" | "whatsapp") {
+  let contacts: Awaited<ReturnType<typeof contactsInSegment>>;
+  if (filter.mode === "segment") {
+    const rules = await segmentRules(storeId, filter.segmentId);
+    contacts = rules?.conditions.length ? await contactsInSegment(storeId, rules) : [];
+  } else {
+    contacts = await contactsInSegment(storeId, { match: "all", conditions: [] });
+    if (filter.mode === "subscribers") contacts = contacts.filter((c) => c.status === "active");
+    if (filter.mode === "min_orders") contacts = contacts.filter((c) => c.orders >= filter.value);
+    if (filter.mode === "min_spend") contacts = contacts.filter((c) => c.spent >= filter.value);
+    if (filter.mode === "specific") contacts = [];
+  }
+  const seen = new Set<string>();
+  const out: Array<{ phone: string; name: string | null }> = [];
+  for (const contact of contacts) {
+    if (!contact.phone || seen.has(contact.phone)) continue;
+    if (!(channel === "sms" ? contact.smsOk : contact.whatsappOk)) continue;
+    seen.add(contact.phone);
+    out.push({ phone: contact.phone, name: contact.name });
+  }
+  return out;
+}
+
+const TEXT_CONCURRENCY = 5;
+
+/** SMS / WhatsApp campaigns: one personalised message per phone, each recipient's outcome recorded. */
+async function sendTextCampaign(campaign: ClaimedCampaign, channel: "sms" | "whatsapp", restoreStatus: () => Promise<unknown>): Promise<SendCampaignResult> {
+  const recipients = await resolveTextRecipients(campaign.storeId, campaignFilter(campaign), channel);
+  if (recipients.length === 0) {
+    await restoreStatus();
+    return { ok: false, error: `Nobody in this audience has a phone number and ${channel === "sms" ? "SMS" : "WhatsApp"} permission` };
+  }
+  // The phone number goes in the recipient's address column (named email for historical reasons).
+  await db.campaignRecipient.createMany({
+    data: recipients.map((recipient) => ({ campaignId: campaign.id, storeId: campaign.storeId, email: recipient.phone, name: recipient.name, token: randomBytes(16).toString("base64url") })),
+    skipDuplicates: true,
+  });
+  await db.campaignRecipient.updateMany({ where: { campaignId: campaign.id, status: "failed" }, data: { status: "queued", error: null } });
+
+  const shopLink = storeUrl(campaign.store);
+  const queue = await db.campaignRecipient.findMany({ where: { campaignId: campaign.id, status: "queued" }, orderBy: { createdAt: "asc" } });
+  let consecutiveFailures = 0;
+  for (let i = 0; i < queue.length; i += TEXT_CONCURRENCY) {
+    const slice = queue.slice(i, i + TEXT_CONCURRENCY);
+    const results = await Promise.all(
+      slice.map(async (recipient) => {
+        const body = fillVariables(campaign.bodyHtml, { name: firstName(recipient.name) || "there", full_name: recipient.name ?? "", store: campaign.store.name, store_url: shopLink });
+        const result = await sendMarketingText(campaign.store, channel, recipient.email, body).catch((error) => ({ ok: false as const, error: String(error) }));
+        await db.campaignRecipient.update({
+          where: { id: recipient.id },
+          data: result.ok ? { status: "sent", sentAt: new Date(), error: null } : { status: "failed", error: result.error.slice(0, 300) },
+        });
+        return result.ok;
+      }),
+    );
+    consecutiveFailures = results.every((ok) => !ok) ? consecutiveFailures + slice.length : 0;
+    if (consecutiveFailures >= 15) break; // The provider is refusing everything (credit, sender id); stop.
+  }
+
+  const [sent, failed] = await Promise.all([
+    db.campaignRecipient.count({ where: { campaignId: campaign.id, status: "sent" } }),
+    db.campaignRecipient.count({ where: { campaignId: campaign.id, status: { in: ["failed", "queued"] } } }),
+  ]);
+  if (sent === 0) {
+    await restoreStatus();
+    const firstError = await db.campaignRecipient.findFirst({ where: { campaignId: campaign.id, status: "failed" }, select: { error: true } });
+    return { ok: false, error: firstError?.error ?? "No messages were sent" };
+  }
+  await db.broadcastCampaign.update({ where: { id: campaign.id }, data: { status: "sent", sentAt: campaign.sentAt ?? new Date(), sentCount: sent, deliveredCount: sent } });
+  return { ok: true, sent, failed };
 }
 
 /** Sends every scheduled campaign whose time has come. Used by the cron route. */

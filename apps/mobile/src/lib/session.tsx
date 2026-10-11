@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { clearLaunchCache } from "./launch";
 import { supabase } from "./supabase";
 
 interface SessionState {
@@ -14,7 +15,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setState({ session: data.session, loading: false }));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setState({ session, loading: false }));
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      // Forget the saved Home and launch flags so the next person on this phone starts fresh.
+      if (event === "SIGNED_OUT") clearLaunchCache();
+      setState({ session, loading: false });
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 

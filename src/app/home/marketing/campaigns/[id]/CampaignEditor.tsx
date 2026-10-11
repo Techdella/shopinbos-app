@@ -1,0 +1,321 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardHead, Pill, SplitLayout } from "@/components/app-kit";
+import { Notice, PillButton, Segmented } from "@/components/app-ui";
+import { Modal } from "@/components/growth/Modal";
+import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
+import type { ChannelStatus } from "@/lib/marketing/channels";
+import { EmailComposer } from "../../_kit/EmailComposer";
+import { EmailPreview, VariableChips, api, errorText, insertAtCursor, useDebounced } from "../../_kit/client";
+import { TextPreview } from "./TextPreview";
+
+type Channel = "email" | "sms" | "whatsapp";
+
+interface Draft {
+  id: string | null;
+  status: string;
+  name: string;
+  channel: Channel;
+  subject: string;
+  preheader: string;
+  bodyHtml: string;
+  segmentId: string | null;
+  audienceMode: "all" | "subscribers";
+  scheduledAt: string;
+}
+
+const CHANNEL_LABEL: Record<Channel, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
+
+export function CampaignEditor({
+  initial,
+  segments,
+  templates,
+  channels,
+  testTo,
+}: {
+  initial: Draft;
+  segments: Array<{ id: string; name: string; summary: string; count: number }>;
+  templates: Array<{ id: string; name: string; subject: string; preheader: string; bodyHtml: string; saved: boolean }>;
+  channels: Record<Channel, ChannelStatus>;
+  testTo: { email: string | null; phone: string | null };
+}) {
+  const router = useRouter();
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [composerKey, setComposerKey] = useState(0);
+  const [audience, setAudience] = useState<number | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [confirmSend, setConfirmSend] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const set = (patch: Partial<Draft>) => {
+    setDraft((current) => ({ ...current, ...patch }));
+    setDirty(true);
+  };
+
+  const audienceKey = useDebounced(JSON.stringify({ channel: draft.channel, segmentId: draft.segmentId, mode: draft.audienceMode }), 300);
+  useEffect(() => {
+    let cancelled = false;
+    const { channel, segmentId, mode } = JSON.parse(audienceKey) as { channel: Channel; segmentId: string | null; mode: "all" | "subscribers" };
+    setAudience(null);
+    api<{ count: number }>("/api/app/marketing/campaigns/audience", "POST", { channel, segmentId, audience: { mode } })
+      .then((data) => !cancelled && setAudience(data.count))
+      .catch(() => !cancelled && setAudience(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [audienceKey]);
+
+  const scheduled = draft.status === "scheduled";
+  const ready = channels[draft.channel].ready;
+
+  async function save(quiet = false): Promise<string | null> {
+    setError(null);
+    if (!draft.name.trim()) {
+      setError("Give the campaign a name.");
+      return null;
+    }
+    if (draft.channel === "email" && !draft.subject.trim()) {
+      setError("Add a subject line.");
+      return null;
+    }
+    setBusy("save");
+    try {
+      const body = {
+        name: draft.name,
+        channel: draft.channel,
+        subject: draft.channel === "email" ? draft.subject : undefined,
+        preheader: draft.channel === "email" ? draft.preheader || null : null,
+        bodyHtml: draft.bodyHtml,
+        segmentId: draft.segmentId,
+        audience: { mode: draft.audienceMode },
+      };
+      const saved = draft.id
+        ? await api<{ id: string }>(`/api/app/marketing/campaigns/${draft.id}`, "PATCH", body)
+        : await api<{ id: string }>("/api/app/marketing/campaigns", "POST", body);
+      setDirty(false);
+      if (!draft.id) {
+        setDraft((current) => ({ ...current, id: saved.id }));
+        router.replace(`/home/marketing/campaigns/${saved.id}`);
+      }
+      if (!quiet) setNotice("Saved.");
+      return saved.id;
+    } catch (saveError) {
+      setError(errorText(saveError));
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function act(action: "send" | "test" | "schedule" | "unschedule", extra?: Record<string, unknown>) {
+    const id = dirty || !draft.id ? await save(true) : draft.id;
+    if (!id) return;
+    setBusy(action);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await api<Record<string, unknown>>(`/api/app/marketing/campaigns/${id}`, "POST", { action, ...extra });
+      if (action === "test") setNotice(`Test sent to ${String(result.to)}.`);
+      if (action === "schedule") {
+        setDraft((current) => ({ ...current, status: "scheduled" }));
+        setNotice("Scheduled. It goes out at that time (Lagos), within 10 minutes.");
+      }
+      if (action === "unschedule") {
+        setDraft((current) => ({ ...current, status: "draft", scheduledAt: "" }));
+        setNotice("No longer scheduled. It's a draft again.");
+      }
+      if (action === "send") {
+        setConfirmSend(false);
+        router.refresh();
+      }
+    } catch (actionError) {
+      setError(errorText(actionError));
+    } finally {
+      setBusy(null);
+      setScheduleOpen(false);
+    }
+  }
+
+  function applyTemplate(id: string) {
+    const template = templates.find((t) => t.id === id);
+    if (!template) return;
+    if (draft.bodyHtml.trim() && !window.confirm(`Replace your content with "${template.name}"?`)) return;
+    set({ subject: template.subject, preheader: template.preheader, bodyHtml: template.bodyHtml, name: draft.name || template.name });
+    setComposerKey((key) => key + 1);
+  }
+
+  const peopleWord = (n: number) => `${n.toLocaleString("en-NG")} ${n === 1 ? "person" : "people"}`;
+
+  return (
+    <div className="grid gap-5">
+      {error ? <Notice>{error}</Notice> : null}
+      {notice ? <Notice tone="success">{notice}</Notice> : null}
+      {!ready ? (
+        <Notice tone="info">
+          {CHANNEL_LABEL[draft.channel]} can't send yet. {channels[draft.channel].howTo} You can still write and save the campaign.
+        </Notice>
+      ) : null}
+
+      <SplitLayout
+        sideWidth="460px"
+        main={
+          <>
+            <Card className="grid gap-5 p-5 sm:p-6">
+              <CardHead title="Campaign" />
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Name (only you see this)" htmlFor="c-name">
+                  <input id="c-name" value={draft.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} placeholder="e.g. December sale" maxLength={120} />
+                </Field>
+                <Field label="Send by">
+                  <Segmented
+                    options={(["email", "sms", "whatsapp"] as Channel[]).map((value) => ({ value, label: CHANNEL_LABEL[value] }))}
+                    value={draft.channel}
+                    onChange={(channel) => {
+                      // Emails and texts are written differently, so switching between them starts a fresh message.
+                      const crossing = (channel === "email") !== (draft.channel === "email");
+                      if (crossing && draft.bodyHtml.trim() && !window.confirm("Switching between email and text starts a fresh message. Continue?")) return;
+                      set({ channel, bodyHtml: crossing ? "" : draft.bodyHtml });
+                      setComposerKey((key) => key + 1);
+                    }}
+                  />
+                </Field>
+              </div>
+            </Card>
+
+            <Card className="grid gap-4 p-5 sm:p-6">
+              <CardHead title="Who gets it" sub={audience === null ? "Counting…" : `${peopleWord(audience)} can get this by ${CHANNEL_LABEL[draft.channel]} right now`} />
+              <Field label="Audience" htmlFor="c-audience" hint={draft.channel === "email" ? "People who unsubscribed are always left out. Every email has an unsubscribe link." : "Texts go to subscribers who ticked SMS/WhatsApp and to past buyers who gave a phone number, minus anyone who opted out."}>
+                <select
+                  id="c-audience"
+                  className={selectClass}
+                  value={draft.segmentId ? `segment:${draft.segmentId}` : draft.audienceMode}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value.startsWith("segment:")) set({ segmentId: value.slice(8) });
+                    else set({ segmentId: null, audienceMode: value as "all" | "subscribers" });
+                  }}
+                >
+                  <option value="all">Everyone: subscribers and past buyers</option>
+                  <option value="subscribers">Subscribers only</option>
+                  {segments.length ? (
+                    <optgroup label="Saved segments">
+                      {segments.map((segment) => (
+                        <option key={segment.id} value={`segment:${segment.id}`}>
+                          {segment.name} ({segment.count})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                </select>
+              </Field>
+              {draft.segmentId ? <p className="m-0 text-[13px] text-app-ink-soft">{segments.find((s) => s.id === draft.segmentId)?.summary}</p> : null}
+              <a href="/home/marketing/segments" className="text-[13.5px] font-bold text-app-accent-ink no-underline hover:underline">Make a new segment</a>
+            </Card>
+
+            <Card className="grid gap-4 p-5 sm:p-6">
+              <CardHead title="Message" />
+              {draft.channel === "email" ? (
+                <>
+                  <Field label="Start from a template (optional)" htmlFor="c-template">
+                    <select id="c-template" className={selectClass} value="" onChange={(event) => applyTemplate(event.target.value)}>
+                      <option value="">Choose a template…</option>
+                      {templates.some((t) => t.saved) ? (
+                        <optgroup label="Your templates">
+                          {templates.filter((t) => t.saved).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </optgroup>
+                      ) : null}
+                      <optgroup label="Starter templates">
+                        {templates.filter((t) => !t.saved).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </optgroup>
+                    </select>
+                  </Field>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Subject" htmlFor="c-subject">
+                      <input id="c-subject" value={draft.subject} onChange={(e) => set({ subject: e.target.value })} className={inputClass} maxLength={200} placeholder="e.g. 20% off this weekend, {{name}}" />
+                    </Field>
+                    <Field label="Preview text (optional)" htmlFor="c-pre" hint="Shown after the subject in most inboxes.">
+                      <input id="c-pre" value={draft.preheader} onChange={(e) => set({ preheader: e.target.value })} className={inputClass} maxLength={200} />
+                    </Field>
+                  </div>
+                  <EmailComposer key={composerKey} value={draft.bodyHtml} onChange={(bodyHtml) => set({ bodyHtml })} variables={["name", "full_name", "store", "store_url"]} />
+                </>
+              ) : (
+                <>
+                  <VariableChips only={["name", "store", "store_url"]} onInsert={(token) => set({ bodyHtml: insertAtCursor(textRef.current, draft.bodyHtml, token) })} />
+                  <Field label={`${CHANNEL_LABEL[draft.channel]} message`} htmlFor="c-text" hint={draft.channel === "sms" ? "Keep it short and say who it's from. Add “Reply STOP to opt out”." : "WhatsApp only delivers free-form messages to people who messaged you in the last 24 hours, unless your WhatsApp provider sends it as an approved template. Failures show per person after sending."}>
+                    <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={1000} placeholder="Hi {{name}}, our December sale starts today at {{store}}: {{store_url}}" />
+                  </Field>
+                </>
+              )}
+            </Card>
+
+            <Card className="flex flex-wrap items-center gap-2 p-4 sm:p-5">
+              <PillButton size="md" tone="white" busy={busy === "save"} onClick={() => void save()}>{draft.id ? "Save" : "Save draft"}</PillButton>
+              <PillButton size="md" tone="white" busy={busy === "test"} onClick={() => void act("test")} disabled={!ready}>
+                Send me a test
+              </PillButton>
+              {scheduled ? (
+                <PillButton size="md" tone="white" busy={busy === "unschedule"} onClick={() => void act("unschedule")}>Unschedule</PillButton>
+              ) : (
+                <PillButton size="md" tone="white" onClick={() => setScheduleOpen(true)} disabled={!ready}>Schedule</PillButton>
+              )}
+              <PillButton size="md" tone="accent" className="sm:ml-auto" onClick={() => setConfirmSend(true)} disabled={!ready || !audience}>
+                Send now
+              </PillButton>
+              <p className="m-0 w-full text-[12.5px] text-app-ink-soft">
+                Tests go to {draft.channel === "email" ? testTo.email ?? "your account email (add one in settings)" : testTo.phone ?? "your phone (add one in settings)"} only.
+              </p>
+            </Card>
+          </>
+        }
+        side={
+          <Card className="p-5">
+            <CardHead title="Preview" action={scheduled ? <Pill tone="info">Scheduled</Pill> : <Pill tone="muted">Draft</Pill>} />
+            <div className="mt-3">
+              {draft.channel === "email" ? <EmailPreview bodyHtml={draft.bodyHtml} preheader={draft.preheader} subject={draft.subject} /> : <TextPreview channel={draft.channel} message={draft.bodyHtml} />}
+            </div>
+          </Card>
+        }
+      />
+
+      {confirmSend ? (
+        <Modal title="Send this campaign now?" onClose={() => setConfirmSend(false)}>
+          <div className="grid gap-4">
+            <p className="m-0 text-[15px] leading-[1.55]">
+              {draft.channel === "email" ? <>The email <strong>“{draft.subject}”</strong></> : `This ${CHANNEL_LABEL[draft.channel]} message`} goes to <strong>{peopleWord(audience ?? 0)}</strong> right away. You can't unsend it.
+            </p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <PillButton size="md" tone="white" onClick={() => setConfirmSend(false)}>Cancel</PillButton>
+              <PillButton size="md" tone="accent" busy={busy === "send"} onClick={() => void act("send")}>Send to {peopleWord(audience ?? 0)}</PillButton>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {scheduleOpen ? (
+        <Modal title="Schedule" onClose={() => setScheduleOpen(false)}>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void act("schedule", { scheduledAt: draft.scheduledAt });
+            }}
+          >
+            <Field label="Send on (Lagos time)" htmlFor="c-when" hint={`Goes to whoever matches the audience at that moment (${audience === null ? "…" : peopleWord(audience)} today).`}>
+              <input id="c-when" type="datetime-local" required value={draft.scheduledAt} onChange={(e) => set({ scheduledAt: e.target.value })} className={inputClass} />
+            </Field>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" className={buttonClass("white")} onClick={() => setScheduleOpen(false)}>Cancel</button>
+              <PillButton size="md" type="submit" busy={busy === "schedule"}>Schedule</PillButton>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+    </div>
+  );
+}

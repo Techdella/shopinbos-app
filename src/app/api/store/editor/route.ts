@@ -4,6 +4,8 @@ import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { parseBody } from "@/lib/api/validate";
 import { EditorUpdateSchema } from "@/lib/schemas";
+import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
 import {
   buildEditorEnvelope,
   createSnapshotFromTemplate,
@@ -33,6 +35,8 @@ async function getStoreEditorData(userId: string) {
       city: true,
       country: true,
       currency: true,
+      status: true,
+      customDomain: true,
       brandSettings: true,
       storeProducts: {
         where: { status: "published" },
@@ -44,6 +48,7 @@ async function getStoreEditorData(userId: string) {
           images: true,
           retailPrice: true,
           currency: true,
+          category: { select: { id: true, name: true, slug: true } },
         },
       },
     },
@@ -89,14 +94,16 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
 
   const brandSettings = ((store.brandSettings as Record<string, unknown>) ?? {}) as StoreBrandSettingsLike;
   const selectedTemplate = getCurrentTemplateMeta(brandSettings);
-  const fallbackDraft = selectedTemplate
-    ? createSnapshotFromTemplate(getTemplateManifest(selectedTemplate.templateId)!)
-    : null;
+  // "blank" (Start blank) and retired templates have no manifest: then the saved draft is the only source.
+  const selectedManifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
+  const fallbackDraft = selectedManifest ? createSnapshotFromTemplate(selectedManifest) : null;
   const envelope = buildEditorEnvelope(brandSettings, fallbackDraft);
+  // The builder previews the store as shoppers see it: delivery promises, WhatsApp, collections and real reviews.
+  const shopper = await loadShopperInfo(store.id, store.brandSettings, store.storeProducts);
 
   return NextResponse.json({
     data: {
-      store,
+      store: { ...store, shopper, storefrontUrl: buildStorefrontUrl(store) },
       seller: {
         name: user.name || user.email?.split("@")[0]?.replace(/[._-]/g, " ") || "there",
         email: user.email,
@@ -120,9 +127,8 @@ export const PATCH = withSeller(async (req: NextRequest, { user }) => {
 
   const brandSettings = ((store.brandSettings as Record<string, unknown>) ?? {}) as StoreBrandSettingsLike;
   const selectedTemplate = getCurrentTemplateMeta(brandSettings);
-  const fallbackDraft = selectedTemplate
-    ? createSnapshotFromTemplate(getTemplateManifest(selectedTemplate.templateId)!)
-    : createBlankEditorSnapshot(store.name);
+  const selectedManifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
+  const fallbackDraft = selectedManifest ? createSnapshotFromTemplate(selectedManifest) : createBlankEditorSnapshot(store.name);
 
   let nextSettings = brandSettings;
   let draft = resolveDraftSnapshot(brandSettings, fallbackDraft);

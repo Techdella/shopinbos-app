@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Mascot, PillButton } from "@/components/app-ui";
 import type { Role } from "@/lib/nav";
@@ -19,6 +19,9 @@ interface Step {
 const STEPS: Record<Role, Step[]> = {
   seller: [
     { title: "Welcome to Shopinbos", body: "A one-minute tour of where everything lives. You can skip it and replay it from Settings any time." },
+    { target: "start-checklist", title: "Start here", body: "A short list to get your shop selling. Each step ticks itself when it's done, and you can skip any of them." },
+    { target: "start-helpers", title: "Peggy and Rex can help", body: "Ask Peggy to turn on payments or set delivery fees. Ask Rex to design your store, fix product photos or make a logo." },
+    { target: "nav-start", title: "Come back any time", body: "Start here stays at the top of your menu until you finish or hide it." },
     { target: "nav-home", title: "Home", body: "Today's sales, what Peggy needs you to do, and your latest orders, all on one page." },
     { target: "add-product", title: "Add products", body: "Snap photos and Rex names and prices them, or add a product by hand." },
     { target: "nav-orders", title: "Orders", body: "Every order from your store, WhatsApp, Instagram and in person. Record a sale from here too." },
@@ -53,7 +56,8 @@ const STEPS: Record<Role, Step[]> = {
   ],
 };
 
-const HOME: Record<Role, string> = { seller: "/home", supplier: "/supplier/dashboard", logistics_partner: "/logistics/dashboard", admin: "/admin/dashboard" };
+// Where the tour starts. New sellers land on Start here; sellers who hid it start from Home.
+const HOME: Record<Role, string[]> = { seller: ["/home/start", "/home"], supplier: ["/supplier/dashboard"], logistics_partner: ["/logistics/dashboard"], admin: ["/admin/dashboard"] };
 
 function visibleRect(selector: string) {
   const element = document.querySelector<HTMLElement>(`[data-tour="${selector}"]`);
@@ -67,11 +71,15 @@ export function GuidedTour({ role }: { role: Role }) {
   const { prefs, save } = usePreferences();
   const [step, setStep] = useState<number | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const steps = STEPS[role];
+  // The Start here steps only make sense on Start here; from Home the tour skips them.
+  const steps = useMemo(
+    () => STEPS[role].filter((item) => pathname === "/home/start" || !(item.target?.startsWith("start-") || item.target === "nav-start")),
+    [role, pathname],
+  );
 
   // Starts once, on the portal's home page, for people who haven't finished or skipped it.
   useEffect(() => {
-    if (prefs && prefs.tour !== "done" && step === null && pathname === HOME[role]) {
+    if (prefs && prefs.tour !== "done" && step === null && HOME[role].includes(pathname)) {
       const timer = window.setTimeout(() => setStep(0), 700);
       return () => window.clearTimeout(timer);
     }

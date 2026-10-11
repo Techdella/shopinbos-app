@@ -29,7 +29,7 @@ export interface Dashboard {
   checklist: Array<{ key: string; label: string; hint: string; href: string; done: boolean; manual: boolean }>;
 }
 
-export const fetchDashboard = () => api<Dashboard>("/api/app/dashboard");
+export const fetchDashboard = (init: { signal?: AbortSignal } = {}) => api<Dashboard>("/api/app/dashboard", init);
 
 export const fetchOrders = (status?: string) =>
   api<Array<{ id: string; createdAt: string; row: OrderRow }>>(`/api/app/orders?limit=50${status ? `&status=${status}` : ""}`);

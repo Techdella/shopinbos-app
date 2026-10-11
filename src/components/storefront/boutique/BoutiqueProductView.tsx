@@ -8,6 +8,7 @@ import { colourHex, matchVariant, readVariants, variantGroups, variantLabel, typ
 import { SectionTitle } from "./BoutiqueChrome";
 import type { BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
+import { ProductReviewForm } from "../reviews/ProductReviewForm";
 
 export interface ProductReviewEntry {
   id: string;
@@ -17,6 +18,7 @@ export interface ProductReviewEntry {
   body: string;
   sellerReply: string;
   createdAt: string;
+  images?: string[];
 }
 
 export interface BoutiqueProductDetail extends ShopperProduct {
@@ -58,6 +60,8 @@ interface Props {
   /** Absolute page URL for Share and the WhatsApp message (live only). */
   shareUrl?: string;
   interactive: boolean;
+  /** Store slug for the live "Write a review" form (left out in editor previews). */
+  reviewSlug?: string;
 }
 
 function Stars({ rating, size = 14, color }: { rating: number; size?: number; color: string }) {
@@ -368,10 +372,10 @@ export function BoutiqueProductView(props: Props) {
           </div>
 
           <div className="mt-5 grid gap-2.5">
-            <button type="button" className="bq-btn w-full" style={look.id === "noir" ? look.secondaryButton : look.primaryButton} disabled={soldOut || !interactive} onClick={() => props.onAddToBag?.(item())}>
+            <button type="button" className="bq-btn w-full" style={look.solidButton} disabled={soldOut || !interactive} onClick={() => props.onAddToBag?.(item())}>
               {soldOut ? "Sold out" : "+ Add to bag"}
             </button>
-            <button type="button" className="bq-btn w-full" style={look.id === "noir" ? look.primaryButton : look.id === "plain" ? look.secondaryButton : { background: `${t.accent}1A`, color: t.ink, border: "1.5px solid transparent" }} disabled={soldOut || !interactive} onClick={() => props.onBuyNow?.(item())}>
+            <button type="button" className="bq-btn w-full" style={look.softButton} disabled={soldOut || !interactive} onClick={() => props.onBuyNow?.(item())}>
               Buy now
             </button>
           </div>
@@ -390,7 +394,7 @@ export function BoutiqueProductView(props: Props) {
             </button>
           </div>
 
-          <div className="mt-4 grid gap-2 rounded-[12px] p-4 text-[13.5px]" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+          <div className="mt-4 grid gap-2 rounded-[12px] p-4 text-[13.5px]" style={{ background: look.raised }}>
             <div className="flex items-start gap-2.5">
               <Icon name="truck" size={18} className="mt-0.5 shrink-0" />
               <div className="min-w-0">
@@ -461,9 +465,9 @@ export function BoutiqueProductView(props: Props) {
                 {product.sku ? <p className="mt-3 text-[12.5px]" style={{ color: t.muted }}>SKU {selected?.sku ?? product.sku}</p> : null}
               </div>
               {specs.length ? (
-                <div className="rounded-[16px] p-5" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+                <div className="rounded-[16px] p-5" style={{ background: look.raised }}>
                   <h3 className="text-[18px] font-semibold">Specifications</h3>
-                  <dl className="mt-3 rounded-[10px] px-4" style={{ background: look.dark ? "#121212" : "#fff" }}>
+                  <dl className="mt-3 rounded-[10px] px-4" style={{ background: look.dark ? t.paperBg : "#fff" }}>
                     {specs.map((spec) => (
                       <div key={spec.name} className="flex justify-between gap-4 border-b py-2.5 text-[14px] last:border-b-0" style={{ borderColor: t.border }}>
                         <dt className="font-semibold">{spec.name}</dt>
@@ -485,7 +489,7 @@ export function BoutiqueProductView(props: Props) {
                 </div>
                 <ul className="grid gap-3">
                   {props.reviews.map((review) => (
-                    <li key={review.id} className="rounded-[14px] p-4" style={{ background: look.dark ? "#1B1B1B" : t.cardBg }}>
+                    <li key={review.id} className="rounded-[14px] p-4" style={{ background: look.raised }}>
                       <div className="flex items-center justify-between gap-2">
                         <Stars rating={review.rating} color="#F2A93B" />
                         <span className="sr-only">{review.rating} out of 5</span>
@@ -493,6 +497,16 @@ export function BoutiqueProductView(props: Props) {
                       </div>
                       {review.title ? <p className="mt-2 text-[14px] font-semibold">{review.title}</p> : null}
                       {review.body ? <p className="mt-1 text-[14px] leading-6" style={{ color: t.muted }}>{review.body}</p> : null}
+                      {review.images?.length ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {review.images.slice(0, 4).map((src, index) => (
+                            <a key={src} href={src} target="_blank" rel="noopener noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={src} alt={`Photo ${index + 1} from ${review.buyerName}`} loading="lazy" className="h-16 w-16 rounded-[10px] object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
                       <p className="mt-2 text-[13px] font-semibold">{review.buyerName}</p>
                       {review.sellerReply ? <p className="mt-2 border-l-2 pl-3 text-[13px]" style={{ borderColor: t.accent, color: t.muted }}><strong style={{ color: t.ink }}>{props.storeName}:</strong> {review.sellerReply}</p> : null}
                     </li>
@@ -502,6 +516,11 @@ export function BoutiqueProductView(props: Props) {
             ) : (
               <p className="text-[14.5px]" style={{ color: t.muted }}>No reviews yet. Customers can review this after their order arrives.</p>
             )
+          ) : null}
+          {tab === "reviews" && props.interactive && props.reviewSlug ? (
+            <div className="mt-5">
+              <ProductReviewForm slug={props.reviewSlug} productId={product.id} productName={product.name} accent={t.accent} ink={t.ink} />
+            </div>
           ) : null}
           {tab === "delivery" ? (
             <div className="bq-cols-2 text-[14.5px] leading-7" style={{ color: t.muted }}>

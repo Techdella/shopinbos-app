@@ -231,6 +231,9 @@ function WishlistSheet({ props, colors, onClose }: { props: Props; colors: Shopp
           ))}
         </ul>
       )}
+      <Link href={getPublicStorefrontPath(props.basePath, "/wishlist")} onClick={onClose} className="mt-3 flex h-11 items-center justify-center rounded-full border text-[14px] font-semibold focus-visible:outline focus-visible:outline-2" style={{ borderColor: colors.border }}>
+        {saved.length ? "Open full wishlist and share it" : "Open wishlist"}
+      </Link>
     </Sheet>
   );
 }
@@ -302,6 +305,9 @@ export function ShopperBottomNav(props: Props) {
     props.onSheetChange?.(next);
   };
   const placement = props.placement ?? "fixed";
+  const router = useRouter();
+  // A live store without a wishlist handler has wishlists turned off by the seller.
+  const wishlistOn = !interactive || Boolean(props.onToggleWishlist);
 
   // A ?q= search link (the storefront's SearchAction) opens search once the query is known.
   useEffect(() => {
@@ -310,13 +316,14 @@ export function ShopperBottomNav(props: Props) {
   }, [props.initialQuery, interactive]);
   const active = sheet === "search" ? "search" : sheet === "wishlist" ? "wishlist" : sheet === "account" ? "account" : props.activeTab ?? null;
 
-  const items: Array<{ key: "home" | "search" | "wishlist" | "bag" | "account"; label: string; icon: IconName; count?: number; onClick: () => void }> = [
+  const allItems: Array<{ key: "home" | "search" | "wishlist" | "bag" | "account"; label: string; icon: IconName; count?: number; onClick: () => void }> = [
     { key: "home", label: "Home", icon: "home", onClick: () => (props.onHome ? props.onHome() : undefined) },
     { key: "search", label: "Search", icon: "search", onClick: () => setSheet("search") },
     { key: "wishlist", label: "Wishlist", icon: "heart", count: props.wishlistIds.length, onClick: () => setSheet("wishlist") },
-    { key: "bag", label: "Bag", icon: "bag", count: props.cartCount, onClick: () => props.onOpenBag?.() },
+    { key: "bag", label: "Bag", icon: "bag", count: props.cartCount, onClick: () => (props.onOpenBag ? props.onOpenBag() : router.push(getPublicStorefrontPath(props.basePath, "/cart"))) },
     { key: "account", label: "Account", icon: "user", onClick: () => setSheet("account") },
   ];
+  const items = allItems.filter((item) => item.key !== "wishlist" || wishlistOn);
 
   const wrapperClass =
     placement === "fixed"
@@ -374,7 +381,7 @@ export function ShopperBottomNav(props: Props) {
         </ul>
       </nav>
       {interactive && sheet === "search" ? <SearchSheet props={props} colors={colors} onClose={() => setSheet(null)} /> : null}
-      {interactive && sheet === "wishlist" ? <WishlistSheet props={props} colors={colors} onClose={() => setSheet(null)} /> : null}
+      {interactive && wishlistOn && sheet === "wishlist" ? <WishlistSheet props={props} colors={colors} onClose={() => setSheet(null)} /> : null}
       {interactive && sheet === "account" ? <AccountSheet props={{ ...props, interactive }} colors={colors} onClose={() => setSheet(null)} /> : null}
     </>
   );

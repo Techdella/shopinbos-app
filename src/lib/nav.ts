@@ -43,6 +43,8 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
     {
       group: "main",
       items: [
+        // Shown while setup is unfinished; Start here hides it (preferences.hiddenNav) once done or dismissed.
+        { id: "start", label: "Start here", icon: "flag", href: "/home/start" },
         { id: "home", label: "Home", icon: "home", href: "/home", core: true },
         {
           id: "orders", label: "Orders", icon: "package", href: "/home/orders", core: true,
@@ -54,7 +56,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         {
           id: "inbox", label: "Inbox", icon: "chat", href: "/home/messages",
           children: [
-            { id: "inbox-messages", label: "Messages", href: "/home/messages" },
+            { id: "inbox-messages", label: "All conversations", href: "/home/messages" },
             { id: "inbox-forms", label: "Form messages", href: "/home/forms" },
             { id: "inbox-chat", label: "Live chat", href: "/home/marketing/chat" },
             { id: "inbox-notifications", label: "Notifications", href: "/home/notifications" },
@@ -108,14 +110,14 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       label: "Store",
       items: [
         {
-          id: "your-store", label: "Your store", icon: "shop", href: "/home/editor",
+          id: "your-store", label: "Your store", icon: "shop", href: "/home/store",
           children: [
-            { id: "editor", label: "Edit your store", href: "/home/editor" },
+            { id: "editor", label: "Edit your store", href: "/seller/store/builder" },
             { id: "pages", label: "Pages", href: "/home/pages" },
             { id: "navigation", label: "Menus", href: "/home/navigation" },
-            { id: "blog", label: "Blog", href: "/home/cms" },
+            { id: "blog", label: "Content", href: "/home/cms" },
             { id: "checkout", label: "Checkout", href: "/home/checkout" },
-            { id: "cart", label: "Cart", href: "/home/commerce/cart" },
+            { id: "cart", label: "Cart and wishlist", href: "/home/commerce/cart" },
             { id: "seo", label: "SEO", href: "/home/seo" },
             { id: "legal", label: "Legal pages", href: "/home/legal" },
           ],
@@ -131,7 +133,6 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "brand-kit", label: "Brand kit", icon: "tag", href: "/home/brand-kit" },
         { id: "templates", label: "Templates", icon: "grid", href: "/builder/templates" },
         { id: "domain", label: "Domain", icon: "globe", href: "/home/domain" },
-        { id: "builder", label: "Advanced builder", icon: "monitor", href: "/seller/store/builder", tag: "Web" },
       ],
     },
     {
@@ -142,7 +143,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "marketing", label: "Overview", icon: "chart", href: "/home/marketing",
           children: [
             { id: "marketing-overview", label: "Overview", href: "/home/marketing" },
-            { id: "campaigns", label: "Broadcasts", href: "/home/marketing/campaigns" },
+            { id: "campaigns", label: "Campaigns", href: "/home/marketing/campaigns" },
             { id: "automations", label: "Automations", href: "/home/automations" },
             { id: "mkt-forms", label: "Forms and pop-ups", href: "/home/marketing/forms" },
             { id: "marketing-analytics", label: "Marketing reports", href: "/home/marketing/analytics" },
@@ -177,9 +178,9 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "labels", label: "Labels and print", icon: "tag", href: "/home/labels" },
         {
-          id: "reports", label: "Reports", icon: "chart", href: "/home/insights",
+          id: "reports", label: "Analytics", icon: "chart", href: "/home/analytics",
           children: [
-            { id: "reports-sales", label: "Sales", href: "/home/insights" },
+            { id: "reports-sales", label: "Sales and visits", href: "/home/analytics" },
             { id: "health", label: "Store health", href: "/home/health" },
             { id: "activity", label: "Activity", href: "/home/activity" },
           ],

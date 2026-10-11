@@ -27,7 +27,7 @@ export function AnnouncementBar({ text, look }: { text: string | null; look: Bou
 function Logo({ store, logoText, look, onHome, centred }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean }) {
   return (
     <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: look.tokens.ink, cursor: "pointer" }} aria-label={`${store.name} home`}>
-      {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" /> : null}
+      {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
       <span className="truncate text-[22px] leading-none @3xl:text-[24px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>
         {logoText}
       </span>
@@ -71,7 +71,7 @@ function ShopMenu({ look, categories, onShopAll, onCategory }: { look: BoutiqueL
         Shop <Icon name="chevDown" size={14} />
       </button>
       {open ? (
-        <ul id={menuId} className="absolute left-1/2 top-full z-40 mt-1 min-w-[200px] -translate-x-1/2 rounded-[12px] border p-1.5 shadow-xl" style={{ background: look.dark ? "#1B1B1B" : "#fff", borderColor: look.tokens.border }}>
+        <ul id={menuId} className="absolute left-1/2 top-full z-40 mt-1 min-w-[200px] -translate-x-1/2 rounded-[12px] border p-1.5 shadow-xl" style={{ background: look.dark ? look.raised : "#fff", borderColor: look.tokens.border }}>
           <li>
             <button type="button" onClick={pick(onShopAll)} className="w-full rounded-[8px] px-3 py-2 text-left text-[14px] font-semibold" style={{ color: look.tokens.ink }}>
               All products
@@ -148,7 +148,7 @@ export function BoutiqueHeader({
   const tools = (
     <div className="flex items-center justify-end gap-1">
       {onSearch ? (
-        <button type="button" className="bq-icon-btn" onClick={onSearch} aria-label="Search products" aria-haspopup="dialog" style={look.id === "breeze" ? undefined : undefined}>
+        <button type="button" className="bq-icon-btn" onClick={onSearch} aria-label="Search products" aria-haspopup="dialog">
           <Icon name="search" size={19} />
         </button>
       ) : null}
@@ -168,7 +168,7 @@ export function BoutiqueHeader({
         >
           <span className="bq-only-wide" aria-hidden>{cartLabel}</span>
           <Icon name="bag" size={17} className="bq-only-narrow" aria-hidden />
-          <span className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold" style={{ background: look.id === "plain" ? t.ink : t.accent, color: look.dark ? "#0A0A0A" : "#fff" }} aria-hidden>
+          <span className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold" style={{ background: look.countBg, color: look.onAccent }} aria-hidden>
             {cartCount}
           </span>
         </button>
@@ -177,7 +177,7 @@ export function BoutiqueHeader({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b" style={{ background: look.dark ? "rgba(10,10,10,.94)" : "rgba(255,255,255,.96)", borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
+    <header className="sticky top-0 z-30 border-b" style={{ background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
         <div className="bq-wrap grid h-[68px] grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0">{nav}</div>
@@ -215,7 +215,7 @@ export function BoutiqueFooter({
   const whatsapp = shopper.whatsappNumber ? `WhatsApp +${shopper.whatsappNumber}` : null;
   const line = [place, whatsapp].filter(Boolean).join(" · ");
   return (
-    <footer className="border-t" style={{ borderColor: t.border, background: look.dark ? "#0A0A0A" : look.id === "plain" ? "#fff" : t.paperBg, color: t.ink }}>
+    <footer className="border-t" style={{ borderColor: t.border, background: look.footerBg, color: t.ink }}>
       <div className="bq-wrap grid gap-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-[420px]">

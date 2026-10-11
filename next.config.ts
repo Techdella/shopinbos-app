@@ -21,6 +21,15 @@ const nextConfig: NextConfig = {
     return config;
   },
   async headers() {
+    // Uploaded photos and logos are served from the project's Supabase storage. Allow its exact origin as well
+    // as *.supabase.co, so a custom storage domain or a local Supabase still shows images.
+    const storageOrigin = (() => {
+      try {
+        return process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : "";
+      } catch {
+        return "";
+      }
+    })();
     return [
       {
         source: "/:path*",
@@ -36,7 +45,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com",
+              `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com ${storageOrigin}`.trim(),
               "font-src 'self' https://fonts.gstatic.com data:",
               // Video studio previews its reel (blob:) and product videos are stored on Supabase.
               "media-src 'self' blob: https://*.supabase.co",

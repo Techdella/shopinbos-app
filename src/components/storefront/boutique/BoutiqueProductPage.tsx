@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { CartDrawer } from "@/app/s/[slug]/CartDrawer";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { useCart } from "@/hooks/useCart";
+import { readCartSettings } from "@shared/cart-checkout";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
+import { useStoreProductView } from "@/lib/analytics/storefront-events";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
@@ -14,7 +16,8 @@ import type { ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
-import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
+import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout } from "./look";
 
 interface Props {
   themeId: BoutiqueThemeId;
@@ -39,13 +42,15 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/** The live product page for Breeze, Noir and Plain stores. */
+/** The live product page for the 2026 theme stores. */
 export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews, avgRating, reviewCount, catalog, shopper, storeBasePath }: Props) {
   const router = useRouter();
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
+  const cartSettings = readCartSettings(store.brandSettings);
   useCampaignAttribution(store.slug);
   useStoreVisitBeacon(store.slug);
+  useStoreProductView(store.slug, product.id);
   const [cartOpen, setCartOpen] = useState(false);
   const [sheet, setSheet] = useState<ShopperSheet>(null);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
@@ -57,7 +62,9 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
 
   const home = snapshot.pages.find((page) => page.pageType === "home") ?? snapshot.pages[0];
   const sections = (home?.sections ?? []).filter((section) => section.visible !== false);
-  const headerCopy = copyOf(sections.find((section) => section.kind === "header"));
+  const headerSection = sections.find((section) => section.kind === "header");
+  const headerCopy = copyOf(headerSection);
+  const headerLayout = typeof headerSection?.settings?.layout === "string" ? headerSection.settings.layout : "";
   const announcementSection = sections.find((section) => section.kind === "announcement-bar");
   const announcement = announcementSection ? text(copyOf(announcementSection).text) || shopper.announcement : null;
   const footerSection = sections.find((section) => section.kind === "footer");
@@ -85,7 +92,8 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
 
   function add(input: AddToBagInput) {
     cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, maxQuantity: input.maxQuantity, quantity: input.quantity });
-    setCartOpen(true);
+    if (cartSettings.afterAdd === "drawer") setCartOpen(true);
+    else router.push(getPublicStorefrontPath(storeBasePath, cartSettings.afterAdd === "checkout" ? "/checkout" : "/cart"));
   }
 
   function buyNow(input: AddToBagInput) {
@@ -98,7 +106,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const searchable = catalog.some((entry) => entry.id === product.id) ? catalog : [product, ...catalog];
 
   return (
-    <div className="bq" style={{ ...lookVars(look), minHeight: "100vh" }}>
+    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} style={{ ...lookVars(look), minHeight: "100vh" }}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to product</a>
       <AnnouncementBar text={announcement} look={look} />
@@ -112,12 +120,12 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         onShopAll={() => go("products")}
         onCategory={() => go("products")}
         onSearch={() => setSheet("search")}
-        onWishlist={() => setSheet("wishlist")}
+        onWishlist={cartSettings.wishlist ? () => setSheet("wishlist") : undefined}
         onBag={() => setCartOpen(true)}
         cartCount={cart.count}
         wishlistCount={wishlist.productIds.length}
         cartLabel={cartLabel}
-        centred={themeId === "plain"}
+        centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
       />
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         <BoutiqueProductView
@@ -125,14 +133,15 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
           look={look}
           shopper={shopper}
           storeName={store.name}
+          reviewSlug={store.slug}
           currency={store.currency}
           reviews={reviews}
           avgRating={avgRating}
           reviewCount={reviewCount}
           related={related}
           relatedHref={(id) => getPublicStorefrontPath(storeBasePath, `/product/${id}`)}
-          wishlistIds={wishlist.productIds}
-          onToggleWishlist={wishlist.toggle}
+          wishlistIds={cartSettings.wishlist ? wishlist.productIds : []}
+          onToggleWishlist={cartSettings.wishlist ? wishlist.toggle : undefined}
           onAddToBag={add}
           onBuyNow={buyNow}
           crumbs={[
@@ -151,8 +160,8 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         storeName={store.name}
         basePath={storeBasePath}
         products={searchable}
-        wishlistIds={wishlist.productIds}
-        onToggleWishlist={wishlist.toggle}
+        wishlistIds={cartSettings.wishlist ? wishlist.productIds : []}
+        onToggleWishlist={cartSettings.wishlist ? wishlist.toggle : undefined}
         cartCount={cart.count}
         onOpenBag={() => setCartOpen(true)}
         colors={navColors(look)}

@@ -48,6 +48,7 @@ const CAN_DO: { icon: IconName; text: string }[] = [
   { icon: "package", text: "Mark orders paid, sent or delivered" },
   { icon: "box", text: "Change prices and stock, publish or hide products" },
   { icon: "tag", text: "Make discount codes" },
+  { icon: "truck", text: "Set up payment methods and delivery fees" },
   { icon: "edit", text: "Draft blog posts, email campaigns and ads for you to check" },
   { icon: "sparkle", text: "Write WhatsApp statuses, captions and descriptions" },
 ];

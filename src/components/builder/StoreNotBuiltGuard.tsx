@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MascotAvatar } from "@/components/ui";
+import { Mascot } from "@/components/app-ui";
 
 const DISMISS_KEY = "shopinbos-store-not-built-dismissed";
 
@@ -10,66 +10,53 @@ export function StoreNotBuiltGuard() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(DISMISS_KEY) === "true";
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(DISMISS_KEY) === "true";
+    } catch {
+      // Storage blocked: show the prompt; dismissing still works for this visit.
+    }
     setShow(!dismissed);
   }, []);
 
-  const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, "true");
+  useEffect(() => {
+    if (!show) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismiss();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [show]);
+
+  function dismiss() {
+    try {
+      localStorage.setItem(DISMISS_KEY, "true");
+    } catch {
+      // ignore
+    }
     setShow(false);
-  };
+  }
 
   if (!show) return null;
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 9999,
-      background: "rgba(14, 42, 56, 0.6)",
-      backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 20,
-      animation: "fadeIn 0.3s ease",
-    }}>
-      <style>{`@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }`}</style>
-      <div className="card" style={{
-        maxWidth: 480, width: "100%",
-        padding: "32px 28px",
-        textAlign: "center",
-        animation: "fadeIn 0.3s ease",
-      }}>
-        <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}>
-          <MascotAvatar role="supplier" size={80} />
-        </div>
-        <h2 style={{
-          fontSize: 20, fontWeight: 700, margin: "0 0 6px",
-          color: "var(--ink-900)", fontFamily: "var(--font-display)",
-        }}>
-          Your store isn't built yet! 🚀
-        </h2>
-        <p style={{
-          fontSize: 14, lineHeight: 1.6, margin: "0 0 20px",
-          color: "var(--ink-600)",
-        }}>
-          You don't have a logo, products, or store pages yet. Want to build it together? I'll guide you through every step!
+    <div className="fixed inset-0 z-[9999] grid place-items-center bg-app-ink/45 p-4 font-app text-app-ink backdrop-blur-sm">
+      <div role="dialog" aria-modal="true" aria-labelledby="store-not-built-title" className="w-full max-w-[460px] rounded-[26px] bg-white px-6 py-7 text-center shadow-[0_24px_60px_-20px_rgba(22,20,31,0.35)]">
+        <Mascot name="rex" className="mx-auto h-20 w-20" alt="Rex" />
+        <h2 id="store-not-built-title" className="m-0 mt-4 text-[22px] font-extrabold tracking-[-0.4px]">Your store isn&apos;t built yet</h2>
+        <p className="mb-0 mt-2 text-[14.5px] leading-[1.55] text-app-ink-soft">
+          There&apos;s no logo, products or pages yet. Tell me what you sell and I&apos;ll build it with you, step by step.
         </p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 12 }}>
-          <Link href="/builder" className="dbtn dBtn-mint" style={{ textDecoration: "none", fontSize: 14, padding: "10px 24px" }}>
-            Let's build!
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Link href="/builder" className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-app-accent px-6 text-[15px] font-extrabold text-white no-underline hover:brightness-95">
+            Build it with Rex
           </Link>
-          <Link href="/builder/templates" className="dbtn dBtn-ghost" style={{ textDecoration: "none", fontSize: 14, padding: "10px 24px" }}>
+          <Link href="/builder/templates" className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white px-6 text-[15px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
             Pick a template
           </Link>
         </div>
-        <button
-          onClick={dismiss}
-          style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 12.5, color: "var(--ink-400)",
-            textDecoration: "underline",
-            padding: 4,
-          }}
-        >
-          I'll do it later
+        <button type="button" onClick={dismiss} className="mt-3 min-h-[40px] px-3 text-[13.5px] font-bold text-app-ink-soft hover:text-app-ink">
+          I&apos;ll do it later
         </button>
       </div>
     </div>

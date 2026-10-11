@@ -140,6 +140,7 @@ export interface TemplatePageSeed {
   seo?: {
     metaTitle: string;
     metaDescription: string;
+    focusKeyword?: string; socialTitle?: string; socialDescription?: string; socialImage?: string; canonicalUrl?: string; noIndex?: boolean;
   };
 }
 

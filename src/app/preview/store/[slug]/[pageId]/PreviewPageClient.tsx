@@ -144,7 +144,7 @@ export function PreviewPageClient({ slug, pageId }: Props) {
           View published
         </a>
       </div>
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, width: "100%", minWidth: 0 }}>
         <StorefrontClient
           store={store as unknown as Parameters<typeof StorefrontClient>[0]["store"]}
           storeBasePath={storeBasePath}

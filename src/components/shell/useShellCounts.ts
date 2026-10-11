@@ -8,6 +8,15 @@ export interface ShellCounts {
   inbox: number;
   orders: number;
   preferences?: AppPreferences;
+  identity?: ShellIdentity | null;
+}
+
+export interface ShellIdentity {
+  name: string;
+  avatarUrl: string | null;
+  logoUrl: string | null;
+  logoLabel: string | null;
+  businessName: string | null;
 }
 
 // One request per page load, shared by the sidebar badges, the top bar bell and the menu preferences.
@@ -83,4 +92,67 @@ export function usePreferences() {
   }
 
   return { prefs, loaded: prefs !== null, save };
+}
+
+// The person's photo and logo. Pages pass what they loaded on the server; the shell-counts response fills in
+// what a page didn't pass; an upload broadcasts the new picture so the top bar, the menu and every other
+// avatar or logo on screen change at once, without a reload.
+const IDENTITY_EVENT = "shopinbos:identity";
+const IDENTITY_KEY = "shopinbos:identity";
+let identityOverride: Partial<ShellIdentity> = {};
+
+function rememberIdentity(identity: Partial<ShellIdentity>) {
+  try {
+    const current = JSON.parse(localStorage.getItem(IDENTITY_KEY) ?? "{}") as Partial<ShellIdentity>;
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify({ ...current, ...identity }));
+  } catch {
+    // Private mode or storage full: loading screens fall back to generic copy.
+  }
+}
+
+/** Last known name, photo and shop name on this device, for loading screens that show before any data. */
+export function cachedIdentity(): Partial<ShellIdentity> {
+  try {
+    return JSON.parse(localStorage.getItem(IDENTITY_KEY) ?? "{}") as Partial<ShellIdentity>;
+  } catch {
+    return {};
+  }
+}
+
+export function broadcastIdentity(identity: Partial<ShellIdentity>) {
+  identityOverride = { ...identityOverride, ...identity };
+  rememberIdentity(identity);
+  pending = null; // The next page's shell-counts request picks up the change too.
+  window.dispatchEvent(new CustomEvent<Partial<ShellIdentity>>(IDENTITY_EVENT, { detail: identity }));
+}
+
+type IdentityProps = { [K in keyof ShellIdentity]?: ShellIdentity[K] | undefined };
+
+/** Props win over the server copy (they're loaded fresh for the page); an upload in this tab wins over both. */
+export function useIdentity(props: IdentityProps): ShellIdentity {
+  const [server, setServer] = useState<ShellIdentity | null>(null);
+  const [override, setOverride] = useState<Partial<ShellIdentity>>(identityOverride);
+  useEffect(() => {
+    let alive = true;
+    void loadCounts().then((counts) => {
+      if (!counts?.identity) return;
+      rememberIdentity(counts.identity);
+      if (alive) setServer(counts.identity);
+    });
+    const onChange = (event: Event) => setOverride((current) => ({ ...current, ...(event as CustomEvent<Partial<ShellIdentity>>).detail }));
+    window.addEventListener(IDENTITY_EVENT, onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener(IDENTITY_EVENT, onChange);
+    };
+  }, []);
+  const pick = <K extends keyof ShellIdentity>(key: K): ShellIdentity[K] =>
+    (key in override ? override[key] : props[key] !== undefined ? props[key] : server?.[key] ?? null) as ShellIdentity[K];
+  return {
+    name: pick("name") ?? "",
+    avatarUrl: pick("avatarUrl"),
+    logoUrl: pick("logoUrl"),
+    logoLabel: pick("logoLabel"),
+    businessName: pick("businessName"),
+  };
 }

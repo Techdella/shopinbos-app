@@ -18,8 +18,8 @@ export default async function SupplierInboxPage() {
     },
     orderBy: { updatedAt: "desc" },
     include: {
-      participant1: { select: { id: true, name: true, role: true } },
-      participant2: { select: { id: true, name: true, role: true } },
+      participant1: { select: { id: true, name: true, avatarUrl: true, role: true } },
+      participant2: { select: { id: true, name: true, avatarUrl: true, role: true } },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,

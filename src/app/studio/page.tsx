@@ -1,80 +1,93 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace } from "@/lib/workspace";
-import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Pill, PillLink } from "@/components/app-kit";
-import { Mascot } from "@/components/app-ui";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { db } from "@/lib/db/client";
+import { aiConfigured } from "@/lib/ai/client";
+import { isLiveStatus } from "@/lib/ai/rex/build-store";
+import { summariseRexVersions } from "@/lib/ai/rex/studio-versions";
+import { loadHealthFacts, settingsOf, studioDraft, studioStoreSelect, themeNameFor, versionsOf } from "@/lib/ai/rex/studio.server";
+import { getCurrentTemplateMeta, parseEditorState } from "@/lib/store-templates";
+import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
+import { buildStorefrontOrigin, buildStorefrontUrl } from "@/lib/domains/storefront";
+import { RexStudio } from "@/components/builder/rex/RexStudio";
+
+// Rex Studio opens on a chat with Rex (pictures, logos, videos, store edits, copy, marketing via /api/ai/rex);
+// the store preview opens beside it on demand. `?prompt=` prefills the composer, `?preview=1` opens the preview.
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Rex Studio" };
 
-const tools: Array<{ icon: IconName; title: string; description: string; features: string[]; cta: string; href: string }> = [
-  {
-    icon: "palette",
-    title: "Logo",
-    description: "Describe your brand and Rex draws logo ideas for your store.",
-    features: ["AI logos", "Matches your colours", "Three styles"],
-    cta: "Make a logo",
-    href: "/studio/logo",
-  },
-  {
-    icon: "document",
-    title: "Pages",
-    description: "Build and change store pages by dragging sections. Start from a template or a blank page.",
-    features: ["Drag and drop", "Templates", "Works on phones"],
-    cta: "Build pages",
-    href: "/builder/editor",
-  },
-  {
-    icon: "image",
-    title: "Images",
-    description: "Product photos, banners and brand pictures. Describe what you need and Rex makes it.",
-    features: ["Product photos", "Banners", "On-brand style"],
-    cta: "Make images",
-    href: "/studio/images",
-  },
-  {
-    icon: "edit",
-    title: "Store editor",
-    description: "The full visual editor with a live preview. Change colours, layout and words, then publish.",
-    features: ["Live preview", "Your theme", "Publish in one tap"],
-    cta: "Open editor",
-    href: "/builder/editor",
-  },
-];
+function text(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
 
-export default async function StudioPage() {
+export default async function StudioPage({ searchParams }: { searchParams?: Promise<{ onboarding?: string; prompt?: string | string[]; preview?: string }> }) {
   const user = await requireRole(["seller"], "/login");
-  const workspace = await getSellerWorkspace(user.id);
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: studioStoreSelect });
+  if (!store) redirect("/onboarding?role=seller");
+  const params = await searchParams;
+
+  const settings = settingsOf(store) as Record<string, unknown>;
+  const { draft, saved } = studioDraft(store);
+  const published = parseEditorState(settings.editor).published ?? null;
+
+  const products = await db.storeProduct
+    .findMany({
+      where: { storeId: store.id, status: "published" },
+      orderBy: { createdAt: "desc" },
+      take: 60,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        images: true,
+        retailPrice: true,
+        compareAtPrice: true,
+        currency: true,
+        category: { select: { id: true, name: true, slug: true } },
+      },
+    })
+    .catch(() => []);
+  const [facts, shopper] = await Promise.all([loadHealthFacts(store, draft), loadShopperInfo(store.id, store.brandSettings, products)]);
+
+  const memory = (settings.onboardingMemory && typeof settings.onboardingMemory === "object" ? settings.onboardingMemory : {}) as Record<string, unknown>;
+  const firstName = text(memory.preferredName)?.split(/\s+/)[0] ?? user.name?.trim().split(/\s+/)[0] ?? "there";
+  const template = getCurrentTemplateMeta(settingsOf(store));
 
   return (
-    <SellerPage user={user} store={storeSummary(workspace?.store ?? null)} title="Rex Studio" sub="Build and dress your store with Rex.">
-      <div className="grid gap-5">
-        <section className="flex flex-wrap items-center gap-4 rounded-[22px] bg-app-peach p-5 sm:p-6">
-          <Mascot name="rex" className="h-16 w-16 shrink-0" />
-          <div className="min-w-0 flex-1 basis-[240px]">
-            <h2 className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Hey, I&apos;m Rex</h2>
-            <p className="mb-0 mt-1 text-[14.5px] leading-[1.55]">I help you build your store: logos, pages, pictures and the whole design. Pick a tool to start.</p>
-          </div>
-        </section>
-
-        <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 2xl:grid-cols-4">
-          {tools.map((tool) => (
-            <li key={tool.title} className="flex min-w-0 flex-col gap-3 rounded-[22px] border border-app-line bg-white p-5">
-              <div className="flex items-center gap-3">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-canvas"><Icon name={tool.icon} size={20} /></span>
-                <h2 className="m-0 text-[17px] font-extrabold">{tool.title}</h2>
-              </div>
-              <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">{tool.description}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {tool.features.map((f) => <Pill key={f}>{f}</Pill>)}
-              </div>
-              <div className="mt-auto pt-2">
-                <PillLink href={tool.href} tone="ink" size="sm" className="min-h-[40px]">{tool.cta} <Icon name="arrow" size={14} /></PillLink>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </SellerPage>
+    <RexStudio
+      firstName={firstName}
+      fromOnboarding={params?.onboarding === "true"}
+      initialPrompt={(Array.isArray(params?.prompt) ? params.prompt[0] : params?.prompt)?.slice(0, 2000) ?? ""}
+      openPreview={params?.preview === "1"}
+      store={{
+        id: store.id,
+        name: store.name,
+        slug: store.slug,
+        description: store.description,
+        logoUrl: store.logoUrl,
+        city: store.city,
+        country: store.country,
+        currency: store.currency,
+        storeProducts: products,
+        shopper,
+      }}
+      storeHost={buildStorefrontOrigin(store).replace(/^https?:\/\//, "")}
+      storeUrl={buildStorefrontUrl(store)}
+      initialDraft={draft}
+      draftSaved={saved}
+      themeName={themeNameFor(draft.templateId, draft.templateName)}
+      healthFacts={facts}
+      versions={summariseRexVersions(versionsOf(store), draft.updatedAt)}
+      live={isLiveStatus(store.status) && Boolean(published)}
+      hasUnpublishedChanges={!published || published.updatedAt !== draft.updatedAt}
+      aiReady={aiConfigured()}
+      buildContext={{
+        brief: [store.description, text(memory.businessDescription)].filter(Boolean).join("\n") || undefined,
+        category: text(memory.category),
+        businessDescription: text(memory.businessDescription) ?? store.description ?? undefined,
+        template: template ? { templateId: template.templateId, templateName: template.templateName } : null,
+      }}
+    />
   );
 }

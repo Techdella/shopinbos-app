@@ -166,6 +166,23 @@ Status: built and verified locally (production build, route smoke 252/252, chang
 - [ ] Webhook retries beyond the request (a queue) and the `cod.reminder` sender.
 - [ ] Rider pay (the Riders app shows delivery fees, not rider earnings).
 
+### Phase 13 - Start Here, Marketing Suite, Unified Inbox, Reviews, Checkout, Analytics, CMS, Rex Chat-First, 22 Templates
+
+Status: built and verified locally (tsc clean, 124 unit tests, production build, route smoke 263/263, 33 new/changed pages checked at 390/1440px in Chromium with no errors or overflow). Live provider sends (Resend, Twilio, Meta, Telegram, Google) not exercised here.
+
+- [x] Start here (/home/start): checklist from real state, inline steps, Peggy setup tools; onboarding cut to 2 steps.
+- [x] Marketing: subscribers, segments, forms and pop-ups, campaigns (email/SMS/WhatsApp), email templates, automations (welcome, abandoned cart, browse abandonment, post-purchase, win-back, birthday), discounts (automatic, BXGY, scoped). Scheduler: /api/cron/marketing.
+- [x] Commerce: bag page, wishlist page, 4-step checkout with server-quoted prices (priceOrder), abandoned-cart capture + recovery links.
+- [x] Unified inbox (/home/messages): email, WhatsApp, SMS, Messenger, Instagram, Telegram, calls, live chat widget, forms; signed webhooks under /api/webhooks/*.
+- [x] Reviews: one list across sources, moderation, replies, requests, Google Business Profile, screenshot import, wall, widget, Google Shopping ratings feed.
+- [x] Analytics (/home/analytics) on real orders + new StoreMetricDaily tracking; social selling feeds at /api/public/feeds/<store>/<channel>.
+- [x] Content collections (/home/cms) with Tiptap rich editor; SEO tab on items, pages, products, collections.
+- [x] Rex Studio opens on a tool-calling chat (photos, logos, video scripts, sections, themes, copy, campaigns, automations, CMS).
+- [x] Templates: 22 themes with Nigerian names and live previews.
+- [x] Applied to the live database (2026-10-12): analytics-social, commerce, inbox, reviews, marketing (tables + enum), cms.
+- [ ] After merge: schedule the `run-marketing` pg_cron job (last statement of docs/migrations/2026-10-12-marketing.sql).
+- [ ] Set provider env vars per channel (see .env.local.example) and INBOX_ENCRYPTION_KEY / INTEGRATIONS_ENCRYPTION_KEY.
+
 ## Current Todos
 
 - [x] Finish the onboarding visual QA pass against the supplied mockup screens.

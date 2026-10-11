@@ -502,6 +502,7 @@ function SectionHeading({
 }
 
 function CommerceButton({
+  onDark = false,
   label,
   theme,
   variant = "primary",
@@ -523,6 +524,8 @@ function CommerceButton({
   block?: boolean;
   disabled?: boolean;
   loading?: boolean;
+  /** Sits on a dark hero: outline, ghost and text buttons use the hero's light text colour. */
+  onDark?: boolean;
   title?: string;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
@@ -540,11 +543,11 @@ function CommerceButton({
     variant === "secondary"
       ? { background: rgba(theme.accent, 0.12), color: theme.accent, borderColor: rgba(theme.accent, 0.18) }
       : variant === "outline"
-        ? { background: "transparent", color: theme.ink, borderColor: theme.border }
+        ? { background: "transparent", color: onDark ? theme.heroText : theme.ink, borderColor: onDark ? rgba(theme.heroText, 0.45) : theme.border }
         : variant === "ghost"
-          ? { background: rgba(theme.heroBg, 0.06), color: theme.ink, borderColor: "transparent" }
+          ? { background: onDark ? rgba(theme.heroText, 0.12) : rgba(theme.heroBg, 0.06), color: onDark ? theme.heroText : theme.ink, borderColor: "transparent" }
           : variant === "text"
-            ? { background: "transparent", color: theme.ink, borderColor: "transparent", paddingLeft: 0, paddingRight: 0 }
+            ? { background: "transparent", color: onDark ? theme.heroText : theme.ink, borderColor: "transparent", paddingLeft: 0, paddingRight: 0 }
             : variant === "gradient"
               ? { background: `linear-gradient(135deg, ${theme.ctaBg}, ${theme.accent})`, color: theme.ctaText, borderColor: "transparent" }
               : variant === "floating"
@@ -694,7 +697,7 @@ function ProductCard({
 }
 
 /**
- * Renders a store snapshot. The 2026 themes (Breeze, Noir, Plain) have their own renderer; every other
+ * Renders a store snapshot. The 2026 themes (THEME_LIBRARY) have their own renderer; every other
  * template uses the classic section renderer below.
  */
 export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps) {
@@ -948,16 +951,17 @@ function ClassicTemplateSurface({
       >
         {isSelected || isHovered ? (
           <div style={{ position: "absolute", top: 8, left: 8, zIndex: 999, display: "flex", alignItems: "center", gap: 4, background: "#0F1F3D", color: "#fff", borderRadius: 6, padding: 4, boxShadow: "0 10px 30px rgba(15,31,61,.18)" }}>
-            {[
-              ["Edit", () => onSelectSection?.(sectionId)],
-              ["Change Style", () => onChangeSectionStyle?.(sectionId)],
-              ["Duplicate", () => onDuplicateSection?.(sectionId)],
-              ["Up", () => onMoveSection?.(sectionId, "up")],
-              ["Down", () => onMoveSection?.(sectionId, "down")],
-              ["Hide", () => onToggleSectionVisibility?.(sectionId)],
-              ["Delete", () => onDeleteSection?.(sectionId)],
-              ["Save", () => onSaveReusableSection?.(sectionId)],
-            ].map(([label, action]) => (
+            {/* Only the actions the host editor handles, so a missing handler never shows as a dead button. */}
+            {([
+              ["Edit", onSelectSection, () => onSelectSection?.(sectionId)],
+              ["Change Style", onChangeSectionStyle, () => onChangeSectionStyle?.(sectionId)],
+              ["Duplicate", onDuplicateSection, () => onDuplicateSection?.(sectionId)],
+              ["Up", onMoveSection, () => onMoveSection?.(sectionId, "up")],
+              ["Down", onMoveSection, () => onMoveSection?.(sectionId, "down")],
+              ["Hide", onToggleSectionVisibility, () => onToggleSectionVisibility?.(sectionId)],
+              ["Delete", onDeleteSection, () => onDeleteSection?.(sectionId)],
+              ["Save", onSaveReusableSection, () => onSaveReusableSection?.(sectionId)],
+            ] as const).filter(([, handler]) => Boolean(handler)).map(([label, , action]) => (
               <button
                 key={String(label)}
                 type="button"
@@ -1261,6 +1265,11 @@ function ClassicTemplateSurface({
           : theme.headingStyle === "serif"
             ? `linear-gradient(90deg, ${theme.heroBg} 0%, ${theme.heroBg} 50%, ${theme.paperBg} 50%, ${theme.paperBg} 100%)`
             : `linear-gradient(145deg, ${theme.heroBg}, ${rgba(theme.heroBg, 0.88)})`;
+      // The serif half-and-half background lines up with the two desktop columns; when they stack (phones and
+      // tablets) the copy would sit half on the light side, so below lg the hero is the solid dark colour.
+      const heroBgStacked = !heroIsLight && theme.headingStyle === "serif" ? theme.heroBg : heroBg;
+      const heroBgStyle = { "--hero-bg-sm": heroBgStacked, "--hero-bg-lg": heroBg } as React.CSSProperties;
+      const heroBgClass = "[background:var(--hero-bg-sm)] lg:[background:var(--hero-bg-lg)]";
       const heroTextColor = heroIsLight ? theme.ink : theme.heroText;
       const heroMutedColor = heroIsLight ? theme.muted : rgba(theme.heroText, 0.82);
       const primaryButtonVariant = String(kindSection.settings?.primaryButtonVariant ?? "primary");
@@ -1289,7 +1298,7 @@ function ClassicTemplateSurface({
               <p className="mt-6 max-w-[560px] text-[17px] leading-8" style={{ color: rgba(theme.heroText, 0.78) }}>{editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}</p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
-                <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View categories")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View categories")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
             </div>
           </section>
@@ -1332,7 +1341,7 @@ function ClassicTemplateSurface({
       if (heroLayout === "category-portal") {
         const cats = categoryItemsFor(kindSection).slice(0, 4);
         return (
-          <section key={kindSection.id} className="px-5 py-14 sm:px-8" style={{ background: heroBg }}>
+          <section key={kindSection.id} className={`px-5 py-14 sm:px-8 ${heroBgClass}`} style={heroBgStyle}>
             <div className="mx-auto grid max-w-[1320px] gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
               <div>
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: heroIsLight ? theme.accent : rgba(theme.heroText, 0.72) }}>{editableCopy(kindSection.id, "eyebrow", copy.eyebrow, store.name)}</div>
@@ -1493,8 +1502,8 @@ function ClassicTemplateSurface({
       return (
         <section
           key={kindSection.id}
-          className={isFullBleedSplit ? "py-0" : "px-5 py-14 sm:px-8 lg:py-20"}
-          style={{ background: heroBg }}
+          className={`${isFullBleedSplit ? "py-0" : "px-5 py-14 sm:px-8 lg:py-20"} ${heroBgClass}`}
+          style={heroBgStyle}
         >
           <div className={isFullBleedSplit ? "grid min-h-[620px] lg:grid-cols-[1.03fr_0.97fr]" : "mx-auto grid max-w-[1240px] gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center"}>
             <div className={isFullBleedSplit ? "flex min-h-[540px] flex-col justify-center px-5 py-16 sm:px-10 lg:px-12 xl:px-16" : "max-w-[640px]"}>
@@ -1509,7 +1518,7 @@ function ClassicTemplateSurface({
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
-                <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View story")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View story")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark={!heroIsLight} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
             </div>
             <div className={isFullBleedSplit ? "grid gap-4 self-stretch p-5 sm:grid-cols-[1.2fr_0.8fr] sm:p-8 lg:p-10" : "grid gap-4 sm:grid-cols-[1.2fr_0.8fr]"}>
@@ -3140,7 +3149,7 @@ function ClassicTemplateSurface({
             title={isEditor ? "Click to replace logo" : undefined}
           >
             {store.logoUrl
-              ? <img src={store.logoUrl} alt={store.name} className="h-10 w-10 rounded-[12px] object-cover" />
+              ? <img src={store.logoUrl} alt="" className="h-10 w-10 rounded-[12px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
               : <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>}
             <div>
               <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
