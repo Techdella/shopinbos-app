@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
 import { AppIcon, type AppIconName } from "@/components/icons";
+import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
 import { Card, Mascot, Notice, T, Wash } from "@/components/ui";
-import { ApiError } from "@/lib/api";
-import { fetchDashboard, type Dashboard } from "@/lib/dashboard";
+import type { Dashboard } from "@/lib/dashboard";
+import { useHomeData } from "@/lib/homeData";
+import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
+import { useSession } from "@/lib/session";
 import { openPath, openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
@@ -40,24 +43,42 @@ function RoundButton({ icon, label, onPress, dot }: { icon: AppIconName; label: 
   );
 }
 
+/** The first open on this phone shows "Opening your shop" at least this long, so it doesn't just flash. */
+const OPENING_MIN_MS = 1500;
+
 export default function Home() {
-  const [data, setData] = useState<Dashboard | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { session } = useSession();
+  const uid = session?.user.id;
+  const home = useHomeData(uid);
+  const { data, error, cachedAt } = home;
+  const load = home.reload;
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      setData(await fetchDashboard());
-      setError(null);
-    } catch (loadError) {
-      if (loadError instanceof ApiError && loadError.status === 403) return router.replace("/more");
-      setError(loadError instanceof Error ? loadError.message : "Couldn't load your shop.");
-    }
-  }, []);
-
+  // First time this seller's Home loads on this phone → "Opening your shop"; every later open → skeleton.
+  const [firstOpen] = useState(() => (uid ? !hasOpenedHome(uid) : false));
+  const [storeName] = useState(() => (uid ? rememberedStoreName(uid) ?? home.cached?.data.store.name ?? null : null));
+  const [openingDone, setOpeningDone] = useState(!firstOpen);
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (openingDone) return;
+    const timer = setTimeout(() => setOpeningDone(true), OPENING_MIN_MS);
+    return () => clearTimeout(timer);
+  }, [openingDone]);
+
+  const screen: "home" | "opening" | "skeleton" | "slow" =
+    data && openingDone ? "home" : home.slow && !data ? "slow" : error && !data ? "home" : firstOpen ? "opening" : data ? "home" : "skeleton";
+
+  // The opening and slow screens are full screen: hide the tab bar while they show.
+  const navigation = useNavigation();
+  const fullScreen = screen === "opening" || screen === "slow";
+  useEffect(() => {
+    navigation.setOptions({ tabBarStyle: fullScreen ? { display: "none" } : undefined });
+  }, [navigation, fullScreen]);
+
+  if (screen === "opening") return <OpeningShop storeName={data?.store.name ?? storeName} />;
+  if (screen === "skeleton") return <HomeSkeleton />;
+  if (screen === "slow") {
+    return <SlowNetwork offline={home.offline} cached={home.cached} attempting={home.attempting} nextRetryAt={home.nextRetryAt} onRetry={() => void load()} onUseCached={home.showCached} />;
+  }
 
   const firstName = data?.ownerName.split(/\s+/)[0] ?? "";
   const week = data?.daily.data.slice(-7) ?? [];
@@ -99,6 +120,20 @@ export default function Home() {
               <AppIcon name="mic" size={18} color="#FFFFFF" />
             </View>
           </Pressable>
+
+          {cachedAt !== null && (
+            <View style={{ marginTop: 14 }}>
+              <OfflineBanner
+                offline={home.offline}
+                savedAt={cachedAt}
+                action={
+                  <Pressable accessibilityRole="button" accessibilityLabel="Try again now" disabled={home.attempting} onPress={() => void load()} hitSlop={8} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "flex-end" }}>
+                    <T weight="extrabold" style={{ fontSize: 13.5, color: "#8A5A08", textDecorationLine: "underline" }}>{home.attempting ? "Trying…" : "Retry"}</T>
+                  </Pressable>
+                }
+              />
+            </View>
+          )}
 
           {error && <View style={{ marginTop: 14 }}><Notice>{error}</Notice></View>}
 

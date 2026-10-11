@@ -499,3 +499,13 @@ body {
    label) can push a column wider than a phone screen. Inside the app, let them shrink instead. */
 .app-scope .grid > *, .app-scope main .flex-1 { min-width: 0; }
 .app-scope main :where(p, h1, h2, h3, dd, li) { overflow-wrap: anywhere; }
+
+/* Loading screen (AppLoading): progress line under the top bar and a gentle pulse on the skeleton chart. */
+@keyframes app-loading-line { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+@keyframes app-loading-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.app-loading-line { animation: app-loading-line 1.6s cubic-bezier(0.45, 0, 0.25, 1) infinite; }
+.app-loading-pulse { animation: app-loading-pulse 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .app-loading-line { animation: none; width: 100%; opacity: 0.6; }
+  .app-loading-pulse { animation: none; }
+}

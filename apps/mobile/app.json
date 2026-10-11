@@ -46,10 +46,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/brand/rex.png",
-          "imageWidth": 180,
+          "image": "./assets/brand/mark-white.png",
+          "imageWidth": 76,
           "resizeMode": "contain",
-          "backgroundColor": "#F6F5F9"
+          "backgroundColor": "#0C4A44"
         }
       ]
     ]

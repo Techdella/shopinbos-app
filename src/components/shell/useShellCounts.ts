@@ -98,10 +98,30 @@ export function usePreferences() {
 // what a page didn't pass; an upload broadcasts the new picture so the top bar, the menu and every other
 // avatar or logo on screen change at once, without a reload.
 const IDENTITY_EVENT = "shopinbos:identity";
+const IDENTITY_KEY = "shopinbos:identity";
 let identityOverride: Partial<ShellIdentity> = {};
+
+function rememberIdentity(identity: Partial<ShellIdentity>) {
+  try {
+    const current = JSON.parse(localStorage.getItem(IDENTITY_KEY) ?? "{}") as Partial<ShellIdentity>;
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify({ ...current, ...identity }));
+  } catch {
+    // Private mode or storage full: loading screens fall back to generic copy.
+  }
+}
+
+/** Last known name, photo and shop name on this device, for loading screens that show before any data. */
+export function cachedIdentity(): Partial<ShellIdentity> {
+  try {
+    return JSON.parse(localStorage.getItem(IDENTITY_KEY) ?? "{}") as Partial<ShellIdentity>;
+  } catch {
+    return {};
+  }
+}
 
 export function broadcastIdentity(identity: Partial<ShellIdentity>) {
   identityOverride = { ...identityOverride, ...identity };
+  rememberIdentity(identity);
   pending = null; // The next page's shell-counts request picks up the change too.
   window.dispatchEvent(new CustomEvent<Partial<ShellIdentity>>(IDENTITY_EVENT, { detail: identity }));
 }
@@ -114,7 +134,11 @@ export function useIdentity(props: IdentityProps): ShellIdentity {
   const [override, setOverride] = useState<Partial<ShellIdentity>>(identityOverride);
   useEffect(() => {
     let alive = true;
-    void loadCounts().then((counts) => alive && counts?.identity && setServer(counts.identity));
+    void loadCounts().then((counts) => {
+      if (!counts?.identity) return;
+      rememberIdentity(counts.identity);
+      if (alive) setServer(counts.identity);
+    });
     const onChange = (event: Event) => setOverride((current) => ({ ...current, ...(event as CustomEvent<Partial<ShellIdentity>>).detail }));
     window.addEventListener(IDENTITY_EVENT, onChange);
     return () => {

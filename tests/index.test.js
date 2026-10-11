@@ -575,12 +575,15 @@ test("portal namespaces have shared empty, loading, and error states", () => {
     assert.ok(exists(filePath), `${filePath} should exist`);
   });
 
-  assert.match(states, /export function PortalLoadingState/);
+  const loading = read("src/components/shell/AppLoading.tsx");
+  ["home", "seller", "supplier", "logistics", "admin", "products", "peggy"].forEach((segment) => {
+    assert.match(read(`src/app/${segment}/loading.tsx`), /<AppLoading role=/, `${segment} uses the shared loading screen`);
+  });
+  assert.match(loading, /Opening \$\{name \|\| FALLBACK_NAME\[role\]\}/);
+  assert.match(loading, /SLOW_AFTER_MS = 8000/);
+  assert.match(loading, /Your network is slow/);
   assert.match(states, /export function PortalErrorState/);
   assert.match(states, /unstable_retry/);
-  assert.match(states, /Opening your shop workspace/);
-  assert.match(states, /Preparing your supplier desk/);
-  assert.match(states, /Preparing your route desk/);
   assert.match(rolePage, /We will surface the next item here when it arrives/);
   assert.match(rolePage, /Icon name="list"/);
   assert.match(sync, /\[x\] Add empty, loading, and error states across seller, supplier, and logistics portals/);

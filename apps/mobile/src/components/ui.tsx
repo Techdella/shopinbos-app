@@ -22,6 +22,8 @@ import { colors, fonts, radii } from "@/theme";
 
 export const images = {
   wordmark: require("../../assets/brand/wordmark-dark.png"),
+  wordmarkLight: require("../../assets/brand/wordmark-light.png"),
+  markWhite: require("../../assets/brand/mark-white.png"),
   rex: require("../../assets/brand/rex.png"),
   peggy: require("../../assets/brand/peggy.png"),
   peggyWave: require("../../assets/brand/peggy-wave.png"),
@@ -61,8 +63,8 @@ export function Wash() {
   );
 }
 
-export function Wordmark({ height = 18 }: { height?: number }) {
-  return <Image source={images.wordmark} style={{ height, width: height * (660 / 63) }} contentFit="contain" accessibilityLabel="Shopinbos" />;
+export function Wordmark({ height = 18, light = false }: { height?: number; light?: boolean }) {
+  return <Image source={light ? images.wordmarkLight : images.wordmark} style={{ height, width: height * (660 / 63) }} contentFit="contain" accessibilityLabel="Shopinbos" />;
 }
 
 export function Mascot({ name, size, label }: { name: "rex" | "peggy" | "peggyWave"; size: number; label?: string }) {
