@@ -48,19 +48,19 @@ export async function POST(request: NextRequest) {
     claims.email?.split("@")[0]?.replace(/[._-]/g, " ") ||
     "Shopinbos User";
 
-  const email = claims.email.toLowerCase();
+  const email = claims.email?.toLowerCase() ?? null;
 
   // Check by supabaseId first, then fall back to email (handles account recreation / ID mismatch)
   let existingUser = await db.user.findUnique({
     where: { supabaseId: claims.sub },
     select: { id: true, role: true },
   });
-  if (!existingUser) {
+  if (!existingUser && email) {
     existingUser = await db.user.findUnique({ where: { email }, select: { id: true, role: true } }) ?? null;
   }
 
   const requestedAdmin = requestedRole === "admin";
-  const isAdminInvite = adminInviteEmails().includes(email);
+  const isAdminInvite = email ? adminInviteEmails().includes(email) : false;
   const canUseAdminRole = existingUser?.role === "admin" || isAdminInvite;
 
   if (requestedAdmin && !canUseAdminRole) {
@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     role,
     fullName,
     businessName: body.businessName,
-    phone: body.phone,
+    // A verified phone from the session wins over whatever the form sent.
+    phone: claims.phone ?? body.phone,
   });
 
   return NextResponse.json({ data: { id: user.id, role: user.role } });

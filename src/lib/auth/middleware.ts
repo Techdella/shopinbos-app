@@ -4,6 +4,7 @@ import { ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
 import { getSupabaseServiceClient, getSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthUser, JWTClaims, Role } from "./types";
 import { apiError } from "@/lib/api/response";
+import { e164FromSupabase } from "@/lib/auth/app-user";
 
 // ─── Verify a raw access token via Supabase Admin client ─────────────────────
 
@@ -15,7 +16,8 @@ export async function verifyJWT(token: string): Promise<JWTClaims | null> {
     const u = data.user;
     return {
       sub: u.id,
-      email: u.email ?? "",
+      email: u.email || null,
+      phone: e164FromSupabase(u.phone),
       user_metadata: {
         role: (u.user_metadata?.role as Role) ?? "seller",
         name: u.user_metadata?.name,
@@ -52,14 +54,14 @@ export async function resolveUser(claims: JWTClaims): Promise<AuthUser | null> {
 
 // ─── Resolve Supabase user ID from request (header or cookie) ─────────────────
 
-async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email: string; role: Role; fullName?: string; businessName?: string; phone?: string } | null> {
+async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email: string | null; role: Role; fullName?: string; businessName?: string; phone?: string | null } | null> {
   // 1. Try Authorization: Bearer <token>
   const auth = req.headers.get("authorization");
   const bearerToken = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
   if (bearerToken) {
     const claims = await verifyJWT(bearerToken);
     if (claims) {
-      return { id: claims.sub, email: claims.email, role: claims.user_metadata.role, fullName: claims.user_metadata.name };
+      return { id: claims.sub, email: claims.email, phone: claims.phone, role: claims.user_metadata.role, fullName: claims.user_metadata.name };
     }
   }
 
@@ -70,7 +72,7 @@ async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email:
     if (!error && data.user) {
       return {
         id: data.user.id,
-        email: data.user.email ?? "",
+        email: data.user.email || null,
         role: (data.user.user_metadata?.role as Role) ?? "seller",
         fullName:
           (data.user.user_metadata?.fullName as string | undefined) ??
@@ -79,7 +81,7 @@ async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email:
         businessName:
           (data.user.user_metadata?.businessName as string | undefined) ??
           (data.user.user_metadata?.business_name as string | undefined),
-        phone: data.user.user_metadata?.phone as string | undefined,
+        phone: e164FromSupabase(data.user.phone) ?? (data.user.user_metadata?.phone as string | undefined),
       };
     }
   } catch {

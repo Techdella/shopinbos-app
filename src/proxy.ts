@@ -161,11 +161,13 @@ export async function proxy(request: NextRequest) {
   }).catch(() => null);
 
   if (!store) {
-    if (pathname.startsWith("/onboarding")) return response;
-    return redirectTo(request, "/onboarding/path-picker");
+    if (pathname.startsWith("/onboarding") || pathname.startsWith("/api/")) return response;
+    return redirectTo(request, "/onboarding/rex");
   }
 
-  if (store.firstDashboardVisitComplete || pathname.startsWith("/onboarding")) {
+  // Only page navigations get steered into onboarding. API calls made *from* onboarding (saving progress,
+  // Rex, uploads) must reach their handlers instead of being redirected to an HTML page.
+  if (store.firstDashboardVisitComplete || pathname.startsWith("/onboarding") || pathname.startsWith("/api/")) {
     return response;
   }
 

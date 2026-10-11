@@ -25,6 +25,27 @@
   --color-rose:        #F2C8BA;
   --color-lime:        #C7E36B;
 
+  /* ── 2026 app redesign (shared/tokens.ts) — auth + onboarding first ── */
+  --color-app-ink:        #16141F;
+  --color-app-ink-soft:   #6B6779;
+  --color-app-ink-faint:  #9C98A8;
+  --color-app-line:       #ECEAF2;
+  --color-app-line-strong:#C9C6D3;
+  --color-app-track:      #E4E1EC;
+  --color-app-toggle-off: #D6D3E0;
+  --color-app-canvas:     #F6F5F9;
+  --color-app-accent:     #FF6A2B;
+  --color-app-accent-ink: #B23E0A;
+  --color-app-success:    #16794A;
+  --color-app-success-tint:#E2F5EA;
+  --color-app-forest:     #0C4A44;
+  --color-app-peach:      #FFEDE4;
+  --color-app-mint:       #E2F6F1;
+  --color-app-lilac:      #ECEAF2;
+  --color-app-danger:     #B42318;
+  --color-app-danger-tint:#FDECEA;
+  --font-app: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+
   /* ── Typography ── */
   --font-display:  'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;
   --font-accent:   'Fraunces', 'Playfair Display', Georgia, serif;
@@ -357,3 +378,12 @@ body {
 .design-tabs   { display: flex; gap: 4px; border-bottom: 1px solid var(--ink-100); margin-bottom: 16px; }
 .design-tabs .tab { padding: 10px 14px; font-size: 13px; color: var(--ink-600); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; background: none; border-top: 0; border-left: 0; border-right: 0; }
 .design-tabs .tab.on { color: var(--teal-700); border-bottom-color: var(--teal-700); }
+
+/* Pastel wash behind the welcome and "shop is live" screens (shared/tokens.ts webWash). */
+.app-wash {
+  background:
+    radial-gradient(120% 80% at 0% 0%, #FFE2D2 0%, rgba(255, 226, 210, 0) 55%),
+    radial-gradient(90% 70% at 100% 0%, #E7E1FF 0%, rgba(231, 225, 255, 0) 60%),
+    radial-gradient(80% 60% at 60% 40%, #DDF4EE 0%, rgba(221, 244, 238, 0) 70%),
+    #F6F5F9;
+}

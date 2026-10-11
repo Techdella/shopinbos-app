@@ -113,7 +113,7 @@ export default async function HomePage({
   });
   if (!onboardingStore?.firstDashboardVisitComplete) {
     const state = onboardingStore?.onboardingState;
-    if (!state || state === "NEW") redirect("/onboarding/path-picker");
+    if (!state || state === "NEW") redirect("/onboarding/rex");
     if (state === "BUILDING_REX") redirect("/onboarding/rex");
     if (state === "BUILDING_TEMPLATE") redirect("/builder/templates?onboarding=true");
     // LIVE / SKIPPED / INCOMPLETE → fall through to dashboard

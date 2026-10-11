@@ -216,7 +216,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(schema, /@@unique\(\[userId, eventKey, category\]\)/);
 
   assert.match(payments, /export async function linkSupplierPaystackRecipient/);
-  assert.match(payments, /https:\/\/api\.paystack\.co\/transferrecipient/);
+  assert.match(read("src/lib/payout-bank.ts"), /https:\/\/api\.paystack\.co\/transferrecipient/);
   assert.match(payments, /verificationStatus: recipient\.status/);
 
   assert.match(supplierActions, /export async function saveSupplierNotificationPreferences/);
@@ -337,26 +337,33 @@ test("onboarding memory is durable and shared with Rex builder", () => {
 });
 
 test("auth experience keeps each portal focused and conversational", () => {
-  const auth = read("src/components/auth/AuthExperience.tsx");
+  const auth = read("src/components/auth/app/AppAuth.tsx");
+  const authApi = read("src/components/auth/app/auth-api.ts");
+  const otpRoute = read("src/app/api/auth/otp/route.ts");
   const serverAuth = read("src/lib/server-auth.ts");
   const authMiddleware = read("src/lib/auth/middleware.ts");
   const appUser = read("src/lib/auth/app-user.ts");
   const portalRoutes = read("src/lib/portal-routes.ts");
   const onboardingPage = read("src/app/onboarding/page.tsx");
 
-  assert.match(auth, /Create account and meet Rex/);
-  assert.match(auth, /A few answers, then Rex takes it from there/);
-  assert.match(auth, /Sign in to pick up your products, orders, payments, and store setup/);
-  assert.match(auth, /Sign in to manage your products, quotes, orders, and payouts/);
-  assert.match(auth, /Sign in to manage your routes, coverage, pricing, and bookings/);
-  assert.match(auth, /signInWithPassword/);
+  // Redesigned sign-in: phone (WhatsApp/SMS) code, email code, password, Google; role tabs on sign up.
+  assert.match(auth, /Your shop, live in 10 minutes/);
+  assert.match(auth, /Start with my phone number/);
+  assert.match(auth, /Send me a code on WhatsApp/);
+  assert.match(auth, /Get the code by SMS/);
+  assert.match(auth, /Email me a code instead/);
   assert.match(auth, /current-password/);
-  assert.match(auth, /Email me a sign-in code instead/);
-  assert.doesNotMatch(auth, /portalRoles\.map/);
-  assert.doesNotMatch(auth, /Rex AI setup memory/);
-  assert.match(auth, /phone/);
-  assert.match(auth, /Check your email to confirm it, then sign in to continue onboarding/);
-  assert.match(auth, /This account is registered as/);
+  assert.match(auth, /Forgot password\?/);
+  assert.match(auth, /Continue with Google/);
+  assert.match(auth, /I supply shops/);
+  assert.match(auth, /After you sign up, Rex adds this to your store/);
+  assert.match(auth, /This account already belongs to a/);
+  assert.match(authApi, /signInWithPassword/);
+  assert.match(authApi, /signInWithOAuth\(\{\s*provider: "google"/);
+  assert.match(authApi, /resetPasswordForEmail/);
+  assert.match(otpRoute, /channel: body\.via === "sms" \? "sms" : "whatsapp"/);
+  assert.match(otpRoute, /shouldCreateUser: create/);
+  assert.doesNotMatch(otpRoute, /role: "admin"/);
   assert.match(serverAuth, /ensureAppUserForSupabaseUser\(\{/);
   assert.match(serverAuth, /expectedRole/);
   assert.match(authMiddleware, /ensureAppUserForSupabaseUser/);

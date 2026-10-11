@@ -9,7 +9,7 @@ export function isValidOnboardingState(value: string | null | undefined): value 
   return ONBOARDING_STATES.includes(value as OnboardingState);
 }
 
-export type OnboardingDestination = "/onboarding/path-picker" | "/onboarding/rex" | "/builder/templates?onboarding=true" | "/home";
+export type OnboardingDestination = "/onboarding/rex" | "/builder/templates?onboarding=true" | "/home";
 
 export async function getOnboardingDestination(userId: string): Promise<OnboardingDestination> {
   const store = await db.store.findUnique({
@@ -18,7 +18,7 @@ export async function getOnboardingDestination(userId: string): Promise<Onboardi
   });
 
   if (!store) {
-    return "/onboarding/path-picker";
+    return "/onboarding/rex";
   }
 
   if (store.firstDashboardVisitComplete) {
@@ -39,5 +39,5 @@ export async function getOnboardingDestination(userId: string): Promise<Onboardi
     return "/home";
   }
 
-  return "/onboarding/path-picker";
+  return "/onboarding/rex";
 }

@@ -7,7 +7,7 @@ import { slugify } from "@/lib/workspace";
 
 type AppUserInput = {
   supabaseId: string;
-  email: string;
+  email: string | null;
   role?: Role | string | null;
   fullName?: string | null;
   businessName?: string | null;
@@ -20,8 +20,14 @@ function normalizeRole(role: AppUserInput["role"]): Role {
   return roles.has(role as Role) ? (role as Role) : "seller";
 }
 
-function displayNameFromEmail(email: string) {
-  return email.split("@")[0]?.replace(/[._-]/g, " ") || "Shopinbos User";
+function displayNameFromEmail(email: string | null) {
+  return email?.split("@")[0]?.replace(/[._-]/g, " ") || "Shopinbos User";
+}
+
+/** Supabase stores phones without the plus sign ("2348031234567"). */
+export function e164FromSupabase(phone: string | null | undefined) {
+  const digits = phone?.replace(/\D/g, "") ?? "";
+  return digits.length >= 8 ? `+${digits}` : null;
 }
 
 function adminInviteEmails() {
@@ -55,16 +61,16 @@ export function appUserInputFromSupabaseUser(user: SupabaseUser): AppUserInput {
   const metadata = user.user_metadata ?? {};
   return {
     supabaseId: user.id,
-    email: user.email ?? "",
+    email: user.email || null,
     role: metadata.role as Role | undefined,
     fullName: (metadata.fullName as string | undefined) ?? (metadata.full_name as string | undefined) ?? (metadata.name as string | undefined),
     businessName: (metadata.businessName as string | undefined) ?? (metadata.business_name as string | undefined),
-    phone: metadata.phone as string | undefined,
+    phone: e164FromSupabase(user.phone) ?? (metadata.phone as string | undefined),
   };
 }
 
 export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
-  const email = input.email.toLowerCase();
+  const email = input.email?.trim().toLowerCase() || null;
   const fullName = input.fullName || displayNameFromEmail(email);
 
   // First check by supabaseId, then fall back to email (handles supabaseId mismatches
@@ -74,7 +80,7 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
     select: { id: true, role: true },
   });
 
-  if (!existingUser) {
+  if (!existingUser && email) {
     const byEmail = await db.user.findUnique({
       where: { email },
       select: { id: true, role: true },
@@ -87,8 +93,10 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   }
 
   const requestedRole = normalizeRole(input.role);
-  const canUseAdminRole = existingUser?.role === "admin" || adminInviteEmails().includes(email);
+  const canUseAdminRole = existingUser?.role === "admin" || (email ? adminInviteEmails().includes(email) : false);
   const role = resolveRole(existingUser?.role, requestedRole, canUseAdminRole);
+
+  const phone = input.phone?.trim() || undefined;
 
   const user = await db.user.upsert({
     where: { supabaseId: input.supabaseId },
@@ -96,13 +104,14 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
       supabaseId: input.supabaseId,
       email,
       name: fullName,
-      phone: input.phone || undefined,
+      phone,
       role,
     },
     update: {
-      email,
-      name: fullName,
-      phone: input.phone || undefined,
+      // Never clear a stored email when signing in with a phone number.
+      ...(email ? { email } : {}),
+      ...(input.fullName ? { name: fullName } : {}),
+      phone,
       role,
     },
   });
@@ -120,9 +129,8 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
         onboardingState: "NEW",
         firstDashboardVisitComplete: false,
       },
-      update: {
-        name: storeName,
-      },
+      // Only rename when the person typed a business name; a plain sign-in must not reset it.
+      update: input.businessName ? { name: storeName } : {},
     });
   }
 
@@ -142,10 +150,7 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
         verificationStatus: "unverified",
         onboardingState: { source: "signup", completed: false },
       },
-      update: {
-        businessName,
-        displayName: businessName,
-      },
+      update: input.businessName ? { businessName, displayName: businessName } : {},
     });
   }
 
@@ -166,10 +171,7 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
         verificationStatus: "unverified",
         onboardingState: { source: "signup", completed: false },
       },
-      update: {
-        companyName,
-        displayName: companyName,
-      },
+      update: input.businessName ? { companyName, displayName: companyName } : {},
     });
   }
 

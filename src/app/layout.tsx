@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Fraunces, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, Fraunces, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClientLayout } from "@/components/ClientLayout";
 import "./globals.css";
@@ -15,6 +15,12 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -40,7 +46,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${fraunces.variable} ${jetbrainsMono.variable} h-full`}
+      className={`${spaceGrotesk.variable} ${fraunces.variable} ${jetbrainsMono.variable} ${plusJakarta.variable} h-full`}
     >
       <body className="min-h-full"><ClientLayout>{children}</ClientLayout><Analytics /></body>
     </html>

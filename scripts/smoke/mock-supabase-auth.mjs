@@ -1,5 +1,6 @@
 // Minimal stand-ins for Supabase Auth and Resend so the app can be smoke-tested against a local database.
-// Supabase: only GET /auth/v1/user is implemented; every other Supabase call gets an empty 404.
+// Supabase: GET /auth/v1/user, plus POST /auth/v1/otp and /auth/v1/verify for code sign-in (the code is always
+// 123456; codes sent are listed at GET /auth/v1/__otp). Every other Supabase call gets an empty 404.
 // Resend (set RESEND_BASE_URL=http://127.0.0.1:54321/resend): emails are recorded, never delivered,
 // and can be read back from GET /resend/__sent.
 import http from "node:http";
@@ -13,17 +14,23 @@ export const SMOKE_USERS = {
   "smoke-admin": { id: "smoke-admin-001", email: "admin@shopinbos.dev", role: "admin", name: "Smoke Admin" },
 };
 
+// Accounts created through the OTP endpoints during a run, keyed by access token.
+const otpUsers = {};
+const sentCodes = [];
+export const MOCK_OTP_CODE = "123456";
+
 export function supabaseUser(token) {
-  const user = SMOKE_USERS[token];
+  const user = SMOKE_USERS[token] ?? otpUsers[token];
   if (!user) return null;
   return {
     id: user.id,
     aud: "authenticated",
     role: "authenticated",
-    email: user.email,
+    email: user.email ?? "",
+    phone: user.phone ?? "",
     email_confirmed_at: "2026-01-01T00:00:00Z",
     app_metadata: { provider: "email" },
-    user_metadata: { role: user.role, name: user.name },
+    user_metadata: { role: user.role, name: user.name, ...(user.metadata ?? {}) },
     created_at: "2026-01-01T00:00:00Z",
   };
 }
@@ -61,6 +68,50 @@ http
       res.statusCode = user ? 200 : 401;
       res.end(JSON.stringify(user ?? { code: 401, msg: "invalid token" }));
       return;
+    }
+    if (req.method === "GET" && req.url === "/auth/v1/__otp") return res.end(JSON.stringify(sentCodes));
+    if (req.method === "POST" && req.url?.startsWith("/auth/v1/otp")) {
+      const body = (await readBody(req)) ?? {};
+      const key = body.phone ? `phone:${body.phone}` : `email:${String(body.email ?? "").toLowerCase()}`;
+      const exists = Object.values(otpUsers).some((user) => user.key === key)
+        || Object.values(SMOKE_USERS).some((user) => `email:${user.email}` === key);
+      if (!exists && body.create_user === false) {
+        res.statusCode = 422;
+        return res.end(JSON.stringify({ code: 422, error_code: "otp_disabled", msg: "Signups not allowed for otp" }));
+      }
+      sentCodes.push({ key, channel: body.channel ?? "email", data: body.data ?? null });
+      if (!exists) {
+        const token = `otp-${Object.keys(otpUsers).length + 1}`;
+        otpUsers[token] = {
+          key,
+          id: `otp-user-${Object.keys(otpUsers).length + 1}`,
+          email: body.email ? String(body.email).toLowerCase() : null,
+          phone: body.phone ? String(body.phone).replace(/^\+/, "") : null,
+          role: body.data?.role ?? "seller",
+          name: body.data?.full_name,
+          metadata: body.data ?? {},
+        };
+      }
+      return res.end("{}");
+    }
+    if (req.method === "POST" && req.url?.startsWith("/auth/v1/verify")) {
+      const body = (await readBody(req)) ?? {};
+      const key = body.phone ? `phone:${body.phone}` : `email:${String(body.email ?? "").toLowerCase()}`;
+      const smoke = Object.entries(SMOKE_USERS).find(([, user]) => `email:${user.email}` === key);
+      const entry = smoke ?? Object.entries(otpUsers).find(([, user]) => user.key === key);
+      if (!entry || body.token !== MOCK_OTP_CODE) {
+        res.statusCode = 403;
+        return res.end(JSON.stringify({ code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" }));
+      }
+      const [token] = entry;
+      return res.end(JSON.stringify({
+        access_token: token,
+        refresh_token: `${token}-refresh`,
+        token_type: "bearer",
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: supabaseUser(token),
+      }));
     }
     res.statusCode = 404;
     res.end("{}");

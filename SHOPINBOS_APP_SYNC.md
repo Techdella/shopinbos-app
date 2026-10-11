@@ -91,8 +91,25 @@ Status: built and verified locally; needs the database migrations and env vars b
 - [x] Plan upgrades require a successful, single-use payment for the right plan, amount and account (`PaymentReceipt`).
 - [x] Campaign and payment-receipt tables applied to the live database (part of the 2026-10-11 catch-up migration).
 - [ ] Set `RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `CRON_SECRET` in Vercel.
-- [ ] Add a Vercel Cron for `/api/cron/campaigns` (needs a plan that allows sub-daily crons, e.g. every 15 minutes).
+- [x] Schedule `/api/cron/campaigns` every 5 minutes with Supabase pg_cron (Vercel Hobby only allows daily crons) — see `docs/migrations/2026-10-11-campaign-scheduler.sql`.
+- [ ] Copy the `cron_secret` from Supabase Vault into Vercel as `CRON_SECRET` and redeploy.
 - [ ] Customer segments: `CustomerSegment.rules` are stored but not evaluated yet.
+
+### Phase 8 - App Redesign: Sign-in, Sign-up, Seller Onboarding (web + Expo)
+
+Status: built against the 2026 app prototypes; web verified locally (route smoke + walkthrough), Expo verified by typecheck, expo-doctor and a web export walkthrough.
+
+- [x] Design tokens (Plus Jakarta Sans, ink #16141F, accent #FF6A2B, pastel wash), phone helpers and onboarding copy in `shared/`, used by web and `apps/mobile`.
+- [x] Sign-in for every portal: phone code over WhatsApp or SMS, email code, email + password, Google, forgot / reset password.
+- [x] Phone-only accounts: `User.email` is optional (`docs/migrations/2026-10-11-phone-accounts.sql`).
+- [x] Seller onboarding: Rex chat (5 languages) → brand → products from photos (`/api/ai/product-drafts`) → payments and delivery zones → launch fee → live (share, QR) → checklist.
+- [x] Expo app (`apps/mobile`, SDK 57, expo-router): the same auth and onboarding screens against the same API with Bearer tokens; `/api/app/payout-bank` for bank linking.
+- [x] Fixed: the proxy redirected `/api/*` calls from sellers mid-onboarding to the onboarding page.
+- [x] Applied `docs/migrations/2026-10-11-phone-accounts.sql` to the live database (2026-10-11).
+- [ ] Supabase: Twilio (WhatsApp sender) for phone codes, Google OAuth client, `{{ .Token }}` in the Magic Link and Confirm signup templates, redirect URLs (`node scripts/configure-supabase-auth.mjs`).
+- [ ] Optional `NEXT_PUBLIC_SUPPORT_WHATSAPP` for the "Stuck? Message us" card.
+- [ ] Next design phase: seller app dashboard (web and mobile), supplier / logistics onboarding restyle, then remove the legacy seller branch of `OnboardingFlow.tsx`.
+- [ ] Checkout does not read the payment-method preferences (`brandSettings.paymentConfig.methods`) yet.
 
 ## Current Todos
 

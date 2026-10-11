@@ -6,8 +6,11 @@
 //
 // This configures:
 //   1. Custom SMTP (Resend) for reliable auth email delivery
-//   2. SITE_URL for correct redirect URIs in email links
+//   2. SITE_URL plus the redirect allow-list (web callback and the mobile app's shopinbos:// scheme)
 //   3. Email provider enabled
+//   4. Optional: Google sign-in   (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)
+//   5. Optional: phone codes over WhatsApp and SMS via Twilio
+//      (TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_MESSAGE_SERVICE_SID; the messaging service needs a WhatsApp sender)
 //
 // Get a token at https://supabase.com/dashboard/account/tokens
 
@@ -60,7 +63,34 @@ async function main() {
     smtp_pass: resendApiKey,
     smtp_sender_name: senderName,
     site_url: appUrl.replace(/\/+$/, ""),
+    uri_allow_list: [
+      `${appUrl.replace(/\/+$/, "")}/**`,
+      "http://localhost:3000/**",
+      "shopinbos://**",
+      "exp://**",
+    ].join(","),
   };
+
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    Object.assign(authConfigBody, {
+      external_google_enabled: true,
+      external_google_client_id: process.env.GOOGLE_CLIENT_ID,
+      external_google_secret: process.env.GOOGLE_CLIENT_SECRET,
+    });
+    console.log("   Google sign-in: enabling");
+  }
+
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_MESSAGE_SERVICE_SID) {
+    Object.assign(authConfigBody, {
+      external_phone_enabled: true,
+      sms_provider: "twilio",
+      sms_twilio_account_sid: process.env.TWILIO_ACCOUNT_SID,
+      sms_twilio_auth_token: process.env.TWILIO_AUTH_TOKEN,
+      sms_twilio_message_service_sid: process.env.TWILIO_MESSAGE_SERVICE_SID,
+      sms_otp_length: 6,
+    });
+    console.log("   Phone codes (WhatsApp + SMS via Twilio): enabling");
+  }
 
   console.log("▪ Updating auth config (SMTP, SITE_URL, email provider)...");
   const authRes = await fetch(`${MGMT_API}/v1/projects/${PROJECT_REF}/config/auth`, {
@@ -94,6 +124,9 @@ async function main() {
     console.log(`   SMTP user:                    ${cfg.smtp_user}`);
     console.log(`   SMTP sender:                  ${cfg.smtp_sender_name} <${cfg.smtp_admin_email}>`);
     console.log(`   site_url:                     ${cfg.site_url}`);
+    console.log(`   uri_allow_list:               ${cfg.uri_allow_list}`);
+    console.log(`   google enabled:               ${cfg.external_google_enabled}`);
+    console.log(`   phone enabled:                ${cfg.external_phone_enabled} (${cfg.sms_provider ?? "no provider"})`);
   }
 
   console.log("\n✅ Setup complete. Auth emails will now go through Resend.");

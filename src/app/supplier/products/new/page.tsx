@@ -1,4 +1,5 @@
 import { db } from "@/lib/db/client";
+import { billingEmail } from "@/lib/auth/billing-email";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
 import { RolePage } from "@/components/role/RolePage";
@@ -50,7 +51,7 @@ export default async function NewSupplierProductPage({
               Free plan includes up to 50 products. Upgrade to Supplier Max (₦25,000/month) to add more products.
             </div>
           </div>
-          <PlanUpgradeSection userEmail={user.email} userName={user.name} aiCredits={aiCredits} />
+          <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} />
         </div>
       ) : (
         <SupplierProductForm

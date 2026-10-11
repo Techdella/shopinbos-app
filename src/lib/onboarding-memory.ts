@@ -33,6 +33,8 @@ export interface StoreOnboardingMemory {
   version: 1;
   role?: OnboardingRoleMemory;
   step?: number;
+  /** Screen of the 2026 seller onboarding (shared/onboarding.ts) to resume on. */
+  screen?: "chat" | "brand" | "products" | "payments";
   preferredName?: string;
   city?: string;
   country?: string;

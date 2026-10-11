@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ role?: string }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
   if (params.role === "supplier") {
@@ -41,22 +41,18 @@ export default async function OnboardingPage({
 
     const state = store?.onboardingState;
 
-    if (!state || state === "NEW") {
-      redirect("/onboarding/path-picker");
-    }
-
     const completedStates = ["SKIPPED", "INCOMPLETE", "LIVE"];
     if (state && completedStates.includes(state)) {
       redirect("/home");
     }
 
-    if (state === "BUILDING_REX") {
-      redirect("/onboarding/rex");
-    }
-
     if (state === "BUILDING_TEMPLATE") {
       redirect("/builder/templates?onboarding=true");
     }
+
+    // Keep marketplace intents (e.g. ?intent=add_product&productSlug=…) for after onboarding.
+    const query = new URLSearchParams(Object.entries(params).filter(([key, value]) => key !== "role" && typeof value === "string") as [string, string][]).toString();
+    redirect(query ? `/onboarding/rex?${query}` : "/onboarding/rex");
   }
 
   return (
