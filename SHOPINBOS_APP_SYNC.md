@@ -120,7 +120,7 @@ Status: built against the "Seller app · web" and "Seller app · iOS and Android
 - [x] Seller home with real data (`src/lib/dashboard`): today's and this week's sales, orders, visitors, chats, Peggy's tasks, 14-day sales, checklist, latest orders, order channels, imports, best sellers. `GET /api/app/dashboard` serves the app.
 - [x] Order channel tracking (`RetailOrder.channel` from `?ref=` / `utm_source`) and a storefront visit beacon for "Visitors".
 - [x] Expo app: home, Products, Chats, Orders and More tabs, the orange "+" for adding products from photos, and native Ask Peggy (`POST /api/app/peggy`).
-- [ ] Apply `docs/migrations/2026-10-11-order-channel.sql` to the live database (needed before checkout writes `channel`).
+- [x] Applied `docs/migrations/2026-10-11-order-channel.sql` to the live database (2026-10-11).
 - [ ] Restyle inner seller pages (orders, products, customers…) to the new design; build Ads, Video studio, Affiliates and Labels and print, which the mockup's nav shows.
 - [ ] Bring the inbox to the app (needs buyer conversations, today only supplier/logistics messages and contact forms exist).
 
