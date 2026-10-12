@@ -58,8 +58,8 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
   const stats = [
     { label: "Products", value: String(rows.length), hint: "Linked to a supplier" },
     { label: "Selling", value: String(selling.length), hint: "Live in your store" },
-    { label: "Need attention", value: String(low.length + out.length), hint: "Low or out at the supplier" },
-    { label: "You keep", value: rows.length ? `${avgKeep}%` : "—", hint: `Average, from ${suppliers} supplier${suppliers === 1 ? "" : "s"}` },
+    { label: "Need attention", value: String(low.length + out.length), hint: "Stock low or out" },
+    { label: "You keep", value: rows.length ? `${avgKeep}%` : "—", hint: `Average · ${suppliers} supplier${suppliers === 1 ? "" : "s"}` },
   ];
 
   return (
@@ -75,7 +75,7 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
       }
     >
       <div className="grid min-w-0 gap-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => (
               <li key={stat.label} className="min-w-0 rounded-[18px] border border-app-line bg-white px-4 py-3.5">
