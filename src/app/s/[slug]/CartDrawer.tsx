@@ -5,7 +5,9 @@ import { useEffect, useId, useRef } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
-import { freeDeliveryProgress, lineKey, type CartLine } from "@shared/cart-checkout";
+import { lineKey, type CartLine } from "@shared/cart-checkout";
+import type { ProgressTier } from "@/lib/gamification/logic";
+import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
 
 // The quick bag every theme opens after "Add to bag": a sheet from the bottom on phones and a drawer from the
 // right on bigger screens, with the full bag page and checkout one tap away.
@@ -32,13 +34,16 @@ interface Props {
   variation?: string;
   deliveryEstimate?: string;
   freeDeliveryThreshold?: number;
+  /** Reward tiers from Marketing > Rewards (readGameConfig(brandSettings).progress), shown on the same bar. */
+  rewardTiers?: ProgressTier[];
+  giftNames?: Record<string, string>;
 }
 
 const INK = "#16141F";
 const MUTED = "#6E6E68";
 const LINE = "rgba(22,20,31,0.1)";
 
-export function CartDrawer({ open, onClose, cart, storeBasePath, currency, accentColor, accentTextColor, variation = "right-drawer", deliveryEstimate, freeDeliveryThreshold }: Props) {
+export function CartDrawer({ open, onClose, cart, storeBasePath, currency, accentColor, accentTextColor, variation = "right-drawer", deliveryEstimate, freeDeliveryThreshold, rewardTiers = [], giftNames }: Props) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -78,7 +83,6 @@ export function CartDrawer({ open, onClose, cart, storeBasePath, currency, accen
 
   const luxury = variation === "luxury";
   const surface = luxury ? "#FAF7F1" : "#FFFFFF";
-  const progress = freeDeliveryProgress(cart.subtotal, freeDeliveryThreshold);
   const money = (amount: number) => formatStoreMoney(amount, currency);
 
   return (
@@ -110,12 +114,9 @@ export function CartDrawer({ open, onClose, cart, storeBasePath, currency, accen
         ) : (
           <>
             <div className="flex-1 overflow-y-auto px-5 py-3">
-              {progress ? (
-                <div className="mb-3 grid gap-1.5 rounded-[14px] px-3 py-2.5 text-[13.5px]" style={{ background: LINE }}>
-                  <span>{progress.reached ? "You've unlocked free delivery." : <>Add <strong>{money(progress.remaining)}</strong> more for free delivery.</>}</span>
-                  <span role="progressbar" aria-label="Progress to free delivery" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.percent} className="block h-1.5 overflow-hidden rounded-full bg-white">
-                    <span className="block h-full rounded-full" style={{ width: `${progress.percent}%`, background: accentColor }} />
-                  </span>
+              {(freeDeliveryThreshold && freeDeliveryThreshold > 0) || rewardTiers.length ? (
+                <div className="mb-3 rounded-[14px] px-3 py-2.5" style={{ background: LINE }}>
+                  <RewardProgress compact subtotal={cart.subtotal} freeDeliveryOver={freeDeliveryThreshold} tiers={rewardTiers} giftNames={giftNames} currency={currency} colors={{ ink: INK, muted: MUTED, border: "#FFFFFF", cta: accentColor, card: "#FFFFFF" }} />
                 </div>
               ) : null}
               <ul className="m-0 list-none divide-y p-0" style={{ borderColor: LINE }}>

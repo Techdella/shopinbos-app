@@ -4,6 +4,7 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, closeStore, inviteTeamMember } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
+import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
 import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
@@ -22,7 +23,7 @@ type PageProps = {
   searchParams?: Promise<{ tab?: string }>;
 };
 
-const TABS = ["Store", "Peggy & Rex", "Team", "Billing", "Notifications"] as const;
+const TABS = ["Store", "Peggy & Rex", "Team", "Billing", "Notifications", "Security"] as const;
 /** Old tab names still in links and redirects. */
 const TAB_ALIASES: Record<string, (typeof TABS)[number]> = { "Peggy & AI": "Peggy & Rex" };
 
@@ -259,6 +260,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                 </Card>
               </form>
             )}
+            {activeTab === "Security" && <SecuritySettings />}
           </div>
 
           <aside className="grid min-w-0 content-start gap-5">

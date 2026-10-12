@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { updateLogisticsProfile } from "@/app/actions/logistics";
 import { requireRole } from "@/lib/server-auth";
 import { getLogisticsWorkspace } from "@/lib/workspace";
@@ -237,6 +238,8 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
           </Card>
         </div>
       </div>
+
+      <SecuritySettings className="mt-5 p-5" />
     </PartnerPage>
   );
 }

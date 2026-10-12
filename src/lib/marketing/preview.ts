@@ -18,7 +18,9 @@ export function sampleVariables(brand: EmailBrand, shop: PreviewShop) {
 export function renderEmailPreview({ bodyHtml, preheader, brand, shop }: { bodyHtml: string; preheader?: string | null; brand: EmailBrand; shop: PreviewShop }) {
   const vars = sampleVariables(brand, shop);
   const pre = preheader || readPreheader(bodyHtml);
-  return wrapEmail({ bodyHtml: fillVariables(bodyHtml, vars, "html"), brand, preheader: pre ? fillVariables(pre, vars, "text") : null });
+  const html = wrapEmail({ bodyHtml: fillVariables(bodyHtml, vars, "html"), brand, preheader: pre ? fillVariables(pre, vars, "text") : null });
+  // The builder's bookkeeping comments (blocks, preview line, style) are no use in a preview and can be large.
+  return html.replace(/<!--sib-[a-z]+:[A-Za-z0-9+/=]*-->\n?/g, "");
 }
 
 /** A subject line with the sample customer filled in. */

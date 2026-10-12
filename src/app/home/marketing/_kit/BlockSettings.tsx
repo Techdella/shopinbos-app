@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Segmented } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Field, buttonClass, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
-import { SOCIAL_LABELS, SOCIAL_NETWORKS, type Align, type ColumnCell, type EmailBlock, type EmailBlockType, type ProductItem } from "@/lib/marketing/blocks";
+import { EMAIL_THEMES, EMAIL_THEME_INFO, GAME_LABELS, SOCIAL_LABELS, SOCIAL_NETWORKS, type Align, type ColumnCell, type EmailBlock, type EmailBlockType, type ProductItem } from "@/lib/marketing/blocks";
 import { api, errorText, insertAtCursor } from "./client";
 
 // Settings for one email block (text, links, colours, alignment, spacing), shared by the template builder's
@@ -22,6 +22,17 @@ export const BLOCK_ICONS: Record<EmailBlockType, IconName> = {
   coupon: "percent",
   social: "users",
   footer: "document",
+  theme: "palette",
+  hero: "flag",
+  banner: "megaphone",
+  countdown: "clock",
+  receipt: "file",
+  steps: "truck",
+  review: "star",
+  features: "checkCircle",
+  vip: "card",
+  meter: "chart",
+  game: "sparkle",
 };
 
 export function blankBlock(type: EmailBlockType): EmailBlock {
@@ -48,6 +59,28 @@ export function blankBlock(type: EmailBlockType): EmailBlock {
       return { type, links: [{ network: "instagram", url: "https://instagram.com/" }, { network: "whatsapp", url: "https://wa.me/" }] };
     case "footer":
       return { type, text: "You're getting this because you shop with {{store}}." };
+    case "theme":
+      return { type, theme: "editorial" };
+    case "hero":
+      return { type, layout: "type", imageUrl: "", alt: "", eyebrow: "New in", heading: "A big, bold headline", text: "One or two lines that make people want to read on.", buttonLabel: "Shop now", buttonUrl: "{{store_url}}" };
+    case "banner":
+      return { type, text: "Free delivery this weekend", variant: "accent" };
+    case "countdown":
+      return { type, variant: "boxes", title: "Ends in", units: [{ value: "23", label: "hours" }, { value: "59", label: "mins" }], note: "" };
+    case "receipt":
+      return { type, title: "Order summary", lines: [{ name: "Order {{order_number}}", amount: "" }], totals: [{ label: "Total", amount: "{{order_total}}" }], note: "" };
+    case "steps":
+      return { type, steps: ["Confirmed", "Packed", "On the way", "Delivered"], current: 1, note: "" };
+    case "review":
+      return { type, quote: "Lovely quality and it came fast.", author: "A happy customer", rating: 5, detail: "Verified buyer" };
+    case "features":
+      return { type, items: [{ icon: "✓", title: "Pay on delivery" }, { icon: "✓", title: "Easy returns" }, { icon: "✓", title: "Fast delivery" }] };
+    case "vip":
+      return { type, tier: "Gold", title: "Your member perks", text: "", perks: ["Free delivery on every order", "Early access to new drops"], buttonLabel: "Shop now", buttonUrl: "{{store_url}}" };
+    case "meter":
+      return { type, title: "Your points", current: 450, goal: 1000, unit: "points", from: "Silver", to: "Gold", note: "" };
+    case "game":
+      return { type, game: "spin", title: "You have 1 free spin", text: "Every spin wins something.", prizes: ["5% off", "10% off", "Free delivery"], value: "", buttonLabel: "Spin now", buttonUrl: "{{store_url}}?play=spin" };
   }
 }
 
@@ -73,7 +106,29 @@ export function blockSummary(block: EmailBlock) {
     case "spacer":
       return `${block.height}px`;
     case "divider":
-      return "Line";
+      return block.variant && block.variant !== "line" ? `Line (${block.variant})` : "Line";
+    case "theme":
+      return EMAIL_THEME_INFO[block.theme].label;
+    case "hero":
+      return block.heading || "Hero";
+    case "banner":
+      return block.text || "Notice";
+    case "countdown":
+      return `${block.title} ${block.units.map((u) => `${u.value} ${u.label}`).join(" ")}`.trim();
+    case "receipt":
+      return `${block.lines.length} line${block.lines.length === 1 ? "" : "s"}, ${block.totals.length} total${block.totals.length === 1 ? "" : "s"}`;
+    case "steps":
+      return block.steps.join(" → ") || "No steps";
+    case "review":
+      return `${"★".repeat(block.rating)} ${block.author}`;
+    case "features":
+      return block.items.map((item) => item.title).join(" · ") || "No highlights";
+    case "vip":
+      return `${block.tier} · ${block.title}`;
+    case "meter":
+      return `${block.current} / ${block.goal} ${block.unit}`;
+    case "game":
+      return `${GAME_LABELS[block.game]}: ${block.title}`;
   }
 }
 
@@ -267,6 +322,34 @@ function CellEditor({ cell, onChange, title }: { cell: ColumnCell; onChange: (ce
   );
 }
 
+/** A short list of rows (prizes, perks, receipt lines…): edit, add, remove. */
+function RowsField<T>({ label, rows, max, blank, onChange, render }: { label: string; rows: T[]; max: number; blank: T; onChange: (rows: T[]) => void; render: (row: T, set: (row: T) => void, index: number) => ReactNode }) {
+  return (
+    <fieldset className="grid gap-2 rounded-[14px] border border-app-line p-3">
+      <legend className="px-1 text-[13px] font-extrabold">{label}</legend>
+      {rows.map((row, index) => (
+        <div key={index} className="flex items-start gap-1.5">
+          <div className="grid min-w-0 flex-1 gap-1.5">{render(row, (next) => onChange(rows.map((r, i) => (i === index ? next : r))), index)}</div>
+          <button type="button" aria-label={`Remove ${label.toLowerCase()} ${index + 1}`} onClick={() => onChange(rows.filter((_, i) => i !== index))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas"><Icon name="x" size={14} /></button>
+        </div>
+      ))}
+      {rows.length < max ? (
+        <button type="button" onClick={() => onChange([...rows, structuredClone(blank)])} className={buttonClass("white", "sm")}><Icon name="plus" size={14} /> Add</button>
+      ) : null}
+    </fieldset>
+  );
+}
+
+function VariantField<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void }) {
+  return (
+    <Field label={label}>
+      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value as T)} className={selectClass}>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </Field>
+  );
+}
+
 /**
  * The fields for one block. `onFocusText` lets the parent insert {{details}} where the seller is typing.
  */
@@ -309,6 +392,7 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
         <div className="grid gap-3">
           <Field label="Button text"><input value={block.label} onFocus={(e) => onFocusText?.(e.currentTarget, "label")} onChange={(e) => set({ label: e.target.value })} className={inputClass} /></Field>
           <LinkField label="Goes to" url={block.url} onChange={(url) => set({ url })} />
+          <VariantField label="Shape" value={block.variant ?? "solid"} options={[{ value: "solid", label: "Filled" }, { value: "outline", label: "Outline" }, { value: "wide", label: "Full width" }]} onChange={(variant) => set({ variant: variant === "solid" ? undefined : variant })} />
           {look({ align: true, color: "Button colour", bg: false, pad: true })}
           <ColorField label="Button text colour" value={block.textColor} onChange={(textColor) => set({ textColor })} fallback="#FFFFFF" />
         </div>
@@ -323,7 +407,12 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
         </div>
       );
     case "divider":
-      return <div className="grid gap-3">{look({ color: "Line colour", pad: true })}</div>;
+      return (
+        <div className="grid gap-3">
+          <VariantField label="Style" value={block.variant ?? "line"} options={[{ value: "line", label: "Thin line" }, { value: "dashed", label: "Dashed" }, { value: "dots", label: "Three dots" }, { value: "accent", label: "Short brand bar" }]} onChange={(variant) => set({ variant: variant === "line" ? undefined : variant })} />
+          {look({ align: block.variant === "dots" || block.variant === "accent", color: "Line colour", pad: true })}
+        </div>
+      );
     case "spacer":
       return (
         <Field label={`Height (${block.height}px)`}>
@@ -344,6 +433,9 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
       return (
         <div className="grid gap-3">
           <ProductPicker items={block.items} onChange={(items) => set({ items })} />
+          <Field label="Layout">
+            <Segmented options={[{ value: "1", label: "One, big" }, { value: "2", label: "Two across" }, { value: "3", label: "Three across" }]} value={String(block.columns ?? 2)} onChange={(value) => set({ columns: value === "2" ? undefined : (Number(value) as 1 | 3) })} className="border border-app-line" />
+          </Field>
           <Field label="Button text"><input value={block.buttonLabel ?? ""} onChange={(e) => set({ buttonLabel: e.target.value })} className={inputClass} placeholder="Shop now" /></Field>
           <p className="m-0 text-[12.5px] text-app-ink-soft">Names, prices and photos come from your products as they are now.</p>
           {look({ bg: true, pad: true })}
@@ -356,7 +448,9 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
             <input value={block.code} onChange={(e) => set({ code: e.target.value.toUpperCase().replace(/\s+/g, "") })} className={`${inputClass} font-mono tracking-[0.1em]`} maxLength={40} />
           </Field>
           <Field label="Title"><input value={block.title} onChange={(e) => set({ title: e.target.value })} className={inputClass} /></Field>
+          <Field label="Big value (optional)"><input value={block.value ?? ""} onChange={(e) => set({ value: e.target.value || undefined })} className={inputClass} placeholder="20% OFF or ₦2,000" maxLength={24} /></Field>
           <Field label="Small print"><input value={block.note} onChange={(e) => set({ note: e.target.value })} className={inputClass} /></Field>
+          <VariantField label="Look" value={block.variant ?? "dashed"} options={[{ value: "dashed", label: "Dashed box" }, { value: "ticket", label: "Ticket with stub" }, { value: "bold", label: "Dark and bold" }]} onChange={(variant) => set({ variant: variant === "dashed" ? undefined : variant })} />
           {look({ color: "Text colour", bg: true, pad: true })}
         </div>
       );
@@ -393,7 +487,184 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
             Add an unsubscribe link
           </label>
           <p className="m-0 text-[12.5px] text-app-ink-soft">Campaign emails always get an unsubscribe link at the very bottom anyway.</p>
-          {look({ align: true, color: "Text colour" })}
+          <VariantField label="Look" value={block.variant ?? "simple"} options={[{ value: "simple", label: "Small print" }, { value: "panel", label: "Panel with shop name" }]} onChange={(variant) => set({ variant: variant === "simple" ? undefined : variant })} />
+          {look({ align: true, color: "Text colour", bg: block.variant === "panel" })}
+        </div>
+      );
+    case "theme":
+      return (
+        <div className="grid gap-2">
+          <p className="m-0 text-[12.5px] text-app-ink-soft">Sets the card colour, fonts and spacing for the whole email. Your brand colour and logo stay.</p>
+          <div className="grid gap-1.5" role="radiogroup" aria-label="Email style">
+            {EMAIL_THEMES.map((name) => {
+              const info = EMAIL_THEME_INFO[name];
+              const on = block.theme === name;
+              return (
+                <button key={name} type="button" role="radio" aria-checked={on} onClick={() => set({ theme: name })} className={`flex min-h-[52px] items-center gap-3 rounded-[12px] border px-3 text-left ${on ? "border-app-ink" : "border-app-line hover:border-app-line-strong"}`}>
+                  <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] border border-app-line text-[13px] font-bold" style={{ background: info.card, color: info.ink ?? "#16141F" }}>Aa</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-extrabold">{info.label}</span>
+                    <span className="block truncate text-[12px] text-app-ink-soft">{info.sub}</span>
+                  </span>
+                  {on ? <Icon name="check" size={16} /> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    case "hero":
+      return (
+        <div className="grid gap-3">
+          <Field label="Layout">
+            <Segmented options={[{ value: "full", label: "Big photo" }, { value: "split", label: "Photo beside" }, { value: "type", label: "Words only" }]} value={block.layout} onChange={(layout) => set({ layout })} className="border border-app-line" />
+          </Field>
+          {block.layout === "full" ? <p className="m-0 text-[12.5px] text-app-ink-soft">As the first block, the photo runs edge to edge across the top.</p> : null}
+          {block.layout !== "type" ? <ImageField url={block.imageUrl} onChange={(imageUrl) => set({ imageUrl })} /> : null}
+          {block.layout !== "type" ? <Field label="Describe the picture"><input value={block.alt} onChange={(e) => set({ alt: e.target.value })} className={inputClass} /></Field> : null}
+          <Field label="Small label above (optional)"><input value={block.eyebrow} onChange={(e) => set({ eyebrow: e.target.value })} className={inputClass} maxLength={60} placeholder="NEW IN" /></Field>
+          <Field label="Headline"><input value={block.heading} onFocus={(e) => onFocusText?.(e.currentTarget, "text")} onChange={(e) => set({ heading: e.target.value })} className={`${inputClass} font-bold`} /></Field>
+          <RichText label="Text" rows={3} value={block.text} onChange={(text) => set({ text })} onFocusField={(el) => onFocusText?.(el, "text")} />
+          <Field label="Button text (optional)"><input value={block.buttonLabel} onChange={(e) => set({ buttonLabel: e.target.value })} className={inputClass} placeholder="Leave empty for no button" /></Field>
+          {block.buttonLabel ? <LinkField label="Button goes to" url={block.buttonUrl} onChange={(buttonUrl) => set({ buttonUrl })} /> : null}
+          {look({ align: true, color: "Text colour", bg: true })}
+        </div>
+      );
+    case "banner":
+      return (
+        <div className="grid gap-3">
+          <Field label="Text"><input value={block.text} onChange={(e) => set({ text: e.target.value })} className={inputClass} maxLength={200} /></Field>
+          <VariantField label="Colour" value={block.variant ?? "accent"} options={[{ value: "accent", label: "Brand colour" }, { value: "dark", label: "Dark" }, { value: "soft", label: "Soft" }]} onChange={(variant) => set({ variant })} />
+          {look({ align: true, color: "Text colour", bg: true })}
+        </div>
+      );
+    case "countdown":
+      return (
+        <div className="grid gap-3">
+          <p className="m-0 text-[12.5px] text-app-ink-soft">Emails can&apos;t tick, so this shows the time left when it&apos;s sent. Match it to when your offer really ends.</p>
+          <VariantField label="Look" value={block.variant ?? "boxes"} options={[{ value: "boxes", label: "Number boxes" }, { value: "pill", label: "Small pill" }, { value: "bar", label: "Dark bar" }]} onChange={(variant) => set({ variant })} />
+          <Field label="Title"><input value={block.title} onChange={(e) => set({ title: e.target.value })} className={inputClass} maxLength={80} /></Field>
+          <RowsField label="Time" rows={block.units} max={4} blank={{ value: "00", label: "mins" }} onChange={(units) => set({ units })} render={(unit, setUnit) => (
+            <div className="grid grid-cols-2 gap-1.5">
+              <input aria-label="Number" value={unit.value} onChange={(e) => setUnit({ ...unit, value: e.target.value })} className={`${inputClass} font-mono`} maxLength={12} />
+              <input aria-label="Unit" value={unit.label} onChange={(e) => setUnit({ ...unit, label: e.target.value })} className={inputClass} maxLength={24} />
+            </div>
+          )} />
+          <Field label="Note under it (optional)"><input value={block.note} onChange={(e) => set({ note: e.target.value })} className={inputClass} placeholder="Ends Sunday at midnight" /></Field>
+          {look({ align: block.variant === "pill", color: "Number colour", bg: true })}
+        </div>
+      );
+    case "receipt":
+      return (
+        <div className="grid gap-3">
+          <Field label="Title"><input value={block.title} onChange={(e) => set({ title: e.target.value })} className={inputClass} maxLength={80} /></Field>
+          <RowsField label="Lines" rows={block.lines} max={10} blank={{ name: "Item", amount: "₦0" }} onChange={(lines) => set({ lines })} render={(line, setLine) => (
+            <>
+              <input aria-label="Item" value={line.name} onChange={(e) => setLine({ ...line, name: e.target.value })} className={inputClass} placeholder="Item or {{cart_items}}" />
+              <div className="grid grid-cols-2 gap-1.5">
+                <input aria-label="Detail" value={line.detail ?? ""} onChange={(e) => setLine({ ...line, detail: e.target.value || undefined })} className={inputClass} placeholder="× 1, size…" />
+                <input aria-label="Amount" value={line.amount} onChange={(e) => setLine({ ...line, amount: e.target.value })} className={`${inputClass} font-mono`} placeholder="₦0" />
+              </div>
+            </>
+          )} />
+          <RowsField label="Totals" rows={block.totals} max={6} blank={{ label: "Delivery", amount: "₦0" }} onChange={(totals) => set({ totals })} render={(row, setRow) => (
+            <div className="grid grid-cols-2 gap-1.5">
+              <input aria-label="Label" value={row.label} onChange={(e) => setRow({ ...row, label: e.target.value })} className={inputClass} />
+              <input aria-label="Amount" value={row.amount} onChange={(e) => setRow({ ...row, amount: e.target.value })} className={`${inputClass} font-mono`} placeholder="{{order_total}}" />
+            </div>
+          )} />
+          <p className="m-0 text-[12.5px] text-app-ink-soft">The last total is drawn bold. In order emails, {"{{order_number}}"} and {"{{order_total}}"} fill in by themselves.</p>
+          <Field label="Note under it (optional)"><input value={block.note} onChange={(e) => set({ note: e.target.value })} className={inputClass} /></Field>
+          {look({ bg: true })}
+        </div>
+      );
+    case "steps":
+      return (
+        <div className="grid gap-3">
+          <RowsField label="Steps" rows={block.steps} max={5} blank="Next step" onChange={(steps) => set({ steps, current: Math.min(block.current, Math.max(0, steps.length - 1)) })} render={(step, setStep, index) => (
+            <input aria-label={`Step ${index + 1}`} value={step} onChange={(e) => setStep(e.target.value)} className={inputClass} maxLength={40} />
+          )} />
+          <VariantField label="Where the order is now" value={String(block.current)} options={block.steps.map((step, i) => ({ value: String(i), label: step || `Step ${i + 1}` }))} onChange={(value) => set({ current: Number(value) })} />
+          <Field label="Note under it (optional)"><input value={block.note} onChange={(e) => set({ note: e.target.value })} className={inputClass} /></Field>
+          {look({ bg: true, pad: true })}
+        </div>
+      );
+    case "review":
+      return (
+        <div className="grid gap-3">
+          <Field label="What they said"><textarea value={block.quote} onChange={(e) => set({ quote: e.target.value })} rows={3} className={textareaClass} maxLength={600} /></Field>
+          <Field label="Stars">
+            <Segmented options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n}★` }))} value={String(block.rating)} onChange={(value) => set({ rating: Number(value) })} className="border border-app-line" />
+          </Field>
+          <Field label="Name"><input value={block.author} onChange={(e) => set({ author: e.target.value })} className={inputClass} placeholder="Ngozi A." /></Field>
+          <Field label="Detail (optional)"><input value={block.detail} onChange={(e) => set({ detail: e.target.value })} className={inputClass} placeholder="Verified buyer · Enugu" /></Field>
+          <p className="m-0 text-[12.5px] text-app-ink-soft">Only use real reviews, with the customer&apos;s permission.</p>
+          {look({ align: true, color: "Text colour", bg: true })}
+        </div>
+      );
+    case "features":
+      return (
+        <div className="grid gap-3">
+          <RowsField label="Highlights" rows={block.items} max={3} blank={{ icon: "✓", title: "Something good" }} onChange={(items) => set({ items })} render={(item, setItem) => (
+            <>
+              <div className="grid grid-cols-[64px_minmax(0,1fr)] gap-1.5">
+                <input aria-label="Symbol" value={item.icon ?? ""} onChange={(e) => setItem({ ...item, icon: e.target.value || undefined })} className={`${inputClass} text-center`} maxLength={3} placeholder="✓" />
+                <input aria-label="Title" value={item.title} onChange={(e) => setItem({ ...item, title: e.target.value })} className={`${inputClass} font-bold`} />
+              </div>
+              <input aria-label="Text" value={item.text ?? ""} onChange={(e) => setItem({ ...item, text: e.target.value || undefined })} className={inputClass} placeholder="One short line (optional)" />
+            </>
+          )} />
+          {look({ bg: true, pad: true })}
+        </div>
+      );
+    case "vip":
+      return (
+        <div className="grid gap-3">
+          <Field label="Tier name"><input value={block.tier} onChange={(e) => set({ tier: e.target.value })} className={inputClass} maxLength={24} placeholder="Gold" /></Field>
+          <Field label="Title"><input value={block.title} onChange={(e) => set({ title: e.target.value })} className={inputClass} /></Field>
+          <RichText label="Text" rows={2} value={block.text} onChange={(text) => set({ text })} />
+          <RowsField label="Perks" rows={block.perks} max={5} blank="A new perk" onChange={(perks) => set({ perks })} render={(perk, setPerk, index) => (
+            <input aria-label={`Perk ${index + 1}`} value={perk} onChange={(e) => setPerk(e.target.value)} className={inputClass} maxLength={120} />
+          )} />
+          <Field label="Button text (optional)"><input value={block.buttonLabel} onChange={(e) => set({ buttonLabel: e.target.value })} className={inputClass} /></Field>
+          {block.buttonLabel ? <LinkField label="Button goes to" url={block.buttonUrl} onChange={(buttonUrl) => set({ buttonUrl })} /> : null}
+          {look({ color: "Text colour", bg: true })}
+        </div>
+      );
+    case "meter":
+      return (
+        <div className="grid gap-3">
+          <Field label="Title"><input value={block.title} onChange={(e) => set({ title: e.target.value })} className={inputClass} placeholder="Your points" /></Field>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Now"><input type="number" min={0} value={block.current} onChange={(e) => set({ current: Math.max(0, Number(e.target.value) || 0) })} className={inputClass} /></Field>
+            <Field label="Goal"><input type="number" min={1} value={block.goal} onChange={(e) => set({ goal: Math.max(1, Number(e.target.value) || 1) })} className={inputClass} /></Field>
+            <Field label="Unit"><input value={block.unit} onChange={(e) => set({ unit: e.target.value })} className={inputClass} placeholder="points" /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Left label"><input value={block.from} onChange={(e) => set({ from: e.target.value })} className={inputClass} placeholder="Silver" /></Field>
+            <Field label="Right label"><input value={block.to} onChange={(e) => set({ to: e.target.value })} className={inputClass} placeholder="Gold" /></Field>
+          </div>
+          <Field label="Note (optional)"><input value={block.note} onChange={(e) => set({ note: e.target.value })} className={inputClass} /></Field>
+          <p className="m-0 text-[12.5px] text-app-ink-soft">These numbers are the same for everyone who gets the email. Send it to a segment that matches.</p>
+          {look({ color: "Text colour", bg: true })}
+        </div>
+      );
+    case "game":
+      return (
+        <div className="grid gap-3">
+          <VariantField label="Game" value={block.game} options={(Object.keys(GAME_LABELS) as Array<keyof typeof GAME_LABELS>).map((value) => ({ value, label: GAME_LABELS[value] }))} onChange={(game) => set({ game })} />
+          <Field label="Title"><input value={block.title} onFocus={(e) => onFocusText?.(e.currentTarget, "text")} onChange={(e) => set({ title: e.target.value })} className={`${inputClass} font-bold`} /></Field>
+          <RichText label="Text" rows={3} value={block.text} onChange={(text) => set({ text })} />
+          {block.game === "scratch" || block.game === "draw" ? (
+            <Field label={block.game === "draw" ? "Ticket number" : "Hint on the card"}><input value={block.value} onChange={(e) => set({ value: e.target.value })} className={inputClass} maxLength={40} placeholder={block.game === "draw" ? "No. 001" : "Up to 30% off inside"} /></Field>
+          ) : null}
+          <RowsField label="Prizes" rows={block.prizes} max={6} blank="A prize" onChange={(prizes) => set({ prizes })} render={(prize, setPrize, index) => (
+            <input aria-label={`Prize ${index + 1}`} value={prize} onChange={(e) => setPrize(e.target.value)} className={inputClass} maxLength={40} />
+          )} />
+          <Field label="Button text"><input value={block.buttonLabel} onChange={(e) => set({ buttonLabel: e.target.value })} className={inputClass} /></Field>
+          <LinkField label="Button goes to" url={block.buttonUrl} onChange={(buttonUrl) => set({ buttonUrl })} />
+          <p className="m-0 text-[12.5px] text-app-ink-soft">The game itself runs on your shop (your spin or reveal page or pop-up); the email shows the graphic and sends them there. Keep the odds honest and say what can be won.</p>
+          {look({ color: "Text colour", bg: true })}
         </div>
       );
   }

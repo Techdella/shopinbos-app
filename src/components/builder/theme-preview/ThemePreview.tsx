@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
-import { PillButton, Segmented, Toggle, cx } from "@/components/app-ui";
+import { DeviceToggle, PillButton, Segmented, Toggle, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
@@ -204,12 +204,7 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
             <h2 id={titleId} className="m-0 truncate text-[20px] font-extrabold leading-tight">{theme.name}</h2>
             <p className="m-0 truncate text-[13px] text-app-ink-soft">{theme.meaning} · {theme.categoryLabel}</p>
           </div>
-          <Segmented<"desktop" | "mobile">
-            className="border border-app-line"
-            options={[{ value: "desktop", label: "Desktop" }, { value: "mobile", label: "Phone" }]}
-            value={device}
-            onChange={(value) => { setDevice(value); body.current?.scrollTo({ top: 0 }); }}
-          />
+          <DeviceToggle value={device} onChange={(value) => { setDevice(value); body.current?.scrollTo({ top: 0 }); }} />
           <Segmented<PreviewPage>
             className="border border-app-line"
             options={[{ value: "home", label: "Home" }, { value: "product", label: "Product" }]}

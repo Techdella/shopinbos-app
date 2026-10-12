@@ -2,12 +2,15 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { APP_ERROR_LINES, APP_NOT_FOUND_LINES } from "./copy";
+import { APP_ERROR_LINES, APP_GLOBAL_ERROR_LINES, APP_NOT_FOUND_LINES, APP_UPDATE_LINES } from "./copy";
 import { APP_PALETTE, ErrorScene, type SceneAction } from "./ErrorScene";
-import { OkadaScene, RexRepairScene } from "./Illustrations";
+import { PeggySearchingScene, RexAndPeggyScene, RexFixingScene } from "./MascotScenes";
+import { reloadPage, useDeployRecovery } from "./useDeployRecovery";
 
 // The app's own 404 and error pages: site-wide, and one per portal (seller, supplier, logistics, admin)
-// with that portal's way home and accent (PortalErrorPages wraps those in the app frame).
+// with that portal's way home and accent (PortalErrorPages wraps those in the app frame). Peggy searches on
+// 404s, Rex fixes on errors, and both turn up when the whole app falls over (global-error). An error caused by
+// a new deployment (old chunks or server actions gone) reloads the page once instead of showing the error.
 
 export type PortalKey = "seller" | "supplier" | "logistics_partner" | "admin";
 
@@ -44,30 +47,52 @@ export function NotFoundScene({ portal, embedded }: { portal?: PortalKey; embedd
       lines={APP_NOT_FOUND_LINES}
       body="The link may be old or mistyped, or the page has moved. Nothing is lost: your store, orders and money are exactly where you left them."
       actions={actions}
-      illustration={<OkadaScene />}
+      illustration={<PeggySearchingScene />}
       backdrop="404"
     />
   );
 }
 
-export function ErrorSceneFor({ error, retry, portal, embedded }: { error: Error & { digest?: string }; retry: () => void; portal?: PortalKey; embedded?: boolean }) {
+export function ErrorSceneFor({ error, retry, portal, embedded, global = false }: { error: Error & { digest?: string }; retry: () => void; portal?: PortalKey; embedded?: boolean; global?: boolean }) {
   const config = portal ? PORTALS[portal] : null;
+  const { reloading, stale } = useDeployRecovery(error);
   useEffect(() => {
     console.error(error);
   }, [error]);
+  const sceneAccent = config?.accent ?? "#73D8C8";
+  const homeHref = config?.home ?? "/";
+
+  if (reloading) {
+    return (
+      <ErrorScene
+        embedded={embedded}
+        sceneAccent={sceneAccent}
+        eyebrow="Update · New version"
+        title="Shopinbos just got an update — reloading…"
+        lines={APP_UPDATE_LINES}
+        body="We shipped something new while this tab was open. Fetching the fresh version now; your work is safe."
+        actions={[{ label: "Reload now", onClick: reloadPage, icon: "refresh", primary: true }]}
+        illustration={<RexFixingScene />}
+      />
+    );
+  }
+
+  // Still stale after the one automatic reload: "Try again" reloads the page, since re-rendering can't fetch
+  // a build that's gone.
   const actions: SceneAction[] = [
-    { label: "Try again", onClick: retry, icon: "refresh", primary: true },
-    { label: config?.homeLabel ?? "Go home", href: config?.home ?? "/", icon: "home" },
+    { label: "Try again", onClick: stale ? reloadPage : retry, icon: "refresh", primary: true },
+    // global-error replaces the root layout, so leave with a full page load.
+    { label: config?.homeLabel ?? "Go home", href: homeHref, icon: "home", external: global },
   ];
-  if (!config || config.peggy) actions.push({ label: "Ask Peggy", href: "/home/peggy", icon: "sparkle" });
+  if (!config || config.peggy) actions.push({ label: "Ask Peggy", href: "/home/peggy", icon: "sparkle", external: global });
   return (
     <ErrorScene
       embedded={embedded}
       palette={{ ...APP_PALETTE, warm: "#E86A4F" }}
-      sceneAccent={config?.accent ?? "#73D8C8"}
+      sceneAccent={sceneAccent}
       eyebrow={config ? `Error · ${config.label} workspace` : "Error · Something went wrong"}
       title="This page didn't load"
-      lines={APP_ERROR_LINES}
+      lines={global ? APP_GLOBAL_ERROR_LINES : APP_ERROR_LINES}
       body={
         <>
           Something on our side failed while loading this page. Your data is safe. Try again in a moment; if it keeps happening, send us the reference below so we can find it fast.
@@ -75,7 +100,7 @@ export function ErrorSceneFor({ error, retry, portal, embedded }: { error: Error
       }
       actions={actions}
       digest={error.digest}
-      illustration={<RexRepairScene />}
+      illustration={global ? <RexAndPeggyScene /> : <RexFixingScene />}
     />
   );
 }
@@ -88,4 +113,9 @@ export function AppNotFound() {
 /** Site-wide error boundary (app/error.tsx). */
 export function AppError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return <ErrorSceneFor error={error} retry={retry} />;
+}
+
+/** When the root layout itself failed (app/global-error.tsx): Rex is fixing, Peggy is looking. */
+export function GlobalAppError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  return <ErrorSceneFor error={error} retry={retry} global />;
 }

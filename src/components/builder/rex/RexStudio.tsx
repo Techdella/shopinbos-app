@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mascot, cx } from "@/components/app-ui";
+import { DeviceToggle, Mascot, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
@@ -332,23 +332,7 @@ export function RexStudio(props: RexStudioProps) {
     </nav>
   );
 
-  const deviceToggle = (
-    <div className="flex shrink-0 gap-1 rounded-full bg-app-canvas p-1" role="group" aria-label="Preview size">
-      {(["desktop", "mobile"] as const).map((option) => (
-        <button
-          key={option}
-          type="button"
-          aria-pressed={device === option}
-          aria-label={option === "desktop" ? "Desktop" : "Mobile"}
-          title={option === "desktop" ? "Desktop" : "Mobile"}
-          onClick={() => setDevice(option)}
-          className={cx("grid h-9 w-10 place-items-center rounded-full", device === option ? "bg-white shadow-[0_1px_3px_rgba(22,20,31,0.12)]" : "text-app-ink-soft")}
-        >
-          <Icon name={option === "desktop" ? "monitor" : "phone"} size={16} />
-        </button>
-      ))}
-    </div>
-  );
+  const deviceToggle = <DeviceToggle value={device} onChange={setDevice} />;
 
   const side = (
     <RexSidePanel

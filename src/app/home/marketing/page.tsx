@@ -188,6 +188,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
             ["/home/inbox/auto-replies", "Auto-replies", "clock", "Away message, opening hours, quick replies"],
             ["/home/inbox/chatbot", "Peggy chatbot", "sparkle", "Peggy answers shoppers on your live chat"],
             ["/home/marketing/analytics", "Reports", "chart", "What each campaign and automation brought in"],
+            ["/home/marketing/rewards", "Rewards and games", "sparkle", "Spin the wheel, scratch cards, loyalty points"],
           ] as Array<[string, string, IconName, string]>).map(([href, label, icon, sub]) => (
             <a key={href} href={href} className="flex items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 text-app-ink no-underline hover:border-app-line-strong">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-canvas"><Icon name={icon} size={18} /></span>

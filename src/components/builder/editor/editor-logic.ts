@@ -407,6 +407,10 @@ export const INSERT_CATALOG: InsertItem[] = [
   { kind: "newsletter", label: "Newsletter", group: "Grow", hint: "Collect emails and WhatsApp numbers.", renderers: BOTH },
   { kind: "contact-form", label: "Contact form", group: "Grow", hint: "A message form and WhatsApp button.", renderers: BOTH },
   { kind: "blog-index", label: "Blog posts", group: "Grow", hint: "Your latest articles.", renderers: ["classic"] },
+  { kind: "spin-wheel", label: "Spin the wheel", group: "Grow", hint: "A prize wheel pop-up that collects emails and WhatsApp numbers.", renderers: BOTH },
+  { kind: "scratch-card", label: "Scratch card", group: "Grow", hint: "Shoppers scratch to reveal a mystery discount.", renderers: BOTH },
+  { kind: "reward-progress", label: "Reward progress", group: "Grow", hint: "How close the bag is to free delivery and rewards.", renderers: BOTH },
+  { kind: "loyalty-banner", label: "Loyalty points", group: "Grow", hint: "How points work, the tiers and a balance check.", renderers: BOTH },
 ];
 
 export const INSERT_GROUP_ORDER: InsertItem["group"][] = ["Header", "Banners", "Products", "Story", "Grow"];
@@ -473,6 +477,15 @@ export function newBoutiqueSection(kind: string, id: string): TemplateSectionNod
       return make("Newsletter", { title: "Subscribe to new drops", body: "", buttonLabel: "Subscribe", placeholder: "WhatsApp number or email" });
     case "contact-form":
       return make("Contact form", { title: "Get in touch", body: "", buttonLabel: "Send message" });
+    // Reward sections: same starters as gameSectionDefaults() in src/lib/gamification/logic.ts (tests check).
+    case "spin-wheel":
+      return make("Spin the wheel", { title: "", body: "", buttonLabel: "Spin the wheel" }, { settings: { display: "popup", trigger: "delay", delaySeconds: 8, scrollPercent: 50 } });
+    case "scratch-card":
+      return make("Scratch card", { title: "", body: "", buttonLabel: "Scratch to reveal" }, { settings: { display: "inline", trigger: "scroll", delaySeconds: 8, scrollPercent: 50 } });
+    case "reward-progress":
+      return make("Reward progress", { title: "" }, { settings: {} });
+    case "loyalty-banner":
+      return make("Loyalty points", { title: "Earn points every time you shop", body: "" }, { settings: {} });
     default:
       return make(insertLabel(kind), { title: "", body: "" });
   }

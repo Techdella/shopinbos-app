@@ -12,6 +12,7 @@ import { validCampaignToken } from "@/lib/campaigns/send";
 import { cleanAffiliateCode, commissionFor } from "@shared/affiliates";
 import { priceOrder } from "@/lib/commerce/pricing.server";
 import { markCartRecovered } from "@/lib/commerce/abandoned-cart.server";
+import { spendPoints } from "@/lib/gamification/loyalty.server";
 import { isPhone, orderNotes, readCheckoutSettings } from "@shared/cart-checkout";
 import {
   checkoutPaymentOptions,
@@ -60,6 +61,8 @@ const CheckoutSchema = z.object({
   channel: z.enum(LINK_CHANNELS).optional(),
   affiliateCode: z.string().max(32).optional(),
   adCode: z.string().max(32).optional(),
+  // Loyalty points to use (src/lib/gamification); checked against the buyer's email and phone.
+  redeemPoints: z.number().int().min(0).max(10_000_000).optional(),
 });
 
 function generateOrderNumber(): string {
@@ -118,6 +121,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     discountCode,
     buyerEmail,
     settings,
+    loyalty: parsed.data.redeemPoints ? { points: parsed.data.redeemPoints, phone: buyerPhone } : null,
   });
   if (!priced.ok) return withCors(req, apiError("BAD_REQUEST", priced.message), CHECKOUT_CORS);
 
@@ -199,7 +203,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         });
       }
 
-      return tx.retailOrder.create({
+      const created = await tx.retailOrder.create({
         data: {
           storeId: store.id,
           orderNumber,
@@ -229,9 +233,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           status: "pending",
         },
       });
+      // Points used are taken off in the same transaction (fails the order if the balance changed meanwhile).
+      if (priced.points) await spendPoints(tx, { storeId: store.id, accountId: priced.points.accountId, orderId: created.id, points: priced.points.points });
+      return created;
     });
   } catch (error) {
-    const message = error instanceof Error && error.message.startsWith("Insufficient stock")
+    const message = error instanceof Error && (error.message.startsWith("Insufficient stock") || error.message.startsWith("Insufficient points"))
       ? error.message
       : "Could not place this order. Please try again.";
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);

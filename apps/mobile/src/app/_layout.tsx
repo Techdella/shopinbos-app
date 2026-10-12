@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from "@expo-google-fonts/plus-jakarta-sans";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { RoleGuard } from "@/components/RoleGuard";
 import { SessionProvider, useSession } from "@/lib/session";
 import { colors } from "@/theme";
 
@@ -34,6 +35,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <SessionProvider>
         <SplashHandover />
+        <RoleGuard />
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
       </SessionProvider>

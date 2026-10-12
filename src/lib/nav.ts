@@ -151,6 +151,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "automations", label: "Automations", href: "/home/automations" },
             { id: "email-templates", label: "Email templates", href: "/home/marketing/templates" },
             { id: "mkt-forms", label: "Forms and pop-ups", href: "/home/marketing/forms" },
+            { id: "mkt-rewards", label: "Rewards and games", href: "/home/marketing/rewards" },
             { id: "marketing-analytics", label: "Marketing reports", href: "/home/marketing/analytics" },
           ],
         },
@@ -329,7 +330,16 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
   admin: [
     {
       group: "main",
-      items: [{ id: "dashboard", label: "Today", icon: "home", href: "/admin/dashboard", core: true }],
+      items: [
+        { id: "dashboard", label: "Today", icon: "home", href: "/admin/dashboard", core: true },
+        {
+          id: "support", label: "Support", icon: "chat", href: "/admin/support", core: true,
+          children: [
+            { id: "support-queue", label: "Tickets", href: "/admin/support" },
+            { id: "support-macros", label: "Saved replies", href: "/admin/support/macros" },
+          ],
+        },
+      ],
     },
     {
       group: "platform",

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import type { AuthRole } from "@/lib/brand";
 import { portalLoginPath, portalOnboardingPath } from "@/lib/portal-routes";
 import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import intentRouting from "@/lib/intent-routing";
+import { getAuthRouteClient, recoveryCookieOptions, recoveryMarker, RECOVERY_COOKIE } from "@/lib/auth/session.server";
+import { decodeAccessToken } from "@/lib/auth/session-claims";
+import { safeNextPath } from "@/lib/auth/route-access";
+import { deviceCookie, recordSignIn } from "@/lib/auth/events";
 
-const { sanitizeNextPath } = intentRouting;
+const RESET_PATH = "/reset-password";
 
 function roleFromValue(value: string | null): AuthRole {
   if (value === "supplier" || value === "logistics_partner" || value === "admin" || value === "seller") {
@@ -24,19 +26,21 @@ function redirectUrl(request: NextRequest, path: string, error?: string) {
 
 export async function GET(request: NextRequest) {
   const role = roleFromValue(request.nextUrl.searchParams.get("role"));
-  const next = sanitizeNextPath(request.nextUrl.searchParams.get("next"), request.nextUrl.origin);
+  const next = safeNextPath(request.nextUrl.searchParams.get("next"));
   const destination = next ?? portalOnboardingPath(role);
   const code = request.nextUrl.searchParams.get("code");
+  const isReset = next === RESET_PATH;
 
   if (!code) {
-    return NextResponse.redirect(redirectUrl(request, portalLoginPath(role), "missing_confirmation_code"));
+    return NextResponse.redirect(redirectUrl(request, isReset ? RESET_PATH : portalLoginPath(role), isReset ? "link_expired" : "missing_confirmation_code"));
   }
 
-  const supabase = await getSupabaseServerClient();
+  const supabase = await getAuthRouteClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.user) {
-    return NextResponse.redirect(redirectUrl(request, portalLoginPath(role), "confirmation_failed"));
+    // Reset codes work once: a second click lands on the reset page's "link expired" screen.
+    return NextResponse.redirect(redirectUrl(request, isReset ? RESET_PATH : portalLoginPath(role), isReset ? "link_expired" : "confirmation_failed"));
   }
 
   await ensureAppUserForSupabaseUser({
@@ -44,5 +48,19 @@ export async function GET(request: NextRequest) {
     role,
   });
 
-  return NextResponse.redirect(redirectUrl(request, destination));
+  const response = NextResponse.redirect(redirectUrl(request, destination));
+  response.headers.set("Cache-Control", "private, no-store");
+  const claims = decodeAccessToken(data.session?.access_token);
+
+  if (isReset) {
+    // Lets /reset-password (and only this session) set a new password without the old one, for an hour.
+    if (claims?.session_id) response.cookies.set(RECOVERY_COOKIE, recoveryMarker(claims.session_id), recoveryCookieOptions());
+  } else {
+    const method = claims?.amr?.[0]?.method ?? data.user.app_metadata?.provider ?? "link";
+    const deviceId = await recordSignIn(request, data.user, method === "oauth" ? String(data.user.app_metadata?.provider ?? "oauth") : method);
+    const device = deviceCookie(deviceId);
+    response.cookies.set(device.name, device.value, device.options);
+  }
+
+  return response;
 }

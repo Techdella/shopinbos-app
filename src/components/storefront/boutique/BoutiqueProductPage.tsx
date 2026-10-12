@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CartDrawer } from "@/app/s/[slug]/CartDrawer";
+import { rewardTiersFor } from "@/lib/gamification/logic";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { useCart } from "@/hooks/useCart";
 import { readCartSettings } from "@shared/cart-checkout";
@@ -178,6 +179,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         accentColor={snapshot.themeTokens.ctaBg}
         accentTextColor={snapshot.themeTokens.ctaText}
         freeDeliveryThreshold={freeDeliveryEverywhereOver(shopper.delivery) ?? undefined}
+        rewardTiers={rewardTiersFor(store.brandSettings)}
       />
     </div>
   );

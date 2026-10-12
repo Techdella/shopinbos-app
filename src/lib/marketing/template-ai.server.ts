@@ -5,7 +5,7 @@ import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { naira } from "@shared/onboarding";
 import { htmlFromBlocks, readBlocks, type EmailBlock } from "./blocks";
 import { MARKETING_STORE_SELECT, storeUrl } from "./brand";
-import { BLOCK_FORMAT, fallbackDraft, groundBlocks, type ShopProduct } from "./template-ai";
+import { BLOCK_FORMAT, STARTER_GUIDE, fallbackDraft, groundBlocks, matchSeries, type ShopProduct } from "./template-ai";
 import { TEMPLATE_LIBRARY, matchStarter } from "./template-library";
 import { saveTemplate } from "./templates";
 import { MarketingError } from "./segments";
@@ -24,8 +24,19 @@ export interface EmailDraft {
   ai: boolean;
 }
 
-/** Every Unsplash photo the starters use, so Peggy can reuse one without inventing links. */
-const LIBRARY_IMAGES = [...new Set(TEMPLATE_LIBRARY.flatMap((tpl) => (readBlocks(tpl.bodyHtml) ?? []).flatMap((block) => (block.type === "image" ? [{ url: block.url, alt: block.alt }] : []))).map((img) => JSON.stringify(img)))].map((raw) => JSON.parse(raw) as { url: string; alt: string });
+/** Every Unsplash photo the starters use (images, heroes, column pictures), so Peggy can reuse one without inventing links. */
+const LIBRARY_IMAGES = [
+  ...new Map(
+    TEMPLATE_LIBRARY.flatMap((tpl) =>
+      (readBlocks(tpl.bodyHtml) ?? []).flatMap((block) => {
+        if (block.type === "image") return [{ url: block.url, alt: block.alt }];
+        if (block.type === "hero" && block.imageUrl) return [{ url: block.imageUrl, alt: block.alt }];
+        if (block.type === "columns") return block.cells.flatMap((cell) => (cell.imageUrl ? [{ url: cell.imageUrl, alt: cell.alt ?? "" }] : []));
+        return [];
+      }),
+    ).map((img) => [img.url, img] as const),
+  ).values(),
+];
 
 export async function shopFacts(storeId: string) {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { ...MARKETING_STORE_SELECT, description: true, city: true } });
@@ -46,7 +57,8 @@ export async function shopFacts(storeId: string) {
 export async function draftEmail(storeId: string, instruction: string, current?: { subject: string; preheader: string; blocks: EmailBlock[] } | null): Promise<EmailDraft> {
   const { store, products, inStock } = await shopFacts(storeId);
   const images = [...products.map((p) => p.imageUrl), ...LIBRARY_IMAGES.map((img) => img.url)];
-  const starter = matchStarter(instruction);
+  const series = matchSeries(instruction);
+  const starter = (series && TEMPLATE_LIBRARY.find((tpl) => tpl.key === series.steps[0].template)) || matchStarter(instruction);
   const facts = [
     `Shop: ${store.name}${store.city ? ` in ${store.city}` : ""}. Link: ${storeUrl(store)}.`,
     store.description ? `About the shop: ${store.description.slice(0, 400)}` : "",
@@ -55,6 +67,7 @@ export async function draftEmail(storeId: string, instruction: string, current?:
       : "The shop has no published products with photos yet, so don't add a products block.",
     `Photos you may use (url | what it shows):\n${LIBRARY_IMAGES.map((img) => `${img.url} | ${img.alt}`).join("\n")}`,
     starter && !current ? `A starting point for this kind of email (adapt it, don't copy blindly): ${JSON.stringify(readBlocks(starter.bodyHtml))}` : "",
+    series && !current ? `The seller asked for a series. Write the first email only (${series.steps[0].template.replace(/_/g, " ")}) and say in the note that the whole "${series.name}" can be created as an automation from the Templates page with "Use the whole series".` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -64,7 +77,9 @@ export async function draftEmail(storeId: string, instruction: string, current?:
     maxTokens: 6000,
     system:
       `You are Peggy, writing marketing emails for ${store.name}, a small online shop in Nigeria. Warm, clear Nigerian English, short paragraphs, one clear call to action. ` +
-      "Never invent prices, stock, delivery times, discounts or policies; only use the facts given. No emojis in the body (one in the subject at most). Keep it short enough to read on a phone.\n\n" +
+      "Never invent prices, stock, delivery times, discounts or policies; only use the facts given. No emojis in the body (one in the subject at most). Keep it short enough to read on a phone. " +
+      "Pick a style family (theme block) that suits the email: luxe for VIP or premium, market for flash deals, editorial for stories and newsletters, playful for games and treats, receipt for orders.\n\n" +
+      `${STARTER_GUIDE}\n\n` +
       BLOCK_FORMAT,
     prompt: `${facts}\n\n${current ? `The email as it is now:\n${JSON.stringify({ subject: current.subject, preheader: current.preheader, blocks: current.blocks })}\n\nChange it as the seller asks, keeping what they didn't ask to change.` : "Write a new email."}\nThe seller asks: ${instruction}`,
   }).catch(() => null);
@@ -90,7 +105,7 @@ export async function draftEmail(storeId: string, instruction: string, current?:
     subject: fallback.subject,
     preheader: fallback.preheader,
     blocks: fallback.blocks,
-    note: `Peggy's writing help isn't available right now, so this is the "${fallback.starter}" starter with your products. Edit the words and the discount code before sending.`,
+    note: `Peggy's writing help isn't available right now, so this is the "${fallback.starter}" starter with your products. Edit the words and the discount code before sending.${series ? ` For all ${series.steps.length} emails at once, use "Use the whole series" on the ${series.name} in Templates.` : ""}`,
     ai: false,
   };
 }

@@ -1,4 +1,5 @@
 import { AppPage, Card, CardHead, ListCard, ListRow, Pill } from "@/components/app-kit";
+import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { adminFrame } from "@/components/admin/AdminKit";
 import { requireRole } from "@/lib/server-auth";
@@ -47,6 +48,8 @@ export default async function AdminSettingsPage() {
           </ListRow>
         ))}
       </ListCard>
+
+      <SecuritySettings className="mt-6 p-5" />
     </AppPage>
   );
 }

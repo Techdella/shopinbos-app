@@ -1,22 +1,35 @@
 // Lines for the 404, error and "not open yet" pages. Pure (no imports) so it is unit-tested.
-// App pages speak as Shopinbos (Rex builds stores, Peggy is the seller's assistant); storefront pages speak
-// for the seller's shop, so they never mention Rex, Peggy or Shopinbos.
+// App pages speak as Shopinbos: Rex (the builder, fixing things on error pages) and Peggy (the seller's assistant,
+// searching on 404s) are on screen, so the lines talk about them. Storefront pages speak for the seller's shop,
+// so they never mention Rex, Peggy or Shopinbos.
 
 export const APP_NOT_FOUND_LINES = [
   "Omo, this page don japa.",
   "It's not you, it's Rex. He moved this page and forgot to tell anyone.",
   "Even Peggy searched everywhere. Nothing.",
+  "Peggy has checked under every shelf with her magnifier. No sign of this page.",
   "We sent a dispatch rider. He's still circling the roundabout looking for this address.",
   "This page went to buy suya and never came back.",
 ] as const;
 
 export const APP_ERROR_LINES = [
-  "Something broke. Rex is already on it with a screwdriver.",
+  "It's not you, it's Rex. He's tightening a loose bolt as we speak.",
+  "Something broke. Rex is already on it with his spanner.",
   "Our server took small break. E go soon wake.",
   "Small wahala. Nothing we can't fix.",
   "Rex tightened the wrong bolt. He is very sorry.",
   "Light blinked on our side. The generator is warming up.",
 ] as const;
+
+/** The global error, when the whole app fell over: both mascots are on screen. */
+export const APP_GLOBAL_ERROR_LINES = [
+  "Rex is fixing, Peggy is looking. You just relax.",
+  "It's not you, it's Rex. Peggy is helping him find the loose wire.",
+  "Small wahala. Rex has the spanner, Peggy has the magnifier.",
+] as const;
+
+/** While the page reloads itself onto a new deployment. */
+export const APP_UPDATE_LINES = ["Rex is bolting in the fresh parts. Back in a blink."] as const;
 
 export const STORE_NOT_FOUND_LINES = [
   "This one has left the shelf.",

@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { SupportRequestPanel } from "@/components/support/SupportRequestPanel";
 import { roleDestination, roleLabel, type AuthRole } from "@/lib/brand";
 import { getPublicEnv } from "@/lib/env";
 import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
 import intentRouting from "@/lib/intent-routing";
+import { safeNextPath } from "@/lib/auth/route-access";
 import { DEFAULT_DIAL_COUNTRY, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
 import {
   BackButton,
@@ -35,7 +37,7 @@ import {
   type SignupRole,
 } from "./auth-api";
 
-const { extractIntentParams, getContinuationPath, sanitizeNextPath } = intentRouting;
+const { extractIntentParams, getContinuationPath } = intentRouting;
 
 type Mode = "login" | "signup";
 type Screen = "welcome" | "details" | "code";
@@ -77,7 +79,8 @@ const ROLE_COPY: Record<SignupRole, RoleCopy> = {
 const SIGNUP_ROLES: SignupRole[] = ["seller", "supplier", "logistics_partner"];
 
 function buildNextUrl(role: AuthRole, mode: Mode, searchParams: URLSearchParams) {
-  const explicitNext = sanitizeNextPath(searchParams.get("next") ?? searchParams.get("redirect"), window.location.origin);
+  // Same-site paths only, so a crafted ?next= can't bounce someone to another site after they sign in.
+  const explicitNext = safeNextPath(searchParams.get("next") ?? searchParams.get("redirect"));
   if (explicitNext) return explicitNext;
   if (mode === "login" || role === "admin") return getContinuationPath({ role, ...extractIntentParams(searchParams) });
   if (role !== "seller") return portalOnboardingPath(role);
@@ -174,7 +177,13 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const [error, setError] = useState<string | null>(
     callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code" ? "That sign-in link has expired. Please try again." : null,
   );
-  const [info, setInfo] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(
+    params.get("reason") === "expired"
+      ? "For your security, you've been logged out after a while. Log in again to carry on."
+      : params.get("signedOut") === "all"
+        ? "You've been logged out on all your devices."
+        : null,
+  );
   const countdown = useCountdown();
 
   // Desktop has room for the form straight away; the welcome screen is the phone-sized front door.
@@ -209,7 +218,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       setBusy(null);
       return;
     }
-    const explicitNext = sanitizeNextPath(params.get("next") ?? params.get("redirect"), window.location.origin);
+    const explicitNext = safeNextPath(params.get("next") ?? params.get("redirect"));
     const destination = syncedRole && syncedRole !== role && !explicitNext ? roleDestination(syncedRole) : nextUrl || roleDestination(role);
     await navigateAfterAuth(destination);
   }
@@ -527,7 +536,9 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       }}
     >
       <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Enter the code</h1>
-      <p className="mb-6 mt-2 text-app-ink-soft">We sent it to {destinationLabel}</p>
+      <p className="mb-6 mt-2 text-app-ink-soft">
+        We sent it to {destinationLabel}.{mode === "login" ? " No code? Check it's the one you signed up with." : ""}
+      </p>
       <CodeInput value={code} onChange={setCode} onComplete={(value) => void submitCode(value)} disabled={busy === "verify"} />
       <div className="mt-4 text-[14px] text-app-ink-soft">
         {countdown.seconds > 0 ? (
@@ -575,6 +586,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           )}
         </div>
         {activeScreen === "code" ? codeForm : detailsForm}
+        {activeScreen === "details" && <StuckLink className="mt-8 pb-24" />}
       </div>
     );
   }
@@ -646,16 +658,55 @@ function LoginAside({ role }: { role: AuthRole }) {
 
 const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
 
-function HelpCard() {
+/** Compact "Stuck? Talk to us" for phone layouts and the password screens; opens the same support panel. */
+export function StuckLink({ className = "" }: { className?: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <a
-      href={SUPPORT_WHATSAPP ? `https://wa.me/${SUPPORT_WHATSAPP}` : "mailto:support@shopinbos.com"}
-      className="mt-10 flex items-center gap-4 rounded-[24px] bg-app-forest px-6 py-6 text-[15px] leading-[1.5] text-white no-underline"
-    >
-      <Mascot name="peggy" className="h-14 w-14 shrink-0" alt="" />
-      {SUPPORT_WHATSAPP
-        ? "Stuck? Message us on WhatsApp. A real person replies, in English or Pidgin."
-        : "Stuck? Email support@shopinbos.com. A real person replies, in English or Pidgin."}
-    </a>
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="flex w-full items-center gap-3 rounded-[18px] border border-app-line bg-white px-4 py-3 text-left text-[14px] leading-[1.45] text-app-ink hover:border-app-line-strong"
+      >
+        <Mascot name="peggy" className="h-10 w-10 shrink-0" alt="" />
+        <span className="min-w-0 flex-1"><span className="font-extrabold">Stuck? Talk to us.</span> A real person replies, in English or Pidgin.</span>
+        <Icon name="arrow" size={16} />
+      </button>
+      <SupportRequestPanel open={open} onClose={() => setOpen(false)} />
+    </div>
+  );
+}
+
+// "Stuck?" opens the support panel (a real ticket with the team), with email/WhatsApp kept as a fallback link.
+function HelpCard() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-10">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="flex w-full items-center gap-4 rounded-[24px] bg-app-forest px-6 py-6 text-left text-[15px] leading-[1.5] text-white transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-app-forest/30"
+      >
+        <Mascot name="peggy" className="h-14 w-14 shrink-0" alt="" />
+        <span className="min-w-0 flex-1">
+          <span className="block font-extrabold">Stuck? Talk to us.</span>
+          A real person replies, in English or Pidgin.
+        </span>
+        <Icon name="arrow" size={18} />
+      </button>
+      <p className="m-0 mt-3 px-2 text-[13px] text-app-ink-soft">
+        or email{" "}
+        <a href="mailto:support@shopinbos.com" className="font-semibold text-app-ink underline-offset-2 hover:underline">support@shopinbos.com</a>
+        {SUPPORT_WHATSAPP ? (
+          <>
+            {" "}·{" "}
+            <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-app-ink underline-offset-2 hover:underline">WhatsApp</a>
+          </>
+        ) : null}
+      </p>
+      <SupportRequestPanel open={open} onClose={() => setOpen(false)} />
+    </div>
   );
 }

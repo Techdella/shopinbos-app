@@ -24,6 +24,10 @@ const KIND_ICONS: Record<string, IconName> = {
   "cart-summary": "cart",
   "checkout-form": "card",
   "wishlist-grid": "heart",
+  "spin-wheel": "sparkle",
+  "scratch-card": "sparkle",
+  "reward-progress": "target",
+  "loyalty-banner": "star",
 };
 
 const BLOCK_ICONS: Record<SectionBlockRow["icon"], IconName> = { text: "edit", button: "link", image: "image", item: "dot" };

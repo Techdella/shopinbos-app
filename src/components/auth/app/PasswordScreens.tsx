@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { roleDestination, type AuthRole } from "@/lib/brand";
 import { portalLoginPath } from "@/lib/portal-routes";
 import { isValidEmail } from "@shared/phone";
 import { FieldLabel, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/components/app-ui";
-import { friendlyNetworkError, hasSession, navigateAfterAuth, sendPasswordReset, syncSession, updatePassword } from "./auth-api";
+import { friendlyNetworkError, navigateAfterAuth, sendPasswordReset, syncSession, updatePassword } from "./auth-api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Icon } from "@/components/ui/Icon";
+import { StuckLink } from "./AppAuth";
 
 function roleParam(value: string | null): AuthRole {
   return value === "supplier" || value === "logistics_partner" || value === "admin" ? value : "seller";
@@ -86,20 +87,21 @@ export function ForgotPasswordScreen() {
           </p>
         </form>
       )}
+      <StuckLink className="mt-8" />
     </Frame>
   );
 }
 
-export function ResetPasswordScreen() {
-  const [ready, setReady] = useState<boolean | null>(null);
+/**
+ * `ready` comes from the server: true only for the session /auth/callback made from an unused reset link.
+ * Anything else (expired, already used, opened in another browser) gets the "ask for a new link" screen.
+ */
+export function ResetPasswordScreen({ ready }: { ready: boolean }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void hasSession().then(setReady);
-  }, []);
+  const [done, setDone] = useState<null | { signedIn: boolean }>(null);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -114,18 +116,41 @@ export function ResetPasswordScreen() {
     }
     setBusy(true);
     try {
-      await updatePassword(password);
-      const { data } = (await getSupabaseBrowserClient()?.auth.getSession()) ?? { data: { session: null } };
-      // Sync resolves the account's real role; "seller" is only a fallback for brand-new rows.
-      const role = data.session ? await syncSession(data.session.access_token, { role: "seller" }) : null;
-      await navigateAfterAuth(roleDestination(role ?? "seller"));
+      const result = await updatePassword(password);
+      setDone({ signedIn: Boolean(result?.signedIn) });
     } catch (updateError) {
       setError(friendlyNetworkError(updateError));
+    } finally {
       setBusy(false);
     }
   }
 
-  if (ready === false) {
+  async function continueToShop() {
+    setBusy(true);
+    const { data } = (await getSupabaseBrowserClient()?.auth.getSession()) ?? { data: { session: null } };
+    // Sync resolves the account's real role; "seller" is only a fallback for brand-new rows.
+    const role = data.session ? await syncSession(data.session.access_token, { role: "seller" }) : null;
+    await navigateAfterAuth(data.session ? roleDestination(role ?? "seller") : portalLoginPath("seller"));
+  }
+
+  if (done) {
+    return (
+      <Frame>
+        <div role="status">
+          <Mascot name="peggy-wave" className="mb-4 h-24 w-24" />
+          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Password saved</h1>
+          <p className="mt-2 leading-[1.55] text-app-ink-soft">
+            You&apos;ve been signed out on other devices. {done.signedIn ? "You're still logged in here." : "Log in with your new password to carry on."}
+          </p>
+        </div>
+        <PillButton className="mt-6 w-full" busy={busy} onClick={() => void continueToShop()}>
+          {done.signedIn ? "Continue" : "Log in"}
+        </PillButton>
+      </Frame>
+    );
+  }
+
+  if (!ready) {
     return (
       <Frame back="/forgot-password">
         <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">This link has expired</h1>
@@ -139,7 +164,7 @@ export function ResetPasswordScreen() {
     <Frame>
       <form onSubmit={submit} noValidate>
         <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Choose a new password</h1>
-        <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">At least 8 characters. You&apos;ll stay logged in on this device.</p>
+        <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">At least 8 characters. We&apos;ll sign you out everywhere else, and keep you logged in here.</p>
         <FieldLabel htmlFor="new-password">New password</FieldLabel>
         <TextInput id="new-password" type="password" autoComplete="new-password" autoFocus value={password} onChange={(event) => setPassword(event.target.value)} />
         <div className="mt-5">
@@ -147,7 +172,7 @@ export function ResetPasswordScreen() {
           <TextInput id="confirm-password" type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} />
         </div>
         {error && <div className="mt-5"><Notice>{error}</Notice></div>}
-        <PillButton type="submit" className="mt-6 w-full" busy={busy} disabled={ready === null}>Save password</PillButton>
+        <PillButton type="submit" className="mt-6 w-full" busy={busy}>Save password</PillButton>
       </form>
     </Frame>
   );

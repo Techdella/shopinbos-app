@@ -15,13 +15,15 @@ import { discountAmount } from "@/lib/discounts";
 import {
   chooseDelivery,
   deliveryOptionsFor,
-  freeDeliveryProgress,
   lineKey,
   orderTotals,
   suggestProducts,
   type CartLine,
 } from "@shared/cart-checkout";
 import { readVariants } from "./catalog";
+import { readGameConfig } from "@/lib/gamification/logic";
+import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
+import { WonCodeBanner } from "@/components/storefront/gamification/Rewards";
 import { rememberCartToken } from "./cart-capture";
 import {
   checkDiscountCode,
@@ -33,7 +35,7 @@ import {
   saveDetails,
   type AppliedCode,
 } from "./checkout-storage";
-import { ItemThumb, Money, PageTitle, Panel, PrimaryButton, ProgressBar, QuantityStepper, SecondaryButton, ShopperShell } from "./ShopperShell";
+import { ItemThumb, Money, PageTitle, Panel, PrimaryButton, QuantityStepper, SecondaryButton, ShopperShell } from "./ShopperShell";
 import { resolveShopperTheme } from "./theme";
 import type { ShopperCommerce, ShopperStore } from "./types";
 import type { ShopperProduct } from "./catalog";
@@ -134,7 +136,11 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
   const summarised = useMemo(() => summariseDeliveryZones(commerce.zones.map((zone) => ({ name: zone.name ?? "", regions: zone.regions, rates: zone.rates }))), [commerce.zones]);
   const zoneHere = placeKnown ? matchZone(summarised, place.city, place.state) : null;
   const freeOver = zoneHere ? (zoneHere.alwaysFree ? null : zoneHere.freeOver) : freeDeliveryEverywhereOver(info.delivery);
-  const progress = freeDeliveryProgress(cart.subtotal, freeOver);
+  // Free delivery and the seller's reward tiers on one bar (Marketing > Rewards).
+  const game = useMemo(() => readGameConfig((store.brandSettings as Record<string, unknown> | null | undefined)?.gamification ?? {}), [store.brandSettings]);
+  const rewardTiers = game.progress.enabled ? game.progress.tiers : [];
+  const deliveryOver = !game.progress.enabled || game.progress.freeDelivery ? freeOver : null;
+  const giftNames = useMemo(() => Object.fromEntries(products.map((product) => [product.id, product.name])), [products]);
 
   const code = couponsOn ? applied : null;
   const fee = delivery?.fee ?? 0;
@@ -261,14 +267,18 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
 
           <aside className="grid gap-4 lg:sticky lg:top-24" aria-label="Order summary">
             <Panel theme={theme} className="grid gap-5 p-5">
-              {progress ? (
-                <div className="grid gap-2">
-                  <p className="text-[14px] font-medium">
-                    {progress.reached ? "You've unlocked free delivery." : <>Add <strong><Money amount={progress.remaining} currency={store.currency} /></strong> more for free delivery.</>}
-                  </p>
-                  <ProgressBar theme={theme} percent={progress.percent} label="Progress to free delivery" />
-                </div>
-              ) : null}
+              <RewardProgress
+                subtotal={cart.subtotal}
+                freeDeliveryOver={deliveryOver}
+                tiers={rewardTiers}
+                giftNames={giftNames}
+                currency={store.currency}
+                colors={{ ink: theme.ink, muted: theme.muted, border: theme.border, cta: theme.cta, card: theme.surface }}
+                giftInBag={(id) => lines.some((line) => line.productId === id)}
+                onAddGift={(id) => { const gift = productsById.get(id); if (gift) addProduct(gift); }}
+              />
+
+              {couponsOn ? <WonCodeBanner storeSlug={store.slug} appliedCode={applied?.code} onApply={(value) => void applyCode(value)} colors={{ ink: theme.ink, border: theme.border, card: theme.paper, muted: theme.muted }} currency={store.currency} /> : null}
 
               {couponsOn ? (
                 <div>

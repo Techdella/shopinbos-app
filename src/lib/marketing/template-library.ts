@@ -1,98 +1,36 @@
-import { htmlFromBlocks, type ColumnCell, type EmailBlock, type ProductItem } from "./blocks.ts";
+import { htmlFromBlocks, readBlocks } from "./blocks.ts";
+import { MORE_TEMPLATES, TEMPLATE_SERIES, type TemplateSeries } from "./template-library-more.ts";
+import { PHOTOS, SAMPLE, btn, columns, coupon, divider, footer, h, img, products, social, space, t, template as build, type LibraryTemplate, type TemplateCategory, type TemplateFlow } from "./template-kit.ts";
 
 // The starter email templates: built from blocks (so each opens in the visual builder), written for shops in
 // Nigeria, with merge tags ({{name}}, {{store}}, {{store_url}}, {{cart_url}}…) and the brand kit colour via
-// {{brand_accent}}. Photos load from images.unsplash.com (ids checked by eye; the licence asks for hotlinks).
-// Pure, unit-tested.
+// {{brand_accent}}. The first eighteen are below; the second library (series, games, receipts, style families)
+// lives in template-library-more.ts. Pure, unit-tested.
 
-export const TEMPLATE_CATEGORIES = {
-  welcome: "Welcome",
-  newsletter: "Newsletter",
-  promotion: "Sale or offer",
-  product_launch: "New arrivals",
-  abandoned_cart: "Cart reminder",
-  order: "Order and thank you",
-  shipping: "Shipping update",
-  review: "Review request",
-  win_back: "Win-back",
-  birthday: "Birthday",
-  festive: "Festive",
-  restock: "Back in stock",
-  event: "Event invite",
-  announcement: "Announcement",
-} as const;
+export { TEMPLATE_SERIES, type SeriesStep, type TemplateSeries } from "./template-library-more.ts";
+export { TEMPLATE_CATEGORIES, TEMPLATE_FLOWS, type LibraryTemplate, type TemplateCategory, type TemplateFlow } from "./template-kit.ts";
 
-export type TemplateCategory = keyof typeof TEMPLATE_CATEGORIES;
-
-export interface LibraryTemplate {
-  key: string;
-  name: string;
-  category: TemplateCategory;
-  /** One line for the card. */
-  description: string;
-  subject: string;
-  preheader: string;
-  bodyHtml: string;
-  /** Words that point Peggy's no-AI fallback at this template. */
-  keywords: string[];
-}
-
-const photo = (id: string, w = 1200, h = 720) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&h=${h}&q=72`;
-
-const PHOTOS = {
-  printDress: "1523825036634-aab3cce05919",
-  reading: "1525715843408-5c6ec44503b1",
-  adire: "1787779350563-29cf5a87c6c7",
-  agbada: "1767929820469-9aca9080cc99",
-  asoebi: "1726276262267-ebb01cfa0982",
-  owambe: "1681545303529-b6beb2e19f02",
-  baker: "1709837167686-a2e33aad1bf0",
-  dispatch: "1737649316494-6a32b7fda654",
-  market: "1773858441067-de99ed159a95",
-  thumbsUp: "1690054273244-e491abdb4ce4",
-  phone: "1662858557337-48c9ecf07ee0",
-  perfumeHero: "1591479763204-a293f0ba9cc7",
-  motherBaby: "1591451855781-9eb0f9726a33",
-  cake: "1714949134591-d6f2c581b20d",
-  chinchin: "1665554837563-3782d21a676b",
+/** Where each of the first eighteen sits in the gallery's tabs. */
+const FIRST_FLOWS: Record<string, TemplateFlow> = {
+  welcome: "welcome",
+  newsletter: "news",
+  sale: "promotions",
+  new_arrival: "promotions",
+  announcement: "news",
+  cart: "recovery",
+  thank_you: "post_purchase",
+  shipping: "post_purchase",
+  review: "post_purchase",
+  win_back: "retention",
+  birthday: "games",
+  restock: "recovery",
+  event_invite: "news",
 };
 
-const item = (name: string, price: string, id: string): ProductItem => ({ name, price, imageUrl: photo(id, 600, 600), url: "{{store_url}}" });
-const SAMPLE = {
-  adireDress: item("Adire print dress", "₦28,500", "1760287364219-160c234ded00"),
-  kaftan: item("Indigo kaftan", "₦34,000", "1753192108606-b4a2bc9e5661"),
-  tote: item("Canvas tote bag", "₦12,000", "1683148754073-cfa906017a10"),
-  sneakers: item("Everyday sneakers", "₦22,500", "1560769629-975ec94e6a86"),
-  coral: item("Coral bead necklace", "₦18,000", "1562947429-2a6546643e8d"),
-  beads: item("Beaded bracelet set", "₦6,500", "1641946188146-848152c45baf"),
-  oud: item("Oud perfume, 50ml", "₦25,000", "1640869116016-93c00ba94b28"),
-  floral: item("Floral eau de parfum", "₦21,000", "1458538977777-0549b2370168"),
-};
+const template = (key: string, name: string, category: TemplateCategory, description: string, subject: string, preheader: string, keywords: string[], blocks: Parameters<typeof build>[7]): LibraryTemplate =>
+  build(key, name, category, description, subject, preheader, keywords, blocks, { flow: FIRST_FLOWS[key] ?? "seasonal" });
 
-const h = (text: string, extra: Partial<Extract<EmailBlock, { type: "heading" }>> = {}): EmailBlock => ({ type: "heading", text, ...extra });
-const t = (text: string, extra: Partial<Extract<EmailBlock, { type: "text" }>> = {}): EmailBlock => ({ type: "text", text, ...extra });
-const btn = (label: string, url = "{{store_url}}", extra: Partial<Extract<EmailBlock, { type: "button" }>> = {}): EmailBlock => ({ type: "button", label, url, ...extra });
-const img = (id: string, alt: string): EmailBlock => ({ type: "image", url: photo(id), alt, link: "{{store_url}}" });
-const coupon = (code: string, title: string, note: string): EmailBlock => ({ type: "coupon", code, title, note });
-const products = (items: ProductItem[], buttonLabel = "Shop now"): EmailBlock => ({ type: "products", items, buttonLabel });
-const columns = (left: ColumnCell, right: ColumnCell): EmailBlock => ({ type: "columns", cells: [left, right] });
-const divider: EmailBlock = { type: "divider" };
-const space = (height = 12): EmailBlock => ({ type: "spacer", height });
-const social: EmailBlock = { type: "social", links: [{ network: "instagram", url: "https://instagram.com/" }, { network: "whatsapp", url: "https://wa.me/" }, { network: "website", url: "{{store_url}}" }] };
-const footer = (text = "You're getting this because you shop with {{store}}. Reply to this email any time, a real person reads it."): EmailBlock => ({ type: "footer", text });
-
-const template = (key: string, name: string, category: TemplateCategory, description: string, subject: string, preheader: string, keywords: string[], blocks: EmailBlock[]): LibraryTemplate => ({
-  key,
-  name,
-  category,
-  description,
-  subject,
-  preheader,
-  keywords,
-  bodyHtml: htmlFromBlocks(blocks),
-});
-
-export const TEMPLATE_LIBRARY: LibraryTemplate[] = [
+const FIRST_TEMPLATES: LibraryTemplate[] = [
   template("welcome", "Welcome email", "welcome", "Say hello, tell your story and give a first-order code.", "Welcome to {{store}}, {{name}}", "A small thank-you for joining us", ["welcome", "new subscriber", "joined", "hello"], [
     img(PHOTOS.printDress, "A smiling customer in a print dress"),
     h("Welcome to the family, {{name}}", { align: "center" }),
@@ -249,6 +187,8 @@ export const TEMPLATE_LIBRARY: LibraryTemplate[] = [
   ]),
 ];
 
+export const TEMPLATE_LIBRARY: LibraryTemplate[] = [...FIRST_TEMPLATES, ...MORE_TEMPLATES];
+
 /** The starter whose keywords best fit a request ("write a Sallah sale email" → sallah), or null. */
 export function matchStarter(request: string): LibraryTemplate | null {
   const text = ` ${request.toLowerCase()} `;
@@ -271,4 +211,33 @@ export function categoryCounts() {
   const counts: Partial<Record<TemplateCategory, number>> = {};
   for (const tpl of TEMPLATE_LIBRARY) counts[tpl.category] = (counts[tpl.category] ?? 0) + 1;
   return counts;
+}
+
+/** The templates in a series, in order. */
+export function seriesTemplates(series: TemplateSeries): LibraryTemplate[] {
+  return series.steps.map((step) => TEMPLATE_LIBRARY.find((tpl) => tpl.key === step.template)).filter((tpl): tpl is LibraryTemplate => Boolean(tpl));
+}
+
+/**
+ * A series as an automation draft for POST /api/app/marketing/automations: waits, conditions and the emails
+ * themselves. Where a step makes a one-time code, that email's discount blocks show {{discount_code}}.
+ */
+export function seriesAutomation(key: string) {
+  const series = TEMPLATE_SERIES.find((item) => item.key === key);
+  if (!series) return null;
+  const steps: Array<Record<string, unknown>> = [];
+  for (const step of series.steps) {
+    const tpl = TEMPLATE_LIBRARY.find((item) => item.key === step.template);
+    if (!tpl) continue;
+    if (step.waitMinutes > 0) steps.push({ type: "wait", minutes: step.waitMinutes });
+    if (step.condition) steps.push({ type: "condition", check: step.condition });
+    let bodyHtml = tpl.bodyHtml;
+    if (step.discount) {
+      steps.push({ type: "give_discount", percent: step.discount.percent, days: step.discount.days });
+      const blocks = readBlocks(tpl.bodyHtml) ?? [];
+      bodyHtml = htmlFromBlocks(blocks.map((block) => (block.type === "coupon" ? { ...block, code: "{{discount_code}}" } : block)));
+    }
+    steps.push({ type: "send_email", subject: tpl.subject, bodyHtml });
+  }
+  return { name: series.name, description: series.description, trigger: series.trigger, ...(series.settings ? { settings: series.settings } : {}), steps };
 }

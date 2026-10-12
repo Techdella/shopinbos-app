@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Segmented, Spinner } from "@/components/app-ui";
+import { DeviceToggle, Spinner } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { FLOW_VARIABLES } from "@/lib/marketing/flows";
 
@@ -57,7 +57,7 @@ export function EmailPreview({ bodyHtml, preheader, subject }: { bodyHtml: strin
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Segmented options={[{ value: "desktop", label: "Computer" }, { value: "mobile", label: "Phone" }]} value={device} onChange={setDevice} />
+        <DeviceToggle value={device} onChange={setDevice} />
         {loading ? <Spinner className="text-app-ink-soft" /> : null}
       </div>
       {subject ? (

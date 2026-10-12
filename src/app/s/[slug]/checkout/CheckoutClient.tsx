@@ -11,7 +11,7 @@ import { readLinkCode, readOrderChannel, useCampaignAttribution } from "@/hooks/
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
-import { formatStoreMoney, readShopperInfo } from "@/lib/storefront/shopper-info";
+import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
 import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
@@ -55,6 +55,9 @@ import { readVariants } from "@/components/storefront/shopper/catalog";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import type { ShopperCommerce, ShopperStore } from "@/components/storefront/shopper/types";
 import { TransferInstructions, type TransferDetails } from "../order/[orderId]/TransferInstructions";
+import { readGameConfig } from "@/lib/gamification/logic";
+import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
+import { PointsAtCheckout, WonCodeBanner } from "@/components/storefront/gamification/Rewards";
 
 // Multi-step checkout: Contact → Delivery → Payment → Review. Guest checkout (no account), details saved on
 // this device when the shopper agrees, delivery options from the seller's zones, the seller's payment methods
@@ -81,6 +84,8 @@ interface Quote {
   totals: OrderTotals;
   discount: { code: string; label: string; automatic: boolean } | null;
   codeError: string | null;
+  /** Loyalty points the server took off (inside totals). */
+  points?: { points: number; amount: number; balance: number; max: number } | null;
 }
 
 const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "" };
@@ -122,6 +127,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const [checkingCode, setCheckingCode] = useState(false);
   const [quote, setQuote] = useState<{ key: string; value: Quote } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  // Loyalty points the shopper chose to use (Marketing > Rewards); the server's quote decides what applies.
+  const game = useMemo(() => readGameConfig((store.brandSettings as Record<string, unknown> | null | undefined)?.gamification ?? {}), [store.brandSettings]);
+  const [usePoints, setUsePoints] = useState(0);
 
   const step: CheckoutStep = CHECKOUT_STEPS[stepIndex]!;
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -137,7 +145,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     shippingFee: delivery.fee,
     discount: code ? { type: code.type, amount: discountAmount(code, cart.items, delivery.fee) } : null,
   });
-  const quoteKey = JSON.stringify([cart.items.map((line) => [line.productId, line.variant ?? "", line.quantity]), details.city, details.state, delivery.option?.id ?? null, code?.code ?? "", isEmail(details.email) ? details.email.trim().toLowerCase() : ""]);
+  const quoteKey = JSON.stringify([cart.items.map((line) => [line.productId, line.variant ?? "", line.quantity]), details.city, details.state, delivery.option?.id ?? null, code?.code ?? "", isEmail(details.email) ? details.email.trim().toLowerCase() : "", usePoints, usePoints ? details.phone.trim() : ""]);
   const liveQuote = quote && quote.key === quoteKey ? quote.value : null;
   const totals = liveQuote?.totals ?? estimate;
 
@@ -208,6 +216,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           deliveryOptionId: delivery.option?.id,
           discountCode: code?.code,
           buyerEmail: isEmail(details.email) ? details.email.trim() : undefined,
+          ...(usePoints > 0 ? { redeemPoints: usePoints, buyerPhone: details.phone.trim() || undefined } : {}),
         }),
       })
         .then(async (res) => {
@@ -339,6 +348,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           paymentMethod: isPaystack ? "inline" : paymentMethod,
           deliveryOptionId: delivery.option?.id,
           discountCode: code?.code || undefined,
+          // Only the points the server just quoted (and showed in the total) are asked for.
+          redeemPoints: usePoints > 0 && liveQuote?.points ? liveQuote.points.points : undefined,
           notes: settings.enableNotes ? notes.trim() || undefined : undefined,
           giftMessage: settings.enableGiftNote ? giftMessage.trim() || undefined : undefined,
           cartToken: readCartToken(store.slug) || undefined,
@@ -457,12 +468,51 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     : [];
   const deliveryKnown = stepIndex >= 1 || commerce.zones.length === 0;
 
+  const giftNames = Object.fromEntries(store.storeProducts.map((product) => [product.id, product.name]));
+  const deliveryOver = !game.progress.enabled || game.progress.freeDelivery ? freeDeliveryEverywhereOver(info.delivery) : null;
+  const rewardsBar = !createdOrder ? (
+    <RewardProgress
+      compact
+      subtotal={cart.subtotal}
+      freeDeliveryOver={deliveryOver}
+      tiers={game.progress.enabled ? game.progress.tiers : []}
+      giftNames={giftNames}
+      currency={store.currency}
+      colors={{ ink: theme.ink, muted: theme.muted, border: theme.border, cta: theme.cta, card: theme.surface }}
+      giftInBag={(id) => cart.items.some((line) => line.productId === id)}
+      onAddGift={(id) => {
+        const gift = store.storeProducts.find((product) => product.id === id);
+        if (gift) cart.add({ productId: gift.id, name: gift.name, price: gift.retailPrice, image: gift.images[0] });
+      }}
+    />
+  ) : null;
+  const pointsBox = game.loyalty.enabled && !createdOrder && !preview ? (
+    <PointsAtCheckout
+      storeSlug={store.slug}
+      email={details.email}
+      phone={details.phone}
+      base={Math.max(0, totals.subtotal - (totals.productDiscount - (liveQuote?.points?.amount ?? 0)))}
+      currency={store.currency}
+      settings={game.loyalty}
+      using={usePoints}
+      onChange={setUsePoints}
+      applied={liveQuote?.points ?? null}
+      colors={{ ink: theme.ink, border: theme.border, card: theme.paper, muted: theme.muted, cta: theme.cta }}
+    />
+  ) : null;
+
   const summary = (
     <OrderSummary
       theme={theme}
       currency={store.currency}
       lines={cart.items}
       totals={totals}
+      pointsAmount={liveQuote?.points?.amount ?? 0}
+      rewards={rewardsBar}
+      extras={<>
+        {settings.enableCoupon && !createdOrder ? <WonCodeBanner storeSlug={store.slug} appliedCode={applied?.code} onApply={(value) => void applyCode(value)} colors={{ ink: theme.ink, border: theme.border, card: theme.paper, muted: theme.muted }} currency={store.currency} /> : null}
+        {pointsBox}
+      </>}
       deliveryKnown={deliveryKnown && (commerce.zones.length === 0 || Boolean(details.city || details.state))}
       deliveryCovered={deliveryChoice.covered}
       discountLabel={liveQuote?.discount ? (liveQuote.discount.automatic ? liveQuote.discount.label : `Discount (${liveQuote.discount.code})`) : code ? `Discount (${code.code})` : "Discount"}
@@ -799,6 +849,9 @@ function OrderSummary({
   currency,
   lines,
   totals,
+  pointsAmount = 0,
+  rewards,
+  extras,
   deliveryKnown,
   deliveryCovered,
   discountLabel,
@@ -810,6 +863,10 @@ function OrderSummary({
   currency: string;
   lines: CartLine[];
   totals: OrderTotals;
+  /** Loyalty points' share of totals.productDiscount, shown on its own line. */
+  pointsAmount?: number;
+  rewards?: React.ReactNode;
+  extras?: React.ReactNode;
   deliveryKnown: boolean;
   deliveryCovered: boolean;
   discountLabel: string;
@@ -818,6 +875,7 @@ function OrderSummary({
   editHref: string;
 }) {
   const deliveryCharge = totals.shippingFee - totals.deliveryDiscount;
+  const codeDiscount = Math.max(0, Math.round((totals.productDiscount - pointsAmount) * 100) / 100);
   return (
     <Panel theme={theme} className="grid gap-4 p-5">
       <div className="flex items-center justify-between gap-3">
@@ -839,11 +897,16 @@ function OrderSummary({
           </li>
         ))}
       </ul>
+      {rewards}
       {coupon}
+      {extras}
       <dl className="grid gap-2 border-t pt-4 text-[14.5px]" style={{ borderColor: theme.border }}>
         <div className="flex justify-between gap-3"><dt>Subtotal</dt><dd className="m-0 tabular-nums"><Money amount={totals.subtotal} currency={currency} /></dd></div>
-        {totals.productDiscount > 0 ? (
-          <div className="flex justify-between gap-3"><dt className="min-w-0">{discountLabel}</dt><dd className="m-0 shrink-0 tabular-nums">−<Money amount={totals.productDiscount} currency={currency} /></dd></div>
+        {codeDiscount > 0 ? (
+          <div className="flex justify-between gap-3"><dt className="min-w-0">{discountLabel}</dt><dd className="m-0 shrink-0 tabular-nums">−<Money amount={codeDiscount} currency={currency} /></dd></div>
+        ) : null}
+        {pointsAmount > 0 ? (
+          <div className="flex justify-between gap-3"><dt className="min-w-0">Loyalty points</dt><dd className="m-0 shrink-0 tabular-nums">−<Money amount={pointsAmount} currency={currency} /></dd></div>
         ) : null}
         <div className="flex justify-between gap-3">
           <dt>Delivery</dt>
