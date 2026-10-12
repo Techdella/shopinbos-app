@@ -41,7 +41,7 @@ function readPosts(value: unknown): BlogPost[] {
 
 export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id }, select: { blogPosts: true } });
-  return ok({ data: readPosts(partner?.blogPosts) });
+  return ok(readPosts(partner?.blogPosts));
 });
 
 export const POST = withLogistics(async (req: NextRequest, { user }: { user: AuthUser }) => {
@@ -80,5 +80,5 @@ export const POST = withLogistics(async (req: NextRequest, { user }: { user: Aut
     data: { blogPosts: posts as unknown as Prisma.InputJsonValue },
   });
 
-  return ok({ data: post });
+  return ok(post);
 });

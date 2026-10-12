@@ -69,7 +69,7 @@ const TABS = ["Details", "Visibility and channels", "Price and stock", "Descript
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
-  { value: "active", label: "Live" },
+  { value: "published", label: "Live" },
   { value: "archived", label: "Archived" },
 ];
 
@@ -159,7 +159,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [images, setImages] = useState<string[]>(product?.images ?? []);
   const [videoUrl, setVideoUrl] = useState(product?.videoUrl ?? "");
 
-  const [status, setStatus] = useState(product?.status ?? "draft");
+  // "active" is an older spelling of Live; storefronts only sell "published".
+  const [status, setStatus] = useState(product?.status === "active" ? "published" : product?.status ?? "draft");
   const [visibility, setVisibility] = useState(product?.visibility ?? "hidden");
   const [salesChannels, setSalesChannels] = useState<string[]>(product?.salesChannel ? [product.salesChannel] : ["website"]);
   const [featured, setFeatured] = useState(product?.featured ?? false);

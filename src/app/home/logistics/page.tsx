@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
+import { AcceptQuoteButton } from "./AcceptQuoteButton";
 import { messagesHref } from "@/lib/conversations/pure";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       take: 30,
     }),
     db.deliveryQuoteRequest.count({ where: { sellerId: user.id } }),
-    db.deliveryQuoteRequest.count({ where: { sellerId: user.id, status: "pending" } }),
+    db.deliveryQuoteRequest.count({ where: { sellerId: user.id, status: { in: ["pending", "responded"] } } }),
     db.deliveryBooking.count({ where: { sellerId: user.id, status: { in: [...ACTIVE] } } }),
     db.deliveryBooking.count({ where: { sellerId: user.id, status: "delivered" } }),
     db.deliveryQuoteRequest.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 6 }),
@@ -159,7 +160,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
             </Card>
 
             <Card className="overflow-hidden">
-              <CardHead title="Quote requests" sub="Routes waiting for a partner's answer" className="px-5 pb-3 pt-5" />
+              <CardHead title="Quote requests" sub="Prices partners sent you, and routes still waiting for an answer" className="px-5 pb-3 pt-5" />
               {recentQuotes.length === 0 ? (
                 <p className="m-0 border-t border-app-line px-5 py-6 text-[14px] text-app-ink-soft">When you ask for delivery prices, they show up here.</p>
               ) : (
@@ -173,6 +174,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                       <div className="shrink-0 text-right">
                         <Pill tone={QUOTE_TONE[q.status] ?? "muted"}>{QUOTE_LABEL[q.status] ?? q.status}</Pill>
                         {q.quotedPrice != null && <div className="mt-1 text-[13.5px] font-extrabold">{fmt(q.quotedPrice)}</div>}
+                        {q.status === "responded" && q.quotedPrice != null && (!q.expiresAt || q.expiresAt.getTime() > Date.now()) && <AcceptQuoteButton quoteId={q.id} />}
                       </div>
                     </li>
                   ))}

@@ -49,8 +49,9 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
             style={partner.bannerUrl ? { backgroundImage: `url(${partner.bannerUrl})` } : undefined}
             aria-hidden
           />
-          <div className="-mt-10 flex flex-wrap items-end gap-4 px-5 pb-5">
-            <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[20px] border-[3px] border-white bg-app-canvas text-[28px] font-extrabold shadow-sm">
+          <div className="flex flex-wrap items-end gap-4 px-5 pb-5">
+            {/* Only the logo overlaps the cover, so the name never sits on the dark band. */}
+            <span className="-mt-10 grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[20px] border-[3px] border-white bg-app-canvas text-[28px] font-extrabold shadow-sm">
               {partner.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={partner.logoUrl} alt={`${partner.displayName} logo`} className="h-full w-full object-cover" />

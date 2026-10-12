@@ -125,14 +125,15 @@ export function PreviewPageClient({ slug, pageId }: Props) {
     updatedAt: new Date().toISOString(),
   };
 
-  const storeBasePath = `/${slug}`;
+  // Storefronts live under /s/<slug>; /<slug> is not a route.
+  const storeBasePath = `/s/${slug}`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{
-        background: "#0E9E85",
+        background: "#16141F",
         color: "#fff", padding: "8px 16px", textAlign: "center",
-        fontSize: 12, fontWeight: 600, fontFamily: "'DM Sans',sans-serif",
+        fontSize: 12, fontWeight: 600, fontFamily: "var(--font-app), sans-serif",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         flexShrink: 0, position: "sticky", top: 0, zIndex: 999,
       }}>
@@ -140,7 +141,7 @@ export function PreviewPageClient({ slug, pageId }: Props) {
           <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7 4h2v5H7V4zm0 6h2v2H7v-2z"/>
         </svg>
         <span>Preview Mode — "{page.title as string}" (draft)</span>
-        <a href={`/${slug}/${page.slug as string}`} style={{ color: "rgba(255,255,255,.7)", marginLeft: 8, textDecoration: "underline", fontSize: 11 }}>
+        <a href={page.slug ? `/s/${slug}/${page.slug as string}` : `/s/${slug}`} style={{ color: "rgba(255,255,255,.7)", marginLeft: 8, textDecoration: "underline", fontSize: 11 }}>
           View published
         </a>
       </div>

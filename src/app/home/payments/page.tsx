@@ -6,6 +6,7 @@ import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, Split
 import { Bars, ShareBar, formatDate } from "@/components/growth/kit";
 import { DEFAULT_PAYMENT_METHODS, naira, type PaymentMethodKey } from "@shared/onboarding";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
+import { readSavedPaymentMethods } from "@shared/checkout-payments";
 import { BankCard, type PayoutBankSummary } from "./BankCard";
 import { PaymentMethods } from "./PaymentMethods";
 
@@ -42,10 +43,13 @@ function readBank(settings: Record<string, unknown>): PayoutBankSummary | null {
   };
 }
 
+// Read exactly as checkout does (readSavedPaymentMethods): a store that never saved its choices offers card
+// payments only, and a choice that was never saved is off. Showing the onboarding defaults here instead made
+// "Pay on delivery" look on while shoppers never saw it.
 function readMethods(settings: Record<string, unknown>): Record<PaymentMethodKey, boolean> {
-  const saved = record(record(settings.paymentConfig).methods);
+  const saved = readSavedPaymentMethods(settings);
   return Object.fromEntries(
-    (Object.keys(DEFAULT_PAYMENT_METHODS) as PaymentMethodKey[]).map((key) => [key, typeof saved[key] === "boolean" ? (saved[key] as boolean) : DEFAULT_PAYMENT_METHODS[key]]),
+    (Object.keys(DEFAULT_PAYMENT_METHODS) as PaymentMethodKey[]).map((key) => [key, saved ? saved[key] === true : key === "card"]),
   ) as Record<PaymentMethodKey, boolean>;
 }
 

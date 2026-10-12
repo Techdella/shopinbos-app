@@ -3,6 +3,7 @@ import { BoutiqueProductPage } from "@/components/storefront/boutique/BoutiquePr
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { boutiqueSnapshotFor, type ProductPageData } from "@/lib/storefront/product-page.server";
 import { ProductDetailClient } from "./ProductDetailClient";
+import { scriptSafeJson } from "@/lib/security/html";
 
 // Shared by /s/[slug]/product/[productId] and custom-domain product pages.
 
@@ -74,7 +75,7 @@ export function ProductPageView({ data, storeBasePath, canonical }: { data: Prod
     <script
       type="application/ld+json"
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd(data, canonical)).replace(/</g, "\\u003c") }}
+      dangerouslySetInnerHTML={{ __html: scriptSafeJson(productJsonLd(data, canonical)) }}
     />
   );
 

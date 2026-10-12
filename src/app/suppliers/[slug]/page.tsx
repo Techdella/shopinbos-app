@@ -1,10 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { Card, CardHead, EmptyState, Pill, PillLink, StatTile } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
+import { KeyValue } from "@/components/logistics/kit";
 import { messagesHref } from "@/lib/conversations/pure";
+
+// Public supplier page sellers open from the supplier marketplace (same look as the delivery partner page).
 
 export const dynamic = "force-dynamic";
 
@@ -66,129 +69,136 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
 
   const isVerified = supplier.verificationStatus === "verified";
   const initials = supplier.displayName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const quoteHref = `/login?intent=request_quote&supplierSlug=${supplier.slug}`;
 
   return (
-    <main style={{ minHeight: "100vh", background: "var(--canvas)", color: "var(--ink-900)" }}>
-      <header style={{ height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", background: "var(--paper)", borderBottom: "1px solid var(--ink-100)" }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <BrandLogo className="w-[150px]" />
+    <div className="app-scope min-h-dvh w-full bg-app-canvas font-app text-app-ink">
+      <header className="flex min-h-[64px] items-center justify-between gap-3 border-b border-app-line bg-white px-4 sm:px-6 xl:px-8">
+        <Link href="/" className="no-underline" aria-label="Shopinbos home">
+          <BrandLogo className="w-[128px] sm:w-[150px]" />
         </Link>
-        <nav style={{ display: "flex", gap: 10 }}>
-          <Link className="dbtn dBtn-ghost dBtn-sm" href="/marketplace/suppliers">Browse suppliers</Link>
-          {isVerified && <Link className="dbtn dBtn-mint dBtn-sm" href={`/login?intent=request_quote&supplierSlug=${supplier.slug}`}>Contact supplier</Link>}
+        <nav className="flex items-center gap-2">
+          <span className="hidden sm:block"><PillLink href="/marketplace/suppliers" size="sm">Browse suppliers</PillLink></span>
+          {isVerified && <PillLink href={quoteHref} size="sm" tone="ink">Contact supplier</PillLink>}
         </nav>
       </header>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "28px" }}>
+      <div className="w-full px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
+        <Link href="/marketplace/suppliers" className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-ink no-underline hover:underline">
+          <Icon name="arrowLeft" size={15} /> Suppliers
+        </Link>
+
         {!isVerified && (
-          <div className="card" style={{ padding: "12px 18px", marginBottom: 16, background: "var(--amber-50)", borderColor: "var(--amber-200)", fontSize: 13, color: "var(--amber-800)", display: "flex", alignItems: "center", gap: 10 }}>
-            <Icon name="lock" size={14} />
-            This supplier profile is currently private — verification is pending. Products and contact are hidden from the marketplace.
+          <div className="mb-5 flex items-start gap-2.5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] text-app-ink-soft">
+            <Icon name="lock" size={15} />
+            <span>This supplier profile is private while verification is pending. Products and contact are hidden from the marketplace.</span>
           </div>
         )}
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ height: 240, position: "relative", background: supplier.bannerUrl ? undefined : "linear-gradient(135deg, #D4A574, #6B4A2C 55%, #195754)" }}>
-            {supplier.bannerUrl && <Image src={supplier.bannerUrl} alt="" fill style={{ objectFit: "cover" }} unoptimized />}
-          </div>
-          <div style={{ padding: "0 28px 28px", marginTop: -54, position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
-              <div style={{ width: 108, height: 108, borderRadius: 18, border: "5px solid var(--paper)", overflow: "hidden", background: "linear-gradient(135deg, var(--amber-500), var(--rose-500))", display: "grid", placeItems: "center", color: "white", fontFamily: "var(--font-accent)", fontSize: 34, fontWeight: 700 }}>
-                {supplier.logoUrl ? <Image src={supplier.logoUrl} alt={supplier.displayName} width={108} height={108} style={{ objectFit: "cover", width: "100%", height: "100%" }} unoptimized /> : initials}
-              </div>
-              <div style={{ flex: 1, paddingBottom: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <h1 style={{ margin: 0, fontFamily: "var(--font-accent)", fontSize: 38, fontWeight: 500, lineHeight: 1 }}>{supplier.displayName}</h1>
-                  {isVerified ? (
-                    <span className="badge badge-success"><span className="badge-dot" /> Verified supplier</span>
-                  ) : (
-                    <span className="badge badge-warn"><span className="badge-dot" /> Private profile</span>
-                  )}
-                </div>
-                <div style={{ marginTop: 7, color: "var(--ink-600)", fontSize: 14 }}>
-                  {supplier.city}, {supplier.country} · {supplier.businessType.replace(/_/g, " ")} · {supplier._count.products} products
-                </div>
-              </div>
-              {isVerified && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Link className="dbtn dBtn-ghost" href={messagesHref("seller", { with: supplier.id })}>Message supplier</Link>
-                  <Link className="dbtn dBtn-mint" href={`/login?intent=request_quote&supplierSlug=${supplier.slug}`}>Request quote</Link>
-                </div>
-              )}
-            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr", gap: 24, marginTop: 24 }}>
-              <div>
-                <p style={{ fontSize: 15, lineHeight: 1.8, color: "var(--ink-700)", margin: 0 }}>
-                  {supplier.description ?? (isVerified ? "This verified Shopinbos supplier is ready for dropship and wholesale sourcing." : "This supplier is completing their verification process.")}
-                </p>
-                <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 16 }}>
-                  {supplier.categories.map((category) => <span key={category} className="chip on">{category}</span>)}
-                  {supplier.responseTimeLabel && <span className="chip">{supplier.responseTimeLabel}</span>}
-                </div>
+        <Card className="mb-5 overflow-hidden">
+          <div
+            className="h-[140px] bg-app-ink bg-cover bg-center sm:h-[200px]"
+            style={supplier.bannerUrl ? { backgroundImage: `url(${supplier.bannerUrl})` } : undefined}
+            aria-hidden
+          />
+          <div className="flex flex-wrap items-end gap-4 px-5 pb-5">
+            {/* Only the logo overlaps the cover, so the name never sits on the dark band. */}
+            <span className="-mt-10 grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[20px] border-[3px] border-white bg-app-peach text-[26px] font-extrabold text-app-accent-ink shadow-sm">
+              {supplier.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={supplier.logoUrl} alt={`${supplier.displayName} logo`} className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
+            </span>
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="m-0 break-words text-[26px] font-extrabold leading-[1.1] tracking-[-0.6px] sm:text-[30px]">{supplier.displayName}</h1>
+                {isVerified ? <Pill tone="success" dot>Verified supplier</Pill> : <Pill tone="warning" dot>Private profile</Pill>}
               </div>
-              <div className="card" style={{ padding: 16 }}>
-                {[
-                  ["Trust score", supplier.trustScore || 0],
-                  ["Rating", `${supplier.rating.toFixed(1)} (${supplier.ratingCount})`],
-                  ["Products", supplier._count.products],
-                  ["Location", supplier.city],
-                  isVerified ? null : ["Status", supplier.verificationStatus],
-                ].filter(Boolean).map((entry, index) => {
-                  const [label, value] = entry as [string, string | number];
-                  return (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: index ? "1px solid var(--ink-100)" : "none", fontSize: 13 }}>
-                      <span style={{ color: "var(--ink-500)" }}>{label}</span>
-                      <strong>{value}</strong>
-                    </div>
-                  );
-                })}
-              </div>
+              <p className="m-0 mt-1 text-[14.5px] text-app-ink-soft">
+                {[supplier.city, supplier.country].filter(Boolean).join(", ")} · {supplier.businessType.replace(/_/g, " ")} · {supplier._count.products} products
+              </p>
             </div>
+            {isVerified && (
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                <PillLink href={quoteHref} tone="accent" icon="send" className="flex-1 sm:flex-none">Request quote</PillLink>
+                <PillLink href={messagesHref("seller", { with: supplier.id })} icon="chat" className="flex-1 sm:flex-none">Message supplier</PillLink>
+              </div>
+            )}
           </div>
+        </Card>
+
+        <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatTile tone="card" label="Trust score" value={supplier.trustScore ? `${supplier.trustScore}/100` : "New"} />
+          <StatTile tone="card" label="Rating" value={supplier.ratingCount ? `${supplier.rating.toFixed(1)} ★` : "New"} hint={supplier.ratingCount ? `${supplier.ratingCount} reviews` : undefined} />
+          <StatTile tone="card" label="Products" value={supplier._count.products} />
+          <StatTile tone="card" label="Replies" value={supplier.responseTimeLabel?.replace(/^replies\s+/i, "") || "Same day"} />
+        </div>
+
+        <div className="mb-5 grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
+          <Card className="p-5">
+            <CardHead title="About" />
+            <p className="m-0 mt-2 max-w-[760px] text-[15px] leading-[1.6] text-app-ink-soft">
+              {supplier.description ?? (isVerified ? "This verified Shopinbos supplier is ready for dropship and wholesale sourcing." : "This supplier is completing their verification process.")}
+            </p>
+            {supplier.categories.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {supplier.categories.map((category) => <Pill key={category} tone="ink">{category.replace(/-/g, " ")}</Pill>)}
+              </div>
+            )}
+          </Card>
+          <Card className="p-5">
+            <CardHead title="At a glance" />
+            <div className="mt-2 divide-y divide-app-line">
+              <KeyValue label="Location">{supplier.city}</KeyValue>
+              <KeyValue label="Business type">{supplier.businessType.replace(/_/g, " ")}</KeyValue>
+              {!isVerified && <KeyValue label="Status">{supplier.verificationStatus}</KeyValue>}
+            </div>
+          </Card>
         </div>
 
         {isVerified && (
-          <>
-            <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Products from {supplier.displayName}</h2>
-                <div style={{ marginTop: 4, color: "var(--ink-500)", fontSize: 13 }}>Published marketplace products sellers can source.</div>
-              </div>
-              <Link className="dbtn dBtn-ghost dBtn-sm" href={`/marketplace?supplier=${supplier.slug}`}>View in marketplace</Link>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 14, marginTop: 16 }}>
-              {supplier.products.map((product) => (
-                <div key={product.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  <div style={{ aspectRatio: "4/3", position: "relative", background: "linear-gradient(135deg, #E9DDC2, #7A5C1A)" }}>
-                    {product.images[0] && <Image src={product.images[0]} alt={product.name} fill style={{ objectFit: "cover" }} unoptimized />}
-                    {product.dropshipAvailable && <span className="badge badge-mint" style={{ position: "absolute", left: 10, bottom: 10 }}>Dropship</span>}
-                  </div>
-                  <div style={{ padding: 14 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.35 }}>{product.name}</div>
-                    <div style={{ color: "var(--ink-500)", fontSize: 12, marginTop: 4 }}>{product.category.name} · MOQ {product.moq}</div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: "1px dashed var(--ink-150)" }}>
-                      <div>
-                        <div style={{ fontSize: 10.5, color: "var(--ink-500)", textTransform: "uppercase", fontWeight: 700 }}>Cost</div>
-                        <div className="money" style={{ fontSize: 18 }}>{fmtMoney(product.wholesalePrice, product.currency)}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 10.5, color: "var(--success)", textTransform: "uppercase", fontWeight: 700 }}>Margin</div>
-                        <div className="money" style={{ fontSize: 18, color: "var(--success)" }}>{margin(product.wholesalePrice, product.suggestedRetailPrice)}%</div>
+          <Card className="p-5">
+            <CardHead
+              title={`Products from ${supplier.displayName}`}
+              sub="Published marketplace products sellers can source."
+              action={<PillLink href={`/marketplace?supplier=${supplier.slug}`} size="sm">View in marketplace</PillLink>}
+            />
+            {supplier.products.length === 0 ? (
+              <EmptyState icon="box" title="No published products yet">New products show here as soon as the supplier publishes them.</EmptyState>
+            ) : (
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                {supplier.products.map((product) => (
+                  <Link key={product.id} href={`/marketplace/product/${product.id}`} className="block min-w-0 overflow-hidden rounded-[18px] border border-app-line bg-white text-app-ink no-underline hover:border-app-line-strong">
+                    <div className="relative aspect-[4/3] bg-app-canvas">
+                      {product.images[0] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />
+                      )}
+                      {product.dropshipAvailable && <span className="absolute bottom-2 left-2"><Pill tone="accent">Dropship</Pill></span>}
+                    </div>
+                    <div className="p-3">
+                      <div className="line-clamp-2 text-[14px] font-bold leading-[1.35]">{product.name}</div>
+                      <div className="mt-1 truncate text-[12.5px] text-app-ink-soft">{product.category.name} · MOQ {product.moq}</div>
+                      <div className="mt-2.5 flex items-end justify-between gap-2 border-t border-dashed border-app-line pt-2.5">
+                        <div>
+                          <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-app-ink-faint">Cost</div>
+                          <div className="text-[16px] font-extrabold">{fmtMoney(product.wholesalePrice, product.currency)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-app-success">Margin</div>
+                          <div className="text-[16px] font-extrabold text-app-success">{margin(product.wholesalePrice, product.suggestedRetailPrice)}%</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-              {supplier.products.length === 0 && (
-                <div className="card" style={{ padding: 30, color: "var(--ink-500)", textAlign: "center", gridColumn: "1 / -1" }}>
-                  No published products yet.
-                </div>
-              )}
-            </div>
-          </>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
         )}
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }

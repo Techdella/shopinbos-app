@@ -67,7 +67,7 @@ export function PortalBlogCmsClient({
     fetch(apiEndpoint)
       .then((res) => res.ok ? res.json() : { data: [] })
       .then((data: { data?: BlogPost[] }) => {
-        if (active) setPosts(data.data ?? []);
+        if (active) setPosts(Array.isArray(data.data) ? data.data : []);
       })
       .catch(() => {
         if (active) setPosts([]);
