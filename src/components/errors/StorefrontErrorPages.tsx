@@ -10,6 +10,7 @@ import { ErrorScene, type SceneAction } from "./ErrorScene";
 import { StoreMark, shopperPalette } from "./store-brand";
 import { RepairBotScene, TumblingParcelScene } from "./Illustrations";
 import { useStoreBrand } from "./StoreBrandContext";
+import { reloadPage, useDeployRecovery } from "./useDeployRecovery";
 
 // Storefront 404 and error pages, in the shop's own colours and fonts. They speak for the shop, so no
 // Shopinbos characters; "Back to the shop" is always the way out.
@@ -50,9 +51,22 @@ export function StorefrontNotFound() {
 
 export function StorefrontError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const { brand, theme, shopHref } = useStoreFrame();
+  // After a new deploy the shop quietly reloads once (no platform name on a shopper's page).
+  const { reloading, stale } = useDeployRecovery(error);
   useEffect(() => {
-    console.error(error);
-  }, [error]);
+    if (!reloading) console.error(error);
+  }, [error, reloading]);
+  if (reloading) {
+    const palette = shopperPalette(theme);
+    return (
+      <div className={`${BOUTIQUE_FONT_CLASS} grid min-h-dvh place-items-center px-6 text-center`} style={{ background: palette.page, color: palette.ink }} role="status" aria-live="polite">
+        <div className="grid justify-items-center gap-3">
+          <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-current border-t-transparent opacity-60 motion-reduce:animate-none" aria-hidden />
+          <p className="m-0 text-[15px] font-semibold">Refreshing the shop…</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={BOUTIQUE_FONT_CLASS}>
       <ErrorScene
@@ -63,7 +77,7 @@ export function StorefrontError({ error, retry }: { error: Error & { digest?: st
         lines={STORE_ERROR_LINES}
         body="Something on our side failed. Your bag and details are saved on this device. Try again, and if it keeps happening, share the reference below with the shop."
         actions={[
-          { label: "Try again", onClick: retry, icon: "refresh", primary: true },
+          { label: "Try again", onClick: stale ? reloadPage : retry, icon: "refresh", primary: true },
           { label: "Back to the shop", href: shopHref, icon: "store", external: true },
         ]}
         digest={error.digest}
