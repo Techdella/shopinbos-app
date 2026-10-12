@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { BackButton, Mascot, PillButton, Wordmark, cx } from "@/components/app-ui";
+import { BackButton, DeviceToggle, Mascot, PillButton, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { StorePreview, PREVIEW_VARIANTS, type PreviewVariant } from "./StorePreview";
 import { ProductsSetup } from "./ProductsSetup";
@@ -602,19 +602,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
         <p className="m-0 min-w-0 truncate text-[13px] font-bold text-app-ink-soft">
           Live preview · {storeConfig.slug}.shopinbos.com
         </p>
-        <div className="flex rounded-full bg-white p-1" role="group" aria-label="Preview size">
-          {(["desktop", "mobile"] as const).map((d) => (
-            <button
-              key={d}
-              type="button"
-              aria-pressed={device === d}
-              onClick={() => setDevice(d)}
-              className={cx("min-h-[32px] rounded-full px-3 text-[12.5px] font-bold transition", device === d ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
-            >
-              {d === "desktop" ? "Computer" : "Phone"}
-            </button>
-          ))}
-        </div>
+        <DeviceToggle value={device} onChange={setDevice} size="sm" className="bg-white" />
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Layout">
@@ -1092,19 +1080,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                   <PillButton size="sm" tone="white" aria-expanded={editSectionChat} onClick={() => setEditSectionChat(!editSectionChat)}>
                     <Icon name="sparkle" size={14} /> {editSectionChat ? "Close" : "Change with Rex"}
                   </PillButton>
-                  <div className="flex rounded-full bg-white p-1" role="group" aria-label="Preview size">
-                    {(["desktop", "mobile"] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        aria-pressed={device === d}
-                        onClick={() => setDevice(d)}
-                        className={cx("min-h-[30px] rounded-full px-3 text-[12.5px] font-bold transition", device === d ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
-                      >
-                        {d === "desktop" ? "Computer" : "Phone"}
-                      </button>
-                    ))}
-                  </div>
+                  <DeviceToggle value={device} onChange={setDevice} size="sm" className="bg-white" />
                 </div>
               </div>
             )}

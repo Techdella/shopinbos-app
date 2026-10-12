@@ -1017,7 +1017,7 @@ test("theme cards show real, lazy, inert previews and a live preview dialog", ()
   assert.match(preview, /aspect-\[4\/5\]/, "the card's shape is reserved before the preview mounts");
   assert.match(preview, /role="dialog" aria-modal="true"/);
   assert.match(preview, /label: "Product" \}/);
-  assert.match(preview, /label: "Phone"/);
+  assert.match(preview, /<DeviceToggle /, "computer / phone switch");
 });
 
 test("Rex's fallback pick follows what the store sells, for every industry", () => {

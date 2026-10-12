@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Segmented } from "@/components/app-ui";
+import { DeviceToggle } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 
 // Emails drawn in a sandboxed iframe (no scripts, no same-origin): the full-size preview with a computer/phone
@@ -16,7 +16,7 @@ export function EmailFrame({ html, device, className, title = "Email preview" }:
 }
 
 export function DeviceSwitch({ value, onChange }: { value: "desktop" | "mobile"; onChange: (value: "desktop" | "mobile") => void }) {
-  return <Segmented options={[{ value: "desktop", label: "Computer" }, { value: "mobile", label: "Phone" }]} value={value} onChange={onChange} />;
+  return <DeviceToggle value={value} onChange={onChange} />;
 }
 
 /**

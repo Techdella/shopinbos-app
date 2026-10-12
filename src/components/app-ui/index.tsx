@@ -154,6 +154,37 @@ export function Segmented<T extends string>({ options, value, onChange, classNam
   );
 }
 
+export type PreviewDevice = "desktop" | "mobile";
+
+/** Computer / phone preview switch: two icon buttons (labelled for screen readers), used by every preview. */
+export function DeviceToggle({ value, onChange, className = "", size = "md" }: { value: PreviewDevice; onChange: (value: PreviewDevice) => void; className?: string; size?: "sm" | "md" }) {
+  return (
+    <div role="group" aria-label="Preview size" className={cx("inline-flex shrink-0 gap-1 rounded-full bg-app-canvas p-1", className)}>
+      {(["desktop", "mobile"] as const).map((option) => {
+        const on = option === value;
+        const label = option === "desktop" ? "Computer view" : "Phone view";
+        return (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={on}
+            aria-label={label}
+            title={label}
+            onClick={() => onChange(option)}
+            className={cx(
+              "grid place-items-center rounded-full transition",
+              size === "sm" ? "h-8 w-9" : "h-9 w-10",
+              on ? "bg-white text-app-ink shadow-[0_1px_3px_rgba(22,20,31,0.14)]" : "text-app-ink-soft hover:text-app-ink",
+            )}
+          >
+            <Icon name={option === "desktop" ? "monitor" : "phone"} size={size === "sm" ? 15 : 16} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CodeInput({ value, onChange, onComplete, disabled }: { value: string; onChange: (value: string) => void; onComplete?: (value: string) => void; disabled?: boolean }) {
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
   const digits = Array.from({ length: OTP_LENGTH }, (_, index) => value[index] ?? "");
