@@ -5,6 +5,7 @@ import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, apiError } from "@/lib/api/response";
 import { captureAbandonedCart, restoreAbandonedCart } from "@/lib/commerce/abandoned-cart.server";
 import { CHECKOUT_STEPS, isEmail, isPhone, isRecoveryToken } from "@shared/cart-checkout";
+import { overPublicLimit } from "@/lib/rate-limit";
 
 // POST saves the shopper's bag once checkout knows how to reach them (email or phone), for cart reminders.
 // GET ?recover=<token> returns the bag behind a reminder link so the cart page can restore it.
@@ -42,6 +43,7 @@ async function activeStore(slug: string) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "cart")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const store = await activeStore(slug);
   if (!store) return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);

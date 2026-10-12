@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, apiError } from "@/lib/api/response";
+import { overPublicLimit } from "@/lib/rate-limit";
 
 // "Track an order" on the storefront: a shopper proves the order is theirs with the order number plus the
 // email or phone they ordered with, and gets back only the id of the existing order page.
@@ -24,6 +25,7 @@ function phoneTail(value: string | null | undefined) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "orderLookup")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const parsed = LookupSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return withCors(req, apiError("BAD_REQUEST", "Enter your order number and the email or phone you ordered with."), CORS);

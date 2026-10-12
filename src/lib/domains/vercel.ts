@@ -358,7 +358,8 @@ export async function buyDomainOnVercel(
     years: number;
     autoRenew: boolean;
     contactInformation: VercelContactInformation;
-    expectedPrice?: number;
+    /** Refuse when Vercel's price (USD) is above this. The price itself always comes from Vercel, never the client. */
+    maxPrice?: number;
   },
 ) {
   const domain = normalizeDomain(rawDomain);
@@ -368,11 +369,14 @@ export async function buyDomainOnVercel(
   }
 
   const pricing = await getDomainPrice(domain, options.years);
+  if (options.maxPrice !== undefined && !(pricing.purchasePrice <= options.maxPrice)) {
+    throw new Error("That domain costs more than we can buy for you here. Pick another name, or buy it yourself and connect it.");
+  }
 
   return buyDomain(domain, {
     years: options.years,
     autoRenew: options.autoRenew,
-    expectedPrice: options.expectedPrice ?? pricing.purchasePrice,
+    expectedPrice: pricing.purchasePrice,
     contactInformation: options.contactInformation,
   });
 }

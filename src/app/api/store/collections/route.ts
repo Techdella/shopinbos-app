@@ -5,6 +5,14 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { CollectionCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 
+/** Keeps only ids of this store's own products, in the order given (another store's id must never be linked). */
+async function ownProductIds(storeId: string, ids: string[]) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return [];
+  const owned = new Set((await db.storeProduct.findMany({ where: { id: { in: unique }, storeId }, select: { id: true } })).map((product) => product.id));
+  return unique.filter((id) => owned.has(id));
+}
+
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
@@ -45,7 +53,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { productIds, ...data } = parsed.data;
+  const { productIds: requestedIds, ...data } = parsed.data;
+  const productIds = await ownProductIds(store.id, requestedIds);
 
   const collection = await db.collection.create({
     data: {

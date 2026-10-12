@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronAuthorization } from "@/lib/auth/cron";
 import { sendUnreadEmails } from "@/lib/conversations/service.server";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const maxDuration = 120;
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return NextResponse.json({ error: { code: "NOT_CONFIGURED", message: "CRON_SECRET is not set" } }, { status: 503 });
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (cronAuthorization(req.headers.get("authorization"), secret) !== "ok") {
     return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Invalid cron secret" } }, { status: 401 });
   }
   return NextResponse.json({ data: await sendUnreadEmails() });

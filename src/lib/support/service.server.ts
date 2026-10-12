@@ -7,7 +7,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { sendSms } from "@/lib/notifications/service";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
-import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
+import { uploadPrivateFile } from "@/lib/supabase/storage.server";
 import { startOfLagosDay } from "@/lib/dashboard/compute";
 import {
   MAX_ATTACHMENTS,
@@ -104,7 +104,7 @@ export function filesProblem(files: File[]) {
 async function storeFiles(ticketId: string, files: File[]): Promise<SupportAttachment[]> {
   const stored: SupportAttachment[] = [];
   for (const file of files.slice(0, MAX_ATTACHMENTS)) {
-    const { path } = await uploadFileServer("brand", file, uploadPath(`support/${ticketId}`, file));
+    const { path } = await uploadPrivateFile(`support/${ticketId}`, file);
     stored.push({ path, name: safeFileName(file.name), type: file.type, size: file.size });
   }
   return stored;

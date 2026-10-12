@@ -5,7 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { attachmentProblem, safeFileName, type AttachmentRef } from "@/lib/conversations/pure";
 import { accessOrStart, detailsReady } from "@/lib/conversations/service.server";
 import { MESSAGING_ROLES, conversationError } from "@/lib/conversations/http";
-import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
+import { UploadRejectedError, uploadPrivateFile } from "@/lib/supabase/storage.server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,10 +27,11 @@ export const POST = withAuth(async (req: NextRequest, { user, params }) => {
     const problem = attachmentProblem(file);
     if (problem) return apiError("BAD_REQUEST", problem);
 
-    const { path } = await uploadFileServer("brand", file, uploadPath(`messages/${access.id}`, file));
+    const { path } = await uploadPrivateFile(`messages/${access.id}`, file);
     const data: AttachmentRef & { conversationId: string } = { path, name: safeFileName(file.name), type: file.type, size: file.size, conversationId: access.id };
     return ok(data, 201);
   } catch (error) {
+    if (error instanceof UploadRejectedError) return apiError("BAD_REQUEST", error.message);
     return conversationError(error);
   }
 }, [...MESSAGING_ROLES]);

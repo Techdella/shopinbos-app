@@ -15,7 +15,7 @@ type OtpBody = {
   email?: string;
   /** E.164, e.g. +2348031234567 */
   phone?: string;
-  /** Where to send a phone code. Defaults to WhatsApp. */
+  /** Ignored: phone codes always go by SMS (our Send SMS hook has no WhatsApp path). Kept for older clients. */
   via?: "whatsapp" | "sms";
   token?: string;
   /** true when this code also creates the account (sign up), false for sign in. */
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       const { error } = usePhone
         ? await supabase.auth.signInWithOtp({
             phone,
-            options: { shouldCreateUser: create, channel: body.via === "sms" ? "sms" : "whatsapp", data },
+            options: { shouldCreateUser: create, channel: "sms", data },
           })
         : await supabase.auth.signInWithOtp({
             email,

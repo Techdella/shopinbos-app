@@ -30,7 +30,8 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const [method, setMethod] = useState<Method>(initialMethod);
   // Who is signing up: "I sell / I supply shops / I deliver" (like the web sign-up). Sets the account's role.
   const [role, setRole] = useState<SignupRole>(initialRole);
-  const [via, setVia] = useState<"whatsapp" | "sms">("whatsapp");
+  // Phone codes go by SMS (the server's Send SMS hook has no WhatsApp path).
+  const via = "sms" as const;
   const [emailMode, setEmailMode] = useState<"code" | "password">("code");
   const [name, setName] = useState("");
   const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
@@ -98,7 +99,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     }
   }
 
-  const primary = usingPassword ? "Log in" : mode === "signup" ? "Send code" : method === "phone" ? (via === "whatsapp" ? "Send me a code on WhatsApp" : "Send me a code by SMS") : "Email me a code";
+  const primary = usingPassword ? "Log in" : mode === "signup" ? "Send code" : method === "phone" ? "Send me a code by SMS" : "Email me a code";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -138,7 +139,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               <Label>Phone number</Label>
               <PhoneField country={country} onCountryPress={() => setPicking(true)} value={phone} onChangeText={setPhone} />
               <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 12, lineHeight: 19 }}>
-                {via === "whatsapp" ? "We'll send a 6-digit code on WhatsApp, or by SMS if you don't have WhatsApp." : "We'll send a 6-digit code by SMS."}
+                We'll send a 6-digit code by SMS.
               </T>
             </>
           ) : (
@@ -161,7 +162,6 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             {method === "phone" ? (
               <>
                 <LinkButton title="Use email instead" color={colors.inkSoft} onPress={() => setMethod("email")} />
-                <LinkButton title={via === "whatsapp" ? "Get the code by SMS" : "Use WhatsApp instead"} color={colors.inkSoft} onPress={() => setVia(via === "whatsapp" ? "sms" : "whatsapp")} />
               </>
             ) : (
               <>

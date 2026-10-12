@@ -32,6 +32,14 @@ async function getOwnedCollection(collectionId: string, userId: string) {
   });
 }
 
+/** Keeps only ids of this store's own products, in the order given (another store's id must never be linked). */
+async function ownProductIds(storeId: string, ids: string[]) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return [];
+  const owned = new Set((await db.storeProduct.findMany({ where: { id: { in: unique }, storeId }, select: { id: true } })).map((product) => product.id));
+  return unique.filter((id) => owned.has(id));
+}
+
 export const GET = withSeller(async (
   req: NextRequest,
   { user, params }: { user: AuthUser; params: { id: string } }
@@ -59,7 +67,8 @@ export const PATCH = withSeller(async (
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { productIds, ...data } = parsed.data;
+  const { productIds: requestedIds, ...data } = parsed.data;
+  const productIds = requestedIds ? await ownProductIds(store.id, requestedIds) : undefined;
 
   const collection = await db.collection.update({
     where: { id: params.id },

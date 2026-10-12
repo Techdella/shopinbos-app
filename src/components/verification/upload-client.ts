@@ -1,4 +1,5 @@
 import type { DocType, VerificationDoc } from "@shared/verification-docs";
+import { verificationFileHref } from "@/lib/security/private-files";
 
 export type VerificationUploadEndpoint = "/api/supplier/verification/upload" | "/api/logistics/verification/upload";
 
@@ -69,10 +70,8 @@ export async function deleteVerificationFile(endpoint: VerificationUploadEndpoin
   if (!response?.ok || !body?.success) throw new Error(errorMessage(body, response?.status ?? 0).replace("Upload", "Remove"));
 }
 
-/** Public URL for a stored document (the bucket is public; paths are unguessable). */
+/** Opens a stored document through the signed-link route (checks the viewer owns it or is an admin). */
 export function docFileUrl(filePath: string): string {
   if (filePath.startsWith("http")) return filePath;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const bucket = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
-  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${filePath}`;
+  return verificationFileHref(filePath);
 }

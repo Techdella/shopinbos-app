@@ -1,3 +1,7 @@
+// NOT RUN. Next.js only loads middleware/proxy from the folder that holds `app/` (src/), and this project uses
+// src/proxy.ts. Nothing here is active: neither the in-memory rate limiter below nor the subdomain/custom-domain
+// rewrites. Kept only as a reference until those rewrites are ported into src/proxy.ts; delete it then. Do not
+// rely on it for any security control.
 import { NextRequest, NextResponse } from "next/server";
 
 // ── Inline rate limiter (no external imports — Edge Runtime safe) ─────────────

@@ -14,6 +14,7 @@ import {
   submitUploadedDocs,
   validateDocFile,
 } from "@shared/verification-docs";
+import { assertUploadContent, privateBucket, removePrivateFile } from "@/lib/supabase/storage.server";
 
 const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
 
@@ -33,6 +34,9 @@ export async function uploadVerificationDoc(
     }
     const invalid = validateDocFile(file);
     if (invalid) return { success: false, error: invalid };
+    // The bytes must really be the PDF or photo the type claims.
+    const sniffed = await assertUploadContent(file).then(() => null, (error: Error) => error.message);
+    if (sniffed) return { success: false, error: sniffed };
     const mimeType = docMimeType(file) ?? "application/octet-stream";
 
     const model = role === "supplier" ? db.supplier : db.logisticsPartner;
@@ -46,10 +50,12 @@ export async function uploadVerificationDoc(
 
     const folder = role === "supplier" ? "supplier-verifications" : "logistics-verifications";
     const ext = mimeType === "application/pdf" ? "pdf" : mimeType.split("/")[1] === "jpeg" ? "jpg" : mimeType.split("/")[1];
-    const filePath = `${folder}/${entity.id}/${docType}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const filePath = `${folder}/${entity.id}/${docType}/${Date.now()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}.${ext}`;
 
+    // Identity and business documents go to the private bucket when one is set (PRIVATE_STORAGE_BUCKET);
+    // either way they are only opened through /api/verification/file (signed, short-lived links).
     const supabase = await getSupabaseServiceClient();
-    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file, {
+    const { error: uploadError } = await supabase.storage.from(privateBucket() ?? BUCKET).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
       contentType: mimeType,
@@ -79,13 +85,13 @@ export async function uploadVerificationDoc(
         data: { verificationDocuments: [...kept, newDoc] },
       });
     } catch (err) {
-      await supabase.storage.from(BUCKET).remove([filePath]).catch(() => {});
+      await removePrivateFile(filePath).catch(() => {});
       throw err;
     }
 
     // Only drop the replaced file once the new record is saved.
     if (existingIdx >= 0) {
-      await supabase.storage.from(BUCKET).remove([docs[existingIdx].filePath]).catch(() => {});
+      await removePrivateFile(docs[existingIdx].filePath).catch(() => {});
     }
 
     return { success: true, doc: newDoc };
@@ -110,10 +116,7 @@ export async function deleteVerificationDoc(
     const doc = docs.find((d) => d.id === docId);
     if (!doc) return { success: false, error: "Document not found" };
 
-    if (doc.filePath) {
-      const supabase = await getSupabaseServiceClient();
-      await supabase.storage.from(BUCKET).remove([doc.filePath]).catch(() => {});
-    }
+    if (doc.filePath) await removePrivateFile(doc.filePath).catch(() => {});
 
     await (model as any).update({
       where: { userId: user.id },

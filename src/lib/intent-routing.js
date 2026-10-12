@@ -71,18 +71,31 @@ function getContinuationPath(params) {
   return `/home${query}`;
 }
 
+// Same rules as safeNextPath in src/lib/auth/route-access.ts: one leading slash, never "//" or "/\" (browsers
+// read "/\evil.com" as "//evil.com"), no control characters, and it must stay on our own origin once resolved.
+function samePathOnly(value) {
+  if (value.length > 2048) return null;
+  // eslint-disable-next-line no-control-regex
+  if (!/^\/(?![/\\])/.test(value) || /[\u0000-\u001f\u007f\\]/.test(value)) return null;
+  try {
+    const resolved = new URL(value, "https://app.invalid");
+    if (resolved.origin !== "https://app.invalid") return null;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 function sanitizeNextPath(next, appUrl) {
   const candidate = cleanValue(next);
   if (!candidate) return null;
-  if (candidate.startsWith("/") && !candidate.startsWith("//")) {
-    return candidate;
-  }
+  if (candidate.startsWith("/")) return samePathOnly(candidate);
 
   try {
     const target = new URL(candidate);
     const base = new URL(appUrl);
     if (target.origin === base.origin) {
-      return `${target.pathname}${target.search}${target.hash}`;
+      return samePathOnly(`${target.pathname}${target.search}${target.hash}`);
     }
   } catch {
     return null;

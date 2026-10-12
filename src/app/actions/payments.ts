@@ -12,6 +12,7 @@ interface PaystackTransaction {
   amount: number;
   status: string;
   reference: string;
+  currency?: string;
   customer?: { email: string };
   metadata?: { orderId?: string } | string | null;
   plan?: string | { plan_code?: string } | null;
@@ -89,7 +90,7 @@ export async function updateOrderPayment(
   try {
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, buyerEmail: true, status: true, paystackRef: true },
+      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
@@ -118,20 +119,24 @@ export async function updateOrderPayment(
     if (Math.round(paidAmount) < Math.round(Number(order.total))) {
       return { success: false, error: "Verified payment amount is less than the order total" };
     }
+    if (verification.data.currency && verification.data.currency.toUpperCase() !== order.currency.toUpperCase()) {
+      return { success: false, error: "Payment currency does not match this order" };
+    }
     const paidEmail = verification.data.customer?.email?.toLowerCase();
     if (paidEmail && paidEmail !== order.buyerEmail.toLowerCase()) {
       return { success: false, error: "Payment customer does not match this order" };
     }
 
-    await db.retailOrder.update({
-      where: { id: orderId },
+    // Only a still-unpaid order moves (the webhook may have marked it paid a moment ago).
+    const moved = await db.retailOrder.updateMany({
+      where: { id: orderId, status: { in: ["pending", "awaiting_payment"] } },
       data: {
         paystackRef: reference,
         paystackStatus: "success",
         status: "paid",
       },
     });
-    await creditCampaignConversion(orderId).catch(() => null);
+    if (moved.count === 1) await creditCampaignConversion(orderId).catch(() => null);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };

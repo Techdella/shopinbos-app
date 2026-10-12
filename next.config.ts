@@ -43,16 +43,20 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com",
+              // connect.facebook.net: Meta's SDK for WhatsApp Embedded Signup (/home/inbox/chatbot?tab=whatsapp).
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com https://connect.facebook.net",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
               `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com ${storageOrigin}`.trim(),
               "font-src 'self' https://fonts.gstatic.com data:",
               // Video studio previews its reel (blob:) and product videos are stored on Supabase.
               "media-src 'self' blob: https://*.supabase.co",
-              "frame-src https://js.paystack.co https://checkout.flutterwave.com",
-              "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com",
+              // Embedded Signup opens its login/consent frames on www/web.facebook.com.
+              "frame-src https://js.paystack.co https://checkout.flutterwave.com https://www.facebook.com https://web.facebook.com",
+              "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com",
               "object-src 'none'",
+              // Same as X-Frame-Options DENY, for browsers that only read CSP.
+              "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
             ].join("; "),

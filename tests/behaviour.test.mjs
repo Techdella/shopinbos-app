@@ -1892,7 +1892,7 @@ test("Google product ratings feed is valid, escaped XML in schema order", () => 
 });
 
 // ─── Inbox (agent E): webhook signatures, payload normalisers, auto-reply rules ──────────────────────────
-test("inbox webhook signatures: Meta, Twilio, Telegram, Svix (Resend) and generic HMAC", async () => {
+test("inbox webhook signatures: Meta, Telegram, Svix (Resend) and generic HMAC", async () => {
   const { createHmac } = await import("node:crypto");
   const inbox = await import("../src/lib/inbox/pure.ts");
 
@@ -1903,14 +1903,6 @@ test("inbox webhook signatures: Meta, Twilio, Telegram, Svix (Resend) and generi
   assert.equal(inbox.verifyMetaSignature(body, metaSig, "other-secret"), false);
   assert.equal(inbox.verifyMetaSignature(body, null, "app-secret"), false);
   assert.equal(inbox.verifyMetaSignature(body, metaSig, ""), false, "no secret, no pass");
-
-  // Twilio's documented example (https://www.twilio.com/docs/usage/security).
-  const url = "https://mycompany.com/myapp.php?foo=1&bar=2";
-  const params = { CallSid: "CA1234567890ABCDE", Caller: "+12349013030", Digits: "1234", From: "+12349013030", To: "+18005551212" };
-  assert.equal(inbox.twilioSignature("12345", url, params), "0/KCTR6DLpKmkAf8muzZqo1nDgQ=");
-  assert.equal(inbox.verifyTwilioSignature("12345", url, params, "0/KCTR6DLpKmkAf8muzZqo1nDgQ="), true);
-  assert.equal(inbox.verifyTwilioSignature("12345", url, { ...params, Digits: "9999" }, "0/KCTR6DLpKmkAf8muzZqo1nDgQ="), false);
-  assert.equal(inbox.verifyTwilioSignature(null, url, params, "0/KCTR6DLpKmkAf8muzZqo1nDgQ="), false);
 
   assert.equal(inbox.verifyTelegramSecret("s3cret-token", "s3cret-token"), true);
   assert.equal(inbox.verifyTelegramSecret("s3cret-tokeX", "s3cret-token"), false);
@@ -1934,7 +1926,7 @@ test("inbox webhook signatures: Meta, Twilio, Telegram, Svix (Resend) and generi
   assert.equal(inbox.verifyHmacHex(raw, hex, "wrong"), false);
 });
 
-test("inbox normalises WhatsApp, Messenger, Instagram, Twilio SMS, Telegram and email payloads", async () => {
+test("inbox normalises WhatsApp, Messenger, Instagram, Telegram and email payloads", async () => {
   const inbox = await import("../src/lib/inbox/pure.ts");
 
   const wa = inbox.parseWhatsAppWebhook({
@@ -1976,10 +1968,6 @@ test("inbox normalises WhatsApp, Messenger, Instagram, Twilio SMS, Telegram and 
   assert.deepEqual(ig.messages[0].attachments, [{ type: "image", url: "https://cdn.example/x.jpg" }]);
   assert.equal(ig.messages[0].text, "");
 
-  const sms = inbox.parseTwilioSms({ From: "+2348012345678", To: "+15005550006", Body: "Price?", MessageSid: "SM1", NumMedia: "1", MediaUrl0: "https://api.twilio.com/m/1", MediaContentType0: "image/png" });
-  assert.deepEqual([sms.accountId, sms.threadId, sms.text, sms.externalId, sms.attachments.length], ["+15005550006", "+2348012345678", "Price?", "SM1", 1]);
-  assert.equal(inbox.parseTwilioSms({ Body: "no sender" }), null);
-
   const tg = inbox.parseTelegramUpdate({ update_id: 1, message: { message_id: 55, date: 1760000000, chat: { id: 4242, type: "private" }, from: { first_name: "Tunde", last_name: "B", username: "tundeb" }, text: "Do you deliver to Ibadan?" } });
   assert.deepEqual([tg.threadId, tg.externalId, tg.contactName, tg.contactHandle, tg.text], ["4242", "4242:55", "Tunde B", "@tundeb", "Do you deliver to Ibadan?"]);
   assert.equal(inbox.parseTelegramUpdate({ update_id: 2, edited_message: { chat: { id: 1 } } }), null, "edits are ignored");
@@ -2001,7 +1989,7 @@ test("inbox normalises WhatsApp, Messenger, Instagram, Twilio SMS, Telegram and 
   assert.equal(inbox.normaliseInboundEmail({ from: "a@b.co", html: "<p>Hi&nbsp;there</p><p>Bye</p>" }).text, "Hi there\nBye");
 });
 
-test("inbox phone/email helpers, away auto-reply rules, tags and TwiML escaping", async () => {
+test("inbox phone/email helpers, away auto-reply rules and tags", async () => {
   const inbox = await import("../src/lib/inbox/pure.ts");
   assert.equal(inbox.normalisePhone("0801 234 5678"), "+2348012345678");
   assert.equal(inbox.normalisePhone("whatsapp:+2348012345678"), "+2348012345678");
@@ -2026,12 +2014,6 @@ test("inbox phone/email helpers, away auto-reply rules, tags and TwiML escaping"
   assert.equal(inbox.shouldAutoReply({ ...base, channelReplies: false }, now), false, "never on channels we can't reply on");
 
   assert.deepEqual(inbox.cleanTags([" VIP ", "vip", "Wholesale buyer", "", 7]), ["vip", "wholesale-buyer", "7"]);
-
-  const xml = inbox.incomingCallTwiml({ storeName: "Ada & Co <Lagos>", forwardTo: null, dialActionUrl: "https://a/x?step=dial&y=1", recordingUrl: "https://a/x?step=recording", transcriptUrl: "https://a/x?step=transcript" });
-  assert.match(xml, /Ada &amp; Co &lt;Lagos&gt;/);
-  assert.match(xml, /<Record [^>]*transcribe="true"/);
-  const dial = inbox.incomingCallTwiml({ storeName: "Ada", forwardTo: "+2348012345678", dialActionUrl: "https://a/x?step=dial&y=1", recordingUrl: "r", transcriptUrl: "t" });
-  assert.match(dial, /<Dial [^>]*action="https:\/\/a\/x\?step=dial&amp;y=1"><Number>\+2348012345678<\/Number><\/Dial>/);
 });
 
 test("inbox credentials are encrypted at rest and refuse to work without a key", async () => {

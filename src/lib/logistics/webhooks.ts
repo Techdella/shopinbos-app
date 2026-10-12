@@ -1,6 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { db } from "@/lib/db/client";
+import { assertPublicUrl } from "@/lib/security/safe-fetch.server";
 import { WEBHOOK_RETRY_DELAYS_MS, buildEventEnvelope, signWebhook, webhookWants, type PartnerEventName } from "./partner-api-core";
 
 // Partner webhooks (job.offered, job.updated, job.cancelled, cod.reminder), signed with each webhook's secret.
@@ -41,6 +42,8 @@ export async function emitPartnerEvent(partnerId: string, event: PartnerEvent, p
 export async function deliverWebhook(hook: Hook, event: string, body: string): Promise<number> {
   let status = 0;
   try {
+    // The URL was checked when saved, but its DNS can change since: never deliver into our own network.
+    await assertPublicUrl(hook.url, { httpsOnly: true });
     const timestamp = Math.floor(Date.now() / 1000);
     const response = await fetch(hook.url, {
       method: "POST",

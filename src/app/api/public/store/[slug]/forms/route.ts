@@ -6,6 +6,7 @@ import { ok, created, apiError } from "@/lib/api/response";
 import { sendSellerNotification } from "@/lib/notifications/resend";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
 import { ingestFormMessage } from "@/lib/inbox/forms";
+import { overPublicLimit } from "@/lib/rate-limit";
 
 const CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -24,6 +25,7 @@ const FormSchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "form")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const store = await db.store.findUnique({
     where: { slug },

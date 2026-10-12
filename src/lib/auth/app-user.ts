@@ -4,6 +4,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { Role } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { slugify } from "@/lib/workspace";
+import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
 type AppUserInput = {
   supabaseId: string;
@@ -57,6 +58,22 @@ function resolveRole(existingRole: Role | undefined, requestedRole: Role, canUse
   return existingRole;
 }
 
+async function supabaseEmailConfirmed(supabaseId: string, email: string) {
+  try {
+    const admin = await getSupabaseServiceClient();
+    const { data } = await admin.auth.admin.getUserById(supabaseId);
+    const user = data?.user;
+    return Boolean(user && user.email?.toLowerCase() === email && user.email_confirmed_at);
+  } catch {
+    return false;
+  }
+}
+
+async function recentlyCreated(userId: string) {
+  const row = await db.user.findUnique({ where: { id: userId }, select: { createdAt: true } }).catch(() => null);
+  return Boolean(row && Date.now() - row.createdAt.getTime() < 10 * 60_000);
+}
+
 export function appUserInputFromSupabaseUser(user: SupabaseUser): AppUserInput {
   const metadata = user.user_metadata ?? {};
   return {
@@ -85,7 +102,9 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
       where: { email },
       select: { id: true, role: true },
     });
-    if (byEmail) {
+    // Re-link only when Supabase says this login owns the address (confirmed email); otherwise anyone could sign
+    // up with someone else's email and take over their account.
+    if (byEmail && (await supabaseEmailConfirmed(input.supabaseId, email))) {
       // Fix the stale supabaseId so future lookups hit the fast path
       await db.user.update({ where: { id: byEmail.id }, data: { supabaseId: input.supabaseId } });
       existingUser = byEmail;
@@ -93,8 +112,13 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   }
 
   const requestedRole = normalizeRole(input.role);
-  const canUseAdminRole = existingUser?.role === "admin" || (email ? adminInviteEmails().includes(email) : false);
-  const role = resolveRole(existingUser?.role, requestedRole, canUseAdminRole);
+  const invited = email ? adminInviteEmails().includes(email) : false;
+  const canUseAdminRole = existingUser?.role === "admin" || (invited && (await supabaseEmailConfirmed(input.supabaseId, email!)));
+  // Role metadata is editable by the signed-in user, so it only decides the role of a new account (or one created
+  // moments ago, when sign-up raced the first sync). After that the stored role wins.
+  const role = existingUser && !(await recentlyCreated(existingUser.id)) && !(requestedRole === "admin" && canUseAdminRole)
+    ? existingUser.role
+    : resolveRole(existingUser?.role, requestedRole, canUseAdminRole);
 
   const phone = input.phone?.trim() || undefined;
 

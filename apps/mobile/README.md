@@ -29,10 +29,10 @@ npx expo-doctor
 
 ## Supabase settings the app needs
 
-Run `node scripts/configure-supabase-auth.mjs` from the repo root (see the script header). It adds `shopinbos://**` to the redirect allow-list and switches on Google and Twilio when their keys are set.
+Run `node scripts/configure-supabase-auth.mjs` from the repo root (see the script header). It adds `shopinbos://**` to the redirect allow-list and switches on Google sign-in and SMS phone codes (Supabase's Send SMS hook → the app's Termii / Africa's Talking / Sendchamp account) when their keys are set.
 
 - **Google sign-in:** create an OAuth client in Google Cloud, then set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` for the script, or add them under Auth → Providers → Google.
-- **Phone codes:** WhatsApp codes need Twilio (or Twilio Verify) with a WhatsApp sender. SMS works with any Supabase SMS provider.
+- **Phone codes:** SMS codes go through the Send SMS hook (`/api/webhooks/supabase-sms`) and the platform SMS provider. WhatsApp codes aren't sent by these providers, so ask for SMS.
 - **Email codes:** the Magic Link and Confirm signup email templates must include `{{ .Token }}`.
 
 ## Builds

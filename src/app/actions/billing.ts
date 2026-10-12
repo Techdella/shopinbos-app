@@ -28,6 +28,12 @@ export async function updateFeeBearer(formData: FormData) {
 }
 
 export async function getBillingData(logisticsPartnerId: string) {
+  // Exported from a "use server" file, so it is callable from the browser: only the partner itself (or an admin).
+  const user = await requireRole(["logistics_partner", "admin"], "/logistics/login");
+  if (user.role !== "admin") {
+    const own = await db.logisticsPartner.findFirst({ where: { id: logisticsPartnerId, userId: user.id }, select: { id: true } });
+    if (!own) throw new Error("Not allowed");
+  }
   const [feeConfig, bookings] = await Promise.all([
     db.platformFeeConfig.findFirst({ where: { active: true } }),
     db.deliveryBooking.findMany({

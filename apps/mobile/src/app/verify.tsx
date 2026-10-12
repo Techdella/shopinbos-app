@@ -59,7 +59,7 @@ export default function Verify() {
     }
   }
 
-  const where = target.kind === "phone" ? `${target.via === "whatsapp" ? "WhatsApp" : "SMS"} on ${formatE164(target.phone)}` : target.email;
+  const where = target.kind === "phone" ? `SMS on ${formatE164(target.phone)}` : target.email;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas, paddingHorizontal: 22 }}>
@@ -74,7 +74,6 @@ export default function Verify() {
       ) : (
         <View style={{ flexDirection: "row", columnGap: 18, flexWrap: "wrap" }}>
           <LinkButton title="Resend code" onPress={() => void resend(target)} />
-          {target.kind === "phone" && target.via === "whatsapp" && <LinkButton title="Send it by SMS instead" onPress={() => void resend({ ...target, via: "sms" })} />}
         </View>
       )}
       {error && <View style={{ marginTop: 18 }}><Notice>{error}</Notice></View>}
