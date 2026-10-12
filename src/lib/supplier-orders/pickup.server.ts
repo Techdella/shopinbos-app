@@ -1,3 +1,4 @@
+import { supplierPartCollect } from "@shared/cod-split";
 import "server-only";
 import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
@@ -64,7 +65,7 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
       where: { id: orderId, supplierId },
       select: {
         id: true, status: true, sellerId: true, storeId: true, retailOrderId: true, items: true, packedAt: true, currency: true, shippingAddress: true, recipientName: true, recipientPhone: true,
-        retailOrder: { select: { status: true, paymentMethod: true, total: true, shippingFee: true } },
+        retailOrder: { select: { status: true, paymentMethod: true, total: true, shippingFee: true, items: true } },
       },
     });
     if (!row) return null;
@@ -85,7 +86,8 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
       retailOrderId: row.retailOrderId,
       dropoff: { name: row.recipientName, phone: row.recipientPhone, lines: addressLines(row.shippingAddress) },
       items: items.map((item) => ({ name: labelText(item.name, 80) || "Item", quantity: Math.max(1, Number(item.quantity) || 1) })),
-      collect: unpaidPod ? Number(row.retailOrder.total) || 0 : 0,
+      // Only this supplier's share of the order total: the customer pays once across all the parcels.
+      collect: unpaidPod ? supplierPartCollect(row.retailOrder.items, Number(row.retailOrder.total) || 0, row.items) : 0,
       shippingFee: Number(row.retailOrder.shippingFee) || 0,
       currency: row.currency,
     };
