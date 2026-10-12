@@ -6,7 +6,7 @@ import { aiText } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
 import { loadAnalytics } from "@/lib/analytics/load";
 import { resolveRange } from "@/lib/analytics/range";
-import { feedUrl, productLink } from "@/lib/social/server";
+import { productLink } from "@/lib/social/server";
 import { SHARE_CHANNELS, captionRoom, fallbackCaption, fitCaption, postText, taggedProductLink } from "@/lib/social/share";
 import { naira } from "@shared/onboarding";
 import { matchProducts, type PeggyToolInput } from "./pure";
@@ -76,7 +76,8 @@ async function socialWritePost(ctx: PeggyToolContext, input: PeggyToolInput<"soc
       summary,
       `Post (show it in full):\n${post}`,
       `Tagged link (orders from it count under ${spec.label}): ${link}`,
-      `Catalog feeds for listing every product: Google ${feedUrl(store.slug, "google.xml")}, Facebook/Instagram ${feedUrl(store.slug, "meta.csv")}, TikTok ${feedUrl(store.slug, "tiktok.csv")}, WhatsApp ${feedUrl(store.slug, "whatsapp.csv")}. Setup steps are on /channels.`,
+      // Feed links carry the store's private key, so they stay on /channels rather than in the chat transcript.
+      "Catalog feeds for listing every product on Google, Facebook/Instagram, TikTok and WhatsApp: copy the private links and setup steps on /channels.",
     ].join("\n"),
     action: { summary, href: "/channels" },
   };

@@ -99,7 +99,7 @@ export default function SupplierOrderScreen() {
       {order.loading && !data ? <LoadingBlock /> : null}
       {order.error && !data ? <ErrorState message={order.error} onRetry={() => void order.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/supplier/orders") }} /> : null}
       {error ? <Notice>{error}</Notice> : null}
-      {data?.rejectReason ? <Notice tone="info">{`You declined this order: ${data.rejectReason}`}</Notice> : null}
+      {data?.rejectReason ? <Notice tone="info">{data.rejectReason.startsWith("Cancelled by the seller") ? data.rejectReason : `You declined this order: ${data.rejectReason}`}</Notice> : null}
 
       {data && stage ? (
         <>

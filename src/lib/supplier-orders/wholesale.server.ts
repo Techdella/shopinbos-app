@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { parsePricingTiers, tierPrice } from "@/lib/marketplace/find";
-import { SELLER_CANCELLABLE_WHOLESALE, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
+import { SELLER_CANCELLABLE_WHOLESALE, SELLER_CANCEL_PREFIX, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
 import type { ServiceResult } from "./service.server";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
@@ -174,6 +174,7 @@ export async function cancelWholesaleOrder(input: { sellerId: string; orderId: s
     select: { id: true, status: true, quantity: true, supplier: { select: { userId: true } }, supplierProduct: { select: { name: true } } },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
+  if (order.status === "cancelled") return { ok: false, code: "CONFLICT", message: "This order is already cancelled." };
   if (!(SELLER_CANCELLABLE_WHOLESALE as readonly string[]).includes(order.status)) {
     return { ok: false, code: "CONFLICT", message: "The supplier is already packing or has sent this order. Contact them to cancel it." };
   }
@@ -181,7 +182,8 @@ export async function cancelWholesaleOrder(input: { sellerId: string; orderId: s
   const moved = await db.$transaction(async (tx) => {
     const result = await tx.wholesaleOrder.updateMany({
       where: { id: order.id, sellerId: input.sellerId, status: { in: [...SELLER_CANCELLABLE_WHOLESALE] } },
-      data: { status: "cancelled", ...(reason ? { rejectReason: `Cancelled by the seller: ${reason}`.slice(0, 500) } : {}) },
+      // Always marked, so the seller's list can tell their own cancel from a supplier's decline.
+      data: { status: "cancelled", rejectReason: (reason ? `${SELLER_CANCEL_PREFIX}: ${reason}` : `${SELLER_CANCEL_PREFIX}.`).slice(0, 500) },
     });
     if (result.count === 1) await releaseWholesaleStock(tx, order.id);
     return result;

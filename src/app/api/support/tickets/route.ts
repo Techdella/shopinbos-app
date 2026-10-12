@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { createTicketSchema } from "@/lib/support/pure";
 import { createTicket, filesProblem, listMyTickets, supportReady, unreadCount } from "@/lib/support/service.server";
 import { SUPPORT_ROLES, readBody, supportError } from "@/lib/support/http";
@@ -23,7 +23,7 @@ export const GET = withAuth(async (_req, { user }) => {
 
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    if (!checkRateLimit(`support-ticket:${user.id}`, { maxRequests: 8, windowMs: 3_600_000 }).allowed) {
+    if (!(await checkRateLimitShared(rateLimitKey("support-ticket", user.id), { maxRequests: 8, windowMs: 3_600_000 })).allowed) {
       return apiError("RATE_LIMITED", "You've opened a few conversations already. Reply in one of those and we'll pick it up.", 429);
     }
     const body = await readBody(req);

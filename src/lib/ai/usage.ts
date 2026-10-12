@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 
 // Daily limits for Rex and Peggy so a loop, a bot or one busy user can't run up the AI bill.
 // aiCredits is the plan tier elsewhere in the app (see plan-limits.ts), so it is read here, never spent.
@@ -30,7 +30,8 @@ const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images"
  * Recording happens up front so parallel requests can't all slip under the limit.
  */
 export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<NextResponse | null> {
-  const burst = checkRateLimit(`ai:${kind}:${userId}`, { maxRequests: kind === "text" ? 20 : 6, windowMs: 60_000 });
+  // Bursts across every server instance (shared, fails open); the daily allowance below is counted in AiUsage.
+  const burst = await checkRateLimitShared(rateLimitKey(`ai:${kind}`, userId), { maxRequests: kind === "text" ? 20 : 6, windowMs: 60_000 });
   if (!burst.allowed) {
     return NextResponse.json({ error: { code: "RATE_LIMITED", message: "That's a lot at once. Wait a minute and try again." } }, { status: 429 });
   }

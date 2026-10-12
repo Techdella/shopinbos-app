@@ -23,6 +23,25 @@ export function isRetryableNewsFailure(error: string | null | undefined) {
   return text !== NEWS_INTERRUPTED && !text.startsWith(NEWS_UNKNOWN_PREFIX);
 }
 
+/**
+ * The same rule as a database filter over ProductNewsRecipient rows: failed, and the error is not one that marks
+ * them as possibly delivered (NULL errors count as retryable; NOT (error = x) alone would skip them). Both the
+ * "Retry failed" requeue and the retryableCount the admin list shows use this, so they can't disagree.
+ */
+export function retryableNewsWhere(broadcastId: string | { in: string[] }) {
+  return {
+    broadcastId,
+    status: "failed",
+    OR: [{ error: null }, { AND: [{ NOT: { error: NEWS_INTERRUPTED } }, { NOT: { error: { startsWith: NEWS_UNKNOWN_PREFIX } } }] }],
+  };
+}
+
+/** What the admin list shows about failures: how many "Retry N failed" would resend, and how many it won't. */
+export function newsRetrySummary(failedCount: number, retryableCount: number) {
+  const retryable = Math.max(0, Math.min(retryableCount, failedCount));
+  return { retryableCount: retryable, unconfirmedCount: Math.max(0, failedCount - retryable) };
+}
+
 export interface NewsRecipient {
   id: string;
   userId: string;

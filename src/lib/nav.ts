@@ -89,6 +89,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "find-products-all", label: "Products", href: "/marketplace" },
             { id: "find-suppliers", label: "Suppliers", href: "/marketplace/suppliers" },
             { id: "find-logistics", label: "Delivery companies", href: "/marketplace/logistics" },
+            { id: "find-wholesale-orders", label: "Wholesale orders", href: "/marketplace/wholesale" },
           ],
         },
         { id: "dropship", label: "Dropship", icon: "box", href: "/home/dropship" },

@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { feedFetcher } from "@/lib/social/feeds";
 import { catalogFeedCsv, feedTokenMatches } from "@/lib/whatsapp-catalog/pure";
 import { buildCatalogItems, storeIsLive } from "@/lib/whatsapp-catalog/server";
+import { noteFeedFetch } from "@/lib/social/server";
 
 // The store's WhatsApp catalog feed in Meta's CSV format:
 //   /api/public/store/<slug>/catalog-feed.csv?token=<feed token>
@@ -26,8 +27,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   if (!(await storeIsLive(store))) return apiError("NOT_FOUND", "This store isn't live yet", 404);
 
   const build = await buildCatalogItems(store);
-  if (feedFetcher(req.headers.get("user-agent")) === "meta") {
+  const userAgent = req.headers.get("user-agent") ?? "";
+  if (feedFetcher(userAgent) === "meta") {
     await db.whatsAppCatalog.update({ where: { storeId: store.id }, data: { feedFetchedAt: new Date() } }).catch(() => null);
+    // The WhatsApp card on /channels reads this (the old whatsapp.csv URL redirects here).
+    await noteFeedFetch(store.id, "whatsapp", userAgent);
   }
   return new NextResponse(catalogFeedCsv(build), {
     headers: {

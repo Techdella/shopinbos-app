@@ -174,6 +174,34 @@ export function wholesaleReleasesStock(status: string) {
 /** A seller can cancel a wholesale order until the supplier starts packing it. */
 export const SELLER_CANCELLABLE_WHOLESALE = ["pending", "confirmed"] as const;
 
+export function sellerCanCancelWholesale(status: string) {
+  return (SELLER_CANCELLABLE_WHOLESALE as readonly string[]).includes(status);
+}
+
+/** rejectReason prefix when the seller cancelled (otherwise a cancelled order was declined by the supplier). */
+export const SELLER_CANCEL_PREFIX = "Cancelled by the seller";
+
+/** What the seller sees for a wholesale order: the stage, and why it ended if it was declined or cancelled. */
+export function sellerWholesaleStage(status: string, rejectReason: string | null | undefined): { label: string; tone: "warning" | "info" | "accent" | "success" | "danger" | "muted"; note: string | null } {
+  if (status === "cancelled") {
+    const reason = (rejectReason ?? "").trim();
+    if (reason.startsWith(SELLER_CANCEL_PREFIX)) {
+      const said = reason.slice(SELLER_CANCEL_PREFIX.length).replace(/^[:.]\s*/, "").trim();
+      return { label: "Cancelled by you", tone: "muted", note: said ? `Your reason: ${said}` : null };
+    }
+    return { label: "Declined by the supplier", tone: "danger", note: reason ? `Declined: ${reason}` : null };
+  }
+  const stages: Record<string, { label: string; tone: "warning" | "info" | "accent" | "success" | "danger" | "muted" }> = {
+    pending: { label: "Waiting for the supplier", tone: "warning" },
+    confirmed: { label: "Confirmed: expect their invoice", tone: "info" },
+    processing: { label: "Being packed", tone: "accent" },
+    shipped: { label: "On the way", tone: "accent" },
+    delivered: { label: "Delivered", tone: "success" },
+    refunded: { label: "Refunded", tone: "muted" },
+  };
+  return { ...(stages[status] ?? { label: status, tone: "muted" as const }), note: null };
+}
+
 // ─── Supplier money: earned, owed, paid ───────────────────────────────────────
 
 /** Orders a supplier has earned on: shipped or delivered (wholesale and dropship alike). */

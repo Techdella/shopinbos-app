@@ -30,6 +30,10 @@ export interface BroadcastRow {
   sentCount: number;
   failedCount: number;
   skippedCount: number;
+  /** Failed rows "Retry failed" would resend (the provider refused them, so nothing went out). */
+  retryableCount: number;
+  /** Failed rows that may have been delivered: never resent, to avoid duplicates. */
+  unconfirmedCount: number;
   lastError: string | null;
   createdAt: string;
   updatedAt: string;
@@ -415,11 +419,16 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
                       </div>
                     ) : null}
                     {row.lastError ? <p className="m-0 text-[12.5px] font-semibold text-app-danger">{row.lastError}</p> : null}
+                    {row.unconfirmedCount > 0 && row.status !== "draft" ? (
+                      <p className="m-0 text-[12.5px] text-app-ink-soft">
+                        {n(row.unconfirmedCount)} couldn&apos;t be confirmed and won&apos;t be resent to avoid duplicates.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {["draft", "scheduled"].includes(row.status) ? <PillButton tone="white" size="sm" onClick={() => open(row)}>Edit</PillButton> : <PillButton tone="white" size="sm" onClick={() => open(row)}>View</PillButton>}
                     {row.status === "scheduled" ? <PillButton tone="white" size="sm" busy={busy === `unschedule-${row.id}`} onClick={() => rowAction(row, "unschedule")}>Unschedule</PillButton> : null}
-                    {row.failedCount > 0 && row.status !== "draft" ? <PillButton tone="white" size="sm" busy={busy === `retry-${row.id}`} onClick={() => rowAction(row, "retry")}>Retry failed</PillButton> : null}
+                    {row.retryableCount > 0 && row.status !== "draft" ? <PillButton tone="white" size="sm" busy={busy === `retry-${row.id}`} onClick={() => rowAction(row, "retry")}>Retry {n(row.retryableCount)} failed</PillButton> : null}
                     {row.status === "draft" ? <PillButton tone="white" size="sm" busy={busy === `delete-${row.id}`} onClick={() => rowAction(row, "delete")}>Delete</PillButton> : null}
                   </div>
                 </li>

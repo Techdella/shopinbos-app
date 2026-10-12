@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
@@ -9,8 +10,9 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { hasCredentialKey } from "@/lib/inbox/crypto";
 import { loadAnalytics } from "@/lib/analytics/load";
 import { resolveRange } from "@/lib/analytics/range";
-import { FEED_CHANNEL_LABEL, type FeedChannel } from "@/lib/social/feeds";
+import { FEED_CHANNEL_LABEL, FEED_KEY_NOTICE, type FeedChannel } from "@/lib/social/feeds";
 import { feedHealth, feedUrl, getConnections, productLink } from "@/lib/social/server";
+import { catalogFeedUrl, ensureCatalogRow } from "@/lib/whatsapp-catalog/server";
 import { channelStatus } from "@/lib/social/status";
 import { naira } from "@shared/onboarding";
 import { setFeedAdded, disconnectChannel } from "./actions";
@@ -89,7 +91,7 @@ export default async function ChannelsPage() {
 
   const now = new Date();
   const range = resolveRange({ range: "30d" }, now);
-  const [health, connections, products, { report }] = await Promise.all([
+  const [health, connections, products, { report }, feedKey] = await Promise.all([
     feedHealth(store),
     getConnections(store.id),
     db.storeProduct.findMany({
@@ -99,7 +101,11 @@ export default async function ChannelsPage() {
       select: { id: true, name: true, retailPrice: true, images: true },
     }),
     loadAnalytics(store.id, range, now),
+    // The store's private feed key (shared with the WhatsApp catalog feed; rotated there). Created on first view.
+    ensureCatalogRow(store.id).then((row) => row.feedToken).catch(() => null),
   ]);
+  // WhatsApp gets the catalog feed in Meta's format; the other channels their own file. All carry the key.
+  const channelFeedUrl = (channel: FeedChannel, file: string) => (feedKey ? (channel === "whatsapp" ? catalogFeedUrl(store.slug, feedKey) : feedUrl(store.slug, file, feedKey)) : null);
   const byChannel = new Map((connections ?? []).map((row) => [row.channel, row]));
   const canStoreTokens = hasCredentialKey();
   const composerProducts = products.map((product) => ({
@@ -128,9 +134,17 @@ export default async function ChannelsPage() {
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Product catalogs</h2>
-              <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Each channel reads a live feed of your published products, prices, stock and photos. No keys needed.</p>
+              <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Each channel reads a live feed of your published products, prices, stock and photos. Each link carries your store&apos;s private key, so keep it to yourself.</p>
             </div>
             <Pill tone={health.listed ? "success" : "warning"} dot>{health.listed} product{health.listed === 1 ? "" : "s"} in your feeds</Pill>
+          </div>
+
+          <div role="note" className="flex flex-wrap items-start gap-x-3 gap-y-1 rounded-[14px] border border-[#F2A93B]/40 bg-[#FDF0D5] px-4 py-3 text-[14px] text-[#5C3D00]">
+            <Icon name="warn" size={18} className="mt-0.5 shrink-0" />
+            <p className="m-0 min-w-0 flex-1 basis-[240px]">
+              <b>{FEED_KEY_NOTICE}</b> Links you pasted before stop working; copy the new ones below into Google, Meta and TikTok.{" "}
+              <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-[#5C3D00] underline">Change the key</Link> if a link has leaked.
+            </p>
           </div>
 
           <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-2">
@@ -144,6 +158,7 @@ export default async function ChannelsPage() {
               );
               const file = channel.key === "google" ? "google.xml" : `${channel.key}.csv`;
               const alt = channel.key === "google" ? "google.csv" : `${channel.key}.xml`;
+              const feedUrlFor = channelFeedUrl(channel.key, file);
               return (
                 <li key={channel.key} id={channel.key} className="flex min-w-0 flex-col gap-4 rounded-[22px] border border-app-line bg-white p-5">
                   <div className="flex items-start gap-3">
@@ -159,13 +174,23 @@ export default async function ChannelsPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <div className="mb-1.5 text-[13px] font-bold">Feed URL</div>
-                    <CopyField value={feedUrl(store.slug, file)} label={`${FEED_CHANNEL_LABEL[channel.key]} feed URL`} />
-                    <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">
-                      Also as <a href={feedUrl(store.slug, alt)} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{alt}</a>.{" "}
-                      <a href={feedUrl(store.slug, file)} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Preview</a>
-                    </p>
+                  <div className="min-w-0">
+                    <div className="mb-1.5 text-[13px] font-bold">Feed URL <span className="font-normal text-app-ink-soft">(private)</span></div>
+                    {feedUrlFor ? (
+                      <>
+                        <CopyField value={feedUrlFor} label={`${FEED_CHANNEL_LABEL[channel.key]} feed URL`} />
+                        <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">
+                          {channel.key === "whatsapp" ? (
+                            <>In Meta&apos;s catalog format. Sync and problems are on <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-app-ink underline">WhatsApp catalog</Link>.{" "}</>
+                          ) : (
+                            <>Also as <a href={channelFeedUrl(channel.key, alt)!} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{alt}</a>.{" "}</>
+                          )}
+                          <a href={feedUrlFor} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Preview</a>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="m-0 text-[13px] text-app-ink-soft">Feed links are switched off until the workspace database is updated (docs/migrations/2026-10-15-whatsapp-catalog.sql).</p>
+                    )}
                   </div>
 
                   <details className="group rounded-[14px] bg-app-canvas px-4 py-3">

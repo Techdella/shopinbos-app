@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { withAdmin } from "@/lib/auth/middleware";
 import { newsError, readNewsInput } from "@/lib/email/product-news.api";
-import { BROADCAST_SELECT, createBroadcast } from "@/lib/email/product-news.server";
+import { BROADCAST_SELECT, createBroadcast, withRetryCounts } from "@/lib/email/product-news.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/admin/product-news?page=1&limit=20 — product news emails, newest first
+// GET /api/admin/product-news?page=1&limit=20 — product news emails, newest first, each with retryableCount
+// (failures "Retry failed" would resend) and unconfirmedCount (may have been delivered, never resent)
 export const GET = withAdmin(async (req: NextRequest) => {
   const params = req.nextUrl.searchParams;
   const page = Math.max(1, Number(params.get("page")) || 1);
@@ -16,7 +17,7 @@ export const GET = withAdmin(async (req: NextRequest) => {
     db.productNewsBroadcast.findMany({ orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit, select: BROADCAST_SELECT }),
     db.productNewsBroadcast.count(),
   ]);
-  return NextResponse.json({ data, meta: { page, limit, total } });
+  return NextResponse.json({ data: await withRetryCounts(data), meta: { page, limit, total } });
 });
 
 // POST /api/admin/product-news — save a new draft

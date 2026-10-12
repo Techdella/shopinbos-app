@@ -215,7 +215,7 @@ test("login, codes and resets are rate-limited, locked after failures, generic a
   assert.match(events, /sendEmail\(/);
   const throttle = read("src/lib/auth/throttle.ts");
   assert.match(throttle, /INSERT INTO "AuthThrottle"/);
-  assert.match(throttle, /checkRateLimit\(/, "falls back to memory before the migration runs");
+  assert.match(throttle, /checkRateLimitShared\(`auth:\$\{key\}`, \{[^}]*failClosed: true/, "request windows use the shared limiter, failing closed");
 
   const sql = read("docs/migrations/2026-10-12-auth-security.sql");
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "AuthEvent"/);

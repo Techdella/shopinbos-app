@@ -2,7 +2,7 @@
 // and mark a domain bought through the app as verified. Only a verified domain is ever written to
 // Store.customDomain, so only verified domains are served (src/lib/domains/lookup.ts).
 import { db } from "@/lib/db/client";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { forgetCustomDomain } from "@/lib/domains/lookup";
 import { getPlatformRootDomain } from "@/lib/domains/storefront";
 import { assignDomainOnVercel, hasVercelDomainConfig, removeDomainFromVercel } from "@/lib/domains/vercel";
@@ -109,7 +109,7 @@ export async function getDomainSettings(userId: string) {
  */
 export async function claimDomain(userId: string, rawDomain: string, serveAs?: ServeAs | null) {
   const store = await loadStore(userId);
-  if (!checkRateLimit(`domain-claim:${store.id}`, CLAIM_LIMIT).allowed) {
+  if (!(await checkRateLimitShared(rateLimitKey("domain-claim", store.id), CLAIM_LIMIT)).allowed) {
     throw new DomainError("rate_limited", "Too many domain changes. Wait a little, then try again.", 429);
   }
   const parsed = parseDomainInput(rawDomain, serveAs, inputConfig());
@@ -175,7 +175,7 @@ export async function verifyPendingDomain(userId: string, resolver?: TxtResolver
   if (!store.pendingDomain || !isVerifyToken(store.domainVerifyToken)) {
     throw new DomainError("nothing_pending", "Add a domain first, then verify it.", 400);
   }
-  if (!checkRateLimit(`domain-verify:${store.id}`, VERIFY_LIMIT).allowed) {
+  if (!(await checkRateLimitShared(rateLimitKey("domain-verify", store.id), VERIFY_LIMIT)).allowed) {
     throw new DomainError("rate_limited", "Too many checks in a short time. DNS changes take a while to spread; wait 10 minutes, then verify again.", 429);
   }
   const parsed = parseDomainInput(store.pendingDomain, null, inputConfig());

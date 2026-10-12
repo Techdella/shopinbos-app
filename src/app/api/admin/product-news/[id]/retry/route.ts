@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
 import { withAdmin } from "@/lib/auth/middleware";
 import { newsError } from "@/lib/email/product-news.api";
-import { BROADCAST_SELECT, retryFailed } from "@/lib/email/product-news.server";
+import { loadBroadcast, retryFailed } from "@/lib/email/product-news.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +12,7 @@ export const POST = withAdmin(async (_req: NextRequest, { params }) => {
   const id = String(params.id);
   try {
     const progress = await retryFailed(id);
-    const broadcast = await db.productNewsBroadcast.findUnique({ where: { id }, select: BROADCAST_SELECT });
+    const broadcast = await loadBroadcast(id);
     return NextResponse.json({ data: { broadcast, progress } });
   } catch (error) {
     return newsError(error);

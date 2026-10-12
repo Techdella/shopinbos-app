@@ -68,6 +68,17 @@ export function parseFeedFile(file: string): { channel: FeedChannel; format: Fee
   return channel && format ? { channel, format } : null;
 }
 
+/**
+ * The path of a store's channel feed. The token is the store's private feed key (the same one the WhatsApp
+ * catalog feed uses); without it, or with a wrong one, the route answers 404 like an unknown store.
+ */
+export function legacyFeedPath(slug: string, file: string, token: string) {
+  return `/api/public/feeds/${encodeURIComponent(slug)}/${file}?token=${encodeURIComponent(token)}`;
+}
+
+/** Shown wherever feed URLs appear since they gained the key: links pasted before then stop working. */
+export const FEED_KEY_NOTICE = "Feed links now include a private key. Update the link in Commerce Manager.";
+
 export function feedPrice(amount: number, currency: string) {
   return `${(Math.round(amount * 100) / 100).toFixed(2)} ${(currency || "NGN").toUpperCase()}`;
 }
