@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { recordCodRemittance } from "@/app/actions/logistics";
-import { Card, CardHead, ListCard, ListRow, Pill, SplitLayout, StatGrid, StatTile } from "@/components/app-kit";
+import { Card, CardHead, ListCard, ListRow, Pill, StatGrid, StatTile } from "@/components/app-kit";
 import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/payin-rules";
 import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
@@ -139,8 +139,9 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
         <StatTile tone="card" label="Paid in, last 30 days" value={naira(paidInMonth)} hint={`Collected ${naira(sum(collectedRecent.filter((row) => row.codMethod === "cash")))} in cash`} />
       </StatGrid>
 
-      <SplitLayout
-        main={
+      {/* What to pay in and how comes first on a phone; on a wide screen it sits on the right. */}
+      <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_420px]">
+        <div className="grid min-w-0 content-start gap-5">
           <>
             <Section id="held" title="Cash not paid in yet" sub="Cash your riders collected. When you pay in, we tick these off oldest first.">
               {heldCash.length === 0 ? (
@@ -210,8 +211,8 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </Section>
           </>
-        }
-        side={
+        </div>
+        <div className="order-first grid min-w-0 content-start gap-5 xl:order-none">
           <>
             <Card className="grid gap-4 p-5">
               <div>
@@ -296,8 +297,8 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </section>
           </>
-        }
-      />
+        </div>
+      </div>
     </PartnerPage>
   );
 }

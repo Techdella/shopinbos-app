@@ -33,11 +33,11 @@ export function UnmatchedPayIns({ payIns, partners, returnTo }: { payIns: Unmatc
                 {row.senderName ?? "Unknown sender"}{row.senderBank ? `, ${row.senderBank}` : ""} → account {row.accountNumber ?? "unknown"} · ref {row.reference}
               </div>
             </div>
-            <form action={assignUnmatchedPayIn} className="flex min-w-0 flex-wrap items-center gap-2">
+            <form action={assignUnmatchedPayIn} className="flex min-w-0 items-center gap-2">
               <input type="hidden" name="payInId" value={row.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
               <label htmlFor={`assign-${row.id}`} className="sr-only">Delivery partner for this payment</label>
-              <select id={`assign-${row.id}`} name="partnerId" required defaultValue="" className={`${fieldClass} w-auto min-w-[200px]`}>
+              <select id={`assign-${row.id}`} name="partnerId" required defaultValue="" className={`${fieldClass} w-[220px] max-w-full`}>
                 <option value="" disabled>Pick a partner</option>
                 {partners.map((partner) => (
                   <option key={partner.id} value={partner.id}>{partner.displayName}</option>

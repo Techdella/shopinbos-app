@@ -36,15 +36,24 @@ export function riderOptionLabel(row: RankedRider<DispatchRider & { openJobs: nu
   return [rider.name, state, where].filter(Boolean).join(" · ");
 }
 
-function riderOptions(riders: DispatchRider[], now: Date, pickup?: LatLng | null) {
-  const ranked = rankRidersForPickup(
+function rankRiders(riders: DispatchRider[], now: Date, pickup?: LatLng | null) {
+  return rankRidersForPickup(
     riders.map((rider) => ({ ...rider, openJobs: rider.openJobs ?? 0, lat: rider.lastLat ?? null, lng: rider.lastLng ?? null, locationAt: rider.lastLocationAt ?? null })),
     pickup,
     now,
   );
-  return ranked.map((row) => (
+}
+
+function riderOptions(riders: DispatchRider[], now: Date, pickup?: LatLng | null) {
+  return rankRiders(riders, now, pickup).map((row) => (
     <option key={row.rider.id} value={row.rider.id}>{riderOptionLabel(row, now)}</option>
   ));
+}
+
+/** The closest free rider with a fresh location, picked for the dispatcher (spec 8A: a sensible answer already picked). */
+function bestRider(riders: DispatchRider[], now: Date, pickup?: LatLng | null) {
+  const first = rankRiders(riders, now, pickup)[0];
+  return first && first.group === 0 && first.fresh && first.meters !== null && first.meters <= 15_000 ? first.rider.id : "";
 }
 
 export function AcceptAssignForm({ bookingId, riders, returnTo, className, pickup }: { bookingId: string; riders: DispatchRider[]; returnTo: string; className?: string; pickup?: LatLng | null }) {
@@ -54,7 +63,7 @@ export function AcceptAssignForm({ bookingId, riders, returnTo, className, picku
       <input type="hidden" name="bookingId" value={bookingId} />
       <input type="hidden" name="returnTo" value={returnTo} />
       <label htmlFor={`assign-${bookingId}`} className="sr-only">Rider for job {jobId(bookingId)}</label>
-      <select id={`assign-${bookingId}`} name="riderId" defaultValue="" className={`${inputClass} h-10 min-w-[140px] flex-1 rounded-full`}>
+      <select id={`assign-${bookingId}`} name="riderId" defaultValue={bestRider(riders, now, pickup)} className={`${inputClass} h-10 min-w-[200px] flex-1 rounded-full`}>
         <option value="">{riders.length ? "Pick a rider later" : "No riders yet"}</option>
         {riderOptions(riders, now, pickup)}
       </select>

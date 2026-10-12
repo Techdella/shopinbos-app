@@ -101,7 +101,7 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
       frame={supplierFrame(user, supplier, { searchPlaceholder: "Search by seller, product, address…" })}
       title={isNew ? view.title : pickup?.packed ? "Ready for the rider" : pickup ? "Pack it with this label" : view.title}
       sub={`${kind === "dropship" ? "A shop sold it for you" : "Bulk order"} · ${view.shop} · ${view.ref} · ${timeAgo(view.createdAt)}`}
-      actions={<PillLink href="/supplier/orders" size="sm" icon="arrow">All orders</PillLink>}
+      actions={<PillLink href="/supplier/orders" size="sm" icon="arrowLeft">All orders</PillLink>}
     >
       <div className="mx-auto grid max-w-[720px] gap-4">
         {(query.error || query.saved) && <Notice tone={query.error ? "error" : "success"}>{query.error ?? "Order updated."}</Notice>}
