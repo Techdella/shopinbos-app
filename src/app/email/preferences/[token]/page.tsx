@@ -57,12 +57,12 @@ async function unsubscribeAll(formData: FormData) {
 
 function Toggle({ name, label, help, defaultChecked }: { name: string; label: string; help: string; defaultChecked: boolean }) {
   return (
-    <li className="border-b border-navy/[0.08] last:border-b-0">
+    <li className="border-b border-navy/[0.08] dark:border-white/10 last:border-b-0">
       <label className="flex min-h-[64px] cursor-pointer items-start gap-3 py-3.5">
         <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-[#2E7E78]" />
         <span className="min-w-0">
-          <span className="block text-[15px] font-semibold text-navy">{label}</span>
-          <span className="block text-[13.5px] leading-snug text-muted">{help}</span>
+          <span className="block text-[15px] font-semibold text-navy dark:text-cream">{label}</span>
+          <span className="block text-[13.5px] leading-snug text-muted dark:text-[#A9B8BB]">{help}</span>
         </span>
       </label>
     </li>
@@ -71,7 +71,7 @@ function Toggle({ name, label, help, defaultChecked }: { name: string; label: st
 
 function Notice({ tone, children }: { tone: "success" | "info"; children: React.ReactNode }) {
   return (
-    <div role="status" className={`mb-5 rounded-[14px] border px-4 py-3 text-[14px] ${tone === "success" ? "border-teal/30 bg-[#E6F7F3] text-[#195754]" : "border-navy/10 bg-cream text-navy"}`}>
+    <div role="status" className={`mb-5 rounded-[14px] border px-4 py-3 text-[14px] ${tone === "success" ? "border-teal/30 bg-[#E6F7F3] text-[#195754] dark:bg-[#0E2A38] dark:text-mint" : "border-navy/10 bg-cream text-navy dark:border-white/10 dark:bg-[#0E2A38] dark:text-cream"}`}>
       {children}
     </div>
   );
@@ -101,14 +101,14 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
     const allOff = !prefs.subscribed || STORE_TOPICS.every((t) => !prefs.topics[t.key]);
     body = (
       <>
-        <h1 className="m-0 font-display text-[28px] font-medium tracking-[-0.025em] text-navy">Your email preferences</h1>
-        <p className="mb-5 mt-2 text-[15px] text-muted">
-          Choose what <strong className="text-navy">{store.name}</strong> sends to <strong className="break-all text-navy">{email}</strong>. Order confirmations and delivery updates always arrive.
+        <h1 className="m-0 font-display text-[28px] font-medium tracking-[-0.025em] text-navy dark:text-cream">Your email preferences</h1>
+        <p className="mb-5 mt-2 text-[15px] text-muted dark:text-[#A9B8BB]">
+          Choose what <strong className="text-navy dark:text-cream">{store.name}</strong> sends to <strong className="break-all text-navy dark:text-cream">{email}</strong>. Order confirmations and delivery updates always arrive.
         </p>
         <form action={save}>
           <input type="hidden" name="token" value={token} />
           <fieldset className="m-0 border-0 p-0">
-            <legend className="mb-1 p-0 font-mono text-[11px] uppercase tracking-[0.16em] text-[#195754]">Emails</legend>
+            <legend className="mb-1 p-0 font-mono text-[11px] uppercase tracking-[0.16em] text-[#195754] dark:text-mint">Emails</legend>
             <ul className="m-0 list-none p-0">
               {STORE_TOPICS.map((topic) => (
                 <Toggle key={topic.key} name={`topic_${topic.key}`} label={topic.label} help={topic.help} defaultChecked={!allOff && prefs.topics[topic.key]} />
@@ -117,7 +117,7 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
           </fieldset>
           {prefs.phone && (
             <fieldset className="m-0 mt-5 border-0 p-0">
-              <legend className="mb-1 p-0 font-mono text-[11px] uppercase tracking-[0.16em] text-[#195754]">Texts to {prefs.phone.replace(/\d(?=\d{4})/g, "•")}</legend>
+              <legend className="mb-1 p-0 font-mono text-[11px] uppercase tracking-[0.16em] text-[#195754] dark:text-mint">Texts to {prefs.phone.replace(/\d(?=\d{4})/g, "•")}</legend>
               <input type="hidden" name="has_sms" value="1" />
               <input type="hidden" name="has_whatsapp" value="1" />
               <ul className="m-0 list-none p-0">
@@ -126,7 +126,7 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
               </ul>
             </fieldset>
           )}
-          <button type="submit" className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-pill bg-navy px-6 text-[15px] font-semibold text-cream hover:bg-[#18394A] sm:w-auto">Save preferences</button>
+          <button type="submit" className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-pill bg-navy px-6 text-[15px] font-semibold text-cream hover:bg-[#18394A] dark:bg-mint dark:text-navy dark:hover:bg-[#B5EBE2] sm:w-auto">Save preferences</button>
         </form>
       </>
     );
@@ -139,9 +139,9 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
     footer = { name: legal.name, address: legal.address, privacyUrl: "https://shopinbos.com/privacy", contactUrl: "mailto:support@shopinbos.com" };
     body = (
       <>
-        <h1 className="m-0 font-display text-[28px] font-medium tracking-[-0.025em] text-navy">Your Shopinbos emails</h1>
-        <p className="mb-5 mt-2 text-[15px] text-muted">
-          Choose what Shopinbos sends to <strong className="break-all text-navy">{email || "your account"}</strong>.
+        <h1 className="m-0 font-display text-[28px] font-medium tracking-[-0.025em] text-navy dark:text-cream">Your Shopinbos emails</h1>
+        <p className="mb-5 mt-2 text-[15px] text-muted dark:text-[#A9B8BB]">
+          Choose what Shopinbos sends to <strong className="break-all text-navy dark:text-cream">{email || "your account"}</strong>.
         </p>
         <form action={save}>
           <input type="hidden" name="token" value={token} />
@@ -150,13 +150,13 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
               <Toggle key={topic.key} name={`topic_${topic.key}`} label={topic.label} help={topic.help} defaultChecked={prefs[topic.key]} />
             ))}
           </ul>
-          <div className="mt-4 rounded-[14px] bg-cream px-4 py-3 text-[13.5px] text-muted">
-            <span className="font-semibold text-navy">Always sent:</span> {PLATFORM_REQUIRED.join(", ").toLowerCase()}. These keep your account safe and working.
+          <div className="mt-4 rounded-[14px] bg-cream px-4 py-3 dark:bg-[#0E2A38] text-[13.5px] text-muted dark:text-[#A9B8BB]">
+            <span className="font-semibold text-navy dark:text-cream">Always sent:</span> {PLATFORM_REQUIRED.join(", ").toLowerCase()}. These keep your account safe and working.
           </div>
-          <button type="submit" className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-pill bg-navy px-6 text-[15px] font-semibold text-cream hover:bg-[#18394A] sm:w-auto">Save preferences</button>
+          <button type="submit" className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-pill bg-navy px-6 text-[15px] font-semibold text-cream hover:bg-[#18394A] dark:bg-mint dark:text-navy dark:hover:bg-[#B5EBE2] sm:w-auto">Save preferences</button>
         </form>
-        <p className="mb-0 mt-4 text-[13.5px] text-muted">
-          New order, message and payout alerts are in your <a className="font-semibold text-[#195754] underline" href={notificationSettingsUrl(user.role)}>notification settings</a>.
+        <p className="mb-0 mt-4 text-[13.5px] text-muted dark:text-[#A9B8BB]">
+          New order, message and payout alerts are in your <a className="font-semibold text-[#195754] dark:text-mint underline" href={notificationSettingsUrl(user.role)}>notification settings</a>.
         </p>
       </>
     );
@@ -164,23 +164,31 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
 
   const confirming = query.unsubscribe === "1" && !query.done;
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 text-navy sm:py-16">
+    <main className="min-h-screen bg-paper px-4 dark:bg-[#0A1C25] py-10 text-navy dark:text-cream sm:py-16">
       <div className="mx-auto w-full max-w-[560px]">
         <header className="mb-6 flex min-h-[44px] items-center">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo.src} alt={logo.alt} className={logo.store ? "h-11 w-auto max-w-[200px] object-contain" : "h-5 w-auto"} />
+            logo.store ? (
+              <img src={logo.src} alt={logo.alt} className="h-11 w-auto max-w-[200px] rounded-[10px] object-contain dark:bg-white dark:px-2.5 dark:py-1.5" />
+            ) : (
+              <>
+                <img src={logo.src} alt={logo.alt} className="h-5 w-auto dark:hidden" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/email/shopinbos-logo-white@2x.png" alt={logo.alt} className="hidden h-5 w-auto dark:block" />
+              </>
+            )
           ) : (
             <span className="font-display text-[22px] font-semibold tracking-[-0.02em]">{brandName}</span>
           )}
         </header>
-        <div className="rounded-lg border border-navy/[0.06] bg-white p-6 shadow-[0_1px_0_rgba(14,42,56,0.04)] sm:p-8">
+        <div className="rounded-lg border border-navy/[0.06] bg-white p-6 dark:border-white/10 dark:bg-[#12303F] shadow-[0_1px_0_rgba(14,42,56,0.04)] sm:p-8">
           {query.saved && <Notice tone="success">Saved. Your choices apply from the next email.</Notice>}
           {query.done && <Notice tone="success">You&apos;re unsubscribed. {found.kind === "contact" ? `${brandName} won't send you marketing any more.` : "You'll only get account, security and billing emails."} Changed your mind? Switch anything back on below.</Notice>}
           {confirming && (
-            <div className="mb-6 rounded-[14px] border border-navy/10 bg-cream p-4">
-              <p className="m-0 text-[15px] font-semibold">Unsubscribe from {found.kind === "contact" ? `${brandName}'s marketing` : "Shopinbos updates"}?</p>
-              <p className="mb-3 mt-1 text-[13.5px] text-muted">Or keep the emails you like and switch off the rest below.</p>
+            <div className="mb-6 rounded-[14px] border border-navy/10 bg-cream p-4 dark:border-white/10 dark:bg-[#0E2A38]">
+              <p className="m-0 text-[15px] font-semibold">{found.kind === "contact" ? `Stop marketing emails from ${brandName}?` : "Unsubscribe from Shopinbos updates?"}</p>
+              <p className="mb-3 mt-1 text-[13.5px] text-muted dark:text-[#A9B8BB]">Or keep the emails you like and switch off the rest below.</p>
               <form action={unsubscribeAll}>
                 <input type="hidden" name="token" value={token} />
                 <button type="submit" className="inline-flex min-h-[44px] items-center justify-center rounded-pill bg-coral px-5 text-[14px] font-semibold text-white">Unsubscribe from all</button>
@@ -189,14 +197,14 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
           )}
           {body}
           {!confirming && (
-            <form action={unsubscribeAll} className="mt-6 border-t border-navy/[0.08] pt-5">
+            <form action={unsubscribeAll} className="mt-6 border-t border-navy/[0.08] dark:border-white/10 pt-5">
               <input type="hidden" name="token" value={token} />
-              <button type="submit" className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold text-[#B6452E] underline">Unsubscribe from all {found.kind === "contact" ? "marketing" : "optional emails"}</button>
+              <button type="submit" className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold text-[#B6452E] underline dark:text-[#F3A08E]">Unsubscribe from all {found.kind === "contact" ? "marketing" : "optional emails"}</button>
             </form>
           )}
         </div>
-        <footer className="mt-6 text-center text-[12.5px] leading-relaxed text-muted">
-          <p className="m-0 font-semibold text-navy">{footer.name}</p>
+        <footer className="mt-6 text-center text-[12.5px] leading-relaxed text-muted dark:text-[#A9B8BB]">
+          <p className="m-0 font-semibold text-navy dark:text-cream">{footer.name}</p>
           {footer.address && <p className="m-0">{footer.address}</p>}
           <p className="mt-2">
             {footer.contactUrl && <a className="underline" href={footer.contactUrl}>Contact</a>}
@@ -207,7 +215,9 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
             <p className="mt-3 inline-flex items-center gap-1.5">
               Powered by
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/email/shopinbos-logo-navy@2x.png" alt="Shopinbos" className="h-[10px] w-auto" />
+              <img src="/brand/email/shopinbos-logo-navy@2x.png" alt="Shopinbos" className="h-[10px] w-auto dark:hidden" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/email/shopinbos-logo-white@2x.png" alt="Shopinbos" className="hidden h-[10px] w-auto dark:inline" />
             </p>
           )}
         </footer>

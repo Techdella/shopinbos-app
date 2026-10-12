@@ -186,6 +186,7 @@ ${scope} .sib-muted{color:${d.muted}!important}
 ${scope} .sib-line{border-color:${d.line}!important}
 ${scope} .sib-soft{background:${d.soft}!important;border-color:${d.line}!important}
 ${scope} .sib-link{color:${d.link}!important}
+${scope} .sib-eyebrow{color:${EMAIL_COLORS.mint}!important}
 ${scope} .sib-btn{background:${EMAIL_COLORS.mint}!important;color:${EMAIL_COLORS.navy}!important;border-color:${EMAIL_COLORS.mint}!important}
 ${scope} .sib-code{background:${d.soft}!important;color:${EMAIL_COLORS.mint}!important;border-color:${d.line}!important}`
     : "";
@@ -199,7 +200,7 @@ ${scope} .sib-logo-dark{display:block!important;max-height:none!important;overfl
 ${card}`;
 }
 
-export function emailHead(input: { title: string; scheme?: "light dark" | "dark"; adaptCard?: boolean; extraCss?: string }) {
+export function emailHead(input: { title: string; scheme?: "light dark" | "dark"; adaptCard?: boolean; extraCss?: string; fonts?: boolean }) {
   const scheme = input.scheme ?? "light dark";
   const adapt = input.adaptCard ?? true;
   return `<head>
@@ -211,6 +212,7 @@ export function emailHead(input: { title: string; scheme?: "light dark" | "dark"
 <meta name="color-scheme" content="${scheme}" />
 <meta name="supported-color-schemes" content="${scheme}" />
 <title>${escapeHtml(input.title)}</title>
+${input.fonts === false ? "" : '<!--[if !mso]><!--><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet" /><!--<![endif]-->'}
 <!--[if mso]><style>table,td,div,p,a,span{font-family:Arial,Helvetica,sans-serif!important}</style><![endif]-->
 <style>
 :root{color-scheme:${scheme};supported-color-schemes:${scheme}}
@@ -276,7 +278,7 @@ ${input.card}
 </td></tr>`;
   return `<!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-${emailHead({ title: input.title, scheme: input.scheme, adaptCard: input.adaptCard, extraCss: input.extraCss })}
+${emailHead({ title: input.title, scheme: input.scheme, adaptCard: input.adaptCard, extraCss: input.extraCss, fonts: input.adaptCard !== false })}
 <body class="sib-page" style="margin:0;padding:0;background:${page};word-spacing:normal">
 ${preheaderHtml(input.preheader)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-page" bgcolor="${page}" style="background:${page}"><tr><td align="center" class="sib-wrap" style="padding:28px 12px">
