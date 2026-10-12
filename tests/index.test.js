@@ -233,7 +233,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   // Partner messages notify through the conversations service: in-app at once, SMS if opted in, email if left unread.
   const conversations = read("src/lib/conversations/service.server.ts");
   assert.match(messages, /sendPartnerMessage/);
-  assert.match(conversations, /sendEmail/);
+  assert.match(conversations, /sendPlatformEmail\(/, "unread messages are emailed through the shared email shell");
   assert.match(conversations, /sendSms/);
   assert.match(conversations, /eventKey: "message_received"/);
 

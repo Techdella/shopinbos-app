@@ -8,6 +8,7 @@ import { buttonClass, supplierFrame } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
+import { userLinks } from "@/lib/email/compliance.server";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,7 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
   const params = await searchParams;
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
+  const emailPreferencesUrl = userLinks(user.id)?.preferences ?? null;
   const preference = await db.notificationPreference.findUnique({
     where: {
       userId_eventKey_category: {
@@ -126,6 +128,18 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
                   </Link>
                 </li>
               ))}
+              {emailPreferencesUrl && (
+                <li>
+                  <a href={emailPreferencesUrl} className="flex min-h-[60px] items-center gap-3 px-5 py-3 text-app-ink no-underline hover:bg-app-canvas">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="mail" size={16} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14.5px] font-bold">Email preferences</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft">Product news, setup nudges, weekly summaries</span>
+                    </span>
+                    <Icon name="chevRight" size={16} className="text-app-ink-soft" />
+                  </a>
+                </li>
+              )}
             </ul>
           </Card>
         </nav>

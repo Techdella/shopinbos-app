@@ -3,10 +3,11 @@ import type { CampaignStatus } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, type Tone } from "@/components/app-kit";
+import { AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, type Tone } from "@/components/app-kit";
 import { RexAICopywriter } from "@/components/marketing/RexAICopywriter";
 import { formatDate, humanize } from "@/components/growth/kit";
 import { naira } from "@shared/onboarding";
+import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Campaigns" };
@@ -36,7 +37,8 @@ function pct(part: number, whole: number) {
 export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<{ status?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
+  const needsAddress = Boolean(store) && !hasPostalAddress(readBusinessAddress(store?.brandSettings));
   const active = FILTERS.find((filter) => filter.status === params?.status) ?? FILTERS[0];
 
   const [campaigns, totals, byStatus] = store
@@ -76,6 +78,11 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
       }
     >
       <div className="grid gap-5">
+        {needsAddress && (
+          <AssistantNote action={<PillLink href="/home/settings?tab=Store#business-address" size="sm" tone="ink">Add address</PillLink>}>
+            Add your business address before sending email campaigns. Every marketing email shows it in the footer, as anti-spam laws and Gmail and Yahoo require. Order emails still go out without it.
+          </AssistantNote>
+        )}
         <StatGrid>
           <StatTile tone="card" label="Messages sent" value={sent.toLocaleString("en-NG")} />
           <StatTile tone="card" label="Opened" value={pct(opens, sent)} hint={`${opens.toLocaleString("en-NG")} opens`} />

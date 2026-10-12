@@ -42,6 +42,8 @@ const PUBLIC_PAGES = [
   /^\/suppliers\/\[slug\]$/, // public supplier profile
   /^\/logistics\/partners\//, // public logistics partner profile
   /^\/email\/unsubscribe\//,
+  /^\/email\/preferences\//, // email preference center: the signed token is the credential
+  /^\/email\/preferences\//, // email preference center, the signed token is the credential
   /^\/rider\/\[token\]$/, // rider job link, the token is the credential
 ];
 

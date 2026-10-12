@@ -128,7 +128,7 @@ export interface PlatformSendInput {
 }
 
 /** Builds the (A) email in the shell and sends it, honouring email preferences for lifecycle mail. */
-export function buildPlatformEmail(input: Omit<PlatformSendInput, "to">) {
+export function buildPlatformEmail(input: Omit<PlatformSendInput, "to" | "subject">) {
   const unsubscribing = input.kind === "lifecycle" || input.kind === "marketing";
   const links = unsubscribing && input.user?.id ? userLinks(input.user.id) : null;
   const html = platformEmail({

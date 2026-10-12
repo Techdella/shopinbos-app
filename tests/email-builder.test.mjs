@@ -121,7 +121,7 @@ test("every starter template is built from blocks, survives the sanitiser and re
     const html = preview.renderEmailPreview({ bodyHtml: template.bodyHtml, preheader: template.preheader, brand, shop });
     assert.doesNotMatch(html, /{{\s*\w+\s*}}/, `${template.key} has no unfilled merge tags`);
     assert.match(html, /Ada &amp; Co/);
-    for (const src of html.matchAll(/<img src="([^"]+)"/g)) assert.match(src[1], /^https:\/\/images\.unsplash\.com\/photo-/, `${template.key} images come from Unsplash`);
+    for (const src of html.matchAll(/<img src="([^"]+)"/g)) assert.match(src[1], /^https:\/\/(images\.unsplash\.com\/photo-|app\.shopinbos\.com\/brand\/email\/shopinbos-logo-(navy|white)@2x\.png$)/, `${template.key} images come from Unsplash (or the footer's Shopinbos mark)`);
   }
   for (const key of ["newsletter", "sale", "new_arrival", "announcement", "welcome", "cart", "thank_you"]) assert.ok(keys.has(key), `old key ${key} still exists`);
   for (const category of ["welcome", "festive", "abandoned_cart", "shipping", "review", "win_back", "birthday", "restock", "event"]) assert.ok(categories.has(category), `${category} has a starter`);

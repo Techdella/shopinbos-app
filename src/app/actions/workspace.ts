@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
@@ -355,6 +356,29 @@ export async function saveStoreSettings(formData: FormData) {
   });
 
   redirect("/home/settings?saved=true&tab=Store");
+}
+
+/** The store's business name and postal address: the footer of every email it sends (required for marketing email). */
+export async function saveBusinessAddress(formData: FormData) {
+  const user = await getSellerUserOrThrow();
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, brandSettings: true } });
+  if (!store) redirect("/builder?firstRun=1");
+  const field = (name: string, max = 160) => String(formData.get(name) ?? "").trim().replace(/\s+/g, " ").slice(0, max);
+  const email = field("addressEmail", 200);
+  const businessAddress = {
+    legalName: field("legalName"),
+    line1: field("line1"),
+    line2: field("line2"),
+    city: field("addressCity", 80),
+    state: field("addressState", 80),
+    postalCode: field("postalCode", 20),
+    country: field("addressCountry", 80),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email.toLowerCase() : "",
+    phone: field("addressPhone", 40),
+  };
+  const current = store.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings) ? (store.brandSettings as Record<string, unknown>) : {};
+  await db.store.update({ where: { id: store.id }, data: { brandSettings: { ...current, businessAddress } as Prisma.InputJsonValue } });
+  redirect("/home/settings?saved=true&tab=Store#business-address");
 }
 
 export async function saveStoreDomainSettings(formData: FormData) {
