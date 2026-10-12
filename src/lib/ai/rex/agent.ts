@@ -7,6 +7,7 @@ import { CHIP_MODEL, getAnthropicClient, getOpenAIClient, providerOrder, REX_OPE
 import { isOwnImageUrl } from "@/lib/ai/images";
 import { computeStoreHealth } from "@/lib/store-health";
 import { naira } from "@shared/onboarding";
+import { rexPreferencesBlock } from "@shared/rex-preferences";
 import { isRexWriteTool, parseRexToolInput, providerSchema, REX_TOOL_NAMES, REX_TOOL_SPECS, type RexToolName, type RexTurn } from "./agent-pure";
 import type { RexCard, RexReply } from "./cards";
 import { loadStudioStore } from "./studio-edit.server";
@@ -214,7 +215,7 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
     }),
   ]);
   const health = computeStoreHealth(facts);
-  const context = rexContextBlock({
+  const baseContext = rexContextBlock({
     store: { name: store.name, location: [store.city, store.country].filter(Boolean).join(", "), description: store.description?.slice(0, 400) ?? null, hasLogo: Boolean(store.logoUrl) },
     design: { theme: themeNameFor(draft.templateId, draft.templateName), designed: saved, pages: draft.pages.map((page) => page.title) },
     health: { score: health.score, topGaps: health.missing.slice(0, 4).map((item) => item.label) },
@@ -222,6 +223,9 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
     attachedPhotosThisMessage: newPhotos,
     photosAttachedEarlier: attachments.filter((url) => !newPhotos.includes(url)),
   });
+  // The seller's Rex settings (Settings > Peggy & Rex): style, photo look, voice. Empty until they save them.
+  const preferences = rexPreferencesBlock(store.brandSettings);
+  const context = preferences ? `${baseContext}\n\n${preferences}` : baseContext;
 
   const history = turns.slice(0, -1).map((turn) => ({ role: turn.role, content: turn.content.slice(0, 4000) }));
   const ctx: RexToolContext = { userId, storeId: store.id, storeName: store.name, attachments, newPhotos, history, draft: null, versions: null };

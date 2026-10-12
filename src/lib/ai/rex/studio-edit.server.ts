@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { rexStudioSystemPrompt } from "@/lib/ai/rex/prompts";
+import { rexPreferencesBlock } from "@shared/rex-preferences";
 import { applyRexStudioPlan, parseRexStudioPlan, summariseDraftForRex, type RexStudioPlan } from "@/lib/ai/rex/studio-plan";
 import { pushRexVersion, recordDraftBeforeChange, summariseRexVersions, type RexVersionSummary } from "@/lib/ai/rex/studio-versions";
 import {
@@ -50,7 +51,7 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
       .findMany({ where: { storeId: store.id, status: "published" }, orderBy: { createdAt: "desc" }, take: 12, select: { name: true, retailPrice: true, currency: true, images: true } })
       .catch(() => []),
   ]);
-  return rexStudioSystemPrompt({
+  const prompt = rexStudioSystemPrompt({
     storeName: store.name,
     location: [store.city, store.country].filter(Boolean).join(", "),
     currency: store.currency,
@@ -77,6 +78,8 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
     ],
     imageUrls,
   });
+  // How the seller wants Rex to work (Settings > Peggy & Rex); empty until they've saved it.
+  return [prompt, rexPreferencesBlock(settings)].filter(Boolean).join("\n\n");
 }
 
 /** Applies a plan to the store's draft and records the version. Returns null changes when nothing changed. */

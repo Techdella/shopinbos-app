@@ -19,7 +19,8 @@ import {
 import { readPaymentChoices } from "@/lib/storefront/shopper-info";
 import { draftHealthFacts, type StoreHealthFacts } from "@/lib/store-health";
 import { BOUTIQUE_SECTION_KINDS, CLASSIC_SECTION_KINDS, type ApplyContext } from "@/lib/ai/rex/studio-plan";
-import { readRexVersions, type RexVersionState } from "@/lib/ai/rex/studio-versions";
+import { boundRexVersions, readRexVersions, type RexVersionState } from "@/lib/ai/rex/studio-versions";
+import { rexVersionLimitFor } from "@shared/rex-preferences";
 import { isLiveStatus } from "@/lib/ai/rex/build-store";
 
 // Server side of Rex Studio: loading the store, the facts behind store health, and saving the DRAFT
@@ -149,7 +150,8 @@ export async function saveStudioDraft(store: StudioStore, draft: StoreEditorSnap
   const next: StoreBrandSettingsLike = {
     ...settings,
     editor: { ...editor, ...(meta ? { template: meta } : {}), draft },
-    rexVersions: versions,
+    // History length follows Settings > Peggy & Rex ("Keep the last N versions").
+    rexVersions: { ...versions, items: boundRexVersions(versions.items, rexVersionLimitFor(settings)) },
   };
   // The live storefront reads the published snapshot first; the top-level template only picks the
   // manifest at publish time. A store without a published snapshot falls back on the top-level look.
