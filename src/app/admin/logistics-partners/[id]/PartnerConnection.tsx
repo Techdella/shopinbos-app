@@ -3,9 +3,10 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
-import { addWebhookAction, createApiKeyAction, removeWebhookAction, revokeApiKeyAction, sendTestWebhookAction } from "@/app/actions/partner-api";
+import { addWebhookAction, createApiKeyAction, removeWebhookAction, revokeApiKeyAction, rotateApiKeyAction, sendTestWebhookAction } from "@/app/actions/partner-api";
 
-// API keys and webhooks for the partner's dispatch software. Secrets are shown once, right after they're made.
+// Admin only: API keys and webhooks for a partner's own dispatch software (moved here from the partner portal,
+// which now only has a "Connect your system" request form). Secrets are shown once, right after they're made.
 
 export interface KeyRow { id: string; name: string; prefix: string; created: string; lastUsed: string | null; revoked: boolean }
 export interface HookRow { id: string; url: string; events: string[]; active: boolean; lastStatus: number | null; lastDelivered: string | null }
@@ -56,7 +57,7 @@ function ShownOnce({ label, value, onDone }: { label: string; value: string; onD
   );
 }
 
-export function ApiKeysPanel({ keys, canCreate }: { keys: KeyRow[]; canCreate: boolean }) {
+export function ApiKeysPanel({ partnerId, keys, canCreate }: { partnerId: string; keys: KeyRow[]; canCreate: boolean }) {
   const [name, setName] = useState("");
   const [newKey, setNewKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +67,7 @@ export function ApiKeysPanel({ keys, canCreate }: { keys: KeyRow[]; canCreate: b
   const create = () =>
     start(async () => {
       setError(null);
-      const result = await createApiKeyAction(name);
+      const result = await createApiKeyAction(partnerId, name);
       if (result.ok) {
         setNewKey(result.key);
         setName("");
@@ -77,16 +78,28 @@ export function ApiKeysPanel({ keys, canCreate }: { keys: KeyRow[]; canCreate: b
     if (!window.confirm("Revoke this key? Anything using it stops working straight away.")) return;
     setBusyId(id);
     start(async () => {
-      const result = await revokeApiKeyAction(id);
+      const result = await revokeApiKeyAction(partnerId, id);
       if (!result.ok) setError(result.error);
       setBusyId(null);
     });
   };
 
+  const rotate = (id: string) => {
+    if (!window.confirm("Rotate this key? We make a new key now and the old one stops working straight away.")) return;
+    setBusyId(`rotate:${id}`);
+    start(async () => {
+      setError(null);
+      const result = await rotateApiKeyAction(partnerId, id);
+      if (result.ok) setNewKey(result.key);
+      else setError(result.error);
+      setBusyId(null);
+    });
+  };
+
   return (
-    <Section title="API keys" sub="Your dispatch system sends one of these on every call: Authorization: Bearer sbp_live_…">
+    <Section title="API keys" sub="Their dispatch system sends one of these on every call: Authorization: Bearer sbp_live_…. Copy it to the partner securely.">
       {error && <Notice tone="error">{error}</Notice>}
-      {newKey && <ShownOnce label="Your new API key" value={newKey} onDone={() => setNewKey(null)} />}
+      {newKey && <ShownOnce label="New API key (shown once)" value={newKey} onDone={() => setNewKey(null)} />}
 
       {canCreate ? (
         <form
@@ -103,7 +116,7 @@ export function ApiKeysPanel({ keys, canCreate }: { keys: KeyRow[]; canCreate: b
           <PillButton type="submit" size="md" tone="ink" busy={pending && !busyId}>Create key</PillButton>
         </form>
       ) : (
-        <Notice tone="info">API keys work once your business is verified. Finish verification to create one.</Notice>
+        <Notice tone="info">Keys work once the partner is verified. Approve their verification above first.</Notice>
       )}
 
       {keys.length === 0 ? (
@@ -122,9 +135,16 @@ export function ApiKeysPanel({ keys, canCreate }: { keys: KeyRow[]; canCreate: b
                 </div>
               </div>
               {!key.revoked && (
-                <PillButton size="sm" tone="white" className="min-h-[40px]" busy={busyId === key.id} onClick={() => revoke(key.id)} aria-label={`Revoke ${key.name}`}>
-                  Revoke
-                </PillButton>
+                <div className="flex gap-2">
+                  {canCreate && (
+                    <PillButton size="sm" tone="white" className="min-h-[40px]" busy={busyId === `rotate:${key.id}`} onClick={() => rotate(key.id)} aria-label={`Rotate ${key.name}`}>
+                      Rotate
+                    </PillButton>
+                  )}
+                  <PillButton size="sm" tone="white" className="min-h-[40px]" busy={busyId === key.id} onClick={() => revoke(key.id)} aria-label={`Revoke ${key.name}`}>
+                    Revoke
+                  </PillButton>
+                </div>
               )}
             </li>
           ))}
@@ -134,7 +154,7 @@ export function ApiKeysPanel({ keys, canCreate }: { keys: KeyRow[]; canCreate: b
   );
 }
 
-export function WebhooksPanel({ hooks }: { hooks: HookRow[] }) {
+export function WebhooksPanel({ partnerId, hooks }: { partnerId: string; hooks: HookRow[] }) {
   const [url, setUrl] = useState("");
   const [events, setEvents] = useState<string[]>(EVENTS.map((event) => event.id));
   const [secret, setSecret] = useState<string | null>(null);
@@ -146,7 +166,7 @@ export function WebhooksPanel({ hooks }: { hooks: HookRow[] }) {
   const add = () =>
     start(async () => {
       setError(null);
-      const result = await addWebhookAction({ url, events });
+      const result = await addWebhookAction(partnerId, { url, events });
       if (result.ok) {
         setSecret(result.secret);
         setUrl("");
@@ -163,23 +183,23 @@ export function WebhooksPanel({ hooks }: { hooks: HookRow[] }) {
 
   const test = (id: string) =>
     run(`test:${id}`, async () => {
-      const result = await sendTestWebhookAction(id);
+      const result = await sendTestWebhookAction(partnerId, id);
       setTests((current) => ({
         ...current,
-        [id]: !result.ok ? result.error : result.delivered ? `Delivered (HTTP ${result.status})` : result.status ? `Your endpoint answered HTTP ${result.status}` : "No answer within 5 seconds",
+        [id]: !result.ok ? result.error : result.delivered ? `Delivered (HTTP ${result.status})` : result.status ? `Their endpoint answered HTTP ${result.status}` : "No answer within 5 seconds",
       }));
     });
 
   const remove = (id: string) => {
     if (!window.confirm("Remove this webhook? We'll stop sending events to it.")) return;
     run(`remove:${id}`, async () => {
-      const result = await removeWebhookAction(id);
+      const result = await removeWebhookAction(partnerId, id);
       if (!result.ok) setError(result.error);
     });
   };
 
   return (
-    <Section title="Webhooks" sub="We POST events to your https address, signed with the webhook's secret.">
+    <Section title="Webhooks" sub="We POST events to the partner's https address, signed with the webhook's secret.">
       {error && <Notice tone="error">{error}</Notice>}
       {secret && <ShownOnce label="Signing secret for your new webhook" value={secret} onDone={() => setSecret(null)} />}
 

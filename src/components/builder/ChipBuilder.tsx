@@ -1077,7 +1077,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
             {phase === "domain" && (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <PhaseHead eyebrow={stepEyebrow} title="Choose your address" sub="Use your free Shopinbos address, connect a domain you own, or buy a new one." />
+                <PhaseHead eyebrow={stepEyebrow} title="Choose your address" sub="Use your free Shopinbos address, use a web address you already have, or buy a new one." />
                 <StoreStrip>
                   <span>Free address</span>
                   <span className="font-bold text-app-ink">{storeConfig.slug}.shopinbos.com</span>

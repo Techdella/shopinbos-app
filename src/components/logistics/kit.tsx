@@ -55,7 +55,7 @@ const STAGE: Record<string, { label: string; tone: Tone }> = {
   picked_up: { label: "Picked up", tone: "info" },
   in_transit: { label: "Picked up, on the way", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
-  failed: { label: "Delivery failed", tone: "danger" },
+  failed: { label: "Couldn't deliver", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
@@ -70,8 +70,8 @@ export function StatusPill({ status }: { status: string }) {
 
 const QUOTE_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Waiting for your price", tone: "accent" },
-  responded: { label: "Quoted", tone: "info" },
-  accepted: { label: "Won", tone: "success" },
+  responded: { label: "Price sent", tone: "info" },
+  accepted: { label: "Booked you", tone: "success" },
   rejected: { label: "Declined", tone: "muted" },
   expired: { label: "Expired", tone: "muted" },
 };
@@ -124,7 +124,20 @@ export function lagosTime(date: Date) {
   return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, hour: "numeric", minute: "2-digit", hour12: true }).format(date);
 }
 
-export function lagosDate(date: Date, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }) {
+/**
+ * A date the way people say it: "today", "yesterday", "Friday" for the last week, otherwise "12 Oct".
+ * Pass `opts` to force an exact format.
+ */
+export function lagosDate(date: Date, opts?: Intl.DateTimeFormatOptions, now = new Date()) {
+  if (!opts) {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const diff = Math.round((Date.parse(lagosDay(now)) - Date.parse(lagosDay(date))) / dayMs);
+    if (diff === 0) return "today";
+    if (diff === 1) return "yesterday";
+    if (diff === -1) return "tomorrow";
+    if (diff > 1 && diff < 7) return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, weekday: "long" }).format(date);
+    opts = { day: "numeric", month: "short" };
+  }
   return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, ...opts }).format(date);
 }
 

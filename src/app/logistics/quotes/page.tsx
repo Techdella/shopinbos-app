@@ -23,12 +23,12 @@ import {
 } from "@/components/logistics/kit";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Quote requests" };
+export const metadata: Metadata = { title: "Price requests" };
 
 const FILTERS: Array<{ key: string; label: string; statuses?: QuoteStatus[] }> = [
   { key: "pending", label: "Waiting for you", statuses: ["pending"] },
-  { key: "quoted", label: "Quoted", statuses: ["responded"] },
-  { key: "won", label: "Won", statuses: ["accepted"] },
+  { key: "quoted", label: "Price sent", statuses: ["responded"] },
+  { key: "won", label: "Booked you", statuses: ["accepted"] },
   { key: "closed", label: "Declined or expired", statuses: ["rejected", "expired"] },
   { key: "all", label: "All" },
 ];
@@ -61,7 +61,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Quote requests"
+      title="Price requests"
       sub="Sellers asking what you'd charge for a delivery. Send a price, and they can book you straight away."
       toolbar={<FilterChips items={FILTERS.map((item) => ({ label: item.label, href: item.key === "pending" ? "/logistics/quotes" : `/logistics/quotes?status=${item.key}`, count: countOf(item.statuses), active: item.key === filter.key }))} />}
     >
@@ -69,7 +69,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
 
       {quotes.length === 0 && (
         <EmptyState icon="chat" title={filter.key === "pending" ? "No one is waiting on you" : "Nothing here"}>
-          {filter.key === "pending" ? "New quote requests from sellers show up here." : "Try another filter."}
+          {filter.key === "pending" ? "When a seller asks what you'd charge, it shows up here." : "Try another filter."}
         </EmptyState>
       )}
 
@@ -88,30 +88,35 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
                   <div><dt className="text-app-ink-soft">Package</dt><dd className="m-0 font-bold">{packageSummary(quote.packageDetails)}</dd></div>
                   <div><dt className="text-app-ink-soft">Wanted</dt><dd className="m-0 font-bold">{quote.preferredDate ? lagosDate(quote.preferredDate, { weekday: "short", day: "numeric", month: "short" }) : "Any day"}</dd></div>
                   {typeof pkg.declaredValue === "number" && (
-                    <div><dt className="text-app-ink-soft">Declared value</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
+                    <div><dt className="text-app-ink-soft">Value of the goods</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
                   )}
                 </dl>
 
                 <form action={respondToDeliveryQuote} className="mt-4 grid gap-3 border-t border-app-line pt-4">
                   <input type="hidden" name="quoteId" value={quote.id} />
                   <input type="hidden" name="intent" value="respond" />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="min-w-0">
-                      <label htmlFor={`price-${quote.id}`} className={labelClass}>Your price (₦)</label>
-                      <input id={`price-${quote.id}`} name="quotedPrice" type="number" min="1" step="1" required inputMode="numeric" defaultValue={partner.basePrice > 0 ? String(partner.basePrice) : ""} className={inputClass} />
-                    </div>
-                    <div className="min-w-0">
-                      <label htmlFor={`expires-${quote.id}`} className={labelClass}>Price good until</label>
-                      <input id={`expires-${quote.id}`} name="expiresAt" type="date" className={inputClass} />
-                    </div>
-                  </div>
                   <div className="min-w-0">
-                    <label htmlFor={`note-${quote.id}`} className={labelClass}>Note to the seller</label>
-                    <textarea id={`note-${quote.id}`} name="partnerResponse" rows={2} maxLength={1000} placeholder="When you can pick up, how long it takes, anything they should know." className={textareaClass} />
+                    <label htmlFor={`price-${quote.id}`} className={labelClass}>Your price (₦)</label>
+                    <input id={`price-${quote.id}`} name="quotedPrice" type="number" min="1" step="1" required inputMode="numeric" defaultValue={partner.basePrice > 0 ? String(partner.basePrice) : ""} className={inputClass} />
                   </div>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <SubmitButton tone="white" form={`decline-${quote.id}`}>Decline</SubmitButton>
-                    <SubmitButton>Send quote</SubmitButton>
+                  <details className="group">
+                    <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
+                      More options (optional) <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
+                    </summary>
+                    <div className="mt-3 grid gap-3">
+                      <div className="min-w-0">
+                        <label htmlFor={`note-${quote.id}`} className={labelClass}>Note to the seller</label>
+                        <textarea id={`note-${quote.id}`} name="partnerResponse" rows={2} maxLength={1000} placeholder="When you can pick up, how long it takes, anything they should know." className={textareaClass} />
+                      </div>
+                      <div className="min-w-0">
+                        <label htmlFor={`expires-${quote.id}`} className={labelClass}>Price good until</label>
+                        <input id={`expires-${quote.id}`} name="expiresAt" type="date" className={inputClass} />
+                      </div>
+                    </div>
+                  </details>
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+                    <button type="submit" form={`decline-${quote.id}`} className="min-h-[44px] px-2 text-[15px] font-bold text-app-ink-soft underline-offset-4 hover:underline">Decline</button>
+                    <SubmitButton>Send price</SubmitButton>
                   </div>
                 </form>
                 <form id={`decline-${quote.id}`} action={respondToDeliveryQuote} className="hidden">

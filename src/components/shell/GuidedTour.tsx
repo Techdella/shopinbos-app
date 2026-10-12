@@ -42,9 +42,9 @@ const STEPS: Record<Role, Step[]> = {
   logistics_partner: [
     { title: "Welcome to Shopinbos Partners", body: "A one-minute tour. You can skip it and replay it from Company → Customise your menu." },
     { target: "nav-dashboard", title: "Today", body: "New requests to accept, active jobs, deliveries and earnings for today." },
-    { target: "nav-bookings", title: "Jobs", body: "Every delivery job. Hover for quote requests and your inbox." },
+    { target: "nav-bookings", title: "Jobs", body: "Every delivery job. Hover for price requests and your inbox." },
     { target: "nav-couriers", title: "Riders", body: "Add riders and keep track of who's active." },
-    { target: "nav-cash", title: "Cash on delivery", body: "Cash your riders collect, and what's still to collect." },
+    { target: "nav-cash", title: "Cash collected", body: "Cash your riders collect when customers pay on arrival, and what's still to collect." },
     { target: "nav-coverage", title: "Coverage and rates", body: "Where you deliver and what you charge, so sellers see the right price." },
     { target: "nav-profile", title: "Make it yours", body: "Company → Customise your menu lets you switch off what you don't use." },
   ],

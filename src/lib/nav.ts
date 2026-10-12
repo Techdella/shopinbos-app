@@ -277,12 +277,12 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "bookings", label: "Jobs", icon: "box", href: "/logistics/bookings", core: true,
           children: [
             { id: "jobs-all", label: "All jobs", href: "/logistics/bookings" },
-            { id: "quotes", label: "Quote requests", href: "/logistics/quotes" },
+            { id: "quotes", label: "Price requests", href: "/logistics/quotes" },
             { id: "inbox", label: "Inbox", href: "/logistics/inbox" },
           ],
         },
         { id: "couriers", label: "Riders", icon: "truck", href: "/logistics/couriers" },
-        { id: "cash", label: "Cash on delivery", icon: "card", href: "/logistics/cash" },
+        { id: "cash", label: "Cash collected", icon: "card", href: "/logistics/cash" },
       ],
     },
     {

@@ -23,10 +23,10 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
         toast("Cover image updated", "success");
         window.location.reload();
       } else {
-        toast("Upload failed", "error");
+        toast("That picture didn't upload. Try a smaller photo, or check your connection.", "error");
       }
     } catch {
-      toast("Upload failed", "error");
+      toast("That picture didn't upload. Try a smaller photo, or check your connection.", "error");
     } finally {
       setUploading(false);
     }
@@ -41,10 +41,10 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
         window.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast(data.error || "Generation failed", "error");
+        toast(data.error || "Rex couldn't make a cover just now. Try again in a minute.", "error");
       }
     } catch {
-      toast("Generation failed", "error");
+      toast("Rex couldn't make a cover just now. Try again in a minute.", "error");
     } finally {
       setGenerating(false);
     }

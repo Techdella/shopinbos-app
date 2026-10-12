@@ -38,7 +38,7 @@ export function ReviewsClient({ reviews }: { reviews: ReviewData[] }) {
       toast("Reply posted", "success");
       setReplyText((prev) => ({ ...prev, [reviewId]: "" }));
     } else {
-      toast(res.error ?? "Failed", "error");
+      toast(res.error ?? "We couldn't post your reply. Try again.", "error");
     }
   }
 

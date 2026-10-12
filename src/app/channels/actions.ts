@@ -7,6 +7,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { decryptJson, encryptJson, hasCredentialKey } from "@/lib/inbox/crypto";
 import { FEED_CHANNELS, type FeedChannel } from "@/lib/social/feeds";
 import { pushMetaCatalog, verifyMetaCatalog } from "@/lib/social/server";
+import { plainMetaError } from "@/components/simple/plain";
 
 // Social selling actions for /channels. Tokens are encrypted at rest (src/lib/inbox/crypto.ts, INBOX_ENCRYPTION_KEY)
 // and never sent back to the browser.
@@ -48,8 +49,8 @@ const metaSchema = z.object({
 /** Connects a Meta catalog for API sync after checking the ID and token can see it. */
 export async function connectMetaCatalog(_state: ChannelActionState, formData: FormData): Promise<ChannelActionState> {
   const store = await sellerStore();
-  if (!store) return { message: "Sign in as a seller with a store first." };
-  if (!hasCredentialKey()) return { message: "Saving tokens is switched off on this workspace (INBOX_ENCRYPTION_KEY isn't set). Use the feed URL instead; it works without a token." };
+  if (!store) return { message: "Sign in to your shop first, then try again." };
+  if (!hasCredentialKey()) return { message: "Faster updates aren't switched on yet. The product link above works without them." };
   const parsed = metaSchema.safeParse({ channel: formData.get("channel"), catalogId: formData.get("catalogId"), token: formData.get("token") });
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the catalog ID and token" };
 
@@ -57,7 +58,8 @@ export async function connectMetaCatalog(_state: ChannelActionState, formData: F
   try {
     name = await verifyMetaCatalog(parsed.data.catalogId, parsed.data.token);
   } catch (error) {
-    return { message: `Meta didn't accept that: ${error instanceof Error ? error.message : "unknown error"}. Check the token has catalog_management for this catalog.` };
+    const raw = error instanceof Error ? error.message : "unknown error";
+    return { message: `${plainMetaError(raw)} (Facebook said: ${raw})` };
   }
   const data = { externalId: parsed.data.catalogId, tokenEnc: encryptJson({ token: parsed.data.token }), lastSyncStatus: null, lastSyncMessage: `Connected to “${name}”` };
   await db.socialChannelConnection.upsert({
@@ -66,7 +68,7 @@ export async function connectMetaCatalog(_state: ChannelActionState, formData: F
     update: data,
   });
   revalidatePath("/channels");
-  return { ok: true, message: `Connected to the catalog “${name}”. Press Sync now to send your products.` };
+  return { ok: true, message: `Connected to “${name}”. Press “Send my products now” to update it.` };
 }
 
 export async function disconnectChannel(formData: FormData) {
@@ -84,18 +86,18 @@ export async function disconnectChannel(formData: FormData) {
 export async function syncChannel(_state: ChannelActionState, formData: FormData): Promise<ChannelActionState> {
   const store = await sellerStore();
   const channel = channelSchema.safeParse(formData.get("channel"));
-  if (!store || !channel.success) return { message: "Sign in as a seller with a store first." };
-  if (channel.data !== "meta" && channel.data !== "whatsapp") return { message: "This channel updates from your feed URL on its own schedule." };
+  if (!store || !channel.success) return { message: "Sign in to your shop first, then try again." };
+  if (channel.data !== "meta" && channel.data !== "whatsapp") return { message: "This app updates your products by itself once a day." };
   return syncMeta(store, channel.data as Extract<FeedChannel, "meta" | "whatsapp">);
 }
 
 async function syncMeta(store: { id: string; name: string; slug: string; customDomain: string | null }, channel: "meta" | "whatsapp"): Promise<ChannelActionState> {
   const connection = await db.socialChannelConnection.findUnique({ where: { storeId_channel: { storeId: store.id, channel } } });
   const token = decryptJson<{ token: string }>(connection?.tokenEnc)?.token;
-  if (!connection?.externalId || !token) return { message: "Connect the catalog with its ID and a token first." };
+  if (!connection?.externalId || !token) return { message: "Connect it first, or ask us to connect it for you." };
   try {
     const result = await pushMetaCatalog(store, channel, connection.externalId, token);
-    const message = `Sent ${result.sent} product${result.sent === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} left out, see Feed health)` : ""}. Meta usually shows changes within a few minutes.`;
+    const message = `Sent ${result.sent} product${result.sent === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} left out, see "Products other apps can show")` : ""}. Facebook usually shows changes within a few minutes.`;
     await db.socialChannelConnection.update({ where: { id: connection.id }, data: { lastSyncAt: new Date(), lastSyncStatus: "ok", lastSyncMessage: message } });
     revalidatePath("/channels");
     return { ok: true, message };
@@ -103,6 +105,6 @@ async function syncMeta(store: { id: string; name: string; slug: string; customD
     const message = `Sync failed: ${error instanceof Error ? error.message : "unknown error"}`;
     await db.socialChannelConnection.update({ where: { id: connection.id }, data: { lastSyncAt: new Date(), lastSyncStatus: "error", lastSyncMessage: message.slice(0, 500) } });
     revalidatePath("/channels");
-    return { message };
+    return { message: plainMetaError(message) };
   }
 }

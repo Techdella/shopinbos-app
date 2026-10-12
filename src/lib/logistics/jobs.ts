@@ -30,7 +30,7 @@ export async function transitionJob(input: {
   trackingCode?: string | null;
 }): Promise<JobResult> {
   const job = await db.deliveryBooking.findFirst({ where: { id: input.bookingId, logisticsPartnerId: input.partnerId } });
-  if (!job) return { ok: false, error: "Job not found." };
+  if (!job) return { ok: false, error: "We couldn't find that job. It may have been cancelled. Refresh to check." };
   if (input.riderId && job.riderId !== input.riderId) return { ok: false, error: "This job isn't assigned to you." };
 
   const check = checkTransition(job, input);
@@ -73,11 +73,11 @@ export async function transitionJob(input: {
 
 export async function assignRider(input: { bookingId: string; partnerId: string; riderId: string | null }): Promise<JobResult> {
   const job = await db.deliveryBooking.findFirst({ where: { id: input.bookingId, logisticsPartnerId: input.partnerId }, select: { id: true, status: true } });
-  if (!job) return { ok: false, error: "Job not found." };
-  if (["delivered", "cancelled"].includes(job.status)) return { ok: false, error: "This job is finished." };
+  if (!job) return { ok: false, error: "We couldn't find that job. It may have been cancelled. Refresh to check." };
+  if (["delivered", "cancelled"].includes(job.status)) return { ok: false, error: "This job is already finished, so it can't be changed." };
   if (input.riderId) {
     const rider = await db.logisticsTeamMember.findFirst({ where: { id: input.riderId, logisticsPartnerId: input.partnerId, status: "active" }, select: { id: true } });
-    if (!rider) return { ok: false, error: "Pick an active rider." };
+    if (!rider) return { ok: false, error: "That rider is paused. Pick another rider." };
   }
   await db.deliveryBooking.update({ where: { id: job.id }, data: { riderId: input.riderId } });
   return { ok: true };

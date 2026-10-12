@@ -14,11 +14,14 @@ export function homeFor(role: AppRole | null | undefined): string {
 }
 
 const PUBLIC = ["/", "/welcome", "/login", "/signup", "/verify", "/forgot", "/web-only"];
+/** Help (a person on WhatsApp, the chat with the team) and "Ask us to set it up" are for every role. */
+const SHARED = ["/help", "/ask-us"];
 
 /** Which part of the app a path belongs to. Everything outside the partner areas is the seller app. */
 export function areaOf(pathname: string): Area {
   const path = (pathname.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
   if (PUBLIC.includes(path) || path.startsWith("/auth/")) return "public";
+  if (SHARED.some((shared) => path === shared || path.startsWith(`${shared}/`))) return "public";
   if (path === "/supplier" || path.startsWith("/supplier/")) return "supplier";
   if (path === "/logistics" || path.startsWith("/logistics/")) return "logistics";
   if (path === "/rider" || path.startsWith("/rider/")) return "rider";
@@ -162,6 +165,20 @@ export function timeAgo(iso: string | null | undefined, now = Date.now()) {
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} h ago`;
   return `${Math.round(hours / 24)} d ago`;
+}
+
+/** "today", "yesterday", "Friday" for the last week, else "12 Oct" (Lagos time). For older items in delivery screens. */
+export function dayWord(iso: string | null | undefined, now = Date.now()) {
+  if (!iso) return "";
+  const time = new Date(iso).getTime();
+  if (!Number.isFinite(time)) return "";
+  const lagos = (ms: number) => Math.floor((ms + 60 * 60 * 1000) / 86_400_000);
+  const diff = lagos(now) - lagos(time);
+  if (diff === 0) return "today";
+  if (diff === 1) return "yesterday";
+  const date = new Date(time + 60 * 60 * 1000);
+  if (diff > 1 && diff < 7) return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getUTCDay()];
+  return `${date.getUTCDate()} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.getUTCMonth()]}`;
 }
 
 /** "Yaba" from "14 Herbert Macaulay Way, Yaba" for the short route line. */

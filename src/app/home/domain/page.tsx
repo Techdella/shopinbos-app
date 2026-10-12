@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Pill } from "@/components/app-kit";
+import { AssistantNote, Pill } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { PageToast } from "@/components/PageToast";
 import { db } from "@/lib/db/client";
@@ -10,7 +10,6 @@ import { buildPlatformSubdomainOrigin } from "@/lib/domains/storefront";
 import { hasVercelDomainConfig } from "@/lib/domains/vercel";
 import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
-import { RegistrarTip } from "./RegistrarTip";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "namecheap",
     name: "Namecheap",
-    description: "Popular choice with free WhoisGuard privacy and competitive prices.",
+    description: "Popular, with fair prices and free privacy.",
     baseUrl: "https://namecheap.com",
     affiliateUrl: "https://namecheap.com",
     logoUrl: null,
@@ -26,7 +25,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "porkbun",
     name: "Porkbun",
-    description: "Low prices, free SSL and privacy, excellent for new domain buyers.",
+    description: "Low prices. Good for your first web address.",
     baseUrl: "https://porkbun.com",
     affiliateUrl: "https://porkbun.com",
     logoUrl: null,
@@ -34,7 +33,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "whogohost",
     name: "Whogohost",
-    description: "Nigeria's leading domain registrar — local support and Naira payments.",
+    description: "Nigerian company. Local support and you pay in Naira.",
     baseUrl: "https://whogohost.com",
     affiliateUrl: "https://whogohost.com",
     logoUrl: null,
@@ -42,7 +41,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "smartweb",
     name: "SmartWeb",
-    description: "African-focused registrar with .ng domains and local billing.",
+    description: "Sells .ng web addresses. You pay in Naira.",
     baseUrl: "https://smartwebng.com",
     affiliateUrl: "https://smartwebng.com",
     logoUrl: null,
@@ -50,7 +49,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "godaddy",
     name: "GoDaddy",
-    description: "Largest global registrar with frequent promotional pricing.",
+    description: "Big global company, often has discounts.",
     baseUrl: "https://godaddy.com",
     affiliateUrl: "https://godaddy.com",
     logoUrl: null,
@@ -58,7 +57,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "cloudflare",
     name: "Cloudflare Registrar",
-    description: "At-cost domain pricing with free DDoS protection and DNS.",
+    description: "Sells at cost price.",
     baseUrl: "https://cloudflare.com/products/registrar",
     affiliateUrl: "https://cloudflare.com/products/registrar",
     logoUrl: null,
@@ -101,8 +100,8 @@ export default async function DomainSettingsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Domain"
-      sub="Your store address. Free subdomain, or your own domain with a secure certificate."
+      title="Web address"
+      sub="Where customers open your shop. You have a free one already, and you can use your own."
     >
       <PageToast />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
@@ -128,7 +127,9 @@ export default async function DomainSettingsPage() {
         </div>
 
         <aside className="min-w-0 xl:pt-1">
-          <RegistrarTip />
+          <AssistantNote who="rex">
+            Not sure what to do? Choose &quot;Ask the Shopinbos team to do it&quot; and we&apos;ll set it up for you. Your free address works the whole time.
+          </AssistantNote>
         </aside>
       </div>
     </SellerPage>

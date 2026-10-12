@@ -38,15 +38,15 @@ export function checkTransition(
   job: { status: string; deliveryCode: string | null; codAmount: number | null },
   input: { to: string; actor: JobActor; code?: string | null; failedReason?: string | null; codCollected?: number | null; codMethod?: string | null },
 ): TransitionCheck {
-  if (!canMove(job.status, input.to)) return { ok: false, error: `A ${job.status.replace("_", " ")} job can't move to ${input.to.replace("_", " ")}.` };
-  if (input.to === "failed" && !input.failedReason?.trim()) return { ok: false, error: "Say why the delivery failed." };
+  if (!canMove(job.status, input.to)) return { ok: false, error: "This job has already moved on, so that step isn't possible now. Refresh to see where it is." };
+  if (input.to === "failed" && !input.failedReason?.trim()) return { ok: false, error: "Say why you couldn't deliver it, for example \"Customer not picking calls\"." };
   if (input.to === "delivered") {
     if (job.deliveryCode && input.actor !== "partner" && input.code?.trim() !== job.deliveryCode) {
-      return { ok: false, error: "That delivery code doesn't match. Ask the buyer for the 4-digit code." };
+      return { ok: false, error: "That code doesn't match. Ask the customer for the 4-digit code on their phone." };
     }
     if (job.codAmount && job.codAmount > 0) {
-      if (input.codCollected === null || input.codCollected === undefined || input.codCollected < 0) return { ok: false, error: "Enter how much the buyer paid." };
-      if (input.codMethod !== "cash" && input.codMethod !== "transfer") return { ok: false, error: "Say whether the buyer paid cash or by transfer." };
+      if (input.codCollected === null || input.codCollected === undefined || input.codCollected < 0) return { ok: false, error: "Type how much the customer paid." };
+      if (input.codMethod !== "cash" && input.codMethod !== "transfer") return { ok: false, error: "Pick how the customer paid: cash or transfer." };
     }
   }
   return { ok: true };

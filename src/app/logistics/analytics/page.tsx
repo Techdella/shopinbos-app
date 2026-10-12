@@ -61,12 +61,12 @@ export default async function LogisticsAnalyticsPage() {
   const topDestinations = topBy(bookings, (booking) => booking.destination, () => 1);
 
   return (
-    <PartnerPage frame={{ user, partner }} title="Performance" sub={`How ${partner.displayName} did over the last 30 days.`}>
+    <PartnerPage frame={{ user, partner }} title="Performance" sub="How your business is doing over the last 30 days.">
       <StatGrid className="mb-5">
         <StatTile tone="card" label="Jobs" value={bookings.length} hint={`${delivered.length} delivered`} />
         <StatTile tone="card" label="Earned" value={naira(earned)} hint="After Shopinbos fees" />
         <StatTile tone="card" label="Delivered" value={deliveryRate === null ? "—" : `${deliveryRate}%`} hint={deliveryRate === null ? "No finished jobs yet" : "Of finished jobs"} />
-        <StatTile tone="card" label="On time" value={onTime === null ? "—" : `${onTime}%`} hint={onTime === null ? "Set expected delivery times on jobs" : `${timed.length} jobs with a promised time`} />
+        <StatTile tone="card" label="On time" value={onTime === null ? "—" : `${onTime}%`} hint={onTime === null ? "Add an arrival time on jobs to see this" : `${timed.length} jobs with a promised time`} />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">

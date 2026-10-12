@@ -35,11 +35,11 @@ export function LogoUploadForm({ currentLogo, displayName }: { currentLogo: stri
     try {
       const response = await fetch("/api/app/me/images", { method: "POST", body });
       const json = (await response.json().catch(() => null)) as { data?: { logoUrl: string | null }; error?: { message?: string } } | null;
-      if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "Upload failed. Try again.");
+      if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "That picture didn't upload. Try a smaller photo, or check your connection.");
       broadcastIdentity({ logoUrl: json.data.logoUrl });
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Upload failed. Try again.");
+      setError(caught instanceof Error ? caught.message : "That picture didn't upload. Try a smaller photo, or check your connection.");
     } finally {
       setUploading(false);
     }

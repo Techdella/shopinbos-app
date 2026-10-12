@@ -20,7 +20,7 @@ export async function recordRemittance(input: { partnerId: string; amount: numbe
   return db.$transaction(async (tx) => {
     if (reference) {
       const duplicate = await tx.codRemittance.findFirst({ where: { logisticsPartnerId: input.partnerId, reference }, select: { id: true } });
-      if (duplicate) return { ok: false as const, error: "A pay-in with that reference is already recorded." };
+      if (duplicate) return { ok: false as const, error: "You've already saved a pay-in with that transfer reference. Check it, or leave it empty." };
     }
 
     const unremitted = await tx.deliveryBooking.findMany({

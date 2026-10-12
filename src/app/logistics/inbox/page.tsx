@@ -15,7 +15,7 @@ export default async function LogisticsInboxPage({ searchParams }: { searchParam
   ensureLogisticsAccess(partner);
 
   return (
-    <PartnerPage frame={{ user, partner }} title="Inbox" sub="Talk to sellers and suppliers about pickups, deliveries and payment on delivery.">
+    <PartnerPage frame={{ user, partner }} title="Inbox" sub="Talk to sellers and suppliers about pickups, deliveries and cash collected.">
       <MessagesPage role="logistics_partner" params={params} />
     </PartnerPage>
   );

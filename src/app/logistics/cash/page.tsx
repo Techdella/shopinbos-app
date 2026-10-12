@@ -26,7 +26,7 @@ import {
 // Transfers go straight from the buyer to the seller, so they're shown apart and never owed.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Cash on delivery" };
+export const metadata: Metadata = { title: "Cash collected" };
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -115,10 +115,10 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Cash on delivery"
-      sub="Cash your riders collect at the door, what you still have to pay in, and the pay-ins you've made."
+      title="Cash collected"
+      sub="When a customer pays when it arrives, your rider collects the cash. Here's what you still have to pay in, and what you've paid in already."
     >
-      <ActionNotice saved={saved} error={error} savedText="Pay-in recorded." />
+      <ActionNotice saved={saved} error={error} savedText="Saved. We've ticked off the jobs this pay-in covers." />
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="Cash to pay in" value={naira(owed)} hint={`${heldCash.length} ${heldCash.length === 1 ? "job" : "jobs"} not paid in yet`} />
@@ -130,7 +130,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       <SplitLayout
         main={
           <>
-            <Section id="held" title="Cash not paid in yet" sub="Collected in cash by your riders. Oldest first; a pay-in settles these in this order.">
+            <Section id="held" title="Cash not paid in yet" sub="Cash your riders collected. When you pay in, we tick these off oldest first.">
               {heldCash.length === 0 ? (
                 <Empty>All collected cash has been paid in.</Empty>
               ) : (
@@ -159,7 +159,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </Section>
 
-            <Section id="to-collect" title="To collect" sub="Pay-on-delivery jobs that are still open.">
+            <Section id="to-collect" title="To collect" sub="Open jobs where the customer pays when it arrives.">
               {toCollect.length === 0 ? (
                 <Empty>Nothing to collect on open jobs.</Empty>
               ) : (
@@ -202,15 +202,11 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
         side={
           <>
             <Card className="p-5">
-              <CardHead title="Record a pay-in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
+              <CardHead title="Tell us you paid in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
               <form action={recordCodRemittance} className="mt-4 grid gap-3">
                 <div>
                   <label htmlFor="payin-amount" className={labelClass}>Amount (₦)</label>
                   <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
-                </div>
-                <div>
-                  <label htmlFor="payin-reference" className={labelClass}>Reference</label>
-                  <input id="payin-reference" name="reference" maxLength={120} placeholder="Bank transfer reference" className={inputClass} />
                 </div>
                 <div>
                   <label htmlFor="payin-method" className={labelClass}>How you paid</label>
@@ -219,13 +215,24 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                     <option value="cash">Cash</option>
                   </select>
                 </div>
-                <div>
-                  <label htmlFor="payin-note" className={labelClass}>Note</label>
-                  <input id="payin-note" name="note" maxLength={300} placeholder="Optional" className={inputClass} />
-                </div>
-                <SubmitButton>Record pay-in</SubmitButton>
-                <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">
-                  The pay-in settles your oldest cash jobs it fully covers. Anything left over stays on the record.
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
+                    More options (optional) <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
+                  </summary>
+                  <div className="mt-3 grid gap-3">
+                    <div>
+                      <label htmlFor="payin-reference" className={labelClass}>Transfer reference</label>
+                      <input id="payin-reference" name="reference" maxLength={120} placeholder="From your bank app" className={inputClass} />
+                    </div>
+                    <div>
+                      <label htmlFor="payin-note" className={labelClass}>Note</label>
+                      <input id="payin-note" name="note" maxLength={300} className={inputClass} />
+                    </div>
+                  </div>
+                </details>
+                <SubmitButton>Save pay-in</SubmitButton>
+                <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
+                  We tick off your oldest cash jobs that this amount fully covers. Anything left over is kept for next time.
                 </p>
               </form>
             </Card>
@@ -241,7 +248,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "cash" ? "Cash" : row.method === "api" ? "API" : "Transfer"}
+                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
                           {row.reference ? ` · ${row.reference}` : ""}
                         </div>
                       </div>
