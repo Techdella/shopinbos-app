@@ -19,7 +19,7 @@ export async function OPTIONS(req: NextRequest) {
 const Body = z.object({ visitorKey: z.string().min(8).max(80), ref: z.string().max(64).optional(), campaign: z.string().max(120).optional() });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  if (overPublicLimit(req.headers, "visit")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
+  if (await overPublicLimit(req.headers, "visit")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return withCors(req, apiError("BAD_REQUEST", "Missing visitor key"), CORS);

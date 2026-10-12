@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { clampSellingPrice, naira, priceStep, saleBreakdown, supplierInitials, tierPrice, type FindProduct } from "@/lib/marketplace/find";
 import { SampleNotice } from "./SampleNotice";
 import { messagesHref } from "@/lib/conversations/pure";
+import { sellerWholesaleStage } from "@/lib/supplier-orders/pure";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
@@ -21,16 +22,6 @@ export interface MyWholesaleOrder {
   rejectReason: string | null;
   createdAt: string;
 }
-
-const WHOLESALE_STAGE: Record<string, string> = {
-  pending: "Waiting for the supplier",
-  confirmed: "Confirmed: expect their invoice",
-  processing: "Being packed",
-  shipped: "On the way",
-  delivered: "Delivered",
-  cancelled: "Declined",
-  refunded: "Refunded",
-};
 
 /** Product page in Find products: price it, see the money on each sale, add it, or buy wholesale. */
 export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [] }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[] }) {
@@ -341,16 +332,22 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
               </section>
               {placed.length > 0 && (
                 <section className={cx(CARD, "p-4")}>
-                  <h2 className="m-0 text-[14.5px] font-extrabold">Your wholesale orders</h2>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="m-0 text-[14.5px] font-extrabold">Your wholesale orders</h2>
+                    <Link href="/marketplace/wholesale" className="text-[13px] font-extrabold text-app-accent-ink no-underline hover:underline">All orders</Link>
+                  </div>
                   <ul className="m-0 mt-2 grid list-none gap-2 p-0 text-[13.5px]">
                     {placed.map((order) => (
                       <li key={order.id} className="grid gap-0.5">
                         <div className="flex justify-between gap-3">
                           <span>{order.quantity.toLocaleString("en-NG")} units · {naira(order.totalPrice)}</span>
-                          <span className="font-bold">{WHOLESALE_STAGE[order.status] ?? order.status}</span>
+                          <span className="font-bold">{sellerWholesaleStage(order.status, order.rejectReason).label}</span>
                         </div>
                         {order.trackingCode && <span className="text-app-ink-soft">Tracking {order.trackingCode}</span>}
-                        {order.rejectReason && <span className="text-app-danger">Declined: {order.rejectReason}</span>}
+                        {(() => {
+                          const stage = sellerWholesaleStage(order.status, order.rejectReason);
+                          return stage.note ? <span className={stage.tone === "danger" ? "text-app-danger" : "text-app-ink-soft"}>{stage.note}</span> : null;
+                        })()}
                       </li>
                     ))}
                   </ul>

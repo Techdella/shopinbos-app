@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db/client";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import type { AuthUser } from "@/lib/auth/types";
 import type { RegistryCheck, VerificationDoc } from "@shared/verification-docs";
@@ -83,8 +83,8 @@ export async function runCacCheck(
   if (!parsed) return { ok: false, code: "INVALID", status: 400, message: "Enter your BN or RC number, for example RC 1234567." };
   if (!companyType) return { ok: false, code: "INVALID", status: 400, message: "Pick your business type." };
 
-  // Bursts within one server instance; the daily limit below is stored on the profile.
-  if (!checkRateLimit(`kyb-cac:${user.id}`, { maxRequests: 3, windowMs: 60_000 }).allowed) {
+  // Bursts across every server instance (shared, fails open); the daily limit below is stored on the profile.
+  if (!(await checkRateLimitShared(rateLimitKey("kyb-cac", user.id), { maxRequests: 3, windowMs: 60_000 })).allowed) {
     return { ok: false, code: "LIMIT", status: 429, message: "Too many checks. Wait a minute and try again." };
   }
 

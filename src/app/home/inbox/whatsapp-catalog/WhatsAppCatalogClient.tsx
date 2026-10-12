@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Card, CardHead, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { FEED_KEY_NOTICE } from "@/lib/social/feeds";
 import { formatStamp, inboxApi } from "@/components/messaging/inbox-ui";
 import type { CatalogOption, CatalogView, SyncSummary } from "@/lib/whatsapp-catalog/server";
 
@@ -229,6 +230,9 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
         {/* Feed */}
         <Card className="grid min-w-0 content-start gap-4 p-5">
           <CardHead title="Product feed URL" sub="Works with any WhatsApp account, no extra permissions. Meta downloads it on a schedule." action={<Pill tone="info">{view.feed.listed} products</Pill>} />
+          <p role="note" className="m-0 rounded-[12px] border border-[#F2A93B]/40 bg-[#FDF0D5] px-3 py-2 text-[13px] text-[#5C3D00]">
+            <b>{FEED_KEY_NOTICE}</b> The key below is also in your Google, Facebook and TikTok feed links on Sell everywhere.
+          </p>
           <CopyRow label="Feed URL (keep it private)" value={view.feed.url} />
           <div className="divide-y divide-app-line">
             <Row label="Last downloaded by Meta">{when(view.feed.fetchedAt)}</Row>
@@ -253,7 +257,7 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
               busy={busy === "rotate_token"}
               disabled={Boolean(busy)}
               onClick={() => {
-                if (window.confirm("Make a new feed URL? The old one stops working: paste the new one into Commerce Manager.")) void act("rotate_token", {}, () => setMessage({ tone: "success", text: "New feed URL ready. Update it in Commerce Manager." }));
+                if (window.confirm("Make a new private feed key? Every feed link stops working (this WhatsApp feed and your Google, Facebook and TikTok feeds): paste the new links into Commerce Manager, Merchant Center and TikTok.")) void act("rotate_token", {}, () => setMessage({ tone: "success", text: "New feed key ready. Update the links in Commerce Manager, Merchant Center and TikTok." }));
               }}
             >
               <Icon name="refresh" size={14} /> New URL

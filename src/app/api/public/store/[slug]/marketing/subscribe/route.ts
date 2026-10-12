@@ -5,7 +5,7 @@ import type { SubscriberSource } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { readDesign, readFields, readPopupConfig } from "@/lib/marketing/forms";
 import { normalizeEmail } from "@/lib/marketing/segment-rules";
@@ -32,7 +32,8 @@ const Body = z.object({
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!checkRateLimit(`mkt-signup:${ip}`, { maxRequests: 8, windowMs: 60_000 }).allowed) {
+  // Shared across server instances (fails open): a signup can trigger a welcome email to the address given.
+  if (!(await checkRateLimitShared(rateLimitKey("mkt-signup", ip), { maxRequests: 8, windowMs: 60_000 })).allowed) {
     return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a minute and try again.", 429), CORS);
   }
   const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, status: true } });

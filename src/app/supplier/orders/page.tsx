@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { ORDER_STATUS, buttonClass, money, orderRef, statusOf, supplierFrame, timeAgo } from "@/components/supplier/supplier-kit";
 import { updateSupplierOrderStatus } from "@/app/actions/supplier";
 import { messagesHref } from "@/lib/conversations/pure";
-import { wholesaleActions, type SupplierAction } from "@/lib/supplier-orders/pure";
+import { SELLER_CANCEL_PREFIX, wholesaleActions, type SupplierAction } from "@/lib/supplier-orders/pure";
 import { listDropshipOrders, type DropshipView } from "@/lib/supplier-orders/views.server";
 
 export const dynamic = "force-dynamic";
@@ -307,7 +307,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     {order.notes && <div className="mt-1 text-app-ink-soft">Note: {order.notes}</div>}
                     {canShip && <div className="mt-1 text-app-ink-soft">No payment is taken on Shopinbos: confirm it, send the seller your invoice, and they pay you directly.</div>}
                     {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">Tracking {order.trackingCode}</div>}
-                    {order.rejectReason && <div className="mt-1 text-app-ink-soft">You declined: {order.rejectReason}</div>}
+                    {order.rejectReason && <div className="mt-1 text-app-ink-soft">{order.rejectReason.startsWith(SELLER_CANCEL_PREFIX) ? order.rejectReason : `You declined: ${order.rejectReason}`}</div>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     <Pill tone={stage.tone} dot>{stage.label}</Pill>

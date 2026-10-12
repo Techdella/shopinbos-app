@@ -2463,6 +2463,20 @@ model AuthThrottle {
 }
 // ---- end auth security ----
 
+// ---- shared rate limits (docs/migrations/2026-10-17-followups.sql) ----
+/// One row per limiter key and fixed window: src/lib/rate-limit.ts counts requests here with an atomic upsert so
+/// limits hold across serverless instances. Keys hash the IP/identifier. Expired rows are swept opportunistically.
+model RateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+  expiresAt   DateTime
+
+  @@id([key, windowStart])
+  @@index([expiresAt])
+}
+// ---- end shared rate limits ----
+
 // ---- WhatsApp catalog (agent: whatsapp-catalog) ----
 // A store's WhatsApp product catalog: the token-protected Meta feed URL, and the optional direct Graph API sync
 // (catalog chosen or created, linked to the WhatsApp Business Account, cart and catalog switched on).

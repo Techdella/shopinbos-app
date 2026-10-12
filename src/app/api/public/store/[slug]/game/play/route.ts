@@ -4,7 +4,7 @@ import type { SubscriberSource } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { normalizeEmail, normalizePhone } from "@/lib/marketing/segment-rules";
 import { addSubscriber } from "@/lib/marketing/subscribers";
@@ -51,7 +51,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (input.phone?.trim() && !phone) return withCors(req, apiError("BAD_REQUEST", "Enter a valid WhatsApp number, like 0803 123 4567."), CORS);
   if (input.game !== "post_purchase" && !email && !phone) return withCors(req, apiError("BAD_REQUEST", "Enter your email or WhatsApp number so we can keep your prize."), CORS);
   const contact = email ?? phone ?? input.orderId ?? "";
-  if (!checkRateLimit(`game:${store.id}:${contact}`, { maxRequests: 3, windowMs: 600_000 }).allowed) {
+  // Per player across every server instance (shared, fails open): prizes are discount codes.
+  if (!(await checkRateLimitShared(rateLimitKey(`game:${store.id}`, contact), { maxRequests: 3, windowMs: 600_000 })).allowed) {
     return withCors(req, apiError("RATE_LIMITED", "You've already played. Check your code below or try again later.", 429), CORS);
   }
 

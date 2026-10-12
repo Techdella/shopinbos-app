@@ -3,7 +3,7 @@
 import { db } from "@/lib/db/client";
 import { transitionJob } from "@/lib/logistics/jobs";
 import { riderFromToken, type RiderSession } from "@/lib/logistics/rider-session";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 
 // Riders app actions. Each one re-checks the private link token, and jobs only move through transitionJob
 // with the rider's id, so a rider can only touch jobs assigned to them.
@@ -51,8 +51,8 @@ export async function markDelivered(
   const session = await rider(token);
   if (!session.ok) return session;
   const jobId = String(input?.jobId ?? "");
-  // Delivery codes are 4 digits, so wrong guesses are capped per job.
-  if (!checkRateLimit(`rider:code:${jobId}`, { maxRequests: 6, windowMs: 15 * 60_000 }).allowed) {
+  // Delivery codes are 4 digits, so guesses are capped per job across every server instance (fails closed).
+  if (!(await checkRateLimitShared(rateLimitKey("rider:code", jobId), { maxRequests: 6, windowMs: 15 * 60_000, failClosed: true })).allowed) {
     return { ok: false, error: "Too many wrong codes. Call your dispatcher to close this drop." };
   }
   const collected = input?.codCollected === null || input?.codCollected === undefined ? null : Number(input.codCollected);

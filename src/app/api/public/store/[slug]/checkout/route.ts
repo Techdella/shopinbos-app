@@ -76,7 +76,7 @@ function generateOrderNumber(): string {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  if (overPublicLimit(req.headers, "checkout")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CHECKOUT_CORS);
+  if (await overPublicLimit(req.headers, "checkout")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CHECKOUT_CORS);
   const { slug } = await params;
 
   const store = await db.store.findUnique({

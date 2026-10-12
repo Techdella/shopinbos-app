@@ -2,12 +2,12 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { db } from "@/lib/db/client";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared } from "@/lib/rate-limit";
 import { AUTH_LIMITS, lockoutMs, normaliseIdentifier, retryAfterSeconds, type AuthAction, type WindowLimit } from "./throttle-policy";
 
-// Rate limits and lockouts for the auth endpoints, kept in Postgres ("AuthThrottle") so every serverless
-// instance sees the same counts. Before the migration runs (or if the database is unreachable) it falls
-// back to per-instance memory, which still slows a single attacker down.
+// Rate limits and lockouts for the auth endpoints. Request windows go through the shared limiter
+// (checkRateLimitShared, Postgres "RateLimitBucket", fail closed); failure counts and account locks are kept in
+// "AuthThrottle". Both are in Postgres so every serverless instance sees the same counts.
 
 export function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
@@ -27,27 +27,14 @@ export function lockKey(identifier: string) {
 
 const memoryFailures = new Map<string, { failures: number; lockedUntil: number; updatedAt: number }>();
 
-type Row = { count: number; windowStart: Date; lockedUntil: Date | null };
-
+/**
+ * One request against a window, in the shared limiter (memory gate, then Postgres "RateLimitBucket"). Fails
+ * closed: if the database can't count, sign-in, codes and resets wait rather than letting guesses through
+ * (a missing table before the migration falls back to memory instead; see rate-limit-core.ts).
+ */
 async function bump(key: string, rule: WindowLimit): Promise<{ allowed: boolean; retryAfter: number }> {
-  try {
-    const seconds = Math.ceil(rule.windowMs / 1000);
-    const rows = await db.$queryRaw<Row[]>`
-      INSERT INTO "AuthThrottle" ("key", "count", "windowStart", "updatedAt")
-      VALUES (${key}, 1, now(), now())
-      ON CONFLICT ("key") DO UPDATE SET
-        "count" = CASE WHEN "AuthThrottle"."windowStart" < now() - (${seconds}::int * interval '1 second') THEN 1 ELSE "AuthThrottle"."count" + 1 END,
-        "windowStart" = CASE WHEN "AuthThrottle"."windowStart" < now() - (${seconds}::int * interval '1 second') THEN now() ELSE "AuthThrottle"."windowStart" END,
-        "updatedAt" = now()
-      RETURNING "count", "windowStart", "lockedUntil"`;
-    const row = rows[0];
-    if (!row) return { allowed: true, retryAfter: 0 };
-    const allowed = Number(row.count) <= rule.limit;
-    return { allowed, retryAfter: allowed ? 0 : retryAfterSeconds(new Date(row.windowStart).getTime() + rule.windowMs) };
-  } catch {
-    const result = checkRateLimit(`auth:${key}`, { maxRequests: rule.limit, windowMs: rule.windowMs });
-    return { allowed: result.allowed, retryAfter: result.allowed ? 0 : retryAfterSeconds(result.resetAt) };
-  }
+  const result = await checkRateLimitShared(`auth:${key}`, { maxRequests: rule.limit, windowMs: rule.windowMs, failClosed: true });
+  return { allowed: result.allowed, retryAfter: result.allowed ? 0 : retryAfterSeconds(result.resetAt) };
 }
 
 /**

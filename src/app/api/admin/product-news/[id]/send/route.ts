@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db/client";
 import { apiError } from "@/lib/api/response";
 import { withAdmin } from "@/lib/auth/middleware";
 import { newsError } from "@/lib/email/product-news.api";
-import { BROADCAST_SELECT, startBroadcast } from "@/lib/email/product-news.server";
+import { loadBroadcast, startBroadcast } from "@/lib/email/product-news.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +27,7 @@ export const POST = withAdmin(async (req: NextRequest, { params }) => {
   if (scheduledAt && scheduledAt.getTime() > Date.now() + 60 * 86_400_000) return apiError("VALIDATION_ERROR", "Schedule it within the next 60 days", 422);
   try {
     const progress = await startBroadcast(id, { scheduledAt });
-    const broadcast = await db.productNewsBroadcast.findUnique({ where: { id }, select: BROADCAST_SELECT });
+    const broadcast = await loadBroadcast(id);
     return NextResponse.json({ data: { broadcast, progress } });
   } catch (error) {
     return newsError(error);

@@ -376,7 +376,10 @@ test("product news: retry before sending is refused; the server requeues with an
   const store = newsStore(1, { status: "draft" });
   await assert.rejects(retry(store, provider()), (e) => e.status === 409 && /hasn't been sent/.test(e.message));
   const server = read("src/lib/email/product-news.server.ts");
-  assert.match(server, /OR: \[\{ error: null \}, \{ AND: \[\{ NOT: \{ error: NEWS_INTERRUPTED \} \}, \{ NOT: \{ error: \{ startsWith: NEWS_UNKNOWN_PREFIX \} \} \}\] \}\]/);
+  // One filter (product-news-run.ts) for the requeue and the retryableCount the admin list shows.
+  assert.match(read("src/lib/email/product-news-run.ts"), /OR: \[\{ error: null \}, \{ AND: \[\{ NOT: \{ error: NEWS_INTERRUPTED \} \}, \{ NOT: \{ error: \{ startsWith: NEWS_UNKNOWN_PREFIX \} \} \}\] \}\]/);
+  assert.match(server, /updateMany\(\{ where: retryableNewsWhere\(id\), data: \{ status: "queued", error: null \} \}\)/);
+  assert.match(server, /groupBy\(\{ by: \["broadcastId"\], where: retryableNewsWhere\(\{ in: ids \}\)/);
   assert.match(server, /FOR UPDATE SKIP LOCKED/);
 });
 

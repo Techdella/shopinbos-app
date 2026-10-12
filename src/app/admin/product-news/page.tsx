@@ -3,14 +3,14 @@ import { adminFrame } from "@/components/admin/AdminKit";
 import { ProductNewsManager, type BroadcastRow } from "@/components/admin/ProductNewsManager";
 import { db } from "@/lib/db/client";
 import { appBase, platformLegal } from "@/lib/email/compliance.server";
-import { BROADCAST_SELECT, newsImageHosts } from "@/lib/email/product-news.server";
+import { BROADCAST_SELECT, newsImageHosts, withRetryCounts } from "@/lib/email/product-news.server";
 import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductNewsPage() {
   const user = await requireRole(["admin"], "/admin/login");
-  const broadcasts = await db.productNewsBroadcast.findMany({ orderBy: { createdAt: "desc" }, take: 20, select: BROADCAST_SELECT }).catch(() => []);
+  const broadcasts = await db.productNewsBroadcast.findMany({ orderBy: { createdAt: "desc" }, take: 20, select: BROADCAST_SELECT }).then(withRetryCounts).catch(() => []);
   const rows: BroadcastRow[] = broadcasts.map((b) => ({
     ...b,
     scheduledAt: b.scheduledAt?.toISOString() ?? null,

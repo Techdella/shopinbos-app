@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { looksLikeSpam, publicRequestSchema, splitContact } from "@/lib/support/pure";
 import { createPublicRequest, filesProblem } from "@/lib/support/service.server";
 import { clientIp, readBody, supportError } from "@/lib/support/http";
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
   // Per IP: 5 an hour, and a short burst limit so a double-click doesn't count as spam.
-  const hourly = checkRateLimit(`support-request:${ip}`, { maxRequests: 5, windowMs: 3_600_000 });
+  // Shared across server instances (Postgres); fails open so a database hiccup never hides the form.
+  const hourly = await checkRateLimitShared(rateLimitKey("support-request:ip", ip), { maxRequests: 5, windowMs: 3_600_000 });
   if (!hourly.allowed) {
     return apiError("RATE_LIMITED", "You've sent a few requests already. We'll reply to those soon, or email support@shopinbos.com.", 429);
   }
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     if (problem) return apiError("BAD_REQUEST", problem);
 
     const { email, phone } = splitContact(parsed.data.contact);
-    const perContact = checkRateLimit(`support-request:${email ?? phone}`, { maxRequests: 4, windowMs: 3_600_000 });
+    const perContact = await checkRateLimitShared(rateLimitKey("support-request:contact", email ?? phone), { maxRequests: 4, windowMs: 3_600_000 });
     if (!perContact.allowed) return apiError("RATE_LIMITED", "We already have your request. A person will reply soon.", 429);
 
     const result = await createPublicRequest({
