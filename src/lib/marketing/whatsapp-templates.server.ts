@@ -286,7 +286,10 @@ export async function deleteWhatsAppTemplate(storeId: string, id: string) {
 
 /** A picture for an image-header template when the sender didn't pick one: the store's best-selling product photo. */
 export async function defaultHeaderImage(storeId: string) {
-  return sampleImage(storeId);
+  const image = await sampleImage(storeId);
+  if (image) return image;
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { logoUrl: true } }).catch(() => null);
+  return store?.logoUrl && /^https:\/\//.test(store.logoUrl) ? store.logoUrl : null;
 }
 
 /**

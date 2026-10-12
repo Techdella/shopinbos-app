@@ -5,7 +5,7 @@
 import { z } from "zod";
 
 const SEGMENT_FIELD_KEYS = ["spent", "orders", "last_order", "first_order", "location", "tag", "source", "product", "subscribed", "joined", "reachable"] as const;
-const FLOW_KEYS = ["welcome", "abandoned_cart", "browse", "thank_you", "review", "win_back", "birthday"] as const;
+const FLOW_KEYS = ["welcome", "abandoned_cart", "abandoned_cart_whatsapp", "order_updates_whatsapp", "browse", "thank_you", "review", "win_back", "win_back_whatsapp", "birthday"] as const;
 const confirm = z
   .string()
   .trim()
@@ -46,7 +46,7 @@ export const MARKETING_TOOL_SPECS = {
   marketing_create_campaign: {
     write: true,
     description:
-      "Save a campaign as a DRAFT (never sends). channel email, sms or whatsapp. Audience: a saved segment by name, or everyone/subscribers. For email, `message` becomes the email body (blank lines = paragraphs; {{name}} and {{store}} are filled in) and `subject` is required; for SMS/WhatsApp keep it short.",
+      "Save a campaign as a DRAFT (never sends). channel email, sms or whatsapp. Audience: a saved segment by name, or everyone/subscribers. For email, `message` becomes the email body (blank lines = paragraphs; {{name}} and {{store}} are filled in) and `subject` is required; for SMS keep it short (160 plain characters is one SMS part). WhatsApp campaigns are sent with a Meta-approved template that the seller picks in the campaign editor (Marketing › WhatsApp templates), so `message` is only a note for them there.",
     schema: z
       .object({
         channel: z.enum(["email", "sms", "whatsapp"]),
@@ -78,7 +78,7 @@ export const MARKETING_TOOL_SPECS = {
   marketing_create_automation: {
     write: true,
     description:
-      "Add a ready-made automation flow: welcome (series for new subscribers), abandoned_cart (reminders + WhatsApp + 10% code), browse (saved but didn't buy), thank_you (after payment), review (ask for a review 3 days after delivery), win_back (15% code after 90 quiet days), birthday (20% birthday code). It is created switched OFF; to switch it on now (it will then message customers automatically), set activate=true and follow the confirmation-code steps.",
+      "Add a ready-made automation flow: welcome (series for new subscribers), abandoned_cart (two email reminders + 10% code), abandoned_cart_whatsapp (WhatsApp template after 1 hour, then an email a day later), order_updates_whatsapp (WhatsApp shipping update with tracking), browse (saved but didn't buy), thank_you (after payment), review (ask for a review 3 days after delivery), win_back (15% code after 90 quiet days), win_back_whatsapp (the same code on WhatsApp, to people who opted in), birthday (20% birthday code). It is created switched OFF; to switch it on now (it will then message customers automatically), set activate=true and follow the confirmation-code steps.",
     schema: z
       .object({
         flow: z.enum(FLOW_KEYS),

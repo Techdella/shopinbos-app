@@ -36,6 +36,9 @@ interface Recipient {
 
 /** Claims the (event, order, channel) slot; false when it was already sent or attempted. */
 async function claim(storeId: string, recipient: Recipient, channel: TextChannel) {
+  const key = { storeId, event: recipient.event, refId: recipient.refId, channel };
+  if (await db.customerMessage.findUnique({ where: { storeId_event_refId_channel: key }, select: { id: true } })) return null;
+  // The unique index still settles a race between two callers.
   const row = await db.customerMessage
     .create({ data: { storeId, event: recipient.event, refId: recipient.refId, channel, to: recipient.phone }, select: { id: true } })
     .catch(() => null);
