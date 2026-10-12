@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
 import { sendCode, signInWithGoogle, signInWithPassword, syncAccount, type CodeTarget } from "@/lib/auth";
-import { BackButton, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
+import { BackButton, Chip, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
+import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
+import { rememberSignedInRole } from "@/lib/role";
 import { colors } from "@/theme";
 
 type Mode = "signup" | "login";
@@ -22,8 +24,12 @@ function GoogleMark() {
   );
 }
 
-export function AuthForm({ mode, initialMethod = "phone" }: { mode: Mode; initialMethod?: Method }) {
+const ROLE_HEADING: Record<SignupRole, string> = { seller: "Create your account", supplier: "Create your supplier account", logistics_partner: "Create your delivery partner account" };
+
+export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller" }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole }) {
   const [method, setMethod] = useState<Method>(initialMethod);
+  // Who is signing up: "I sell / I supply shops / I deliver" (like the web sign-up). Sets the account's role.
+  const [role, setRole] = useState<SignupRole>(initialRole);
   const [via, setVia] = useState<"whatsapp" | "sms">("whatsapp");
   const [emailMode, setEmailMode] = useState<"code" | "password">("code");
   const [name, setName] = useState("");
@@ -38,7 +44,9 @@ export function AuthForm({ mode, initialMethod = "phone" }: { mode: Mode; initia
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
 
   async function finish(signedUp: boolean, phoneNumber?: string) {
-    await syncAccount({ fullName: name.trim() || undefined, phone: phoneNumber, signup: signedUp });
+    const actual = await syncAccount({ fullName: name.trim() || undefined, phone: phoneNumber, signup: signedUp, role });
+    await rememberSignedInRole(actual);
+    if (signedUp && actual && actual !== role) Alert.alert("You already have an account", "We've opened the account you made before with this login.");
     router.replace("/");
   }
 
@@ -68,8 +76,8 @@ export function AuthForm({ mode, initialMethod = "phone" }: { mode: Mode; initia
     }
     setBusy("send");
     try {
-      await sendCode(target, { create: mode === "signup", fullName: name });
-      router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim() } });
+      await sendCode(target, { create: mode === "signup", fullName: name, role });
+      router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role } });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Couldn't send the code.");
     } finally {
@@ -101,8 +109,20 @@ export function AuthForm({ mode, initialMethod = "phone" }: { mode: Mode; initia
             <LinkButton title={mode === "signup" ? "Log in" : "Create a shop"} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
           </View>
           <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
-            {mode === "signup" ? "Create your account" : "Welcome back"}
+            {mode === "signup" ? ROLE_HEADING[role] : "Welcome back"}
           </T>
+          {mode === "signup" && (
+            <View style={{ marginTop: 16, gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="What do you do?">
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {SIGNUP_ROLES.map((item) => <Chip key={item.role} label={item.tab} on={role === item.role} onPress={() => { setError(null); setRole(item.role); }} />)}
+              </View>
+              {role === "logistics_partner" && (
+                <Pressable accessibilityRole="link" onPress={() => router.push("/rider/link")} hitSlop={6}>
+                  <T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>Riding for a delivery company? Open your Riders app link instead.</T>
+                </Pressable>
+              )}
+            </View>
+          )}
           {mode === "login" && <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>Log in with the phone or email you signed up with.</T>}
           <View style={{ marginTop: 22, marginBottom: 22 }}>
             <Segmented value={method} onChange={(value) => { setError(null); setMethod(value); }} options={[{ value: "phone", label: "Phone" }, { value: "email", label: "Email" }]} />

@@ -5,19 +5,24 @@ import { api, ApiError } from "@/lib/api";
 import { onboardingFinished, rememberOnboardingFinished, rememberStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
 import type { OnboardingStatus } from "@/lib/onboarding";
+import { homeFor } from "@/lib/partner-pure";
+import { riderToken } from "@/lib/rider";
+import { useRole } from "@/lib/role";
 
 /** Past this, stop waiting for the onboarding check and let Home handle the slow network. */
 const CHECK_TIMEOUT_MS = 8000;
 
-// Decides where a launch lands: welcome (signed out), onboarding (mid-setup) or home.
+// Decides where a launch lands: welcome (signed out), the Riders app (a rider's saved link), the supplier or
+// delivery partner tabs, or for sellers onboarding (mid-setup) or home.
 // Shows the launch screen (same as the native splash) while it decides.
 export default function Gate() {
   const { session, loading } = useSession();
+  const { role } = useRole();
   const uid = session?.user.id;
   const [target, setTarget] = useState<Href | null>(null);
 
   useEffect(() => {
-    if (loading || !uid) return;
+    if (loading || !uid || role !== "seller") return;
     // Sellers who finished onboarding on this phone go straight to Home; it loads its own data.
     if (onboardingFinished(uid)) {
       setTarget("/home");
@@ -47,9 +52,10 @@ export default function Gate() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [loading, uid]);
+  }, [loading, uid, role]);
 
-  if (!loading && !session) return <Redirect href="/welcome" />;
+  if (!loading && !session) return <Redirect href={riderToken() ? "/rider" : "/welcome"} />;
+  if (role && role !== "seller") return <Redirect href={homeFor(role) as Href} />;
   if (target) return <Redirect href={target} />;
   return <LaunchView />;
 }

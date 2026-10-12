@@ -4,11 +4,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatE164, OTP_LENGTH, OTP_RESEND_SECONDS } from "@shared/phone";
 import { sendCode, syncAccount, verifyCode, type CodeTarget } from "@/lib/auth";
+import { asSignupRole } from "@/lib/partner-pure";
+import { rememberSignedInRole } from "@/lib/role";
 import { BackButton, CodeInput, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { colors } from "@/theme";
 
 export default function Verify() {
-  const params = useLocalSearchParams<{ target: string; mode: string; name?: string }>();
+  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string }>();
   const initialTarget = useMemo(() => JSON.parse(params.target ?? "{}") as CodeTarget, [params.target]);
   const [target, setTarget] = useState<CodeTarget>(initialTarget);
   const [code, setCode] = useState("");
@@ -36,7 +38,9 @@ export default function Verify() {
     setError(null);
     try {
       await verifyCode(target, value);
-      await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup: params.mode === "signup" });
+      const role = asSignupRole(params.role);
+      const actual = await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup: params.mode === "signup", role });
+      await rememberSignedInRole(actual);
       router.replace("/");
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : "Couldn't check that code.");
@@ -47,7 +51,7 @@ export default function Verify() {
   async function resend(next: CodeTarget) {
     setError(null);
     try {
-      await sendCode(next, { create: params.mode === "signup", fullName: params.name });
+      await sendCode(next, { create: params.mode === "signup", fullName: params.name, role: asSignupRole(params.role) });
       setTarget(next);
       startCountdown();
     } catch (sendError) {
