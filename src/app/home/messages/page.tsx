@@ -59,7 +59,9 @@ export default async function SellerMessagesPage({ searchParams }: { searchParam
       sub={unread ? `${unread} conversation${unread === 1 ? "" : "s"} waiting for you, across every channel.` : "Every customer message in one place: WhatsApp, Instagram, Messenger, SMS, email, Telegram, calls, live chat and forms."}
       actions={
         <>
-          <PillLink href="/home/inbox/settings" icon="settings">Auto-reply and saved replies</PillLink>
+          <PillLink href="/home/inbox/auto-replies" icon="clock">Auto-replies</PillLink>
+          <PillLink href="/home/inbox/chatbot" icon="sparkle">Peggy chatbot</PillLink>
+          <PillLink href="/home/inbox/settings" icon="settings">Settings</PillLink>
           <PillLink href="/home/inbox/channels" icon="plug" tone="ink">Channels · {connected.length + 2} on</PillLink>
         </>
       }

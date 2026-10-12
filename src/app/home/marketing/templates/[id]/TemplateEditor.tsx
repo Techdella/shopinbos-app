@@ -2,44 +2,75 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardHead, SplitLayout } from "@/components/app-kit";
+import { Card } from "@/components/app-kit";
 import { Notice, PillButton } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { Field, inputClass, selectClass } from "@/components/growth/kit";
-import { EmailComposer } from "../../_kit/EmailComposer";
-import { EmailPreview, api, errorText } from "../../_kit/client";
+import type { EmailBrand } from "@/lib/marketing/email-layout";
+import type { PreviewShop } from "@/lib/marketing/preview";
+import { TEMPLATE_CATEGORIES } from "@/lib/marketing/template-library";
+import { EmailBuilder } from "../../_kit/EmailBuilder";
+import { api, errorText } from "../../_kit/client";
 
-const KINDS = [
-  ["marketing", "Marketing"],
-  ["newsletter", "Newsletter"],
-  ["promotion", "Sale or offer"],
-  ["product_launch", "New arrivals"],
-  ["announcement", "Announcement"],
-  ["welcome", "Welcome"],
-  ["abandoned_cart", "Cart reminder"],
-  ["order", "Order"],
-] as const;
+interface Draft {
+  id: string | null;
+  name: string;
+  subject: string;
+  preheader: string;
+  bodyHtml: string;
+  category: string;
+}
 
-export function TemplateEditor({ initial }: { initial: { id: string | null; name: string; subject: string; bodyHtml: string; category: string } }) {
+const KINDS: Array<[string, string]> = [["marketing", "Marketing"], ...Object.entries(TEMPLATE_CATEGORIES)];
+
+export function TemplateEditor({ initial, brand, shop }: { initial: Draft; brand: EmailBrand; shop: PreviewShop }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
+  const [saved, setSaved] = useState(JSON.stringify(initial));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const dirty = JSON.stringify(draft) !== saved;
 
-  async function save() {
+  async function save(): Promise<string | null> {
     setBusy("save");
     setError(null);
     setNotice(null);
     try {
-      const saved = await api<{ id: string }>("/api/app/marketing/templates", "POST", { id: draft.id, name: draft.name, subject: draft.subject, bodyHtml: draft.bodyHtml, category: draft.category });
-      if (!draft.id) router.replace(`/home/marketing/templates/${saved.id}`);
-      setDraft((d) => ({ ...d, id: saved.id }));
+      const name = draft.name.trim() || draft.subject.trim().slice(0, 60) || "Untitled email";
+      const result = await api<{ id: string }>("/api/app/marketing/templates", "POST", { id: draft.id, name, subject: draft.subject, preheader: draft.preheader, bodyHtml: draft.bodyHtml, category: draft.category });
+      const next = { ...draft, id: result.id, name };
+      setDraft(next);
+      setSaved(JSON.stringify(next));
+      if (!draft.id) router.replace(`/home/marketing/templates/${result.id}`);
       setNotice("Template saved.");
+      return result.id;
     } catch (saveError) {
       setError(errorText(saveError));
+      return null;
     } finally {
       setBusy(null);
     }
+  }
+
+  async function sendTest() {
+    setBusy("test");
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await api<{ to: string }>("/api/app/marketing/templates/test", "POST", { subject: draft.subject, preheader: draft.preheader, bodyHtml: draft.bodyHtml });
+      setNotice(`Test sent to ${result.to}. Customers got nothing.`);
+    } catch (testError) {
+      setError(errorText(testError));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function useIn(where: "campaign" | "automation") {
+    const id = dirty || !draft.id ? await save() : draft.id;
+    if (!id) return;
+    router.push(where === "campaign" ? `/home/marketing/campaigns/new?template=${id}` : "/home/automations");
   }
 
   async function remove() {
@@ -55,36 +86,39 @@ export function TemplateEditor({ initial }: { initial: { id: string | null; name
   }
 
   return (
-    <div className="grid gap-5">
-      {error ? <Notice>{error}</Notice> : null}
-      {notice ? <Notice tone="success">{notice}</Notice> : null}
-      <SplitLayout
-        sideWidth="460px"
-        main={
-          <Card className="grid gap-4 p-5 sm:p-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field label="Template name" htmlFor="t-name"><input id="t-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} /></Field>
-              <Field label="Subject" htmlFor="t-subject"><input id="t-subject" value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} className={inputClass} maxLength={200} /></Field>
-              <Field label="Kind" htmlFor="t-kind">
-                <select id="t-kind" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className={selectClass}>
-                  {KINDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </Field>
-            </div>
-            <EmailComposer value={draft.bodyHtml} onChange={(bodyHtml) => setDraft((d) => ({ ...d, bodyHtml }))} />
-            <div className="flex flex-wrap gap-2 border-t border-app-line pt-4">
-              <PillButton size="md" busy={busy === "save"} onClick={() => void save()}>Save template</PillButton>
-              {draft.id ? <PillButton size="md" tone="white" onClick={() => router.push(`/home/marketing/campaigns/new?template=${draft.id}`)}>Use in a campaign</PillButton> : null}
-              {draft.id ? <PillButton size="md" tone="white" className="text-app-danger sm:ml-auto" busy={busy === "delete"} onClick={() => void remove()}>Delete</PillButton> : null}
-            </div>
-          </Card>
-        }
-        side={
-          <Card className="p-5">
-            <CardHead title="Preview" />
-            <div className="mt-3"><EmailPreview bodyHtml={draft.bodyHtml} subject={draft.subject} /></div>
-          </Card>
-        }
+    <div className="grid gap-4">
+      <Card className="grid gap-4 p-4 sm:p-5">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+          <Field label="Template name" htmlFor="t-name"><input id="t-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} placeholder="Sallah sale" /></Field>
+          <Field label="Kind" htmlFor="t-kind">
+            <select id="t-kind" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className={selectClass}>
+              {KINDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              {!KINDS.some(([value]) => value === draft.category) ? <option value={draft.category}>{draft.category}</option> : null}
+            </select>
+          </Field>
+          <Field label="Subject line" htmlFor="t-subject" hint={`${draft.subject.length}/200. Short subjects (under 50) read best on phones.`}>
+            <input id="t-subject" value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} className={inputClass} maxLength={200} placeholder="Our Sallah sale starts now" />
+          </Field>
+          <Field label="Preview text" htmlFor="t-pre" hint="The grey line inboxes show after the subject.">
+            <input id="t-pre" value={draft.preheader} onChange={(e) => setDraft({ ...draft, preheader: e.target.value })} className={inputClass} maxLength={200} placeholder="15% off festive pieces this weekend" />
+          </Field>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-app-line pt-4">
+          <PillButton size="md" busy={busy === "save"} onClick={() => void save()}>{dirty || !draft.id ? "Save template" : "Saved"}</PillButton>
+          <PillButton size="md" tone="white" busy={busy === "test"} onClick={() => void sendTest()}><Icon name="send" size={15} /> Send me a test</PillButton>
+          <PillButton size="md" tone="white" onClick={() => void useIn("campaign")}><Icon name="megaphone" size={15} /> Use in a campaign</PillButton>
+          <PillButton size="md" tone="white" onClick={() => void useIn("automation")}><Icon name="automation" size={15} /> Use in an automation</PillButton>
+          {draft.id ? <PillButton size="md" tone="white" className="text-app-danger lg:ml-auto" busy={busy === "delete"} onClick={() => void remove()}>Delete</PillButton> : null}
+        </div>
+        {error ? <Notice>{error}</Notice> : null}
+        {notice ? <Notice tone="success">{notice}</Notice> : null}
+      </Card>
+
+      <EmailBuilder
+        content={{ subject: draft.subject, preheader: draft.preheader, bodyHtml: draft.bodyHtml }}
+        onChange={(content) => setDraft((d) => ({ ...d, ...content }))}
+        brand={brand}
+        shop={shop}
       />
     </div>
   );

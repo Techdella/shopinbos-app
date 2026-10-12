@@ -1,26 +1,58 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
-import { formatDate, humanize } from "@/components/growth/kit";
+import { AssistantNote, PillLink } from "@/components/app-kit";
+import { formatDate } from "@/components/growth/kit";
+import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "@/lib/marketing/brand";
+import { previewSubject, renderEmailPreview } from "@/lib/marketing/preview";
+import { TEMPLATE_CATEGORIES } from "@/lib/marketing/template-library";
 import { listTemplates } from "@/lib/marketing/templates";
-import { TemplateCopyButton } from "./TemplateCopyButton";
+import { TemplateGallery, type GalleryTemplate } from "./TemplateGallery";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Email templates" };
 
+const label = (category: string) => TEMPLATE_CATEGORIES[category as keyof typeof TEMPLATE_CATEGORIES] ?? category.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
 export default async function TemplatesPage() {
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
-  const templates = store ? await listTemplates(store.id) : { saved: [], library: [] };
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: MARKETING_STORE_SELECT });
+  if (!store) redirect("/onboarding");
+  const templates = await listTemplates(store.id);
+  // Thumbnails are the real emails with this shop's logo and colours and a sample customer.
+  const brand = emailBrand(store);
+  const shop = { name: store.name, url: storeUrl(store) };
+  const render = (bodyHtml: string, preheader: string) => renderEmailPreview({ bodyHtml, preheader, brand, shop });
+
+  const saved: GalleryTemplate[] = templates.saved.map((t) => ({
+    id: t.id,
+    saved: true,
+    name: t.name,
+    category: t.category,
+    categoryLabel: label(t.category),
+    description: `Edited ${formatDate(t.updatedAt)}`,
+    subject: previewSubject(t.subject, shop),
+    html: render(t.bodyHtml, t.preheader),
+  }));
+  const library: GalleryTemplate[] = templates.library.map((t) => ({
+    id: t.key,
+    saved: false,
+    name: t.name,
+    category: t.category,
+    categoryLabel: label(t.category),
+    description: t.description,
+    subject: previewSubject(t.subject, shop),
+    html: render(t.bodyHtml, t.preheader),
+  }));
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
       title="Email templates"
-      sub="Layouts you reuse in campaigns and automations. They pick up your logo and colours from the brand kit."
+      sub="Ready-made emails in your logo and colours. Preview one, then use it in a campaign or make it your own."
       actions={
         <>
           <PillLink href="/home/brand-kit" icon="palette">Brand kit</PillLink>
@@ -29,43 +61,10 @@ export default async function TemplatesPage() {
       }
     >
       <div className="grid gap-5">
-        <section className="grid gap-3">
-          <h2 className="m-0 text-[17px] font-extrabold">Your templates</h2>
-          {templates.saved.length ? (
-            <ListCard>
-              {templates.saved.map((template) => (
-                <ListRow key={template.id} href={`/home/marketing/templates/${template.id}`}>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-canvas text-[16px] font-extrabold">{template.name.charAt(0).toUpperCase()}</span>
-                  <span className="min-w-0 flex-1 basis-[200px]">
-                    <span className="block truncate text-[15px] font-extrabold">{template.name}</span>
-                    <span className="block truncate text-[13px] text-app-ink-soft">{template.subject}</span>
-                  </span>
-                  <Pill tone="muted">{humanize(template.category)}</Pill>
-                  <span className="text-[13px] text-app-ink-soft sm:w-[120px]">Edited {formatDate(template.updatedAt)}</span>
-                  <span className="text-[13px] font-extrabold text-app-accent-ink">Edit</span>
-                </ListRow>
-              ))}
-            </ListCard>
-          ) : (
-            <EmptyState icon="mail" title="No saved templates yet">Start from one below, or make your own. Saved templates show up when you write a campaign.</EmptyState>
-          )}
-        </section>
-
-        <section className="grid gap-3">
-          <h2 className="m-0 text-[17px] font-extrabold">Starter templates</h2>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {templates.library.map((template) => (
-              <Card key={template.key} as="article" className="flex flex-col gap-2 p-5">
-                <CardHead title={template.name} action={<Pill tone="muted">{humanize(template.category)}</Pill>} />
-                <p className="m-0 text-[14px] text-app-ink-soft">{template.subject}</p>
-                <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                  <PillLink href={`/home/marketing/campaigns/new?template=${template.key}`} size="sm" tone="ink">Use in a campaign</PillLink>
-                  <TemplateCopyButton templateKey={template.key} />
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
+        <AssistantNote action={<PillLink href="/home/marketing/templates/new" size="sm" tone="ink">Write one with Peggy</PillLink>}>
+          Not sure where to start? Open a new template and tell Peggy what you need, like &ldquo;a Sallah sale email with my best sellers&rdquo;. Rex can draft one for you in chat too.
+        </AssistantNote>
+        <TemplateGallery saved={saved} library={library} categories={Object.entries(TEMPLATE_CATEGORIES).map(([value, text]) => ({ value, label: text }))} />
       </div>
     </SellerPage>
   );

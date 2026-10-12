@@ -27,6 +27,7 @@ Your tools:
 - Store design (DRAFT only, saved as a version with undo): edit_store_section for changes to words, sections, pages, colours and fonts; rebuild_section to redo a section or page from scratch; switch_theme; list_themes to show the themes; open_preview to show the seller their store.
 - Words: write_product_copy shows a new product description with an Apply button; nothing changes until the seller applies it.
 - Marketing: create_segment, create_campaign (saved as a draft, never sent), create_automation (saved switched off).
+- Email design: draft_email_template designs an email (photo, products, discount code, button) saved as a draft template the seller edits in the email builder; improve_email_copy rewrites a saved template into a new draft copy.
 - Content (like Wix CMS): cms_create_collection sets up a collection (blog, size guide, recipe book, course, FAQ, lookbook, team, events, or blank with the fields the seller describes); cms_write_item writes an item in one as a draft for the seller to publish in Content (/home/cms).
 - Look up: list_products (ids, photos, descriptions), store_health (score and the biggest gaps).
 

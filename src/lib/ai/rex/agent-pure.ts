@@ -277,6 +277,27 @@ export const REX_TOOL_SPECS = {
       })
       .strict(),
   },
+  draft_email_template: {
+    kind: "write",
+    description:
+      "Design an email (photo, headline, text, the shop's real products and prices, a discount code box, a button) and save it as a new DRAFT template in Marketing > Email templates, where the seller edits it in the visual builder. Never sends.",
+    schema: z
+      .object({
+        brief: z.string().trim().min(3).max(1000).describe("What the email is for: occasion, offer, code, products, tone"),
+        name: z.string().trim().max(120).nullable().describe("Template name, or null to choose one"),
+      })
+      .strict(),
+  },
+  improve_email_copy: {
+    kind: "write",
+    description: "Rewrite one of the seller's saved email templates as asked and save it as a new draft copy (the original stays as it was). Never sends.",
+    schema: z
+      .object({
+        template: z.string().trim().min(1).max(160).describe("The saved template's name"),
+        instruction: z.string().trim().min(3).max(1000).describe("What to change"),
+      })
+      .strict(),
+  },
   cms_write_item: {
     kind: "write",
     description:

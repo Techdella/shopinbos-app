@@ -1933,6 +1933,17 @@ model InboxSettings {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
+// Auto-reply rules (business hours, per-channel switches, keyword quick replies, instant "got it") and the
+// storefront Peggy chatbot. JSON so the shapes can grow; read with defaults (src/lib/inbox/assistant.ts), and
+// the app keeps working with the old away message before this table exists.
+model InboxAutomation {
+  id        String   @id @default(cuid())
+  storeId   String   @unique
+  autoReply Json     @default("{}")
+  chatbot   Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 // ---- end inbox (agent E) ----
 
 // ---- reviews (agent F) ----

@@ -6,6 +6,9 @@ import { apiError, ok } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { ingestInbound } from "@/lib/inbox/service";
 import { isSellerOnline, normaliseEmail, normalisePhone } from "@/lib/inbox/pure";
+import { chatbotOnDuty } from "@/lib/inbox/assistant";
+import { loadAutomation } from "@/lib/inbox/automation.server";
+import { hasAiProvider } from "@/lib/inbox/ai";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +30,13 @@ async function loadStore(slug: string) {
   return db.store.findUnique({ where: { slug }, select: { id: true, name: true, status: true, logoUrl: true } });
 }
 
+/** The chatbot answering this shop's live chat right now (name and greeting), or null. */
+async function activeAssistant(storeId: string, sellerLastSeenAt: Date | null | undefined) {
+  if (!hasAiProvider()) return null;
+  const { chatbot, autoReply } = await loadAutomation(storeId);
+  return chatbotOnDuty(chatbot, autoReply, isSellerOnline(sellerLastSeenAt)) ? { name: chatbot.name, greeting: chatbot.greeting } : null;
+}
+
 function ip(req: NextRequest) {
   return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 }
@@ -43,10 +53,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     db.liveChatConfig.findUnique({ where: { storeId: store.id } }),
     db.inboxSettings.findUnique({ where: { storeId: store.id }, select: { sellerLastSeenAt: true } }),
   ]);
+  const assistant = await activeAssistant(store.id, settings?.sellerLastSeenAt);
   const key = visitorKey.safeParse(req.nextUrl.searchParams.get("visitorKey"));
   const open = req.nextUrl.searchParams.get("open") === "1";
 
-  let messages: Array<{ id: string; from: "shopper" | "shop"; body: string; at: string; auto: boolean }> = [];
+  let messages: Array<{ id: string; from: "shopper" | "shop"; body: string; at: string; auto: boolean; bot: boolean }> = [];
+  let handedOff = false;
   let contact: { name: string | null; email: string | null; phone: string | null } | null = null;
   if (key.success) {
     const conversation = await db.inboxConversation.findUnique({
@@ -55,7 +67,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     });
     if (conversation) {
       contact = { name: conversation.contactName, email: conversation.contactEmail, phone: conversation.contactPhone };
-      messages = conversation.messages.map((m) => ({ id: m.id, from: m.direction === "inbound" ? "shopper" : "shop", body: m.body, at: m.createdAt.toISOString(), auto: m.kind === "auto_reply" }));
+      messages = conversation.messages.map((m) => ({ id: m.id, from: m.direction === "inbound" ? "shopper" : "shop", body: m.body, at: m.createdAt.toISOString(), auto: m.kind === "auto_reply", bot: Boolean((m.meta as { bot?: unknown } | null)?.bot) }));
+      handedOff = conversation.tags.includes("needs-human");
       // While the chat window is open the shopper sees replies live, so we don't also email them.
       if (open) await db.inboxConversation.update({ where: { id: conversation.id }, data: { visitorSeenAt: new Date() } }).catch(() => null);
     }
@@ -78,6 +91,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
         enabled: Boolean(config),
       },
       online: isSellerOnline(settings?.sellerLastSeenAt),
+      // Peggy answers shoppers live; after a hand-off the shopper is asked how the seller can reach them.
+      assistant: assistant ? { ...assistant, handedOff } : null,
       contact,
       messages,
     }),
@@ -115,11 +130,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     db.inboxSettings.findUnique({ where: { storeId: store.id }, select: { sellerLastSeenAt: true } }),
     db.inboxConversation.findUnique({
       where: { storeId_channel_externalThreadId: { storeId: store.id, channel: "livechat", externalThreadId: input.visitorKey } },
-      select: { contactEmail: true, contactPhone: true },
+      select: { contactEmail: true, contactPhone: true, tags: true },
     }),
   ]);
-  // When nobody is online we need a way to get back to the shopper.
-  if (!isSellerOnline(settings?.sellerLastSeenAt) && !email && !phone && !existing?.contactEmail && !existing?.contactPhone) {
+  // When nobody is online we need a way to get back to the shopper (unless the chatbot is answering live).
+  const assistant = await activeAssistant(store.id, settings?.sellerLastSeenAt);
+  const botAnswers = Boolean(assistant) && !existing?.tags.includes("needs-human");
+  if (!botAnswers && !isSellerOnline(settings?.sellerLastSeenAt) && !email && !phone && !existing?.contactEmail && !existing?.contactPhone) {
     return withCors(req, apiError("CONTACT_REQUIRED", "We're away right now. Leave your email or phone number so we can reply."), CORS);
   }
 

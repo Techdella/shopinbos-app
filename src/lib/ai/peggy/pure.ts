@@ -13,6 +13,8 @@ import { REVIEWS_TOOL_SPECS } from "./reviews-specs.ts";
 import { MARKETING_TOOL_SPECS } from "./marketing-specs.ts";
 import { COMMERCE_TOOL_SPECS } from "./commerce-specs.ts";
 import { CMS_TOOL_SPECS } from "./cms-specs.ts";
+import { EMAIL_TOOL_SPECS } from "./email-specs.ts";
+import { LEGAL_TOOL_SPECS } from "./legal-specs.ts";
 
 const DAY = 86_400_000;
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
@@ -191,6 +193,8 @@ export const PEGGY_TOOL_SPECS = {
   ...MARKETING_TOOL_SPECS,
   ...COMMERCE_TOOL_SPECS,
   ...CMS_TOOL_SPECS,
+  ...EMAIL_TOOL_SPECS,
+  ...LEGAL_TOOL_SPECS,
 } as const;
 
 export type PeggyToolName = keyof typeof PEGGY_TOOL_SPECS;

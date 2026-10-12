@@ -15,6 +15,8 @@ interface ChatMessage {
   body: string;
   at: string;
   auto: boolean;
+  /** Written by the chatbot (Peggy). */
+  bot?: boolean;
 }
 
 interface ChatState {
@@ -31,6 +33,8 @@ interface ChatState {
     enabled: boolean;
   };
   online: boolean;
+  /** The storefront chatbot, when it is answering right now. */
+  assistant?: { name: string; greeting: string; handedOff: boolean } | null;
   contact: { name: string | null; email: string | null; phone: string | null } | null;
   messages: ChatMessage[];
 }
@@ -59,6 +63,7 @@ export function LiveChatWidget({ slug }: { slug: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSeen, setLastSeen] = useState<string>("");
+  const [waitingSince, setWaitingSince] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const hidden = pathname?.includes("/preview");
 
@@ -109,7 +114,11 @@ export function LiveChatWidget({ slug }: { slug: string }) {
   if (!showChat && !showWhatsApp) return null;
 
   const hasContact = Boolean(state.contact?.email || state.contact?.phone);
-  const needContact = !hasContact && (!state.online || config.mode === "contact_form" || askContact);
+  const bot = state.assistant ?? null;
+  const botLive = Boolean(bot && !bot.handedOff);
+  const needContact = !hasContact && (bot?.handedOff || (!botLive && (!state.online || config.mode === "contact_form")) || askContact);
+  // "Peggy is typing" until her answer arrives (or 25 seconds pass, see send()).
+  const typing = botLive && waitingSince !== null && !messages.some((m) => m.from === "shop" && m.at > waitingSince);
   const unread = Boolean(lastShop && lastShop.at > lastSeen) && !open;
   const side = config.position === "left" ? "left-4" : "right-4";
   const visibility = `${config.showOnMobile ? "flex" : "hidden"} ${config.showOnDesktop ? "md:flex" : "md:hidden"}`;
@@ -142,6 +151,11 @@ export function LiveChatWidget({ slug }: { slug: string }) {
       return;
     }
     setText("");
+    if (botLive) {
+      const since = new Date(Date.now() - 2000).toISOString();
+      setWaitingSince(since);
+      window.setTimeout(() => setWaitingSince((current) => (current === since ? null : current)), 25_000);
+    }
     await load(true);
   }
 
@@ -169,7 +183,7 @@ export function LiveChatWidget({ slug }: { slug: string }) {
               <div className="truncate text-[15px] font-bold">{state.store.name}</div>
               <div className="flex items-center gap-1.5 text-[12px] text-white/75">
                 <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: state.online ? "#3BD16F" : "#B7B4BF" }} />
-                {state.online ? "Online now" : "Away. We'll reply by email or text."}
+                {botLive && bot ? `${bot.name} (AI assistant) is here to help` : state.online ? "Online now" : "Away. We'll reply by email or text."}
               </div>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-white/10">
@@ -178,16 +192,18 @@ export function LiveChatWidget({ slug }: { slug: string }) {
           </header>
 
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-[#F6F5F8] px-3 py-3" aria-live="polite">
-            <div className="max-w-[85%] self-start rounded-[16px] rounded-bl-[6px] bg-white px-3 py-2 text-[14px] leading-[1.45] shadow-sm">{config.greeting || "Hi there! How can we help?"}</div>
+            <div className="max-w-[85%] self-start rounded-[16px] rounded-bl-[6px] bg-white px-3 py-2 text-[14px] leading-[1.45] shadow-sm">{(botLive && bot?.greeting) || config.greeting || "Hi there! How can we help?"}</div>
             {messages.map((m) => (
               <div key={m.id} className={`max-w-[85%] whitespace-pre-wrap break-words rounded-[16px] px-3 py-2 text-[14px] leading-[1.45] ${m.from === "shopper" ? "self-end rounded-br-[6px] text-white" : "self-start rounded-bl-[6px] bg-white shadow-sm"}`} style={m.from === "shopper" ? { background: INK } : undefined}>
+                {m.bot && bot ? <div className="mb-0.5 text-[11px] font-bold text-black/50">{bot.name} · AI assistant</div> : m.bot ? <div className="mb-0.5 text-[11px] font-bold text-black/50">AI assistant</div> : null}
                 {m.body}
                 <div className={`mt-0.5 text-[10.5px] ${m.from === "shopper" ? "text-white/60" : "text-black/40"}`}>
                   {new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  {m.auto ? " · automatic reply" : ""}
+                  {m.auto && !m.bot ? " · automatic reply" : ""}
                 </div>
               </div>
             ))}
+            {typing && bot ? <div className="self-start rounded-[16px] rounded-bl-[6px] bg-white px-3 py-2 text-[13px] text-black/50 shadow-sm" role="status">{bot.name} is typing…</div> : null}
             <div ref={endRef} />
           </div>
 
@@ -200,7 +216,7 @@ export function LiveChatWidget({ slug }: { slug: string }) {
           >
             {needContact && (
               <div className="grid gap-2">
-                <p className="m-0 text-[12.5px] text-black/60">{state.online ? "Leave your email or phone so we can reply if you leave." : "We're away right now. Leave your email or phone and we'll reply there."}</p>
+                <p className="m-0 text-[12.5px] text-black/60">{bot?.handedOff ? "Someone from the shop will reply. Leave your email or phone in case you leave." : state.online ? "Leave your email or phone so we can reply if you leave." : "We're away right now. Leave your email or phone and we'll reply there."}</p>
                 <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" autoComplete="name" className={field} />
                 <div className="grid grid-cols-2 gap-2">
                   <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" aria-label="Your email" autoComplete="email" className={field} />
@@ -208,7 +224,7 @@ export function LiveChatWidget({ slug }: { slug: string }) {
                 </div>
               </div>
             )}
-            {!needContact && !hasContact && state.online && (
+            {!needContact && !hasContact && (state.online || botLive) && (
               <button type="button" onClick={() => setAskContact(true)} className="justify-self-start text-[12.5px] text-black/60 underline">Get the reply by email or text</button>
             )}
             {error && <p role="alert" className="m-0 text-[12.5px] font-semibold text-[#C0392B]">{error}</p>}
