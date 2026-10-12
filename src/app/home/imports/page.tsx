@@ -40,8 +40,7 @@ export default async function ImportsPage({ searchParams }: { searchParams?: Pro
       user={user}
       store={storeSummary(store)}
       title="Imports"
-      sub="Goods coming in from China through our sourcing partner."
-      actions={<PillLink href="/marketplace?tab=china" tone="ink" icon="plus">New import</PillLink>}
+      sub="Goods coming in from China through our sourcing partners. Coming soon."
     >
       <div className="grid gap-4">
         {params.requested && (
@@ -51,8 +50,8 @@ export default async function ImportsPage({ searchParams }: { searchParams?: Pro
         )}
 
         {imports.length === 0 ? (
-          <EmptyState icon="truck" title="No imports yet" action={<PillLink href="/marketplace?tab=china" tone="ink">Find something in China</PillLink>}>
-            Paste a 1688 link or send a photo. Our sourcing partner buys it, checks it and ships it to Lagos, and you pay in naira.
+          <EmptyState icon="truck" title="Importing from China is coming soon" action={<PillLink href="/marketplace" tone="ink">Find products from local suppliers</PillLink>}>
+            We&apos;re setting it up with trusted sourcing partners. You&apos;ll paste a 1688 link or send a photo, they buy it, check it and ship it to you, and you pay in naira.
           </EmptyState>
         ) : (
           <ul className="m-0 grid list-none gap-4 p-0">

@@ -2,9 +2,8 @@ import Link from "next/link";
 import { PillLink } from "@/components/app-kit";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { IMPORT_EXAMPLES, IMPORT_HOW_IT_WORKS, type FindProduct, type PeggyInsight, type TrendIdea } from "@/lib/marketplace/find";
+import { IMPORT_HOW_IT_WORKS, type FindProduct, type PeggyInsight, type TrendIdea } from "@/lib/marketplace/find";
 import { ProductGrid } from "./ProductGrid";
-import { ChinaImportForm } from "./ChinaImportForm";
 
 export type FindTab = "nigeria" | "china" | "trending";
 
@@ -42,7 +41,7 @@ export interface FindProductsViewProps {
 }
 
 /** Body of "Find products to sell" under the page title: tabs, search, and the active tab. */
-export function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified, error, focusPhoto }: FindProductsViewProps) {
+export function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified }: FindProductsViewProps) {
   const hrefFor = findHref;
   const tabs: Array<{ id: FindTab; label: string }> = [
     { id: "nigeria", label: country },
@@ -64,6 +63,7 @@ export function FindProductsView({ tab, country, q, cat, categories, products, s
               )}
             >
               {item.label}
+              {item.id === "china" ? <span className="ml-1.5 rounded-full bg-app-peach px-2 py-0.5 text-[11px] font-extrabold text-app-ink">Soon</span> : null}
             </Link>
           ))}
         </nav>
@@ -71,9 +71,6 @@ export function FindProductsView({ tab, country, q, cat, categories, products, s
           <Icon name="search" size={16} className="shrink-0 text-app-ink-soft" />
           {cat && tab === "nigeria" ? <input type="hidden" name="cat" value={cat} /> : null}
           <input name="q" defaultValue={q} placeholder="Shoes, bags, beauty…" aria-label="Search products and suppliers" className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
-          <Link href={hrefFor("china", { photo: "1" })} aria-label="Search with a photo" title="Search with a photo" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-ink">
-            <Icon name="image" size={17} />
-          </Link>
         </form>
       </div>
 
@@ -131,9 +128,20 @@ export function FindProductsView({ tab, country, q, cat, categories, products, s
 
       {tab === "china" && (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <ChinaImportForm examples={IMPORT_EXAMPLES} error={error} focusPhoto={focusPhoto} />
+          {/* Importing goes through trusted middlemen; it isn't open to sellers yet. */}
+          <section className="rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
+            <span className="inline-flex rounded-full bg-app-peach px-3 py-1 text-[12px] font-extrabold uppercase tracking-[0.08em]">Coming soon</span>
+            <h2 className="m-0 mt-3 text-[20px] font-extrabold tracking-[-0.01em]">Import from China, paid in naira</h2>
+            <p className="m-0 mt-2 max-w-[560px] text-[14.5px] leading-[1.55] text-app-ink-soft">
+              We&apos;re setting this up with trusted sourcing partners. Soon you&apos;ll paste a 1688 link or send a photo, and they&apos;ll buy it,
+              check it and ship it to you. Until then, find stock from suppliers in {country}.
+            </p>
+            <Link href={hrefFor("nigeria")} className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14.5px] font-extrabold text-white no-underline">
+              Shop {country} suppliers
+            </Link>
+          </section>
           <section className="rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
-            <h2 className="m-0 text-[15.5px] font-extrabold">How importing works</h2>
+            <h2 className="m-0 text-[15.5px] font-extrabold">How it will work</h2>
             <ol className="m-0 mt-3 grid list-none gap-3 p-0">
               {IMPORT_HOW_IT_WORKS.map((step, index) => (
                 <li key={step} className="flex items-start gap-3">
