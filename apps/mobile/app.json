@@ -23,7 +23,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -40,7 +43,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose product photos so Rex can list them in your shop.",
-          "cameraPermission": "Take photos of your products, and proof of delivery photos."
+          "cameraPermission": "Take photos of your products, and proof of delivery photos.",
+          "microphonePermission": false
         }
       ],
       [
@@ -52,6 +56,13 @@
           "backgroundColor": "#0C4A44"
         }
       ]
-    ]
+    ],
+    "owner": "shopinbos-app",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4ae115fe-eb0f-4c1c-82f4-9e38b3c88c07"
+      }
+    }
   }
 }
