@@ -191,8 +191,8 @@ Sent from in-app events (sign-up, store published, order paid, dropship/wholesal
 
 Status: tsc clean, unit tests (`tests/lifecycle.test.mjs`), production build. Not exercised against the live database or Resend.
 
-- [ ] Apply `docs/migrations/2026-10-16-lifecycle-emails.sql` (the code no-ops until the table exists).
-- [ ] After deploy: schedule the `lifecycle-emails` pg_cron job (commented at the end of the same file).
+- [x] Applied `docs/migrations/2026-10-16-lifecycle-emails.sql` to the live database (2026-10-12, migration lifecycle_emails_2026_10_16).
+- [x] Scheduled the `lifecycle-emails` pg_cron job (hourly at :23). It gets a 404 until this branch is deployed, then starts sending.
 
 ## Current Todos
 
