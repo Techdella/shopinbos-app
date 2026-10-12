@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { storeUrl } from "@/lib/marketing/brand";
 import { orderStatusSideEffects } from "@/lib/orders/status-effects";
-import { activeReplacement, canUndoSwitch, costChangeWords, nameWords, orderParts, retailStatusFromParts, switchedMessage, type OrderPartsSummary } from "@shared/order-parts";
+import { activeReplacement, canUndoSwitch, costChangeWords, nameWords, orderParts, retailStatusFromParts, stageFromParts, switchedMessage, type OrderPartsSummary } from "@shared/order-parts";
 import { orderLines } from "./views.server";
 
 // A shop order sent in more than one parcel: one per supplier, plus the lines the seller sends from their own
@@ -164,6 +164,8 @@ export interface SellerProblem {
 }
 
 export interface SellerPartsView {
+  /** The order's stage while suppliers send it (instead of "Needs a rider"), or null. */
+  stage: { label: string; tone: "accent" | "success" | "warning" | "muted" | "danger" } | null;
   line: string | null;
   total: number;
   sent: number;
@@ -224,6 +226,7 @@ export async function sellerPartsView(retailOrderId: string, storeId: string): P
   }
   const needsChoice = problems.some((problem) => problem.needsChoice && problem.status === "expired");
   return {
+    stage: stageFromParts(order.status, summary),
     line: summary.line,
     total: summary.total,
     sent: summary.sent,

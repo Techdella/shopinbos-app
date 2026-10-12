@@ -42,8 +42,8 @@ function Parcels({ parts }: { parts: OrderParts }) {
       <T weight="extrabold" style={{ fontSize: 22 }}>{parts.line ?? "Sent by the supplier"}</T>
       {parts.parts.map((part) => (
         <View key={part.key} style={{ gap: 4, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.line }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <T weight="bold" style={{ flexShrink: 1 }}>{part.kind === "own" ? "Your part" : part.name}</T>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+            <T weight="bold">{part.kind === "own" ? "Your part" : part.name}</T>
             <Badge label={part.label} tone={PART_TONE[part.state] ?? "muted"} />
           </View>
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{part.items}</T>

@@ -24,7 +24,8 @@ export const GET = withSeller(async (req, { user, params }) => {
   // Parcels ("2 of 3 parcels sent") and anything the seller has to decide (a supplier didn't accept in time).
   const parts = await sellerPartsView(order.id, store.id).catch(() => null);
 
-  return ok({ ...order, supplierOrders, parts, row: orderRow({ ...order, total: Number(order.total) }) });
+  const row = orderRow({ ...order, total: Number(order.total) });
+  return ok({ ...order, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {
@@ -45,5 +46,6 @@ export const PATCH = withSeller(async (req, { user, params }) => {
   const updated = result.order;
   const parts = await sellerPartsView(updated.id, store.id).catch(() => null);
 
-  return ok({ ...updated, parts, row: orderRow({ ...updated, total: Number(updated.total) }) });
+  const row = orderRow({ ...updated, total: Number(updated.total) });
+  return ok({ ...updated, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row });
 });

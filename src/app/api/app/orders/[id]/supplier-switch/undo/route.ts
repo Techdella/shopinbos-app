@@ -23,5 +23,5 @@ export const POST = withSeller(async (req, { user, params }) => {
   const order = await db.retailOrder.findFirst({ where: { id, storeId: store.id } });
   if (!order) return apiError("NOT_FOUND", "Order not found", 404);
   const parts = await sellerPartsView(order.id, store.id).catch(() => null);
-  return ok({ ...order, parts, row: orderRow({ ...order, total: Number(order.total) }) });
+  return ok({ ...order, parts, row: parts?.stage ? { ...orderRow({ ...order, total: Number(order.total) }), stage: parts.stage } : orderRow({ ...order, total: Number(order.total) }) });
 });

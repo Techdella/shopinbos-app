@@ -92,6 +92,18 @@ test("status aggregation: the plain cases", () => {
   assert.equal(op.customerProgress({ status: "processing", partlySentAt: null }), null);
 });
 
+test("the seller's stage while suppliers send it: never 'Needs a rider' when there's nothing to send", () => {
+  const stage = (retail, statuses, own = null) => op.stageFromParts(retail, summary(statuses, own))?.label ?? null;
+  assert.equal(stage("paid", ["pending"]), "Waiting for the supplier");
+  assert.equal(stage("processing", ["accepted", "pending"]), "Supplier is packing it");
+  assert.equal(stage("processing", ["shipped", "accepted"]), "1 of 2 parcels sent");
+  assert.equal(stage("processing", ["shipped", "expired"]), "Needs you");
+  assert.equal(stage("processing", ["shipped"], "waiting"), null, "the seller still sends their part: the usual stage");
+  assert.equal(stage("processing", ["expired"], "waiting"), "Needs you");
+  assert.equal(stage("shipped", ["shipped"]), null);
+  assert.equal(stage("pending", ["pending"]), null, "unpaid: the usual 'Waiting for payment'");
+});
+
 test("status aggregation: an expired part that went to another supplier is replaced by the new supplier's parcel", () => {
   const rows = [
     { id: "a", status: "expired", supplierName: "Adaeze Fabrics" },

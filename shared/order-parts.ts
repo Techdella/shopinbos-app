@@ -139,6 +139,20 @@ export function retailStatusFromParts(retailStatus: string, summary: Pick<OrderP
   return null;
 }
 
+/**
+ * The order's stage for the seller while suppliers send it ("Needs a rider" would be wrong: there's nothing for
+ * the seller to send). Null when the seller still sends a part of their own, or when the order's own stage is right.
+ */
+export function stageFromParts(retailStatus: string, summary: Pick<OrderPartsSummary, "parts" | "total" | "sent" | "problems" | "line">): { label: string; tone: "accent" | "success" | "warning" | "muted" | "danger" } | null {
+  if (!["pending", "awaiting_payment", "paid", "processing", "packed"].includes(retailStatus) || summary.total === 0) return null;
+  if (summary.parts.some((part) => part.kind === "own" && part.state === "waiting") && summary.problems === 0) return null;
+  if (summary.problems > 0) return { label: "Needs you", tone: "danger" };
+  if (summary.sent > 0) return { label: summary.line ?? "Partly sent", tone: "accent" };
+  if (["pending", "awaiting_payment"].includes(retailStatus)) return null;
+  if (summary.parts.some((part) => part.state === "preparing")) return { label: "Supplier is packing it", tone: "warning" };
+  return { label: "Waiting for the supplier", tone: "warning" };
+}
+
 /** What the customer sees while some parcels are on the way and others aren't. */
 export const PARTLY_SENT_TEXT = "Part of your order is on its way";
 

@@ -84,7 +84,9 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const logistics = order.logisticsDetails && typeof order.logisticsDetails === "object" && !Array.isArray(order.logisticsDetails)
     ? (order.logisticsDetails as Record<string, unknown>)
     : null;
-  const row = orderRow({ ...order, total: Number(order.total) });
+  const baseRow = orderRow({ ...order, total: Number(order.total) });
+  // Suppliers send it: "Waiting for the supplier" / "1 of 2 parcels sent" / "Needs you", not "Needs a rider".
+  const row = parts?.stage ? { ...baseRow, stage: parts.stage } : baseRow;
   const money = (amount: number) => (store.currency === "NGN" ? naira(amount) : `${store.currency} ${Math.round(amount).toLocaleString("en-NG")}`);
   const channel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
   const discount = Number(order.discountAmount ?? 0);
@@ -112,7 +114,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
       )}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <StageDot tone={row.stage.tone}>{row.stage.label}</StageDot>
-        {parts?.line && <Pill tone={parts.sent === parts.total ? "success" : "info"}>{parts.line}</Pill>}
+        {parts?.line && parts.line !== row.stage.label && <Pill tone={parts.sent === parts.total ? "success" : "info"}>{parts.line}</Pill>}
         <Pill tone={row.payment.tone}>{row.payment.label}</Pill>
         {channel && <span className="text-[13.5px] text-app-ink-soft">From {channel}</span>}
       </div>
