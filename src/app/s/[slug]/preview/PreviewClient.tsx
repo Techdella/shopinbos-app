@@ -54,7 +54,7 @@ export function PreviewClient({ store, storeBasePath, live }: PreviewClientProps
 
   return (
     <PreviewFrame variant={!live ? "not-live" : draft ? "draft" : "published"}>
-      <StorefrontClient store={store} storeBasePath={storeBasePath} previewSnapshot={draft} previewMode={false} />
+      <StorefrontClient store={store} storeBasePath={storeBasePath} previewSnapshot={draft} previewMode={false} ownerPreview={!live} />
     </PreviewFrame>
   );
 }
