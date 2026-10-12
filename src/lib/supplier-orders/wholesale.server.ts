@@ -5,6 +5,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { parsePricingTiers, tierPrice } from "@/lib/marketplace/find";
 import { SELLER_CANCELLABLE_WHOLESALE, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
 import type { ServiceResult } from "./service.server";
+import { queueLifecycle } from "@/lib/lifecycle/run.server";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
 // for the quantity). There's no payment rail for this yet: the supplier sends an invoice and the seller pays them
@@ -82,6 +83,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     return short(fresh?.stockQuantity ?? 0);
   }
 
+  queueLifecycle(product.supplier.userId); // first order, order milestones
   await createNotification({
     userId: product.supplier.userId,
     type: "suppliers",

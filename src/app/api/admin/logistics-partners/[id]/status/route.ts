@@ -4,6 +4,7 @@ import { withAdmin } from "@/lib/auth/middleware";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { queueLifecycleFor } from "@/lib/lifecycle/run.server";
 
 const LogisticsModerationSchema = z.object({
   action: z.enum(["approve", "reject", "suspend", "activate"]),
@@ -46,5 +47,6 @@ export const PATCH = withAdmin(async (req: NextRequest, { params }) => {
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 
   invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
+  if (action === "approve" || action === "reject") queueLifecycleFor({ logisticsPartnerId: partner.id }); // verified / not approved email
   return ok(partner);
 });

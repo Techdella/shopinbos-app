@@ -6,6 +6,7 @@ import { DeliveryBookingCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
+import { queueLifecycleFor } from "@/lib/lifecycle/run.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -58,6 +59,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     data: { sellerId: user.id, ...parsed.data, codAmount },
   });
   void emitPartnerEvent(partner.id, "job.offered", partnerJob(booking)).catch(() => undefined);
+  queueLifecycleFor({ logisticsPartnerId: partner.id }); // first booking
 
   return ok(booking, 201);
 });
