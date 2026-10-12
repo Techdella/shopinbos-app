@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
+import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
+import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
 import { respondToDeliveryQuote, updateDeliveryBookingStatus } from "@/app/actions/logistics";
 import { Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
@@ -102,6 +104,10 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       actions={<Pill tone={taking ? "success" : "muted"} dot>{taking ? "Taking new jobs" : "Not taking new jobs"}</Pill>}
     >
       <ActionNotice saved={saved} error={error} savedText="Done. The job list is up to date." />
+
+      <div className="mb-5">
+        <VerificationChecklist docs={partner.verificationDocuments} configs={LOGISTICS_DOC_TYPES} verificationStatus={partner.verificationStatus} href="/logistics/verification" />
+      </div>
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="New requests" value={newCount} />

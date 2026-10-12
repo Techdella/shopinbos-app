@@ -65,8 +65,16 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   const { groups } = groupDropshipLines(order.items, links);
   if (!groups.length) return { created: 0 };
 
+  // Already sent (a replayed event): skip without touching the unique index; a true race still hits it below.
+  const existing = await db.supplierOrder.findMany({
+    where: { idempotencyKey: { in: groups.map((group) => supplierOrderKey(order.id, group.supplierId)) } },
+    select: { idempotencyKey: true },
+  });
+  const sent = new Set(existing.map((row) => row.idempotencyKey));
+
   const created: Array<{ id: string; supplierId: string; items: SupplierOrderLine[]; costTotal: number }> = [];
   for (const group of groups) {
+    if (sent.has(supplierOrderKey(order.id, group.supplierId))) continue;
     try {
       const row = await db.supplierOrder.create({
         data: {

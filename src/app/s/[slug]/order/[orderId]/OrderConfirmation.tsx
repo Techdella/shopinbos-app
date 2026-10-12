@@ -86,7 +86,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
     : isPaid
       ? `Your order is confirmed. We've sent the details to ${order.buyerEmail}.`
       : method === "transfer"
-        ? "Your order is placed. Send your bank transfer below and the store confirms it once the money arrives."
+        ? "Your order is placed. Send your bank transfer below soon: unpaid orders release their items after about 30 minutes. The store confirms it once the money arrives."
         : method === "pay_on_delivery"
           ? `Your order is placed. You pay ${amount} when it arrives.`
           : "We haven't received your payment yet. If you paid, this page updates once Paystack confirms it.";

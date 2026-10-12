@@ -94,6 +94,8 @@ export const SupplierOnboardingSchema = z.object({
   documentFindings: z.record(z.string(), z.string().max(500)).default({}),
   readinessScore: z.number().int().min(0).max(100).default(0),
   completed: z.boolean().default(false),
+  /** "I'll add my documents later": opens the portal (unverified) instead of submitting. */
+  docsLater: z.boolean().optional(),
 });
 
 export const SupplierSchema = SupplierCreateSchema.extend({

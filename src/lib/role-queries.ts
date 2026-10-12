@@ -28,7 +28,10 @@ export function isOnboardingComplete(entity: { onboardingState: unknown; verific
   // (seeded and admin-created partners have no wizard state).
   if (entity.verificationStatus === "verified") return true;
   const state = entity.onboardingState;
-  return Boolean(state && typeof state === "object" && !Array.isArray(state) && (state as { completed?: boolean }).completed === true);
+  if (!state || typeof state !== "object" || Array.isArray(state)) return false;
+  const s = state as { completed?: boolean; docsLaterAt?: unknown };
+  // "Add documents later" opens the portal while the account stays unverified (nothing public until approved).
+  return s.completed === true || typeof s.docsLaterAt === "string";
 }
 
 export function isProPlan(user: { aiCredits?: number | null }) {

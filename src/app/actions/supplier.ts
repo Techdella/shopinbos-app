@@ -24,6 +24,14 @@ async function getSupplierActor() {
   return { user, supplier };
 }
 
+/** Onboarded is enough to draft products; only verified suppliers can send them for review. */
+function assertOnboardedSupplier(supplier: { verificationStatus: string; onboardingState: unknown }) {
+  if (!isOnboardingComplete(supplier)) redirect("/supplier/onboarding");
+  return supplier.verificationStatus === "verified";
+}
+
+const DRAFT_UNTIL_VERIFIED = "Saved as a draft. You can send products for review once your business is verified.";
+
 function assertVerifiedSupplier(supplier: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(supplier)) redirect("/supplier/onboarding");
   if (supplier.verificationStatus !== "verified") redirect("/supplier/verification");
@@ -104,7 +112,7 @@ function readProductPayload(formData: FormData, status: "draft" | "pending_revie
 
 export async function createSupplierProduct(formData: FormData) {
   const { user, supplier } = await getSupplierActor();
-  assertVerifiedSupplier(supplier);
+  const verified = assertOnboardedSupplier(supplier);
 
   const [dbUser, productCount] = await Promise.all([
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
@@ -114,7 +122,8 @@ export async function createSupplierProduct(formData: FormData) {
     redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=products");
   }
 
-  const status = formData.get("intent") === "submit" ? "pending_review" : "draft";
+  const wantsReview = formData.get("intent") === "submit";
+  const status = wantsReview && verified ? "pending_review" : "draft";
   const parsed = SupplierProductCreateSchema.safeParse(readProductPayload(formData, status));
 
   if (!parsed.success) {
@@ -135,12 +144,12 @@ export async function createSupplierProduct(formData: FormData) {
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: category.slug });
   revalidatePath("/supplier/products");
   revalidatePath("/supplier/dashboard");
-  redirect(`/supplier/products/${product.id}/edit`);
+  redirect(`/supplier/products/${product.id}/edit${wantsReview && !verified ? `?error=${encodeURIComponent(DRAFT_UNTIL_VERIFIED)}` : ""}`);
 }
 
 export async function updateSupplierProduct(formData: FormData) {
   const { supplier } = await getSupplierActor();
-  assertVerifiedSupplier(supplier);
+  const verified = assertOnboardedSupplier(supplier);
   const productId = String(formData.get("productId") || "");
   const product = productId
     ? await db.supplierProduct.findFirst({
@@ -151,7 +160,8 @@ export async function updateSupplierProduct(formData: FormData) {
 
   if (!product) redirect("/supplier/products");
 
-  const requestedStatus = formData.get("intent") === "submit" ? "pending_review" : product.status === "published" ? "pending_review" : "draft";
+  const wantsReview = formData.get("intent") === "submit";
+  const requestedStatus = !verified ? "draft" : wantsReview ? "pending_review" : product.status === "published" ? "pending_review" : "draft";
   const parsed = SupplierProductCreateSchema.safeParse(readProductPayload(formData, requestedStatus));
 
   if (!parsed.success) {
@@ -170,7 +180,7 @@ export async function updateSupplierProduct(formData: FormData) {
   revalidatePath("/supplier/products");
   revalidatePath(`/supplier/products/${product.id}/edit`);
   revalidatePath("/supplier/dashboard");
-  redirect(`/supplier/products/${product.id}/edit?saved=1`);
+  redirect(`/supplier/products/${product.id}/edit?${wantsReview && !verified ? `error=${encodeURIComponent(DRAFT_UNTIL_VERIFIED)}` : "saved=1"}`);
 }
 
 export async function respondToSupplierQuote(formData: FormData) {
