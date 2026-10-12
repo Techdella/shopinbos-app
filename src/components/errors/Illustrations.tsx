@@ -1,67 +1,14 @@
-// Little animated scenes for the 404, error and "not open yet" pages. Decorative (aria-hidden), drawn in the
-// --sx-* colours ErrorScene sets, animated by errors.css (transforms only; off under reduced motion).
+// Little animated scenes for the storefront 404, error and "not open yet" pages (the app's own pages use Peggy
+// and Rex from MascotScenes). Decorative (aria-hidden), drawn in the --sx-* colours ErrorScene sets, animated by
+// errors.css (transforms only; off under reduced motion).
 
 const INK = "var(--sx-ink)";
 const ACCENT = "var(--sx-accent)";
 const WARM = "var(--sx-warm)";
 const PAPER = "var(--sx-paper)";
-const SKIN = "#7A4A2A";
 
-function Wheel({ cx, cy }: { cx: number; cy: number }) {
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={22} fill="none" stroke={INK} strokeWidth={6} />
-      <g className="sbx-a-spin">
-        <circle cx={cx} cy={cy} r={22} fill="none" stroke="none" />
-        <path d={`M${cx - 16} ${cy}H${cx + 16}M${cx} ${cy - 16}V${cy + 16}M${cx - 11} ${cy - 11}L${cx + 11} ${cy + 11}`} stroke={INK} strokeOpacity={0.45} strokeWidth={2} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={4} fill={INK} />
-      </g>
-    </g>
-  );
-}
-
-/** A dispatch rider on an okada, lost, while his parcel tumbles off the back. (App 404.) */
-export function OkadaScene() {
-  const dashes = Array.from({ length: 9 }, (_, i) => i * 48);
-  return (
-    <svg viewBox="0 0 320 200" width="100%" height="100%" aria-hidden focusable="false">
-      <line x1={0} y1={176} x2={320} y2={176} stroke={INK} strokeOpacity={0.14} strokeWidth={2} />
-      <g className="sbx-a-road">
-        {dashes.map((x) => <rect key={x} x={x} y={186} width={24} height={3} rx={1.5} fill={INK} fillOpacity={0.18} />)}
-      </g>
-      <circle className="sbx-a-puff" cx={58} cy={160} r={6} fill={INK} fillOpacity={0.14} />
-      <circle className="sbx-a-puff2" cx={52} cy={152} r={4} fill={INK} fillOpacity={0.14} />
-      <g className="sbx-a-bob">
-        <Wheel cx={90} cy={152} />
-        <Wheel cx={226} cy={152} />
-        <path d="M90 152L138 122H196L226 152" fill="none" stroke={INK} strokeWidth={6} strokeLinejoin="round" strokeLinecap="round" />
-        <path d="M226 152L206 92M198 90L222 85" fill="none" stroke={INK} strokeWidth={6} strokeLinecap="round" />
-        <path d="M130 122Q160 142 192 122L188 138Q160 152 134 138Z" fill={ACCENT} />
-        <rect x={70} y={112} width={50} height={6} rx={3} fill={INK} />
-        <rect x={118} y={108} width={50} height={10} rx={5} fill={INK} />
-        <g className="sbx-a-tumble">
-          <rect x={74} y={78} width={38} height={34} rx={4} fill={WARM} />
-          <path d="M93 78V112" stroke={PAPER} strokeWidth={4} />
-          <path d="M80 86h7" stroke={INK} strokeOpacity={0.35} strokeWidth={2} strokeLinecap="round" />
-        </g>
-        <path d="M150 110L176 132L172 150" fill="none" stroke={INK} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M148 108L168 68" stroke={ACCENT} strokeWidth={17} strokeLinecap="round" />
-        <path d="M166 74L202 88" stroke={ACCENT} strokeWidth={8} strokeLinecap="round" />
-        <circle cx={172} cy={50} r={13} fill={SKIN} />
-        <path d="M157 50a15 15 0 0130 0Z" fill={INK} />
-        <path d="M183 47h7" stroke={WARM} strokeWidth={3} strokeLinecap="round" />
-      </g>
-      <g className="sbx-a-float">
-        <path d="M236 52l-6 12 14-8z" fill={PAPER} stroke={INK} strokeWidth={2} strokeLinejoin="round" />
-        <circle cx={252} cy={36} r={18} fill={PAPER} stroke={INK} strokeWidth={2} />
-        <text x={252} y={43} textAnchor="middle" fontSize={21} fontWeight={700} fill={INK} fontFamily="inherit">?</text>
-      </g>
-    </svg>
-  );
-}
-
-/** Rex the store-builder robot, mid-repair with a screwdriver, sparks flying. (App errors.) */
-export function RexRepairScene() {
+/** A little repair robot, mid-fix with a screwdriver, sparks flying. (Storefront errors: a generic character, not Rex.) */
+export function RepairBotScene() {
   return (
     <svg viewBox="0 0 320 200" width="100%" height="100%" aria-hidden focusable="false">
       <line x1={20} y1={180} x2={300} y2={180} stroke={INK} strokeOpacity={0.14} strokeWidth={2} />

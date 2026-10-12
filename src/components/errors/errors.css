@@ -4,31 +4,11 @@
 .sbx-scene svg { overflow: visible; }
 :where(.sbx-scene) [class*="sbx-a-"] { transform-box: fill-box; transform-origin: center; }
 
-/* Okada (404): the bike bobs, wheels spin, the road slides, the parcel tumbles off the back. */
-.sbx-a-bob { animation: sbx-bob 0.9s ease-in-out infinite; }
-.sbx-a-spin { animation: sbx-spin 0.7s linear infinite; }
-.sbx-a-road { animation: sbx-road 0.9s linear infinite; transform-box: view-box; }
-.sbx-a-tumble { animation: sbx-tumble 4.8s cubic-bezier(.45,.05,.55,.95) infinite; }
-.sbx-a-puff { animation: sbx-puff 0.9s ease-out infinite; transform-origin: right center; }
-.sbx-a-puff2 { animation: sbx-puff 0.9s ease-out 0.45s infinite; transform-origin: right center; }
+/* Shared by the scenes below. */
 .sbx-a-float { animation: sbx-float 2.4s ease-in-out infinite; }
-
-@keyframes sbx-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes sbx-spin { to { transform: rotate(360deg); } }
-@keyframes sbx-road { from { transform: translateX(0); } to { transform: translateX(-48px); } }
-@keyframes sbx-tumble {
-  0%, 52% { transform: translate(0, 0) rotate(0); opacity: 1; }
-  56% { transform: translate(-2px, -18px) rotate(-14deg); }
-  66% { transform: translate(-34px, -30px) rotate(-120deg); }
-  78% { transform: translate(-76px, 38px) rotate(-250deg); opacity: 1; }
-  84% { transform: translate(-96px, 34px) rotate(-270deg); opacity: 0; }
-  92% { transform: translate(0, -40px) rotate(0); opacity: 0; }
-  100% { transform: translate(0, 0) rotate(0); opacity: 1; }
-}
-@keyframes sbx-puff { 0% { transform: scale(0.4); opacity: 0.7; } 100% { transform: translateX(-22px) scale(1.4); opacity: 0; } }
 @keyframes sbx-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
 
-/* Rex with a screwdriver (errors): arm twists, eyes blink, antenna light flickers, sparks pop, a bolt rolls. */
+/* Repair robot (storefront errors): arm twists, eyes blink, antenna light flickers, sparks pop, a bolt rolls. */
 .sbx-a-twist { animation: sbx-twist 0.6s ease-in-out infinite alternate; transform-origin: 8% 50%; }
 .sbx-a-blink { animation: sbx-blink 3.6s ease-in-out infinite; }
 .sbx-a-flicker { animation: sbx-flicker 1.4s steps(2, jump-none) infinite; }
@@ -59,6 +39,49 @@
 }
 @keyframes sbx-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.25; } 50% { transform: scaleX(0.55); opacity: 0.1; } }
 @keyframes sbx-swing { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+/* Peggy and Rex (MascotScenes). The sprite boxes are HTML, so they pivot on their own feet. */
+.sbx-sprite { will-change: transform; }
+.sbx-scene .sbx-a-rex { animation: sbx-rex 2.4s cubic-bezier(.45,.05,.55,.95) infinite; transform-origin: 50% 100%; }
+.sbx-scene .sbx-a-peggy { animation: sbx-peggy 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.sbx-scene .sbx-a-headtilt { animation: sbx-headtilt 4.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.sbx-a-shadow-rex { animation: sbx-shadow-rex 2.4s cubic-bezier(.45,.05,.55,.95) infinite; }
+.sbx-a-shadow-peggy { animation: sbx-shadow-peggy 2.2s ease-in-out infinite; }
+.sbx-a-wrench { animation: sbx-wrench 1.2s ease-in-out infinite; }
+.sbx-a-gear { animation: sbx-spin 6s linear infinite; }
+.sbx-a-gear-rev { animation: sbx-spin 4.1s linear infinite reverse; }
+.sbx-a-zap { animation: sbx-zap 2.6s steps(1, end) infinite; }
+.sbx-a-sweep { animation: sbx-sweep 3.2s ease-in-out infinite; }
+.sbx-a-lens-spot { animation: sbx-lens-spot 3.2s ease-in-out infinite; }
+.sbx-a-glint { animation: sbx-glint 3.2s ease-in-out infinite; }
+.sbx-a-q { animation: sbx-q 3.6s ease-out infinite; }
+.sbx-a-q2 { animation: sbx-q 3.6s ease-out 1.2s infinite; }
+.sbx-a-q3 { animation: sbx-q 3.6s ease-out 2.4s infinite; }
+
+/* Rex leans into the spanner, then a little jolt as the bolt gives. */
+@keyframes sbx-rex {
+  0%, 100% { transform: rotate(-1.5deg); }
+  40% { transform: rotate(2.5deg) translateY(-1px); }
+  48% { transform: rotate(-2deg) translateY(1px); }
+  56% { transform: rotate(1deg); }
+}
+@keyframes sbx-shadow-rex { 0%, 100% { transform: scaleX(1); } 40% { transform: scaleX(0.94) translateX(2px); } }
+@keyframes sbx-wrench { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(9deg); } }
+@keyframes sbx-spin { to { transform: rotate(360deg); } }
+@keyframes sbx-zap { 0%, 62%, 70%, 100% { opacity: 1; } 64%, 74% { opacity: 0.15; } }
+/* Peggy bobs on her toes and cocks her head as she searches. */
+@keyframes sbx-peggy { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes sbx-shadow-peggy { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(0.9); opacity: 0.7; } }
+@keyframes sbx-headtilt { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-3.5deg); } 60% { transform: rotate(2.5deg); } }
+@keyframes sbx-sweep { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(12deg); } }
+@keyframes sbx-lens-spot { 0%, 100% { transform: translateX(-10px) scaleX(0.8); opacity: 0.5; } 50% { transform: translateX(12px) scaleX(1.1); opacity: 1; } }
+@keyframes sbx-glint { 0%, 30%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes sbx-q {
+  0% { transform: translateY(10px) scale(0.6) rotate(-10deg); opacity: 0; }
+  20% { opacity: 1; }
+  70% { opacity: 0.9; }
+  100% { transform: translateY(-16px) scale(1) rotate(8deg); opacity: 0; }
+}
 
 /* The quip swap. */
 .sbx-quip { transition: opacity 260ms ease, transform 260ms ease; }

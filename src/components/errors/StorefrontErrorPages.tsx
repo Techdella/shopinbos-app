@@ -8,7 +8,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { STORE_ERROR_LINES, STORE_NOT_FOUND_LINES } from "./copy";
 import { ErrorScene, type SceneAction } from "./ErrorScene";
 import { StoreMark, shopperPalette } from "./store-brand";
-import { RexRepairScene, TumblingParcelScene } from "./Illustrations";
+import { RepairBotScene, TumblingParcelScene } from "./Illustrations";
 import { useStoreBrand } from "./StoreBrandContext";
 
 // Storefront 404 and error pages, in the shop's own colours and fonts. They speak for the shop, so no
@@ -67,7 +67,7 @@ export function StorefrontError({ error, retry }: { error: Error & { digest?: st
           { label: "Back to the shop", href: shopHref, icon: "store", external: true },
         ]}
         digest={error.digest}
-        illustration={<RexRepairScene />}
+        illustration={<RepairBotScene />}
         brand={brand ? <StoreMark name={brand.name} logoUrl={brand.logoUrl} href={shopHref} theme={theme} /> : null}
       />
     </div>
