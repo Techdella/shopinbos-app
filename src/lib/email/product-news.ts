@@ -67,6 +67,8 @@ export interface NewsImageHosts {
   storage: string[];
   /** Our own sites (the app, shopinbos.com): any path. */
   own: string[];
+  /** Local development only: the storage URL itself is http on a loopback host (the mock Supabase), so http is accepted for it. */
+  localStorageHttp?: boolean;
 }
 
 export function isAllowedNewsImage(url: string | null | undefined, hosts: NewsImageHosts) {
@@ -78,9 +80,12 @@ export function isAllowedNewsImage(url: string | null | undefined, hosts: NewsIm
   } catch {
     return false;
   }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password) return false;
+  if (parsed.username || parsed.password) return false;
   const host = parsed.host.toLowerCase();
-  if (hosts.storage.map((h) => h.toLowerCase()).includes(host) && parsed.pathname.startsWith("/storage/v1/object/public/")) return true;
+  const isStorage = hosts.storage.map((h) => h.toLowerCase()).includes(host) && parsed.pathname.startsWith("/storage/v1/object/public/");
+  if (parsed.protocol === "http:" && hosts.localStorageHttp && isStorage && /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) return true;
+  if (parsed.protocol !== "https:") return false;
+  if (isStorage) return true;
   return hosts.own.some((own) => {
     const o = own.toLowerCase();
     return host === o || host.endsWith(`.${o}`);

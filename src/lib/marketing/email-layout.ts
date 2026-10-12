@@ -4,7 +4,7 @@
 // brand kit or business address change shows up in every email.
 
 import { BLEED_MARK, readTheme, themePalette } from "./blocks.ts";
-import { emailDocument, storeFooter, storeHeader, type EmailKind, type StoreSender } from "../email/shell.ts";
+import { EMAIL_DARK, emailDocument, storeFooter, storeHeader, type EmailKind, type StoreSender } from "../email/shell.ts";
 
 // ─── Pasted full-HTML templates ─────────────────────────────────────────────────
 
@@ -25,6 +25,97 @@ export function logoHeaderOn(html: string) {
 export function setLogoHeader(html: string, on: boolean) {
   const clean = html.split(LOGO_OFF_MARK).join("");
   return on ? clean : `${LOGO_OFF_MARK}${clean}`;
+}
+
+// ─── Dark mode for pasted documents ──────────────────────────────────────────────
+// The seller's own colours are never rewritten: forcing dark styles onto arbitrary HTML breaks designs, and Apple
+// Mail, Outlook and Gmail adapt a document themselves once it declares color-scheme. We declare it (when the
+// document doesn't say anything about dark mode itself) and make only the parts we inject (the logo header and
+// the compliance footer) follow dark mode: the shell's dark palette on their own band, and the logo swap.
+
+/** Saved at the start of a pasted template when the seller switched "Optimise for dark mode" off in the builder. */
+export const DARK_OFF_MARK = "<!--sib-dark:off-->";
+const DARK_STYLE_MARK = "sib-pasted-dark";
+
+export function darkModeOn(html: string) {
+  return !html.includes(DARK_OFF_MARK);
+}
+
+/** Turns the builder's "Optimise for dark mode" switch on (default) or off for a pasted template. */
+export function setDarkMode(html: string, on: boolean) {
+  const clean = html.split(DARK_OFF_MARK).join("");
+  return on ? clean : `${DARK_OFF_MARK}${clean}`;
+}
+
+/**
+ * What the pasted document already says about dark mode:
+ * - "none": nothing (no color-scheme meta or CSS property, no prefers-color-scheme rules);
+ * - "dark": it handles dark mode itself (prefers-color-scheme rules, or a color-scheme that includes dark);
+ * - "light-only": it declares color-scheme without dark (it opted out: stays light everywhere).
+ * Comments are ignored, so a commented-out rule doesn't count.
+ */
+export function documentDarkMode(doc: string): "none" | "dark" | "light-only" {
+  const code = doc.replace(/<!--[\s\S]*?-->/g, "");
+  const schemes: string[] = [];
+  for (const meta of code.match(/<meta\b[^>]*>/gi) ?? []) {
+    if (!/\bname\s*=\s*["']?(?:color-scheme|supported-color-schemes)\b/i.test(meta)) continue;
+    schemes.push(meta.match(/\bcontent\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i)?.slice(1).find((v) => v !== undefined) ?? "");
+  }
+  for (const css of code.match(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi) ?? []) {
+    if (/prefers-color-scheme/i.test(css)) return "dark";
+    for (const match of css.matchAll(/(?:^|[;{\s])(?:supported-)?color-scheme\s*:\s*([^;}!]+)/gi)) schemes.push(match[1]);
+  }
+  for (const match of code.matchAll(/\sstyle\s*=\s*"[^"]*\bcolor-scheme\s*:\s*([^;"]+)/gi)) schemes.push(match[1]);
+  if (!schemes.length) return "none";
+  return schemes.some((value) => /\bdark\b/i.test(value)) ? "dark" : "light-only";
+}
+
+/** Gives a document a <head> (after <html>, or at the very start), so metas and styles have a place. */
+export function ensureHead(doc: string) {
+  if (/<head[\s>]/i.test(doc)) return doc;
+  if (/<html\b[^>]*>/i.test(doc)) return doc.replace(/<html\b[^>]*>/i, (tag) => `${tag}\n<head></head>`);
+  return `<head></head>\n${doc}`;
+}
+
+/**
+ * Dark-mode rules for the parts we inject into a pasted document, and nothing else: the header and footer become
+ * a band in the shell's dark page colour (readable whatever the seller's page does), with light text and the
+ * white "Sent with Shopinbos" logo. Outlook.com's [data-ogsc]/[data-ogsb] get the same.
+ */
+export function injectedDarkCss() {
+  const d = EMAIL_DARK;
+  const rules = (scope: string, bgScope: string) => `${bgScope} .sib-brand-header,${bgScope} table.sib-foot{background:${d.page}!important}
+${scope} .sib-brand-header .sib-store-name{color:${d.ink}!important}
+${scope} .sib-brand-header .sib-chip{background:#FFFFFF!important;padding:6px 10px!important;border-radius:10px!important}
+${scope} .sib-foot,${scope} .sib-foot p,${scope} .sib-foot td{color:${d.muted}!important}
+${scope} .sib-foot a,${scope} .sib-foot .sib-foot-strong{color:${d.ink}!important}
+${scope} .sib-foot .sib-logo-light{display:none!important}
+${scope} .sib-foot .sib-logo-dark{display:block!important;max-height:none!important;overflow:visible!important}`;
+  return `<style id="${DARK_STYLE_MARK}">
+@media (prefers-color-scheme:dark){
+${rules("", "")}
+}
+${rules("[data-ogsc]", "[data-ogsb]")}
+</style>`;
+}
+
+const COLOR_SCHEME_METAS = '<meta name="color-scheme" content="light dark" />\n<meta name="supported-color-schemes" content="light dark" />';
+
+/**
+ * Dark-mode support for a pasted document. With nothing of its own: color-scheme metas plus the rules for our
+ * injected parts. When it handles dark mode itself: only our rules (they follow its prefers-color-scheme). When it
+ * opted out (color-scheme light only): nothing. The seller's colours are left alone in every case.
+ */
+export function addDarkModeSupport(doc: string) {
+  if (doc.includes(`id="${DARK_STYLE_MARK}"`)) return doc;
+  const own = documentDarkMode(doc);
+  if (own === "light-only") return doc;
+  const head = (own === "none" ? `${COLOR_SCHEME_METAS}\n` : "") + injectedDarkCss();
+  const withHead = ensureHead(doc);
+  // Our <style> goes last in <head> so it wins ties; the metas go first, where clients look for them.
+  const close = withHead.search(/<\/head\s*>/i);
+  if (close >= 0) return `${withHead.slice(0, close)}${head}\n${withHead.slice(close)}`;
+  return withHead.replace(/<head\b[^>]*>/i, (tag) => `${tag}\n${head}`);
 }
 
 /** Gives a document with no <body> one (after </head>, or after <html>), so the header and footer have a place. */
@@ -122,8 +213,12 @@ export function wrapEmail({ bodyHtml, brand, preheader, compliance }: { bodyHtml
   // A full document already (pasted HTML): add the brand header (unless switched off or the logo is already in it),
   // the brand colour and the footer, and leave its layout alone.
   if (isFullDocument(content)) {
-    let doc = ensureBody(content.replace(/{{\s*brand_accent\s*}}/g, accent));
-    if (logoHeaderOn(doc)) doc = injectBrandHeader(doc, { name: brand.storeName, logoUrl: brand.logoUrl, href: compliance?.sender.websiteUrl ?? null });
+    const logoOn = logoHeaderOn(content);
+    const darkOn = darkModeOn(content);
+    // The switches' markers have done their job; they never go out (a comment before the doctype can upset clients).
+    let doc = ensureBody(content.split(LOGO_OFF_MARK).join("").split(DARK_OFF_MARK).join("").replace(/{{\s*brand_accent\s*}}/g, accent));
+    if (logoOn) doc = injectBrandHeader(doc, { name: brand.storeName, logoUrl: brand.logoUrl, href: compliance?.sender.websiteUrl ?? null });
+    if (darkOn) doc = addDarkModeSupport(doc);
     if (!footer) return doc;
     const close = doc.search(/<\/body>(?![\s\S]*<\/body>)/i);
     return close >= 0 ? `${doc.slice(0, close)}${footer}${doc.slice(close)}` : doc + footer;

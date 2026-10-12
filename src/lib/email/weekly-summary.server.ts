@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { lagosDayKey } from "@/lib/analytics/range";
 import { sendEmailBatch, type BatchEmail } from "@/lib/notifications/resend";
+import { runWeeklyBatches, type WeeklyCandidate, type WeeklyStore, type WeeklySummaryRunResult } from "./weekly-summary-run";
 import { supplierEarnings } from "@/lib/supplier-orders/money.server";
 import { SUPPLIER_EARNED_STATUSES } from "@/lib/supplier-orders/pure";
 import { appBase, buildPlatformEmail } from "./compliance.server";
@@ -16,7 +17,6 @@ import {
   type LogisticsWeek,
   type Pair,
   type SellerWeek,
-  type SummaryKind,
   type SupplierWeek,
   type TopProduct,
   type WeekWindow,
@@ -28,15 +28,12 @@ import {
 //
 // No duplicates: each user/week gets a WeeklySummaryLog row (unique userId + weekStart), inserted with
 // ON CONFLICT DO NOTHING before anything is sent; only the run whose insert succeeded sends. A row stuck in
-// "claimed" (the run died mid-send) is never retried, because the email may already have gone. A batch the
-// provider refused ("failed") is retried by a later run, up to 3 attempts.
+// "claimed" (the run died mid-send) or "unknown" (the provider never answered) is never retried, because the email
+// may already have gone. A batch the provider refused ("failed") is retried by a later run, up to 3 attempts.
+// The rules live in weekly-summary-run.ts (unit-tested with a failing sender).
 // Bounded: at most WEEKLY_SUMMARY_MAX_PER_RUN users per call (default 300), in batches of 50; the next call
 // carries on with whoever has no row yet.
 
-const ROLES = ["seller", "supplier", "logistics_partner"] as const;
-type SummaryRole = (typeof ROLES)[number];
-const BATCH = 50;
-const MAX_ATTEMPTS = 3;
 
 function pair(current: number, previous: number): Pair {
   return { current: Math.round(current * 100) / 100, previous: Math.round(previous * 100) / 100 };
@@ -168,13 +165,10 @@ export async function weeklySummaryFor(user: { id: string; name: string; role: s
 }
 
 // ─── The run ─────────────────────────────────────────────────────────────────
+// The bookkeeping (claims, retries, what a refused batch becomes) is in weekly-summary-run.ts; this is its store.
 
-interface Candidate {
-  id: string;
-  email: string;
-  name: string;
-  role: SummaryRole;
-}
+type Candidate = WeeklyCandidate;
+const optedOutWhere = () => ({ some: { category: "system" as const, eventKey: platformEventKey("weekly_summary"), email: false } });
 
 /** Users with no row for this week yet, who haven't turned weekly summaries off. */
 async function nextCandidates(week: WeekWindow, take: number): Promise<Candidate[]> {
@@ -194,120 +188,94 @@ async function nextCandidates(week: WeekWindow, take: number): Promise<Candidate
     LIMIT ${take}`;
 }
 
-/** Claims rows: only the users whose row this call inserted come back (ON CONFLICT DO NOTHING). */
-async function claim(week: WeekWindow, users: Candidate[]) {
-  if (!users.length) return new Set<string>();
-  const rows = await db.weeklySummaryLog.createManyAndReturn({
-    data: users.map((user) => ({ userId: user.id, weekStart: week.weekStart, role: user.role, status: "claimed" })),
-    skipDuplicates: true,
-    select: { userId: true },
-  });
-  return new Set(rows.map((row) => row.userId));
+const claimed = (weekStart: string, userIds: string[]) => ({ weekStart, status: "claimed", userId: { in: userIds } });
+
+function prismaStore(week: WeekWindow, appUrl: string): WeeklyStore<BatchEmail> {
+  return {
+    nextCandidates: (take) => nextCandidates(week, take),
+
+    /** Claims rows: only the users whose row this call inserted come back (ON CONFLICT DO NOTHING). */
+    async claim(weekStart, users) {
+      if (!users.length) return new Set<string>();
+      const rows = await db.weeklySummaryLog.createManyAndReturn({
+        data: users.map((user) => ({ userId: user.id, weekStart, role: user.role, status: "claimed" })),
+        skipDuplicates: true,
+        select: { userId: true },
+      });
+      return new Set(rows.map((row) => row.userId));
+    },
+
+    /** Failed rows from earlier calls this week, re-claimed one by one (failed → claimed is atomic, attempts + 1). */
+    async reclaimFailed(weekStart, take, maxAttempts) {
+      const failed = await db.weeklySummaryLog.findMany({ where: { weekStart, status: "failed", attempts: { lt: maxAttempts } }, take, orderBy: { userId: "asc" }, select: { id: true, userId: true } });
+      if (!failed.length) return [];
+      const owned: string[] = [];
+      for (const row of failed) {
+        const moved = await db.weeklySummaryLog.updateMany({ where: { id: row.id, status: "failed", attempts: { lt: maxAttempts } }, data: { status: "claimed", attempts: { increment: 1 }, error: null } });
+        if (moved.count === 1) owned.push(row.userId);
+      }
+      if (!owned.length) return [];
+      const users = await db.user.findMany({
+        where: { id: { in: owned } },
+        select: { id: true, email: true, name: true, role: true, notificationPreferences: { where: optedOutWhere().some, select: { id: true } } },
+      });
+      // Someone who turned weekly summaries off (or lost their email) since the refused batch isn't retried.
+      const keep = users.filter((u) => u.email?.trim() && !u.notificationPreferences.length);
+      const drop = owned.filter((id) => !keep.some((u) => u.id === id));
+      if (drop.length) await db.weeklySummaryLog.updateMany({ where: claimed(weekStart, drop), data: { status: "skipped", kind: "none", error: "Turned off weekly summaries or has no email" } });
+      return keep.map((user) => ({ id: user.id, email: user.email!.trim(), name: user.name, role: user.role as WeeklyCandidate["role"] }));
+    },
+
+    /** The last quiet-week email each user got (at most one every 4 weeks). */
+    async lastQuiet(userIds) {
+      const rows = await db.weeklySummaryLog.groupBy({ by: ["userId"], where: { userId: { in: userIds }, kind: "quiet", status: "sent" }, _max: { weekStart: true } });
+      return new Map(rows.map((row) => [row.userId, row._max.weekStart]));
+    },
+
+    async compose(user, lastQuietWeekStart) {
+      const summary = await weeklySummaryFor(user, week);
+      const kind = summary ? summaryKind({ active: hasActivity(summary), lastQuietWeekStart, weekStart: week.weekStart }) : "none";
+      if (!summary || kind === "none") return null;
+      const rendered = renderWeeklySummary(summary, { appUrl, week, kind });
+      const built = buildPlatformEmail({
+        user: { id: user.id, role: user.role },
+        kind: "lifecycle",
+        topic: "weekly_summary",
+        heading: rendered.heading,
+        eyebrow: rendered.eyebrow,
+        bodyHtml: rendered.bodyHtml,
+        preheader: rendered.preheader,
+        cta: rendered.cta,
+        extraCss: rendered.extraCss,
+      });
+      return { kind, email: { to: user.email, subject: rendered.subject, html: built.html, headers: built.headers } };
+    },
+
+    async markSkipped(weekStart, userId) {
+      await db.weeklySummaryLog.updateMany({ where: claimed(weekStart, [userId]), data: { status: "skipped", kind: "none" } });
+    },
+    async markSent(weekStart, userIds, kind, at) {
+      await db.weeklySummaryLog.updateMany({ where: claimed(weekStart, userIds), data: { status: "sent", kind, sentAt: at, error: null } });
+    },
+    async markFailed(weekStart, userIds, error) {
+      await db.weeklySummaryLog.updateMany({ where: claimed(weekStart, userIds), data: { status: "failed", error } });
+    },
+    async markUnknown(weekStart, userIds, error) {
+      await db.weeklySummaryLog.updateMany({ where: claimed(weekStart, userIds), data: { status: "unknown", error } });
+    },
+  };
 }
 
-/** Failed batches from earlier calls this week, re-claimed one by one (status failed → claimed is atomic). */
-async function reclaimFailed(week: WeekWindow, take: number): Promise<Candidate[]> {
-  const failed = await db.weeklySummaryLog.findMany({ where: { weekStart: week.weekStart, status: "failed", attempts: { lt: MAX_ATTEMPTS } }, take, orderBy: { userId: "asc" }, select: { id: true, userId: true } });
-  if (!failed.length) return [];
-  const owned: string[] = [];
-  for (const row of failed) {
-    const moved = await db.weeklySummaryLog.updateMany({ where: { id: row.id, status: "failed" }, data: { status: "claimed", attempts: { increment: 1 }, error: null } });
-    if (moved.count === 1) owned.push(row.userId);
-  }
-  if (!owned.length) return [];
-  const users = await db.user.findMany({ where: { id: { in: owned }, email: { not: null } }, select: { id: true, email: true, name: true, role: true } });
-  return users.map((user) => ({ id: user.id, email: user.email!, name: user.name, role: user.role as SummaryRole }));
-}
-
-export interface WeeklySummaryRunResult {
-  weekStart: string;
-  claimed: number;
-  sent: number;
-  quiet: number;
-  skipped: number;
-  failed: number;
-  more: boolean;
-  errors: string[];
-}
+export type { WeeklySummaryRunResult };
 
 export async function runWeeklySummaries(options: { now?: Date; maxPerRun?: number; deadline?: number } = {}): Promise<WeeklySummaryRunResult> {
-  const now = options.now ?? new Date();
-  const week = lastWeekWindow(now);
-  const maxPerRun = Math.max(1, Math.min(5000, options.maxPerRun ?? (Number(process.env.WEEKLY_SUMMARY_MAX_PER_RUN) || 300)));
-  const deadline = options.deadline ?? Date.now() + 240_000;
-  const result: WeeklySummaryRunResult = { weekStart: week.weekStart, claimed: 0, sent: 0, quiet: 0, skipped: 0, failed: 0, more: false, errors: [] };
-  const appUrl = appBase();
-
-  let retriedFailed = false;
-  while (result.claimed < maxPerRun && Date.now() < deadline) {
-    const take = Math.min(BATCH, maxPerRun - result.claimed);
-    let batch: Candidate[] = [];
-    if (!retriedFailed) {
-      batch = await reclaimFailed(week, take);
-      retriedFailed = batch.length < take;
-    }
-    if (!batch.length) {
-      const candidates = await nextCandidates(week, take);
-      if (!candidates.length) break;
-      const owned = await claim(week, candidates);
-      batch = candidates.filter((user) => owned.has(user.id));
-      if (!batch.length) continue; // another run took all of them; look again
-    }
-    result.claimed += batch.length;
-
-    // The last quiet-week email each user got (at most one every 4 weeks).
-    const quietRows = await db.weeklySummaryLog.groupBy({ by: ["userId"], where: { userId: { in: batch.map((u) => u.id) }, kind: "quiet", status: "sent" }, _max: { weekStart: true } });
-    const lastQuiet = new Map(quietRows.map((row) => [row.userId, row._max.weekStart]));
-
-    const outgoing: Array<{ user: Candidate; kind: SummaryKind; email: BatchEmail }> = [];
-    for (const user of batch) {
-      try {
-        const summary = await weeklySummaryFor(user, week);
-        const kind = summary ? summaryKind({ active: hasActivity(summary), lastQuietWeekStart: lastQuiet.get(user.id) ?? null, weekStart: week.weekStart }) : "none";
-        if (!summary || kind === "none") {
-          await db.weeklySummaryLog.update({ where: { userId_weekStart: { userId: user.id, weekStart: week.weekStart } }, data: { status: "skipped", kind: "none" } });
-          result.skipped += 1;
-          continue;
-        }
-        const rendered = renderWeeklySummary(summary, { appUrl, week, kind });
-        const built = buildPlatformEmail({
-          user: { id: user.id, role: user.role },
-          kind: "lifecycle",
-          topic: "weekly_summary",
-          heading: rendered.heading,
-          eyebrow: rendered.eyebrow,
-          bodyHtml: rendered.bodyHtml,
-          preheader: rendered.preheader,
-          cta: rendered.cta,
-          extraCss: rendered.extraCss,
-        });
-        outgoing.push({ user, kind, email: { to: user.email, subject: rendered.subject, html: built.html, headers: built.headers } });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        result.errors.push(`${user.id}: ${message}`);
-        await db.weeklySummaryLog.update({ where: { userId_weekStart: { userId: user.id, weekStart: week.weekStart } }, data: { status: "failed", error: message.slice(0, 500) } }).catch(() => null);
-        result.failed += 1;
-      }
-    }
-
-    if (outgoing.length) {
-      const sent = await sendEmailBatch(outgoing.map((item) => item.email));
-      const where = (kind: SummaryKind) => ({ weekStart: week.weekStart, status: "claimed", userId: { in: outgoing.filter((item) => item.kind === kind).map((item) => item.user.id) } });
-      if (sent.success) {
-        const at = new Date();
-        await db.weeklySummaryLog.updateMany({ where: where("full"), data: { status: "sent", kind: "full", sentAt: at } });
-        await db.weeklySummaryLog.updateMany({ where: where("quiet"), data: { status: "sent", kind: "quiet", sentAt: at } });
-        result.sent += outgoing.filter((item) => item.kind === "full").length;
-        result.quiet += outgoing.filter((item) => item.kind === "quiet").length;
-      } else {
-        const error = (sent.message ?? "The email provider refused the batch").slice(0, 500);
-        await db.weeklySummaryLog.updateMany({ where: { weekStart: week.weekStart, status: "claimed", userId: { in: outgoing.map((item) => item.user.id) } }, data: { status: "failed", error } });
-        result.failed += outgoing.length;
-        result.errors.push(error);
-        break; // a refused batch is usually systemic (domain, quota): stop and let the next call retry
-      }
-    }
-  }
-  result.more = result.claimed >= maxPerRun || Date.now() >= deadline;
-  return result;
+  const week = lastWeekWindow(options.now ?? new Date());
+  return runWeeklyBatches({
+    weekStart: week.weekStart,
+    store: prismaStore(week, appBase()),
+    // Permissive: one bad address is reported on its own instead of refusing the other 49.
+    send: (emails) => sendEmailBatch(emails, { permissive: true }),
+    maxPerRun: Math.max(1, Math.min(5000, options.maxPerRun ?? (Number(process.env.WEEKLY_SUMMARY_MAX_PER_RUN) || 300))),
+    deadline: options.deadline ?? Date.now() + 240_000,
+  });
 }

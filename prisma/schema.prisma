@@ -2604,7 +2604,7 @@ model WeeklySummaryLog {
   weekStart String // YYYY-MM-DD, the Monday (Africa/Lagos) the week starts
   role      String
   kind      String    @default("full") // full | quiet | none
-  status    String    @default("claimed") // claimed | sent | failed | skipped
+  status    String    @default("claimed") // claimed | sent | failed (refused, retried up to 3 tries) | skipped | unknown (no answer from the provider, never retried)
   attempts  Int       @default(1)
   error     String?
   sentAt    DateTime?

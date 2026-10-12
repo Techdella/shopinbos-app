@@ -6,6 +6,7 @@ import { DeviceToggle, FieldLabel, Notice, PillButton, TextInput, Toggle, cx } f
 import { textareaClass } from "@/components/growth/kit";
 import { PRODUCT_NEWS_AUDIENCES, audienceLabel, isAllowedNewsImage, productNewsDocument, type NewsAudience, type NewsImageHosts } from "@/lib/email/product-news";
 import type { PlatformLegal } from "@/lib/email/shell";
+import { NewsImageUpload } from "./NewsImageUpload";
 
 // /admin/product-news: write the email (live preview in the real shell), pick who gets it (with a count that
 // already leaves out people who turned product news off), send yourself a test, then send now or schedule it.
@@ -288,11 +289,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
             <FieldLabel htmlFor="pn-body">Message</FieldLabel>
             <textarea id="pn-body" rows={10} value={draft.body} maxLength={20000} disabled={locked} onChange={(e) => set({ body: e.target.value })} className={cx(textareaClass, "font-mono text-[13.5px]")} />
           </div>
-          <div className="grid gap-1.5">
-            <FieldLabel htmlFor="pn-image">Image (optional)</FieldLabel>
-            <TextInput id="pn-image" value={draft.imageUrl} disabled={locked} onChange={(e) => set({ imageUrl: e.target.value })} placeholder="https://…/storage/v1/object/public/…" inputMode="url" />
-            {imageProblem ? <p className="m-0 text-[12.5px] font-semibold text-app-danger">{imageProblem}</p> : <p className="m-0 text-[12.5px] text-app-ink-soft">https only, from Shopinbos storage or shopinbos.com.</p>}
-          </div>
+          <NewsImageUpload value={draft.imageUrl} onChange={(imageUrl) => set({ imageUrl })} hosts={hosts} disabled={locked} />
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <FieldLabel htmlFor="pn-cta-label">Button label (optional)</FieldLabel>

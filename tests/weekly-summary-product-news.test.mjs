@@ -249,11 +249,11 @@ test("pasted full-HTML templates get the brand header after <body>, unless it's 
   const withLogo = layout.wrapEmail({ bodyHtml: doc, brand: logo, compliance });
   assert.match(withLogo, /<img class="sib-chip" src="https:\/\/cdn\.example\/logo\.png\?a=1&amp;b=2"/);
   const already = layout.wrapEmail({ bodyHtml: doc.replace("Sale!", '<img src="https://cdn.example/logo.png?a=1&amp;b=2">Sale!'), brand: logo, compliance });
-  assert.doesNotMatch(already, /sib-brand-header/, "the document already shows the logo");
+  assert.doesNotMatch(already, /class="sib-brand-header"/, "the document already shows the logo");
   const off = layout.setLogoHeader(doc, false);
   assert.equal(layout.logoHeaderOn(off), false);
   assert.equal(layout.setLogoHeader(off, true), doc);
-  assert.doesNotMatch(layout.wrapEmail({ bodyHtml: off, brand: BRAND, compliance }), /sib-brand-header/, "switched off in the builder");
+  assert.doesNotMatch(layout.wrapEmail({ bodyHtml: off, brand: BRAND, compliance }), /class="sib-brand-header"/, "switched off in the builder");
   assert.doesNotMatch(preview.renderEmailPreview({ bodyHtml: off, brand: BRAND, shop: { name: "Ada", url: "https://ada.shopinbos.shop", appUrl: APP } }), /sib-logo:off/, "the switch's marker never shows");
 
   const noBody = '<html><head><style>p{color:red}</style></head><p>Hi</p></html>';
@@ -262,7 +262,7 @@ test("pasted full-HTML templates get the brand header after <body>, unless it's 
   assert.match(wrapped, /<p>Hi<\/p>[\s\S]*Ada Fabrics Ltd[\s\S]*<\/body>\n<\/html>/);
   assert.equal(count(wrapped, /<body\b/g), 1);
   const bare = layout.wrapEmail({ bodyHtml: "<html><p>Hi</p>", brand: BRAND, compliance });
-  assert.match(bare, /^<html>\n<body>\n<!--sib-brand-header-->/);
+  assert.match(bare, /^<html>\n<head>[\s\S]*<\/head>\n<body>\n<!--sib-brand-header-->/, "dark-mode support adds a <head> (tests/email-retry-and-upload.test.mjs)");
   assert.match(bare, /<\/body>$/);
 });
 

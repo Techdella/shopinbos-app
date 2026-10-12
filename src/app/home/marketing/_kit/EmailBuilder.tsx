@@ -7,7 +7,7 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, textareaClass } from "@/components/growth/kit";
 import { BLOCK_LABELS, EMAIL_THEMES, EMAIL_THEME_INFO, blocksToHtml, htmlFromBlocks, readBlocks, themeOf, type EmailBlock, type EmailBlockType, type EmailThemeName } from "@/lib/marketing/blocks";
-import { isFullDocument, logoHeaderOn, setLogoHeader, type EmailBrand } from "@/lib/marketing/email-layout";
+import { darkModeOn, isFullDocument, logoHeaderOn, setDarkMode, setLogoHeader, type EmailBrand } from "@/lib/marketing/email-layout";
 import { previewSubject, renderEmailPreview, type PreviewShop } from "@/lib/marketing/preview";
 import { BLOCK_ICONS, BlockSettings, blankBlock, blockSummary } from "./BlockSettings";
 import { DeviceSwitch, EmailFrame } from "./EmailFrame";
@@ -295,6 +295,15 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
                   <span className="text-[12.5px] text-app-ink-soft">Your logo (or shop name) at the top, unless your HTML already shows it.</span>
                 </span>
                 <Toggle on={logoHeaderOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setLogoHeader(content.bodyHtml, on) })} label="Add my logo header" />
+              </div>
+            ) : null}
+            {isFullDocument(content.bodyHtml) ? (
+              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-app-line px-3 py-2.5">
+                <span className="grid gap-0.5">
+                  <span className="text-[14px] font-semibold">Optimise for dark mode</span>
+                  <span className="text-[12.5px] text-app-ink-soft">Lets mail apps show it in dark mode and keeps your logo and footer readable. Your own colours aren&apos;t changed.</span>
+                </span>
+                <Toggle on={darkModeOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setDarkMode(content.bodyHtml, on) })} label="Optimise for dark mode" />
               </div>
             ) : null}
             <div className="flex overflow-hidden rounded-[14px] border border-app-line bg-white focus-within:border-app-ink">

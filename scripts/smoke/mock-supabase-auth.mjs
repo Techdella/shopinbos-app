@@ -2,7 +2,12 @@
 // Supabase: GET /auth/v1/user, plus POST /auth/v1/otp and /auth/v1/verify for code sign-in (the code is always
 // 123456; codes sent are listed at GET /auth/v1/__otp). Every other Supabase call gets an empty 404.
 // Resend (set RESEND_BASE_URL=http://127.0.0.1:54321/resend): emails are recorded, never delivered,
-// and can be read back from GET /resend/__sent.
+// and can be read back from GET /resend/__sent (DELETE /resend/__sent clears them). To test the refusal and retry
+// paths, POST /resend/__fail {"mode", "times", "status", "message", "indexes"} makes the next `times` batch calls
+// (default 1; -1 = until turned off) fail: "refuse" answers HTTP `status` (default 429) with Resend's error body,
+// "partial" refuses only the emails at `indexes` (permissive batches, as Resend reports them; strict ones get a 422),
+// "drop" closes the connection without answering (the sender can't know if it went out). {"mode": "off"} stops it.
+// GET /resend/__fail shows the setting; GET /resend/__calls lists every batch call and what it got.
 import http from "node:http";
 
 export const SMOKE_USERS = {
@@ -38,6 +43,9 @@ export function supabaseUser(token) {
 const port = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 
 const sentEmails = [];
+// Failure toggle for Resend (see the top of the file) and a log of batch calls.
+let resendFail = { mode: "off", times: 0 };
+const resendCalls = [];
 // In-memory Supabase Storage: uploads, public reads and deletes, enough for photo/logo/document uploads.
 const storedFiles = new Map();
 
@@ -101,8 +109,53 @@ http
     }
     if (req.url?.startsWith("/resend/")) {
       if (req.method === "GET" && req.url === "/resend/__sent") return res.end(JSON.stringify(sentEmails));
+      if (req.method === "DELETE" && req.url === "/resend/__sent") {
+        sentEmails.length = 0;
+        resendCalls.length = 0;
+        return res.end("{}");
+      }
+      if (req.method === "GET" && req.url === "/resend/__calls") return res.end(JSON.stringify(resendCalls));
+      if (req.url === "/resend/__fail") {
+        if (req.method === "POST") {
+          const body = (await readBody(req)) ?? {};
+          resendFail = body.mode && body.mode !== "off"
+            ? { mode: String(body.mode), times: Number(body.times ?? 1), status: Number(body.status ?? 429), message: String(body.message ?? "Mock: daily sending quota exceeded"), indexes: Array.isArray(body.indexes) ? body.indexes.map(Number) : [0] }
+            : { mode: "off", times: 0 };
+        }
+        return res.end(JSON.stringify(resendFail));
+      }
       const payload = await readBody(req);
       const emails = Array.isArray(payload) ? payload : [payload];
+      const isBatch = req.url.startsWith("/resend/emails/batch");
+      const permissive = String(req.headers["x-batch-validation"] ?? "").toLowerCase() === "permissive";
+      if (isBatch && resendFail.mode !== "off" && resendFail.times !== 0) {
+        const fail = resendFail;
+        if (fail.times > 0) fail.times -= 1;
+        if (fail.times === 0) resendFail = { mode: "off", times: 0 };
+        const to = emails.map((email) => (Array.isArray(email.to) ? email.to[0] : email.to));
+        if (fail.mode === "drop") {
+          resendCalls.push({ at: new Date().toISOString(), to, outcome: "dropped" });
+          return req.socket.destroy();
+        }
+        if (fail.mode === "refuse" || (fail.mode === "partial" && !permissive)) {
+          const status = fail.mode === "partial" ? 422 : fail.status;
+          resendCalls.push({ at: new Date().toISOString(), to, outcome: `refused ${status}` });
+          res.statusCode = status;
+          return res.end(JSON.stringify({ statusCode: status, name: status === 429 ? "daily_quota_exceeded" : "validation_error", message: fail.message }));
+        }
+        if (fail.mode === "partial") {
+          const errors = fail.indexes.filter((i) => i >= 0 && i < emails.length).map((index) => ({ index, message: `Mock: invalid recipient ${to[index]}` }));
+          const data = emails.flatMap((email, index) => {
+            if (errors.some((e) => e.index === index)) return [];
+            const id = `mock-${sentEmails.length + 1}`;
+            sentEmails.push({ id, ...email });
+            return [{ id }];
+          });
+          resendCalls.push({ at: new Date().toISOString(), to, outcome: `partial (${errors.length} refused)` });
+          return res.end(JSON.stringify({ data, errors }));
+        }
+      }
+      if (isBatch) resendCalls.push({ at: new Date().toISOString(), to: emails.map((email) => (Array.isArray(email.to) ? email.to[0] : email.to)), outcome: "sent" });
       const ids = emails.map((email) => {
         const id = `mock-${sentEmails.length + 1}`;
         sentEmails.push({ id, ...email });
