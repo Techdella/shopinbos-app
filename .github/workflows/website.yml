@@ -1,0 +1,21 @@
+name: Website (WordPress theme and plugin)
+
+on:
+  pull_request:
+    paths: [ "website/**" ]
+  push:
+    branches: [ main ]
+    paths: [ "website/**" ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: PHP syntax
+        run: find website/wp-content -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: theme.json is valid JSON
+        run: php -r 'json_decode(file_get_contents("website/wp-content/themes/shopinbos/theme.json"), false, 512, JSON_THROW_ON_ERROR);'

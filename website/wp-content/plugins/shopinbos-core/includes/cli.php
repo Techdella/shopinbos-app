@@ -1,0 +1,274 @@
+<?php
+/**
+ * WP-CLI commands.
+ *
+ *   wp shopinbos setup [--samples]   Permalinks, core pages built from the theme patterns, help and blog
+ *                                    categories, store templates and tools. Safe to run again: it only
+ *                                    creates what is missing. --samples adds one example of each content type.
+ *   wp shopinbos sitemap             Rebuild the marketplace sitemap now.
+ *   wp shopinbos flush               Clear cached marketplace API answers.
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+class Sib_CLI {
+
+	/**
+	 * Set up a fresh site.
+	 *
+	 * [--samples]
+	 * : Also create one sample feature, help article, guide, integration and blog post.
+	 *
+	 * @param array $args
+	 * @param array $assoc
+	 */
+	public function setup( $args, $assoc ) {
+		update_option( 'blogname', 'Shopinbos' );
+		update_option( 'blogdescription', 'Build your online store with AI. Sell on WhatsApp, Instagram, TikTok and Google, with pay on delivery and Friday payouts.' );
+		update_option( 'timezone_string', 'Africa/Lagos' );
+		update_option( 'date_format', 'j F Y' );
+		update_option( 'default_comment_status', 'closed' );
+		update_option( 'default_ping_status', 'closed' );
+		update_option( 'category_base', 'blog/category' );
+		update_option( 'tag_base', 'blog/tag' );
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( '/blog/%postname%/' );
+
+		$home  = $this->page( 'home', 'Home', $this->pattern( 'shopinbos/page-home' ), 'page-canvas' );
+		$blog  = $this->page( 'blog', 'Blog', '' );
+		$this->page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
+		$this->page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
+		$this->page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
+		$this->page( 'about', 'About Shopinbos', $this->text_page( 'Shopinbos is the commerce app for Nigerian businesses, made in Lagos. [Write the company story here.]' ), 'page-article' );
+		$this->page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
+		$this->page( 'careers', 'Careers', $this->text_page( '[List open roles here.]' ), 'page-article' );
+		$this->page( 'press', 'Press', $this->text_page( '[Press kit, logos and contact for journalists.]' ), 'page-article' );
+		$this->page( 'academy', 'Academy', $this->text_page( 'Free courses for store owners. The first course, Start your shop in a weekend, is coming soon.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"newsletter\",\"heading\":\"Tell me when it opens\"} /-->\n", 'page-article' );
+		$thanks = $this->page( 'thanks', 'You’re in', $this->text_page( 'Thanks for confirming. Your first tip is on its way.' ), 'page-article' );
+		update_post_meta( $thanks, 'sib_noindex', true );
+		$legal = $this->page( 'legal', 'Legal', $this->text_page( 'Our policies.' ), 'page-article' );
+		$privacy = $this->page( 'privacy', 'Privacy policy', $this->text_page( '[Legal to supply. Must match the NDPA 2023: what we collect on this website (lead forms, analytics), why, how long we keep it, and how to ask us to delete it.]' ), 'page-article', '', $legal );
+		$this->page( 'terms', 'Terms of use', $this->text_page( '[Legal to supply.]' ), 'page-article', '', $legal );
+
+		if ( ( $wp_privacy = (int) get_option( 'wp_page_for_privacy_policy' ) ) && $wp_privacy !== $privacy && 'draft' === get_post_status( $wp_privacy ) ) {
+			wp_delete_post( $wp_privacy, true );
+		}
+		update_option( 'wp_page_for_privacy_policy', $privacy );
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $home );
+		update_option( 'page_for_posts', $blog );
+
+		$this->terms( 'category', [ 'Start a shop', 'Sell on WhatsApp and social', 'Marketing and ads', 'Delivery and payments', 'Sourcing and dropshipping', 'Seller stories', 'Product news' ] );
+		// Make "Start a shop" the default category and drop WordPress's sample content.
+		$start = get_term_by( 'slug', 'start-a-shop', 'category' );
+		if ( $start ) {
+			update_option( 'default_category', $start->term_id );
+		}
+		if ( ( $uncat = get_term_by( 'slug', 'uncategorized', 'category' ) ) && $start ) {
+			wp_delete_term( $uncat->term_id, 'category', [ 'default' => $start->term_id, 'force_default' => true ] );
+		}
+		foreach ( [ [ 'hello-world', 'post' ], [ 'sample-page', 'page' ] ] as [ $slug, $type ] ) {
+			if ( $old = get_page_by_path( $slug, OBJECT, $type ) ) {
+				wp_delete_post( $old->ID, true );
+			}
+		}
+		$this->terms( 'sib_help_category', [
+			'Getting started', 'Store and design', 'Products', 'Orders', 'Payments and payouts', 'Delivery and pay on delivery',
+			'Chats and Peggy', 'Marketing and ads', 'Sourcing and dropshipping', 'Account and security',
+			[ 'Suppliers: getting started', 'supplier-getting-started' ], [ 'Delivery partners: getting started', 'delivery-partner-getting-started' ],
+		] );
+
+		$this->store_templates();
+		$this->tools();
+		if ( ! empty( $assoc['samples'] ) ) {
+			$this->samples();
+		}
+
+		sib_register_content_types();
+		sib_marketplace_rewrite_rules();
+		flush_rewrite_rules();
+		sib_build_sitemap();
+		WP_CLI::success( 'Shopinbos is set up. Front page: ' . get_permalink( $home ) );
+	}
+
+	/** Rebuild the marketplace sitemap now. */
+	public function sitemap() {
+		sib_build_sitemap() ? WP_CLI::success( 'Marketplace sitemap rebuilt.' ) : WP_CLI::error( 'The API did not answer; kept the previous sitemap.' );
+	}
+
+	/** Clear cached marketplace API answers. */
+	public function flush() {
+		sib_api_flush_cache();
+		WP_CLI::success( 'Marketplace cache cleared.' );
+	}
+
+	/* ---------- helpers ---------- */
+
+	private function page( string $slug, string $title, string $content, string $template = '', string $excerpt = '', int $parent = 0 ): int {
+		$existing = get_page_by_path( $parent ? get_post_field( 'post_name', $parent ) . '/' . $slug : $slug );
+		if ( $existing ) {
+			return $existing->ID;
+		}
+		$id = wp_insert_post( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'post_parent' => $parent ], true );
+		if ( is_wp_error( $id ) ) {
+			WP_CLI::error( $id->get_error_message() );
+		}
+		if ( $template ) {
+			update_post_meta( $id, '_wp_page_template', $template );
+		}
+		WP_CLI::log( "Created page /{$slug}/" );
+		return $id;
+	}
+
+	/** A registered pattern's markup with nested pattern blocks expanded, so writers can edit everything. */
+	private function pattern( string $slug, int $depth = 0 ): string {
+		$p = WP_Block_Patterns_Registry::get_instance()->get_registered( $slug );
+		if ( ! $p ) {
+			WP_CLI::warning( "Pattern {$slug} is not registered. Is the Shopinbos theme active?" );
+			return '';
+		}
+		$content = $p['content'];
+		if ( $depth < 3 ) {
+			$content = preg_replace_callback( '#<!-- wp:pattern \{"slug":"([^"]+)"\} /-->#', fn( $m ) => $this->pattern( $m[1], $depth + 1 ), $content );
+		}
+		return $content;
+	}
+
+	private function text_page( string $text ): string {
+		return "<!-- wp:paragraph -->\n<p>" . esc_html( $text ) . "</p>\n<!-- /wp:paragraph -->\n\n";
+	}
+
+	private function terms( string $tax, array $names ): void {
+		foreach ( $names as $i => $n ) {
+			[ $name, $slug ] = is_array( $n ) ? $n : [ $n, sanitize_title( $n ) ];
+			if ( ! term_exists( $slug, $tax ) ) {
+				wp_insert_term( $name, $tax, [ 'slug' => $slug ] );
+			}
+		}
+	}
+
+	/** Copy a theme image into the media library once. */
+	private function media( string $file ): int {
+		$found = get_posts( [ 'post_type' => 'attachment', 'meta_key' => '_sib_source', 'meta_value' => $file, 'numberposts' => 1, 'fields' => 'ids' ] );
+		if ( $found ) {
+			return (int) $found[0];
+		}
+		$src = get_theme_file_path( 'assets/img/' . $file );
+		if ( ! file_exists( $src ) ) {
+			return 0;
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		$tmp = wp_tempnam( $file );
+		copy( $src, $tmp );
+		$id = media_handle_sideload( [ 'name' => $file, 'tmp_name' => $tmp ], 0 );
+		if ( is_wp_error( $id ) ) {
+			WP_CLI::warning( $id->get_error_message() );
+			return 0;
+		}
+		update_post_meta( $id, '_sib_source', $file );
+		return (int) $id;
+	}
+
+	private function cpt( string $type, string $slug, string $title, string $content, string $excerpt, array $meta = [], string $image = '', int $order = 0, array $terms = [] ): int {
+		$existing = get_page_by_path( $slug, OBJECT, $type );
+		if ( $existing ) {
+			return $existing->ID;
+		}
+		$id = wp_insert_post( [ 'post_type' => $type, 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] );
+		foreach ( $meta as $k => $v ) {
+			update_post_meta( $id, $k, $v );
+		}
+		if ( $image && ( $att = $this->media( $image ) ) ) {
+			set_post_thumbnail( $id, $att );
+		}
+		foreach ( $terms as $tax => $slugs ) {
+			wp_set_object_terms( $id, $slugs, $tax );
+		}
+		WP_CLI::log( "Created {$type} {$slug}" );
+		return $id;
+	}
+
+	private function store_templates(): void {
+		$templates = [
+			[ 'breeze', 'Breeze', 'Fashion', '#EAF7F8', '#1B2228', 'linen-shirt.webp', 'Light and airy, for clothing brands that want their photos to do the talking.' ],
+			[ 'noir', 'Noir', 'Luxury', '#121212', '#F4EFE6', 'check-blazer.webp', 'Dark, quiet and premium, with gold buttons. For luxury and evening wear.' ],
+			[ 'plain', 'Plain', 'Any shop', '#F3F3F3', '#121212', 'knit-sweater.webp', 'Clean and simple. Works for any kind of shop.' ],
+			[ 'adire', 'Adire', 'Fashion', '#F3EDE6', '#2A2018', 'linen-set.webp', 'Warm tones and editorial type, inspired by Yoruba textile craft.' ],
+			[ 'pantry', 'Pantry', 'Food and drinks', '#FFF4DA', '#3A2A00', 'store-hero.webp', 'Bright and appetising, with menus, bundles and delivery times up front.' ],
+			[ 'ile', 'Ilé', 'Home and living', '#E8EFEA', '#15322A', 'camel-coat.webp', 'Calm and roomy, for furniture, décor and home goods.' ],
+			[ 'plug', 'Plug', 'Gadgets', '#16171C', '#FFFFFF', 'earbuds.webp', 'Sharp and dark, with specs and comparison tables for electronics.' ],
+			[ 'stride', 'Stride', 'Shoes', '#FFE9DD', '#3A1A08', 'suede-lace-ups.webp', 'Big product photos and a size guide on every page. Made for shoe shops.' ],
+		];
+		foreach ( $templates as $i => [ $key, $name, $kind, $bg, $ink, $img, $about ] ) {
+			$this->cpt( 'sib_template', $key, $name, $this->text_page( $about ), $about, [ 'sib_tpl_key' => $key, 'sib_tpl_kind' => $kind, 'sib_tpl_bg' => $bg, 'sib_tpl_ink' => $ink, 'sib_cta_intent' => 'template', 'sib_cta_args' => 'template=' . $key ], $img, $i );
+		}
+	}
+
+	private function tools(): void {
+		$faq = fn( array $qa ) => '<!-- wp:group {"className":"faq","layout":{"type":"default"}} -->' . "\n<div class=\"wp-block-group faq\">"
+			. implode( '', array_map( fn( $x ) => "<!-- wp:details -->\n<details class=\"wp-block-details\"><summary>{$x[0]}</summary><!-- wp:paragraph -->\n<p>{$x[1]}</p>\n<!-- /wp:paragraph --></details>\n<!-- /wp:details -->\n\n", $qa ) )
+			. "</div>\n<!-- /wp:group -->\n\n";
+		$h   = fn( $t ) => "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">{$t}</h2>\n<!-- /wp:heading -->\n\n";
+		$tools = [
+			[ 'profit-margin-calculator', 'Profit margin calculator', 'profit-margin', 'See what you really keep from a sale after the product, delivery, packaging and payment fees.',
+				$h( 'How to use it' ) . $this->text_page( 'Type your selling price and what the product costs you. Add delivery if you offer free delivery, and any packaging. The calculator takes off the Paystack fee for card and transfer payments.' )
+				. $h( 'Questions' ) . $faq( [ [ 'What is a good profit margin for a small shop?', 'It depends on what you sell, but many fashion and beauty shops aim for 30% to 50% after all costs. If yours is under 20%, look at your delivery and packaging costs first.' ], [ 'Does pay on delivery cost a fee?', 'Not on Shopinbos. Cash or transfer to the rider has no extra payment fee.' ] ] ) ],
+			[ 'selling-price-calculator', 'Selling price calculator', 'selling-price', 'Pick the profit margin you want and get the price to charge, with payment fees included.',
+				$h( 'How to use it' ) . $this->text_page( 'Enter your cost and the margin you want. The price is rounded up to the next ₦100 so it looks clean on your store.' )
+				. $h( 'Questions' ) . $faq( [ [ 'What is the difference between margin and markup?', 'Margin is profit as a share of the selling price. Markup is profit as a share of the cost. A 50% margin is a 100% markup.' ] ] ) ],
+			[ 'paystack-fee-calculator', 'Paystack fee calculator', 'paystack-fee', 'Work out the Paystack fee on any amount, with the ₦100 waiver under ₦2,500 and the ₦2,000 cap.',
+				$h( 'How the fee works' ) . $this->text_page( 'For local cards, transfers and USSD, Paystack charges 1.5% plus ₦100. The ₦100 is waived on payments under ₦2,500, and the fee is capped at ₦2,000. Check Paystack’s pricing page for the latest rates.' )
+				. $h( 'Questions' ) . $faq( [ [ 'Should I pass the fee to my customer?', 'You can, but many customers prefer one clear price. Try adding it to your product price instead.' ] ] ) ],
+			[ 'whatsapp-link-generator', 'WhatsApp link and QR maker', 'whatsapp-link', 'Make an "order on WhatsApp" link and QR code with a pre-filled message, for your bio, flyers and packaging.',
+				$h( 'How to use it' ) . $this->text_page( 'Type your WhatsApp number and the message you want customers to send. Copy the link into your Instagram bio or download the QR code for flyers and stickers.' )
+				. $h( 'Questions' ) . $faq( [ [ 'Does the QR code expire?', 'No. It is just your link, so it works for as long as your number does.' ] ] ) ],
+			[ 'landed-cost-calculator', 'Landed cost calculator (China)', 'landed-cost', 'Turn a 1688 or Alibaba price in yuan into a cost per piece in naira, with shipping and fees.',
+				$h( 'How to use it' ) . $this->text_page( 'Enter the price per piece in yuan, how many you are buying, today’s rate from your agent and the shipping price per kg. Add any China delivery and clearing fees.' )
+				. $h( 'Questions' ) . $faq( [ [ 'Air or sea?', 'Air is faster (about 1 to 2 weeks) and priced per kg. Sea is slower (6 to 10 weeks) and priced per CBM, so it suits bulky goods.' ] ] ) ],
+		];
+		foreach ( $tools as $i => [ $slug, $title, $tool, $excerpt, $content ] ) {
+			$this->cpt( 'sib_tool', $slug, $title, $content, $excerpt, [ 'sib_tool' => $tool, 'sib_cta_intent' => 'tool_result', 'sib_cta_args' => 'tool=' . $tool ], '', $i );
+		}
+	}
+
+	private function samples(): void {
+		$p  = fn( $t, $c = '' ) => sib_block_p( $t, $c );
+		$hd = fn( $l, $t, $c = 'disp h2' ) => sib_block_h( $l, $t, $c );
+
+		// Feature: Pay on delivery, built from the same sections as the feature template.
+		$feature = sib_block_group_open( 'bg-mist', 'section' ) . sib_block_group_open( 'wrap split', 'div', [ 'top' => '56px', 'bottom' => '72px' ] )
+			. sib_block_group_open( 'col-22' ) . $p( 'Pay on delivery', 'eyebrow' ) . $hd( 1, 'Take pay on delivery without the fake orders', 'disp h1 h1-58' )
+			. $p( 'Your customer pays the rider in cash or by transfer, and only hands over a 4-digit code when the parcel is in their hands. The rider pays the cash in the same evening.', 'lead' )
+			. sib_block_buttons( [ [ 'Start your shop', sib_go_url(), 'accent' ], [ 'See pricing', home_url( '/pricing/' ), 'ghost' ] ] ) . sib_block_group_close()
+			. sib_block_html( '<div class="tile" style="background:#FFEDE4;color:#5B3A2A"><p class="tt" style="color:#16141F">Delivery code</p><div class="row" style="gap:6px"><span class="digit">4</span><span class="digit">8</span><span class="digit">2</span><span class="digit">1</span></div><p class="ts">Code checked by the rider. Cash paid in by 6pm.</p></div>' )
+			. sib_block_group_close() . sib_block_group_close( 'section' )
+			. sib_block_group_open( 'sec', 'section' ) . sib_block_group_open( 'wrap' ) . sib_block_sec_head( 'Why it helps', 'Cash on delivery, sorted', 'Customers who don’t trust paying first still buy, and you still get your money.' )
+			. sib_block_group_open( 'g3' )
+			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'No more “I’m not around”', 'tt' ) . $p( 'Customers confirm their order on WhatsApp before a rider leaves, so fewer wasted trips.', 'p' ) . sib_block_group_close()
+			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'A code, not an argument', 'tt' ) . $p( 'The parcel is only marked delivered when the customer gives the rider their code.', 'p' ) . sib_block_group_close()
+			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'Money the same evening', 'tt' ) . $p( 'Riders pay cash in by 6pm and it shows in your balance. Paid out every Friday.', 'p' ) . sib_block_group_close()
+			. sib_block_group_close() . sib_block_group_close() . sib_block_group_close( 'section' )
+			. '<!-- wp:pattern {"slug":"shopinbos/faq"} /-->';
+		$this->cpt( 'sib_feature', 'pay-on-delivery', 'Pay on delivery', $feature, 'Take cash and transfer on delivery, confirmed with a 4-digit code. Riders pay in the same evening.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ) ] );
+
+		$this->cpt( 'sib_integration', 'paystack', 'Paystack', $this->text_page( 'Card, bank transfer and USSD payments at checkout and on payment links. Built in: nothing to set up.' ), 'Cards, bank transfer and USSD at checkout', [ 'sib_integration_status' => 'live' ] );
+		$this->cpt( 'sib_integration', 'whatsapp', 'WhatsApp Business', $this->text_page( 'Your catalogue, chats, payment links and order updates, in WhatsApp.' ), 'Catalogue, chats, payment links and order updates', [ 'sib_integration_status' => 'live' ] );
+		$this->cpt( 'sib_integration', 'tiktok-shop', 'TikTok Shop', $this->text_page( 'Sell in videos and lives. Apply from the app.' ), 'Sell in videos and lives', [ 'sib_integration_status' => 'apply' ] );
+
+		$steps = "<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Card and transfer payments go into your Shopinbos balance straight away.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Every Friday we pay your balance to your bank account.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Need it sooner? Tap Withdraw in the app any time.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>For dropship orders, your share is held for 48 hours after delivery in case of returns.</li>\n<!-- /wp:list-item --></ol>\n<!-- /wp:list -->\n\n";
+		$this->cpt( 'sib_help', 'when-do-i-get-paid', 'When do I get paid?', $this->text_page( 'Every Friday, to your bank account. You can also withdraw any time.' ) . $steps, 'Every Friday, to your bank. You can also withdraw any time.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_help_area' => 'Money > Payouts' ], '', 0, [ 'sib_help_category' => [ 'payments-and-payouts' ] ] );
+
+		$this->cpt( 'sib_resource', 'whatsapp-selling-playbook', 'The WhatsApp selling playbook', "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">What’s inside</h2>\n<!-- /wp:heading -->\n\n<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>How to set up your WhatsApp Business catalogue</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Status posts that sell, with 10 examples</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Replies for price, delivery and “is it original?”</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n", 'Set up your catalogue, post Status that sells and answer every buyer question. Free PDF.', [ 'sib_gated' => true, 'sib_list_tag' => 'whatsapp-playbook' ], 'peggy-wave.webp' );
+
+		$post = $this->cpt( 'post', 'how-to-sell-on-whatsapp', 'How to sell on WhatsApp: a starter guide for Nigerian shops', $hd( 2, 'Set up WhatsApp Business', '' ) . $this->text_page( 'Use the WhatsApp Business app, not your personal WhatsApp. Add your shop name, address, opening hours and a short description.' )
+			. $hd( 2, 'Build your catalogue', '' ) . $this->text_page( 'Add your best 10 products with clear photos and prices. Shopinbos keeps your catalogue in sync with your store.' )
+			. sib_block_group_open( 'chat-bubble' ) . sib_block_html( '<img src="' . sib_img( 'peggy.webp' ) . '" alt="Peggy" width="56" height="56" loading="lazy">' )
+			. sib_block_group_open( 'bubble-body' ) . $p( '<strong>Peggy’s tip</strong>' ) . $p( 'Post your three best sellers on Status every morning. Most buyers check Status before 9am.' ) . sib_block_group_close() . sib_block_group_close()
+			. $hd( 2, 'Answer fast, every time', '' ) . $this->text_page( 'Most buyers ask about price, delivery and whether the item is available. Save quick replies, or let Peggy draft them for you to approve.' ),
+			'Set up WhatsApp Business, build a catalogue and answer buyers fast. A practical starter guide.', [ 'sib_cta_intent' => '' ], 'linen-set.webp', 0, [ 'category' => [ 'sell-on-whatsapp-and-social' ] ] );
+	}
+}
+
+WP_CLI::add_command( 'shopinbos', 'Sib_CLI' );

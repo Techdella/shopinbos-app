@@ -3,7 +3,7 @@
 ## Role
 
 You are building the authenticated Shopinbos application, backend, portals, marketplace database, and shared API.
-Codex is building the public marketing website separately.
+The public marketing website (shopinbos.com, WordPress) lives in `website/` — see `website/README.md`.
 
 Your responsibility:
 - Seller app (authenticated)

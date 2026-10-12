@@ -1,0 +1,14 @@
+/*
+Theme Name: Shopinbos
+Theme URI: https://shopinbos.com
+Author: Techdella
+Description: Block theme for shopinbos.com, built from the Shopinbos website prototype. Bento grids, folded sections, product cards and sticky steps as patterns. Pairs with the shopinbos-core plugin.
+Version: 1.0.0
+Requires at least: 6.5
+Tested up to: 6.8
+Requires PHP: 8.1
+License: Proprietary
+Text Domain: shopinbos
+*/
+
+/* Styles live in assets/css/site.css so they can be cached and preloaded. */
