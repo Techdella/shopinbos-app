@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { campaignFilter, resolveCampaignRecipients, resolveTextRecipients, sendCampaign, type CampaignChannel, type RecipientFilter } from "@/lib/campaigns/send";
 import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "./brand";
+import { previewShopFor } from "@/lib/email/compliance.server";
 import { readChannelConfig, type CampaignChannelConfig } from "./campaign-config";
 import { channelStatus, textSender } from "./channels";
 import { getMessagingSettings } from "./messaging-settings";
@@ -126,7 +127,7 @@ export async function campaignAudienceSize(storeId: string, campaign: { channel:
 export async function previewCampaignHtml(storeId: string, input: { bodyHtml: string; preheader?: string | null }) {
   const store = await db.store.findUnique({ where: { id: storeId }, select: MARKETING_STORE_SELECT });
   if (!store) throw new MarketingError("Store not found");
-  return renderEmailPreview({ bodyHtml: input.bodyHtml, preheader: input.preheader, brand: emailBrand(store), shop: { name: store.name, url: storeUrl(store) } });
+  return renderEmailPreview({ bodyHtml: input.bodyHtml, preheader: input.preheader, brand: emailBrand(store), shop: previewShopFor(store) });
 }
 
 /** Sends the current draft to the seller only, marked [Test]. */

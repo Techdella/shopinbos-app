@@ -1,7 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import type { Prisma } from "@prisma/client";
-import { sendEmail } from "./resend";
+import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
 
 export interface CreateNotificationInput {
   userId: string;
@@ -69,17 +70,22 @@ export async function createNotification(
   if (input.sendEmail) {
     const user = await db.user.findUnique({
       where: { id: input.userId },
-      select: { email: true },
+      select: { email: true, role: true },
     });
 
     if (user?.email) {
-      await sendEmail({
-        to: [user.email],
+      const target = input.actionUrl ?? input.link;
+      await sendPlatformEmail({
+        to: user.email,
+        user: { id: input.userId, role: user.role },
+        // Security and billing alerts can't be switched off; the rest link to notification settings.
+        kind: input.type === "payout" || input.priority === "critical" ? "transactional" : "notification",
         subject: input.title,
-        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-          <p style="color:#333;line-height:1.6;font-size:15px">${input.description}</p>
-          ${input.link ? `<a href="${input.link}" style="display:inline-block;padding:10px 20px;background:#195754;color:white;text-decoration:none;border-radius:8px;margin:12px 0;font-size:14px">View details</a>` : ""}
-        </div>`,
+        heading: input.title,
+        eyebrow: input.type.replace(/_/g, " "),
+        preheader: input.description.slice(0, 140),
+        bodyHtml: html.text(input.description),
+        cta: target ? { label: input.actionLabel || "View details", url: /^https?:\/\//.test(target) ? target : `${appBase()}${target.startsWith("/") ? "" : "/"}${target}` } : null,
       }).catch(() => {});
     }
   }

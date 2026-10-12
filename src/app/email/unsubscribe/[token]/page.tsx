@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { unsubscribeCampaignRecipient } from "@/lib/campaigns/send";
+import { contactLinks } from "@/lib/email/compliance.server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,12 @@ export default async function UnsubscribePage({ params, searchParams }: PageProp
   const { done } = await searchParams;
   const recipient = await db.campaignRecipient.findUnique({
     where: { token },
-    select: { email: true, campaign: { select: { store: { select: { name: true } } } } },
+    select: { email: true, storeId: true, campaign: { select: { store: { select: { name: true } } } } },
   });
   if (!recipient) notFound();
   const storeName = recipient.campaign.store.name;
+  // The full preference center (topics, texts) for the same person and shop.
+  const preferences = contactLinks(recipient.storeId, recipient.email)?.preferences ?? null;
 
   return (
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "32px 16px", background: "var(--paper, #FAF7F1)" }}>
@@ -47,6 +50,11 @@ export default async function UnsubscribePage({ params, searchParams }: PageProp
               <input type="hidden" name="token" value={token} />
               <button type="submit" className="dbtn dBtn-mint" style={{ width: "100%" }}>Unsubscribe</button>
             </form>
+            {preferences && (
+              <p style={{ margin: "16px 0 0", fontSize: 14 }}>
+                <a href={preferences} style={{ color: "#195754", fontWeight: 600 }}>Choose which emails you get instead</a>
+              </p>
+            )}
           </>
         )}
       </div>

@@ -15,6 +15,9 @@ import { defaultHeaderImage, resolveTemplate, sendTemplate } from "@/lib/marketi
 import { getMessagingSettings } from "@/lib/marketing/messaging-settings";
 import { contactsInSegment, loadContacts, segmentRules } from "@/lib/marketing/contacts";
 import { wrapEmail } from "@/lib/marketing/email-layout";
+import { appBase, contactLinks, storeSender, unsubscribeHeaders } from "@/lib/email/compliance.server";
+import { MISSING_ADDRESS_MESSAGE } from "@/lib/email/shell";
+import { STORE_TOPICS, contactAllows, isOrderEmailTrigger, topicForTrigger, type StoreTopic } from "@/lib/email/preferences";
 import { fillVariables, firstName, parseFlowConfig, type FlowStep, type FlowVariables } from "@/lib/marketing/flows";
 import { normalizeEmail, normalizePhone } from "@/lib/marketing/segment-rules";
 
@@ -201,6 +204,12 @@ function variables({ enrollment, store, context }: ActionInput, mode: "email" | 
   };
 }
 
+/** The contact's topic choice from the preference center (no list row: allowed). */
+async function allowsTopic(storeId: string, email: string, topic: StoreTopic) {
+  const row = await db.subscriber.findUnique({ where: { storeId_email: { storeId, email } }, select: { status: true, metadata: true } });
+  return contactAllows(row, topic);
+}
+
 async function suppressed(storeId: string, email: string | null) {
   if (!email) return false;
   const row = await db.subscriber.findUnique({ where: { storeId_email: { storeId, email } }, select: { status: true } });
@@ -234,6 +243,13 @@ async function runAction(step: FlowStep, input: ActionInput): Promise<ActionOutc
       if (!enrollment.email) return { status: "skipped", message: "No email address" };
       if (!isEmailConfigured()) return { status: "skipped", message: "Email isn't set up (RESEND_API_KEY)" };
       if (await suppressed(store.id, enrollment.email)) return { status: "skipped", message: "They unsubscribed", recipient: enrollment.email };
+      // Order emails are service messages; everything else is marketing: it follows the contact's topic choices
+      // and needs the shop's postal address in the footer.
+      const orderEmail = isOrderEmailTrigger(input.trigger);
+      const topic = topicForTrigger(input.trigger);
+      if (topic && !(await allowsTopic(store.id, enrollment.email, topic))) return { status: "skipped", message: `They turned off "${STORE_TOPICS.find((t) => t.key === topic)?.label ?? topic}" emails`, recipient: enrollment.email };
+      const sender = storeSender(store);
+      if (!orderEmail && !sender.hasAddress) return { status: "skipped", message: MISSING_ADDRESS_MESSAGE, recipient: enrollment.email };
       let subject = step.subject;
       let body = step.bodyHtml;
       if (step.templateId && (!subject || !body.trim())) {
@@ -244,15 +260,22 @@ async function runAction(step: FlowStep, input: ActionInput): Promise<ActionOutc
       if (!subject || !body.trim()) return { status: "skipped", message: "The email has no subject or content" };
       const vars = variables(input, "email");
       const brand = emailBrand(store);
-      const footer = `<p style="margin:28px 0 0;font-size:12px;color:#8A8796;text-align:center">You're getting this because you shopped with or subscribed to ${fillVariables("{{store}}", vars, "html")}. <a href="${fillVariables("{{unsubscribe_url}}", vars, "html")}" style="color:#8A8796">Unsubscribe</a></p>`;
-      const html = wrapEmail({ bodyHtml: fillVariables(body, { ...vars, brand_accent: brand.accent }, "html") + footer, brand });
+      const links = contactLinks(store.id, enrollment.email);
+      const html = wrapEmail({
+        bodyHtml: fillVariables(body, { ...vars, brand_accent: brand.accent }, "html"),
+        brand,
+        compliance: orderEmail
+          ? { appUrl: appBase(), sender, kind: "transactional", reason: `you ordered from ${store.name}`, preferencesUrl: links?.preferences ?? null }
+          : { appUrl: appBase(), sender, kind: "marketing", reason: `you shopped with or subscribed to ${store.name}`, unsubscribeUrl: vars.unsubscribe_url || links?.unsubscribe, preferencesUrl: links?.preferences ?? null },
+      });
       const result = await sendEmailBatch([
         {
           to: enrollment.email,
           subject: fillVariables(subject, vars, "text"),
           html,
           from: formatFromAddress(store.name),
-          headers: { "List-Unsubscribe": `<${vars.unsubscribe_url}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+          // One-click unsubscribe (RFC 8058) on marketing flows; order emails are service messages.
+          headers: !orderEmail && links ? unsubscribeHeaders(links) : undefined,
         },
       ]);
       if (!result.success) return { status: "failed", message: result.message ?? "The email provider refused it", recipient: enrollment.email };

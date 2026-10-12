@@ -2,7 +2,9 @@ import { requireRole } from "@/lib/server-auth";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
-import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, closeStore, inviteTeamMember } from "@/app/actions/workspace";
+import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, saveBusinessAddress, closeStore, inviteTeamMember } from "@/app/actions/workspace";
+import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
+import { userLinks } from "@/lib/email/compliance.server";
 import { PageToast } from "@/components/PageToast";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
@@ -72,6 +74,9 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const storeLogoUrl = store?.logoUrl;
   const initials = user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
   const pendingInvites = (brandSettings.pendingInvites ?? []) as string[];
+  const businessAddress = readBusinessAddress(store?.brandSettings);
+  const businessAddressReady = hasPostalAddress(businessAddress);
+  const emailPreferencesUrl = userLinks(user.id)?.preferences ?? null;
 
   return (
     <SellerPage user={user} store={storeSummary(store)} title="Settings" sub="Your store, how Peggy and Rex work for you, your team, billing and alerts.">
@@ -132,6 +137,60 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                       </div>
                       <div>
                         <button type="submit" className={SUBMIT_INK}>Save store details</button>
+                      </div>
+                    </div>
+                  </Card>
+                </form>
+
+                <form action={saveBusinessAddress} id="business-address" className="scroll-mt-24">
+                  <Card className="p-5">
+                    <CardHead
+                      title="Business address"
+                      sub="Shown in the footer of every email your store sends. Marketing emails can't go out without it: anti-spam laws and Gmail and Yahoo need a real postal address."
+                      action={businessAddressReady ? <Pill tone="success">Added</Pill> : <Pill tone="warning">Needed for marketing</Pill>}
+                    />
+                    <div className="mt-4 grid gap-4">
+                      <div>
+                        <label htmlFor="legalName" className={FIELD_LABEL}>Registered business name</label>
+                        <input id="legalName" name="legalName" className={FIELD_INPUT} defaultValue={businessAddress.legalName} placeholder={storeName} autoComplete="organization" />
+                        <p className={FIELD_HELP}>Leave empty to use your store name.</p>
+                      </div>
+                      <div>
+                        <label htmlFor="line1" className={FIELD_LABEL}>Street address</label>
+                        <input id="line1" name="line1" className={FIELD_INPUT} defaultValue={businessAddress.line1} placeholder="12 Adeola Odeku Street" autoComplete="address-line1" />
+                      </div>
+                      <div>
+                        <label htmlFor="line2" className={FIELD_LABEL}>Building, floor or landmark (optional)</label>
+                        <input id="line2" name="line2" className={FIELD_INPUT} defaultValue={businessAddress.line2} autoComplete="address-line2" />
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="min-w-0">
+                          <label htmlFor="addressCity" className={FIELD_LABEL}>City</label>
+                          <input id="addressCity" name="addressCity" className={FIELD_INPUT} defaultValue={businessAddress.city || store?.city || ""} autoComplete="address-level2" />
+                        </div>
+                        <div className="min-w-0">
+                          <label htmlFor="addressState" className={FIELD_LABEL}>State</label>
+                          <input id="addressState" name="addressState" className={FIELD_INPUT} defaultValue={businessAddress.state} placeholder="Lagos" autoComplete="address-level1" />
+                        </div>
+                        <div className="min-w-0">
+                          <label htmlFor="postalCode" className={FIELD_LABEL}>Postal code (optional)</label>
+                          <input id="postalCode" name="postalCode" className={FIELD_INPUT} defaultValue={businessAddress.postalCode} autoComplete="postal-code" />
+                        </div>
+                        <div className="min-w-0">
+                          <label htmlFor="addressCountry" className={FIELD_LABEL}>Country</label>
+                          <input id="addressCountry" name="addressCountry" className={FIELD_INPUT} defaultValue={businessAddress.country || store?.country || "Nigeria"} autoComplete="country-name" />
+                        </div>
+                        <div className="min-w-0">
+                          <label htmlFor="addressEmail" className={FIELD_LABEL}>Customer contact email (optional)</label>
+                          <input id="addressEmail" name="addressEmail" type="email" className={FIELD_INPUT} defaultValue={businessAddress.email} placeholder="hello@yourbrand.com" />
+                        </div>
+                        <div className="min-w-0">
+                          <label htmlFor="addressPhone" className={FIELD_LABEL}>Customer contact phone (optional)</label>
+                          <input id="addressPhone" name="addressPhone" type="tel" className={FIELD_INPUT} defaultValue={businessAddress.phone} />
+                        </div>
+                      </div>
+                      <div>
+                        <button type="submit" className={SUBMIT_INK}>Save business address</button>
                       </div>
                     </div>
                   </Card>
@@ -227,6 +286,15 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               </>
             )}
 
+            {activeTab === "Notifications" && emailPreferencesUrl && (
+              <Card className="p-5">
+                <CardHead
+                  title="Emails from Shopinbos"
+                  sub="Product news and tips, setup nudges and weekly summaries. Security, billing and account emails always arrive."
+                  action={<PillLink href={emailPreferencesUrl} size="sm" tone="ink">Email preferences</PillLink>}
+                />
+              </Card>
+            )}
             {activeTab === "Notifications" && (
               <form action={saveNotificationPreferences}>
                 <Card className="p-5">

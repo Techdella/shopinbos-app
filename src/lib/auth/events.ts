@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
 import { sendEmail } from "@/lib/notifications/resend";
+import { appBase, buildPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
 import { sha256 } from "./throttle";
 
 // Security event log ("AuthEvent") plus the emails people get when their password changes or a new
@@ -81,18 +83,16 @@ export function describeDevice(userAgent: string | null | undefined) {
 }
 
 function securityEmailHtml(heading: string, lines: string[]) {
-  const escape = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com").replace(/\/$/, "");
-  return `<!doctype html><html><body style="margin:0;background:#FAF7F1;font-family:Arial,Helvetica,sans-serif;color:#16141F">
-<div style="max-width:520px;margin:0 auto;padding:32px 20px">
-<div style="font-weight:800;font-size:18px;margin-bottom:24px">Shopinbos</div>
-<div style="background:#fff;border:1px solid #ECE7DD;border-radius:18px;padding:24px">
-<h1 style="margin:0 0 12px;font-size:22px">${escape(heading)}</h1>
-${lines.map((line) => `<p style="margin:0 0 12px;line-height:1.55;color:#4A4752">${escape(line)}</p>`).join("\n")}
-<p style="margin:20px 0 0"><a href="${appUrl}/forgot-password" style="display:inline-block;background:#16141F;color:#fff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:999px">Reset my password</a></p>
-</div>
-<p style="font-size:12px;color:#6E6E68;margin-top:16px">You get this email for your account's security. It can't be switched off.</p>
-</div></body></html>`;
+  return buildPlatformEmail({
+    kind: "transactional",
+    eyebrow: "Account security",
+    heading,
+    preheader: lines[0],
+    bodyHtml: lines.map((line) => html.p(line)).join(""),
+    cta: { label: "Reset my password", url: `${appBase()}/forgot-password` },
+    reason: "this is your Shopinbos account's email address",
+    serviceNote: "You get this email for your account's security. It can't be switched off.",
+  }).html;
 }
 
 function whenText() {

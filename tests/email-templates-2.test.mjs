@@ -135,7 +135,7 @@ test("every template renders, is unique, sanitiser-stable, and sits in a known c
     const html = preview.renderEmailPreview({ bodyHtml: tpl.bodyHtml, preheader: tpl.preheader, brand, shop });
     assert.doesNotMatch(html, /{{\s*\w+\s*}}/, `${tpl.key} has no unfilled merge tags`);
     assert.doesNotMatch(html, /<script|javascript:/i);
-    for (const src of html.matchAll(/<img src="([^"]+)"/g)) assert.match(src[1], /^https:\/\/images\.unsplash\.com\/photo-\d+-[0-9a-f]+\?/, `${tpl.key} images come from Unsplash`);
+    for (const src of html.matchAll(/<img src="([^"]+)"/g)) assert.match(src[1], /^https:\/\/(images\.unsplash\.com\/photo-\d+-[0-9a-f]+\?|app\.shopinbos\.com\/brand\/email\/shopinbos-logo-(navy|white)@2x\.png$)/, `${tpl.key} images come from Unsplash (or the footer's Shopinbos mark)`);
     for (const href of html.matchAll(/href="([^"]+)"/g)) assert.match(href[1], /^(https:\/\/|#)/, `${tpl.key} link ${href[1]}`);
   }
   // Every journey has starters, and every style family is used.

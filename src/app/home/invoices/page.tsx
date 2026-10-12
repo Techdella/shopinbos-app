@@ -6,7 +6,9 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, type Tone } from "@/components/app-kit";
 import { Field, buttonClass, formatDate, humanize, inputClass, selectClass } from "@/components/growth/kit";
 import { revalidatePath } from "next/cache";
-import { sendEmail } from "@/lib/notifications/resend";
+import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
+import { appBase, SENDER_STORE_SELECT, storeSender } from "@/lib/email/compliance.server";
+import { invoiceEmail } from "@/lib/email/store-emails";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +37,7 @@ function readManualInvoices(settings: unknown): ManualInvoice[] {
 async function createManualInvoice(formData: FormData) {
   "use server";
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, brandSettings: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: SENDER_STORE_SELECT });
   if (!store) redirect("/builder?firstRun=1");
 
   const direction = String(formData.get("direction") || "sent") === "received" ? "received" : "sent";
@@ -59,10 +61,13 @@ async function createManualInvoice(formData: FormData) {
   });
 
   if (invoice.direction === "sent" && invoice.partyEmail) {
+    const email = invoiceEmail({ appUrl: appBase(), store: storeSender(store), invoiceId: invoice.id, description: invoice.description, amount: fmt(invoice.amount) });
     await sendEmail({
       to: [invoice.partyEmail],
       subject: `${store.name} invoice ${invoice.id}`,
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px"><h2>Invoice ${invoice.id}</h2><p>${invoice.description}</p><p><strong>Total: ${fmt(invoice.amount)}</strong></p><p>Sent by ${store.name} via Shopinbos.</p></div>`,
+      html: email,
+      from: formatFromAddress(store.name),
+      replyTo: user.email ?? undefined,
     });
   }
 

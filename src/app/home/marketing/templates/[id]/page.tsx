@@ -5,7 +5,8 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
 import { readPreheader, withPreheader } from "@/lib/marketing/blocks";
-import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "@/lib/marketing/brand";
+import { MARKETING_STORE_SELECT, emailBrand } from "@/lib/marketing/brand";
+import { previewShopFor } from "@/lib/email/compliance.server";
 import { TEMPLATE_LIBRARY } from "@/lib/marketing/template-library";
 import { TemplateEditor } from "./TemplateEditor";
 
@@ -42,7 +43,7 @@ export default async function TemplatePage({ params, searchParams }: { params: P
           category: template?.category ?? starter?.category ?? "newsletter",
         }}
         brand={emailBrand(store)}
-        shop={{ name: store.name, url: storeUrl(store) }}
+        shop={previewShopFor(store)}
       />
     </SellerPage>
   );

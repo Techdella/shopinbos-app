@@ -2,6 +2,8 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
+import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
+import { refundEmail } from "@/lib/email/store-emails";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { canStartRefund, paystackRefundBody, readPaystackRefund, refundIdempotencyKey, refundRoute, refundStatusFromEvent, refundStillOpen } from "./refunds";
 
@@ -18,10 +20,6 @@ const PAYSTACK_DEFAULT_BASE = "https://api.paystack.co";
 function paystackBase() {
   const base = process.env.PAYSTACK_BASE_URL?.trim();
   return (base && /^https?:\/\//.test(base) ? base : PAYSTACK_DEFAULT_BASE).replace(/\/+$/, "");
-}
-
-function escapeHtml(value: unknown) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 }
 
 function money(amount: number, currency: string) {
@@ -47,23 +45,14 @@ function loadOrder(orderId: string) {
 
 async function emailBuyer(order: RefundOrder, kind: "automatic" | "by_store") {
   if (!order.buyerEmail) return;
-  const amount = money(Number(order.total), order.currency);
-  const firstName = order.buyerName.split(" ")[0] || "there";
-  const body = kind === "automatic"
-    ? `We've refunded your payment of <strong>${escapeHtml(amount)}</strong>. It usually reaches your card or bank within 5 to 10 working days, depending on your bank.`
-    : `${escapeHtml(order.store.name)} will refund your payment of <strong>${escapeHtml(amount)}</strong> and will contact you about it.`;
+  const sender = await loadStoreSender(order.storeId).catch(() => null);
+  if (!sender) return;
+  const email = refundEmail({ appUrl: appBase(), store: sender, buyerName: order.buyerName, orderNumber: order.orderNumber, amount: money(Number(order.total), order.currency), kind });
   await sendEmail({
     to: [order.buyerEmail],
     from: formatFromAddress(order.store.name),
-    subject: `Refund for order ${order.orderNumber}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px">
-        <h2 style="font-size:20px;margin:0 0 8px">Your order couldn't be filled</h2>
-        <p>Hi ${escapeHtml(firstName)}, order <strong>${escapeHtml(order.orderNumber)}</strong> from <strong>${escapeHtml(order.store.name)}</strong> expired before your payment arrived, and the items sold out in the meantime.</p>
-        <p>${body}</p>
-        <p style="color:#6e6e68;font-size:13px">Sorry about this. Reply to this email if you have questions.</p>
-      </div>
-    `,
+    subject: email.subject,
+    html: email.html,
   }).catch((error) => console.error(`[refunds] buyer email for ${order.orderNumber} failed`, error));
 }
 

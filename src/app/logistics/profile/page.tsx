@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { updateLogisticsProfile } from "@/app/actions/logistics";
 import { requireRole } from "@/lib/server-auth";
+import { userLinks } from "@/lib/email/compliance.server";
 import { getLogisticsWorkspace } from "@/lib/workspace";
 import { Card, CardHead, Pill, PillLink, TextLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
@@ -40,6 +41,7 @@ function serviceHours(onboardingState: unknown): ServiceHours[] {
 export default async function LogisticsProfilePage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const user = await requireRole(["logistics_partner"], "/logistics/login");
+  const emailPreferencesUrl = userLinks(user.id)?.preferences ?? null;
   const workspace = await getLogisticsWorkspace(user.id);
   if (!workspace) return null;
   const { partner } = workspace;
@@ -239,6 +241,11 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
         </div>
       </div>
 
+      {emailPreferencesUrl && (
+        <Card className="mt-5 p-5">
+          <CardHead title="Emails from Shopinbos" sub="Product news and tips, setup nudges and weekly summaries. Security, billing and booking emails always arrive." action={<PillLink href={emailPreferencesUrl} size="sm">Email preferences</PillLink>} />
+        </Card>
+      )}
       <SecuritySettings className="mt-5 p-5" />
     </PartnerPage>
   );

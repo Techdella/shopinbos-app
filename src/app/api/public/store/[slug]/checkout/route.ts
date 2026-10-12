@@ -6,7 +6,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { z } from "zod";
 import { LINK_CHANNELS } from "@shared/channels";
 import { randomBytes } from "crypto";
-import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/notifications/resend";
+import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/email/notices.server";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { validCampaignToken } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       name: true,
       slug: true,
       customDomain: true,
+      logoUrl: true,
       currency: true,
       status: true,
       brandSettings: true,
@@ -243,18 +244,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   await Promise.allSettled([
     // The bag this shopper left (by this browser's cart token, email or phone) is now an order.
     markCartRecovered({ storeId: store.id, orderId: order.id, token: cartToken, email: buyerEmail, phone: buyerPhone }),
-    sendOrderConfirmationEmail(
-      buyerEmail,
-      order.orderNumber,
-      store.name,
-      orderItems.map((item) => ({ name: item.name, qty: item.quantity, price: money(item.price * item.quantity) })),
-      money(total),
-    ),
+    sendOrderConfirmationEmail({
+      store,
+      to: buyerEmail,
+      buyerName,
+      orderNumber: order.orderNumber,
+      items: orderItems.map((item) => ({ name: item.name, qty: item.quantity, price: money(item.price * item.quantity) })),
+      total: money(total),
+      orderUrl: buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }, `/order/${order.id}`),
+      paymentNote: paymentChoiceText(paymentMethod),
+    }),
     sendSellerNotification(store.user.email, {
       title: `New order ${order.orderNumber}`,
       description: sellerDescription,
       type: "order",
-    }),
+      link: `/home/orders/${order.id}`,
+      actionLabel: "Open the order",
+    }, { id: store.userId, role: "seller" }),
     db.notification.create({
       data: {
         userId: store.userId,

@@ -3,7 +3,8 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { readPreheader, withPreheader } from "./blocks";
-import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "./brand";
+import { MARKETING_STORE_SELECT, emailBrand } from "./brand";
+import { previewShopFor } from "@/lib/email/compliance.server";
 import { previewSubject, renderEmailPreview } from "./preview";
 import { sanitizeEmailHtml } from "./sanitize";
 import { TEMPLATE_LIBRARY } from "./template-library";
@@ -63,7 +64,7 @@ export async function testSendTemplate(storeId: string, input: { subject: string
   if (!input.bodyHtml.trim()) throw new MarketingError("Write the email first");
   const store = await db.store.findUnique({ where: { id: storeId }, select: MARKETING_STORE_SELECT });
   if (!store) throw new MarketingError("Store not found");
-  const shop = { name: store.name, url: storeUrl(store) };
+  const shop = previewShopFor(store);
   const html = renderEmailPreview({ bodyHtml: sanitizeEmailHtml(input.bodyHtml), preheader: input.preheader, brand: emailBrand(store), shop });
   const result = await sendEmail({ to: [to], subject: `[Test] ${previewSubject(input.subject || store.name, shop)}`, html, from: formatFromAddress(store.name) });
   if (!result.success) throw new MarketingError(result.message ?? "The test email couldn't be sent");

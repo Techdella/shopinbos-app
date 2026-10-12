@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
-import { escapeHtml } from "@/lib/campaigns/render";
+import { appBase, storeSender, SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
+import { reviewRequestEmail } from "@/lib/email/store-emails";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
 import { toE164 } from "@shared/phone";
@@ -59,20 +60,6 @@ export async function storeChannelReadiness(storeId: string) {
   return { ...platform, sms: platform.sms || Boolean(own.sms), whatsapp: platform.whatsapp || Boolean(own.whatsapp), ownSms: Boolean(own.sms), ownWhatsapp: Boolean(own.whatsapp) };
 }
 
-function emailHtml(input: { storeName: string; customerName: string; link: string; items: string[] }) {
-  const first = escapeHtml(input.customerName.trim().split(/\s+/)[0] || "there");
-  const items = input.items.slice(0, 6).map((name) => `<li style="margin:0 0 4px">${escapeHtml(name)}</li>`).join("");
-  return `<!doctype html><html><body style="margin:0;background:#F6F4FA;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#16141F">
-<div style="max-width:520px;margin:0 auto;padding:32px 20px">
-<div style="background:#fff;border:1px solid #E6E1F0;border-radius:22px;padding:28px">
-<h1 style="margin:0 0 12px;font-size:22px">How was your order, ${first}?</h1>
-<p style="margin:0 0 12px;font-size:15px;line-height:1.55">Thank you for shopping with ${escapeHtml(input.storeName)}. A quick rating helps other buyers and helps us get better.</p>
-${items ? `<ul style="margin:0 0 18px;padding-left:18px;font-size:14px;color:#4A4658">${items}</ul>` : ""}
-<a href="${escapeHtml(input.link)}" style="display:inline-block;background:#16141F;color:#fff;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:999px;font-size:15px">Leave a review</a>
-<p style="margin:18px 0 0;font-size:12.5px;color:#6B6878">It takes about a minute. You can add photos too.</p>
-</div></div></body></html>`;
-}
-
 function orderItemNames(items: unknown): string[] {
   if (!Array.isArray(items)) return [];
   return items
@@ -88,7 +75,7 @@ export function whatsappLink(phone: string | null, text: string) {
 /** Sends (or prepares) review requests for orders in one store. Never sends twice for the same order and channel unless `resend`. */
 export async function requestReviews(input: { storeId: string; orderIds: string[]; channel: RequestChannel; trigger?: RequestTrigger; resend?: boolean }) {
   const secret = reviewLinkSecret();
-  const store = await db.store.findUnique({ where: { id: input.storeId }, select: { id: true, name: true, slug: true } });
+  const store = await db.store.findUnique({ where: { id: input.storeId }, select: SENDER_STORE_SELECT });
   if (!store) throw new Error("Store not found");
   if (!secret) throw new Error("Review links need REVIEW_LINK_SECRET (or SUPABASE_SERVICE_ROLE_KEY) to be set.");
   const ready = await storeChannelReadiness(store.id);
@@ -150,7 +137,7 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
         const sent = await sendEmail({
           to: [email!],
           subject: message.subject,
-          html: emailHtml({ storeName: store.name, customerName: order.buyerName, link, items: orderItemNames(order.items) }),
+          html: reviewRequestEmail({ appUrl: appBase(), store: storeSender(store), customerName: order.buyerName, link, items: orderItemNames(order.items) }),
           from: formatFromAddress(store.name),
         });
         ok = sent.success;
