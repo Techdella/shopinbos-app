@@ -50,6 +50,11 @@ interface PickupOrder {
   currency: string;
 }
 
+/** Text for the parcel label and job (rendered escaped, so apostrophes stay: "Chioma's Collections"). */
+function labelText(value: unknown, max = 120) {
+  return String(value ?? "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
 async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: string): Promise<PickupOrder | null> {
   const supplier = await db.supplier.findUnique({ where: { id: supplierId }, select: { id: true, userId: true, city: true, country: true, address: true } });
   if (!supplier) return null;
@@ -74,11 +79,11 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
       supplier,
       packed: row.status === "accepted" && Boolean(row.packedAt),
       packable: row.status === "accepted" && !row.packedAt,
-      shopName: plainText(store?.name) || "The shop",
+      shopName: labelText(store?.name) || "The shop",
       storeId: row.storeId,
       retailOrderId: row.retailOrderId,
       dropoff: { name: row.recipientName, phone: row.recipientPhone, lines: addressLines(row.shippingAddress) },
-      items: items.map((item) => ({ name: plainText(item.name, 80) || "Item", quantity: Math.max(1, Number(item.quantity) || 1) })),
+      items: items.map((item) => ({ name: labelText(item.name, 80) || "Item", quantity: Math.max(1, Number(item.quantity) || 1) })),
       collect: unpaidPod ? Number(row.retailOrder.total) || 0 : 0,
       shippingFee: Number(row.retailOrder.shippingFee) || 0,
       currency: row.currency,
@@ -93,7 +98,7 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
     },
   });
   if (!row) return null;
-  const shop = plainText(row.seller.store?.name ?? row.seller.name) || "The shop";
+  const shop = labelText(row.seller.store?.name ?? row.seller.name) || "The shop";
   return {
     kind,
     id: row.id,
@@ -107,7 +112,7 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
     storeId: row.seller.store?.id ?? null,
     retailOrderId: null,
     dropoff: { name: shop, phone: row.seller.phone, lines: row.deliveryAddress ? [row.deliveryAddress] : [] },
-    items: [{ name: plainText(row.supplierProduct.name, 80) || "Item", quantity: row.quantity }],
+    items: [{ name: labelText(row.supplierProduct.name, 80) || "Item", quantity: row.quantity }],
     collect: 0,
     shippingFee: 0,
     currency: row.currency,

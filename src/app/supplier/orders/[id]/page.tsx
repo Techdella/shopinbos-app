@@ -85,7 +85,7 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
   }
 
   const pickup = ["accepted", "confirmed", "processing"].includes(view.status) ? await pickupState(supplier.id, kind, id) : null;
-  const stage = STAGE[view.status] ?? { label: view.status, tone: "muted" as const };
+  const stage = pickup?.packed ? STAGE.processing : STAGE[view.status] ?? { label: view.status, tone: "muted" as const };
   const isNew = view.status === "pending";
   const returnTo = `/supplier/orders/${id}`;
   const hidden = (
