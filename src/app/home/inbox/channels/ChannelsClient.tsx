@@ -19,6 +19,10 @@ interface Field {
   optional?: boolean;
   placeholder?: string;
   hint?: string;
+  /** A choice instead of free text. */
+  options?: Array<{ value: string; label: string }>;
+  /** Only shown when the form's "provider" is one of these (SMS: Termii, Africa's Talking, Sendchamp). */
+  only?: string[];
 }
 
 interface Setup {
@@ -79,34 +83,47 @@ const SETUPS: Record<ConnectableChannel, Setup> = {
     ],
   },
   sms: {
-    title: "SMS (Twilio)",
-    blurb: "Text messages to and from a Twilio number.",
-    needs: "A Twilio account and an SMS-capable Twilio number. Twilio sells few Nigerian numbers; an international number works for replies, and local delivery depends on your sender registration.",
+    title: "SMS",
+    blurb: "Text customers from your own Termii, Africa's Talking or Sendchamp account. With a Termii number or an Africa's Talking shortcode, their replies arrive here too.",
+    needs: "An account with Termii, Africa's Talking or Sendchamp, and a sender ID approved for Nigeria (takes a few days). To get replies: a Termii number, or an Africa's Talking shortcode. Sendchamp can only send.",
     steps: [
-      "In the Twilio Console, buy a number with SMS (and Voice if you want calls).",
-      "Copy your Account SID and Auth Token from the Console home page.",
-      "Paste them below with the number in +country format. We point the number's incoming-message webhook at your inbox for you.",
+      "Sign up with one provider and request a sender ID (your shop name, 3 to 11 characters). Use the DND route for order updates so they reach numbers on Do-Not-Disturb.",
+      "Termii: copy your API key, secret key and base URL from the dashboard. Africa's Talking: copy your app's username and API key (Settings → API Key). Sendchamp: copy the public access key from Account → API Keys & Webhooks.",
+      "Paste them below and connect. We check the keys with the provider before saving.",
+      "After connecting, copy the webhook URL shown here into your provider's dashboard (Termii: Webhook; Africa's Talking: SMS → Callback URLs for incoming messages and delivery reports; Sendchamp: Webhooks) so replies and delivery ticks come back.",
     ],
     fields: [
-      { name: "accountSid", label: "Account SID", placeholder: "AC…" },
-      { name: "authToken", label: "Auth Token", secret: true },
-      { name: "phoneNumber", label: "Twilio phone number", placeholder: "+1…" },
+      { name: "provider", label: "Provider", options: [{ value: "termii", label: "Termii" }, { value: "africastalking", label: "Africa's Talking" }, { value: "sendchamp", label: "Sendchamp" }] },
+      { name: "username", label: "App username", placeholder: "myshop", only: ["africastalking"], hint: "Use \"sandbox\" to test with Africa's Talking's sandbox." },
+      { name: "apiKey", label: "API key", secret: true, only: ["termii", "africastalking", "sendchamp"] },
+      { name: "senderId", label: "Sender ID", optional: true, placeholder: "AdasCloset", only: ["termii", "africastalking", "sendchamp"], hint: "Approved by the provider. Leave empty on Termii to send from your Termii number instead." },
+      { name: "phoneNumber", label: "Number or shortcode for replies", optional: true, placeholder: "+234… or 33012", only: ["termii", "africastalking"], hint: "Without it, messages go out but customers can't reply." },
+      {
+        name: "route",
+        label: "Route",
+        optional: true,
+        only: ["termii", "sendchamp"],
+        options: [{ value: "dnd", label: "DND (transactional, reaches DND numbers)" }, { value: "generic", label: "Generic (Termii, promotional)" }, { value: "non_dnd", label: "Non-DND (Sendchamp, promotional)" }, { value: "international", label: "International (Sendchamp)" }],
+      },
+      { name: "secretKey", label: "Secret key", secret: true, optional: true, only: ["termii"], hint: "Lets us check that webhooks really come from Termii." },
+      { name: "baseUrl", label: "Base URL", optional: true, placeholder: "https://v3.api.termii.com", only: ["termii"], hint: "Shown on your Termii dashboard, if it isn't the default." },
     ],
   },
   voice: {
-    title: "Phone calls (Twilio Voice)",
-    blurb: "Calls to your Twilio number are logged here, ring your own phone, and go to voicemail with a transcript. Call customers back from the inbox.",
-    needs: "A voice-capable Twilio number. If SMS is connected, leave the Twilio fields empty to use the same account and number.",
+    title: "Phone calls",
+    blurb: "Calls to your Africa's Talking number are logged here and ring your own phone, or go to voicemail. Call customers back from the inbox.",
+    needs: "An Africa's Talking account with a voice number (Voice → Phone numbers). If SMS is connected with Africa's Talking, leave the username and API key empty to reuse them.",
     steps: [
-      "Use the same Twilio number as SMS, or buy a voice-capable one.",
-      "Add your own phone number so calls ring you first; leave it empty to send every call to voicemail.",
-      "Connect. We point the number's incoming-call webhook at your inbox. Voicemails arrive with Twilio's transcript (English).",
+      "In Africa's Talking, request a voice number for your app.",
+      "Add your own phone number so calls ring you; leave it empty to send every call to voicemail. Calls that ring your phone and aren't answered are logged as missed, without a voicemail.",
+      "Connect, then paste the webhook URL shown here as the number's callback URL in Africa's Talking (Voice → Phone numbers).",
+      "Voicemails arrive as recordings you can play here (no transcript).",
     ],
     fields: [
+      { name: "phoneNumber", label: "Africa's Talking voice number", placeholder: "+234…" },
       { name: "forwardCallsTo", label: "Ring my phone first", optional: true, placeholder: "+2348012345678" },
-      { name: "accountSid", label: "Account SID", optional: true, placeholder: "AC…" },
-      { name: "authToken", label: "Auth Token", secret: true, optional: true },
-      { name: "phoneNumber", label: "Twilio phone number", optional: true, placeholder: "+1…" },
+      { name: "username", label: "App username", optional: true },
+      { name: "apiKey", label: "API key", secret: true, optional: true },
     ],
   },
   telegram: {
@@ -171,7 +188,9 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
     setBusy(true);
     setMessage(null);
     try {
-      const body = Object.fromEntries(Object.entries(values).filter(([, v]) => v.trim()));
+      // Only send what's on screen (switching SMS provider hides the other providers' fields).
+      const shown = new Set(setup.fields.filter((f) => !f.only || f.only.includes(values.provider ?? "")).map((f) => f.name));
+      const body = Object.fromEntries(Object.entries(values).filter(([k, v]) => shown.has(k) && v.trim()));
       const next = await inboxApi<ChannelView>(`/api/app/inbox/channels/${view.channel}`, { method: "POST", body: JSON.stringify(body) });
       onChange(next);
       setValues({});
@@ -209,13 +228,13 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="m-0 text-[16px] font-extrabold">{setup.title}</h2>
-            {connected ? <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? "Needs attention" : "Connected"}</Pill> : <Pill tone="muted">Not connected</Pill>}
+            {connected ? <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? "Needs attention" : "Connected"}</Pill> : view.status === "error" ? <Pill tone="warning" dot>Reconnect</Pill> : <Pill tone="muted">Not connected</Pill>}
           </div>
           <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{connected && view.displayName ? view.displayName : setup.blurb}</p>
         </div>
       </div>
 
-      {view.lastError && connected && <Notice tone="error">{view.lastError}</Notice>}
+      {view.lastError && (connected || view.status === "error") && <Notice tone="error">{view.lastError}</Notice>}
       {extra}
 
       {connected && metaChannel && view.webhookUrl && (
@@ -243,9 +262,22 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
           }}
           className="grid gap-3"
         >
-          {setup.fields.map((field) => (
+          {setup.fields.filter((field) => !field.only || field.only.includes(values.provider ?? "")).map((field) => (
             <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
               <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> (optional)</span> : null}</span>
+              {field.options ? (
+                <select
+                  required={!field.optional}
+                  value={values[field.name] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
+                  className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[14px] font-normal outline-none focus:border-app-ink"
+                >
+                  <option value="">{field.optional ? "Default" : "Choose…"}</option>
+                  {field.options
+                    .filter((option) => field.name !== "route" || (values.provider === "termii" ? ["dnd", "generic"] : ["dnd", "non_dnd", "international"]).includes(option.value))
+                    .map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              ) : (
               <input
                 type={field.secret ? "password" : "text"}
                 autoComplete="off"
@@ -256,12 +288,13 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
                 placeholder={field.placeholder}
                 className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 font-mono text-[14px] font-normal outline-none focus:border-app-ink"
               />
+              )}
               {field.hint && <span className="text-[12px] font-normal text-app-ink-soft">{field.hint}</span>}
             </label>
           ))}
-          {connected && setup.fields.length > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">Saved keys are never shown again. Enter them again to replace them.</p>}
+          {(connected || view.status === "error") && setup.fields.length > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">Saved keys are never shown again. Enter them again to replace them.</p>}
           <div className="flex flex-wrap gap-2">
-            <PillButton type="submit" size="md" busy={busy}>{connected ? "Save and reconnect" : "Connect"}</PillButton>
+            <PillButton type="submit" size="md" busy={busy}>{connected || view.status === "error" ? "Save and reconnect" : "Connect"}</PillButton>
             <PillButton size="md" tone="ghost" onClick={() => setOpen(false)}>Cancel</PillButton>
           </div>
         </form>
@@ -355,9 +388,30 @@ export function ChannelsClient({
             );
           }
           if (key === "voice" && view.status === "connected") {
-            extra = <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? `Calls ring ${forwardCallsTo} first, then go to voicemail.` : "Calls go straight to voicemail."} Change this in <Link href="/home/inbox/settings" className="font-bold text-app-ink">inbox settings</Link>.</p>;
+            extra = (
+              <div className="grid gap-2">
+                <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? `Calls ring ${forwardCallsTo}; missed ones are logged here.` : "Calls go straight to voicemail."} Change this in <Link href="/home/inbox/settings" className="font-bold text-app-ink">inbox settings</Link>.</p>
+                {view.webhookUrl && <CopyRow label="Callback URL (paste in Africa's Talking → Voice → Phone numbers)" value={view.webhookUrl} />}
+              </div>
+            );
           }
-          if ((key === "sms" || key === "telegram") && view.status === "connected" && view.webhookUrl) {
+          if (key === "whatsapp") {
+            extra = (
+              <Link href="/home/inbox/chatbot?tab=whatsapp" className="flex min-h-[48px] items-center gap-3 rounded-[14px] bg-app-canvas px-3.5 py-2 text-app-ink no-underline hover:bg-app-mint">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/app/peggy.png" alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-bold">Put Peggy on your WhatsApp</span>
+                  <span className="block text-[12px] text-app-ink-soft">{view.status === "connected" ? "Let her answer customers, show products and take orders." : "Connect and set her up in three steps."}</span>
+                </span>
+                <Icon name="chevRight" size={16} />
+              </Link>
+            );
+          }
+          if (key === "sms" && view.status === "connected" && view.webhookUrl) {
+            extra = <CopyRow label="Webhook URL (paste in your provider's dashboard for replies and delivery reports)" value={view.webhookUrl} />;
+          }
+          if (key === "telegram" && view.status === "connected" && view.webhookUrl) {
             extra = <CopyRow label="Webhook (set for you)" value={view.webhookUrl} />;
           }
           return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} />;

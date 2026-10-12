@@ -10,13 +10,14 @@ import { decryptJson } from "./crypto";
 import { sendInboxEmail } from "./channels/email";
 import { sendMetaMessage } from "./channels/meta";
 import { sendTelegram } from "./channels/telegram";
-import { sendTwilioSms } from "./channels/twilio";
+import { sendSmsReply } from "./channels/sms";
 import type { SendResult } from "./channels/types";
-import { sendWhatsApp } from "./channels/whatsapp";
-import { CHANNELS, isSellerOnline, previewText, type InboundAttachment, type InboxChannelKey } from "./pure";
+import { markWhatsAppRead, sendWhatsApp, TOKEN_ERROR } from "./channels/whatsapp";
+import { CHANNELS, isSellerOnline, previewText, storeThreadWhere, type InboundAttachment, type InboxChannelKey } from "./pure";
 import { AUTO_REPLY_COOLDOWN_MS, chatbotOnDuty, decideAutoReply } from "./assistant";
 import { loadAutomation } from "./automation.server";
-import { chatbotAnswer } from "./chatbot.server";
+import { chatbotAnswer, whatsappBotAnswer } from "./chatbot.server";
+import { WINDOW_CLOSED_ERROR, whatsAppBotGate, withinServiceWindow, type WhatsAppInteractive } from "./whatsapp-bot";
 import { hasAiProvider } from "./ai";
 
 // The inbox core: every webhook and the live-chat widget call ingestInbound; every reply goes through
@@ -177,10 +178,10 @@ async function notifySeller(storeId: string, conversationId: string, channel: In
   }).catch((error) => console.error("[inbox] notification failed", error));
 }
 
-/** Provider delivery receipts (WhatsApp statuses, Twilio status callbacks, Resend email events). */
-export async function updateMessageStatus(externalId: string, status: string, error?: string | null) {
+/** Provider delivery receipts (WhatsApp statuses, SMS delivery reports, Resend email events). Pass storeId when the webhook knows it. */
+export async function updateMessageStatus(externalId: string, status: string, error?: string | null, storeId?: string) {
   const order = ["queued", "sent", "delivered", "read"];
-  const message = await db.inboxMessage.findFirst({ where: { externalId, direction: "outbound" }, select: { id: true, status: true } });
+  const message = await db.inboxMessage.findFirst({ where: { externalId, direction: "outbound", ...(storeId ? { storeId } : {}) }, select: { id: true, status: true } });
   if (!message) return;
   // Receipts can arrive out of order; never move "read" back to "delivered".
   if (status !== "failed" && order.indexOf(status) <= order.indexOf(message.status)) return;
@@ -197,9 +198,11 @@ export interface ReplyInput {
   kind?: "text" | "auto_reply";
   /** Extra details kept on the message (e.g. { bot: true } for the chatbot, { rule } for a keyword reply). */
   meta?: Record<string, string | boolean | null>;
+  /** WhatsApp only: send this list or button message; `body` is what the inbox shows. */
+  interactive?: WhatsAppInteractive | null;
 }
 
-async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null }, body: string, sellerEmail: string | null): Promise<SendResult & { via?: string }> {
+async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null): Promise<SendResult & { via?: string }> {
   const channel = conversation.channel as InboxChannelKey;
   const base = { body, store: { id: store.id, name: store.name, slug: store.slug } };
 
@@ -220,7 +223,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
     }
     if (channel === "form" && conversation.contactPhone) {
       const sms = await getChannel(store.id, "sms");
-      if (sms) return { ...(await sendTwilioSms({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
+      if (sms) return { ...(await sendSmsReply({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
     }
     return { ok: false, error: "This person didn't leave an email address, so there's no way to reply here." };
   }
@@ -228,8 +231,11 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (channel === "voice") {
     const sms = await getChannel(store.id, "sms");
     if (!sms || !conversation.contactPhone) return { ok: false, error: "Connect SMS to text callers back, or call them back." };
-    return { ...(await sendTwilioSms({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
+    return { ...(await sendSmsReply({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
   }
+
+  // WhatsApp only takes free-form messages within 24h of the customer's last message; say so instead of trying.
+  if (channel === "whatsapp" && !withinServiceWindow(conversation.lastInboundAt)) return { ok: false, error: WINDOW_CLOSED_ERROR };
 
   if (channel === "tiktok") return { ok: false, error: "TikTok doesn't let apps reply to messages yet. Reply in the TikTok app." };
 
@@ -237,10 +243,13 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (!connected) return { ok: false, error: `${CHANNELS[channel].label} isn't connected. Connect it in Inbox → Channels.` };
   const input = { ...base, to: conversation.externalThreadId, credentials: connected.credentials };
   switch (channel) {
-    case "whatsapp":
-      return { ...(await sendWhatsApp(input)), via: "whatsapp" };
+    case "whatsapp": {
+      const sent = await sendWhatsApp({ ...input, interactive: interactive ?? null });
+      if (!sent.ok && sent.error === TOKEN_ERROR) await markChannelError(connected.row.id, TOKEN_ERROR);
+      return { ...sent, via: "whatsapp" };
+    }
     case "sms":
-      return { ...(await sendTwilioSms(input)), via: "sms" };
+      return { ...(await sendSmsReply(input)), via: "sms" };
     case "messenger":
     case "instagram":
       return { ...(await sendMetaMessage(input)), via: channel };
@@ -265,7 +274,7 @@ export async function sendReply(input: ReplyInput) {
   const message = await db.inboxMessage.create({
     data: { conversationId: conversation.id, storeId: store.id, direction: "outbound", kind: input.kind ?? "text", body, status: "queued", authorName: input.authorName },
   });
-  const result = await deliver(store, conversation, body, seller?.email ?? null).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
+  const result = await deliver(store, conversation, body, seller?.email ?? null, input.interactive).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
   const saved = await db.inboxMessage.update({
     where: { id: message.id },
     data: result.ok
@@ -323,9 +332,9 @@ async function storeFacts(storeId: string) {
   ].filter(Boolean).join("\n");
 }
 
-async function threadForAi(conversationId: string) {
+async function threadForAi(storeId: string, conversationId: string) {
   const messages = await db.inboxMessage.findMany({
-    where: { conversationId, direction: { in: ["inbound", "outbound"] } },
+    where: storeThreadWhere(storeId, conversationId),
     orderBy: { createdAt: "desc" },
     take: 12,
     select: { direction: true, body: true },
@@ -335,7 +344,7 @@ async function threadForAi(conversationId: string) {
 
 /** Peggy's draft reply to the latest customer message. Never sends. Null when no AI provider is configured. */
 export async function draftReplyWithPeggy(storeId: string, conversationId: string, extra?: { order?: string; instruction?: string | null }) {
-  const [facts, thread] = await Promise.all([storeFacts(storeId), threadForAi(conversationId)]);
+  const [facts, thread] = await Promise.all([storeFacts(storeId), threadForAi(storeId, conversationId)]);
   if (!thread) return null;
   const result = await aiText({
     fast: true,
@@ -362,13 +371,18 @@ async function maybeAutoReply(conversationId: string) {
   const [settings, automation, lastInbound] = await Promise.all([
     db.inboxSettings.findUnique({ where: { storeId: conversation.storeId } }),
     loadAutomation(conversation.storeId),
-    db.inboxMessage.findFirst({ where: { conversationId, direction: "inbound" }, orderBy: { createdAt: "desc" }, select: { body: true } }),
+    db.inboxMessage.findFirst({ where: { conversationId, direction: "inbound" }, orderBy: { createdAt: "desc" }, select: { body: true, externalId: true, meta: true } }),
   ]);
   const channel = conversation.channel as InboxChannelKey;
   const canReply = Boolean(CHANNELS[channel]?.replies && !(channel === "form" && !conversation.contactEmail));
   const sellerOnline = isSellerOnline(settings?.sellerLastSeenAt);
   const { autoReply: rules, chatbot: bot } = automation;
   const since = new Date(Date.now() - AUTO_REPLY_COOLDOWN_MS);
+
+  // Peggy on WhatsApp has her own switch; when she doesn't answer, the usual auto-replies below still apply.
+  if (channel === "whatsapp" && bot.whatsapp.mode !== "off" && lastInbound) {
+    if (await maybeWhatsAppBot(conversation, automation, sellerOnline, lastInbound)) return;
+  }
 
   // The chatbot: live chat only, in its hours, not after a hand-off, quiet while the seller is replying by hand.
   let botActive = false;
@@ -429,8 +443,79 @@ async function maybeAutoReply(conversationId: string) {
   await sendReply({ ...base, body, authorName: decision.peggy ? "Peggy (auto-reply)" : "Auto-reply" });
 }
 
+/**
+ * Peggy on the seller's WhatsApp: answers when switched on (live, or test mode for the seller's own number), in
+ * her hours, inside the 24h window, not after a hand-off, quiet for a while after the seller replies by hand, and
+ * within hourly limits. Taps on her lists and buttons come back as reply ids. Returns false when she stays quiet.
+ */
+async function maybeWhatsAppBot(
+  conversation: { id: string; storeId: string; externalThreadId: string; tags: string[]; lastInboundAt: Date | null },
+  automation: Awaited<ReturnType<typeof loadAutomation>>,
+  sellerOnline: boolean,
+  lastInbound: { body: string; externalId: string | null; meta: Prisma.JsonValue },
+) {
+  const { chatbot: bot, autoReply: rules } = automation;
+  const hourAgo = new Date(Date.now() - 60 * 60_000);
+  const [sellerReply, botReplies, storeBotReplies, earlierOutbound] = await Promise.all([
+    db.inboxMessage.findFirst({ where: { conversationId: conversation.id, direction: "outbound", kind: "text" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+    db.inboxMessage.count({ where: { conversationId: conversation.id, direction: "outbound", kind: "auto_reply", createdAt: { gte: hourAgo } } }),
+    db.inboxMessage.count({ where: { storeId: conversation.storeId, direction: "outbound", kind: "auto_reply", createdAt: { gte: hourAgo }, meta: { path: ["channelBot"], equals: "whatsapp" } } }).catch(() => 0),
+    db.inboxMessage.count({ where: { conversationId: conversation.id, direction: "outbound" } }),
+  ]);
+  const gate = whatsAppBotGate({
+    settings: bot.whatsapp,
+    from: conversation.externalThreadId,
+    handedOff: conversation.tags.includes(BOT_TAG),
+    onDuty: chatbotOnDuty({ enabled: true, when: bot.whatsapp.when }, rules, sellerOnline),
+    lastInboundAt: conversation.lastInboundAt,
+    sellerRepliedAt: sellerReply?.createdAt ?? null,
+    botRepliesLastHour: botReplies,
+    storeBotRepliesLastHour: storeBotReplies,
+  });
+  if (!gate.answer) return false;
+  const connected = await getChannel(conversation.storeId, "whatsapp");
+  if (!connected) return false;
+
+  const history = await db.inboxMessage.findMany({ where: { ...storeThreadWhere(conversation.storeId, conversation.id), status: { not: "failed" } }, orderBy: { createdAt: "desc" }, take: 12, select: { direction: true, body: true } });
+  const replyId = (lastInbound.meta as { replyId?: unknown } | null)?.replyId;
+  const reply = await whatsappBotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })), {
+    replyId: typeof replyId === "string" ? replyId : null,
+    phone: conversation.externalThreadId,
+    firstMessage: earlierOutbound === 0,
+  });
+  void markWhatsAppRead(connected.credentials, lastInbound.externalId).catch(() => null);
+
+  const base = { storeId: conversation.storeId, conversationId: conversation.id, kind: "auto_reply" as const, authorName: `${bot.name} (WhatsApp bot${gate.test ? ", test" : ""})` };
+  const meta = { bot: true, channelBot: "whatsapp", source: reply.source, test: gate.test };
+  let sent = await sendReply({ ...base, body: reply.body, interactive: reply.interactive, meta });
+  // A list or button message can fail on its own (e.g. a product photo Meta can't fetch): try once as plain text.
+  if (!sent.ok && reply.interactive && sent.error !== TOKEN_ERROR && sent.error !== WINDOW_CLOSED_ERROR) sent = await sendReply({ ...base, body: reply.body, meta: { ...meta, fallback: true } });
+  if (!sent.ok) await markChannelError(connected.row.id, `Peggy couldn't reply on WhatsApp: ${sent.error}`);
+
+  if (reply.orderRequest) {
+    await addNote({ storeId: conversation.storeId, conversationId: conversation.id, authorName: bot.name, body: `Order request on WhatsApp: ${reply.orderRequest.name} (${reply.orderRequest.price}). Confirm the quantity, delivery and payment with the customer.`, meta: { orderRequest: reply.orderRequest } });
+    await db.inboxConversation.update({ where: { id: conversation.id }, data: { tags: [...new Set([...conversation.tags, "order-request"])].slice(0, 10) } }).catch(() => null);
+    const store = await storeById(conversation.storeId);
+    if (store) {
+      await createNotification({
+        userId: store.userId,
+        type: "customers",
+        priority: "warning",
+        title: "New order request on WhatsApp",
+        description: `${reply.orderRequest.name} (${reply.orderRequest.price}). Peggy asked for the quantity and delivery area.`,
+        link: `/home/messages?c=${conversation.id}`,
+        actionLabel: "Reply",
+        actionUrl: `/home/messages?c=${conversation.id}`,
+        metadata: { source: "whatsapp-bot", conversationId: conversation.id },
+      }).catch((error) => console.error("[inbox] order request notification failed", error));
+    }
+  }
+  if (reply.handoff) await handOff(conversation.storeId, conversation.id, conversation.tags, lastInbound.body, "whatsapp");
+  return true;
+}
+
 /** The chatbot stops on this conversation and the seller is told a shopper wants a person. */
-async function handOff(storeId: string, conversationId: string, tags: string[], lastMessage: string) {
+async function handOff(storeId: string, conversationId: string, tags: string[], lastMessage: string, channel: "livechat" | "whatsapp" = "livechat") {
   await db.inboxConversation.update({ where: { id: conversationId }, data: { tags: [...new Set([...tags, BOT_TAG])].slice(0, 10), status: "open" } }).catch(() => null);
   const store = await storeById(storeId);
   if (!store) return;
@@ -438,8 +523,8 @@ async function handOff(storeId: string, conversationId: string, tags: string[], 
     userId: store.userId,
     type: "customers",
     priority: "warning",
-    title: "A shopper wants to talk to you",
-    description: previewText(lastMessage) || "Peggy handed a live chat over to you.",
+    title: channel === "whatsapp" ? "A WhatsApp customer wants to talk to you" : "A shopper wants to talk to you",
+    description: previewText(lastMessage) || (channel === "whatsapp" ? "Peggy handed a WhatsApp chat over to you." : "Peggy handed a live chat over to you."),
     link: `/home/messages?c=${conversationId}`,
     actionLabel: "Reply",
     actionUrl: `/home/messages?c=${conversationId}`,

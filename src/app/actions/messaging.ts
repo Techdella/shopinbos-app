@@ -11,10 +11,23 @@ export async function sendMessage(formData: FormData) {
   const text = String(formData.get("text") || "").trim();
 
   if (!text) return { success: false, error: "Message cannot be empty" };
+  if (text.length > 5000) return { success: false, error: "Message is too long" };
 
   let convId = conversationId;
 
+  // Only post into a conversation you are part of.
+  if (convId) {
+    const mine = await db.conversation.findFirst({
+      where: { id: convId, OR: [{ participant1Id: user.id }, { participant2Id: user.id }] },
+      select: { id: true },
+    });
+    if (!mine) return { success: false, error: "Conversation not found" };
+  }
+
   if (!convId && recipientId) {
+    if (recipientId === user.id) return { success: false, error: "Choose who to message" };
+    const recipient = await db.user.findUnique({ where: { id: recipientId }, select: { id: true } });
+    if (!recipient) return { success: false, error: "Choose who to message" };
     const sorted = [user.id, recipientId].sort();
     const existing = await db.conversation.findUnique({
       where: { participant1Id_participant2Id: { participant1Id: sorted[0], participant2Id: sorted[1] } },
@@ -49,6 +62,9 @@ export async function sendMessage(formData: FormData) {
 }
 
 export async function getConversations(userId: string) {
+  // Callable from the browser (server action): only your own conversations.
+  const user = await requireRole(["logistics_partner", "seller", "supplier"], "/login");
+  if (userId !== user.id) return [];
   return db.conversation.findMany({
     where: {
       OR: [{ participant1Id: userId }, { participant2Id: userId }],
@@ -88,7 +104,8 @@ export async function getMessages(conversationId: string) {
   }));
 }
 
-export async function markAsRead(conversationId: string, userId: string) {
+// Not exported: as a server action it would let anyone mark anyone's messages read.
+async function markAsRead(conversationId: string, userId: string) {
   await db.message.updateMany({
     where: { conversationId, senderId: { not: userId }, read: false },
     data: { read: true },

@@ -9,8 +9,9 @@
 //   2. SITE_URL plus the redirect allow-list (web callback and the mobile app's shopinbos:// scheme)
 //   3. Email provider enabled
 //   4. Optional: Google sign-in   (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)
-//   5. Optional: phone codes over WhatsApp and SMS via Twilio
-//      (TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_MESSAGE_SERVICE_SID; the messaging service needs a WhatsApp sender)
+//   5. Optional: phone codes by SMS through the app's own Termii / Africa's Talking / Sendchamp account, via
+//      Supabase's "Send SMS" auth hook ({APP_URL}/api/webhooks/supabase-sms). Needs SUPABASE_SEND_SMS_HOOK_SECRET
+//      ("v1,whsec_<base64>", any 32+ random bytes; the same value goes in the app's env) and SMS_PROVIDER keys.
 //
 // Get a token at https://supabase.com/dashboard/account/tokens
 
@@ -80,16 +81,15 @@ async function main() {
     console.log("   Google sign-in: enabling");
   }
 
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_MESSAGE_SERVICE_SID) {
+  if (process.env.SUPABASE_SEND_SMS_HOOK_SECRET) {
     Object.assign(authConfigBody, {
       external_phone_enabled: true,
-      sms_provider: "twilio",
-      sms_twilio_account_sid: process.env.TWILIO_ACCOUNT_SID,
-      sms_twilio_auth_token: process.env.TWILIO_AUTH_TOKEN,
-      sms_twilio_message_service_sid: process.env.TWILIO_MESSAGE_SERVICE_SID,
       sms_otp_length: 6,
+      hook_send_sms_enabled: true,
+      hook_send_sms_uri: `${appUrl.replace(/\/+$/, "")}/api/webhooks/supabase-sms`,
+      hook_send_sms_secrets: process.env.SUPABASE_SEND_SMS_HOOK_SECRET,
     });
-    console.log("   Phone codes (WhatsApp + SMS via Twilio): enabling");
+    console.log("   Phone codes (SMS via the app's SMS provider): enabling the Send SMS hook");
   }
 
   console.log("▪ Updating auth config (SMTP, SITE_URL, email provider)...");

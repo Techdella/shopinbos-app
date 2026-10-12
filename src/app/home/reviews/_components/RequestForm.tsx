@@ -62,7 +62,7 @@ export function RequestForm({ orders, ready }: { orders: RequestableOrder[]; rea
             ? "Nothing is sent for you: you get a WhatsApp button per buyer with the message and review link ready, and send it from your own phone."
             : ready[channel]
               ? `Sent from the Shopinbos ${channel === "email" ? "email" : channel === "sms" ? "SMS" : "WhatsApp"} account in your store's name, with a link to review every item.`
-              : `${channel === "email" ? "Email (RESEND_API_KEY)" : channel === "sms" ? "SMS (SENDCHAMP_API_KEY or Africa's Talking)" : "WhatsApp (SENDCHAMP_API_KEY with an approved WhatsApp sender)"} isn't set up on this platform, so these would be skipped. Use "From my WhatsApp" instead.`}
+              : `${channel === "email" ? "Email (RESEND_API_KEY)" : channel === "sms" ? "SMS (SMS_PROVIDER: Termii, Africa's Talking or Sendchamp)" : "WhatsApp (SENDCHAMP_API_KEY with an approved WhatsApp sender)"} isn't set up on this platform, so these would be skipped. Use "From my WhatsApp" instead.`}
         </p>
       </fieldset>
 

@@ -5,19 +5,20 @@ import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notificat
 import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
 import { toE164 } from "@shared/phone";
 import { getChannel } from "@/lib/inbox/service";
-import { sendTwilioSms } from "@/lib/inbox/channels/twilio";
+import { sendSmsReply } from "@/lib/inbox/channels/sms";
+import { platformSmsReady } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/inbox/channels/whatsapp";
 import { ordersDueForRequest, reviewRequestMessage, signReviewToken, type RequestChannel } from "./pure";
 import { reviewLinkSecret } from "./secrets";
 import { getReviewSettings, reviewUrls } from "./server";
 
 // Asking buyers for reviews. Each request gets a signed link to /s/[slug]/review/<token> where the buyer
-// reviews every item in the order. Email goes through Resend; SMS and WhatsApp through the platform's
-// SendChamp / Africa's Talking account. "link" sends nothing: the seller gets a wa.me link to send the
+// reviews every item in the order. Email goes through Resend; SMS through the platform's SMS account
+// (SMS_PROVIDER: Termii / Africa's Talking / Sendchamp, with failover) and WhatsApp through SendChamp. "link" sends nothing: the seller gets a wa.me link to send the
 // message from their own WhatsApp. Used by the Reviews screen, Peggy, the reviews cron and marketing
 // automations (agent A's post-purchase flow can call requestReviews with trigger "automation").
-// When the store connected its own WhatsApp Cloud API number or Twilio SMS number in the inbox (agent E),
-// requests go out from that number first; the platform SendChamp / Africa's Talking account is the fallback.
+// When the store connected its own WhatsApp Cloud API number or SMS account in the inbox (agent E), requests
+// go out from that first; the platform accounts are the fallback.
 
 export type RequestTrigger = "manual" | "auto" | "peggy" | "automation";
 
@@ -35,7 +36,7 @@ export interface RequestOutcome {
 const REQUESTABLE = new Set(["paid", "processing", "packed", "shipped", "delivered"]);
 
 export function channelReadiness() {
-  const sms = Boolean((process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME) || process.env.SENDCHAMP_API_KEY);
+  const sms = platformSmsReady();
   return {
     email: isEmailConfigured(),
     sms,
@@ -156,7 +157,7 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
         error = sent.message ?? "";
       } else if (input.channel === "sms") {
         if (own.sms) {
-          const sent = await sendTwilioSms({ to: phone!, body: message.sms, store: ref, credentials: own.sms.credentials });
+          const sent = await sendSmsReply({ to: phone!, body: message.sms, store: ref, credentials: own.sms.credentials });
           ok = sent.ok;
           error = sent.ok ? "" : sent.error;
         } else {

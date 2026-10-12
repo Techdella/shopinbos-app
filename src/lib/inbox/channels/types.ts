@@ -8,6 +8,8 @@ export interface SendInput {
   store: { id: string; name: string; slug: string };
   credentials: Record<string, string>;
   externalId?: string | null;
+  /** WhatsApp only: an interactive list or reply-button message (body is then the inbox's text version). */
+  interactive?: Record<string, unknown> | null;
 }
 
 export type SendResult = { ok: true; externalId: string | null } | { ok: false; error: string };
@@ -23,7 +25,7 @@ export async function readJson(res: Response): Promise<Record<string, unknown>> 
   return (await res.json().catch(() => ({}))) as Record<string, unknown>;
 }
 
-/** The human part of a provider error body (Meta: error.message, Twilio: message, Telegram: description). */
+/** The human part of a provider error body (Meta: error.message, SMS providers: message, Telegram: description). */
 export function providerError(json: Record<string, unknown>, fallback: string) {
   const error = json.error as Record<string, unknown> | undefined;
   const message = (error && typeof error.message === "string" && error.message) || (typeof json.message === "string" && json.message) || (typeof json.description === "string" && json.description);
