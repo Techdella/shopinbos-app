@@ -3,6 +3,7 @@ import "server-only";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { Role } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { queueLifecycle } from "@/lib/lifecycle/run.server";
 import { slugify } from "@/lib/workspace";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
@@ -198,6 +199,9 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
       update: input.businessName ? { companyName, displayName: companyName } : {},
     });
   }
+
+  // A brand-new account: send the welcome email for their role now rather than on the next hourly sweep.
+  if (!existingUser) queueLifecycle(user.id);
 
   return user;
 }

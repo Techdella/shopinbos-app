@@ -15,7 +15,7 @@ export type StoreTopic = (typeof STORE_TOPICS)[number]["key"];
 
 export const PLATFORM_TOPICS = [
   { key: "product_news", label: "Product news and tips", help: "New Shopinbos features, guides and ideas to grow your business." },
-  { key: "lifecycle", label: "Onboarding and setup nudges", help: "Reminders to finish setting up, verify your business or try something you haven't yet." },
+  { key: "lifecycle", label: "Tips, milestones and reminders", help: "Reminders to finish setting up, ideas to try next, celebrating your milestones, and a nudge if you've been away." },
   { key: "weekly_summary", label: "Weekly summaries", help: "A short weekly recap of your sales, orders and what to do next." },
 ] as const;
 export type PlatformTopic = (typeof PLATFORM_TOPICS)[number]["key"];

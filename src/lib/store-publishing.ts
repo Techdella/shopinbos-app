@@ -15,6 +15,7 @@ import {
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
 import { fillMissingPageSeo } from "@/lib/store-templates/seo-defaults";
+import { queueLifecycleFor } from "@/lib/lifecycle/run.server";
 
 export class StorePublishError extends Error {
   constructor(
@@ -127,5 +128,6 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
     });
   }
 
+  queueLifecycleFor({ storeId: store.id }); // "your store is live"
   return { storeId: store.id, envelope: buildEditorEnvelope(published.brandSettings, draft) };
 }

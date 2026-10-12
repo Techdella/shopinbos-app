@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { queueLifecycle } from "@/lib/lifecycle/run.server";
 import { createNotification } from "@/lib/notifications/create";
 import {
   groupDropshipLines,
@@ -101,6 +102,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
 
   if (created.length) {
     const suppliers = await db.supplier.findMany({ where: { id: { in: created.map((row) => row.supplierId) } }, select: { id: true, userId: true } });
+    for (const supplier of suppliers) queueLifecycle(supplier.userId); // first order, order milestones
     const shop = plainText(order.store.name) || "A shop";
     const address = order.deliveryAddress && typeof order.deliveryAddress === "object" ? (order.deliveryAddress as Record<string, unknown>) : {};
     const place = plainText([address.city, address.state].filter((part) => typeof part === "string" && part).join(", "), 60);

@@ -185,6 +185,7 @@ model User {
   notificationPreferences NotificationPreference[]
   onboardingResponses OnboardingResponse[]
   storeLaunchPayments StoreLaunchPayment[]
+  lifecycleEmails     LifecycleEmail[]
 
   // Conversations
   conversationsAs1 Conversation[] @relation("ConversationParticipant1")
@@ -2662,4 +2663,29 @@ model ProductNewsRecipient {
 
   @@unique([broadcastId, userId])
   @@index([broadcastId, status])
+}
+
+// ─── Lifecycle emails ─────────────────────────────────────────────────────────
+// One row per lifecycle email a user got (or was deliberately not sent): welcome, onboarding nudges, milestones,
+// win-backs, anniversaries, the admin weekly summary (catalog: src/lib/lifecycle/catalog.ts). The unique key makes every
+// send happen once, however many times the hourly cron or an in-app event re-evaluates the user.
+// docs/migrations/2026-10-16-lifecycle-emails.sql
+model LifecycleEmail {
+  id        String    @id @default(cuid())
+  userId    String
+  key       String // rule id plus an occurrence for repeating rules: "seller.winback_14:2026-10-01"
+  rule      String // rule id: "seller.first_sale"
+  status    String    @default("sending") // sending | sent | skipped | failed | baseline
+  attempts  Int       @default(1)
+  resendId  String?
+  error     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sentAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId, createdAt])
+  @@index([rule, status])
 }
