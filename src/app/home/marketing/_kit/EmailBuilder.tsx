@@ -2,12 +2,12 @@
 
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { Card, CardHead } from "@/components/app-kit";
-import { Notice, PillButton, Segmented } from "@/components/app-ui";
+import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, textareaClass } from "@/components/growth/kit";
 import { BLOCK_LABELS, EMAIL_THEMES, EMAIL_THEME_INFO, blocksToHtml, htmlFromBlocks, readBlocks, themeOf, type EmailBlock, type EmailBlockType, type EmailThemeName } from "@/lib/marketing/blocks";
-import type { EmailBrand } from "@/lib/marketing/email-layout";
+import { isFullDocument, logoHeaderOn, setLogoHeader, type EmailBrand } from "@/lib/marketing/email-layout";
 import { previewSubject, renderEmailPreview, type PreviewShop } from "@/lib/marketing/preview";
 import { BLOCK_ICONS, BlockSettings, blankBlock, blockSummary } from "./BlockSettings";
 import { DeviceSwitch, EmailFrame } from "./EmailFrame";
@@ -288,6 +288,15 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
         <div className="grid gap-4 xl:grid-cols-2">
           <Card className="grid min-w-0 content-start gap-3 p-4">
             <CardHead title="HTML" sub="Paste or write your own. Scripts, forms and on-click code are removed when you save." />
+            {isFullDocument(content.bodyHtml) ? (
+              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-app-line px-3 py-2.5">
+                <span className="grid gap-0.5">
+                  <span className="text-[14px] font-semibold">Add my logo header</span>
+                  <span className="text-[12.5px] text-app-ink-soft">Your logo (or shop name) at the top, unless your HTML already shows it.</span>
+                </span>
+                <Toggle on={logoHeaderOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setLogoHeader(content.bodyHtml, on) })} label="Add my logo header" />
+              </div>
+            ) : null}
             <div className="flex overflow-hidden rounded-[14px] border border-app-line bg-white focus-within:border-app-ink">
               <div ref={gutterRef} aria-hidden className="h-[560px] select-none overflow-hidden bg-app-canvas px-2 py-2.5 text-right font-mono text-[12px] leading-[1.6] text-app-ink-faint">
                 {Array.from({ length: lineCount }, (_, i) => <div key={i}>{i + 1}</div>)}

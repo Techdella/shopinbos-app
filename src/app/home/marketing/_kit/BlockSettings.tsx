@@ -58,7 +58,7 @@ export function blankBlock(type: EmailBlockType): EmailBlock {
     case "social":
       return { type, links: [{ network: "instagram", url: "https://instagram.com/" }, { network: "whatsapp", url: "https://wa.me/" }] };
     case "footer":
-      return { type, text: "You're getting this because you shop with {{store}}." };
+      return { type, text: "Thanks for shopping with {{store}}. Reply any time, a real person reads it." };
     case "theme":
       return { type, theme: "editorial" };
     case "hero":
@@ -482,11 +482,13 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
       return (
         <div className="grid gap-3">
           <RichText label="Footer text" rows={3} value={block.text} onChange={(text) => set({ text })} onFocusField={(el) => onFocusText?.(el, "text")} />
-          <label className="flex min-h-[44px] items-center gap-2 text-[14px] font-semibold">
-            <input type="checkbox" className={checkClass} checked={Boolean(block.unsubscribe)} onChange={(e) => set({ unsubscribe: e.target.checked || undefined })} />
-            Add an unsubscribe link
-          </label>
-          <p className="m-0 text-[12.5px] text-app-ink-soft">Campaign emails always get an unsubscribe link at the very bottom anyway.</p>
+          {block.unsubscribe ? (
+            <label className="flex min-h-[44px] items-center gap-2 text-[14px] font-semibold">
+              <input type="checkbox" className={checkClass} checked onChange={() => set({ unsubscribe: undefined })} />
+              Unsubscribe link (not needed: switch it off)
+            </label>
+          ) : null}
+          <p className="m-0 text-[12.5px] text-app-ink-soft">Use it for a sign-off. Every email already ends with your business details, why they&apos;re getting it, and Unsubscribe.</p>
           <VariantField label="Look" value={block.variant ?? "simple"} options={[{ value: "simple", label: "Small print" }, { value: "panel", label: "Panel with shop name" }]} onChange={(variant) => set({ variant: variant === "simple" ? undefined : variant })} />
           {look({ align: true, color: "Text colour", bg: block.variant === "panel" })}
         </div>

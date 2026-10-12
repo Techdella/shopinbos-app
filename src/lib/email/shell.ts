@@ -357,6 +357,8 @@ export interface PlatformEmailInput {
   serviceNote?: string | null;
   contactUrl?: string | null;
   privacyUrl?: string | null;
+  /** Extra CSS for the head (e.g. dark-mode colours for classes the body uses). */
+  extraCss?: string;
 }
 
 export function platformEmail(input: PlatformEmailInput) {
@@ -375,7 +377,7 @@ export function platformEmail(input: PlatformEmailInput) {
     contactLabel: "Contact support",
     privacyUrl: input.privacyUrl ?? SHOPINBOS_PRIVACY_URL,
   });
-  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: shopinbosHeader(appUrl), card: body, footer, adaptCard: true });
+  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: shopinbosHeader(appUrl), card: body, footer, adaptCard: true, extraCss: input.extraCss });
 }
 
 export function reasonSentence(reason: string) {
