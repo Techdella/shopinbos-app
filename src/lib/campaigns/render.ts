@@ -59,12 +59,8 @@ export function renderCampaignEmail({ html, recipientName, storeName, token, app
     .replace(/{{\s*store\s*}}/g, store)
     .replace(/{{\s*unsubscribe_url\s*}}/g, escapeHtml(urls.unsubscribe));
 
-  const footer = `
-<div style="margin:32px auto 0;max-width:600px;padding:16px 24px;border-top:1px solid #e5e7eb;font-family:sans-serif;font-size:12px;line-height:1.6;color:#6b7280;text-align:center">
-  You're receiving this because you bought from or subscribed to ${store}.<br />
-  <a href="${escapeHtml(urls.unsubscribe)}" style="color:#6b7280">Unsubscribe</a>
-</div>
-<img src="${escapeHtml(urls.open)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0" />`;
+  // The compliance footer (business address, unsubscribe and preferences) comes from the shell in wrapEmail.
+  const pixel = `<img src="${escapeHtml(urls.open)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0" />`;
 
-  return { html: body + footer, unsubscribeUrl: urls.unsubscribe, oneClickUnsubscribeUrl: urls.oneClickUnsubscribe };
+  return { html: body + pixel, unsubscribeUrl: urls.unsubscribe, oneClickUnsubscribeUrl: urls.oneClickUnsubscribe };
 }

@@ -156,3 +156,9 @@ export async function sendPlatformEmail(input: PlatformSendInput): Promise<Email
   const { html, headers } = buildPlatformEmail(input);
   return sendEmail({ to: [input.to], subject: input.subject, html, headers, replyTo: input.replyTo, from: input.from });
 }
+
+/** What the marketing previews need for the real footer (see marketing/preview.ts). */
+export function previewShopFor(store: SenderStore) {
+  const sender = storeSender(store);
+  return { name: store.name, url: sender.websiteUrl ?? "", appUrl: appBase(), sender: { ...sender, address: sender.address ?? null } };
+}

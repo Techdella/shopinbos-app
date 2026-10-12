@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
-import { escapeHtml } from "@/lib/campaigns/render";
+import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
+import { inboxReplyEmail } from "@/lib/email/store-emails";
 import { formatFromAddress } from "@/lib/notifications/resend";
 import type { SendInput, SendResult } from "./types";
 
@@ -17,12 +18,10 @@ export function inboxAddress(slug: string) {
   return domain ? `${slug}@${domain}` : null;
 }
 
-export function emailBodyHtml(body: string, storeName: string) {
-  const paragraphs = body
-    .split(/\n{2,}/)
-    .map((p) => `<p style="margin:0 0 14px">${escapeHtml(p.trim()).replace(/\n/g, "<br>")}</p>`)
-    .join("");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#16141F">${paragraphs}<p style="margin:18px 0 0;color:#6E6E68;font-size:13px">${escapeHtml(storeName)}</p></div>`;
+/** The seller's reply in the store's email shell (logo, light/dark, footer with the store's business details). */
+export async function emailBodyHtml(body: string, store: { id: string; name: string }) {
+  const sender = (await loadStoreSender(store.id).catch(() => null)) ?? { name: store.name };
+  return inboxReplyEmail({ appUrl: appBase(), store: sender, body });
 }
 
 export async function sendInboxEmail(input: SendInput & { replyTo?: string | null }): Promise<SendResult> {
@@ -36,7 +35,7 @@ export async function sendInboxEmail(input: SendInput & { replyTo?: string | nul
     to: [input.to],
     subject,
     text: input.body,
-    html: emailBodyHtml(input.body, input.store.name),
+    html: await emailBodyHtml(input.body, input.store),
     replyTo: address ?? input.replyTo ?? undefined,
     headers: input.externalId ? { "In-Reply-To": input.externalId, References: input.externalId } : undefined,
   });

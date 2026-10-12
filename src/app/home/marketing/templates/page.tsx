@@ -5,7 +5,8 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, PillLink } from "@/components/app-kit";
 import { formatDate } from "@/components/growth/kit";
-import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "@/lib/marketing/brand";
+import { MARKETING_STORE_SELECT, emailBrand } from "@/lib/marketing/brand";
+import { previewShopFor } from "@/lib/email/compliance.server";
 import { previewSubject, renderEmailPreview } from "@/lib/marketing/preview";
 import { EMAIL_THEMES, EMAIL_THEME_INFO } from "@/lib/marketing/blocks";
 import { formatMinutes } from "@/lib/marketing/flows";
@@ -25,7 +26,7 @@ export default async function TemplatesPage() {
   const templates = await listTemplates(store.id);
   // Thumbnails are the real emails with this shop's logo and colours and a sample customer.
   const brand = emailBrand(store);
-  const shop = { name: store.name, url: storeUrl(store) };
+  const shop = previewShopFor(store);
   const render = (bodyHtml: string, preheader: string) => renderEmailPreview({ bodyHtml, preheader, brand, shop });
 
   const saved: GalleryTemplate[] = templates.saved.map((t) => ({

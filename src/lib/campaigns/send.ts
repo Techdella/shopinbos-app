@@ -13,6 +13,9 @@ import { consentedForChannel, isOptedOut, variableCount } from "@/lib/marketing/
 import { resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import { wrapEmail } from "@/lib/marketing/email-layout";
+import { contactLinks, loadStoreSender, storeSender } from "@/lib/email/compliance.server";
+import { MISSING_ADDRESS_MESSAGE, unsubscribeMailto } from "@/lib/email/shell";
+import type { Prisma } from "@prisma/client";
 import { fillVariables, firstName } from "@/lib/marketing/flows";
 import { extractCampaignLinks, renderCampaignEmail } from "./render";
 
@@ -29,6 +32,8 @@ export type CampaignChannel = "email" | "sms" | "whatsapp";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BATCH_SIZE = 100;
 const ATTRIBUTION_PARAM = "sib_c";
+/** Contacts who switched off campaign email (the "promotions" topic) in the preference center. */
+const PROMOTIONS_OFF = { metadata: { path: ["emailTopics", "promotions"], equals: false } } satisfies Prisma.SubscriberWhereInput;
 
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://app.shopinbos.com";
@@ -71,7 +76,7 @@ export async function resolveCampaignRecipients(storeId: string, filter: Recipie
         if (contact.email && EMAIL_PATTERN.test(contact.email) && !recipients.has(contact.email)) recipients.set(contact.email, { email: contact.email, name: contact.name });
       }
     }
-    const suppressedRows = await db.subscriber.findMany({ where: { storeId, status: { not: "active" } }, select: { email: true } });
+    const suppressedRows = await db.subscriber.findMany({ where: { storeId, OR: [{ status: { not: "active" } }, PROMOTIONS_OFF] }, select: { email: true } });
     for (const { email } of suppressedRows) recipients.delete(email.trim().toLowerCase());
     return Array.from(recipients.values());
   }
@@ -110,7 +115,8 @@ export async function resolveCampaignRecipients(storeId: string, filter: Recipie
     }
   }
 
-  const suppressed = await db.subscriber.findMany({ where: { storeId, status: { not: "active" } }, select: { email: true } });
+  // Unsubscribed, bounced or complained, or turned "Promotions and newsletters" off in their preferences.
+  const suppressed = await db.subscriber.findMany({ where: { storeId, OR: [{ status: { not: "active" } }, PROMOTIONS_OFF] }, select: { email: true } });
   for (const { email } of suppressed) recipients.delete(email.trim().toLowerCase());
 
   return Array.from(recipients.values());
@@ -130,6 +136,8 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
   if (channel === "email" && !isEmailConfigured()) {
     return { ok: false, error: "Email sending isn't set up yet. Add RESEND_API_KEY to the app environment." };
   }
+  // Marketing email must carry the sender's postal address (CAN-SPAM, Gmail and Yahoo bulk sender rules).
+  if (channel === "email" && !(await loadStoreSender(storeId))?.hasAddress) return { ok: false, error: MISSING_ADDRESS_MESSAGE };
   if (channel !== "email") {
     const status = (await channelStatus(storeId))[channel];
     if (!status.ready) return { ok: false, error: status.howTo };
@@ -190,6 +198,7 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
     const from = formatFromAddress(campaign.senderName ?? campaign.store.name);
     const subject = campaign.subject.replace(/{{\s*store\s*}}/g, campaign.store.name);
     const brand = emailBrand(campaign.store);
+    const sender = storeSender(campaign.store);
     let batchError: string | null = null;
 
     for (;;) {
@@ -205,14 +214,22 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
             token: recipient.token,
             appUrl: appUrl(),
           });
+          const links = contactLinks(storeId, recipient.email);
+          const mailto = unsubscribeMailto(process.env.UNSUBSCRIBE_MAILTO, links?.token ?? recipient.token);
           return {
             to: recipient.email,
             subject: subject.replace(/{{\s*name\s*}}/g, firstName(recipient.name) || "there"),
-            html: wrapEmail({ bodyHtml: rendered.html, brand, preheader: campaign.preheader?.replace(/{{\s*store\s*}}/g, campaign.store.name).replace(/{{\s*name\s*}}/g, firstName(recipient.name) || "there") ?? null }),
+            html: wrapEmail({
+              bodyHtml: rendered.html,
+              brand,
+              preheader: campaign.preheader?.replace(/{{\s*store\s*}}/g, campaign.store.name).replace(/{{\s*name\s*}}/g, firstName(recipient.name) || "there") ?? null,
+              compliance: { appUrl: appUrl(), sender, kind: "marketing", reason: `you subscribed to emails from ${campaign.store.name} or bought from them`, unsubscribeUrl: rendered.unsubscribeUrl, preferencesUrl: links?.preferences ?? null },
+            }),
             from,
             replyTo: campaign.replyTo ?? undefined,
             headers: {
-              "List-Unsubscribe": `<${rendered.oneClickUnsubscribeUrl}>`,
+              // The campaign's own one-click link (it counts the unsubscribe on the campaign), plus mailto when set up.
+              "List-Unsubscribe": [`<${rendered.oneClickUnsubscribeUrl}>`, ...(mailto ? [`<${mailto}>`] : [])].join(", "),
               "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
             },
           };

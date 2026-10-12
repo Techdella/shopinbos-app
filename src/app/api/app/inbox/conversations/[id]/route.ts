@@ -3,7 +3,8 @@ import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
-import { sendEmail } from "@/lib/notifications/resend";
+import { sendPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
 import { sellerStore } from "@/lib/inbox/auth";
 import { cleanTags } from "@/lib/inbox/pure";
 import { getThread, teamOptions } from "@/lib/inbox/queries";
@@ -59,10 +60,16 @@ export const PATCH = withSeller(async (req: NextRequest, { user, params }) => {
   // Tell a teammate when a conversation is handed to them (they don't have their own login yet).
   if (input.assigneeEmail && input.assigneeEmail !== conversation.assigneeEmail && input.assigneeEmail !== user.email) {
     const link = `${(process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com").replace(/\/$/, "")}/home/messages?c=${conversation.id}`;
-    void sendEmail({
-      to: [input.assigneeEmail],
+    void sendPlatformEmail({
+      to: input.assigneeEmail,
+      kind: "transactional",
       subject: `${store.name}: a customer conversation was assigned to you`,
-      html: `<p>${(user.name ?? "The store owner").replace(/[<>&]/g, "")} assigned you a conversation with ${(conversation.contactName ?? conversation.contactEmail ?? conversation.contactPhone ?? "a customer").replace(/[<>&]/g, "")}.</p><p><a href="${link}">Open it in the inbox</a></p>`,
+      eyebrow: store.name,
+      heading: "A conversation was assigned to you",
+      bodyHtml: html.p(`${user.name ?? "The store owner"} assigned you a conversation with ${conversation.contactName ?? conversation.contactEmail ?? conversation.contactPhone ?? "a customer"}.`),
+      cta: { label: "Open it in the inbox", url: link },
+      reason: `you're on the ${store.name} team on Shopinbos`,
+      serviceNote: "This is a service message about work assigned to you.",
     }).catch(() => null);
   }
 
