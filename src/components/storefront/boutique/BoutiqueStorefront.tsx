@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
 import {
   countdownParts,
@@ -21,7 +22,7 @@ import {
 } from "@/lib/storefront/shopper-info";
 import { bestSellers, productCategories, searchProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
-import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
@@ -38,6 +39,8 @@ export interface BoutiqueStore {
   currency: string;
   storeProducts: ShopperProduct[];
   shopper?: unknown;
+  /** Public brand settings (legal page links for the footer). */
+  brandSettings?: unknown;
 }
 
 export interface BoutiqueStorefrontProps {
@@ -1241,6 +1244,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key) }));
+  const policyLinks: ChromeHref[] = live ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(basePath, legalPagePath(link.key)) })) : [];
   const announcementText = text(copyOf(announcementSection).text) || shopper.announcement;
   const logoText = text(headerCopy.logoText) && text(headerCopy.logoText) !== "Store" ? text(headerCopy.logoText) : store.name;
   const showNav = live || props.device === "mobile";
@@ -1276,7 +1280,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {content.map((section) => wrap(section, render(section)))}
       </main>
       {footerSection ? wrap(footerSection, (
-        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} />
+        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} />
       )) : null}
       {showNav ? (
         <ShopperBottomNav

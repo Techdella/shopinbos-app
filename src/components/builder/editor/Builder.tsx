@@ -64,14 +64,6 @@ const RAIL: Array<{ id: Exclude<Panel, "rex">; icon: IconName; label: string }> 
   { id: "apps", icon: "grid", label: "Apps" },
 ];
 
-const POLICY_PAGES: Array<[string, string, string]> = [
-  ["privacy-policy", "Privacy policy", "How customer data is collected, used and protected."],
-  ["terms-and-conditions", "Terms and conditions", "The terms customers accept when shopping from this store."],
-  ["refund-policy", "Refund policy", "Refund eligibility, timelines and process."],
-  ["shipping-policy", "Delivery policy", "Delivery locations, timelines and fees."],
-  ["return-policy", "Return policy", "Return eligibility, condition and support steps."],
-];
-
 function newId(kind: string) {
   return `${kind}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 }
@@ -298,33 +290,6 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     b.showToast(`${title} page added`);
   }, [b, commit, draft, renderer]);
 
-  const missingPolicies = draft ? POLICY_PAGES.filter(([slug]) => !draft.pages.some((entry) => entry.pageType === slug)) : [];
-  const addPolicyPages = useCallback(() => {
-    commit((current) => {
-      const home = current.pages.find((entry) => entry.pageType === "home");
-      const header = (home?.sections ?? []).filter((section) => sectionGroup(section.kind) === "header");
-      const footer = (home?.sections ?? []).filter((section) => sectionGroup(section.kind) === "footer");
-      const existing = new Set(current.pages.map((entry) => entry.pageType as string));
-      const additions = POLICY_PAGES.filter(([slug]) => !existing.has(slug)).map(([slug, title, body]) => ({
-        id: `legal-${slug}`,
-        pageType: slug as TemplatePageType,
-        title,
-        slug,
-        sections: [...header, {
-          id: `${slug}-content`,
-          kind: "text-columns",
-          name: title,
-          visible: true,
-          blocks: [{ id: `${slug}-copy`, type: "copy", content: { title, body } }],
-          items: [{ title: "Your policy", body: "Write your own terms here before you publish." }],
-        }, ...footer],
-        seo: { metaTitle: `${title} | ${b.store.name}`, metaDescription: body },
-      }));
-      return { ...current, pages: [...current.pages, ...additions] };
-    });
-    b.showToast("Policy pages added. Write your own terms in each one.");
-  }, [b, commit]);
-
   // ── Leaving, keyboard ───────────────────────────────────────────────────
 
   const leave = useCallback(async (destination: string) => {
@@ -478,7 +443,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       currentLabel={currentLabel}
       onPick={(picked) => { setEntryId(picked.id); setSelectedId(null); setPreview(null); }}
       onAddPage={addPage}
-      onAddPolicyPages={missingPolicies.length ? addPolicyPages : null}
+      onOpenLegal={() => void leave("/home/legal")}
     />
   );
 

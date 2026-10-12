@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/useCart";
 import { readLinkCode, readOrderChannel, useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
 import { formatStoreMoney, readShopperInfo } from "@/lib/storefront/shopper-info";
 import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
@@ -89,6 +90,7 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
   const campaignToken = useCampaignAttribution(store.slug);
   useStoreCheckoutStart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
+  const policies = useMemo(() => checkoutLegalLinks(store.brandSettings), [store.brandSettings]);
   const info = useMemo(() => readShopperInfo(store.shopper), [store.shopper]);
   const settings = commerce.checkout;
   const homeCountry = countryName(store.country);
@@ -688,6 +690,18 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
                 )}
               </div>
             </div>
+            {step === "review" && policies.length ? (
+              <p className="mb-0 mt-3 text-[12.5px] leading-5" style={{ color: theme.muted }}>
+                By placing your order you agree to our{" "}
+                {policies.map((link, index) => (
+                  <span key={link.key}>
+                    {index > 0 ? (index === policies.length - 1 ? " and " : ", ") : null}
+                    <a href={getPublicStorefrontPath(storeBasePath, legalPagePath(link.key))} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: theme.ink }}>{link.title.toLowerCase()}</a>
+                  </span>
+                ))}
+                .
+              </p>
+            ) : null}
             {createdOrder && isPaystack ? (
               <p className="mt-3 text-[13.5px]" style={{ color: theme.muted }} role="status">
                 Order {createdOrder.orderNumber} is saved. {payClosed ? "The payment window closed before you paid. " : ""}Tap pay to finish with Paystack.

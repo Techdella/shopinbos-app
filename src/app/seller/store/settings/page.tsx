@@ -7,11 +7,11 @@ import { getSellerWorkspace, parseBrandSettings } from "@/lib/workspace";
 import {
   saveStoreBrandKitSettings,
   saveStoreCartSettings,
-  saveStoreLegalSettings,
   saveStoreNavigationSettings,
   saveStoreSeoSettings,
 } from "@/app/actions/workspace";
 import { DomainSettingsPanel } from "@/components/settings/DomainSettingsPanel";
+import { legalPageStatus, readLegalPages } from "@/lib/legal/pages";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +59,7 @@ export default async function SellerStoreSettingsPage({ searchParams }: PageProp
   const brandKit = settings.brandKit && typeof settings.brandKit === "object" ? settings.brandKit as Record<string, string> : {};
   const seo = settings.seo && typeof settings.seo === "object" ? settings.seo as Record<string, string> : {};
   const navigation = settings.navigation && typeof settings.navigation === "object" ? settings.navigation as Record<string, unknown> : {};
-  const legal = settings.legal && typeof settings.legal === "object" ? settings.legal as Record<string, string> : {};
+  const legalPages = readLegalPages(store.brandSettings);
   const mainMenu = Array.isArray(navigation.mainMenu) ? navigation.mainMenu.join(", ") : "Home, Shop, About, Contact";
   const footerMenu = Array.isArray(navigation.footerMenu) ? navigation.footerMenu.join(", ") : "Privacy, Terms, Returns, Contact";
   const cartConfig = settings.cartConfig && typeof settings.cartConfig === "object"
@@ -206,13 +206,21 @@ export default async function SellerStoreSettingsPage({ searchParams }: PageProp
         ) : null}
 
         {activeTab === "legal" ? (
-          <form action={saveStoreLegalSettings} className="card" style={{ padding: 20, display: "grid", gap: 14, maxWidth: 980 }}>
-            {area("Privacy policy", "privacyPolicy", legal.privacyPolicy ?? "")}
-            {area("Terms and conditions", "terms", legal.terms ?? "")}
-            {area("Return policy", "returnPolicy", legal.returnPolicy ?? "", 4)}
-            {area("Shipping policy", "shippingPolicy", legal.shippingPolicy ?? "", 4)}
-            <button className="dbtn dBtn-mint" type="submit">Save legal pages</button>
-          </form>
+          <div className="card" style={{ padding: 20, display: "grid", gap: 14, maxWidth: 980 }}>
+            <p style={{ margin: 0, fontSize: 14, color: "#6E6E68" }}>Legal pages now have their own editor, with rich text, templates, page styles and search settings.</p>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+              {legalPages.map((page) => {
+                const status = legalPageStatus(page);
+                return (
+                  <li key={page.key} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, justifyContent: "space-between", border: "1px solid rgba(14,42,56,.08)", borderRadius: 14, padding: "10px 14px" }}>
+                    <span style={{ fontWeight: 700 }}>{page.title} <span style={{ fontWeight: 500, color: "#6E6E68", fontSize: 13 }}>· {status === "published" ? "Published" : status === "draft" ? "Draft" : "Empty"}</span></span>
+                    <Link className="dbtn" href={`/home/legal/${page.key}`}>{status === "empty" ? "Write it" : "Edit"}</Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <Link className="dbtn dBtn-mint" href="/home/legal" style={{ justifySelf: "start" }}>Open legal pages</Link>
+          </div>
         ) : null}
       </div>
     </AppFrame>

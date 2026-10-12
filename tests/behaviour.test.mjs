@@ -2523,3 +2523,108 @@ test("Rex and Peggy can set up collections and draft items (drafts only)", async
   assert.equal(peggy.PEGGY_TOOL_SPECS.cms_draft_item.write, true);
   assert.equal(peggy.PEGGY_TOOL_SPECS.cms_list_items.write, false);
 });
+
+test("legal pages: standard keys, custom keys and old plain-text policies converted on read", async () => {
+  const legal = await import("../src/lib/legal/pages.ts");
+  assert.deepEqual(legal.STANDARD_LEGAL_PAGES.map((page) => page.key), ["privacy-policy", "terms-of-service", "refund-policy", "shipping-policy", "cookie-policy", "contact-information"]);
+  assert.equal(legal.legalSlug("Warranty & Care!"), "warranty-and-care");
+  assert.equal(legal.customLegalKeyError("warranty"), null);
+  assert.match(legal.customLegalKeyError("privacy-policy"), /already/);
+  assert.match(legal.customLegalKeyError("Bad Key"), /lowercase/);
+  assert.match(legal.customLegalKeyError("warranty", ["warranty"]), /already have/);
+
+  const pages = legal.readLegalPages({ legal: { returnPolicy: "Returns within 7 days.\n\n## Refunds\nTo your card.", privacyPolicy: "  " } });
+  assert.equal(pages.length, 6, "every standard page is listed even when empty");
+  const refund = pages.find((page) => page.key === "refund-policy");
+  assert.equal(refund.published, true, "old text was shown to shoppers, so it stays published");
+  assert.equal(refund.updatedAt, null);
+  assert.deepEqual(refund.doc.content.map((node) => node.type), ["paragraph", "heading", "paragraph"]);
+  assert.equal(legal.legalPageStatus(refund), "published");
+  assert.equal(legal.legalPageStatus(pages.find((page) => page.key === "privacy-policy")), "empty", "blank old text stays empty");
+
+  // Once saved in the new shape, the old text is ignored; custom pages follow the standard ones.
+  const saved = legal.readLegalPages({
+    legal: { returnPolicy: "old" },
+    legalPages: { "refund-policy": { title: "Returns", doc: { type: "doc", content: [] }, published: false }, warranty: { title: "Warranty", published: true }, "Bad Key": { title: "x" } },
+  });
+  assert.equal(saved.find((page) => page.key === "refund-policy").title, "Returns");
+  assert.equal(legal.legalPageStatus(saved.find((page) => page.key === "refund-policy")), "empty");
+  assert.deepEqual(saved.slice(6).map((page) => [page.key, page.custom]), [["warranty", true]], "invalid keys are dropped");
+
+  // The plain-text copies old readers (store health, Rex) use: published pages only.
+  const copies = legal.legacyLegalCopies(pages);
+  assert.equal(copies.returnPolicy, "Returns within 7 days.\nRefunds\nTo your card.");
+  assert.equal(copies.privacyPolicy, "");
+  assert.ok(!("cookie-policy" in copies));
+});
+
+test("legal pages: style and saved docs are normalised and sanitised", async () => {
+  const legal = await import("../src/lib/legal/pages.ts");
+  assert.deepEqual(legal.normalizeLegalStyle({ layout: "contents", width: "huge", accent: "#abcdef", headingFont: "comic" }), { layout: "contents", width: "normal", toc: true, showUpdated: true, headingFont: "theme", accent: "#ABCDEF" });
+  assert.equal(legal.normalizeLegalStyle({ accent: "red; background:url(x)" }).accent, "", "only #RRGGBB accents");
+  assert.equal(legal.normalizeLegalStyle({}).layout, "classic");
+
+  const page = legal.normalizeLegalPage("privacy-policy", {
+    title: "  ",
+    doc: { type: "doc", content: [{ type: "script", content: [{ type: "text", text: "kept" }] }, { type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] },
+    seo: { title: "Privacy", noindex: true },
+    published: "yes",
+    updatedAt: "not a date",
+  });
+  assert.equal(page.title, "Privacy policy", "empty titles fall back to the standard name");
+  assert.equal(page.published, false, "only true publishes");
+  assert.equal(page.updatedAt, null);
+  assert.equal(page.seo.metaTitle, "Privacy");
+  assert.equal(page.seo.noIndex, true);
+  assert.doesNotMatch(JSON.stringify(page.doc), /javascript|script/);
+  assert.match(JSON.stringify(page.doc), /kept/, "unknown nodes are unwrapped, not lost");
+  assert.ok(legal.docBytes(page.doc) < legal.MAX_LEGAL_DOC_BYTES);
+});
+
+test("legal pages: table of contents ids match the rendered headings", async () => {
+  const legal = await import("../src/lib/legal/pages.ts");
+  const rt = await import("../src/lib/cms/richtext.ts");
+  const { markdownToDoc } = await import("../src/lib/cms/markdown.ts");
+  const doc = rt.sanitizeDoc(markdownToDoc("# Returns\nText\n## How to return\n### Deep\n# Returns\n# Cookies & you"));
+  const toc = legal.legalToc(doc);
+  assert.deepEqual(toc, [
+    { id: "returns", text: "Returns", level: 2 },
+    { id: "how-to-return", text: "How to return", level: 3 },
+    { id: "returns-2", text: "Returns", level: 2 },
+    { id: "cookies-you", text: "Cookies & you", level: 2 },
+  ], "h4 and below are left out; repeated headings get numbered ids");
+  const html = rt.renderDoc(doc);
+  for (const entry of toc) assert.match(html, new RegExp(`id="${entry.id}"`));
+  assert.match(html, /<h4 id="deep">/);
+});
+
+test("legal pages: footer links, public summary and templates", async () => {
+  const legal = await import("../src/lib/legal/pages.ts");
+  const { publicBrandSettings } = await import("../shared/public-brand-settings.ts");
+  const doc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }] };
+  const settings = {
+    legal: { shippingPolicy: "Old delivery text" },
+    legalPages: {
+      "privacy-policy": { title: "Privacy", doc, published: true },
+      "terms-of-service": { title: "Terms", doc, published: false },
+      "refund-policy": { title: "Refunds", doc: { type: "doc", content: [] }, published: true },
+      warranty: { title: "Warranty", doc, published: true },
+    },
+  };
+  assert.deepEqual(legal.legalLinks(settings).map((link) => link.key), ["privacy-policy", "shipping-policy", "warranty"], "drafts and empty pages are left out; old text still links");
+  const pub = publicBrandSettings(settings);
+  assert.deepEqual(pub.legalPages, { "privacy-policy": { title: "Privacy", published: true }, "refund-policy": { title: "Refunds", published: true }, warranty: { title: "Warranty", published: true } }, "shoppers get titles of published pages only, never drafts or text");
+  assert.deepEqual(legal.legalLinks(pub).map((link) => link.key), ["privacy-policy", "refund-policy", "shipping-policy", "warranty"]);
+  assert.deepEqual(legal.checkoutLegalLinks(settings).map((link) => link.key), ["privacy-policy"]);
+  assert.equal(legal.legalPagePath("refund-policy"), "/policies/refund-policy");
+
+  const template = legal.legalTemplate("shipping-policy", { storeName: "Ada & Co", city: "Lagos", country: "Nigeria", email: "hi@ada.ng", delivery: [{ name: "Lagos Island", regions: ["Lekki", "VI"], fee: 2500, freeOver: 40000, estimatedDays: "1-2 days" }] });
+  assert.equal(template.content[0].type, "callout", "templates open with a review note");
+  const text = JSON.stringify(template);
+  assert.match(text, /Lagos Island \(Lekki, VI\)/);
+  assert.match(text, /₦2,500/);
+  assert.match(text, /hi@ada\.ng/);
+  assert.match(text, /\[Check:/, "guesses are marked for the seller");
+  assert.equal(legal.legalTemplate("warranty", { storeName: "x" }), null, "custom pages have no template");
+  for (const page of legal.STANDARD_LEGAL_PAGES) assert.ok(!legal.isDocEmpty(legal.legalTemplate(page.key, { storeName: "Shop" })));
+});

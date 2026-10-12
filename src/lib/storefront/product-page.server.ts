@@ -156,3 +156,31 @@ export const loadProductPage = cache(async (slug: string, productId: string) => 
 });
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof loadProductPage>>>;
+
+/**
+ * What a live 2026-theme store needs to frame any other page (policies…) in its own header and footer:
+ * the theme, its snapshot, the catalogue for search, and shopper info. Null for classic stores.
+ */
+export const loadStoreChrome = cache(async (slug: string) => {
+  const store = await db.store
+    .findUnique({ where: { slug }, select: { id: true, name: true, slug: true, description: true, logoUrl: true, city: true, country: true, currency: true, brandSettings: true, status: true } })
+    .catch(() => null);
+  if (!store) return null;
+  const templateId = resolveStoreTemplateId(store.brandSettings);
+  if (!isBoutiqueTheme(templateId)) return null;
+  const [catalog, shopper] = await Promise.all([
+    db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 }).catch(() => []),
+    loadShopperInfo(store.id, store.brandSettings),
+  ]);
+  const { status: _status, brandSettings, ...rest } = store;
+  void _status;
+  return {
+    themeId: templateId,
+    snapshot: boutiqueSnapshotFor(templateId, brandSettings),
+    store: { ...rest, brandSettings: publicBrandSettings(brandSettings) },
+    catalog,
+    shopper: shopper as StorefrontShopperInfo,
+  };
+});
+
+export type StoreChromeData = NonNullable<Awaited<ReturnType<typeof loadStoreChrome>>>;

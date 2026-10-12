@@ -11,7 +11,8 @@ export interface PagePickerProps {
   currentLabel: string;
   onPick: (entry: PageEntry) => void;
   onAddPage: (title: string) => void;
-  onAddPolicyPages: (() => void) | null;
+  /** Legal pages have their own editor (/home/legal); this saves and goes there. */
+  onOpenLegal: () => void;
   className?: string;
 }
 
@@ -111,11 +112,9 @@ export function PagePicker(props: PagePickerProps) {
                   <Icon name="plus" size={14} /> New page
                 </button>
               )}
-              {props.onAddPolicyPages ? (
-                <button type="button" onClick={() => { props.onAddPolicyPages?.(); setOpen(false); }} className="flex min-h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[13.5px] font-medium text-app-ink hover:bg-app-canvas">
-                  <Icon name="shield" size={14} /> Add policy pages
-                </button>
-              ) : null}
+              <button type="button" onClick={() => { setOpen(false); props.onOpenLegal(); }} className="flex min-h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[13.5px] font-medium text-app-ink hover:bg-app-canvas">
+                <Icon name="shield" size={14} /> Legal pages
+              </button>
               <a href="/home/cms" className="flex min-h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[13.5px] font-medium text-app-ink hover:bg-app-canvas">
                 <Icon name="book" size={14} /> Blog posts
               </a>
