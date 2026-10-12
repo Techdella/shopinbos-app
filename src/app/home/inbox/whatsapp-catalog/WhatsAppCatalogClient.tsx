@@ -166,18 +166,16 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
 
         {!showing && !canDoItNow && (
           <SetupHelpRequest
-            title="Show my products on WhatsApp"
-            description={view.whatsapp.connected ? "We'll connect your products to your WhatsApp number for you and tell you when they're showing." : "We'll connect your WhatsApp Business number and your products for you, and tell you when they're showing."}
+            title="Connect my products to WhatsApp"
+            description={view.whatsapp.connected ? "We'll connect your products to your WhatsApp number for you and tell you when they're showing." : "We'll connect your WhatsApp Business number and your products for you, and tell you when they're showing. Put the number customers message below."}
             feature="whatsapp_catalog"
-            softwareQuestion="Which WhatsApp number do customers message?"
-            softwarePlaceholder="0803 123 4567"
           />
         )}
         {(showing || canDoItNow) && !askTeam && (
           <button type="button" onClick={() => setAskTeam(true)} className="min-h-[44px] justify-self-start text-[14.5px] font-bold text-app-ink underline underline-offset-4">Ask us to connect it instead</button>
         )}
         {(showing || canDoItNow) && askTeam && (
-          <SetupHelpRequest title="Show my products on WhatsApp" description="We'll check your WhatsApp products and fix anything for you." feature="whatsapp_catalog" />
+          <SetupHelpRequest title="Check my products on WhatsApp" description="We'll check your WhatsApp products and fix anything for you." feature="whatsapp_catalog" />
         )}
       </Card>
 
