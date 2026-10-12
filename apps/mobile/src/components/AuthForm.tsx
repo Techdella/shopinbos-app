@@ -139,7 +139,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               <Label>Phone number</Label>
               <PhoneField country={country} onCountryPress={() => setPicking(true)} value={phone} onChangeText={setPhone} />
               <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 12, lineHeight: 19 }}>
-                We'll send a 6-digit code by SMS.
+                We&apos;ll send a 6-digit code by SMS.
               </T>
             </>
           ) : (
