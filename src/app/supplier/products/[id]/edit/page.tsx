@@ -59,7 +59,7 @@ export default async function EditSupplierProductPage({
     <AppPage
       frame={supplierFrame(user, supplier)}
       title={product.name}
-      sub={`${product.category.name} · keep trade terms, photos, stock and fulfilment current. Changes to a live product go back through review.`}
+      sub={`${product.category.name} · keep prices for shops, photos, how many you have and delivery up to date. Changes to a live product go back through review.`}
       actions={
         <>
           <PillLink href="/supplier/products">All products</PillLink>

@@ -363,7 +363,7 @@ export function SupplierReviewsClient({
       {submitError && (
         <div className="flex items-start gap-2">
           <div className="flex-1"><Notice tone="error">{submitError}</Notice></div>
-          <button type="button" onClick={() => setSubmitError("")} aria-label="Dismiss error" className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
+          <button type="button" onClick={() => setSubmitError("")} aria-label="Close this message" className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
             <Icon name="x" size={16} />
           </button>
         </div>

@@ -272,3 +272,38 @@ test("the HTML email editor is an advanced option; the visual builder is the def
     assert.doesNotMatch(src, /label: "HTML" \}/, file);
   }
 });
+
+test("supplier orders are grouped New, To pack and Sent, with 'You get ₦X' and one big Accept", () => {
+  const orders = read("src/app/supplier/orders/page.tsx");
+  assert.match(orders, /\{ key: "new", label: "New", wholesale: \["pending"\], dropship: \["pending"\] \}/);
+  assert.match(orders, /\{ key: "to-pack", label: "To pack"/);
+  assert.match(orders, /\{ key: "sent", label: "Sent"/);
+  assert.match(orders, /const LEGACY_FILTER[^\n]*"to-ship": "to-pack"/, "old ?status= links still work");
+  assert.match(orders, /GROUPS\.map\(\(group\)/);
+  assert.equal((orders.match(/>You get</g) ?? []).length, 2, "both kinds of order show what the supplier gets");
+  assert.match(orders, /buttonClass\.ink\} min-h-\[52px\][^>]*><Icon name="check" size=\{16\} \/> Accept</);
+  assert.match(orders, /Pack it with \{order\.shop\}&apos;s label/);
+});
+
+test("seller and supplier nav entries use plain words; routes are unchanged", () => {
+  const nav = read("src/lib/nav.ts");
+  for (const [id, label, href] of [
+    ["domain", "Web address", "/home/domain"],
+    ["dropship", "Sell without stock", "/home/dropship"],
+    ["payouts", "Money sent to your bank", "/home/payouts"],
+    ["segments", "Groups of customers", "/home/marketing/segments"],
+    ["campaigns", "Messages to customers", "/home/marketing/campaigns"],
+    ["quote-requests", "Price requests", "/supplier/quote-requests"],
+  ]) {
+    assert.match(nav, new RegExp(`id: "${id}", label: "${label}",[^}]*href: "${href.replace(/\//g, "\\/")}"`), id);
+  }
+  assert.doesNotMatch(nav, /label: "(?:Domain|Dropship|Payouts|Segments|Campaigns|Analytics|Quote requests|Dropship orders)"/);
+});
+
+test("every seller and supplier page header has a labelled Help button that opens the one help panel", () => {
+  assert.match(read("src/components/seller/SellerPage.tsx"), /<HelpButton \/>/);
+  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? <>\{actions\}<HelpButton \/><\/>/);
+  const help = read("src/components/simple/HelpButton.tsx");
+  assert.match(help, /<Icon name="chat" size=\{16\} \/> Help/);
+  assert.match(read("src/components/shell/Sidebar.tsx"), /window\.addEventListener\(OPEN_HELP_EVENT, open\)/);
+});

@@ -16,7 +16,7 @@ export default function AskUs() {
 
   if (job) {
     return (
-      <Screen title={job.title} sub={job.sub}>
+      <Screen title="We'll set it up for you" sub="Free. A person from Shopinbos does it with you.">
         <SetupHelpRequest title={job.title} description={job.description} feature={job.feature} softwareQuestion={job.softwareQuestion} softwarePlaceholder={job.softwarePlaceholder} />
       </Screen>
     );

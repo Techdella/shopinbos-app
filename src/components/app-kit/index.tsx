@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { HelpButton } from "@/components/simple/HelpButton";
 
 // The 2026 app look ("Seller app · web", "Products, web", "Partners · web dispatch console" prototypes)
 // as server-safe building blocks. Pages are full-bleed: they use the whole width at every size.
@@ -52,7 +53,7 @@ export function AppPage({
   return (
     <AppFrame {...frame}>
       <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", className)}>
-        <PageHead title={title} sub={sub} actions={actions} />
+        <PageHead title={title} sub={sub} actions={frame.role === "seller" || frame.role === "supplier" ? <>{actions}<HelpButton /></> : actions} />
         {toolbar && <div className="mb-4 flex flex-wrap items-center justify-between gap-3">{toolbar}</div>}
         {children}
       </div>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { cx } from "@/components/app-ui/cx";
+import { HelpButton } from "@/components/simple/HelpButton";
 import type { requireRole } from "@/lib/server-auth";
 
 // Page chrome for the 2026-style seller pages (same look as /home): app shell, title, actions.
@@ -47,7 +48,10 @@ export function SellerPage({
             <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px]">{title}</h1>
             {sub && <p className="mb-0 mt-1.5 max-w-[640px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
           </div>
-          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+          <div className="flex flex-wrap gap-2">
+            {actions}
+            <HelpButton />
+          </div>
         </header>
         {children}
       </div>

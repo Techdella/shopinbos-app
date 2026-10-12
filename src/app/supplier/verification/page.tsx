@@ -110,7 +110,7 @@ export default function SupplierVerificationPage() {
       fetchData();
     } catch {
       setMessageTone("error");
-      setMessage("Submit failed. Please try again.");
+      setMessage("We couldn't send that. Check your connection and try again.");
     } finally { setSubmitting(false); }
   }, [fetchData]);
 
@@ -159,7 +159,7 @@ export default function SupplierVerificationPage() {
     <AppPage
       frame={supplierFrame(user, supplier, { verificationStatus: supplier.verificationStatus })}
       title="Verification"
-      sub="Verified suppliers get a public badge, show up higher in seller searches, and can take orders and send quotes."
+      sub="Verified suppliers get a public badge, show up higher in seller searches, and can take orders and tell shops their price."
       actions={
         isVerified && trustData ? (
           <VerificationBadge tier={badgeTier} trustScore={trustData.total} verificationStatus={supplier.verificationStatus} size="md" />

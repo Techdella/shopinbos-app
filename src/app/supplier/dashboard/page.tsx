@@ -16,11 +16,11 @@ import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/mo
 // Supplier home in the "Seller app · web" language: greeting, real tiles, orders to ship and quote requests.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Today" };
 
 const DROPSHIP_STAGE: Record<string, { label: string; tone: "accent" | "warning" }> = {
   pending: { label: "New: accept it", tone: "accent" },
-  accepted: { label: "Accepted: to ship", tone: "warning" },
+  accepted: { label: "To pack", tone: "warning" },
 };
 
 /** One row of "Orders to ship": wholesale and dropship orders in one list, oldest first. */
@@ -198,7 +198,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         href: "/supplier/orders?kind=dropship",
         image: first?.image,
         title: order.items.length > 1 ? `${first?.name ?? "Products"} and ${order.items.length - 1} more · ${units} units` : `${first?.name ?? "Product"} × ${units}`,
-        sub: `Dropship for ${order.shop} · ${order.recipient.address[order.recipient.address.length - 1] ?? order.recipient.name}`,
+        sub: `A shop sold it: ${order.shop} · ${order.recipient.address[order.recipient.address.length - 1] ?? order.recipient.name}`,
         stage: statusOf(DROPSHIP_STAGE, order.status),
         createdAt: new Date(order.createdAt),
         amount: order.costTotal,
@@ -230,17 +230,17 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             {lagosGreeting(now)}, {firstName}.
             <br />
             <span className="font-extrabold">
-              {toShipCount > 0 ? `${toShipCount} order${toShipCount === 1 ? "" : "s"} to ship.` : pendingQuotes > 0 ? `${pendingQuotes} quote${pendingQuotes === 1 ? "" : "s"} to answer.` : "You're all caught up."}
+              {toShipCount > 0 ? `${toShipCount} order${toShipCount === 1 ? "" : "s"} to pack.` : pendingQuotes > 0 ? `${pendingQuotes} shop${pendingQuotes === 1 ? "" : "s"} asking for your price.` : "You're all caught up."}
             </span>
           </h1>
           <div className="mt-6 flex flex-wrap gap-2.5">
             <PillLink href="/supplier/products/new" tone="ink">Add product</PillLink>
-            <PillLink href="/supplier/quote-requests">Reply to quotes</PillLink>
+            <PillLink href="/supplier/quote-requests">Tell them your price</PillLink>
             <PillLink href={`/suppliers/${supplier.slug}`}>See your public page</PillLink>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatTile label="Orders to ship" value={toShipCount.toLocaleString("en-NG")} />
-            <StatTile label="Quotes waiting" value={pendingQuotes.toLocaleString("en-NG")} />
+            <StatTile label="Shops waiting for your price" value={pendingQuotes.toLocaleString("en-NG")} />
             <StatTile label="Earned, 30 days" value={money(earned30.earned)} hint={earnedAll.owed > 0 ? `${money(earnedAll.owed)} still owed to you` : `${money(earnedAll.earned)} all time`} />
             <StatTile label="Products live" value={publishedProducts.toLocaleString("en-NG")} hint={`of ${totalProducts} in your catalogue`} />
           </div>
@@ -270,7 +270,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             )}
             {verified && toShipCount === 0 && pendingQuotes === 0 && totalProducts > 0 && (
               <div className="rounded-[16px] bg-white px-4 py-3 text-[13.5px] text-app-ink-soft">
-                Nothing needs you right now. Every order is moving and every quote has an answer.
+                Nothing needs you right now. Every order is moving and every shop has your price.
               </div>
             )}
           </div>
@@ -279,7 +279,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         {/* Orders to ship */}
         <section className="min-w-0">
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="m-0 text-[17px] font-extrabold">Orders to ship</h2>
+            <h2 className="m-0 text-[17px] font-extrabold">New orders and orders to pack</h2>
             <TextLink href="/supplier/orders">All orders</TextLink>
           </div>
           {ordersToShip.length ? (
@@ -299,7 +299,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             </ListCard>
           ) : (
             <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">
-              Nothing to ship. New orders from sellers land here first.
+              Nothing to pack. New orders from shops land here first.
             </Card>
           )}
         </section>
@@ -307,7 +307,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         {/* Quote requests */}
         <section className="min-w-0">
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="m-0 text-[17px] font-extrabold">Quote requests</h2>
+            <h2 className="m-0 text-[17px] font-extrabold">Shops asking for your price</h2>
             <TextLink href="/supplier/quote-requests">See all</TextLink>
           </div>
           {waitingQuotes.length ? (
@@ -337,7 +337,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             </div>
           ) : (
             <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">
-              No quote requests waiting. When a seller asks for bulk pricing it shows up here.
+              No shops waiting for your price. When a shop wants to buy in bulk, it shows up here.
             </Card>
           )}
         </section>

@@ -10,6 +10,7 @@ import { SignOutButton } from "./SignOutButton";
 import { SupportChatModal } from "./SupportChatModal";
 import { useUnreadMessages } from "@/components/conversations/client";
 import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity } from "./useShellCounts";
+import { OPEN_HELP_EVENT } from "@/components/simple/HelpButton";
 
 // App sidebar in the 2026 design (Seller app · web mockup): white rail, store card, orange "Add product",
 // grouped nav with an orange bar on the active item. On small screens it slides in from the top bar's menu button.
@@ -52,6 +53,13 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const { prefs } = usePreferences();
   // Store logo and the person's photo stay in step with uploads made anywhere in the app.
   const me = useIdentity({ name: userName, logoUrl: storeLogoUrl });
+
+  // Page-level "Help" buttons (src/components/simple/HelpButton.tsx) open this same panel.
+  useEffect(() => {
+    const open = () => setHelpOpen(true);
+    window.addEventListener(OPEN_HELP_EVENT, open);
+    return () => window.removeEventListener(OPEN_HELP_EVENT, open);
+  }, []);
 
   // Hover flyouts only where there's a mouse and room for the rail; touch screens expand submenus inline.
   useEffect(() => {
