@@ -8,6 +8,7 @@ import { NAV_BY_ROLE, type NavGroup, type NavItem, type Role } from "@/lib/nav";
 import { cx } from "@/components/app-ui";
 import { SignOutButton } from "./SignOutButton";
 import { SupportChatModal } from "./SupportChatModal";
+import { useUnreadMessages } from "@/components/conversations/client";
 import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity } from "./useShellCounts";
 
 // App sidebar in the 2026 design (Seller app · web mockup): white rail, store card, orange "Add product",
@@ -41,6 +42,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const pathname = usePathname();
   const groups = NAV_BY_ROLE[role];
   const counts = useShellCounts();
+  const messagesUnread = useUnreadMessages();
   const [helpOpen, setHelpOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
@@ -72,9 +74,10 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   }, [pathname]);
 
   const badgeFor = (item: NavItem) => {
+    // Inbox: unread partner messages (live) in every portal.
+    if (item.id === "inbox" && messagesUnread > 0) return { value: messagesUnread, tone: "mint" as const };
     if (role !== "seller" || !counts) return null;
     if (item.id === "orders" && counts.orders > 0) return { value: counts.orders, tone: "accent" as const };
-    if (item.id === "inbox" && counts.inbox > 0) return { value: counts.inbox, tone: "mint" as const };
     return null;
   };
 

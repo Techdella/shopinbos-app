@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
+import { messagesHref } from "@/lib/conversations/pure";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                       </div>
                       <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{BOOKING_LABEL[b.status] ?? b.status.replace(/_/g, " ")}</Pill>
                       <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee)}</span>
+                      <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">Message</PillLink>
                     </li>
                   ))}
                 </ul>
@@ -133,6 +135,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                         <div className="text-[12.5px] text-app-ink-soft">From</div>
                         <div className="text-[14.5px] font-extrabold">{fmt(p.basePrice)}</div>
                       </div>
+                      <PillLink href={messagesHref("seller", { with: p.id })} size="sm" icon="chat">Message</PillLink>
                       <PillLink href={`/home/logistics?intent=quote&partner=${p.id}${filter !== "all" ? `&filter=${filter}` : ""}#quote`} size="sm" tone={chosenId === p.id ? "ink" : "white"}>Get a quote</PillLink>
                     </ListRow>
                   ))}

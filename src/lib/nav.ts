@@ -57,6 +57,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "inbox", label: "Inbox", icon: "chat", href: "/home/messages",
           children: [
             { id: "inbox-messages", label: "All conversations", href: "/home/messages" },
+            { id: "inbox-partners", label: "Suppliers and delivery", href: "/home/messages/partners" },
             { id: "inbox-forms", label: "Form messages", href: "/home/forms" },
             { id: "inbox-chat", label: "Live chat", href: "/home/marketing/chat" },
             { id: "inbox-auto-replies", label: "Auto-replies", href: "/home/inbox/auto-replies" },

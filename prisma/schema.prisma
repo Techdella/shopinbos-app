@@ -1198,6 +1198,7 @@ model Conversation {
   @@unique([participant1Id, participant2Id])
   @@index([participant1Id])
   @@index([participant2Id])
+  @@index([updatedAt(sort: Desc)])
 }
 
 model Message {
@@ -1210,9 +1211,28 @@ model Message {
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
   sender       User         @relation(fields: [senderId], references: [id])
+  detail       MessageDetail?
 
   @@index([conversationId])
   @@index([conversationId, createdAt(sort: Asc)])
+  @@index([conversationId, read])
+  @@index([read, createdAt])
+}
+
+// Extras for a partner message (attachments, linked product/order/booking, when it was seen, unread email).
+// A side table rather than new Message columns, so every existing Message query keeps working before
+// docs/migrations/2026-10-12-partner-messages.sql is applied.
+model MessageDetail {
+  messageId   String    @id
+  attachments Json      @default("[]") // [{ path, name, type, size }] in the private messages/ storage folder
+  context     Json? // { kind: product | order | wholesale_order | booking, id, label, sub?, image? }
+  readAt      DateTime?
+  emailedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([emailedAt])
 }
 
 // ─── Discount / Promotion ──────────────────────────────────────────────────────

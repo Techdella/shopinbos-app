@@ -8,6 +8,7 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { clampSellingPrice, naira, priceStep, saleBreakdown, supplierInitials, tierPrice, type FindProduct } from "@/lib/marketplace/find";
 import { SampleNotice } from "./SampleNotice";
+import { messagesHref } from "@/lib/conversations/pure";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
@@ -304,7 +305,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         onSend={async (text) => {
           const result = await messageSupplier({ supplierProductId: product.id, text });
           if (!result.ok) return result.error;
-          router.push(`/home/messages?p=${encodeURIComponent(result.conversationId)}`);
+          router.push(messagesHref("seller", { conversation: result.conversationId }));
           return null;
         }}
       />

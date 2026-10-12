@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -9,6 +9,7 @@ import { navLinks, type Role } from "@/lib/nav";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { SearchModal } from "./SearchModal";
 import { ConversationsModal } from "./ConversationsModal";
+import { useUnreadMessages } from "@/components/conversations/client";
 import { SignOutButton } from "./SignOutButton";
 import { TOGGLE_NAV_EVENT, useIdentity, useShellCounts } from "./useShellCounts";
 import { initialsOf } from "@shared/identity-images";
@@ -59,6 +60,9 @@ export function GlobalTopBar({
   const displayName = me.name || userName;
   const initials = me.name ? initialsOf(me.name) : userInitials ?? initialsOf(userName);
   const unread = counts?.notifications ?? 0;
+  // Unread partner messages, polled while the app is open and refreshed when a chat is read.
+  const messagesUnread = useUnreadMessages();
+  const openChat = useCallback(() => setChatOpen(true), []);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -109,10 +113,16 @@ export function GlobalTopBar({
             <Mascot name="peggy" className="h-8 w-8" alt="" /> Ask Peggy
           </Link>
         )}
-        <button type="button" aria-label="Messages" onClick={() => setChatOpen(true)} className="relative hidden h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong sm:grid">
-          <Icon name="chat" size={17} />
-          {(counts?.inbox ?? 0) > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-app-forest ring-2 ring-white" />}
-        </button>
+        {role !== "admin" && (
+          <button type="button" aria-label={messagesUnread ? `Messages, ${messagesUnread} unread` : "Messages"} onClick={openChat} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
+            <Icon name="chat" size={17} />
+            {messagesUnread > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-app-accent px-1 text-[10.5px] font-extrabold leading-none text-white ring-2 ring-white">
+                {messagesUnread > 99 ? "99+" : messagesUnread}
+              </span>
+            )}
+          </button>
+        )}
         <button type="button" data-tour="notifications" aria-label={unread ? `Notifications, ${unread} new` : "Notifications"} onClick={() => setDrawerOpen(true)} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
           <Icon name="bell" size={17} />
           {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-app-accent ring-2 ring-white" />}
@@ -149,7 +159,7 @@ export function GlobalTopBar({
 
       <NotificationsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <ConversationsModal open={chatOpen} onClose={() => setChatOpen(false)} />
+      {role !== "admin" && <ConversationsModal open={chatOpen} onClose={() => setChatOpen(false)} role={role} onOpenRequest={openChat} />}
     </>
   );
 }

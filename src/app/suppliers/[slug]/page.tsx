@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Icon } from "@/components/ui/Icon";
+import { messagesHref } from "@/lib/conversations/pure";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,12 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
                   {supplier.city}, {supplier.country} · {supplier.businessType.replace(/_/g, " ")} · {supplier._count.products} products
                 </div>
               </div>
-              {isVerified && <Link className="dbtn dBtn-mint" href={`/login?intent=request_quote&supplierSlug=${supplier.slug}`}>Request quote</Link>}
+              {isVerified && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Link className="dbtn dBtn-ghost" href={messagesHref("seller", { with: supplier.id })}>Message supplier</Link>
+                  <Link className="dbtn dBtn-mint" href={`/login?intent=request_quote&supplierSlug=${supplier.slug}`}>Request quote</Link>
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr", gap: 24, marginTop: 24 }}>

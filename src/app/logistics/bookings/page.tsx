@@ -4,7 +4,8 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { updateDeliveryBookingStatus } from "@/app/actions/logistics";
-import { EmptyState, FilterChips, ListCard, SearchForm } from "@/components/app-kit";
+import { EmptyState, FilterChips, ListCard, PillLink, SearchForm } from "@/components/app-kit";
+import { messagesHref } from "@/lib/conversations/pure";
 import { Icon } from "@/components/ui/Icon";
 import { AcceptAssignForm, ReassignForm, riderSelect } from "@/components/logistics/dispatch";
 import { nextStatuses } from "@/lib/logistics/job-rules";
@@ -74,7 +75,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
       select: {
         id: true, pickupLocation: true, destination: true, deliveryFee: true, status: true, trackingCode: true,
         estimatedDelivery: true, createdAt: true, packageDetails: true, notes: true, failedReason: true,
-        codAmount: true, codCollected: true, codMethod: true, riderId: true,
+        codAmount: true, codCollected: true, codMethod: true, riderId: true, sellerId: true,
         seller: { select: { name: true } }, rider: { select: { name: true } },
       },
     }),
@@ -131,6 +132,9 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                 </summary>
 
                 <div className="border-t border-app-line bg-app-canvas/60 px-4 py-4 sm:px-5">
+                  <div className="mb-3">
+                    <PillLink href={messagesHref("logistics_partner", { with: job.sellerId, context: { kind: "booking", id: job.id } })} size="sm" icon="chat">Message {job.seller.name}</PillLink>
+                  </div>
                   {job.notes && <p className="m-0 mb-3 text-[13.5px] text-app-ink-soft">Seller note: {job.notes}</p>}
                   {job.status === "failed" && job.failedReason && <p className="m-0 mb-3 text-[13.5px] font-bold text-app-danger">Failed: {job.failedReason}</p>}
                   {job.codAmount ? (

@@ -7,6 +7,7 @@ import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications/create";
+import { ConversationError, sendPartnerMessage } from "@/lib/conversations/service.server";
 import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
 import {
   clampSellingPrice,
@@ -166,21 +167,13 @@ export async function messageSupplier(input: { supplierProductId: string; text: 
   const them = product.supplier.userId;
   if (me === them) return { ok: false, error: "That's your own product." };
 
-  const conversation =
-    (await db.conversation.findFirst({
-      where: { OR: [{ participant1Id: me, participant2Id: them }, { participant1Id: them, participant2Id: me }] },
-      select: { id: true },
-    })) ?? (await db.conversation.create({ data: { participant1Id: me, participant2Id: them }, select: { id: true } }));
-  await db.message.create({ data: { conversationId: conversation.id, senderId: me, text: `About ${product.name}: ${parsed.data.text}` } });
-  await db.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
-  await createNotification({
-    userId: them,
-    type: "suppliers",
-    title: "New message from a seller",
-    description: `About ${product.name}`,
-    link: "/supplier/inbox",
-  }).catch(() => null);
-  return { ok: true, conversationId: conversation.id };
+  // One messaging system: the partner chat, with the product attached as a card (it also notifies the supplier).
+  try {
+    const sent = await sendPartnerMessage(ctx.user, them, { text: parsed.data.text, context: { kind: "product", id: product.id } });
+    return { ok: true, conversationId: sent.conversationId };
+  } catch (error) {
+    return { ok: false, error: error instanceof ConversationError ? error.message : "Couldn't send that. Try again." };
+  }
 }
 
 /** "Get notified" (from a sample product): an alert when real suppliers list products. */
@@ -214,11 +207,15 @@ const ImportSchema = z.object({
   shipping: z.enum(["air", "sea"]),
 });
 
+const CHINA_IMPORTS_OPEN = false;
+
 /** China · 1688 "Find it": a request to the sourcing partner. Shows up in My imports. */
 export async function requestChinaImport(formData: FormData) {
   function back(error: string): never {
     redirect(`/marketplace?tab=china&error=${encodeURIComponent(error)}`);
   }
+  // Importing goes through sourcing middlemen and isn't open yet (the China tab says "Coming soon").
+  if (!CHINA_IMPORTS_OPEN) back("Importing from China is coming soon.");
   const quantityRaw = Number(formData.get("quantity") || 0);
   const parsed = ImportSchema.safeParse({
     query: String(formData.get("query") || ""),

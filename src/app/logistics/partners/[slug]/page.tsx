@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { Card, CardHead, Pill, PillLink, StatTile } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { KeyValue, naira } from "@/components/logistics/kit";
+import { messagesHref } from "@/lib/conversations/pure";
 
 // Public partner page sellers open from the logistics marketplace.
 
@@ -67,6 +68,7 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               <PillLink href={`/home/logistics?partner=${partner.slug}`} tone="accent" icon="truck" className="flex-1 sm:flex-none">Request a quote</PillLink>
               <PillLink href={`/home/logistics?partner=${partner.slug}`} icon="cart" className="flex-1 sm:flex-none">Book a delivery</PillLink>
+              <PillLink href={messagesHref("seller", { with: partner.id })} icon="chat" className="flex-1 sm:flex-none">Message</PillLink>
             </div>
           </div>
         </Card>
