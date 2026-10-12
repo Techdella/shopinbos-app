@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Mascot, PillButton } from "@/components/app-ui";
 import type { Role } from "@/lib/nav";
@@ -66,9 +66,14 @@ function visibleRect(selector: string) {
   return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight ? rect : null;
 }
 
+// One automatic start per page load, even if the component remounts while the "seen" save is in flight.
+let startedThisLoad = false;
+
 export function GuidedTour({ role }: { role: Role }) {
   const pathname = usePathname();
-  const { prefs, save } = usePreferences();
+  const { prefs, confirmed, save } = usePreferences();
+  const saveRef = useRef(save);
+  saveRef.current = save;
   const [step, setStep] = useState<number | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   // The Start here steps only make sense on Start here; from Home the tour skips them.
@@ -77,13 +82,19 @@ export function GuidedTour({ role }: { role: Role }) {
     [role, pathname],
   );
 
-  // Starts once, on the portal's home page, for people who haven't finished or skipped it.
+  // Shows once, on the portal's home page after onboarding, and never again on its own: it is marked seen the
+  // moment it opens (so leaving mid-tour, reloading or closing the tab doesn't bring it back), and only after
+  // the server confirms it hasn't been seen (a stale or empty localStorage cache on a new device can't restart
+  // it). "Replay the walkthrough" in Customise your menu clears the flag to show it again.
   useEffect(() => {
-    if (prefs && prefs.tour !== "done" && step === null && HOME[role].includes(pathname)) {
-      const timer = window.setTimeout(() => setStep(0), 700);
-      return () => window.clearTimeout(timer);
-    }
-  }, [prefs, pathname, role, step]);
+    if (!confirmed || !prefs || prefs.tour === "done" || step !== null || startedThisLoad || !HOME[role].includes(pathname)) return;
+    const timer = window.setTimeout(() => {
+      startedThisLoad = true;
+      setStep(0);
+      void saveRef.current({ tour: "done" }).catch(() => undefined);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [confirmed, prefs, pathname, role, step]);
 
   const measure = useCallback(() => {
     if (step === null) return;
