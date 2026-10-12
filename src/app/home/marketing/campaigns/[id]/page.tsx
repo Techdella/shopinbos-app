@@ -88,8 +88,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
             <StatTile tone="card" label="Sent" value={(isEmail ? count("sent") : accepted).toLocaleString("en-NG")} hint={count("failed") ? `${count("failed")} failed` : undefined} />
             {isEmail ? <StatTile tone="card" label="Opened" value={pct(opened, count("sent"))} hint={`${opened} people`} /> : null}
             {isEmail ? <StatTile tone="card" label="Clicked" value={pct(clicked, count("sent"))} hint={`${clicked} people`} /> : null}
-            {!isEmail ? <StatTile tone="card" label="Delivered" value={pct(delivered, accepted)} hint={`${delivered.toLocaleString("en-NG")} people`} /> : null}
-            {isWhatsApp ? <StatTile tone="card" label="Read" value={pct(count("read"), accepted)} hint={`${count("read").toLocaleString("en-NG")} people`} /> : null}
+            {!isEmail ? <StatTile tone="card" label="Delivered" value={pct(delivered, accepted)} hint={`${delivered.toLocaleString("en-NG")} ${delivered === 1 ? "person" : "people"}`} /> : null}
+            {isWhatsApp ? <StatTile tone="card" label="Read" value={pct(count("read"), accepted)} hint={`${count("read").toLocaleString("en-NG")} ${count("read") === 1 ? "person" : "people"}`} /> : null}
             {!isEmail ? <StatTile tone="card" label="Failed" value={count("failed").toLocaleString("en-NG")} hint={count("queued") ? `${count("queued")} waiting` : undefined} /> : null}
             <StatTile tone="card" label="Orders" value={campaign.conversionCount} />
             <StatTile tone="card" label="Sales" value={naira(campaign.revenueGenerated)} />
@@ -110,7 +110,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                             <span className="block truncate font-bold">{recipient.name || recipient.email}</span>
                             <span className="block truncate text-[12.5px] text-app-ink-soft">{recipient.email}{recipient.error ? ` · ${recipient.error}` : ""}</span>
                           </span>
-                          {recipient.convertedAt ? <Pill tone="success">Ordered {naira(recipient.revenue)}</Pill> : recipient.clickedAt ? <Pill tone="info">Clicked</Pill> : recipient.openedAt ? <Pill tone="info">Opened</Pill> : null}
+                          {recipient.convertedAt ? <Pill tone="success">Ordered {naira(recipient.revenue)}</Pill> : !isEmail ? null : recipient.clickedAt ? <Pill tone="info">Clicked</Pill> : recipient.openedAt ? <Pill tone="info">Opened</Pill> : null}
                           <Pill tone={status.tone}>{status.label}</Pill>
                         </li>
                       );
