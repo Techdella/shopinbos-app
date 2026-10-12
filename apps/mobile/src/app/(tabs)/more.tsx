@@ -31,6 +31,7 @@ const SECTIONS: Array<{ title: string; links: MoreLink[] }> = [
     title: "Sell more",
     links: [
       { label: "Find products to sell", icon: "search", path: "app:/find" },
+      { label: "Dropship", icon: "truck", path: "app:/dropship", hint: "Products suppliers send for you" },
       { label: "Reviews", icon: "star", path: "app:/reviews" },
       { label: "Marketing and discounts", icon: "megaphone", path: "app:/marketing" },
       { label: "Email templates", icon: "mail", path: "app:/marketing/templates" },

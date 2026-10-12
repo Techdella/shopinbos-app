@@ -90,6 +90,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "find-logistics", label: "Delivery companies", href: "/marketplace/logistics" },
           ],
         },
+        { id: "dropship", label: "Dropship", icon: "box", href: "/home/dropship" },
         { id: "imports", label: "Imports", icon: "truck", href: "/home/imports" },
       ],
     },
