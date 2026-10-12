@@ -231,7 +231,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               {(order.paymentMethod || channel || order.paystackRef) && (
                 <div className="mt-4 grid gap-1 text-[13px] text-app-ink-soft">
-                  {order.paymentMethod && <div>Paid by {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</div>}
+                  {order.paymentMethod && <div>{row.payment.label === "Paid" ? "Paid by" : "Paying by"} {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</div>}
                   {channel && <div>Sold on {channel}</div>}
                   {order.paystackRef && <div className="break-all">Ref: {order.paystackRef}</div>}
                 </div>

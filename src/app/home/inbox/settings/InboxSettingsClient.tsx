@@ -84,7 +84,7 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
         </Card>
 
         <Card className="grid gap-4 p-5">
-          <CardHead title="Calls" sub={voiceConnected ? "Calls to your Twilio number ring this phone first, then go to voicemail." : "Connect Phone calls to log calls and take voicemails in your inbox."} />
+          <CardHead title="Calls" sub={voiceConnected ? "Calls to your Africa's Talking number ring this phone. Leave it empty to send every call to voicemail." : "Connect Phone calls to log calls and take voicemails in your inbox."} />
           {voiceConnected ? (
             <label className="grid gap-1 text-[13.5px] font-bold">
               Ring my phone

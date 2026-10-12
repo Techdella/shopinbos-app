@@ -12,7 +12,7 @@ import {
 } from "@/lib/store-templates";
 import { loadShopperInfo } from "./shopper-info.server";
 import type { StorefrontShopperInfo } from "./shopper-info";
-import { PREVIEW_PRODUCT_STATUSES } from "./store-visibility";
+import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
 
@@ -108,8 +108,9 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   ]);
 
   if (!store || !product || product.storeId !== store.id || product.currency !== store.currency) return null;
-  // Shoppers only see live stores and published products (drafts aren't reachable by id).
-  if (!preview && store.status !== "active") return null;
+  // Shoppers only see live stores and published products (drafts aren't reachable by id). "Live" is the same
+  // test the storefront home and checkout use, so a store that was never published can't sell from a product link.
+  if (!preview && storeUnavailableReason(store, await db.storePage.count({ where: { storeId: store.id, isPublished: true } }))) return null;
   if (!statuses.includes(product.status)) return null;
 
   await ensureReviewTable();

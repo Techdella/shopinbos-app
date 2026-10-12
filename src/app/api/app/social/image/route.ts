@@ -3,23 +3,12 @@ import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError } from "@/lib/api/response";
 import { appOrigin } from "@/lib/ads";
+import { safeFetch } from "@/lib/security/safe-fetch.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_BYTES = 15 * 1024 * 1024;
-
-/** Product photos are seller-entered URLs: only fetch public https hosts (no IPs, no localhost). */
-function safeImageUrl(value: string) {
-  if (value.startsWith(appOrigin())) return true;
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase();
-    return url.protocol === "https:" && !/^[\d.]+$/.test(host) && !host.includes(":") && host !== "localhost" && !host.endsWith(".localhost") && !host.endsWith(".internal") && host.includes(".");
-  } catch {
-    return false;
-  }
-}
 
 // Downloads one of the seller's own product photos as a file (same origin, so the browser saves it instead of
 // opening it), for posting to Instagram or TikTok, which have no web share page.
@@ -33,9 +22,11 @@ export const GET = withSeller(async (req, { user }) => {
   const source = product?.images[index];
   if (!product || !source) return apiError("NOT_FOUND", "That product has no photo", 404);
 
-  const absolute = source.startsWith("/") ? `${appOrigin()}${source}` : source;
-  if (!safeImageUrl(absolute)) return apiError("BAD_REQUEST", "That photo can't be downloaded");
-  const response = await fetch(absolute, { signal: AbortSignal.timeout(20_000) }).catch(() => null);
+  // Our own uploads are fetched as-is; seller-entered URLs only from public http(s) hosts, checked after DNS
+  // and on every redirect.
+  const own = source.startsWith("/") && !source.startsWith("//");
+  const signal = AbortSignal.timeout(20_000);
+  const response = await (own ? fetch(`${appOrigin()}${source}`, { signal }) : safeFetch(source, { signal })).catch(() => null);
   const type = response?.headers.get("content-type") ?? "";
   if (!response?.ok || !type.startsWith("image/")) return apiError("BAD_REQUEST", "Couldn't fetch that photo", 502);
   const body = await response.arrayBuffer();

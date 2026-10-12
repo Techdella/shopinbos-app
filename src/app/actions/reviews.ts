@@ -28,6 +28,11 @@ export async function respondToReview(formData: FormData) {
 }
 
 export async function getReviewMetrics(logisticsPartnerId: string) {
+  // Callable from the browser (server action): only the partner itself (or an admin).
+  const user = await requireRole(["logistics_partner", "admin"], "/logistics/login");
+  if (user.role !== "admin" && !(await db.logisticsPartner.findFirst({ where: { id: logisticsPartnerId, userId: user.id }, select: { id: true } }))) {
+    throw new Error("Not allowed");
+  }
   const reviews = await db.logisticsReview.findMany({
     where: { logisticsPartnerId },
     orderBy: { createdAt: "desc" },

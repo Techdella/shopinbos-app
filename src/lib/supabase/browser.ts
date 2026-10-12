@@ -10,7 +10,9 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   if (!hasSupabaseBrowserEnv()) return null;
   if (!browserClient) {
     const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    // Secure on https pages, like the server-set session cookies (src/lib/auth/session.server.ts).
+    const secure = typeof window !== "undefined" && window.location.protocol === "https:";
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, { cookieOptions: { path: "/", sameSite: "lax", secure } });
   }
   return browserClient;
 }

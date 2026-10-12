@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError } from "@/lib/api/response";
 import { getOpenAIClient } from "@/lib/ai/client";
+import { meterAi } from "@/lib/ai/usage";
 import { VIDEO_LANGUAGES } from "@shared/video";
 
 export const runtime = "nodejs";
@@ -25,12 +26,15 @@ const DIRECTION: Record<string, string> = {
 };
 
 // Video studio voiceover: returns an MP3 the browser mixes into the reel.
-export const POST = withSeller(async (req) => {
+export const POST = withSeller(async (req, { user }) => {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the script");
 
   const openai = getOpenAIClient();
   if (!openai) return apiError("SERVICE_UNAVAILABLE", "Voiceovers aren't switched on yet. Your reel can still use captions.", 503);
+
+  const limited = await meterAi(user.id, "voice");
+  if (limited) return limited;
 
   try {
     const speech = await openai.audio.speech.create({
@@ -39,7 +43,7 @@ export const POST = withSeller(async (req) => {
       input: parsed.data.text,
       instructions: DIRECTION[parsed.data.language],
       response_format: "mp3",
-    });
+    }, { timeout: 25_000, maxRetries: 1 });
     const audio = Buffer.from(await speech.arrayBuffer());
     return new NextResponse(audio, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });
   } catch (error) {

@@ -10,6 +10,8 @@ export async function getSupabaseServerClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Same as the proxy and the auth routes: a refreshed session cookie is never sent over plain http in prod.
+      cookieOptions: { path: "/", sameSite: "lax", secure: process.env.NODE_ENV === "production" },
       cookies: {
         getAll() {
           return cookieStore.getAll();

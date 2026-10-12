@@ -16,6 +16,7 @@ import { AssistantNote, Card, CardHead, FilterChips, Pill, PillLink } from "@/co
 import { Icon } from "@/components/ui/Icon";
 import { CHECKBOX, FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK, SUBMIT_WHITE } from "@/components/seller-settings/fields";
 import { db } from "@/lib/db/client";
+import { aiAllowanceToday } from "@/lib/ai/usage";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,8 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
     db.deliveryBooking.count({ where: { sellerId: user.id } }),
   ]);
   const aiCredits = dbUser?.aiCredits ?? 5;
+  // The daily AI allowance (src/lib/ai/usage.ts) is what Peggy and Rex actually spend; aiCredits sets its size.
+  const aiAllowance = await aiAllowanceToday(user.id, dbUser?.aiCredits);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const brandSettings = (store?.brandSettings ?? {}) as Record<string, any>;
   const launchBilling = brandSettings.launchBilling && typeof brandSettings.launchBilling === "object"
@@ -276,7 +279,13 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               <dl className="m-0 mt-2 divide-y divide-app-line">
                 <div className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">Products</dt><dd className="m-0 font-extrabold">{productCount}</dd></div>
                 <div className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">Delivery bookings</dt><dd className="m-0 font-extrabold">{bookingCount}</dd></div>
-                <div className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">AI credits</dt><dd className="m-0 font-extrabold">{aiCredits}</dd></div>
+                {aiAllowance ? (
+                  aiAllowance.map((row) => (
+                    <div key={row.kind} className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">{row.label} today</dt><dd className="m-0 font-extrabold">{row.used} of {row.limit}</dd></div>
+                  ))
+                ) : (
+                  <div className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">AI credits</dt><dd className="m-0 font-extrabold">{aiCredits}</dd></div>
+                )}
               </dl>
             </Card>
 

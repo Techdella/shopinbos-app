@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
+import { gaMeasurementId } from "@/lib/security/html";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -242,6 +243,8 @@ export async function markMarketplaceReviewed() {
   redirect("/marketplace");
 }
 
+const SERVER_OWNED_BRAND_KEYS = ["launchBilling", "payoutBank", "pendingInvites", "rexVersions", "domainOrders"] as const;
+
 export async function saveBrandSettingsJson(formData: FormData) {
   const user = await getSellerUserOrThrow();
   const store = await db.store.findUnique({ where: { userId: user.id } });
@@ -252,6 +255,10 @@ export async function saveBrandSettingsJson(formData: FormData) {
 
   try {
     const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { success: false, error: "Invalid settings JSON" };
+    // Keys only the server writes (launch payment state, verified payout bank, invites) can't come from here:
+    // otherwise {"launchBilling":{"status":"paid"}} would publish a store without paying.
+    for (const key of SERVER_OWNED_BRAND_KEYS) delete (parsed as Record<string, unknown>)[key];
     const current = parseBrandSettings(store.brandSettings);
     const merged = mergeBrandSettings(current, parsed);
 
@@ -366,7 +373,7 @@ export async function saveStoreDomainSettings(formData: FormData) {
     },
   });
 
-  redirect("/seller/store/settings?tab=domain&saved=true");
+  redirect("/home/domain?saved=true");
 }
 
 export async function saveStoreBrandKitSettings(formData: FormData) {
@@ -399,7 +406,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
     },
   });
 
-  redirect("/seller/store/settings?tab=brand&saved=true");
+  redirect("/home/brand-kit?saved=true");
 }
 
 export async function saveStoreSeoSettings(formData: FormData) {
@@ -429,7 +436,8 @@ export async function saveStoreIntegrationSettings(formData: FormData) {
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) redirect("/builder?firstRun=1");
 
-  const googleAnalyticsId = String(formData.get("googleAnalyticsId") || "").trim();
+  // Only a real GA4 ID is kept: the storefront writes it into an inline script.
+  const googleAnalyticsId = gaMeasurementId(formData.get("googleAnalyticsId"));
   const gaSiteVerification = String(formData.get("gaSiteVerification") || "").trim();
 
   await db.store.update({
@@ -488,7 +496,7 @@ export async function saveStoreCartSettings(formData: FormData) {
     },
   });
 
-  redirect("/seller/store/settings?tab=commerce&saved=true");
+  redirect("/home/commerce/cart?saved=true");
 }
 
 export async function savePeggyPreferences(formData: FormData) {

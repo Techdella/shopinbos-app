@@ -9,6 +9,7 @@ import { seoMetadata } from "@/lib/seo/fields";
 import { resolveStorefront } from "@/lib/storefront/public-store.server";
 import { StoreClosedPage } from "@/components/storefront/shopper/StoreClosedPage";
 import { PreviewClient } from "./preview/PreviewClient";
+import { gaMeasurementId, scriptSafeJson } from "@/lib/security/html";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -23,7 +24,8 @@ function getIntegrations(brandSettings?: Record<string, unknown>) {
   if (!integrations || typeof integrations !== "object") return {};
   const i = integrations as Record<string, unknown>;
   return {
-    googleAnalyticsId: typeof i.googleAnalyticsId === "string" ? i.googleAnalyticsId.trim() : "",
+    // Written into an inline script below, so only a well-formed GA4 ID is used.
+    googleAnalyticsId: gaMeasurementId(i.googleAnalyticsId),
     gaSiteVerification: typeof i.gaSiteVerification === "string" ? i.gaSiteVerification.trim() : "",
   };
 }
@@ -191,7 +193,7 @@ export default async function StorefrontPage({ params }: Props) {
           key={i}
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(item) }}
+          dangerouslySetInnerHTML={{ __html: scriptSafeJson(item) }}
         />
       ))}
 

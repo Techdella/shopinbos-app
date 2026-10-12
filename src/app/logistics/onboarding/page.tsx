@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { LogisticsOnboarding } from "@/components/onboarding/LogisticsOnboarding";
 import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
@@ -9,8 +9,7 @@ export default async function LogisticsOnboardingPage() {
 
   return (
     <Suspense>
-      <OnboardingFlow
-        forcedRole="logistics_partner"
+      <LogisticsOnboarding
         initialUser={{
           name: user.name,
           city: user.city ?? null,

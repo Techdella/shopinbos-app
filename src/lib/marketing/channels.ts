@@ -1,14 +1,15 @@
 import "server-only";
 
 import { getChannel } from "@/lib/inbox/service";
-import { sendTwilioSms } from "@/lib/inbox/channels/twilio";
+import { sendSmsReply } from "@/lib/inbox/channels/sms";
 import { sendWhatsApp } from "@/lib/inbox/channels/whatsapp";
 import { isEmailConfigured } from "@/lib/notifications/resend";
 import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
+import { platformSmsLabel, platformSmsReady, SMS_PROVIDER_LABELS, isSmsProvider } from "@/lib/sms";
 
 // Where marketing SMS and WhatsApp messages go out. The store's own connected number (Inbox > Channels:
-// Twilio for SMS, WhatsApp Cloud API) is preferred so replies land in the inbox; otherwise the platform's
-// SendChamp / Africa's Talking account from the environment. Nothing is reported sent unless the provider
+// Termii / Africa's Talking / Sendchamp for SMS, WhatsApp Cloud API) is preferred so replies land in the inbox;
+// otherwise the platform's SMS account from the environment (SMS_PROVIDER order, with failover). Nothing is reported sent unless the provider
 // accepted it.
 
 export type MarketingChannel = "email" | "sms" | "whatsapp";
@@ -20,7 +21,8 @@ export interface ChannelStatus {
   howTo: string;
 }
 
-const platformSms = () => Boolean((process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME) || process.env.SENDCHAMP_API_KEY);
+const platformSms = () => platformSmsReady();
+const ownSmsLabel = (provider: unknown) => (isSmsProvider(provider) ? SMS_PROVIDER_LABELS[provider] : "SMS");
 const platformWhatsApp = () => Boolean(process.env.SENDCHAMP_API_KEY);
 
 export async function channelStatus(storeId: string): Promise<Record<MarketingChannel, ChannelStatus>> {
@@ -33,8 +35,8 @@ export async function channelStatus(storeId: string): Promise<Record<MarketingCh
     },
     sms: {
       ready: Boolean(sms) || platformSms(),
-      via: sms ? `Your Twilio number${sms.row.displayName ? ` (${sms.row.displayName})` : ""}` : platformSms() ? (process.env.SENDCHAMP_API_KEY ? "SendChamp" : "Africa's Talking") : null,
-      howTo: "Connect your Twilio number in Inbox, or set SENDCHAMP_API_KEY / AFRICASTALKING_API_KEY + AFRICASTALKING_USERNAME.",
+      via: sms ? `Your ${ownSmsLabel(sms.credentials.provider)} account${sms.row.displayName ? ` (${sms.row.displayName})` : ""}` : platformSmsLabel(),
+      howTo: "Connect your Termii, Africa's Talking or Sendchamp account in Inbox › Channels, or set SMS_PROVIDER with its keys (TERMII_API_KEY, AFRICASTALKING_API_KEY + AFRICASTALKING_USERNAME or SENDCHAMP_API_KEY).",
     },
     whatsapp: {
       ready: Boolean(whatsapp) || platformWhatsApp(),
@@ -55,13 +57,13 @@ export async function sendMarketingText(
   const own = await getChannel(store.id, channel).catch(() => null);
   if (own) {
     const result = channel === "sms"
-      ? await sendTwilioSms({ to, body, store, credentials: own.credentials })
+      ? await sendSmsReply({ to, body, store, credentials: own.credentials })
       : await sendWhatsApp({ to, body, store, credentials: own.credentials });
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
   if (channel === "sms") {
     if (!platformSms()) return { ok: false, error: "SMS isn't set up" };
-    const result = await sendSms({ to: [to], message: body, senderName: process.env.SENDCHAMP_SENDER_NAME || undefined });
+    const result = await sendSms({ to: [to], message: body });
     return result.success ? { ok: true } : { ok: false, error: result.message || "The SMS provider rejected it" };
   }
   if (!platformWhatsApp()) return { ok: false, error: "WhatsApp isn't set up" };

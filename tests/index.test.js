@@ -270,6 +270,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const supplierOnboardingComponent = read("src/components/onboarding/SupplierOnboarding.tsx");
   const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
   const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
+  const logisticsOnboardingComponent = read("src/components/onboarding/LogisticsOnboarding.tsx");
   const builder = read("src/components/builder/ChipBuilder.tsx");
   const builderPage = read("src/app/builder/page.tsx");
   const templatesPage = read("src/app/builder/templates/page.tsx");
@@ -327,7 +328,13 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(storeRouteApp, /"onboardingState"/);
   assert.match(storeRouteApp, /"firstDashboardVisitComplete"/);
   assert.match(supplierOnboarding, /initialSupplier/);
-  assert.match(logisticsOnboarding, /forcedRole="logistics_partner"/);
+  // Logistics setup has its own page component; progress is durable on the partner row via the onboarding API.
+  assert.match(logisticsOnboarding, /<LogisticsOnboarding/);
+  assert.match(logisticsOnboarding, /requireRole\(\["logistics_partner"\]/);
+  assert.match(logisticsOnboardingComponent, /fetch\("\/api\/logistics\/onboarding"\)/);
+  assert.match(logisticsOnboardingComponent, /method: "PATCH"/);
+  assert.match(logisticsOnboardingComponent, /coverageMap: \{ zones/);
+  assert.match(logisticsOnboardingComponent, /completed,/);
 
   assert.match(builderPage, /onboardingMemory=\{workspace\.settings\.onboardingMemory \?\? null\}/);
   assert.match(builderPage, /params\?\.mode === "rex" \? "products" : undefined/);
@@ -355,11 +362,12 @@ test("auth experience keeps each portal focused and conversational", () => {
   const portalRoutes = read("src/lib/portal-routes.ts");
   const onboardingPage = read("src/app/onboarding/page.tsx");
 
-  // Redesigned sign-in: phone (WhatsApp/SMS) code, email code, password, Google; role tabs on sign up.
+  // Redesigned sign-in: phone (SMS) code, email code, password, Google; role tabs on sign up.
   assert.match(auth, /Your shop, live in 10 minutes/);
   assert.match(auth, /Start with my phone number/);
-  assert.match(auth, /Send me a code on WhatsApp/);
-  assert.match(auth, /Get the code by SMS/);
+  // Phone codes go by SMS only (the Send SMS hook has no WhatsApp path), so nothing promises WhatsApp.
+  assert.match(auth, /Send me a code by SMS/);
+  assert.doesNotMatch(auth, /code on WhatsApp/);
   assert.match(auth, /Email me a code instead/);
   assert.match(auth, /current-password/);
   assert.match(auth, /Forgot password\?/);
@@ -370,7 +378,7 @@ test("auth experience keeps each portal focused and conversational", () => {
   assert.match(authApi, /signInWithPassword/);
   assert.match(authApi, /signInWithOAuth\(\{\s*provider: "google"/);
   assert.match(authApi, /resetPasswordForEmail/);
-  assert.match(otpRoute, /channel: body\.via === "sms" \? "sms" : "whatsapp"/);
+  assert.match(otpRoute, /channel: "sms"/);
   assert.match(otpRoute, /shouldCreateUser: create/);
   assert.doesNotMatch(otpRoute, /role: "admin"/);
   assert.match(serverAuth, /ensureAppUserForSupabaseUser\(\{/);

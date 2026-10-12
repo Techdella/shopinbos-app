@@ -6,6 +6,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
 import { recordStoreMetric } from "@/lib/analytics/record";
 import { isBotUserAgent, normalizeCampaign, normalizeSource } from "@/lib/analytics/sources";
+import { overPublicLimit } from "@/lib/rate-limit";
 
 // Storefront visit beacon (once per browser session): refreshes StoreVisitor.lastSeenAt so the seller dashboard can
 // count visitors today, and adds to the daily visit counter by source/utm_campaign for /home/analytics.
@@ -18,6 +19,7 @@ export async function OPTIONS(req: NextRequest) {
 const Body = z.object({ visitorKey: z.string().min(8).max(80), ref: z.string().max(64).optional(), campaign: z.string().max(120).optional() });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "visit")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return withCors(req, apiError("BAD_REQUEST", "Missing visitor key"), CORS);

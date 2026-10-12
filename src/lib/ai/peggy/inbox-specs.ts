@@ -20,12 +20,12 @@ export const INBOX_TOOL_SPECS = {
   inbox_send_reply: {
     write: true,
     description:
-      "Send a reply to a customer on the channel they wrote on (WhatsApp, email, SMS, Instagram, Messenger, Telegram or live chat). This really sends. First show the seller the exact message and who it goes to and ask them to confirm; call with confirmed=true only after the seller clearly says yes to that exact text. With confirmed=false nothing is sent.",
+      "Send a reply to a customer on the channel they wrote on (WhatsApp, email, SMS, Instagram, Messenger, Telegram or live chat). This really sends. Call first with confirmCode null: nothing is sent and you get a confirmation code tied to this exact text. Show the seller the exact message and who it goes to, and only after they clearly say yes (in their next message) call again with the same text and that code.",
     schema: z
       .object({
         conversation: conversationRef,
         message: z.string().trim().min(1).max(4000).describe("The exact text to send"),
-        confirmed: z.boolean().describe("true only after the seller approved this exact message"),
+        confirmCode: z.string().trim().max(12).nullable().describe("null on the first call; then the code the tool gave, only after the seller says yes to this exact text"),
       })
       .strict(),
   },

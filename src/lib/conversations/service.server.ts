@@ -435,7 +435,7 @@ async function notifyRecipient(viewer: Viewer, access: { id: string; otherId: st
     const phone = (await db.user.findUnique({ where: { id: recipient.userId }, select: { phone: true } }).catch(() => null))?.phone;
     if (phone) {
       const text = preview.length > 120 ? `${preview.slice(0, 117)}...` : preview;
-      await sendSms({ to: [phone], message: `Shopinbos: new message from ${senderName}. ${text}`.trim(), senderName: process.env.SENDCHAMP_SENDER_NAME ?? "Shopinbos" }).catch(() => null);
+      await sendSms({ to: [phone], message: `Shopinbos: new message from ${senderName}. ${text}`.trim() }).catch(() => null);
     }
   }
   if (preference && !preference.inApp) return;

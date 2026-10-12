@@ -23,7 +23,10 @@ export async function getLogisticsPartnerForUser(user: AuthUser) {
   return partner;
 }
 
-export function isOnboardingComplete(entity: { onboardingState: unknown }) {
+export function isOnboardingComplete(entity: { onboardingState: unknown; verificationStatus?: string | null }) {
+  // An account the admin team has already verified never goes back through the setup wizard
+  // (seeded and admin-created partners have no wizard state).
+  if (entity.verificationStatus === "verified") return true;
   const state = entity.onboardingState;
   return Boolean(state && typeof state === "object" && !Array.isArray(state) && (state as { completed?: boolean }).completed === true);
 }

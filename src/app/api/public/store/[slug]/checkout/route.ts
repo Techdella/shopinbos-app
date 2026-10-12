@@ -23,6 +23,7 @@ import {
   paystackSecretReady,
   readTransferAccount,
 } from "@shared/checkout-payments";
+import { overPublicLimit } from "@/lib/rate-limit";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -71,6 +72,7 @@ function generateOrderNumber(): string {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "checkout")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CHECKOUT_CORS);
   const { slug } = await params;
 
   const store = await db.store.findUnique({

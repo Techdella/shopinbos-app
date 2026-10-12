@@ -88,18 +88,6 @@ export function verifyMetaSignature(rawBody: string, header: string | null | und
   return safeEqual(header.trim(), expected);
 }
 
-/** Twilio: X-Twilio-Signature = base64(HMAC-SHA1(auth token, full URL + each POST param name+value, sorted by name)). */
-export function twilioSignature(authToken: string, url: string, params: Record<string, string>) {
-  let data = url;
-  for (const key of Object.keys(params).sort()) data += key + params[key];
-  return createHmac("sha1", authToken).update(data, "utf8").digest("base64");
-}
-
-export function verifyTwilioSignature(authToken: string | null | undefined, url: string, params: Record<string, string>, header: string | null | undefined) {
-  if (!authToken || !header) return false;
-  return safeEqual(header.trim(), twilioSignature(authToken, url, params));
-}
-
 /** Telegram: setWebhook's secret_token comes back in X-Telegram-Bot-Api-Secret-Token on every update. */
 export function verifyTelegramSecret(header: string | null | undefined, secret: string | null | undefined) {
   if (!header || !secret) return false;
@@ -134,6 +122,18 @@ export function verifyHmacHex(rawBody: string, header: string | null | undefined
   return safeEqual(header.trim().replace(/^sha256=/, ""), expected);
 }
 
+// ─── Store scoping ───────────────────────────────────────────────────────────
+
+/**
+ * The message filter for reading a conversation's thread (for Peggy's drafts and the WhatsApp bot). Always
+ * scoped to the store as well as the conversation, so a conversation id from elsewhere can't read another
+ * store's messages. Throws on a missing id rather than widening the query.
+ */
+export function storeThreadWhere(storeId: string, conversationId: string) {
+  if (!storeId || !conversationId) throw new Error("storeThreadWhere needs a store id and a conversation id");
+  return { storeId, conversationId, direction: { in: ["inbound", "outbound"] } };
+}
+
 // ─── Normalised inbound shape ────────────────────────────────────────────────
 
 export interface InboundAttachment {
@@ -145,7 +145,7 @@ export interface InboundAttachment {
 }
 
 export interface InboundMessage {
-  /** Provider id of the account that received it (phone_number_id, Page id, IG id, Twilio number). */
+  /** Provider id of the account that received it (phone_number_id, Page id, IG id, SMS number). */
   accountId: string;
   /** Who the conversation is with, in the provider's terms (phone, PSID, chat id). */
   threadId: string;
@@ -157,6 +157,8 @@ export interface InboundMessage {
   contactHandle?: string | null;
   attachments: InboundAttachment[];
   timestamp: Date;
+  /** WhatsApp: the id of the button or list row the customer tapped (ours, e.g. "p:<productId>"). */
+  replyId?: string | null;
 }
 
 export interface StatusUpdate {
@@ -197,11 +199,17 @@ export function parseWhatsAppWebhook(payload: unknown): { messages: InboundMessa
         const type = str(m.type);
         const attachments: InboundAttachment[] = [];
         let text = "";
+        let replyId: string | null = null;
         if (type === "text") text = str(asRecord(m.text).body);
-        else if (type === "button") text = str(asRecord(m.button).text);
-        else if (type === "interactive") {
+        else if (type === "button") {
+          // A quick-reply button on a template message.
+          text = str(asRecord(m.button).text);
+          replyId = str(asRecord(m.button).payload) || null;
+        } else if (type === "interactive") {
           const interactive = asRecord(m.interactive);
-          text = str(asRecord(interactive.button_reply).title) || str(asRecord(interactive.list_reply).title);
+          const reply = asRecord(interactive.button_reply).id ? asRecord(interactive.button_reply) : asRecord(interactive.list_reply);
+          text = str(reply.title);
+          replyId = str(reply.id).slice(0, 256) || null;
         } else if (type === "location") {
           const loc = asRecord(m.location);
           text = `Shared a location: ${str(loc.name) || `${str(loc.latitude)}, ${str(loc.longitude)}`}`;
@@ -222,6 +230,7 @@ export function parseWhatsAppWebhook(payload: unknown): { messages: InboundMessa
           contactPhone: normalisePhone(from),
           attachments,
           timestamp: fromUnixSeconds(m.timestamp),
+          replyId,
         });
       }
       for (const raw of asArray(value.statuses)) {
@@ -234,6 +243,23 @@ export function parseWhatsAppWebhook(payload: unknown): { messages: InboundMessa
     }
   }
   return { messages, statuses };
+}
+
+/** Account-level errors Meta puts in a WhatsApp webhook (value.errors), per business phone number. */
+export function parseWhatsAppWebhookErrors(payload: unknown): Array<{ accountId: string; message: string }> {
+  const out: Array<{ accountId: string; message: string }> = [];
+  for (const entry of asArray(asRecord(payload).entry)) {
+    for (const change of asArray(asRecord(entry).changes)) {
+      const value = asRecord(asRecord(change).value);
+      const accountId = str(asRecord(value.metadata).phone_number_id);
+      for (const raw of asArray(value.errors)) {
+        const e = asRecord(raw);
+        const message = str(asRecord(e.error_data).details) || str(e.message) || str(e.title);
+        if (accountId && message) out.push({ accountId, message: message.slice(0, 200) });
+      }
+    }
+  }
+  return out;
 }
 
 /** Messenger (object "page") and Instagram (object "instagram") webhooks → inbound messages. Echoes of our own sends are skipped. */
@@ -267,27 +293,6 @@ export function parseMetaMessagingWebhook(payload: unknown): { channel: "messeng
     }
   }
   return { channel, messages };
-}
-
-/** Twilio Messaging webhook form fields → one inbound SMS (or WhatsApp-via-Twilio) message. */
-export function parseTwilioSms(params: Record<string, string>): InboundMessage | null {
-  const from = params.From;
-  if (!from || !params.To) return null;
-  const count = Number(params.NumMedia ?? 0) || 0;
-  const attachments: InboundAttachment[] = [];
-  for (let i = 0; i < Math.min(count, 10); i++) {
-    if (params[`MediaUrl${i}`]) attachments.push({ type: "file", url: params[`MediaUrl${i}`], contentType: params[`MediaContentType${i}`] ?? null });
-  }
-  const phone = normalisePhone(from);
-  return {
-    accountId: normalisePhone(params.To) ?? params.To,
-    threadId: phone ?? from,
-    externalId: params.MessageSid ?? params.SmsSid ?? null,
-    text: params.Body ?? "",
-    contactPhone: phone,
-    attachments,
-    timestamp: new Date(),
-  };
 }
 
 /** Telegram Bot API update → inbound message (private chats and groups; edits are ignored). */
@@ -396,24 +401,3 @@ export function cleanTags(tags: unknown): string[] {
   return out;
 }
 
-/** TwiML that takes a voicemail with a transcript. */
-export function voicemailTwiml(input: { storeName: string; recordingUrl: string; transcriptUrl: string }) {
-  const name = escapeXml(input.storeName);
-  return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>Sorry we missed you at ${name}. Please leave a message after the tone and we will call you back.</Say><Record maxLength="120" playBeep="true" action="${escapeXml(input.recordingUrl)}" transcribe="true" transcribeCallback="${escapeXml(input.transcriptUrl)}"/><Say>We did not get a message. Goodbye.</Say></Response>`;
-}
-
-/** TwiML for an incoming call: ring the seller's own phone first when set (then voicemail via dialActionUrl), else voicemail. */
-export function incomingCallTwiml(input: { storeName: string; forwardTo: string | null; callerId?: string | null; dialActionUrl: string; recordingUrl: string; transcriptUrl: string }) {
-  if (!input.forwardTo) return voicemailTwiml(input);
-  const callerId = input.callerId ? ` callerId="${escapeXml(input.callerId)}"` : "";
-  return `<?xml version="1.0" encoding="UTF-8"?><Response><Dial timeout="20" answerOnBridge="true"${callerId} action="${escapeXml(input.dialActionUrl)}"><Number>${escapeXml(input.forwardTo)}</Number></Dial></Response>`;
-}
-
-/** TwiML for click-to-call: the seller answered their phone, now ring the customer from the store's number. */
-export function bridgeCallTwiml(input: { customer: string; callerId: string; statusUrl: string }) {
-  return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>Connecting your call.</Say><Dial callerId="${escapeXml(input.callerId)}" action="${escapeXml(input.statusUrl)}"><Number>${escapeXml(input.customer)}</Number></Dial></Response>`;
-}
-
-export function emptyTwiml() {
-  return `<?xml version="1.0" encoding="UTF-8"?><Response/>`;
-}

@@ -5,6 +5,7 @@ import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
+import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -101,17 +102,24 @@ export async function POST(req: NextRequest) {
           console.error("Store launch payment completion failed:", error);
         });
       }
-      await db.retailOrder.updateMany({
-        where: { id: ref },
-        data: { status: "paid", paystackStatus: "success" },
-      });
-      await creditCampaignConversion(ref).catch(() => null);
+      // Inline payments carry an amount the buyer's browser chose, so check it against the order before
+      // marking it paid. Only a pending order moves, so a retried or replayed event can't undo a later status.
+      const pending = await db.retailOrder.findUnique({ where: { id: ref }, select: { id: true, total: true, currency: true, status: true } });
+      const problem = pending ? retailChargeProblem(pending, event.data ?? {}) : "not a retail order";
+      if (pending && problem) console.warn(`[paystack webhook] order ${ref} not marked paid: ${problem}`);
+      const moved = problem
+        ? { count: 0 }
+        : await db.retailOrder.updateMany({
+            where: { id: ref, status: { in: [...PAYABLE_ORDER_STATUSES] } },
+            data: { status: "paid", paystackStatus: "success", paystackRef: ref },
+          });
+      if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
 
       const resendKey = process.env.RESEND_API_KEY;
       // The order is already marked paid; a failure in the follow-up email must not 500 the webhook
       // (Paystack would keep retrying an event that was processed).
       try {
-        if (resendKey && !resendKey.includes("your_")) {
+        if (moved.count === 1 && resendKey && !resendKey.includes("your_")) {
           const order = await db.retailOrder.findUnique({ where: { id: ref } });
           if (order) {
             const storeData = await db.store.findUnique({

@@ -50,12 +50,16 @@ export async function generateImage({
   return store(b64, `${path}.webp`);
 }
 
-/** Hosts we fetch source images from: our own Supabase storage only (no arbitrary URLs from the server). */
+/**
+ * Hosts we fetch source images from: our own Supabase storage only (no arbitrary URLs from the server). Once
+ * the project URL is configured, other Supabase projects (anyone can make one) don't count.
+ */
 export function isOwnImageUrl(url: string) {
   try {
     const target = new URL(url);
     const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host : null;
-    return target.protocol === "https:" && (target.host === supabase || target.host.endsWith(".supabase.co"));
+    if (target.protocol !== "https:") return false;
+    return supabase ? target.host === supabase && target.pathname.startsWith("/storage/v1/") : target.host.endsWith(".supabase.co");
   } catch {
     return false;
   }

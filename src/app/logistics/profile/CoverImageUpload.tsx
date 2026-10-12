@@ -58,7 +58,8 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
       style={currentBanner ? { backgroundImage: `url(${currentBanner})` } : undefined}
     >
       <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" aria-hidden />
-      <div className="absolute bottom-3 left-4 right-4 min-w-0 text-white">
+      {/* Sits above the strip the logo overlaps from below. */}
+      <div className="absolute bottom-12 left-4 right-4 min-w-0 text-white">
         <div className="truncate text-[20px] font-extrabold">{displayName}</div>
         <div className="truncate text-[13px] opacity-90">{city} · delivery partner</div>
       </div>

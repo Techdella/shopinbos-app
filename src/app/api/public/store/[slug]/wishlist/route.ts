@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, created, apiError } from "@/lib/api/response";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
+import { overPublicLimit } from "@/lib/rate-limit";
 
 const CORS = { methods: ["GET", "POST", "DELETE", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "wishlist")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const store = await resolveStore(slug);
   if (!store || store.status !== "active") return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
@@ -70,6 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (overPublicLimit(req.headers, "wishlist")) return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a few minutes and try again.", 429), CORS);
   const { slug } = await params;
   const store = await resolveStore(slug);
   if (!store || store.status !== "active") return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);

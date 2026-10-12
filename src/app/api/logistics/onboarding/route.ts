@@ -73,6 +73,7 @@ export const PATCH = withLogistics(async (req: NextRequest, { user }: { user: Au
   const updated = await db.logisticsPartner.update({
     where: { id: partner.id },
     data: {
+      displayName: parsed.data.displayName ?? partner.displayName,
       country: parsed.data.country ?? partner.country,
       city: parsed.data.city ?? partner.city,
       description: parsed.data.description ?? partner.description,

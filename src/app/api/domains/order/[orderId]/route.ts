@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
+import { domainOrdersOf } from "@/lib/domains/orders";
 import { assignDomainOnVercel, getDomainOrderOnVercel, hasVercelDomainConfig } from "@/lib/domains/vercel";
 
 export const GET = withSeller(async (_req: NextRequest, { params, user }) => {
@@ -12,6 +13,11 @@ export const GET = withSeller(async (_req: NextRequest, { params, user }) => {
       { error: { code: "store_not_found", message: "Create your store before managing domains." } },
       { status: 404 },
     );
+  }
+
+  // Only an order this store placed: otherwise any seller could attach another store's purchased domain.
+  if (!domainOrdersOf(store.brandSettings).includes(String(orderId))) {
+    return NextResponse.json({ error: { code: "not_found", message: "Domain order not found." } }, { status: 404 });
   }
 
   try {

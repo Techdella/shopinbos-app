@@ -165,7 +165,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const [screen, setScreen] = useState<Screen>(mode === "signup" && !hasIntent ? "welcome" : "details");
   const [method, setMethod] = useState<Method>(isAdmin || params.get("method") === "email" ? "email" : "phone");
   const [emailMode, setEmailMode] = useState<"code" | "password">(isAdmin ? "password" : "code");
-  const [via, setVia] = useState<"whatsapp" | "sms">("whatsapp");
+  // Phone codes go by SMS (the Supabase Send SMS hook, /api/webhooks/supabase-sms); there is no WhatsApp code path.
+  const via = "sms" as const;
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
   const [phone, setPhone] = useState("");
@@ -409,8 +410,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       <FieldLabel htmlFor="auth-phone">{mode === "signup" ? "Phone number" : "Your phone number"}</FieldLabel>
       <PhoneInput id="auth-phone" country={country} onCountry={setCountry} value={phone} onChange={setPhone} autoFocus={desktop && mode === "login"} />
       <p className="mt-3 flex items-start gap-2 text-[13px] leading-[1.45] text-app-ink-soft">
-        <span className="mt-0.5 text-app-success"><Icon name="whatsapp" size={15} /></span>
-        {via === "whatsapp" ? "We'll send a 6-digit code on WhatsApp, or by SMS if you don't have WhatsApp." : "We'll send a 6-digit code by SMS."}
+        <span className="mt-0.5 text-app-success"><Icon name="message" size={15} /></span>
+        We&apos;ll send a 6-digit code by SMS.
       </p>
     </>
   );
@@ -438,7 +439,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const primaryLabel = usingPassword
     ? "Log in"
     : method === "phone"
-      ? via === "whatsapp" ? "Send me a code on WhatsApp" : "Send me a code by SMS"
+      ? "Send me a code by SMS"
       : "Email me a code";
 
   const secondaryLinks = (
@@ -446,10 +447,6 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       {method === "phone" ? (
         <>
           <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("email")}>Use email instead</button>
-          <span className="h-4 w-px bg-app-line" aria-hidden />
-          <button type="button" className="hover:text-app-ink" onClick={() => setVia(via === "whatsapp" ? "sms" : "whatsapp")}>
-            {via === "whatsapp" ? "Get the code by SMS" : "Use WhatsApp instead"}
-          </button>
         </>
       ) : (
         <>
@@ -526,7 +523,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     </form>
   );
 
-  const destinationLabel = target?.kind === "phone" ? `${target.via === "whatsapp" ? "WhatsApp" : "SMS"} on ${formatE164(target.phone)}` : target?.email ?? "";
+  const destinationLabel = target?.kind === "phone" ? `SMS on ${formatE164(target.phone)}` : target?.email ?? "";
 
   const codeForm = (
     <form
@@ -546,11 +543,6 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         ) : (
           <div className="flex flex-wrap gap-x-4 gap-y-2 font-bold">
             <button type="button" className="text-app-ink" onClick={() => target && void deliverCode(target)} disabled={Boolean(busy)}>Resend code</button>
-            {target?.kind === "phone" && target.via === "whatsapp" && (
-              <button type="button" className="text-app-ink" onClick={() => { setVia("sms"); void deliverCode({ ...target, via: "sms" }); }} disabled={Boolean(busy)}>
-                Send it by SMS instead
-              </button>
-            )}
           </div>
         )}
       </div>

@@ -191,7 +191,9 @@ export function AssistantRexDrawer({
         />
       )}
 
+      {/* Closed: hidden after the slide-out, so its shadow doesn't line the page edge and its controls aren't tabbable. */}
       <div
+        aria-hidden={!isOpen}
         style={{
           position: "fixed",
           top: 0,
@@ -202,9 +204,12 @@ export function AssistantRexDrawer({
           maxWidth: 520,
           zIndex: 10000,
           background: "var(--paper, #fff)",
-          boxShadow: "-8px 0 32px rgba(11,38,44,0.12)",
+          boxShadow: isOpen ? "-8px 0 32px rgba(11,38,44,0.12)" : "none",
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s cubic-bezier(0.22,1,0.36,1)",
+          visibility: isOpen ? "visible" : "hidden",
+          transition: isOpen
+            ? "transform 0.3s cubic-bezier(0.22,1,0.36,1)"
+            : "transform 0.3s cubic-bezier(0.22,1,0.36,1), visibility 0s linear 0.3s",
           display: "flex",
           flexDirection: "column",
         }}

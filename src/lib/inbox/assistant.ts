@@ -47,6 +47,26 @@ export interface ChatbotSettings {
   handoff: { keywords: string[]; message: string };
   /** Always, or only outside business hours (or while you're away when hours are off). */
   when: "always" | "outside_hours";
+  /** Peggy on the seller's WhatsApp Business number (separate switch; name, tone, FAQs and sources are shared). */
+  whatsapp: WhatsAppBotSettings;
+}
+
+export interface WhatsAppBotSettings {
+  /** off; test = only answers the seller's own number; live = answers every customer. */
+  mode: "off" | "test" | "live";
+  /** The seller's own WhatsApp number for test mode and test messages ("+2348012345678"). */
+  testNumber: string;
+  /** "What do you sell?" gets a WhatsApp list of products with prices. */
+  productList: boolean;
+  /** After a shopper picks a product: off, send the store link to buy, or collect the order for the seller. */
+  ordering: "off" | "link" | "collect";
+  /** "Where is my order?" looks up orders placed with the same WhatsApp number. */
+  orderStatus: boolean;
+  /** First-message greeting on WhatsApp; empty uses the chatbot greeting. */
+  greeting: string;
+  when: "always" | "outside_hours";
+  /** Peggy stays quiet on a chat for this long after the seller replies by hand. */
+  quietMinutes: number;
 }
 
 export const DEFAULT_AWAY_MESSAGE = "Thanks for your message! We're away right now and will reply as soon as we're back.";
@@ -73,6 +93,7 @@ export const DEFAULT_CHATBOT: ChatbotSettings = {
   faqs: [],
   handoff: { keywords: [], message: DEFAULT_HANDOFF_MESSAGE },
   when: "always",
+  whatsapp: { mode: "off", testNumber: "", productList: true, ordering: "link", orderStatus: true, greeting: "", when: "always", quietMinutes: 30 },
 };
 
 /** Ready-made keyword replies the settings page offers ("price", "delivery", "account number"). */
@@ -154,6 +175,24 @@ export function normaliseChatbot(raw: unknown): ChatbotSettings {
       .filter((faq) => faq.q && faq.a),
     handoff: { keywords: cleanKeywords(handoff.keywords), message: text(handoff.message, DEFAULT_HANDOFF_MESSAGE, 400).trim() || DEFAULT_HANDOFF_MESSAGE },
     when: c.when === "outside_hours" ? "outside_hours" : "always",
+    whatsapp: normaliseWhatsAppBot(c.whatsapp),
+  };
+}
+
+export function normaliseWhatsAppBot(raw: unknown): WhatsAppBotSettings {
+  const w = rec(raw);
+  const d = DEFAULT_CHATBOT.whatsapp;
+  const quiet = Number(w.quietMinutes);
+  const phone = text(w.testNumber, "", 30).replace(/[^\d+]/g, "");
+  return {
+    mode: w.mode === "test" || w.mode === "live" ? w.mode : "off",
+    testNumber: /^\+?\d{7,15}$/.test(phone) ? (phone.startsWith("+") ? phone : `+${phone}`) : "",
+    productList: bool(w.productList, d.productList),
+    ordering: w.ordering === "off" || w.ordering === "collect" ? w.ordering : "link",
+    orderStatus: bool(w.orderStatus, d.orderStatus),
+    greeting: text(w.greeting, "", 300).trim(),
+    when: w.when === "outside_hours" ? "outside_hours" : "always",
+    quietMinutes: Number.isFinite(quiet) ? Math.min(240, Math.max(5, Math.round(quiet))) : d.quietMinutes,
   };
 }
 

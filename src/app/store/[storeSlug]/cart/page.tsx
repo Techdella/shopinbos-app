@@ -1,21 +1,7 @@
-import { notFound } from "next/navigation";
-import { db } from "@/lib/db/client";
-import { CartPageClient } from "./CartPageClient";
+import { redirect } from "next/navigation";
 
-export default async function PublicStoreCartPage({ params }: { params: Promise<{ storeSlug: string }> }) {
+// Old /store links: the bag lives on the storefront itself, so shoppers keep the same items.
+export default async function PublicStoreCartAliasPage({ params }: { params: Promise<{ storeSlug: string }> }) {
   const { storeSlug } = await params;
-  const store = await db.store.findUnique({
-    where: { slug: storeSlug },
-    select: {
-      name: true,
-      slug: true,
-      currency: true,
-      brandSettings: true,
-      status: true,
-    },
-  });
-
-  if (!store || store.status !== "active") notFound();
-
-  return <CartPageClient store={store} />;
+  redirect(`/s/${storeSlug}/cart`);
 }

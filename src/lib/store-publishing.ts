@@ -14,6 +14,7 @@ import {
   updateDraftFromSnapshot,
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
+import { fillMissingPageSeo } from "@/lib/store-templates/seo-defaults";
 
 export class StorePublishError extends Error {
   constructor(
@@ -53,8 +54,9 @@ export async function assertStoreDraftPublishable(where: { userId?: string; stor
   if (selectedTemplate && !manifest) throw new StorePublishError("Template not found.", "NOT_FOUND", 404);
 
   const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(store.name);
-  const draft = resolveDraftSnapshot(brandSettings, fallback);
-  if (!draft) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
+  const resolved = resolveDraftSnapshot(brandSettings, fallback);
+  if (!resolved) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
+  const draft = fillMissingPageSeo(resolved, store.name);
   const blockers = publishBlockers(draft);
   if (blockers.length) throw new StorePublishError(blockers[0], "PUBLISH_BLOCKED", 400, blockers);
 }
@@ -72,8 +74,9 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
   if (selectedTemplate && !manifest) throw new StorePublishError("Template not found.", "NOT_FOUND", 404);
 
   const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(store.name);
-  const draft = resolveDraftSnapshot(brandSettings, fallback);
-  if (!draft) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
+  const resolved = resolveDraftSnapshot(brandSettings, fallback);
+  if (!resolved) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
+  const draft = fillMissingPageSeo(resolved, store.name);
 
   const blockers = publishBlockers(draft);
   if (blockers.length) throw new StorePublishError(blockers[0], "PUBLISH_BLOCKED", 400, blockers);

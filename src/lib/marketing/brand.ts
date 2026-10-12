@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readStoreLook, toHex6 } from "@/app/home/store/look";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { DEFAULT_BRAND, type EmailBrand } from "./email-layout";
@@ -65,14 +65,30 @@ export function readUnsubscribeToken(token: string | null): { storeId: string; e
   return storeId && email ? { storeId, email } : null;
 }
 
+// Key for Peggy's confirmation codes. Never a hard-coded fallback: in production with no secret set nothing can
+// be confirmed (fail closed); in development a random per-process key keeps the flow usable.
+let devConfirmationKey: string | null = null;
+function confirmationKey() {
+  const secret = linkSecret();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") return null;
+  devConfirmationKey ??= randomBytes(32).toString("hex");
+  return devConfirmationKey;
+}
+
 /** Short-lived code Peggy must echo back before anything is sent (proves the seller saw the preview). */
 export function confirmationCode(parts: string[], now = Date.now()) {
+  const key = confirmationKey();
+  if (!key) {
+    console.error("[marketing] MARKETING_LINK_SECRET (or CRON_SECRET) is not set: confirmations are disabled");
+    return "UNAVAILABLE";
+  }
   const window = Math.floor(now / (30 * 60_000));
-  return createHmac("sha256", linkSecret() || "peggy").update(`${parts.join("|")}|${window}`).digest("hex").slice(0, 6).toUpperCase();
+  return createHmac("sha256", key).update(`${parts.join("|")}|${window}`).digest("hex").slice(0, 6).toUpperCase();
 }
 
 export function checkConfirmationCode(code: string | null | undefined, parts: string[], now = Date.now()) {
-  if (!code) return false;
+  if (!code || !confirmationKey()) return false;
   const wanted = code.trim().toUpperCase();
   // Accept the current and previous 30-minute window.
   return wanted === confirmationCode(parts, now) || wanted === confirmationCode(parts, now - 30 * 60_000);

@@ -1862,7 +1862,7 @@ model InboxChannel {
   storeId       String
   channel       String // email | whatsapp | sms | messenger | instagram | telegram | voice
   status        String    @default("disconnected") // connected | error | disconnected
-  externalId    String? // WhatsApp phone_number_id, Page id, IG account id, Telegram bot id, Twilio number, inbound address
+  externalId    String? // WhatsApp phone_number_id, Page id, IG account id, Telegram bot id, SMS/voice number or sender ID, inbound address
   displayName   String?
   credentials   String? // AES-256-GCM encrypted JSON (src/lib/inbox/crypto.ts); never sent to the browser
   webhookSecret String? // per-channel random secret (Meta verify token, Telegram secret token)
@@ -1948,7 +1948,7 @@ model InboxSettings {
   autoReplyEnabled Boolean   @default(false)
   autoReplyMode    String    @default("message") // message | peggy
   awayMessage      String?
-  forwardCallsTo   String? // seller's own phone for Twilio Voice to ring before voicemail
+  forwardCallsTo   String? // seller's own phone for Africa's Talking Voice to ring (empty = voicemail)
   sellerLastSeenAt DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

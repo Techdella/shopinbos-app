@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { uploadFileServer, type StorageFolder } from "@/lib/supabase/storage.server";
+import { UploadRejectedError, uploadFileServer, type StorageFolder } from "@/lib/supabase/storage.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +42,10 @@ export const POST = withSeller(async (req: NextRequest) => {
     const result = await uploadFileServer(folder, file);
     return NextResponse.json({ data: { path: result.path, publicUrl: result.publicUrl } });
   } catch (error) {
+    // The bytes aren't what the type claims, or an SVG carries script (checked in uploadFileServer).
+    if (error instanceof UploadRejectedError) {
+      return NextResponse.json({ error: { code: "BAD_REQUEST", message: error.message } }, { status: 400 });
+    }
     console.error("Upload failed:", error);
     return NextResponse.json({ error: { code: "UPLOAD_FAILED", message: "File upload failed" } }, { status: 500 });
   }

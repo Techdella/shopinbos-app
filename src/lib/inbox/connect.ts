@@ -1,18 +1,22 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { encryptJson, decryptJson, hasCredentialKey, randomSecret } from "./crypto";
 import { inboxAddress, inboxEmailDomain } from "./channels/email";
 import { subscribePage, verifyMetaPage } from "./channels/meta";
 import { connectTelegram, disconnectTelegram } from "./channels/telegram";
-import { pointTwilioNumber, verifyTwilio } from "./channels/twilio";
-import { appUrl, GRAPH_URL } from "./channels/types";
-import { verifyWhatsApp } from "./channels/whatsapp";
+import { smsProvider, SMS_PROVIDER_MODULES } from "@/lib/sms";
+import { isSmsProvider, providerWebhookUrl, SMS_PROVIDER_LABELS, storeNumber, termiiBaseUrl, type SmsProviderKey } from "@/lib/sms/pure";
+import { appUrl } from "./channels/types";
+import { exchangeSignupCode, registerWhatsAppNumber, subscribeWaba, verifyWhatsApp, whatsappTokenExpiry } from "./channels/whatsapp";
 import { CONNECTABLE_CHANNELS, normalisePhone, type ConnectableChannel } from "./pure";
 
 // Connecting a channel: validate what the seller pasted, check it with the provider, encrypt it, and wire the
-// provider's webhook to us where its API allows (Telegram setWebhook, Twilio number URLs, Meta Page subscription).
+// provider's webhook to us where its API allows (Telegram setWebhook, Meta Page subscription).
+// SMS and phone-call providers (Termii, Africa's Talking, Sendchamp) have no API for that: the seller pastes the
+// webhook URL we show, which carries the channel id and a secret token.
 
 const token = z.string().trim().min(10, "Paste the full token").max(1000);
 const optionalSecret = z.string().trim().max(200).optional().transform((v) => v || undefined);
@@ -22,12 +26,23 @@ export const CONNECT_SCHEMAS = {
   whatsapp: z.object({ accessToken: token, phoneNumberId: z.string().trim().regex(/^\d{6,25}$/, "The phone number ID is a long number from WhatsApp → API Setup"), wabaId: z.string().trim().regex(/^\d*$/).optional(), appSecret: optionalSecret }).strict(),
   messenger: z.object({ pageAccessToken: token, appSecret: optionalSecret }).strict(),
   instagram: z.object({ pageAccessToken: token, appSecret: optionalSecret }).strict(),
-  sms: z.object({ accountSid: z.string().trim().regex(/^AC[0-9a-fA-F]{32}$/, "Account SID starts with AC"), authToken: z.string().trim().min(16).max(64), phoneNumber: z.string().trim().min(6) }).strict(),
+  sms: z
+    .object({
+      provider: z.enum(["termii", "africastalking", "sendchamp"], { message: "Choose Termii, Africa's Talking or Sendchamp" }),
+      apiKey: z.string().trim().min(8, "Paste the full API key").max(500),
+      username: z.string().trim().max(100).optional(),
+      senderId: z.string().trim().regex(/^[A-Za-z0-9 .&-]{3,11}$/, "A sender ID is 3 to 11 letters or numbers").optional(),
+      phoneNumber: z.string().trim().max(30).optional(),
+      secretKey: optionalSecret,
+      route: z.enum(["dnd", "generic", "non_dnd", "international"]).optional(),
+      baseUrl: z.string().trim().max(200).optional(),
+    })
+    .strict(),
   voice: z
     .object({
-      accountSid: z.string().trim().optional(),
-      authToken: z.string().trim().optional(),
-      phoneNumber: z.string().trim().optional(),
+      username: z.string().trim().max(100).optional(),
+      apiKey: z.string().trim().max(500).optional(),
+      phoneNumber: z.string().trim().max(30).optional(),
       forwardCallsTo: z.string().trim().max(30).optional(),
     })
     .strict(),
@@ -43,9 +58,11 @@ export interface ChannelView {
   lastError: string | null;
   webhookUrl: string | null;
   verifyToken: string | null;
+  /** SMS and phone calls: which provider the store's account is on (null for rows from the old provider). */
+  provider?: SmsProviderKey | null;
 }
 
-export function webhookUrlFor(channel: ConnectableChannel, rowId?: string) {
+export function webhookUrlFor(channel: ConnectableChannel, rowId?: string, sms?: { provider: unknown; token: string | null }) {
   switch (channel) {
     case "email":
       return `${appUrl()}/api/webhooks/email`;
@@ -55,13 +72,14 @@ export function webhookUrlFor(channel: ConnectableChannel, rowId?: string) {
     case "instagram":
       return `${appUrl()}/api/webhooks/meta`;
     case "sms":
-      return `${appUrl()}/api/webhooks/twilio/sms`;
     case "voice":
-      return `${appUrl()}/api/webhooks/twilio/voice?step=incoming`;
+      return rowId && sms?.token && isSmsProvider(sms.provider) ? providerWebhookUrl(appUrl(), channel, sms.provider, rowId, sms.token) : null;
     case "telegram":
       return rowId ? `${appUrl()}/api/webhooks/telegram/${rowId}` : null;
   }
 }
+
+export const RECONNECT_MESSAGE = "SMS and calls now run on Termii, Africa's Talking or Sendchamp. Connect your account again to keep receiving messages.";
 
 /** Every connectable channel's status for the store, safe to send to the browser (no credentials). */
 export async function channelViews(storeId: string): Promise<ChannelView[]> {
@@ -69,14 +87,19 @@ export async function channelViews(storeId: string): Promise<ChannelView[]> {
   return CONNECTABLE_CHANNELS.map((channel) => {
     const row = rows.find((r) => r.channel === channel);
     const meta = channel === "whatsapp" || channel === "messenger" || channel === "instagram";
+    const phone = channel === "sms" || channel === "voice";
+    const provider = phone ? ((row?.settings as { provider?: unknown } | null)?.provider ?? null) : null;
+    // SMS and calls used to run on another provider; those rows have no provider and must be connected again.
+    const legacy = phone && row?.status === "connected" && !isSmsProvider(provider);
     return {
       channel,
-      status: (row?.status as ChannelView["status"]) ?? "disconnected",
+      status: legacy ? "error" : ((row?.status as ChannelView["status"]) ?? "disconnected"),
       displayName: row?.displayName ?? null,
       account: row?.externalId ?? null,
       connectedAt: row?.connectedAt?.toISOString() ?? null,
-      lastError: row?.lastError ?? null,
-      webhookUrl: webhookUrlFor(channel, row?.id),
+      lastError: legacy ? RECONNECT_MESSAGE : (row?.lastError ?? null),
+      webhookUrl: phone ? (row?.status === "connected" ? webhookUrlFor(channel, row.id, { provider, token: row.webhookSecret }) : null) : webhookUrlFor(channel, row?.id),
+      provider: phone ? (isSmsProvider(provider) ? provider : null) : undefined,
       // Sellers using their own Meta app paste this into the app's webhook settings. It only proves the handshake.
       verifyToken: meta && row?.status === "connected" ? row.webhookSecret : null,
     };
@@ -91,6 +114,7 @@ export function platformReadiness() {
     emailDomain: inboxEmailDomain(),
     metaAppSecret: Boolean(process.env.META_APP_SECRET),
     metaVerifyToken: Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN),
+    whatsappEmbeddedSignup: Boolean(process.env.META_APP_ID && process.env.META_CONFIG_ID && process.env.META_APP_SECRET),
   };
 }
 
@@ -137,16 +161,8 @@ export async function connectChannel(store: { id: string; slug: string }, channe
   }
 
   if (channel === "whatsapp") {
-    const credentials = { accessToken: input.accessToken!, phoneNumberId: input.phoneNumberId!, ...(input.appSecret ? { appSecret: input.appSecret } : {}) };
-    if (await claimedElsewhere(store.id, channel, credentials.phoneNumberId)) return { ok: false, error: "This WhatsApp number is already connected to another store." };
-    const check = await verifyWhatsApp(credentials);
-    if (!check.ok) return check;
-    if (input.wabaId) {
-      // Subscribe our app to the business account so Meta sends this number's messages to the webhook.
-      await fetch(`${GRAPH_URL}/${encodeURIComponent(input.wabaId)}/subscribed_apps`, { method: "POST", headers: { Authorization: `Bearer ${credentials.accessToken}` }, signal: AbortSignal.timeout(15_000) }).catch(() => null);
-    }
-    await save(store.id, channel, { externalId: credentials.phoneNumberId, displayName: check.displayName, credentials, webhookSecret: randomSecret() });
-    return { ok: true, view: await viewOf(store.id, channel) };
+    const credentials = { accessToken: input.accessToken!, phoneNumberId: input.phoneNumberId!, ...(input.wabaId ? { wabaId: input.wabaId } : {}), ...(input.appSecret ? { appSecret: input.appSecret } : {}) };
+    return saveWhatsApp(store.id, credentials, "manual");
   }
 
   if (channel === "messenger" || channel === "instagram") {
@@ -161,33 +177,8 @@ export async function connectChannel(store: { id: string; slug: string }, channe
     return { ok: true, view: await viewOf(store.id, channel) };
   }
 
-  if (channel === "sms" || channel === "voice") {
-    let accountSid = input.accountSid;
-    let authToken = input.authToken;
-    let phoneNumber = input.phoneNumber;
-    if (channel === "voice" && (!accountSid || !authToken || !phoneNumber)) {
-      // Phone calls can reuse the Twilio account already connected for SMS.
-      const sms = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "sms" } } });
-      const saved = sms?.status === "connected" ? decryptJson<Record<string, string>>(sms.credentials) : null;
-      accountSid ||= saved?.accountSid;
-      authToken ||= saved?.authToken;
-      phoneNumber ||= saved?.phoneNumber;
-    }
-    const number = normalisePhone(phoneNumber);
-    if (!accountSid || !/^AC[0-9a-fA-F]{32}$/.test(accountSid) || !authToken || !number) return { ok: false, error: "Enter your Twilio Account SID, Auth Token and Twilio phone number." };
-    if (await claimedElsewhere(store.id, channel, number)) return { ok: false, error: "This Twilio number is already connected to another store." };
-    const credentials = { accountSid, authToken, phoneNumber: number };
-    const check = await verifyTwilio(credentials);
-    if (!check.ok) return check;
-    const pointed = await pointTwilioNumber(credentials, check.numberSid, channel);
-    const row = await save(store.id, channel, { externalId: number, displayName: check.displayName, credentials });
-    if (!pointed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: `${pointed.error} Set the webhook in Twilio by hand.` } });
-    if (channel === "voice") {
-      const forward = normalisePhone(input.forwardCallsTo);
-      await db.inboxSettings.upsert({ where: { storeId: store.id }, create: { storeId: store.id, forwardCallsTo: forward }, update: { forwardCallsTo: forward } });
-    }
-    return { ok: true, view: await viewOf(store.id, channel) };
-  }
+  if (channel === "sms") return connectSms(store, input);
+  if (channel === "voice") return connectVoice(store, input);
 
   // Telegram: the webhook URL carries the row id, so create the row first.
   const secret = randomSecret();
@@ -203,6 +194,119 @@ export async function connectChannel(store: { id: string; slug: string }, channe
   }
   await save(store.id, "telegram", { externalId: check.botId, displayName: check.displayName, credentials: { botToken: input.botToken! }, webhookSecret: secret });
   return { ok: true, view: await viewOf(store.id, "telegram") };
+}
+
+// ─── WhatsApp ────────────────────────────────────────────────────────────────
+
+/**
+ * Checks WhatsApp credentials with Meta, subscribes the business account to our webhook (when we know its id),
+ * and saves them encrypted. Token expiry and how it was connected go in the channel's settings for the health card.
+ */
+async function saveWhatsApp(storeId: string, credentials: Record<string, string>, via: "manual" | "embedded"): Promise<Result> {
+  if (await claimedElsewhere(storeId, "whatsapp", credentials.phoneNumberId)) return { ok: false, error: "This WhatsApp number is already connected to another store." };
+  const check = await verifyWhatsApp(credentials);
+  if (!check.ok) return check;
+  const subscribed = credentials.wabaId ? await subscribeWaba(credentials.wabaId, credentials.accessToken) : null;
+  const expiry = await whatsappTokenExpiry(credentials.accessToken).catch(() => null);
+  const row = await save(storeId, "whatsapp", {
+    externalId: credentials.phoneNumberId,
+    displayName: check.displayName,
+    credentials,
+    webhookSecret: randomSecret(),
+    settings: {
+      via,
+      wabaId: credentials.wabaId ?? null,
+      phone: check.phone,
+      qualityRating: check.qualityRating,
+      tokenExpiresAt: expiry === "never" ? "never" : expiry ? expiry.toISOString() : null,
+      checkedAt: new Date().toISOString(),
+    },
+  });
+  if (subscribed && !subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
+  return { ok: true, view: await viewOf(storeId, "whatsapp") };
+}
+
+const EmbeddedSignupSchema = z.object({ code: z.string().trim().min(10).max(2000), phoneNumberId: z.string().trim().regex(/^\d{6,25}$/), wabaId: z.string().trim().regex(/^\d{6,25}$/) }).strict();
+
+/**
+ * Embedded Signup finished in the browser: exchange the code for the business's token (server to server),
+ * subscribe our app to their WhatsApp account, register the number with a random two-step PIN, and save.
+ * Webhooks then arrive signed with the platform's META_APP_SECRET.
+ */
+export async function connectWhatsAppEmbedded(store: { id: string }, raw: unknown): Promise<Result> {
+  const parsed = EmbeddedSignupSchema.safeParse(raw ?? {});
+  if (!parsed.success) return { ok: false, error: "WhatsApp sign-up didn't send back your number. Start again." };
+  if (!hasCredentialKey()) return { ok: false, error: "This server can't store channel keys safely yet (INBOX_ENCRYPTION_KEY isn't set). Ask your Shopinbos admin." };
+  const exchanged = await exchangeSignupCode(parsed.data.code);
+  if (!exchanged.ok) return exchanged;
+  const pin = String(100000 + (randomBytes(4).readUInt32BE(0) % 900000));
+  const registered = await registerWhatsAppNumber(parsed.data.phoneNumberId, exchanged.accessToken, pin);
+  if (!registered.ok) return registered;
+  return saveWhatsApp(store.id, { accessToken: exchanged.accessToken, phoneNumberId: parsed.data.phoneNumberId, wabaId: parsed.data.wabaId, pin }, "embedded");
+}
+
+// ─── SMS and phone calls (Termii, Africa's Talking, Sendchamp) ──────────────
+
+/** Keep a channel's webhook token across reconnects, so the URL pasted in the provider's dashboard keeps working. */
+async function keepSecret(storeId: string, channel: ConnectableChannel) {
+  const row = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId, channel } }, select: { webhookSecret: true } });
+  return row?.webhookSecret || randomSecret();
+}
+
+async function connectSms(store: { id: string }, input: Record<string, string | undefined>): Promise<Result> {
+  const key = input.provider as SmsProviderKey;
+  const provider = SMS_PROVIDER_MODULES[key];
+  const number = provider.twoWay ? storeNumber(input.phoneNumber) : null;
+  if (input.phoneNumber && provider.twoWay && !number) return { ok: false, error: "Enter the number in +234… format, or the shortcode's digits." };
+  if (key === "africastalking" && !input.username) return { ok: false, error: "Enter your Africa's Talking app username." };
+  if (key === "termii" && !input.senderId && !number) return { ok: false, error: "Enter your approved Termii sender ID, or your Termii number." };
+  if (key === "termii" && termiiBaseUrl(input.baseUrl) === null) return { ok: false, error: "The Termii base URL must be the https://….termii.com address from your Termii dashboard." };
+  if (input.route && !(key === "termii" ? ["dnd", "generic"] : key === "sendchamp" ? ["dnd", "non_dnd", "international"] : []).includes(input.route)) {
+    return { ok: false, error: "That route isn't available on this provider." };
+  }
+  if (number && (await claimedElsewhere(store.id, "sms", number))) return { ok: false, error: "This number is already connected to another store." };
+
+  const credentials: Record<string, string> = { provider: key, apiKey: input.apiKey! };
+  for (const field of ["username", "senderId", "secretKey", "route"] as const) if (input[field]) credentials[field] = input[field]!;
+  if (number) credentials.phoneNumber = number;
+  if (key === "termii" && input.baseUrl) credentials.baseUrl = termiiBaseUrl(input.baseUrl)!;
+  const check = await provider.verify(credentials as never);
+  if (!check.ok) return check;
+
+  const label = SMS_PROVIDER_LABELS[key];
+  const twoWay = Boolean(number && provider.twoWay);
+  await save(store.id, "sms", {
+    externalId: number ?? credentials.senderId ?? null,
+    displayName: `${label} · ${[credentials.senderId, number].filter(Boolean).join(" / ") || check.detail}${twoWay ? "" : " (send only)"}`,
+    credentials,
+    webhookSecret: await keepSecret(store.id, "sms"),
+    settings: { provider: key, twoWay, senderId: credentials.senderId ?? null },
+  });
+  return { ok: true, view: await viewOf(store.id, "sms") };
+}
+
+/** Phone calls run on Africa's Talking Voice. The AT keys can be reused from an Africa's Talking SMS connection. */
+async function connectVoice(store: { id: string }, input: Record<string, string | undefined>): Promise<Result> {
+  let username = input.username;
+  let apiKey = input.apiKey;
+  if (!username || !apiKey) {
+    const sms = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "sms" } } });
+    const saved = sms?.status === "connected" ? decryptJson<Record<string, string>>(sms.credentials) : null;
+    if (saved?.provider === "africastalking") {
+      username ||= saved.username;
+      apiKey ||= saved.apiKey;
+    }
+  }
+  const number = storeNumber(input.phoneNumber);
+  if (!username || !apiKey || !number) return { ok: false, error: "Enter your Africa's Talking username, API key and voice number (+234…)." };
+  if (await claimedElsewhere(store.id, "voice", number)) return { ok: false, error: "This number is already connected to another store." };
+  const credentials = { provider: "africastalking", username, apiKey, phoneNumber: number };
+  const check = await smsProvider("africastalking")!.verify(credentials as never);
+  if (!check.ok) return check;
+  await save(store.id, "voice", { externalId: number, displayName: `Africa's Talking · ${number}`, credentials, webhookSecret: await keepSecret(store.id, "voice"), settings: { provider: "africastalking" } });
+  const forward = normalisePhone(input.forwardCallsTo);
+  await db.inboxSettings.upsert({ where: { storeId: store.id }, create: { storeId: store.id, forwardCallsTo: forward }, update: { forwardCallsTo: forward } });
+  return { ok: true, view: await viewOf(store.id, "voice") };
 }
 
 export async function disconnectChannel(storeId: string, channel: ConnectableChannel) {

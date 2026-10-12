@@ -106,7 +106,7 @@ Status: built against the 2026 app prototypes; web verified locally (route smoke
 - [x] Expo app (`apps/mobile`, SDK 57, expo-router): the same auth and onboarding screens against the same API with Bearer tokens; `/api/app/payout-bank` for bank linking.
 - [x] Fixed: the proxy redirected `/api/*` calls from sellers mid-onboarding to the onboarding page.
 - [x] Applied `docs/migrations/2026-10-11-phone-accounts.sql` to the live database (2026-10-11).
-- [ ] Supabase: Twilio (WhatsApp sender) for phone codes, Google OAuth client, `{{ .Token }}` in the Magic Link and Confirm signup templates, redirect URLs (`node scripts/configure-supabase-auth.mjs`).
+- [ ] Supabase: Send SMS hook for phone codes (SUPABASE_SEND_SMS_HOOK_SECRET + SMS_PROVIDER keys), Google OAuth client, `{{ .Token }}` in the Magic Link and Confirm signup templates, redirect URLs (`node scripts/configure-supabase-auth.mjs`).
 - [ ] Optional `NEXT_PUBLIC_SUPPORT_WHATSAPP` for the "Stuck? Message us" card.
 - [ ] Next design phase: seller app dashboard (web and mobile), supplier / logistics onboarding restyle, then remove the legacy seller branch of `OnboardingFlow.tsx`.
 - [ ] Checkout does not read the payment-method preferences (`brandSettings.paymentConfig.methods`) yet.

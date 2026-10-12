@@ -227,7 +227,8 @@ export const StoreProductCreateSchema = z.object({
     unit: z.string().default("cm"),
   }).optional(),
   fulfillmentType: FulfillmentTypeSchema.default("merchant_fulfilled"),
-  status: z.string().default("draft"),
+  // Storefronts and checkout only sell "published" products; "active" (what older forms sent for "Live") means the same.
+  status: z.string().default("draft").transform((value) => (value === "active" ? "published" : value)),
   visibility: ProductVisibilitySchema.default("hidden"),
   salesChannel: SalesChannelSchema.default("website"),
   inventoryType: InventoryTypeSchema.default("seller"),
@@ -289,7 +290,7 @@ export const CollectionCreateSchema = z.object({
   type: z.enum(["manual", "auto"]).default("manual"),
   rules: jsonObject().default({}),
   sortOrder: z.number().int().default(0),
-  productIds: z.array(z.string()).default([]),
+  productIds: z.array(z.string().min(1).max(64)).max(500).default([]),
 });
 
 export const CollectionUpdateSchema = CollectionCreateSchema.partial();
@@ -506,6 +507,7 @@ export const LogisticsCoverageZoneSchema = z.object({
 });
 
 export const LogisticsOnboardingSchema = z.object({
+  displayName: z.string().trim().min(2).max(80).optional(),
   country: z.string().min(2).max(60).optional(),
   city: z.string().min(2).max(60).optional(),
   description: z.string().max(2000).optional(),

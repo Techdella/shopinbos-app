@@ -34,6 +34,10 @@ export function createProvider(
         defaultRoute: config.defaultRoute,
       });
     }
+    case "termii": {
+      // Termii is SMS only and goes through src/lib/sms (sendSms in ./service uses it with failover).
+      throw new Error("Termii isn't a notification provider class; use sendSms from @/lib/notifications/service");
+    }
     default: {
       const _exhaustive: never = name;
       throw new Error(`Unknown provider: ${_exhaustive}`);

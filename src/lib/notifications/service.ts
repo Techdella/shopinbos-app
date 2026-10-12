@@ -1,5 +1,6 @@
 import "server-only";
 
+import { platformSmsProviders, sendPlatformSms } from "@/lib/sms";
 import { createProvider } from "./factory";
 import type { NotificationProvider } from "./provider";
 import type {
@@ -52,12 +53,16 @@ function getProviderInstance(): NotificationProvider | null {
   return createProvider(env.provider, env.config);
 }
 
+/**
+ * Platform SMS (notifications, OTP fallbacks, marketing, review requests). Goes through src/lib/sms, which tries
+ * SMS_PROVIDER first and every other configured provider (Termii, Africa's Talking, Sendchamp) if it errors.
+ */
 export async function sendSms(options: SmsOptions): Promise<SendResult> {
-  const provider = getProviderInstance();
-  if (!provider) {
-    return { success: false, provider: "sendchamp", message: "No provider configured" };
-  }
-  return provider.sendSms(options);
+  const result = await sendPlatformSms({ to: options.to, body: options.message, senderId: options.senderName ?? null });
+  const provider = (result.provider ?? platformSmsProviders()[0] ?? "termii") as ProviderName;
+  return result.ok
+    ? { success: true, provider, message: "SMS sent successfully", providerResponse: { messageId: result.externalId } }
+    : { success: false, provider, message: result.error, providerResponse: result.attempts };
 }
 
 export async function sendVoice(options: VoiceOptions): Promise<SendResult> {

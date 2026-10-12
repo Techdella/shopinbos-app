@@ -7,7 +7,8 @@ import { draftReviewReply, summarizeReviewThemes } from "@/lib/reviews/ai";
 import { sourceLabel, summarizeReviews } from "@/lib/reviews/pure";
 import { requestReviews, storeChannelReadiness } from "@/lib/reviews/requests";
 import { loadReviews, productNames } from "@/lib/reviews/server";
-import type { PeggyToolInput } from "./pure";
+import { checkConfirmationCode, confirmationCode } from "@/lib/marketing/brand";
+import { reviewRequestConfirmationParts, type PeggyToolInput } from "./pure";
 import { ToolError, type PeggyToolContext, type ToolOutput } from "./tools";
 
 async function reviewsSummary(ctx: PeggyToolContext, input: PeggyToolInput<"reviews_summary">): Promise<ToolOutput> {
@@ -61,8 +62,12 @@ async function requestReviewsTool(ctx: PeggyToolContext, input: PeggyToolInput<"
     throw new ToolError(`${input.channel} sending isn't set up on this platform. Suggest channel "link" (WhatsApp from the seller's own phone) or email if it is ready.`);
   }
   const who = orders.slice(0, 15).map((order) => `${order.buyerName} (${order.orderNumber})`).join(", ");
-  if (!input.confirmed) {
-    return { content: `Not sent. Would ask ${orders.length} buyer${orders.length === 1 ? "" : "s"} by ${input.channel}: ${who}${orders.length > 15 ? ", …" : ""}. Each gets a link to rate their items. Ask the seller to confirm before calling again with confirmed=true.` };
+  // The code is tied to exactly these orders and this channel, so a new delivered order means a new question.
+  const parts = reviewRequestConfirmationParts(ctx.store.id, input.channel, orders.map((o) => o.id));
+  if (!checkConfirmationCode(input.confirmCode, parts)) {
+    return {
+      content: `NOT SENT YET. Would ask ${orders.length} buyer${orders.length === 1 ? "" : "s"} by ${input.channel}: ${who}${orders.length > 15 ? ", …" : ""}. Each gets a link to rate their items. Ask the seller to confirm. Confirmation code: ${confirmationCode(parts)}. Only call reviews_request again, with the same orders and channel and this code, after they clearly say yes.${input.confirmCode ? " (The code given was wrong or expired, or the buyers changed.)" : ""}`,
+    };
   }
   const result = await requestReviews({ storeId: ctx.store.id, orderIds: orders.map((o) => o.id), channel: input.channel, trigger: "peggy" });
   const summary =

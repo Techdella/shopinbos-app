@@ -54,3 +54,18 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
   }
   return null;
 }
+
+const ALLOWANCE_LABEL: Record<AiKind, string> = { text: "Peggy & Rex requests", image: "Pictures", voice: "Voiceovers", build: "Store builds" };
+
+/** What the seller has used of each daily AI allowance (last 24 hours), for Settings. Null if it can't be read. */
+export async function aiAllowanceToday(userId: string, aiCredits: number | null | undefined) {
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const rows = await db.aiUsage.groupBy({ by: ["kind"], where: { userId, createdAt: { gte: since } }, _sum: { units: true } });
+    const used = new Map(rows.map((row) => [row.kind, row._sum.units ?? 0]));
+    return (Object.keys(ALLOWANCE_LABEL) as AiKind[]).map((kind) => ({ kind, label: ALLOWANCE_LABEL[kind], used: used.get(kind) ?? 0, limit: dailyLimit(kind, aiCredits) }));
+  } catch (error) {
+    console.error("[ai/usage] allowance read failed", error);
+    return null;
+  }
+}
