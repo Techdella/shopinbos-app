@@ -2,6 +2,8 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { bestAutomaticDiscount, discountAmount, describeDiscount, parseDiscountConfig, redemptionError, type DiscountLine } from "@/lib/discounts";
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
+import { readGameConfig } from "@/lib/gamification/logic";
+import { quotePoints, type PointsRedemption } from "@/lib/gamification/loyalty.server";
 import {
   chooseDelivery,
   deliveryOptionsFor,
@@ -43,6 +45,8 @@ export interface PricedOrder {
   discount: AppliedDiscount | null;
   /** Why the typed code did not apply, in words for the shopper. */
   codeError: string | null;
+  /** Loyalty points used on this order (already inside totals.productDiscount and totals.total). */
+  points: PointsRedemption | null;
   totals: OrderTotals;
 }
 
@@ -54,6 +58,8 @@ export interface PricingInput {
   discountCode?: string | null;
   buyerEmail?: string | null;
   settings: Pick<CheckoutSettings, "enableCoupon">;
+  /** Loyalty points the shopper wants to use; needs buyerEmail and the phone from an earlier order. */
+  loyalty?: { points: number; phone?: string | null } | null;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -161,12 +167,32 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     }
   }
 
+  let totals = orderTotals({ subtotal, shippingFee: fee, discount: applied ? { type: applied.type, amount: applied.amount } : null });
+
+  // Loyalty points come off the products after any code, capped by the store's settings (never below zero).
+  let points: PointsRedemption | null = null;
+  if (input.loyalty && input.loyalty.points > 0 && input.buyerEmail) {
+    const loyalty = readGameConfig(record(record(input.store.brandSettings).gamification)).loyalty;
+    const base = Math.max(0, totals.subtotal - totals.productDiscount);
+    points = await quotePoints({ storeId: input.store.id, email: input.buyerEmail, phone: input.loyalty.phone, requested: input.loyalty.points, base, settings: loyalty }).catch((error) => {
+      console.error("[pricing] points quote failed", error);
+      return null;
+    });
+    if (points) {
+      const amount = Math.min(points.amount, base);
+      points = { ...points, amount };
+      const productDiscount = Math.round((totals.productDiscount + amount) * 100) / 100;
+      totals = { ...totals, productDiscount, discountAmount: productDiscount + totals.deliveryDiscount, total: Math.round((totals.total - amount) * 100) / 100 };
+    }
+  }
+
   return {
     ok: true,
     items,
     delivery: { choice, option },
     discount: applied,
     codeError,
-    totals: orderTotals({ subtotal, shippingFee: fee, discount: applied ? { type: applied.type, amount: applied.amount } : null }),
+    points,
+    totals,
   };
 }

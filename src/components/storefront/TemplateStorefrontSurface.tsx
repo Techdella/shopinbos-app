@@ -12,6 +12,8 @@ import { readShopperInfo } from "@/lib/storefront/shopper-info";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
+import { GameSection } from "@/components/storefront/gamification/GameSection";
+import { isGameSectionKind } from "@/lib/gamification/logic";
 
 export interface SurfaceProduct {
   id: string;
@@ -1256,6 +1258,19 @@ function ClassicTemplateSurface({
 
   function renderSection(kindSection: typeof contentSections[number]) {
     const copy = kindSection.blocks.find((entry) => entry.type === "copy")?.content ?? {};
+
+    if (isGameSectionKind(kindSection.kind)) {
+      return (
+        <GameSection
+          key={kindSection.id}
+          kind={kindSection.kind}
+          section={kindSection}
+          store={{ slug: store.slug, currency: store.currency, brandSettings: store.brandSettings, shopper: store.shopper, storeProducts: store.storeProducts }}
+          mode={mode === "live" ? "live" : "editor"}
+          colors={{ ink: theme.ink, muted: theme.muted, border: theme.border, paper: theme.paperBg, card: theme.cardBg, cta: theme.ctaBg, ctaText: theme.ctaText, accent: theme.accent, heading: theme.headingFont, radius: theme.radius }}
+        />
+      );
+    }
 
     if (kindSection.kind === "hero-split") {
       const heroLayout = String(kindSection.settings?.layout ?? "split-editorial");

@@ -2220,3 +2220,172 @@ model SeoMeta {
   @@index([storeId])
 }
 // ---- end cms (agent H) ----
+
+// ---- gamification (rewards) ----
+// Spin-the-wheel, scratch-card and post-purchase plays, and loyalty points. Settings live in
+// Store.brandSettings.gamification; prize codes are ordinary Discount rows (SPIN-/SCRATCH-/NEXT- codes).
+// SQL: docs/migrations/2026-10-12-gamification.sql. Code falls back gracefully until it is applied.
+
+// One play of a game. game: wheel | scratch | post_purchase. contactKey is the normalised email or phone.
+model GamePlay {
+  id          String   @id @default(cuid())
+  storeId     String
+  game        String
+  contactKey  String
+  email       String?
+  phone       String?
+  outcomeId   String
+  outcomeKind String // percent | amount | free_delivery | free_gift | try_again
+  outcomeLabel String
+  discountId  String?
+  code        String?
+  orderId     String? // post-purchase: the order the spin was for
+  consent     Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([storeId, game, createdAt(sort: Desc)])
+  @@index([storeId, contactKey])
+  @@index([storeId, orderId])
+}
+
+// A shopper's points with one store, keyed by email (phone kept for matching at checkout).
+model LoyaltyAccount {
+  id             String   @id @default(cuid())
+  storeId        String
+  email          String
+  phone          String?
+  balance        Int      @default(0)
+  lifetimeEarned Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([storeId, email])
+  @@index([storeId, phone])
+}
+
+// Every change to a balance. kind: earn | reverse (earned on an order later cancelled) | redeem | refund
+// (points spent on an order later cancelled) | adjust. points is signed.
+model LoyaltyLedger {
+  id        String   @id @default(cuid())
+  storeId   String
+  accountId String
+  kind      String
+  points    Int
+  orderId   String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, orderId, kind])
+  @@index([storeId, createdAt(sort: Desc)])
+  @@index([storeId, orderId])
+}
+// ---- end gamification ----
+
+// ---- support ----
+// Live support: the signed-out "Stuck?" form, in-app chat with the team, and the admin support desk
+// (/admin/support). docs/migrations/2026-10-12-support.sql. Plain ids (no relations) keep User untouched.
+
+model SupportTicket {
+  id                 String    @id @default(cuid())
+  number             Int       @unique @default(autoincrement()) // shown as SB-1042; the sequence starts at 1001
+  userId             String? // null for signed-out requests and new emails from unknown senders
+  name               String
+  email              String?
+  phone              String?
+  portal             String    @default("public") // public | seller | supplier | logistics_partner | admin
+  topic              String    @default("other") // login | payments | store | orders | other
+  subject            String
+  status             String    @default("open") // open | pending | solved | closed
+  priority           String    @default("normal") // low | normal | high | urgent
+  source             String    @default("app") // app | web | email
+  assigneeId         String?
+  path               String? // the page they were on
+  firstResponseDueAt DateTime?
+  firstRespondedAt   DateTime?
+  lastMessageAt      DateTime  @default(now())
+  lastUserMessageAt  DateTime?
+  lastAgentMessageAt DateTime?
+  userReadAt         DateTime?
+  agentReadAt        DateTime?
+  solvedAt           DateTime?
+  rating             Int? // 1-5 once solved
+  ratingComment      String?
+  ratedAt            DateTime?
+  meta               Json      @default("{}") // { transcript?: Peggy chat before escalation, userAgent?, ip? }
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([status, lastMessageAt(sort: Desc)])
+  @@index([userId, lastMessageAt(sort: Desc)])
+  @@index([assigneeId, status])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model SupportMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  authorType  String // user | agent | ai | system
+  authorId    String?
+  authorName  String?
+  body        String
+  internal    Boolean  @default(false) // agent-only note, never shown or emailed to the customer
+  attachments Json     @default("[]") // [{ path, name, type, size }] under support/<ticketId>/ in storage
+  channel     String   @default("app") // app | web | email
+  externalId  String?  @unique // inbound email Message-ID, so a webhook retry can't add it twice
+  createdAt   DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+// Canned replies for the desk. {{first_name}}, {{name}}, {{ticket}} and {{agent}} are filled in when used.
+model SupportMacro {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  topic       String?
+  status      String? // status to set when used, e.g. solved
+  usageCount  Int      @default(0)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+// ---- end support ----
+
+// ---- auth security ----
+// Sign-in, code, password, device and sign-out events (Settings > Security list, new-device emails, audit).
+// No foreign key: failed attempts may not match an account. ipHash is SHA-256 of the IP, never the raw address.
+// Written with raw SQL so the app keeps working before docs/migrations/2026-10-12-auth-security.sql is applied.
+model AuthEvent {
+  id         String   @id
+  supabaseId String?
+  type       String
+  method     String?
+  ipHash     String?
+  userAgent  String?
+  deviceId   String?
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  @@index([supabaseId, createdAt(sort: Desc)])
+  @@index([supabaseId, deviceId])
+  @@index([type, createdAt(sort: Desc)])
+}
+
+// Rate-limit windows and failure lockouts for sign-in, codes and password resets.
+// key is "<action>:<ip|id>:<sha256>", so no email, phone or IP is stored in clear.
+model AuthThrottle {
+  key         String    @id
+  count       Int       @default(0)
+  windowStart DateTime  @default(now())
+  failures    Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @default(now())
+
+  @@index([updatedAt])
+}
+// ---- end auth security ----

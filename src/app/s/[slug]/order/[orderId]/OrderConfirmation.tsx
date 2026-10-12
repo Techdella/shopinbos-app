@@ -10,6 +10,8 @@ import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, type TransferDetails } from "./TransferInstructions";
+import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
+import { shopperGameColors } from "@/components/storefront/gamification/client";
 
 interface Props {
   order: {
@@ -55,11 +57,13 @@ interface Props {
   transfer?: TransferDetails | null;
   /** Code the buyer gives the rider, once a delivery is booked. */
   deliveryCode?: string | null;
+  /** Loyalty points and the post-purchase spin, when the store has them on. */
+  rewards?: OrderRewards | null;
 }
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -89,7 +93,8 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
 
   const address = order.deliveryAddress;
   const option = address?.deliveryOption;
-  const productDiscount = Number(order.discountAmount ?? 0);
+  const pointsOff = rewards?.loyalty?.usedValue ?? 0;
+  const productDiscount = Math.max(0, Number(order.discountAmount ?? 0) - pointsOff);
 
   return (
     <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Order">
@@ -115,6 +120,10 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
             transfer={transfer}
             deliveryCode={deliveryCode}
           />
+
+          {rewards && (rewards.loyalty || rewards.postPurchase) && order.status !== "cancelled" ? (
+            <OrderRewardsPanel rewards={rewards} storeSlug={store.slug} orderId={order.id} currency={order.currency} colors={shopperGameColors(theme)} />
+          ) : null}
 
           <Panel theme={theme} className="p-5" aria-labelledby="whats-next">
             <h2 id="whats-next" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>What happens next</h2>
@@ -163,6 +172,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           <dl className="grid gap-2 border-t pt-4 text-[14.5px]" style={{ borderColor: theme.border }}>
             <div className="flex justify-between"><dt>Subtotal</dt><dd className="m-0 tabular-nums">{money(order.subtotal)}</dd></div>
             {productDiscount > 0 ? <div className="flex justify-between"><dt>Discount{order.discountCode ? ` (${order.discountCode})` : ""}</dt><dd className="m-0 tabular-nums">−{money(productDiscount)}</dd></div> : null}
+            {pointsOff > 0 ? <div className="flex justify-between"><dt>Loyalty points</dt><dd className="m-0 tabular-nums">−{money(pointsOff)}</dd></div> : null}
             <div className="flex justify-between"><dt>Delivery</dt><dd className="m-0 tabular-nums">{Number(order.shippingFee) === 0 ? "Free" : money(order.shippingFee)}</dd></div>
             <div className="mt-1 flex justify-between border-t pt-3 text-[17px] font-semibold" style={{ borderColor: theme.border }}><dt>Total</dt><dd className="m-0 tabular-nums">{amount}</dd></div>
           </dl>

@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
 import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { csrfRejection } from "@/lib/auth/csrf";
+import { loginRedirectPath, PORTAL_API_PREFIXES, PROTECTED_PREFIXES, rolesForPath, type PortalRole } from "@/lib/auth/route-access";
+import { decodeAccessToken, sessionMaxAgeMs, sessionTooOld } from "@/lib/auth/session-claims";
 import { getOnboardingDestination } from "@/lib/onboarding-router";
 import { portalDashboardPath, portalLoginPath, portalOnboardingPath, portalRoleFromPath } from "@/lib/portal-routes";
 
@@ -16,9 +19,14 @@ const GUEST_ROUTES = [
   "/logistics/signup",
   "/admin/login",
 ];
-const AUTH_ROUTES = ["/home", "/onboarding", "/supplier", "/logistics", "/admin"];
+// Every signed-in area (see src/lib/auth/route-access.ts for which role each needs).
+const AUTH_ROUTES = PROTECTED_PREFIXES;
 // Public pages that live under a portal prefix and must stay open to guests and other roles.
 const PUBLIC_ROUTES = ["/logistics/partners", "/email", "/rider"];
+/** Lets server code (requireRole) know which page was asked for, to send people back after sign-in. */
+const REQUEST_PATH_HEADER = "x-shopinbos-path";
+const NO_STORE = "private, no-store, max-age=0, must-revalidate";
+const SESSION_COOKIE_OPTIONS = { path: "/", sameSite: "lax" as const, secure: process.env.NODE_ENV === "production" };
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand|api/public|s/).*)"],
@@ -51,16 +59,48 @@ function getMetadataPortalRole(role: unknown) {
   return role === "supplier" || role === "logistics_partner" ? role : null;
 }
 
-function redirectTo(request: NextRequest, path: string) {
-  const url = request.nextUrl.clone();
-  url.pathname = path;
-  url.search = "";
-  return NextResponse.redirect(url);
+function trustedOrigins() {
+  return [process.env.NEXT_PUBLIC_APP_URL, ...(process.env.CSRF_TRUSTED_ORIGINS ?? "").split(",")].filter((value): value is string => Boolean(value?.trim()));
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname, host } = request.nextUrl;
-  let response = NextResponse.next({ request });
+  const { pathname, host, search } = request.nextUrl;
+  const isApi = pathname.startsWith("/api/");
+  const portalApi = isApi && matchesRoute(pathname, PORTAL_API_PREFIXES);
+  const protectedPage = !isApi && matchesRoute(pathname, AUTH_ROUTES) && !matchesRoute(pathname, PUBLIC_ROUTES);
+
+  // Cookie-authenticated JSON APIs only accept writes from our own pages (Bearer callers are exempt).
+  const csrf = csrfRejection({ method: request.method, pathname, headers: request.headers, trustedOrigins: trustedOrigins() });
+  if (csrf) {
+    return NextResponse.json({ error: { code: "FORBIDDEN", message: csrf } }, { status: 403 });
+  }
+
+  const forwardHeaders = () => {
+    const headers = new Headers(request.headers);
+    headers.set(REQUEST_PATH_HEADER, `${pathname}${search}`);
+    return headers;
+  };
+  const sessionCookies: { name: string; value: string; options?: Parameters<NextResponse["cookies"]["set"]>[2] }[] = [];
+  // Rebuilt whenever Supabase refreshes the session, so pages rendered after this see the new cookies too.
+  const buildResponse = () => {
+    const next = NextResponse.next({ request: { headers: forwardHeaders() } });
+    for (const cookie of sessionCookies) next.cookies.set(cookie.name, cookie.value, cookie.options);
+    // Signed-in pages and portal APIs must never be cached, so Back after logging out can't show them.
+    if (protectedPage || portalApi) next.headers.set("Cache-Control", NO_STORE);
+    return next;
+  };
+  let response = buildResponse();
+
+  const redirectTo = (path: string) => {
+    const url = request.nextUrl.clone();
+    const queryStart = path.indexOf("?");
+    url.pathname = queryStart === -1 ? path : path.slice(0, queryStart);
+    url.search = queryStart === -1 ? "" : path.slice(queryStart);
+    const redirect = NextResponse.redirect(url);
+    for (const cookie of sessionCookies) redirect.cookies.set(cookie.name, cookie.value, cookie.options);
+    redirect.headers.set("Cache-Control", NO_STORE);
+    return redirect;
+  };
 
   if (!isKnownAppHost(hostnameFromHost(host))) {
     return response;
@@ -77,6 +117,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -84,8 +125,9 @@ export async function proxy(request: NextRequest) {
       setAll(cookiesToSet) {
         for (const { name, value, options } of cookiesToSet) {
           request.cookies.set(name, value);
-          response.cookies.set(name, value, options);
+          sessionCookies.push({ name, value, options });
         }
+        response = buildResponse();
       },
     },
   });
@@ -106,11 +148,16 @@ export async function proxy(request: NextRequest) {
     if (!appUser) return response;
     const requestedRole = portalRoleFromPath(pathname);
     if (appUser.role !== requestedRole) return response;
-    return redirectTo(request, getRoleHome(appUser.role));
+    return redirectTo(getRoleHome(appUser.role));
+  }
+
+  // Password reset and the auth callback work on their own session; never steer them into onboarding.
+  if (matchesRoute(pathname, ["/reset-password", "/forgot-password", "/auth"])) {
+    return response;
   }
 
   if (!authenticated && matchesRoute(pathname, AUTH_ROUTES)) {
-    return redirectTo(request, getLoginPath(pathname));
+    return redirectTo(loginRedirectPath(getLoginPath(pathname), pathname, search));
   }
 
   if (!authenticated || !data.user) {
@@ -121,6 +168,24 @@ export async function proxy(request: NextRequest) {
     where: { supabaseId: data.user.id },
     select: { id: true, role: true },
   }).catch(() => null);
+
+  // Absolute session lifetime (AUTH_SESSION_MAX_DAYS, shorter for admins): after it, sign in again.
+  // (/api/auth is left alone so signing in again and signing out always work.)
+  const dataApi = portalApi && !matchesRoute(pathname, ["/api/auth"]);
+  if (protectedPage || dataApi) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const claims = decodeAccessToken(sessionData.session?.access_token);
+    if (claims?.sub === data.user.id && sessionTooOld(claims, sessionMaxAgeMs(appUser?.role, process.env))) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => null);
+      if (dataApi) {
+        const expired = NextResponse.json({ error: { code: "SESSION_EXPIRED", message: "Your session has ended. Log in again." } }, { status: 401 });
+        for (const cookie of sessionCookies) expired.cookies.set(cookie.name, cookie.value, cookie.options);
+        return expired;
+      }
+      const login = loginRedirectPath(getLoginPath(pathname), pathname, search);
+      return redirectTo(`${login}${login.includes("?") ? "&" : "?"}reason=expired`);
+    }
+  }
 
   if (!appUser) {
     return response;
@@ -136,19 +201,24 @@ export async function proxy(request: NextRequest) {
     if (repairedUser) {
       appUser = { id: repairedUser.id, role: repairedUser.role };
       if (pathname.startsWith("/onboarding") || pathname === "/home") {
-        return redirectTo(request, portalOnboardingPath(metadataRole));
+        return redirectTo(portalOnboardingPath(metadataRole));
       }
     }
   }
 
   if (matchesRoute(pathname, ["/supplier"]) && appUser.role !== "supplier") {
-    return redirectTo(request, getRoleHome(appUser.role));
+    return redirectTo(getRoleHome(appUser.role));
   }
   if (matchesRoute(pathname, ["/logistics"]) && appUser.role !== "logistics_partner") {
-    return redirectTo(request, getRoleHome(appUser.role));
+    return redirectTo(getRoleHome(appUser.role));
   }
   if (matchesRoute(pathname, ["/admin"]) && appUser.role !== "admin") {
-    return redirectTo(request, getRoleHome(appUser.role));
+    return redirectTo(getRoleHome(appUser.role));
+  }
+  // Seller-only areas (/home, /products, /marketplace, /studio…): other roles go to their own portal.
+  const allowedRoles = isApi ? null : rolesForPath(pathname);
+  if (allowedRoles && !allowedRoles.includes(appUser.role as PortalRole)) {
+    return redirectTo(pathname.startsWith("/onboarding") ? portalOnboardingPath(appUser.role) : getRoleHome(appUser.role));
   }
 
   if (appUser.role !== "seller") {
@@ -162,7 +232,7 @@ export async function proxy(request: NextRequest) {
 
   if (!store) {
     if (pathname.startsWith("/onboarding") || pathname.startsWith("/api/")) return response;
-    return redirectTo(request, "/onboarding/rex");
+    return redirectTo("/onboarding/rex");
   }
 
   // Only page navigations get steered into onboarding. API calls made *from* onboarding (saving progress,
@@ -181,7 +251,7 @@ export async function proxy(request: NextRequest) {
 
   const destination = await getOnboardingDestination(appUser.id);
   if (destination !== "/home") {
-    return redirectTo(request, destination);
+    return redirectTo(destination);
   }
 
   return response;

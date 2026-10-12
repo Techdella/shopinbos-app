@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { saveSupplierNotificationPreferences } from "@/app/actions/supplier";
 import { AppPage, Card } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
@@ -129,6 +130,8 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
           </Card>
         </nav>
       </div>
+
+      <SecuritySettings className="mt-5 p-5 sm:p-6" />
     </AppPage>
   );
 }

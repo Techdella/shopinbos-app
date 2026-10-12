@@ -12,7 +12,7 @@ import { BuildProgress, type BuildSummary } from "./BuildProgress";
 import { DomainSetup } from "./DomainSetup";
 import { LaunchSetup } from "./LaunchSetup";
 import { DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/store-types";
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { snapshotToStoreConfig, type StoreEditorSnapshot } from "@/lib/store-templates";
 import {
   isDurableLogoUrl,
@@ -232,14 +232,6 @@ function previewVariantFromLayout(layoutFamily?: string | null): PreviewVariant 
 export function ChipBuilder({ userName, existingStore, selectedTemplate, onboardingMemory, initialPhase }: ChipBuilderProps) {
   const router = useRouter();
   const firstName = userName.split(" ")[0];
-
-  const handleSignOut = useCallback(async () => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    clearBuilderMemory();
-    router.push("/login");
-  }, [router]);
 
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
   const [resolvedOnboardingMemory, setResolvedOnboardingMemory] = useState<StoreOnboardingMemory | null>(onboardingMemory ?? null);
@@ -694,9 +686,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
           <button type="button" onClick={() => router.push("/seller/store/builder")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
             Edit your store
           </button>
-          <button type="button" onClick={handleSignOut} className="min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink">
-            Sign out
-          </button>
+          <SignOutButton variant="link" label="Sign out" beforeSignOut={clearBuilderMemory} className="min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink" />
           <PillButton size="sm" tone={storeReady ? "ink" : "white"} onClick={() => router.push(storeReady ? "/home/store" : "/home")}>
             {storeReady ? "Go to Your store" : "Skip setup"}
           </PillButton>

@@ -5,6 +5,7 @@ import { updateOrderPayment } from "@/app/actions/payments";
 import { OrderConfirmation } from "./OrderConfirmation";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadOrderNextSteps } from "./order-props";
+import { orderRewards } from "@/lib/gamification/play.server";
 
 interface Props {
   params: Promise<{ slug: string; orderId: string }>;
@@ -33,7 +34,11 @@ export default async function OrderPage({ params, searchParams }: Props) {
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), slug);
 
-  const next = await loadOrderNextSteps(order, store);
+  const [next, rewards] = await Promise.all([
+    loadOrderNextSteps(order, store),
+    // Loyalty points and the post-purchase spin (Marketing > Rewards); never blocks the page.
+    orderRewards(store, order).catch(() => null),
+  ]);
   const publicStore = { name: store.name, slug: store.slug, logoUrl: store.logoUrl, currency: store.currency, brandSettings: next.brandSettings };
 
   return (
@@ -43,6 +48,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
       storeBasePath={storeBasePath}
       transfer={next.transfer}
       deliveryCode={next.deliveryCode}
+      rewards={rewards ? JSON.parse(JSON.stringify(rewards)) : null}
     />
   );
 }

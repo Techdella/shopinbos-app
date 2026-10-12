@@ -1,8 +1,9 @@
 // Helpers for /auth/handoff (the mobile app opening a web page signed in). Kept pure for tests.
+import { safeNextPath } from "./route-access.ts";
 
 /** Only same-site paths: "/home/x" yes; "//evil.com", "/\\evil.com" and absolute URLs no. */
 export function handoffNextPath(value: string | null | undefined): string {
-  return value && /^\/(?![/\\])/.test(value) && !/[\r\n]/.test(value) ? value : "/home";
+  return safeNextPath(value) ?? "/home";
 }
 
 /** Reads the access token from "#t=<jwt>". */

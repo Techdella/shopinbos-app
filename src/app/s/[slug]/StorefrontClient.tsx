@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
+import { rewardTiersFor } from "@/lib/gamification/logic";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import type { MouseEvent } from "react";
 import Link from "next/link";
@@ -677,6 +678,7 @@ export function StorefrontClient({
           accentTextColor={snapshot.themeTokens.ctaText}
           variation={cartVariation}
           freeDeliveryThreshold={freeDeliveryEverywhereOver(readShopperInfo(store.shopper).delivery) ?? undefined}
+          rewardTiers={rewardTiersFor(store.brandSettings)}
         />
       ) : null}
     </div>

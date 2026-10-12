@@ -101,6 +101,46 @@ const THEME_STYLE_NOTE: FieldGroup = {
   fields: [{ id: "theme-colours", type: "note", label: "Colours, fonts and buttons are set for the whole theme, so every section stays consistent. Open Theme settings to change them." }],
 };
 
+// ─── Reward sections (both renderers, src/components/storefront/gamification) ─
+
+/** Same list as GAME_SECTION_KINDS in src/lib/gamification/logic.ts (this file has no runtime imports; tests check). */
+export const REWARD_SECTION_KINDS = ["spin-wheel", "scratch-card", "reward-progress", "loyalty-banner"];
+
+const REWARDS_NOTE = "Prizes, odds, points and on/off are set in Marketing › Rewards, so every place the game shows stays the same.";
+
+function gameSchema(kind: string): SectionSchema {
+  const note: SchemaField = { id: "rewards-note", type: "note", label: REWARDS_NOTE };
+  if (kind === "spin-wheel" || kind === "scratch-card") {
+    return {
+      settings: [
+        { fields: [
+          { id: "display", type: "segmented", label: "Shows as", target: setting("display"), fallback: kind === "spin-wheel" ? "popup" : "inline", options: [{ value: "popup", label: "Pop-up" }, { value: "inline", label: "On the page" }] },
+          { id: "trigger", type: "select", label: "Pop-up opens", target: setting("trigger"), fallback: kind === "spin-wheel" ? "delay" : "scroll", when: { scope: "settings", key: "display", in: ["popup"], fallback: kind === "spin-wheel" ? "popup" : "inline" }, options: [
+            { value: "entry", label: "As the page opens" },
+            { value: "delay", label: "After a few seconds" },
+            { value: "scroll", label: "After scrolling" },
+            { value: "exit", label: "When they're about to leave" },
+          ] },
+          { id: "delaySeconds", type: "number", label: "Seconds", target: setting("delaySeconds"), min: 1, max: 120, fallback: 8, when: { scope: "settings", key: "trigger", in: ["delay"], fallback: kind === "spin-wheel" ? "delay" : "scroll" } },
+          { id: "scrollPercent", type: "number", label: "Percent of the page", target: setting("scrollPercent"), min: 5, max: 100, fallback: 50, when: { scope: "settings", key: "trigger", in: ["scroll"], fallback: kind === "spin-wheel" ? "delay" : "scroll" } },
+        ] },
+        { title: "Content", fields: [
+          text("title", "Heading", { help: "Leave empty to use the headline from Marketing › Rewards." }),
+          area("body", "Text"),
+          text("buttonLabel", "Button label", { placeholder: kind === "spin-wheel" ? "Spin the wheel" : "Scratch to reveal" }),
+          note,
+        ] },
+      ],
+      style: [THEME_STYLE_NOTE],
+      addable: [],
+    };
+  }
+  if (kind === "reward-progress") {
+    return { settings: [{ fields: [text("title", "Heading", { help: "Optional. The bar shows free delivery and your reward tiers for the shopper's bag." }), note] }], style: [THEME_STYLE_NOTE], addable: [] };
+  }
+  return { settings: [{ fields: [text("title", "Heading"), area("body", "Text", { help: "Leave empty to explain your points rate automatically." }), note] }], style: [THEME_STYLE_NOTE], addable: [] };
+}
+
 // ─── 2026 themes (BoutiqueStorefront) ────────────────────────────────────────
 
 /** Each 2026 theme's own banner; any theme can borrow another's. Values are BoutiqueStorefront hero layouts. */
@@ -542,6 +582,7 @@ function classicSchema(kind: string): SectionSchema {
 }
 
 export function sectionSchema(kind: string, renderer: RendererKind, themeId = ""): SectionSchema {
+  if (REWARD_SECTION_KINDS.includes(kind)) return gameSchema(kind);
   return renderer === "boutique" ? boutiqueSchema(kind, themeId) : classicSchema(kind);
 }
 

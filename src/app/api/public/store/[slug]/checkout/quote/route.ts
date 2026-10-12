@@ -21,6 +21,9 @@ const QuoteSchema = z.object({
   deliveryOptionId: z.string().max(64).optional(),
   discountCode: z.string().max(40).optional(),
   buyerEmail: z.string().max(200).optional(),
+  // Loyalty points to use (needs buyerEmail and the phone from an earlier order).
+  redeemPoints: z.number().int().min(0).max(10_000_000).optional(),
+  buyerPhone: z.string().max(40).optional(),
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -34,13 +37,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const parsed = QuoteSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid bag"), CORS);
 
-  const priced = await priceOrder({ store, ...parsed.data, settings: readCheckoutSettings(store.checkoutConfig) });
+  const { redeemPoints, buyerPhone, ...rest } = parsed.data;
+  const priced = await priceOrder({ store, ...rest, settings: readCheckoutSettings(store.checkoutConfig), loyalty: redeemPoints ? { points: redeemPoints, phone: buyerPhone } : null });
   if (!priced.ok) return withCors(req, apiError("BAD_REQUEST", priced.message), CORS);
 
   const res = withCors(req, ok({
     totals: priced.totals,
     discount: priced.discount ? { code: priced.discount.code, label: priced.discount.label, automatic: priced.discount.automatic } : null,
     codeError: priced.codeError,
+    points: priced.points ? { points: priced.points.points, amount: priced.points.amount, balance: priced.points.balance, max: priced.points.max } : null,
     delivery: { covered: priced.delivery.choice.covered, optionId: priced.delivery.option?.id ?? null },
     items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity })),
   }), CORS);

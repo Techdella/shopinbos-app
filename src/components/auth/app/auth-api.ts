@@ -45,11 +45,10 @@ export async function syncSession(
   return data?.role ?? null;
 }
 
+/** Email + password sign-in through /api/auth/login (rate-limited and logged); it sets the session cookies. */
 export async function signInWithPassword(email: string, password: string) {
-  const supabase = requireSupabase();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(/invalid login credentials/i.test(error.message) ? "That email and password don't match. Try again or use a code." : error.message);
-  return data.session?.access_token ?? null;
+  const data = await postJson<{ accessToken: string | null }>("/api/auth/login", { email, password });
+  return data?.accessToken ?? null;
 }
 
 export function callbackUrl(role: AuthRole, next: string) {
@@ -68,16 +67,17 @@ export async function signInWithGoogle(role: AuthRole, next: string) {
   if (error) throw new Error(/provider is not enabled/i.test(error.message) ? "Google sign-in isn't switched on yet. Use your phone or email." : error.message);
 }
 
+/** The server calls Supabase's resetPasswordForEmail, rate-limited, and always answers "sent". */
 export async function sendPasswordReset(email: string, role: AuthRole) {
-  const supabase = requireSupabase();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: callbackUrl(role, "/reset-password") });
-  if (error) throw new Error(error.message);
+  await postJson("/api/auth/password/forgot", { email, role });
 }
 
-export async function updatePassword(password: string) {
-  const supabase = requireSupabase();
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) throw new Error(error.message);
+/**
+ * Sets a new password. From a reset link no current password is needed; from Settings it is (or a very
+ * recent sign-in). Every other device is signed out either way.
+ */
+export async function updatePassword(password: string, currentPassword?: string) {
+  return postJson<{ changed: boolean; signedOutOthers: boolean; signedIn?: boolean }>("/api/auth/password", { password, currentPassword });
 }
 
 export async function hasSession() {

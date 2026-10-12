@@ -27,6 +27,8 @@ import { BoutiqueProductView } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
+import { GameSection } from "../gamification/GameSection";
+import type { GameSectionKind } from "@/lib/gamification/logic";
 
 export interface BoutiqueStore {
   id?: string;
@@ -1218,6 +1220,19 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <p className="mt-2 text-[14.5px]" style={{ color: t.muted }}>{props.cartCount ? `${props.cartCount} ${props.cartCount === 1 ? "item" : "items"} in your bag.` : "Your bag is empty."}</p>
             <button type="button" className="bq-btn mt-5" style={look.primaryButton} onClick={() => (props.cartCount ? props.onOpenCart?.() : go("products"))}>{props.cartCount ? "View bag" : "Start shopping"}</button>
           </section>
+        );
+      case "spin-wheel":
+      case "scratch-card":
+      case "reward-progress":
+      case "loyalty-banner":
+        return (
+          <GameSection
+            kind={section.kind as GameSectionKind}
+            section={section}
+            store={store}
+            mode={live ? "live" : "editor"}
+            colors={{ ink: t.ink, muted: t.muted, border: t.border, paper: t.paperBg, card: look.raised, cta: t.ctaBg, ctaText: t.ctaText, accent: t.accent, heading: look.headingFont, radius: look.cardRadius }}
+          />
         );
       case "checkout-form":
         return (

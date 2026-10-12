@@ -20,6 +20,7 @@ import type {
   TemplatePageType,
   TemplateSectionNode,
 } from "./types";
+import { gameSectionDefaults, isGameSectionKind } from "@/lib/gamification/logic";
 
 export function listTemplatesResponse() {
   return {
@@ -37,6 +38,12 @@ export function resolveTemplateOrThrow(templateId: string) {
 
 export function createSectionFromLibrary(kind: string): TemplateSectionNode {
   const id = `${kind}-${Math.random().toString(36).slice(2, 8)}`;
+
+  // Reward sections (spin the wheel, scratch card, reward progress, loyalty points): src/lib/gamification.
+  if (isGameSectionKind(kind)) {
+    const starter = gameSectionDefaults(kind);
+    return { id, kind, name: starter.name, visible: true, settings: starter.settings, blocks: [{ id: `${id}-copy`, type: "copy", content: starter.copy }] };
+  }
 
   if (kind === "about-section") {
     return {
