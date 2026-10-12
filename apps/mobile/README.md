@@ -9,6 +9,7 @@ Screens follow the 2026 app prototypes, the same designs as the web screens:
 | Sign in | Welcome (Rex), create account (phone or email), enter code, log in (phone code, email code, password, Google), forgot password |
 | Seller onboarding | Chat with Rex (5 languages) → brand (name, colours, look) → first products from photos → payments and delivery → launch fee (Paystack) → shop is live (share, QR poster) → finish setting up |
 | Seller app | Home (sales, Peggy's tasks, quick actions, checklist, best sellers), Products, Chats, Orders and More tabs; "+" adds products from photos; order details (mark paid, sent, delivered; WhatsApp or call the buyer); record a sale; Ask Peggy |
+| Selling tools | Start here checklist; Chats = the all-in-one inbox (every channel, Open / Unread / Snoozed / Done, reply or private note, snooze, done) with Auto-replies and Peggy chatbot settings; partner messages (suppliers, logistics); Find products (Nigeria / China · 1688 / Trending, Cost / Sell / You keep, dropship price stepper, wholesale quotes, add to store); Reviews (reply, Peggy drafts, review links to share); Marketing (campaign stats, discount codes, email templates); Rex Studio chat; Legal pages; store link to share |
 
 Design tokens, phone helpers and onboarding copy come from `../../shared`, so web and mobile stay in step.
 
@@ -20,6 +21,7 @@ npm install
 cp .env.example .env.local      # add the Supabase anon key
 npx expo start                  # press i / a, or scan with Expo Go
 npm run typecheck
+npm run lint                    # expo lint (eslint-config-expo)
 npx expo-doctor
 ```
 

@@ -25,12 +25,36 @@ export async function openWeb(path: string) {
   return WebBrowser.openBrowserAsync(url);
 }
 
-/** Opens a web-app path, but in the app when the app has that screen (orders, record a sale, add products). */
+/** Web pages the app has its own screen for (query strings are ignored). */
+const APP_SCREENS: Record<string, string> = {
+  "/home/orders": "/orders",
+  "/home/orders/new": "/record-sale",
+  "/products/new": "/add-products",
+  "/products": "/products",
+  "/home/start": "/start",
+  "/home/messages": "/chats",
+  "/home/inbox": "/chats",
+  "/home/inbox/auto-replies": "/inbox/auto-replies",
+  "/home/inbox/chatbot": "/inbox/chatbot",
+  "/marketplace": "/find",
+  "/home/reviews": "/reviews",
+  "/home/reviews/request": "/reviews",
+  "/home/marketing": "/marketing",
+  "/home/marketing/campaigns": "/marketing",
+  "/home/discounts": "/marketing",
+  "/home/marketing/templates": "/marketing/templates",
+  "/studio": "/rex",
+  "/home/legal": "/legal",
+};
+
+/** Opens a web-app path, but in the app when the app has that screen (orders, inbox, find products, reviews…). */
 export function openPath(path: string) {
-  const order = path.match(/^\/home\/orders\/([\w-]+)$/);
-  if (path === "/home/orders/new") return router.push("/record-sale");
-  if (order) return router.push({ pathname: "/order/[id]", params: { id: order[1] } });
-  if (path === "/home/orders" || path.startsWith("/home/orders?")) return router.push("/orders");
-  if (path === "/products/new") return router.push("/add-products");
+  const [pathname] = path.split(/[?#]/);
+  const order = pathname.match(/^\/home\/orders\/([\w-]+)$/);
+  if (order && order[1] !== "new") return router.push({ pathname: "/order/[id]", params: { id: order[1] } });
+  const conversation = path.match(/^\/home\/messages\?(?:.*&)?c=([\w-]+)/);
+  if (conversation) return router.push({ pathname: "/inbox/[id]", params: { id: conversation[1] } });
+  const screen = APP_SCREENS[pathname.replace(/\/$/, "")];
+  if (screen) return router.push(screen as never);
   return openWeb(path);
 }

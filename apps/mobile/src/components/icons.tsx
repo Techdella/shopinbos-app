@@ -3,7 +3,7 @@ import { colors } from "@/theme";
 
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -27,6 +27,15 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   store: () => <><Path d="M4 9l1.5-5h13L20 9" /><Path d="M4 9h16v2a3 3 0 0 1-5.3 2A3 3 0 0 1 12 14a3 3 0 0 1-2.7-1A3 3 0 0 1 4 11V9zM5 13v7h14v-7" /></>,
   user: () => <><Circle cx="12" cy="8" r="4" /><Path d="M4 21a8 8 0 0 1 16 0" /></>,
   tag: () => <><Path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" /><Circle cx="7.5" cy="7.5" r="1.5" /></>,
+  star: () => <Path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
+  check: () => <Path d="M5 12.5l4.5 4.5L19 7.5" />,
+  clock: () => <><Circle cx="12" cy="12" r="8.5" /><Path d="M12 7.5V12l3 2" /></>,
+  share: () => <><Path d="M12 15V4M8 8l4-4 4 4" /><Path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" /></>,
+  doc: () => <><Path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><Path d="M14 3v5h5M9 13h6M9 17h6" /></>,
+  send: () => <Path d="M4 12l16-8-6 16-2.5-6.5L4 12z" />,
+  settings: () => <><Circle cx="12" cy="12" r="3" /><Path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" /></>,
+  image: () => <><Rect x="3.5" y="4.5" width="17" height="15" rx="2" /><Circle cx="9" cy="10" r="1.8" /><Path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" /></>,
+  bot: () => <><Rect x="4.5" y="8" width="15" height="11" rx="3" /><Path d="M12 4v4M9 13h.01M15 13h.01" /></>,
   wifiOff: () => <><Path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0" /><Path d="M3 3l18 18" /></>,
 };
 
