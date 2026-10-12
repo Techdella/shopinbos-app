@@ -5,6 +5,9 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { recordCodRemittance } from "@/app/actions/logistics";
 import { Card, CardHead, ListCard, ListRow, Pill, SplitLayout, StatGrid, StatTile } from "@/components/app-kit";
 import { cashToPayIn } from "@/lib/logistics/job-rules";
+import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/payin-rules";
+import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
+import { PayInAccountCard } from "@/components/logistics/PayInAccountCard";
 import {
   ACTIVE_STATUSES,
   ActionNotice,
@@ -22,7 +25,9 @@ import {
   naira,
 } from "@/components/logistics/kit";
 
-// Cash on delivery: what riders collect at the door, what the partner still has to pay in, and the pay-ins.
+// Cash on delivery: what riders collect at the door, what the partner still has to pay in (by 6pm), their own pay-in
+// account (transfers to it are matched automatically: lib/logistics/payins.server.ts), and the pay-ins with status.
+// Without a pay-in account (Paystack not set up, or not available yet) the old "Tell us you paid in" form shows.
 // Transfers go straight from the buyer to the seller, so they're shown apart and never owed.
 
 export const dynamic = "force-dynamic";
@@ -58,7 +63,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
     seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
-  const [openJobs, heldCash, transfers, collectedRecent, remittances] = await Promise.all([
+  const [openJobs, heldCash, transfers, collectedRecent, remittances, payInAccount] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: { in: ["pending", ...ACTIVE_STATUSES] }, OR: [{ codAmount: { gt: 0 } }, { codAmount: null, orderId: { not: null } }] },
       orderBy: { createdAt: "asc" },
@@ -85,9 +90,11 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       where: { logisticsPartnerId: partner.id },
       orderBy: { createdAt: "desc" },
       take: 30,
-      select: { id: true, amount: true, method: true, reference: true, note: true, createdAt: true, _count: { select: { bookings: true } } },
+      select: { id: true, amount: true, method: true, reference: true, note: true, createdAt: true, outcome: true, covered: true, creditAfter: true, _count: { select: { bookings: true } } },
     }),
+    ensurePayInAccountSafely(partner.id),
   ]);
+  const account = payInAccountView(payInAccount);
 
   // Older jobs were booked before codAmount existed: fall back to the linked order's unpaid total.
   const legacyOrderIds = openJobs.filter((job) => job.codAmount === null && job.orderId).map((job) => job.orderId!);
@@ -99,7 +106,12 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
     .map((job) => ({ ...job, cash: job.codAmount ?? (job.orderId ? cashToCollect(orderById.get(job.orderId)) : 0) }))
     .filter((job) => job.cash > 0);
 
-  const owed = cashToPayIn(heldCash);
+  const held = cashToPayIn(heldCash);
+  const credit = partner.payInCredit;
+  const owed = owedAfterCredit(held, credit);
+  const oldest = heldCash[0];
+  const due = payInDue(oldest ? oldest.codCollectedAt ?? oldest.createdAt : null);
+  const late = due.late && owed > 0;
   const byRider = new Map<string, { name: string; amount: number; jobs: number }>();
   for (const job of heldCash) {
     const key = job.rider?.name ?? "Not assigned";
@@ -121,7 +133,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       <ActionNotice saved={saved} error={error} savedText="Saved. We've ticked off the jobs this pay-in covers." />
 
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Cash to pay in" value={naira(owed)} hint={`${heldCash.length} ${heldCash.length === 1 ? "job" : "jobs"} not paid in yet`} />
+        <StatTile tone="card" label="Cash to pay in" value={naira(owed)} hint={owed > 0 ? `${late ? "Late: pay in now" : `Pay in ${due.words}`} · ${heldCash.length} ${heldCash.length === 1 ? "job" : "jobs"}` : credit > 0 ? `${naira(credit)} extra kept for next time` : "Nothing owed"} />
         <StatTile tone="card" label="To collect on open jobs" value={naira(toCollect.reduce((total, job) => total + job.cash, 0))} hint={`${toCollect.length} ${toCollect.length === 1 ? "job" : "jobs"}`} />
         <StatTile tone="card" label="Collected today" value={naira(sum(collectedToday))} hint={`${collectedToday.filter((row) => row.codMethod === "transfer").length} by transfer`} />
         <StatTile tone="card" label="Paid in, last 30 days" value={naira(paidInMonth)} hint={`Collected ${naira(sum(collectedRecent.filter((row) => row.codMethod === "cash")))} in cash`} />
@@ -201,44 +213,67 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
         }
         side={
           <>
-            <Card className="p-5">
-              <CardHead title="Tell us you paid in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
-              <form action={recordCodRemittance} className="mt-4 grid gap-3">
-                <div>
-                  <label htmlFor="payin-amount" className={labelClass}>Amount (₦)</label>
-                  <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
-                </div>
-                <div>
-                  <label htmlFor="payin-method" className={labelClass}>How you paid</label>
-                  <select id="payin-method" name="method" defaultValue="transfer" className={inputClass}>
-                    <option value="transfer">Bank transfer</option>
-                    <option value="cash">Cash</option>
-                  </select>
-                </div>
-                <details className="group">
-                  <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
-                    More options (optional) <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
-                  </summary>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <label htmlFor="payin-reference" className={labelClass}>Transfer reference</label>
-                      <input id="payin-reference" name="reference" maxLength={120} placeholder="From your bank app" className={inputClass} />
-                    </div>
-                    <div>
-                      <label htmlFor="payin-note" className={labelClass}>Note</label>
-                      <input id="payin-note" name="note" maxLength={300} className={inputClass} />
-                    </div>
-                  </div>
-                </details>
-                <SubmitButton>Save pay-in</SubmitButton>
-                <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
-                  We tick off your oldest cash jobs that this amount fully covers. Anything left over is kept for next time.
+            <Card className="grid gap-4 p-5">
+              <div>
+                <h2 className="m-0 text-[22px] font-extrabold leading-tight">{owed > 0 ? `Pay in ${naira(owed)} ${due.words}` : "Nothing to pay in"}</h2>
+                <p className={`m-0 mt-1 text-[15px] leading-[1.5] ${late ? "font-bold text-app-danger" : "text-app-ink-soft"}`}>
+                  {owed > 0
+                    ? late
+                      ? "This was due by 6pm. Pay it in now so you keep getting jobs where customers pay when it arrives."
+                      : "Cash your riders collected from customers who paid when it arrived."
+                    : credit > 0
+                    ? `You paid ${naira(credit)} extra. We'll use it for your next cash jobs.`
+                    : "When your riders collect cash, the amount to pay in shows here."}
                 </p>
-              </form>
+              </div>
+              {account.state === "ready" ? (
+                <PayInAccountCard accountNumber={account.accountNumber} bankName={account.bankName} accountName={account.accountName} />
+              ) : (
+                <>
+                  <p className="m-0 rounded-[14px] bg-app-canvas p-3 text-[15px] leading-[1.5] text-app-ink-soft">
+                    {account.state === "setting_up"
+                      ? "We're getting your own account number ready, so your payments match by themselves. Until then, pay in the usual way and tell us below."
+                      : "Pay in the usual way, then tell us how much you paid. We tick off your jobs once we've checked it."}
+                  </p>
+                  <form action={recordCodRemittance} className="grid gap-3">
+                    <CardHead title="Tell us you paid in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
+                    <div>
+                      <label htmlFor="payin-amount" className={labelClass}>Amount (₦)</label>
+                      <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
+                    </div>
+                    <div>
+                      <label htmlFor="payin-method" className={labelClass}>How you paid</label>
+                      <select id="payin-method" name="method" defaultValue="transfer" className={inputClass}>
+                        <option value="transfer">Bank transfer</option>
+                        <option value="cash">Cash</option>
+                      </select>
+                    </div>
+                    <details className="group">
+                      <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
+                        More options (optional) <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
+                      </summary>
+                      <div className="mt-3 grid gap-3">
+                        <div>
+                          <label htmlFor="payin-reference" className={labelClass}>Transfer reference</label>
+                          <input id="payin-reference" name="reference" maxLength={120} placeholder="From your bank app" className={inputClass} />
+                        </div>
+                        <div>
+                          <label htmlFor="payin-note" className={labelClass}>Note</label>
+                          <input id="payin-note" name="note" maxLength={300} className={inputClass} />
+                        </div>
+                      </div>
+                    </details>
+                    <SubmitButton>Save pay-in</SubmitButton>
+                    <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
+                      We tick off your oldest cash jobs that this amount fully covers. Anything left over is kept for next time.
+                    </p>
+                  </form>
+                </>
+              )}
             </Card>
 
             <section aria-labelledby="history" className="min-w-0">
-              <h2 id="history" className="m-0 mb-3 text-[18px] font-extrabold">Pay-ins</h2>
+              <h2 id="history" className="m-0 mb-3 text-[18px] font-extrabold">Recent pay-ins</h2>
               {remittances.length === 0 ? (
                 <Empty>No pay-ins yet.</Empty>
               ) : (
@@ -248,11 +283,13 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
                         <div className="truncate text-[15px] text-app-ink-soft">
-                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
-                          {row.reference ? ` · ${row.reference}` : ""}
+                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "account" ? "To your pay-in account" : row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
+                          {row.reference && row.method !== "account" ? ` · ${row.reference}` : ""}
+                        </div>
+                        <div className="truncate text-[14px] font-bold text-app-forest">
+                          {payInStatusWords({ outcome: row.outcome, covered: row.covered, creditAfter: row.creditAfter, jobs: row._count.bookings }, naira)}
                         </div>
                       </div>
-                      <span className="text-[15px] text-app-ink-soft">{row._count.bookings} {row._count.bookings === 1 ? "job" : "jobs"}</span>
                     </ListRow>
                   ))}
                 </ListCard>

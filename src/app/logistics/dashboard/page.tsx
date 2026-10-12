@@ -8,7 +8,12 @@ import { respondToDeliveryQuote, updateDeliveryBookingStatus } from "@/app/actio
 import { Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { AcceptAssignForm, riderPresence, riderSelect } from "@/components/logistics/dispatch";
-import { cashToPayIn } from "@/lib/logistics/job-rules";
+import { withOpenJobs } from "@/lib/logistics/dispatch-riders";
+import { ensurePickupCoords } from "@/lib/logistics/geocode";
+import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
+import { riderWhereWords } from "@shared/delivery-geo";
+import { cashToPayIn, isRiderOut } from "@/lib/logistics/job-rules";
+import { pickupWindowText } from "@shared/supplier-pickup";
 import {
   ACTIVE_STATUSES,
   ActionNotice,
@@ -52,10 +57,12 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
   const bookingSelect = {
     id: true, orderId: true, pickupLocation: true, destination: true, deliveryFee: true, platformFee: true, netAmount: true,
     status: true, trackingCode: true, estimatedDelivery: true, createdAt: true, packageDetails: true, codAmount: true,
+    pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
+    pickupWindowStart: true, pickupWindowEnd: true,
     seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
-  const [newBookings, newQuotes, activeJobs, deliveredToday, pendingBookingCount, pendingQuoteCount, activeCount, riders, unremittedCash] = await Promise.all([
+  const [newBookings, newQuotes, activeJobs, deliveredToday, pendingBookingCount, pendingQuoteCount, activeCount, ridersBase, unremittedCash] = await Promise.all([
     db.deliveryBooking.findMany({ where: { logisticsPartnerId: partner.id, status: "pending" }, orderBy: { createdAt: "asc" }, take: 6, select: bookingSelect }),
     db.deliveryQuoteRequest.findMany({
       where: { logisticsPartnerId: partner.id, status: "pending" },
@@ -74,9 +81,12 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     db.logisticsTeamMember.findMany({ where: { logisticsPartnerId: partner.id, role: "rider" }, orderBy: { name: "asc" }, select: riderSelect }),
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, codMethod: "cash", remittanceId: null, codCollected: { gt: 0 } },
-      select: { codCollected: true, codMethod: true, remittanceId: true },
+      orderBy: [{ codCollectedAt: "asc" }, { createdAt: "asc" }],
+      select: { codCollected: true, codMethod: true, remittanceId: true, codCollectedAt: true, createdAt: true },
     }),
   ]);
+  // Closest rider first in "Accept and pick a rider": riders' open jobs and the new jobs' pickup coordinates.
+  const [riders, pickupGeo] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country)]);
 
   const orderIds = [...newBookings, ...activeJobs, ...deliveredToday].map((booking) => booking.orderId).filter((id): id is string => Boolean(id));
   const orders: CodOrder[] = orderIds.length
@@ -89,7 +99,10 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
   const earnedToday = deliveredToday.reduce((sum, booking) => sum + bookingNet(booking), 0);
   const cashCollectedToday = deliveredToday.reduce((sum, booking) => sum + (booking.codCollected ?? (booking.codAmount === null ? collectFor(booking) : 0)), 0);
   const cashOnActiveJobs = activeJobs.reduce((sum, booking) => sum + collectFor(booking), 0);
-  const cashOwed = cashToPayIn(unremittedCash);
+  const cashOwed = owedAfterCredit(cashToPayIn(unremittedCash), partner.payInCredit);
+  const payIn = payInDue(unremittedCash[0] ? unremittedCash[0].codCollectedAt ?? unremittedCash[0].createdAt : null, now);
+  // No map library in the app: a list of riders out now with where each was last seen.
+  const outNow = riders.filter((rider) => rider.status === "active" && isRiderOut(rider, now)).sort((a, b) => a.openJobs - b.openJobs || a.name.localeCompare(b.name));
   const presence = riderPresence(riders, now);
   const activeRiders = riders.filter((rider) => rider.status === "active");
   const newCount = pendingBookingCount + pendingQuoteCount;
@@ -129,6 +142,19 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
               </p>
             </div>
             <PillLink href="/logistics/couriers" size="sm">{riders.length === 0 ? "Add a rider" : "See riders"}</PillLink>
+            {outNow.length > 0 && (
+              <ul className="m-0 grid w-full list-none gap-0 p-0" aria-label="Riders out now">
+                {outNow.slice(0, 8).map((rider) => (
+                  <li key={rider.id} className="flex min-w-0 items-center gap-3 border-t border-app-line py-2.5 first:border-t-0">
+                    <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${rider.openJobs ? "bg-app-accent" : "bg-app-success"}`} />
+                    <span className="min-w-0 flex-1 truncate text-[15px]">
+                      <b className="font-extrabold">{rider.name}</b> · {rider.openJobs ? "on a job" : "free"}
+                      <span className="text-app-ink-soft"> · {riderWhereWords({ lat: rider.lastLat, lng: rider.lastLng, locationAt: rider.lastLocationAt, lastSeenAt: rider.lastSeenAt }, now)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <section aria-labelledby="active-jobs" className="min-w-0">
@@ -147,6 +173,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-app-line bg-app-canvas text-app-ink-soft"><Icon name="box" size={18} /></span>
                       <div className="min-w-0 flex-1 basis-[180px]">
                         <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
+                        {job.pickupWindowStart && <div className="truncate text-[14.5px] font-extrabold text-app-accent-ink">{pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd, now)}</div>}
                         <div className="truncate text-[15px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name}</div>
                       </div>
                       <div className="min-w-0 basis-full sm:basis-[200px]"><StageDot tone={stage.tone}>{stage.label}</StageDot></div>
@@ -184,6 +211,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                 </div>
                 <div className="mt-3 min-w-0">
                   <Route from={job.pickupLocation} to={job.destination} className="block break-words text-[15px]" />
+                  {job.pickupWindowStart && <p className="m-0 mt-0.5 text-[15px] font-extrabold text-app-accent-ink">{pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd, now)}</p>}
                   <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
                     {packageSummary(job.packageDetails)} · {job.seller.name}
                     {job.estimatedDelivery ? ` · Deliver by ${lagosTime(job.estimatedDelivery)}, ${lagosDate(job.estimatedDelivery)}` : ""}
@@ -197,7 +225,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                     <input type="hidden" name="returnTo" value={RETURN} />
                     <SubmitButton tone="white" size="sm" aria-label={`Decline job ${jobId(job.id)}`}>Decline</SubmitButton>
                   </form>
-                  <AcceptAssignForm bookingId={job.id} riders={activeRiders} returnTo={RETURN} className="flex-1" />
+                  <AcceptAssignForm bookingId={job.id} riders={activeRiders} returnTo={RETURN} className="flex-1" pickup={pickupGeo.get(job.id)} />
                 </div>
               </Card>
             );
@@ -249,7 +277,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
           {(cashOwed > 0 || cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
             <Card className="border-0 bg-[#FDF0D5] p-5">
               <CardHead
-                title={cashOwed > 0 ? "Pay in by 6pm" : "Cash to collect"}
+                title={cashOwed > 0 ? (payIn.late ? "Pay in now" : `Pay in ${payIn.words}`) : "Cash to collect"}
                 action={<span className="text-[18px] font-extrabold">{naira(cashOwed > 0 ? cashOwed : cashOnActiveJobs)}</span>}
               />
               <p className="m-0 mt-1 text-[15px] leading-[1.5] text-[#5C4100]">

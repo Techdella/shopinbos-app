@@ -47,7 +47,7 @@ export function needsSupplier(kind: SupplierOrderKind, status: string) {
 
 /** Dropship statuses still to do (open) and finished (done). */
 export const DROPSHIP_OPEN = ["pending", "accepted"] as const;
-export const DROPSHIP_DONE = ["shipped", "delivered", "rejected", "cancelled"] as const;
+export const DROPSHIP_DONE = ["shipped", "delivered", "rejected", "cancelled", "expired"] as const;
 
 export const LOW_STOCK = 5;
 

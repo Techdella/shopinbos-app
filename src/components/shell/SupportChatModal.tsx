@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Icon } from "@/components/ui";
 import { Mascot, Notice, cx } from "@/components/app-ui";
 import { SupportThread } from "@/components/support/SupportThread";
+import { HelpVideosSection } from "@/components/help/HelpVideos";
 import { supportFetch, timeLabel, type ChatTicket, type ChatTicketSummary } from "@/components/support/client";
 import { MAX_ATTACHMENTS, STATUS_LABEL, SUPPORT_EMAIL, TOPICS, attachmentProblem, formatTicketNumber, parseTicketNumber, type SupportTopic } from "@/lib/support/pure";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
 
@@ -191,7 +193,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
               <Icon name="arrowLeft" size={16} />
             </button>
           ) : (
-            <Mascot name="peggy" className="h-9 w-9 shrink-0" alt="" />
+            <Mascot name="peggy" mood="wave" className="h-9 w-9 shrink-0" alt="" />
           )}
           <div className="min-w-0 flex-1">
             <h2 className="m-0 truncate text-[15px] font-extrabold">{title}</h2>
@@ -295,6 +297,8 @@ function Home({
           </span>
           <Icon name="chevron" size={14} />
         </button>
+        {/* "Watch a 1-minute video" for this screen; hidden when there isn't one. */}
+        <HelpVideosSection role={role} />
       </div>
 
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
@@ -405,7 +409,7 @@ function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; set
         ))}
         {sending && (
           <div className="mb-3.5 flex gap-2.5">
-            <Mascot name="peggy" className="h-8 w-8 shrink-0" alt="" />
+            <Mascot name="peggy" mood="thinking" className="h-8 w-8 shrink-0" alt="" />
             <div className="rounded-[16px_16px_16px_4px] bg-app-canvas px-3.5 py-2.5 text-[14px] text-app-ink-soft">Thinking…</div>
           </div>
         )}
@@ -428,6 +432,7 @@ function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; set
             maxLength={4000}
             className="h-11 min-w-0 flex-1 rounded-full border border-app-line bg-white px-4 text-[15px] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
           />
+          <VoiceInputButton variant="icon" value={message} onChange={setMessage} maxLength={4000} context="a question for Peggy" disabled={sending} />
           <button type="button" onClick={() => void handleSend()} disabled={!message.trim() || sending} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-ink text-white hover:bg-black disabled:opacity-40">
             <Icon name="arrow" size={15} />
           </button>
@@ -512,6 +517,7 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
             placeholder="What happened, and what you were trying to do. Order numbers help."
             className="w-full resize-y rounded-[16px] border border-app-line bg-white px-3.5 py-3 text-[15px] leading-[1.5] outline-none placeholder:text-app-ink-faint focus:border-app-ink"
           />
+          <VoiceInputButton value={message} onChange={setMessage} maxLength={5000} context="a message to the support team" className="mt-2" />
         </div>
         <div>
           <label className="inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-full border border-dashed border-app-line-strong px-3.5 text-[13px] font-bold hover:bg-app-canvas focus-within:ring-2 focus-within:ring-app-ink/30">

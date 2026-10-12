@@ -8,7 +8,10 @@ import { EmptyState, FilterChips, ListCard, PillLink, SearchForm } from "@/compo
 import { messagesHref } from "@/lib/conversations/pure";
 import { Icon } from "@/components/ui/Icon";
 import { AcceptAssignForm, ReassignForm, riderSelect } from "@/components/logistics/dispatch";
+import { withOpenJobs } from "@/lib/logistics/dispatch-riders";
+import { ensurePickupCoords } from "@/lib/logistics/geocode";
 import { nextStatuses } from "@/lib/logistics/job-rules";
+import { pickupWindowText } from "@shared/supplier-pickup";
 import {
   ACTIVE_STATUSES,
   ActionNotice,
@@ -67,15 +70,17 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
       }
     : {};
 
-  const [bookings, counts, riders] = await Promise.all([
+  const [bookings, counts, ridersBase] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { ...base, ...search, ...(filter.statuses ? { status: { in: filter.statuses } } : {}) },
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
         id: true, pickupLocation: true, destination: true, deliveryFee: true, status: true, trackingCode: true,
+        pickupWindowStart: true, pickupWindowEnd: true,
         estimatedDelivery: true, createdAt: true, packageDetails: true, notes: true, failedReason: true,
         codAmount: true, codCollected: true, codMethod: true, riderId: true, sellerId: true,
+        pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
         seller: { select: { name: true } }, rider: { select: { name: true } },
       },
     }),
@@ -83,6 +88,11 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
     db.logisticsTeamMember.findMany({ where: { logisticsPartnerId: partner.id, role: "rider", status: "active" }, orderBy: { name: "asc" }, select: riderSelect }),
   ]);
   const RETURN = "/logistics/bookings";
+  // Closest rider first: pickup coordinates for jobs that need a rider (geocoded once, stored on the job).
+  const [riders, pickupGeo] = await Promise.all([
+    withOpenJobs(partner.id, ridersBase),
+    ensurePickupCoords(bookings.filter((job) => ["pending", "confirmed", "picked_up", "in_transit"].includes(job.status)), partner.country),
+  ]);
 
   const countOf = (statuses?: BookingStatusValue[]) =>
     counts.filter((row) => !statuses || statuses.includes(row.status as BookingStatusValue)).reduce((sum, row) => sum + row._count._all, 0);
@@ -114,6 +124,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-app-line bg-app-canvas text-app-ink-soft"><Icon name="box" size={18} /></span>
                   <div className="min-w-0 flex-1 basis-[200px]">
                     <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
+                    {job.pickupWindowStart && <div className="text-[14.5px] font-extrabold text-app-accent-ink">{pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd)}</div>}
                     <div className="truncate text-[15px] text-app-ink-soft">
                       {jobId(job.id)} · {job.seller.name} · {packageSummary(job.packageDetails)}
                     </div>
@@ -151,13 +162,13 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                         <input type="hidden" name="returnTo" value={RETURN} />
                         <SubmitButton tone="white" size="sm" aria-label={`Decline job ${jobId(job.id)}`}>Decline</SubmitButton>
                       </form>
-                      <AcceptAssignForm bookingId={job.id} riders={riders} returnTo={RETURN} className="flex-1 sm:max-w-[520px]" />
+                      <AcceptAssignForm bookingId={job.id} riders={riders} returnTo={RETURN} className="flex-1 sm:max-w-[520px]" pickup={pickupGeo.get(job.id)} />
                     </div>
                   ) : (
                     <div className="grid gap-4">
                       {!["delivered", "cancelled"].includes(job.status) && (
                         <div className="sm:max-w-[520px]">
-                          <ReassignForm bookingId={job.id} riderId={job.riderId} riderName={job.rider?.name} riders={riders} returnTo={RETURN} />
+                          <ReassignForm bookingId={job.id} riderId={job.riderId} riderName={job.rider?.name} riders={riders} returnTo={RETURN} pickup={pickupGeo.get(job.id)} />
                         </div>
                       )}
                       <JobUpdateForm job={job} />

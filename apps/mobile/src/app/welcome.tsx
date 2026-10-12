@@ -36,7 +36,7 @@ export default function Welcome() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           {role === "seller" ? (
             <>
-              <Mascot name="rex" size={240} label="Rex, the Shopinbos store builder" />
+              <Mascot name="rex" mood="wave" size={240} />
               <View style={{ position: "absolute", top: 30, right: 0, backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 10, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 20, borderBottomRightRadius: 4, shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 3 }}>
                 <T weight="bold">Hi, I&apos;m Rex. I build shops.</T>
               </View>

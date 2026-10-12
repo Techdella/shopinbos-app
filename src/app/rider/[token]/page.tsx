@@ -6,6 +6,7 @@ import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { toE164 } from "@shared/phone";
 import { RiderApp, type RiderRun } from "./RiderApp";
+import { pickupWindowText } from "@shared/supplier-pickup";
 
 // Shopinbos Riders app: a phone-first page the partner shares as a private link. No account, no login.
 
@@ -61,7 +62,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       take: 60,
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
-        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true,
+        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, pickupWindowStart: true, pickupWindowEnd: true,
         seller: { select: { name: true, store: { select: { name: true } } } },
       },
     }),
@@ -89,6 +90,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       key,
       pickupName: job.seller.store?.name ?? job.seller.name,
       pickupAddress: job.pickupLocation,
+      pickupWindow: pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd),
       fees: 0,
       drops: [],
     };

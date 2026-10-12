@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
+import { AcceptCountdown } from "@/components/AcceptCountdown";
 import { HelpButton } from "@/components/Help";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Thumb } from "@/components/partner";
@@ -14,7 +15,8 @@ import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
 // Supplier orders (build spec 8A): New, To pack and Sent. A new order shows what you get and a big Accept button.
-// Bulk requests from shops ("A shop wants 50 pieces") sit at the top of New.
+// Bulk requests from shops ("A shop wants 50 pieces") sit at the top of New. Each new order counts down the time
+// left to accept it ("Accept in 2h 14m"; amber in the last 30 minutes).
 
 function orderTitle(order: SupplierOrder) {
   return order.kind === "dropship" ? order.items.map((item) => (item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name)).join(", ") : `${order.product.name} ×${order.quantity.toLocaleString("en-NG")}`;
@@ -55,8 +57,9 @@ function NewOrderCard({ order, onAccepted }: { order: SupplierOrder; onAccepted:
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <T weight="extrabold" style={{ fontSize: 18, color: colors.success }}>You get {naira(order.kind === "dropship" ? order.yourTotal : order.total)}</T>
-        <T style={{ color: colors.accentInk, fontSize: 15 }}>{waitingLabel(order.createdAt)}</T>
+        {order.acceptBy ? null : <T style={{ color: colors.accentInk, fontSize: 15 }}>{waitingLabel(order.createdAt)}</T>}
       </View>
+      <AcceptCountdown acceptBy={order.acceptBy} />
       {error ? <Notice>{error}</Notice> : null}
       <PillButton title="Accept" busy={busy} onPress={() => void accept()} />
       <LinkButton title="I can't" color={colors.inkSoft} onPress={cant} />

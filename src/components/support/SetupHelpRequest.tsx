@@ -3,6 +3,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // "We'll set it up for you": instead of showing API keys, DNS records or feed links, technical jobs become a
 // short request to the Shopinbos team. It opens a support ticket (topic "setup") that lands in the admin
@@ -114,6 +115,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
             maxLength={1500}
             className="w-full rounded-[16px] border border-app-line bg-white px-4 py-3 text-[16px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink"
           />
+          <VoiceInputButton value={details} onChange={setDetails} maxLength={1500} context="anything the team should know" className="mt-2" />
         </div>
       </div>
 

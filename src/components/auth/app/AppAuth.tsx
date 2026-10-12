@@ -320,7 +320,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     <div className="app-wash flex min-h-dvh flex-col px-[22px] pb-[30px] pt-[22px]">
       <Wordmark />
       <div className="relative flex flex-1 items-center justify-center">
-        <Mascot name="rex" className="h-[260px] w-[260px]" />
+        <Mascot name="rex" mood="wave" className="h-[260px] w-[260px]" />
         <span className="absolute right-0 top-10 rounded-[20px_20px_4px_20px] bg-white px-3.5 py-2.5 text-[14px] font-bold shadow-[0_10px_30px_-12px_rgba(22,20,31,0.3)]">
           Hi, I&apos;m Rex. I build shops.
         </span>

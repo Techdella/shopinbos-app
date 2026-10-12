@@ -4,8 +4,9 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { cashToPayIn, isRiderOut } from "@/lib/logistics/job-rules";
+import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
 import { ACTIVE_STATUSES, bookingNet, lagosStartOfToday } from "@/components/logistics/kit";
-import { JOB_SELECT, dispatchRiders, jobView, ordersFor, partnerForUser } from "../_shared";
+import { JOB_SELECT, dispatchRiders, jobView, ordersFor, partnerForUser, pickupGeoFor } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,14 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     db.deliveryBooking.count({ where: { ...where, status: "failed" } }),
     db.deliveryBooking.findMany({ where: { ...where, status: "delivered", deliveredAt: { gte: startOfToday } }, select: { deliveryFee: true, platformFee: true, netAmount: true } }),
     db.logisticsTeamMember.findMany({ where: { ...where, role: "rider", status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true, online: true, lastSeenAt: true } }),
-    db.deliveryBooking.findMany({ where: { ...where, codMethod: "cash", remittanceId: null, codCollected: { gt: 0 } }, select: { codCollected: true, codMethod: true, remittanceId: true } }),
+    db.deliveryBooking.findMany({ where: { ...where, codMethod: "cash", remittanceId: null, codCollected: { gt: 0 } }, orderBy: [{ codCollectedAt: "asc" }, { createdAt: "asc" }], select: { codCollected: true, codMethod: true, remittanceId: true, codCollectedAt: true, createdAt: true } }),
     db.deliveryBooking.findMany({
       where: { ...where, status: "delivered", deliveredAt: { gte: new Date(now.getTime() - MONTH_MS) }, estimatedDelivery: { not: null } },
       select: { deliveredAt: true, estimatedDelivery: true },
     }),
   ]);
 
-  const [orders, riderList] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now)]);
+  const [orders, riderList, pickupGeo] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now), pickupGeoFor(newJobs, partner.country)]);
   const out = riders.filter((rider) => isRiderOut(rider, now)).length;
   const onTime = timed.length ? Math.round((timed.filter((job) => job.deliveredAt! <= job.estimatedDelivery!).length / timed.length) * 100) : null;
 
@@ -54,10 +55,12 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     deliveredToday: deliveredToday.length,
     earnedToday: deliveredToday.reduce((sum, job) => sum + bookingNet(job), 0),
     counts: { new: newCount, quotes: quoteCount, active: activeCount, issues: issueCount },
-    newJobs: newJobs.map((job) => jobView(job, job.orderId ? orders.get(job.orderId) : undefined)),
+    newJobs: newJobs.map((job) => jobView(job, job.orderId ? orders.get(job.orderId) : undefined, pickupGeo.get(job.id))),
     riders: { total: riders.length, out, offline: riders.length - out },
     riderList,
-    cashToPayIn: cashToPayIn(unremitted),
+    // Cash still to pay in after any credit from an earlier pay-in, and when: "by 6pm today" / "now" when late.
+    cashToPayIn: owedAfterCredit(cashToPayIn(unremitted), partner.payInCredit),
+    payInBy: payInDue(unremitted[0] ? unremitted[0].codCollectedAt ?? unremitted[0].createdAt : null, now).words,
     onTime,
     onTimeJobs: timed.length,
   });

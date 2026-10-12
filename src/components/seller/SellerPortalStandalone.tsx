@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { Mascot } from "@/components/brand/Mascot";
 
 type PageRow = {
   id: string;
@@ -213,7 +213,7 @@ function BigCard({
       <Card style={{ position: "relative", overflow: "hidden", padding: 22, minHeight: 258 }}>
         <div style={{ position: "absolute", top: -30, right: -30, width: 130, height: 130, borderRadius: 99, background: `${tint}14` }} />
         <div style={{ position: "relative", width: 50, height: 50, borderRadius: 13, background: `${tint}1f`, color: tint, display: "grid", placeItems: "center", marginBottom: 16 }}>
-          {mascot ? <Image src="/brand/mascots/rex-1.png" alt="Rex" width={42} height={42} style={{ objectFit: "contain" }} /> : <Icon name={icon ?? "grid"} size={24} color="currentColor" />}
+          {mascot ? <Mascot who="rex" size={42} /> : <Icon name={icon ?? "grid"} size={24} color="currentColor" />}
         </div>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", color: tint, marginBottom: 6 }}>{eyebrow}</div>
         <h3 style={{ fontSize: 19, fontWeight: 800, letterSpacing: 0, marginBottom: 8 }}>{title}</h3>
@@ -307,7 +307,7 @@ export function RexBuilderStandalone({ storeName, storeDomain }: PortalProps) {
       <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "100vh" }}>
         <aside style={{ background: T.surface, borderRight: `1px solid ${T.border}`, padding: 18, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <Image src="/brand/mascots/rex-1.png" alt="Rex" width={38} height={38} style={{ width: 38, height: 38, objectFit: "contain", flexShrink: 0 }} />
+            <Mascot who="rex" size={38} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 900 }}>Rex AI Builder</div>
               <div style={{ fontSize: 11.5, color: T.textSec }}>Live</div>
@@ -324,7 +324,7 @@ export function RexBuilderStandalone({ storeName, storeDomain }: PortalProps) {
           </div>
           <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", gap: 9 }}>
-              <Image src="/brand/mascots/rex-1.png" alt="Rex" width={28} height={28} style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} />
+              <Mascot who="rex" size={28} />
               <div style={{ background: T.surface2, border: `1px solid ${T.border}`, padding: "12px 15px", borderRadius: "4px 14px 14px 14px", fontSize: 13, lineHeight: 1.55 }}>
                 I built {storeName} and I keep editing it for you. Tell me what to change and watch it happen live.
               </div>
@@ -446,7 +446,7 @@ function PostsPanel({ posts }: { posts: PostRow[] }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <Card style={{ padding: 18, background: "linear-gradient(150deg,#E6F6F2,#F3FAF8)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <Image src="/brand/mascots/rex-1.png" alt="Rex" width={40} height={40} />
+            <Mascot who="rex" size={40} />
             <div><div style={{ fontSize: 14.5, fontWeight: 900 }}>Rex writes your blog</div><div style={{ fontSize: 11.5, color: T.textSec }}>SEO posts in your voice</div></div>
           </div>
           <p style={{ fontSize: 12.5, color: T.textSec, lineHeight: 1.5, marginBottom: 12 }}>Give Rex a topic and he will draft a full post - title, body, meta description and a featured image.</p>

@@ -14,6 +14,7 @@ import { EmailPreview, VariableChips, api, errorText, insertAtCursor, useDebounc
 import { categoryLabel, friendlyName } from "../../_kit/friendly";
 import { ChannelHelp, SmsCounter, TEMPLATE_STATUS, TemplateStatusPill, VariableMapper, WhatsAppBubble, type TemplateOption } from "../../_kit/text";
 import { TextPreview } from "./TextPreview";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 type Channel = "email" | "sms" | "whatsapp";
 
@@ -285,6 +286,7 @@ export function CampaignEditor({
                   <VariableChips only={["name", "store", "store_url"]} onInsert={(token) => set({ bodyHtml: insertAtCursor(textRef.current, draft.bodyHtml, token) })} />
                   <Field label="SMS message" htmlFor="c-text" hint="Plain text only. Say who it's from, and how to stop.">
                     <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={918} placeholder="{{store}}: our December sale starts today, 20% off everything: {{store_url}} Reply STOP to opt out" />
+                    <VoiceInputButton value={draft.bodyHtml} onChange={(bodyHtml) => set({ bodyHtml })} maxLength={918} context="a text message to customers" className="mt-2" />
                   </Field>
                   <SmsCounter text={draft.bodyHtml.replace(/{{\s*name\s*}}/g, "Adaeze").replace(/{{\s*store\s*}}/g, "Your shop").replace(/{{\s*store_url\s*}}/g, "https://yourshop.shopinbos.com")} recipients={audience} costPerSegment={sms.costPerSegment} currency={sms.currency} />
                   {!/\bSTOP\b/i.test(draft.bodyHtml) ? (

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { Mascot } from "@/components/brand/Mascot";
+import { mascotStill, type MascotMood, type MascotStillName, type MascotWho } from "@shared/mascots";
 import type React from "react";
 
 // Peggy and Rex on the app's own 404 and error pages: the real mascot renders, with small SVG props drawn
@@ -21,23 +21,23 @@ const STAGE_H = 200;
 /** Where the character sits inside each square render, in % of its side (the renders have wide transparent margins). */
 interface Crop { x: number; y: number; w: number; h: number }
 
-interface SpriteSource { src: string; crop: Crop }
+// Rex and Peggy are drawn by the shared <Mascot> in their "oops" mood (build spec 5.4), so the real animation takes
+// over here when it lands. The scene animates the sprite itself, so the mascot's own fallback motion is off.
+const SPRITES: Record<MascotWho, { mood: MascotMood }> = {
+  rex: { mood: "oops" },
+  // Side-on, looking ahead: Peggy on the hunt.
+  peggy: { mood: "oops" },
+};
 
-// The full renders (6000px+) go through next/image, so a phone gets a small file that is still sharp at 2x.
-// If the optimiser is down (we are on an error page, after all) the small static copies in /brand/app stand in.
-const SPRITES = {
-  rex: {
-    main: { src: "/brand/mascots/rex-1.png", crop: { x: 23.8, y: 19.1, w: 51.9, h: 65.1 } },
-    fallback: { src: "/brand/app/rex.png", crop: { x: 23.8, y: 19.1, w: 52.1, h: 65.3 } },
-  },
-  peggy: {
-    // Side-on, looking ahead: Peggy on the hunt.
-    main: { src: "/brand/mascots/peggy-1.png", crop: { x: 30.7, y: 24.1, w: 36, h: 51 } },
-    fallback: { src: "/brand/app/peggy.png", crop: { x: 29.7, y: 23.8, w: 40, h: 49.3 } },
-  },
-} satisfies Record<string, { main: SpriteSource; fallback: SpriteSource }>;
+/** Where the character sits inside each square still, in % of its side (the renders have wide transparent margins). */
+const CROPS: Partial<Record<MascotStillName, Crop>> = {
+  rex: { x: 23.8, y: 19.1, w: 52.1, h: 65.3 },
+  peggy: { x: 29.7, y: 23.8, w: 40, h: 49.3 },
+  "peggy-side": { x: 30.7, y: 24.1, w: 36, h: 51 },
+};
+const WHOLE: Crop = { x: 0, y: 0, w: 100, h: 100 };
 
-type SpriteName = keyof typeof SPRITES;
+type SpriteName = MascotWho;
 
 const pct = (value: number, of: number) => `${(value / of) * 100}%`;
 
@@ -46,8 +46,8 @@ const pct = (value: number, of: number) => `${(value / of) * 100}%`;
  * `height` its height, all in stage units. The outer box carries the motion classes; `flip` mirrors it.
  */
 function Sprite({ name, x, top, height, motion, tilt, flip = false }: { name: SpriteName; x: number; top: number; height: number; motion?: string; tilt?: string; flip?: boolean }) {
-  const [source, setSource] = useState<SpriteSource>(SPRITES[name].main);
-  const { crop } = source;
+  const { mood } = SPRITES[name];
+  const crop = CROPS[mascotStill(name, mood)] ?? WHOLE;
   const box: React.CSSProperties = {
     left: pct(x, STAGE_W),
     top: pct(top, STAGE_H),
@@ -57,20 +57,16 @@ function Sprite({ name, x, top, height, motion, tilt, flip = false }: { name: Sp
   return (
     <div className={`sbx-sprite absolute ${motion ?? ""}`} style={box}>
       <div className={`relative h-full w-full overflow-hidden ${tilt ?? ""}`} style={flip ? { scale: "-1 1" } : undefined}>
-        <Image
-          key={source.src}
-          src={source.src}
-          alt=""
-          width={480}
-          height={480}
-          loading="eager"
-          fetchPriority="high"
-          draggable={false}
-          onError={() => setSource((current) => (current === SPRITES[name].fallback ? current : SPRITES[name].fallback))}
+        <Mascot
+          who={name}
+          mood={mood}
+          decorative
+          still
           className="pointer-events-none absolute select-none"
           style={{
             width: `${(100 / crop.w) * 100}%`,
             height: "auto",
+            aspectRatio: "1 / 1",
             maxWidth: "none",
             left: `${(-crop.x / crop.w) * 100}%`,
             top: `${(-crop.y / crop.h) * 100}%`,

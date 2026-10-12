@@ -236,7 +236,6 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
                     disabled={isLoading}
                     className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-mint px-3 text-[13px] font-bold text-app-forest disabled:opacity-50"
                   >
-                    <Mascot name="peggy" className="h-5 w-5" alt="" />
                     {isLoading ? "Writing…" : "Ask Peggy"}
                   </button>
                 </div>

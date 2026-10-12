@@ -1,4 +1,5 @@
 import type { VerificationDoc } from "@shared/verification-docs";
+import type { PickupSlot } from "@shared/supplier-pickup";
 import { api, apiBody } from "./api";
 
 // The supplier side of the app. Reads and writes go to the same backend as the web supplier portal:
@@ -34,6 +35,12 @@ export interface DropshipOrder {
   notes: string | null;
   trackingCode: string | null;
   rejectReason?: string | null;
+  /** The supplier must accept a new order by then (the countdown). */
+  acceptBy?: string | null;
+  /** "I've packed it" was tapped. */
+  packed?: boolean;
+  /** The rider booked for it: "Pick up 12–4pm today", or still finding one. */
+  pickup?: { status: string; text: string | null } | null;
   createdAt: string;
 }
 
@@ -56,6 +63,12 @@ export interface WholesaleOrder {
   notes: string | null;
   trackingCode: string | null;
   rejectReason?: string | null;
+  /** The supplier must accept a new order by then (the countdown). */
+  acceptBy?: string | null;
+  /** "I've packed it" was tapped. */
+  packed?: boolean;
+  /** The rider booked for it: "Pick up 12–4pm today", or still finding one. */
+  pickup?: { status: string; text: string | null } | null;
   createdAt: string;
 }
 
@@ -172,3 +185,28 @@ export interface SupplierMe {
 export const fetchSupplierMe = () => api<SupplierMe>("/api/supplier/me");
 
 export const fetchSupplierProduct = (id: string) => api<SupplierProduct & { description: string }>(`/api/supplier/products/${encodeURIComponent(id)}`);
+
+/** "When can a rider pick it up?" and the rider booked for a packed order (/api/supplier/orders/[id]/pickup). */
+export interface PickupView {
+  kind: SupplierOrder["kind"];
+  orderId: string;
+  packed: boolean;
+  packable: boolean;
+  address: string;
+  slots: PickupSlot[];
+  preselected: string;
+  customDays: { day: string; label: string }[];
+  customHours: number[];
+  pickup: null | { status: string; text: string | null; address: string; slotKey: string; partner: string | null; rider: string | null; jobStatus: string | null; changeable: boolean; title: string; body: string };
+}
+
+const pickupPath = (kind: SupplierOrder["kind"], id: string) => `/api/supplier/orders/${encodeURIComponent(id)}/pickup?kind=${kind}`;
+
+export const fetchPickup = (kind: SupplierOrder["kind"], id: string) => api<PickupView>(pickupPath(kind, id));
+
+export const markPacked = (kind: SupplierOrder["kind"], id: string) => api<PickupView>(pickupPath(kind, id), { method: "POST", json: { intent: "packed", kind } });
+
+export const bookPickup = (kind: SupplierOrder["kind"], id: string, choice: { slot: string; day?: string; startHour?: number; address?: string }) =>
+  api<PickupView>(pickupPath(kind, id), { method: "POST", json: { intent: "book", kind, ...choice } });
+
+export const cancelPickup = (kind: SupplierOrder["kind"], id: string) => api<PickupView>(pickupPath(kind, id), { method: "DELETE" });

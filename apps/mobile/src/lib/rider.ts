@@ -47,6 +47,8 @@ export interface RiderRun {
   key: string;
   pickupName: string;
   pickupAddress: string;
+  /** Supplier pickups: "Pick up 12–4pm today". */
+  pickupWindow?: string | null;
   fees: number;
   drops: RiderDrop[];
 }
@@ -92,3 +94,15 @@ export function uploadRiderProof(jobId: string, photo: { uri: string; mimeType?:
   form.append("file", { uri: photo.uri, name: photo.fileName ?? `proof.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
   return riderFetch<{ proofUrl: string }>("/proof", { method: "POST", body: form });
 }
+
+export interface RiderLocationPoint {
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  /** Epoch ms when the phone took the reading. */
+  at: number;
+}
+
+/** Sends queued locations (lib/rider-location.ts). tracking: false means stop: the rider is offline with no job. */
+export const sendRiderLocations = (points: RiderLocationPoint[]) =>
+  riderFetch<{ saved: number; tracking: boolean }>("/location", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ points }) });

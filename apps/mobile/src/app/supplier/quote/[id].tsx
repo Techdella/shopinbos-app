@@ -12,6 +12,7 @@ import { fetchQuote, replyToQuote } from "@/lib/supplier";
 import { bulkRequestStage, countWord, READY_CHOICES } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // A bulk request from a shop (build spec 8A): "Adaeze Studio wants 50 pieces". The supplier types a price for each
 // and picks when it can be ready, then "Send my price". Same API as before (respond with a price, or decline).
@@ -143,6 +144,7 @@ export default function BulkRequest() {
               <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" placeholder={String(data.product.moq)} accessibilityLabel="Smallest order you accept" />
               <T weight="bold" style={{ fontSize: 15 }}>Message to the shop (optional)</T>
               <Field value={note} onChangeText={setNote} multiline maxLength={800} placeholder="Price includes packaging." accessibilityLabel="Message to the shop" style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
+              <VoiceInput value={note} onChange={setNote} maxLength={800} context="a note with a bulk price" style={{ marginTop: 8 }} />
             </View>
           ) : (
             <LinkButton title="Smallest order and a message (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />

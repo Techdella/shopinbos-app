@@ -220,7 +220,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     body = (
       <>
         <div className="flex items-start gap-3">
-          <Mascot name="rex" className="h-14 w-14 shrink-0" alt="Rex" />
+          <Mascot name="rex" mood={started ? "idle" : "wave"} className="h-14 w-14 shrink-0" alt="Rex" />
           <div className="rounded-[20px] rounded-tl-[6px] bg-white px-4 py-3.5 text-[16px] font-bold leading-[1.35]">{REX_GREETING[lang](name)}</div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -247,7 +247,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             ),
           )}
           {rexThinking && (
-            <div className="flex items-center gap-2 text-[14px] text-app-ink-soft"><Mascot name="rex" className="h-8 w-8" alt="" /> Rex is thinking…</div>
+            <div className="flex items-center gap-2 text-[14px] text-app-ink-soft"><Mascot name="rex" mood="thinking" className="h-8 w-8" alt="" /> Rex is thinking…</div>
           )}
         </div>
         {!turns.length && (

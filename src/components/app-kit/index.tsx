@@ -4,6 +4,7 @@ import { AppFrame } from "@/components/shell/AppFrame";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { HelpButton } from "@/components/simple/HelpButton";
+import { Mascot, type MascotMood } from "@/components/brand/Mascot";
 
 // The 2026 app look ("Seller app · web", "Products, web", "Partners · web dispatch console" prototypes)
 // as server-safe building blocks. Pages are full-bleed: they use the whole width at every size.
@@ -225,11 +226,10 @@ export function EmptyState({ icon = "sparkle", title, children, action }: { icon
 }
 
 /** Peggy/Rex tip strip (mint for Peggy, peach for Rex). */
-export function AssistantNote({ who = "peggy", children, action }: { who?: "peggy" | "rex"; children: ReactNode; action?: ReactNode }) {
+export function AssistantNote({ who = "peggy", mood = "idle", children, action }: { who?: "peggy" | "rex"; mood?: MascotMood; children: ReactNode; action?: ReactNode }) {
   return (
     <div className={cx("flex flex-wrap items-center gap-3 rounded-[18px] px-4 py-3", who === "peggy" ? "bg-app-mint" : "bg-app-peach")}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={who === "peggy" ? "/brand/app/peggy.png" : "/brand/app/rex.png"} alt={who === "peggy" ? "Peggy" : "Rex"} className="h-9 w-9 shrink-0 object-contain" />
+      <Mascot who={who} mood={mood} size={36} />
       <p className="m-0 min-w-0 flex-1 text-[14px] leading-[1.5]">{children}</p>
       {action}
     </div>

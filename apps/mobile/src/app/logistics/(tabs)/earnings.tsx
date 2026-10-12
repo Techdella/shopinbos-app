@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Pressable, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
@@ -11,13 +13,22 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
-// Money: cash collected when customers pay on arrival that's still to pay in, then what the company earned (after the
-// Shopinbos fee) today, this week and in 30 days, recent pay-ins and where we send your money. Saving a pay-in and
-// changing the bank happen on the web.
+// Money: "Pay in ₦X by 6pm", the company's own pay-in account number with a Copy button (transfers to it are matched
+// automatically, lib/logistics/payins.server.ts), recent pay-ins with their status, then what the company earned
+// (after the Shopinbos fee) and where we send its money. Without a pay-in account (not available yet), "I've paid it
+// in" opens the web form. Changing the bank happens on the web.
 
 export default function LogisticsEarnings() {
   const earnings = useLoad(fetchEarnings);
   const data = earnings.data;
+  const [copied, setCopied] = useState(false);
+
+  async function copy(value: string) {
+    if (!value) return;
+    await Clipboard.setStringAsync(value).catch(() => undefined);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
 
   return (
     <TabScreen title="Money" refreshing={earnings.refreshing} onRefresh={() => void earnings.refresh()}>
@@ -27,12 +38,46 @@ export default function LogisticsEarnings() {
         <View style={{ gap: 12 }}>
           <View style={{ backgroundColor: data.cashToPayIn > 0 ? "#FDF0D5" : colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
             <T style={{ color: colors.inkSoft, fontSize: 15 }}>Cash to pay in</T>
-            <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }}>{naira(data.cashToPayIn)}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
-              {data.cashToPayIn > 0 ? "Cash your riders collected from customers who paid when it arrived." : "Nothing to pay in right now."}
+            <T weight="extrabold" style={{ fontSize: 26, letterSpacing: -0.5 }} accessibilityRole="header">
+              {data.cashToPayIn > 0 ? `Pay in ${naira(data.cashToPayIn)} ${data.payInBy ?? "by 6pm"}` : "Nothing to pay in"}
             </T>
-            {data.cashToPayIn > 0 ? <PillButton title="I've paid it in" style={{ marginTop: 8 }} onPress={() => void openWeb("/logistics/cash")} /> : null}
+            <T style={{ color: data.late ? colors.danger : colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
+              {data.cashToPayIn > 0
+                ? data.late
+                  ? "This was due by 6pm. Pay it in now so you keep getting jobs where customers pay when it arrives."
+                  : "Cash your riders collected from customers who paid when it arrived."
+                : (data.credit ?? 0) > 0
+                ? `You paid ${naira(data.credit ?? 0)} extra. We'll use it for your next cash jobs.`
+                : "Cash your riders collect shows here."}
+            </T>
           </View>
+
+          {data.payIn?.state === "ready" ? (
+            <Card style={{ gap: 10, padding: 18 }}>
+              <T weight="extrabold" style={{ fontSize: 17 }}>Your pay-in account</T>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <T weight="extrabold" selectable style={{ flex: 1, fontSize: 28, letterSpacing: 1 }} accessibilityLabel={`Account number ${data.payIn.accountNumber.split("").join(" ")}`}>
+                  {data.payIn.accountNumber}
+                </T>
+                <PillButton title={copied ? "Copied" : "Copy"} size="md" tone={copied ? "white" : undefined} onPress={() => void copy(data.payIn?.state === "ready" ? data.payIn.accountNumber : "")} />
+              </View>
+              <View style={{ gap: 2 }}>
+                <T style={{ fontSize: 16 }}>{data.payIn.bankName}</T>
+                <T style={{ fontSize: 16, color: colors.inkSoft }}>{data.payIn.accountName}</T>
+              </View>
+              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>We match your payment automatically. It shows here within a few minutes.</T>
+            </Card>
+          ) : data.cashToPayIn > 0 ? (
+            <Card style={{ gap: 8, padding: 18 }}>
+              <T weight="extrabold" style={{ fontSize: 17 }}>How to pay in</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
+                {data.payIn?.state === "setting_up"
+                  ? "We're getting your own account number ready. Until then, pay in the usual way and tell us how much you paid, so we can tick off your jobs."
+                  : "Pay in the usual way, then tell us how much you paid. We tick off your jobs once we've checked it."}
+              </T>
+              <PillButton title="I've paid it in" style={{ marginTop: 4 }} onPress={() => void openWeb("/logistics/cash")} />
+            </Card>
+          ) : null}
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             {[
@@ -61,11 +106,14 @@ export default function LogisticsEarnings() {
 
           {data.remittances.length ? (
             <>
-              <SectionTitle>Cash you paid in</SectionTitle>
+              <SectionTitle>Recent pay-ins</SectionTitle>
               <Card style={{ paddingVertical: 4 }}>
                 {data.remittances.map((row, index) => (
-                  <View key={row.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 12, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
-                    <T style={{ flex: 1, fontSize: 15 }}>{row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"} · {dayWord(row.createdAt)}</T>
+                  <View key={row.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <T style={{ fontSize: 15 }}>{row.method === "account" ? "To your pay-in account" : row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"} · {dayWord(row.createdAt)}</T>
+                      {row.status ? <T style={{ color: colors.success, fontSize: 14 }}>{row.status}</T> : null}
+                    </View>
                     <T weight="extrabold">{naira(row.amount)}</T>
                   </View>
                 ))}

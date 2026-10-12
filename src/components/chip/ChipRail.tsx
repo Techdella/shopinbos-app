@@ -103,7 +103,7 @@ export function ChipRail({
           className="relative overflow-hidden rounded-[20px] border border-[rgb(115_216_200_/_0.18)] bg-[rgb(115_216_200_/_0.06)]"
           style={{ minHeight: collapsed ? 120 : 180 }}
         >
-          <MascotFigure role={role} variant={role === "logistics_partner" ? 0 : 1} className={collapsed ? "mx-auto max-w-[86px] pt-4" : "mx-auto max-w-[180px] pt-4"} />
+          <MascotFigure who="rex" className={collapsed ? "mx-auto max-w-[86px] pt-4" : "mx-auto max-w-[180px] pt-4"} />
         </div>
 
         {!collapsed && (

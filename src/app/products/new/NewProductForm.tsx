@@ -6,6 +6,8 @@ import Link from "next/link";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { PageHead } from "@/components/ui";
 import { askPeggy } from "@/app/actions/ai";
+import { Mascot } from "@/components/brand/Mascot";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface Category {
   id: string;
@@ -338,7 +340,8 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
               <div className="grid gap-4 lg:grid-cols-[1fr_0.6fr] mt-4">
                 <label className="field">
                   <span className="label">Description</span>
-                  <textarea name="description" className="ta" rows={5} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
+                  <textarea id="new-product-description" name="description" className="ta" rows={5} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
+                  <VoiceInputButton targetId="new-product-description" context="a product description" className="mt-2" />
                 </label>
                 <label className="field">
                   <span className="label">Category</span>
@@ -525,7 +528,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
             <aside className="card flex flex-col" style={{ maxHeight: "calc(100vh - 140px)", background: "var(--ink-50)" }}>
               <div className="p-3 border-b border-[var(--ink-100)]">
                 <div className="flex items-center gap-2">
-                  <img src="/brand/mascots/peggy-1.png" alt="Peggy" className="h-8 w-8 rounded-full object-contain" />
+                  <Mascot who="peggy" mood={peggyLoading ? "thinking" : "idle"} className="h-8 w-8 rounded-full" />
                   <div>
                     <div className="text-[13px] font-semibold text-[var(--ink-900)]">Peggy</div>
                     <div className="text-[11px] text-[var(--ink-500)]">AI product assistant</div>

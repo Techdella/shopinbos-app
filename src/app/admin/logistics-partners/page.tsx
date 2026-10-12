@@ -18,10 +18,11 @@ import {
 } from "@/components/admin/AdminKit";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
+import { UnmatchedPayIns } from "./PayInsPanels";
 
 const verificationStatuses: readonly string[] = VERIFICATION_STATUSES;
 
-export default async function AdminLogisticsPartnersPage(props: { searchParams?: Promise<{ status?: string; q?: string }> }) {
+export default async function AdminLogisticsPartnersPage(props: { searchParams?: Promise<{ status?: string; q?: string; saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
 
   const searchParams = await props.searchParams;
@@ -40,7 +41,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     ];
   }
 
-  const [partners, byStatus, total, submitted, suspended] = await Promise.all([
+  const [partners, byStatus, total, submitted, suspended, unmatchedPayIns, partnerChoices] = await Promise.all([
     db.logisticsPartner.findMany({
       where,
       orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
@@ -67,6 +68,14 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     db.logisticsPartner.count(),
     db.logisticsPartner.count({ where: { onboardingState: { path: ["completed"], equals: true } } }),
     db.logisticsPartner.count({ where: { status: "suspended" } }),
+    // Transfers into pay-in accounts we couldn't match to a partner (lib/logistics/payins.server.ts).
+    db.partnerPayIn.findMany({
+      where: { status: "unmatched" },
+      orderBy: { paidAt: "asc" },
+      take: 50,
+      select: { id: true, amount: true, currency: true, accountNumber: true, senderName: true, senderBank: true, reference: true, paidAt: true },
+    }),
+    db.logisticsPartner.findMany({ orderBy: { displayName: "asc" }, take: 500, select: { id: true, displayName: true } }),
   ]);
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
@@ -95,6 +104,14 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         </>
       }
     >
+      {(searchParams?.saved || searchParams?.error) && (
+        <p role="status" className={`mb-4 rounded-[14px] px-4 py-3 text-[14.5px] font-bold ${searchParams.error ? "bg-app-danger-tint text-app-danger" : "bg-app-success-tint text-app-success"}`}>
+          {searchParams.error ?? searchParams.saved}
+        </p>
+      )}
+
+      <UnmatchedPayIns payIns={unmatchedPayIns} partners={partnerChoices} returnTo={backTo} />
+
       <CountRow
         items={[
           { label: "All partners", value: total },

@@ -35,6 +35,9 @@ export function OrderRow({ order }: { order: DropshipOrder | WholesaleOrder }) {
           {single ? `For ${order.shop} · to ${order.label.address[order.label.address.length - 1] ?? order.label.to}` : `${ORDER_KIND_LABEL.wholesale} · ${order.shop}`} · {capitalise(friendlyDay(order.createdAt))}
         </T>
         <TonePill tone={tone} label={stage} style={{ marginTop: 2 }} />
+        {order.pickup?.text && ["accepted", "processing", "confirmed"].includes(order.status) ? (
+          <T weight="bold" style={{ color: colors.forest, fontSize: 14.5 }} numberOfLines={1}>{order.pickup.status === "finding_rider" ? "Finding a rider" : `Rider booked: ${order.pickup.text.replace(/^Pick up/, "pick up")}`}</T>
+        ) : null}
       </View>
       <T weight="extrabold" style={{ fontSize: 15 }}>{naira(single ? order.yourTotal : order.total)}</T>
     </Pressable>

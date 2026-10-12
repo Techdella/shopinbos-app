@@ -8,6 +8,7 @@ import { fetchAutoReplySettings, fetchAutomation, saveAutoReplySettings, saveAut
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // Auto-replies (web /home/inbox/auto-replies), the everyday switches: away message, instant "got your message"
 // reply, opening hours and keyword replies on or off. Hours per day and the keyword list are edited on the web.
@@ -94,6 +95,7 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
             <>
               <Label>Your away message</Label>
               <Field value={settings.awayMessage} onChangeText={(text) => setSettings({ ...settings, awayMessage: text })} placeholder={DEFAULT_AWAY} multiline maxLength={600} style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }} />
+              <VoiceInput value={settings.awayMessage} onChange={(text) => setSettings({ ...settings, awayMessage: text })} maxLength={600} mode="replace" context="an away message for customers" style={{ marginTop: 8 }} />
             </>
           )}
         </Card>

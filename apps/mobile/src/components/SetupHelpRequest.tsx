@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { AppIcon } from "@/components/icons";
 import { Card, Field, Label, Notice, PillButton, T } from "@/components/ui";
 import { colors, radii } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // Mobile twin of the web's src/components/support/SetupHelpRequest.tsx, with the same props.
 // "We'll set it up for you": instead of showing API keys, DNS records or feed links, a technical job becomes a
@@ -108,6 +109,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
       <View>
         <Optional>Anything we should know?</Optional>
         <Field value={details} onChangeText={setDetails} multiline maxLength={1500} accessibilityLabel="Anything we should know?" style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
+        <VoiceInput value={details} onChange={setDetails} maxLength={1500} context="anything the team should know" style={{ marginTop: 8 }} />
       </View>
 
       {error ? <Notice tone="error">{error}</Notice> : null}

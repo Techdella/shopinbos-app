@@ -6,6 +6,8 @@ import { QUOTE_STATUS, buttonClass, fieldClass, labelClass, money, shortDate, st
 import { db } from "@/lib/db/client";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
+import { Mascot } from "@/components/brand/Mascot";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 type PageProps = {
   searchParams?: Promise<{ error?: string; saved?: string; show?: string }>;
@@ -173,6 +175,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
                               defaultValue={`Yes, we can supply ${quote.quantity.toLocaleString("en-NG")} units to ${quote.destination}.`}
                               className={`${textareaClass} resize-y`}
                             />
+                            <VoiceInputButton targetId={`message-${quote.id}`} mode="replace" context="a note with a bulk price" className="mt-2" />
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <button type="submit" name="intent" value="respond" className={buttonClass.ink}>
@@ -215,8 +218,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
             </Card>
             <section className="rounded-[22px] bg-app-peach p-5">
               <div className="mb-3 flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/app/rex.png" alt="Rex" className="h-10 w-10 object-contain" />
+                <Mascot who="rex" size={40} />
                 <h2 className="m-0 text-[17px] font-extrabold">Prices that win orders</h2>
               </div>
               <ul className="m-0 grid list-none gap-2 p-0">

@@ -8,11 +8,12 @@ import { REX_STARTERS } from "@/lib/ai/rex/starters";
 import { uploadStudioPhoto } from "./api";
 import { RexCardView, type RexCardHandlers } from "./RexCards";
 import type { ChatMessage } from "./types";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const MAX_PHOTOS = 4;
 
-function RexAvatar() {
-  return <Mascot name="rex" alt="" className="mt-0.5 h-8 w-8 shrink-0" />;
+function RexAvatar({ mood = "idle" }: { mood?: "idle" | "thinking" }) {
+  return <Mascot name="rex" mood={mood} alt="" className="mt-0.5 h-8 w-8 shrink-0" />;
 }
 
 /**
@@ -281,7 +282,7 @@ export function RexChat({
 
           {busy ? (
             <div className="flex items-center gap-2.5">
-              <RexAvatar />
+              <RexAvatar mood="thinking" />
               <div className="flex items-center gap-2 rounded-[18px] rounded-tl-[6px] bg-app-peach px-4 py-3 text-[14px]">
                 <Spinner className="h-4 w-4" /> {busyLabel}
               </div>
@@ -383,6 +384,7 @@ export function RexChat({
                 >
                   <Icon name="link" size={17} />
                 </button>
+                <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={2000} context="a request for Rex" disabled={blocked} />
                 <button
                   type="button"
                   onClick={() => void toggleMic()}

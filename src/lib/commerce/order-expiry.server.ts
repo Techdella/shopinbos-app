@@ -11,6 +11,7 @@ import {
   isExpirableOrder,
   isLegacyCheckoutOrder,
   orderStockHolds,
+  parseStockHold,
   paymentDueAt,
   shouldRestoreDiscount,
   unpaidOrderTtlMinutes,
@@ -240,7 +241,10 @@ export async function releaseOrderStock(orderId: string) {
       data: { stockReleasedAt: new Date(), ...(legacy ? { stockHold: JSON.parse(JSON.stringify(holds)) } : {}) },
     });
     if (claimed.count !== 1) return false;
-    await releaseStock(tx, holds);
+    // Read the hold again under the claim: a supplier order that ran out of time may have just given back its
+    // own lines and taken them off the hold (src/lib/supplier-orders/acceptance.server.ts).
+    const fresh = legacy ? null : await tx.retailOrder.findUnique({ where: { id: order.id }, select: { stockHold: true } });
+    await releaseStock(tx, fresh ? parseStockHold(fresh.stockHold) : holds);
     return true;
   });
 }

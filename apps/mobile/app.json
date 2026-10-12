@@ -51,6 +51,22 @@
           "resizeMode": "contain",
           "backgroundColor": "#0C4A44"
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Shopinbos uses the microphone only when you tap the mic, so you can speak instead of typing.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-video",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Shopinbos uses your location only while you're online, so we can give you jobs near you.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
       ]
     ]
   }

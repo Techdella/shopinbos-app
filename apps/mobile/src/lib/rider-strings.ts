@@ -74,6 +74,13 @@ const en = {
   newLink: "Use a new link",
   loading: "Loading your deliveries…",
   customer: "the customer",
+  locAskT: "Share your location?",
+  locAsk: "Shopinbos uses your location only while you're online, so we can give you jobs near you.",
+  locYes: "Share my location",
+  locNo: "Not now",
+  locOn: "Sharing your location while you're online.",
+  locOff: "Location is off. You still get jobs, but your company can't see who is closest.",
+  locSettings: "Turn it on in settings",
 } satisfies Record<string, Line | string[]>;
 
 type Strings = typeof en;
@@ -137,6 +144,13 @@ const pcm: Strings = {
   newLink: "Use new link",
   loading: "We dey load your deliveries…",
   customer: "the customer",
+  locAskT: "Make we see where you dey?",
+  locAsk: "Shopinbos dey use your location only when you dey online, so we fit give you work wey near you.",
+  locYes: "Share my location",
+  locNo: "No be now",
+  locOn: "We dey see your location while you dey online.",
+  locOff: "Location dey off. You go still get work, but your company no go know who near pass.",
+  locSettings: "On am for settings",
 };
 
 export const STRINGS: Record<RiderLang, Strings> = { en, pcm };

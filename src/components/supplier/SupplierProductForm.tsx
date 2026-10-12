@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Card, Pill } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { PRODUCT_STATUS, buttonClass, fieldClass, hintClass, labelClass, money, statusOf, textareaClass } from "./supplier-kit";
+import { Mascot } from "@/components/brand/Mascot";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface CategoryOption {
   id: string;
@@ -128,6 +130,7 @@ export function SupplierProductForm({ mode, action, categories, product, error, 
               placeholder="Material, sizing, packaging, production capacity, and what makes it easy for sellers to resell."
               required
             />
+            <VoiceInputButton targetId="product-description" context="a product description" className="mt-2" />
           </Field>
         </Section>
 
@@ -200,8 +203,7 @@ export function SupplierProductForm({ mode, action, categories, product, error, 
       <aside className="grid min-w-0 content-start gap-5">
         <section className="rounded-[22px] bg-app-peach p-5">
           <div className="mb-3 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/app/rex.png" alt="Rex" className="h-10 w-10 object-contain" />
+            <Mascot who="rex" size={40} />
             <h2 className="m-0 text-[17px] font-extrabold">Seller margin</h2>
           </div>
           <dl className="m-0 grid gap-2 rounded-[16px] bg-white p-4 text-[14px]">

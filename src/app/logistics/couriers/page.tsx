@@ -9,6 +9,7 @@ import { requireRole } from "@/lib/server-auth";
 import { ActionNotice, PartnerPage, SubmitButton, bookingNet, inputClass, labelClass, lagosDate, lagosStartOfToday, naira, timeAgo } from "@/components/logistics/kit";
 import { RiderLinkButton } from "@/components/logistics/RiderLinkButton";
 import { riderPresence } from "@/components/logistics/dispatch";
+import { riderWhereWords } from "@shared/delivery-geo";
 import { isRiderOut } from "@/lib/logistics/job-rules";
 
 export const dynamic = "force-dynamic";
@@ -111,6 +112,9 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                     <div className="min-w-0 flex-1 basis-[180px]">
                       <div className="truncate text-[15px] font-extrabold">{member.name}</div>
                       <div className="truncate text-[15px] text-app-ink-soft">{[member.email, member.phone].filter(Boolean).join(" · ")}</div>
+                      {member.role === "rider" && member.lastLocationAt && (
+                        <div className="truncate text-[15px] text-app-ink-soft">{riderWhereWords({ lat: member.lastLat, lng: member.lastLng, locationAt: member.lastLocationAt }, now)}</div>
+                      )}
                   </div>
                   <span className="text-[15px] capitalize text-app-ink-soft">{member.role}</span>
                   {member.status !== "active" ? (

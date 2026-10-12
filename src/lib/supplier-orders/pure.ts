@@ -4,7 +4,8 @@
 
 // ─── Dropship: creating ───────────────────────────────────────────────────────
 
-export const SUPPLIER_ORDER_STATUSES = ["pending", "accepted", "shipped", "delivered", "rejected", "cancelled"] as const;
+// "expired": the supplier didn't accept it in time (src/lib/supplier-orders/acceptance.server.ts).
+export const SUPPLIER_ORDER_STATUSES = ["pending", "accepted", "shipped", "delivered", "rejected", "cancelled", "expired"] as const;
 export type SupplierOrderStatus = (typeof SUPPLIER_ORDER_STATUSES)[number];
 
 /** One supplier order per store order and supplier: replaying a payment webhook can't make a second one. */
@@ -132,7 +133,8 @@ export function retailStatusAfterSupplierUpdate(input: { retailStatus: string; s
   const live = input.supplierStatuses.filter((status) => status !== "cancelled");
   if (live.length === 0) return null;
   const forward = (target: "processing" | "shipped" | "delivered") => (RETAIL_PROGRESS.indexOf(target) > current ? target : null);
-  const anyRejected = live.includes("rejected");
+  // A declined line, or one whose supplier ran out of time, waits for the seller to decide.
+  const anyRejected = live.includes("rejected") || live.includes("expired");
   if (!anyRejected && input.sellerLines === 0) {
     if (live.every((status) => status === "delivered")) return forward("delivered");
     if (live.every((status) => status === "shipped" || status === "delivered")) return forward("shipped");
@@ -181,10 +183,14 @@ export function sellerCanCancelWholesale(status: string) {
 /** rejectReason prefix when the seller cancelled (otherwise a cancelled order was declined by the supplier). */
 export const SELLER_CANCEL_PREFIX = "Cancelled by the seller";
 
+/** rejectReason on a bulk order the supplier didn't accept in time (it is cancelled, with expiredAt set). */
+export const EXPIRED_WHOLESALE_REASON = "The supplier didn't accept it in time";
+
 /** What the seller sees for a wholesale order: the stage, and why it ended if it was declined or cancelled. */
 export function sellerWholesaleStage(status: string, rejectReason: string | null | undefined): { label: string; tone: "warning" | "info" | "accent" | "success" | "danger" | "muted"; note: string | null } {
   if (status === "cancelled") {
     const reason = (rejectReason ?? "").trim();
+    if (reason === EXPIRED_WHOLESALE_REASON) return { label: "The supplier didn't answer in time", tone: "danger", note: "Nothing was paid. Find another supplier for it." };
     if (reason.startsWith(SELLER_CANCEL_PREFIX)) {
       const said = reason.slice(SELLER_CANCEL_PREFIX.length).replace(/^[:.]\s*/, "").trim();
       return { label: "Cancelled by you", tone: "muted", note: said ? `Your reason: ${said}` : null };

@@ -9,6 +9,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { ChoiceSheet } from "@/components/partner";
 import { Field, Notice, T } from "@/components/ui";
 import { fetchRider, forgetRiderToken, riderAction, riderToken, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
+import { useRiderLocation } from "@/lib/rider-location";
 import { RIDER_LANGS, STRINGS, useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
@@ -64,6 +65,8 @@ export default function RiderApp() {
   const [photoDone, setPhotoDone] = useState(false);
   const [last, setLast] = useState<{ earned: number; cash: number } | null>(null);
   const data = rider.data;
+  // Location only while online or carrying a delivery, and only with the rider's yes (lib/rider-location.ts).
+  const location = useRiderLocation(Boolean(token && data && (data.rider.online || data.runs.length > 0)));
 
   if (!token) return <Redirect href="/rider/link" />;
 
@@ -208,6 +211,30 @@ export default function RiderApp() {
                   </View>
                 </Pressable>
 
+                {location.state === "ask" ? (
+                  <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 10, borderWidth: 1, borderColor: colors.line }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <AppIcon name="pin" size={22} />
+                      <T weight="extrabold" style={{ fontSize: 18, flex: 1 }}>{t.locAskT}</T>
+                    </View>
+                    <T style={{ fontSize: 16, lineHeight: 23 }}>{t.locAsk}</T>
+                    <BigButton title={t.locYes} tone="forest" onPress={() => void location.allow()} />
+                    <Pressable accessibilityRole="button" onPress={location.notNow} style={{ minHeight: 48, alignItems: "center", justifyContent: "center" }}>
+                      <T weight="bold" style={{ fontSize: 16, color: colors.inkSoft }}>{t.locNo}</T>
+                    </Pressable>
+                  </View>
+                ) : location.state === "denied" || location.state === "unavailable" ? (
+                  <Pressable accessibilityRole="button" onPress={location.openSettings} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48 }}>
+                    <AppIcon name="pin" size={18} color={colors.inkSoft} />
+                    <T style={{ flex: 1, fontSize: 15, color: colors.inkSoft, lineHeight: 21 }}>{t.locOff} <T weight="bold" style={{ fontSize: 15, color: colors.ink }}>{t.locSettings}</T></T>
+                  </Pressable>
+                ) : location.state === "on" ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <AppIcon name="pin" size={16} color={colors.success} />
+                    <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.locOn}</T>
+                  </View>
+                ) : null}
+
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, gap: 4 }}>
                     <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.earnedToday}</T>
@@ -225,6 +252,7 @@ export default function RiderApp() {
                     <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }}>{carrying ? t.carrying : t.newJob}</T>
                     <T weight="extrabold" style={{ fontSize: 20 }}>{run.pickupName}</T>
                     <T style={{ fontSize: 16, color: colors.inkSoft }}>{run.pickupAddress} → {drop.area}</T>
+                    {run.pickupWindow ? <T weight="extrabold" style={{ fontSize: 17, color: colors.accentInk }}>{run.pickupWindow}</T> : null}
                     <T weight="extrabold" style={{ fontSize: 18 }}>{t.forYou({ amount: naira(run.fees) })}</T>
                     {drop.collect > 0 ? <T weight="bold" style={{ fontSize: 16, color: "#8A5A00" }}>{t.collect({ amount: naira(drop.collect) })}</T> : null}
                     {run.drops.length > 1 ? <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.parcels({ count: run.drops.length })}</T> : null}
@@ -255,6 +283,7 @@ export default function RiderApp() {
             <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
               <T weight="extrabold" style={{ fontSize: 20 }}>{run.pickupName}</T>
               <T style={{ fontSize: 17, lineHeight: 24 }} selectable>{run.pickupAddress}</T>
+              {run.pickupWindow ? <T weight="extrabold" style={{ fontSize: 17, color: colors.accentInk }}>{run.pickupWindow}</T> : null}
               <T style={{ fontSize: 15, color: colors.inkSoft }}>{run.drops.length > 1 ? t.parcels({ count: run.drops.length }) : drop.item}</T>
             </View>
             <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(mapUrl(run.pickupAddress))} />

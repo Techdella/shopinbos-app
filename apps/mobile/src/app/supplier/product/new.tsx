@@ -13,6 +13,7 @@ import { parseAmount, parseCount } from "@/lib/partner-pure";
 import { createSupplierProduct, fetchCategories, uploadSupplierPhoto } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // Add a supplier product from the phone, one question per screen: photos and what it is; your price to shops,
 // what shops sell it for and how many you have; then a description and the kind of product (the rest folded away). Saved through the portal's own
@@ -207,6 +208,7 @@ export default function NewSupplierProduct() {
           <View>
             <Label>Describe it</Label>
             <Field value={description} onChangeText={setDescription} placeholder="What it's made of, sizes, colours, what's in the box" multiline maxLength={5000} accessibilityLabel="Describe it" style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }} />
+            <VoiceInput value={description} onChange={setDescription} maxLength={5000} context="a product description" style={{ marginTop: 8 }} />
           </View>
           <View>
             <Label>What kind of product?</Label>

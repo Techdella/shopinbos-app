@@ -1021,7 +1021,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
 
             <div className="relative min-h-[520px]">
               <div className="relative text-center">
-                <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="mx-auto w-[360px]" priority />
+                <MascotFigure who="rex" mood="wave" alt="Rex" className="mx-auto w-[360px]" />
                 <div className="mx-auto -mt-5 max-w-[350px] rounded-[18px] border border-[var(--ink-100)] bg-[var(--paper)] px-5 py-4 text-left shadow-[var(--shd-md)]">
                   <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--teal-700)]">Rex - drafting</div>
                   <div className="text-[14px] leading-6 text-[var(--ink-800)]">
@@ -1186,7 +1186,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
           {step === 4 && buildPath === "rex" && (
             <div className="flex flex-1 items-center justify-center overflow-auto bg-[linear-gradient(180deg,#f5faf7,var(--canvas))] px-7 py-8">
               <div className="w-full max-w-[780px] text-center">
-                <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="mx-auto mb-6 w-[120px]" />
+                <MascotFigure who="rex" alt="Rex" className="mx-auto mb-6 w-[120px]" />
                 <h1 className="onb-title text-center">Tell me what you sell.<br /><em className="text-[var(--teal-700)]">In one sentence.</em></h1>
                 <p className="onb-sub mx-auto max-w-[540px]">The more specific, the better. Where you make it, who it's for, what makes it different. I'll do the rest.</p>
                 <div className="card mt-8 text-left" style={{ padding: 24, boxShadow: "var(--shd-lg)" }}>
@@ -1293,7 +1293,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
               <aside className="space-y-4">
                 <div className="card">
                   <div className="mb-4 flex items-start gap-3">
-                    <ChipAvatar mascot="rex" size={42} />
+                    <ChipAvatar mascot="rex" size={42} mood={rexBuildStatus === "building" ? "working" : rexBuildStatus === "error" ? "oops" : "idle"} />
                     <div>
                       <div className="text-[14px] font-semibold text-[var(--ink-900)]">
                         {rexBuildStatus === "ready" ? "Rex built your first draft." : rexBuildStatus === "error" ? "Rex needs another try." : "Rex is building your store."}
@@ -1399,7 +1399,7 @@ function PathCard({
     <div className="card relative overflow-hidden p-0" style={{ borderColor: featured ? "var(--teal-400)" : "var(--ink-100)", boxShadow: featured ? "var(--shd-pop)" : "var(--shd-xs)" }}>
       {featured && <div className="absolute right-3 top-3 z-10 rounded-full bg-[var(--teal-700)] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white">RECOMMENDED</div>}
       <div className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[linear-gradient(170deg,var(--teal-100),var(--teal-200)_70%,var(--teal-300))]">
-        {featured ? <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="w-[150px]" /> : <Icon name={icon} size={72} color={featured ? "var(--teal-700)" : "var(--ink-700)"} />}
+        {featured ? <MascotFigure who="rex" alt="Rex" className="w-[150px]" /> : <Icon name={icon} size={72} color={featured ? "var(--teal-700)" : "var(--ink-700)"} />}
         <div className="absolute bottom-3 left-3 rounded-full bg-[var(--paper)] px-3 py-1 text-[11px] font-bold text-[var(--teal-800)] shadow-[var(--shd-sm)]">{eyebrow}</div>
       </div>
       <div className="p-[22px]">
@@ -1736,7 +1736,7 @@ function LaunchStep({
   return (
     <div className="flex flex-1 items-center justify-center overflow-auto bg-[linear-gradient(180deg,var(--teal-50),var(--canvas)_70%)] px-7 py-10">
       <div className="relative w-full max-w-[780px] text-center">
-        <MascotFigure src="/brand/mascots/rex-1.png" alt="Rex" variant={0} className="mx-auto mb-3 w-[170px]" />
+        <MascotFigure who="rex" mood={isLive ? "celebrate" : "idle"} alt="Rex" className="mx-auto mb-3 w-[170px]" />
         <h1 className="m-0 font-display text-[54px] font-normal leading-none tracking-normal text-[var(--ink-900)]">
           {isLive ? <>Your shop is <em className="text-[var(--teal-700)]">live.</em></> : <>Your shop is ready to <em className="text-[var(--teal-700)]">go live.</em></>}
         </h1>
@@ -1793,7 +1793,7 @@ function LaunchStep({
           )}
         </div>
         <div className="mt-8 flex items-center justify-center gap-2 text-[12.5px] text-[var(--ink-500)]">
-          <ChipAvatar mascot="peggy" size={26} /> Peggy is keeping an eye on things. Talk to her any time.
+          Peggy is keeping an eye on things. Talk to her any time.
         </div>
         {billingOpen && (
           <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4" role="presentation" onMouseDown={() => !paymentBusy && setBillingOpen(false)}>

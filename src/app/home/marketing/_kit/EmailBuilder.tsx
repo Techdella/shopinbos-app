@@ -13,6 +13,7 @@ import { previewSubject, renderEmailPreview, type PreviewShop } from "@/lib/mark
 import { BLOCK_ICONS, BlockSettings, blankBlock, blockSummary } from "./BlockSettings";
 import { DeviceSwitch, EmailFrame } from "./EmailFrame";
 import { VariableChips, api, errorText, insertAtCursor } from "./client";
+import { Mascot } from "@/components/brand/Mascot";
 
 // The template builder: blocks on the left (add, drag or move, duplicate, delete), the email as it will look in
 // the middle (computer or phone), the chosen block's settings on the right, plus Undo/Redo and "Ask Peggy",
@@ -225,8 +226,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
   const peggyPanel = (
     <Card className="grid gap-3 p-4">
       <div className="flex items-center gap-2.5">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/app/peggy.png" alt="" className="h-9 w-9 object-contain" />
+        <Mascot who="peggy" mood={asking ? "thinking" : peggy?.tone === "error" ? "oops" : "idle"} size={36} decorative />
         <div className="min-w-0">
           <h3 className="m-0 text-[15px] font-extrabold">Ask Peggy</h3>
           <p className="m-0 text-[12.5px] text-app-ink-soft">She writes or rewrites the blocks. You can undo it.</p>

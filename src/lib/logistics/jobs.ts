@@ -68,6 +68,8 @@ export async function transitionJob(input: {
   }
 
   void emitPartnerEvent(input.partnerId, input.to === "cancelled" ? "job.cancelled" : "job.updated", { id: job.id, status: input.to, actor: input.actor }).catch(() => undefined);
+  // Supplier pickups: the supplier's order follows the rider (sent when picked up, delivered when dropped off).
+  await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryJobMoved(job.id, input.to)).catch(() => undefined);
   return { ok: true };
 }
 
@@ -80,5 +82,7 @@ export async function assignRider(input: { bookingId: string; partnerId: string;
     if (!rider) return { ok: false, error: "That rider is paused. Pick another rider." };
   }
   await db.deliveryBooking.update({ where: { id: job.id }, data: { riderId: input.riderId } });
+  // Supplier pickups: tell the supplier which rider is coming.
+  await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryRiderAssigned(job.id, input.riderId)).catch(() => undefined);
   return { ok: true };
 }

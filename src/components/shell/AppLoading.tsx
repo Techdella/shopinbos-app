@@ -118,7 +118,7 @@ export function AppLoading({ role = "seller" }: { role?: Role }) {
                   You’re offline. Check your Wi-Fi or data and this page will open when you’re back.
                 </p>
               )}
-              <Mascot name={role === "seller" ? "peggy" : "rex"} className="h-20 w-20" alt="" />
+              <Mascot name={role === "seller" ? "peggy" : "rex"} mood="oops" className="h-20 w-20" alt="" />
               <h1 className="m-0 text-[26px] font-extrabold tracking-[-0.02em]">{offline ? "You’re offline" : "Your network is slow"}</h1>
               <p className="m-0 text-[15px] leading-[1.6] text-app-ink-soft">
                 {offline
@@ -170,7 +170,7 @@ export function AppLoading({ role = "seller" }: { role?: Role }) {
                 </div>
                 <div className="rounded-[22px] bg-app-mint p-5">
                   <div className="mb-5 flex items-center gap-2.5">
-                    <Mascot name={role === "seller" ? "peggy" : "rex"} className="h-8 w-8" alt="" />
+                    <Mascot name={role === "seller" ? "peggy" : "rex"} mood="working" className="h-8 w-8" alt="" />
                     <span className="min-w-0 truncate text-[15px] font-bold text-app-forest">{opening}</span>
                   </div>
                   <p className="m-0 mb-4 min-h-[20px] text-[13.5px] font-semibold text-app-forest/80">{steps[step]}…</p>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Mascot } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface PeggyAction {
   tool: string;
@@ -192,6 +193,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
               placeholder="Ask Peggy, or tell her what to do"
               className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-app-line bg-app-canvas px-5 py-3 text-[15px] leading-[1.4] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-line-strong field-sizing-content"
             />
+            <VoiceInputButton variant="icon" value={draft} onChange={setDraft} maxLength={MAX_CHARS} context="a request for Peggy" disabled={busy} />
             <button
               type="submit"
               disabled={!draft.trim() || busy}

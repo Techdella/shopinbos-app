@@ -22,6 +22,7 @@ import {
 } from "@/lib/store-templates/theme-library";
 import { ThemePreviewDialog, ThemeThumbnail } from "./theme-preview/ThemePreview";
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
+import { Mascot } from "@/components/brand/Mascot";
 
 // The 2026 storefront themes as cards with real previews (the storefront renderer, scaled down, with a sample
 // catalogue or the seller's own products). Used by /builder/templates (mode "page") and the builder's Themes view
@@ -158,8 +159,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
             </p>
           </div>
           <PillButton tone="white" size="md" onClick={() => void askRex()} busy={picking}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/app/rex.png" alt="" className="h-6 w-6 object-contain" />
+            <Mascot who="rex" mood={picking ? "thinking" : "idle"} className="h-6 w-6" decorative />
             Let Rex pick one
           </PillButton>
         </div>

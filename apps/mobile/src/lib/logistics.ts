@@ -29,6 +29,10 @@ export interface Job {
   proofUrl: string | null;
   notes: string | null;
   createdAt: string;
+  /** Pickup coordinates, used to put the closest rider first. */
+  pickupGeo?: { lat: number; lng: number } | null;
+  /** Supplier pickups: "Pick up 12–4pm today". */
+  pickupWindow?: string | null;
   buyer: { name: string; phone: string | null; address: string } | null;
 }
 
@@ -39,6 +43,14 @@ export interface DispatchRider {
   lastSeenAt: string | null;
   /** Jobs the rider is carrying now. The server sends riders best first: free and out, then busy, then offline. */
   openJobs?: number;
+  /** Latest location from the Riders app (rounded), when the rider shares it. */
+  lat?: number | null;
+  lng?: number | null;
+  locationAt?: string | null;
+  /** "last seen 2 min ago, Ikeja" */
+  where?: string;
+  /** Online in the Riders app and seen in the last 30 minutes. */
+  out?: boolean;
 }
 
 export interface LogisticsOverview {
@@ -51,6 +63,8 @@ export interface LogisticsOverview {
   riders: { total: number; out: number; offline: number };
   riderList: DispatchRider[];
   cashToPayIn: number;
+  /** "by 6pm today", "by 6pm tomorrow", or "now" when it's late. */
+  payInBy?: string;
   onTime: number | null;
   onTimeJobs: number;
 }
@@ -91,6 +105,8 @@ export interface RiderRow {
   openJobs: number;
   deliveredToday: number;
   earnedToday: number;
+  /** "last seen 2 min ago, Ikeja" when the rider shares their location. */
+  where?: string;
 }
 
 export const fetchRiders = () => api<{ riders: RiderRow[] }>("/api/mobile/logistics/riders");
@@ -102,12 +118,25 @@ export const addRider = (input: { name: string; whatsapp: string }) =>
 /** The "Taking new jobs" switch. */
 export const setTakingJobs = (taking: boolean) => api<{ taking: boolean }>("/api/mobile/logistics/taking", { method: "POST", json: { taking } });
 
+export type PayInAccount =
+  | { state: "ready"; accountNumber: string; accountName: string; bankName: string }
+  | { state: "setting_up" }
+  | { state: "manual" };
+
 export interface Earnings {
   today: { amount: number; jobs: number };
   week: { amount: number; jobs: number };
   month: { amount: number; jobs: number };
+  /** Cash still to pay in, after any credit from earlier pay-ins. */
   cashToPayIn: number;
-  remittances: Array<{ id: string; amount: number; method: string; reference: string | null; createdAt: string }>;
+  /** Paid in beyond the jobs it could settle; used by the next pay-in. */
+  credit?: number;
+  /** "by 6pm today", "by 6pm tomorrow", or "now" when it's late. */
+  payInBy?: string;
+  late?: boolean;
+  /** The company's own pay-in account; "manual" when it isn't available (pay in the old way, tell us on the web). */
+  payIn?: PayInAccount;
+  remittances: Array<{ id: string; amount: number; method: string; reference: string | null; createdAt: string; status?: string }>;
   recent: Array<{ id: string; ref: string; from: string; to: string; rider: string | null; deliveredAt: string | null; amount: number }>;
   bank: { bankName: string; account: string; accountName: string; ready: boolean } | null;
 }

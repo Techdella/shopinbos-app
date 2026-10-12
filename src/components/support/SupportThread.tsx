@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Mascot, Notice, cx } from "@/components/app-ui";
 import { MAX_ATTACHMENTS, STATUS_LABEL, attachmentProblem, formatTicketNumber } from "@/lib/support/pure";
 import { formatBytes, supportFetch, timeLabel, type ChatMessage, type ChatTicket } from "./client";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // One support conversation inside the in-app help panel: the thread (team replies polled while open),
 // the reply box with files, and the satisfaction rating once it's solved.
@@ -140,6 +141,7 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
               placeholder={solved ? "Reply to reopen this conversation" : "Write a reply…"}
               className="max-h-[140px] min-h-[44px] flex-1 resize-none rounded-[18px] border border-app-line bg-white px-3.5 py-2.5 text-[15px] leading-[1.4] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
             />
+            <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={5000} context="a message to the support team" />
             <button
               type="button"
               onClick={() => void send()}

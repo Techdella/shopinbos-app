@@ -5,6 +5,7 @@ import { Card, EmptyState, Pill, StatGrid, StatTile } from "@/components/app-kit
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { respondToSupplierReview } from "@/app/actions/supplier-reviews";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface ReviewData {
   id: string;
@@ -136,6 +137,7 @@ function ReviewCard({ review, isIncoming, onReply, error }: {
             placeholder="Thank them, or explain what you'll do differently"
             rows={3}
           />
+          <VoiceInputButton value={replyText} onChange={setReplyText} context="a reply to a review" />
           <div className="flex flex-wrap gap-2">
             <PillButton tone="ink" size="sm" onClick={handleSubmit} busy={submitting} disabled={!replyText.trim()}>
               Send reply

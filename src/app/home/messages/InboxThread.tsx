@@ -9,6 +9,7 @@ import { ChannelMark, channelLabel, formatStamp, formatWhen, inboxApi } from "@/
 import { CHANNELS, type InboxChannelKey } from "@/lib/inbox/meta";
 import type { InboxThread as ThreadData, InboxThreadMessage } from "@/lib/inbox/queries";
 import { naira } from "@shared/onboarding";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // One customer conversation: the messages, a reply box that sends on the conversation's own channel (or saves
 // a private note), Peggy's suggested reply, saved replies, calls, and the customer sidebar.
@@ -256,6 +257,7 @@ function CallPanel({ conversationId, phone, voiceOn, defaultPhone, onDone, onClo
             <input value={minutes} onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="Minutes" aria-label="How many minutes" className={input} />
           </div>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="What was said" aria-label="Call notes" className="w-full rounded-[14px] border border-app-line bg-white px-3 py-2 text-[15px] outline-none focus:border-app-ink" />
+          <VoiceInputButton value={notes} onChange={setNotes} context="notes from a phone call" className="mt-2" />
           <div><PillButton size="sm" busy={busy} onClick={() => void submit()}>Save call</PillButton></div>
         </div>
       )}
@@ -480,6 +482,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
               placeholder={mode === "note" ? "Only your team sees notes" : canReply ? "Write a reply" : "Replies can't be sent on this channel"}
               className={cx("min-h-[48px] min-w-0 flex-1 resize-y rounded-[18px] border px-4 py-2.5 text-[16px] outline-none placeholder:text-app-ink-faint focus:border-app-ink sm:text-[15px]", mode === "note" ? "border-[#F2D58A] bg-[#FFF8E6]" : "border-app-line bg-white")}
             />
+            <VoiceInputButton variant="icon" value={text} onChange={setText} context={mode === "note" ? "a private team note" : "a reply to a customer"} disabled={mode === "reply" && !canReply} />
             <button type="submit" disabled={sending || !text.trim() || (mode === "reply" && !canReply)} aria-label={mode === "note" ? "Save note" : "Send reply"} className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-accent text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50">
               <Icon name={mode === "note" ? "check" : "send"} size={18} />
             </button>

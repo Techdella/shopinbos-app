@@ -1,22 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, Share, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppIcon, type AppIconName } from "@/components/icons";
+import { AcceptCountdown } from "@/components/AcceptCountdown";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { KeyValue, Thumb } from "@/components/partner";
 import { Screen } from "@/components/Screen";
-import { Card, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Card, Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { capitalise, friendlyDay } from "@/lib/friendly";
-import { fetchSupplierOrder, moveSupplierOrder, type DropshipOrder, type OrderAction, type SupplierOrder } from "@/lib/supplier";
+import {
+  bookPickup,
+  cancelPickup,
+  fetchPickup,
+  fetchSupplierOrder,
+  markPacked,
+  moveSupplierOrder,
+  type DropshipOrder,
+  type OrderAction,
+  type PickupView,
+  type SupplierOrder,
+} from "@/lib/supplier";
 import { ORDER_KIND_LABEL, supplierOrderGroup, supplierOrderStage } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
 // One supplier order, as a guided flow (build spec 8A): a new order shows what you get and Accept; then "Pack it
-// with this label" (print or send it, show it on the phone, or write it by hand) and "I've packed it"; then the
-// parcel goes to the rider. Uses the same order actions as before (accept, decline, packed, handed_over, delivered).
-// The backend doesn't book a rider for a set time yet, so the rider step says it in plain words without a time.
+// with this label" (print or send it, show it on the phone, or write it by hand) and "I've packed it"; then "When
+// can a rider pick it up?" with big choices (the soonest picked) and the pickup address, and "Book the rider". Once
+// booked: "Rider booked: pick up today 12–4pm. We'll message you when they're on the way." The time can change or
+// the pickup be cancelled until a rider has the job (/api/supplier/orders/[id]/pickup). A new order counts down
+// the time left to accept it.
 
 type LabelWay = "share" | "phone" | "hand";
 
@@ -35,6 +49,12 @@ function labelLines(order: DropshipOrder) {
     `Order ${order.ref}`,
     order.label.collect > 0 ? `Rider collects ${naira(order.label.collect)}` : null,
   ].filter(Boolean) as string[];
+}
+
+/** "12pm – 2pm" for a "Pick a time" start hour. */
+function hourWindow(hour: number) {
+  const word = (h: number) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`;
+  return `${word(hour)} – ${word(hour + 2)}`;
 }
 
 function itemsTitle(order: SupplierOrder) {
@@ -77,9 +97,14 @@ export default function SupplierOrderScreen() {
   const [busy, setBusy] = useState<OrderAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [way, setWay] = useState<LabelWay>("phone");
-  // Shops' single orders have no "packed" status on the server: "I've packed it" moves to the rider step here.
-  const [packed, setPacked] = useState(false);
   const [riderCode, setRiderCode] = useState("");
+  // The rider step: the choices and the booking, loaded once the order is packed.
+  const [pickup, setPickup] = useState<PickupView | null>(null);
+  const [slot, setSlot] = useState<string | null>(null);
+  const [customDay, setCustomDay] = useState<string | null>(null);
+  const [customHour, setCustomHour] = useState<number>(12);
+  const [address, setAddress] = useState<string | null>(null);
+  const [changing, setChanging] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const data = order.data;
 
@@ -95,6 +120,55 @@ export default function SupplierOrderScreen() {
     }
   }
 
+  async function packed(current: SupplierOrder) {
+    setBusy("packed");
+    setError(null);
+    try {
+      setPickup(await markPacked(current.kind, current.id));
+      order.setData(await fetchSupplierOrder(current.kind, current.id));
+    } catch (packError) {
+      setError(packError instanceof Error ? packError.message : "That didn't go through. Check your connection and try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function book(current: SupplierOrder, view: PickupView) {
+    const key = slot ?? view.preselected;
+    setBusy("handed_over");
+    setError(null);
+    try {
+      const next = await bookPickup(current.kind, current.id, {
+        slot: key,
+        ...(key === "custom" ? { day: customDay ?? view.customDays[0]?.day, startHour: customHour } : {}),
+        address: (address ?? view.pickup?.address ?? view.address).trim() || undefined,
+      });
+      setPickup(next);
+      setChanging(false);
+    } catch (bookError) {
+      setError(bookError instanceof Error ? bookError.message : "That didn't go through. Check your connection and try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function cancelRider(current: SupplierOrder) {
+    Alert.alert("Cancel the rider?", "You can book again after.", [
+      { text: "Keep it", style: "cancel" },
+      {
+        text: "Cancel pickup",
+        style: "destructive",
+        onPress: () =>
+          void cancelPickup(current.kind, current.id)
+            .then((next) => {
+              setPickup(next);
+              setChanging(false);
+            })
+            .catch((cancelError) => setError(cancelError instanceof Error ? cancelError.message : "That didn't go through. Try again.")),
+      },
+    ]);
+  }
+
   function cant(current: SupplierOrder) {
     Alert.alert("Can't do this one?", "We tell the shop, so they can get it from someone else.", [
       { text: "Keep it", style: "cancel" },
@@ -105,6 +179,21 @@ export default function SupplierOrderScreen() {
   async function shareLabel(current: DropshipOrder) {
     await Share.share({ message: labelLines(current).join("\n") }).catch(() => null);
   }
+
+  // Once it's packed, load the pickup choices (and any rider already booked).
+  const readyForRider = Boolean(data && !data.next.includes("packed") && data.next.includes("handed_over"));
+  useEffect(() => {
+    if (!readyForRider || !data) return;
+    let live = true;
+    fetchPickup(data.kind, data.id)
+      .then((view) => {
+        if (live) setPickup(view);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [readyForRider, data?.id, data?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!data) {
     return (
@@ -120,9 +209,12 @@ export default function SupplierOrderScreen() {
   const area = data.kind === "dropship" ? data.label.address[data.label.address.length - 1] ?? data.label.to : data.address || "the shop";
   // Where this order is in the flow.
   const stage: "new" | "label" | "rider" | "with-rider" | "finished" =
-    group === "new" ? "new" : data.next.includes("packed") ? "label" : data.next.includes("handed_over") ? (data.kind === "dropship" && !packed ? "label" : "rider") : data.next.includes("delivered") ? "with-rider" : "finished";
+    group === "new" ? "new" : data.next.includes("packed") ? "label" : data.next.includes("handed_over") ? "rider" : data.next.includes("delivered") ? "with-rider" : "finished";
+  const booked = pickup?.pickup && !changing ? pickup.pickup : null;
+  const choosing = stage === "rider" && pickup && !booked;
+  const chosen = slot ?? pickup?.preselected ?? null;
 
-  const title = stage === "new" ? itemsTitle(data) : stage === "label" ? "Pack it with this label" : stage === "rider" ? "Ready for the rider" : supplierOrderStage(data.status);
+  const title = stage === "new" ? itemsTitle(data) : stage === "label" ? "Pack it with this label" : stage === "rider" ? (booked ? "Rider booked" : "When can a rider pick it up?") : supplierOrderStage(data.status);
 
   let footer = null;
   if (stage === "new") {
@@ -133,9 +225,9 @@ export default function SupplierOrderScreen() {
       </View>
     );
   } else if (stage === "label") {
-    footer = <PillButton title="I've packed it" busy={busy === "packed"} disabled={Boolean(busy)} onPress={() => (data.kind === "wholesale" ? void run(data, "packed") : setPacked(true))} />;
-  } else if (stage === "rider") {
-    footer = <PillButton title="I gave it to the rider" busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void run(data, "handed_over")} />;
+    footer = <PillButton title="I've packed it" busy={busy === "packed"} disabled={Boolean(busy)} onPress={() => void packed(data)} />;
+  } else if (stage === "rider" && choosing && pickup) {
+    footer = <PillButton title={changing ? "Save the new time" : "Book the rider"} busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void book(data, pickup)} />;
   } else if (stage === "with-rider") {
     footer = <PillButton title="It was delivered" busy={busy === "delivered"} disabled={Boolean(busy)} onPress={() => void run(data, "delivered")} />;
   }
@@ -147,6 +239,7 @@ export default function SupplierOrderScreen() {
 
       {stage === "new" ? (
         <>
+          <AcceptCountdown acceptBy={data.acceptBy} big />
           <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <Thumb uri={data.kind === "dropship" ? data.items[0]?.image : data.product.image} size={64} />
             <View style={{ flex: 1 }}>
@@ -161,7 +254,7 @@ export default function SupplierOrderScreen() {
           <Card style={{ gap: 12 }}>
             <Step n={1}>Accept the order</Step>
             <Step n={2}>{data.kind === "dropship" ? `Pack it with ${data.shop}'s label. Don't put your own name inside.` : "Pack it and get it ready."}</Step>
-            <Step n={3}>A rider comes to collect it. You don&apos;t pay for delivery.</Step>
+            <Step n={3}>A rider comes to collect it at a time you pick. You don&apos;t pay for delivery.</Step>
           </Card>
           <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>The shop pays first. We keep the money safe and send it to you after delivery.</T>
         </>
@@ -225,23 +318,88 @@ export default function SupplierOrderScreen() {
         </>
       ) : null}
 
-      {stage === "rider" ? (
+      {stage === "rider" && !pickup ? <LoadingBlock /> : null}
+
+      {choosing && pickup ? (
         <>
-          <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
-              <AppIcon name="check" size={34} color={colors.success} strokeWidth={2.6} />
+          <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
+            {[...pickup.slots.map((option) => ({ key: option.key, label: option.label })), { key: "custom", label: "Pick a time" }].map((option) => {
+              const on = chosen === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => setSlot(option.key)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: radii.card, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: colors.surface }}
+                >
+                  <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, alignItems: "center", justifyContent: "center" }}>
+                    {on ? <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ink }} /> : null}
+                  </View>
+                  <T weight="extrabold" style={{ fontSize: 17, flex: 1 }}>{option.label}</T>
+                </Pressable>
+              );
+            })}
+          </View>
+          {chosen === "custom" ? (
+            <Card style={{ gap: 10 }}>
+              <T weight="bold" style={{ fontSize: 15 }}>Which day?</T>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {pickup.customDays.map((option) => (
+                  <Chip key={option.day} label={option.label} on={(customDay ?? pickup.customDays[0]?.day) === option.day} onPress={() => setCustomDay(option.day)} />
+                ))}
+              </View>
+              <T weight="bold" style={{ fontSize: 15 }}>What time? (2 hours)</T>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {pickup.customHours.map((hour) => (
+                  <Chip key={hour} label={hourWindow(hour)} on={customHour === hour} onPress={() => setCustomHour(hour)} />
+                ))}
+              </View>
+            </Card>
+          ) : null}
+          <View style={{ gap: 6 }}>
+            <T weight="bold" style={{ fontSize: 15 }}>Where does the rider collect it?</T>
+            <Field value={address ?? pickup.pickup?.address ?? pickup.address} onChangeText={setAddress} placeholder="Shop 12, Balogun Market, Lagos Island" accessibilityLabel="Pickup address" />
+            <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{pickup.address ? "Your saved address. Change it if the parcel is somewhere else today." : "We'll save it for next time."}</T>
+          </View>
+          {changing ? <LinkButton title="Keep the old time" color={colors.inkSoft} onPress={() => setChanging(false)} /> : null}
+        </>
+      ) : null}
+
+      {stage === "rider" && booked ? (
+        <>
+          <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24, backgroundColor: booked.status === "finding_rider" ? "#FDF0D9" : colors.successTint }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
+              <AppIcon name={booked.status === "finding_rider" ? "clock" : "truck"} size={34} color={booked.status === "finding_rider" ? "#7A4D06" : colors.success} strokeWidth={2.4} />
             </View>
-            <T weight="extrabold" style={{ fontSize: 22, textAlign: "center" }}>It&apos;s packed</T>
-            <T style={{ fontSize: 15, lineHeight: 22, textAlign: "center", color: colors.inkSoft }}>A rider comes to your shop to collect it. We&apos;ll message you before they arrive. Hand them the parcel, then tap the button below.</T>
+            <T weight="extrabold" style={{ fontSize: 22, textAlign: "center" }}>{booked.title}</T>
+            <T style={{ fontSize: 15, lineHeight: 22, textAlign: "center", color: colors.ink }}>{booked.body}</T>
+            <T style={{ fontSize: 14.5, textAlign: "center", color: colors.inkSoft }}>From: {booked.address}</T>
           </Card>
           {data.kind === "dropship" ? <ShopLabel order={data} /> : null}
+          {booked.changeable ? (
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
+              <LinkButton
+                title="Change the time"
+                onPress={() => {
+                  setSlot(booked.slotKey === "custom" ? "custom" : null);
+                  setAddress(booked.address);
+                  setChanging(true);
+                }}
+              />
+              <LinkButton title="Cancel pickup" color={colors.inkSoft} onPress={() => cancelRider(data)} />
+            </View>
+          ) : (
+            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, textAlign: "center" }}>The rider has this job, so the time can&apos;t change here. Message {data.shop} if something comes up.</T>
+          )}
           {moreOpen ? (
             <View style={{ gap: 6 }}>
               <T weight="bold" style={{ fontSize: 15 }}>Rider&apos;s code (optional)</T>
               <Field value={riderCode} onChangeText={setRiderCode} placeholder="If the rider gives you one" autoCapitalize="characters" accessibilityLabel="Rider's code" />
+              <PillButton title="I gave it to the rider" tone="white" busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void run(data, "handed_over")} />
             </View>
           ) : (
-            <LinkButton title="The rider gave me a code (optional)" color={colors.inkSoft} onPress={() => setMoreOpen(true)} />
+            <LinkButton title="I already gave it to a rider" color={colors.inkSoft} onPress={() => setMoreOpen(true)} />
           )}
         </>
       ) : null}

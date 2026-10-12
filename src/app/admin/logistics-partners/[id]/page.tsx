@@ -7,15 +7,17 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import { ApiKeysPanel, WebhooksPanel } from "./PartnerConnection";
+import { PartnerPayInsPanel } from "../PayInsPanels";
 
 function adminWhen(date: Date | null) {
   return date ? formatDate(date) : null;
 }
 
-export default async function AdminLogisticsDetailPage(props: { params: Promise<{ id: string }> }) {
+export default async function AdminLogisticsDetailPage(props: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
 
   const { id } = await props.params;
+  const notice = (await props.searchParams) ?? {};
 
   const partner = await db.logisticsPartner.findUnique({
     where: { id },
@@ -32,6 +34,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       reliabilityScore: true,
       verificationDocuments: true,
       basePrice: true,
+      payInCredit: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -43,7 +46,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
 
   // Connection keys for the partner's own dispatch software. Partners ask for this through "Connect your
   // system" (a setup support ticket); only admins issue, rotate and revoke keys.
-  const [keys, hooks] = await Promise.all([
+  const [keys, hooks, payInAccount, payIns, remittances] = await Promise.all([
     db.partnerApiKey.findMany({
       where: { logisticsPartnerId: partner.id },
       orderBy: [{ revokedAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }],
@@ -54,6 +57,23 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       where: { logisticsPartnerId: partner.id },
       orderBy: { createdAt: "desc" },
       select: { id: true, url: true, events: true, active: true, lastStatus: true, lastDeliveredAt: true },
+    }),
+    db.partnerPayInAccount.findUnique({
+      where: { logisticsPartnerId: partner.id },
+      select: { status: true, accountNumber: true, accountName: true, bankName: true, customerCode: true, lastError: true, updatedAt: true },
+    }),
+    db.partnerPayIn.findMany({
+      where: { logisticsPartnerId: partner.id },
+      orderBy: { paidAt: "desc" },
+      take: 15,
+      select: { id: true, amount: true, reference: true, senderName: true, paidAt: true, matchedBy: true },
+    }),
+    // Pay-ins the partner told us about (form or their software), not transfers to their account.
+    db.codRemittance.findMany({
+      where: { logisticsPartnerId: partner.id, method: { not: "account" } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, amount: true, method: true, createdAt: true, outcome: true, _count: { select: { bookings: true } } },
     }),
   ]);
 
@@ -91,12 +111,26 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
         <StatTile tone="card" label="Joined" value={<span className="text-[20px]">{formatDate(partner.createdAt)}</span>} />
       </section>
 
+      {(notice.saved || notice.error) && (
+        <p role="status" className={`mb-4 rounded-[14px] px-4 py-3 text-[14.5px] font-bold ${notice.error ? "bg-app-danger-tint text-app-danger" : "bg-app-success-tint text-app-success"}`}>
+          {notice.error ?? notice.saved}
+        </p>
+      )}
+
       <AdminDocumentViewer
         role="logistics_partner"
         entityId={partner.id}
         docs={docs}
         verificationStatus={partner.verificationStatus}
         trustScore={partner.reliabilityScore ?? 0}
+      />
+
+      <PartnerPayInsPanel
+        partnerId={partner.id}
+        account={payInAccount}
+        credit={partner.payInCredit}
+        payIns={payIns}
+        remittances={remittances.map(({ _count, ...row }) => ({ ...row, jobs: _count.bookings }))}
       />
 
       <section id="connection" aria-labelledby="connection-title" className="mt-6 scroll-mt-6">

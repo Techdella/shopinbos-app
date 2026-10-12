@@ -11,6 +11,8 @@ import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { naira } from "@shared/onboarding";
 import { messagesHref } from "@/lib/conversations/pure";
+import { Notice } from "@/components/app-ui";
+import { cancelAndRefundExpiredOrder } from "./supplier-actions";
 
 type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
 
@@ -21,6 +23,7 @@ const SUPPLIER_STAGE: Record<string, { label: string; tone: "accent" | "info" | 
   delivered: { label: "Delivered", tone: "success" },
   rejected: { label: "Supplier declined", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
+  expired: { label: "Supplier didn't answer in time", tone: "danger" },
 };
 
 function formatDate(date: Date) {
@@ -36,8 +39,9 @@ function Line({ label, children, strong = false }: { label: string; children: Re
   );
 }
 
-export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> }) {
   const { id } = await params;
+  const flash = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
 
   const store = await db.store.findUnique({
@@ -143,7 +147,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </Card>
 
             {supplierOrders.length > 0 && (
-              <Card className="p-5">
+              <div id="supplier-orders" className="scroll-mt-24"><Card className="p-5">
+                {(flash.saved || flash.error) && (
+                  <div className="mb-3">
+                    <Notice tone={flash.error ? "error" : "success"}>{flash.error ?? flash.saved}</Notice>
+                  </div>
+                )}
                 <CardHead title="Sent by the supplier" sub="Products you sell without stock go straight from the supplier to your customer, in your shop's name." />
                 <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                   {supplierOrders.map((supplierOrder) => {
@@ -160,11 +169,25 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                           <div className="text-[13px]">Tracking <span className="font-bold">{supplierOrder.trackingCode}</span>{supplierOrder.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder.shippedAt ? ` · shipped ${formatDate(supplierOrder.shippedAt)}` : ""}</div>
                         )}
                         {supplierOrder.rejectReason && <div className="text-[13px] font-bold text-app-danger">Declined: {supplierOrder.rejectReason}. Contact your buyer, then refund or replace these items.</div>}
+                        {supplierOrder.status === "expired" && (
+                          <div className="grid gap-2 rounded-[14px] bg-app-canvas p-3 text-[13.5px]">
+                            <div className="font-bold">{supplierOrder.supplier.displayName} didn&apos;t accept this in time, so we took it back from them. Your customer hasn&apos;t been told. What do you want to do?</div>
+                            <div className="flex flex-wrap gap-2">
+                              <PillLink href={`/marketplace?q=${encodeURIComponent(String(lines[0]?.name ?? "").slice(0, 60))}`} size="sm" icon="search">Find another supplier</PillLink>
+                              {!["shipped", "delivered", "cancelled", "refunded", "returned"].includes(order.status) && (
+                                <form action={cancelAndRefundExpiredOrder}>
+                                  <input type="hidden" name="orderId" value={order.id} />
+                                  <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">Cancel and refund the customer</button>
+                                </form>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
                 </ul>
-              </Card>
+              </Card></div>
             )}
 
             <div className="grid gap-5 lg:grid-cols-2">

@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
 
 import { cx } from "./cx";
+import { Mascot as BrandMascot, type MascotProps, type MascotWho } from "@/components/brand/Mascot";
 
 export { cx };
 
@@ -15,11 +16,13 @@ export function Wordmark({ tone = "dark", className = "" }: { tone?: "dark" | "l
   return <img src={tone === "dark" ? "/brand/app/wordmark-dark.png" : "/brand/app/wordmark-light.png"} alt="Shopinbos" className={cx("h-[18px] w-auto", className)} />;
 }
 
-export function Mascot({ name, className = "", alt }: { name: "rex" | "peggy" | "peggy-wave"; className?: string; alt?: string }) {
-  const label = alt ?? (name === "rex" ? "Rex, the Shopinbos store builder" : "Peggy, your Shopinbos assistant");
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`/brand/app/${name}.png`} alt={label} className={cx("object-contain", className)} />;
+/** Rex or Peggy. Wraps the shared <Mascot> in components/brand (moods, animation, reduced motion); `name` and an empty
+ * `alt` (decorative) are kept for older call sites. "peggy-wave" is Peggy's wave mood. */
+export function Mascot({ name, who, mood, alt, ...props }: AppMascotProps) {
+  const mascot: MascotWho = who ?? (name === "rex" ? "rex" : "peggy");
+  return <BrandMascot who={mascot} mood={mood ?? (name === "peggy-wave" ? "wave" : "idle")} decorative={alt === ""} alt={alt || undefined} {...props} />;
 }
+type AppMascotProps = Omit<MascotProps, "who"> & ({ who: MascotWho; name?: never } | { name: "rex" | "peggy" | "peggy-wave"; who?: never });
 
 type ButtonTone = "ink" | "white" | "accent" | "ghost" | "forest";
 
