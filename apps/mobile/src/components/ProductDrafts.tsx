@@ -31,7 +31,7 @@ export function useProductDrafts() {
       setDrafts((current) => [...current, ...next].slice(0, 12));
       if (!drafted) setError("Rex couldn't name these yet. Add a name and price for each one.");
     } catch (photoError) {
-      setError(photoError instanceof Error ? photoError.message : "Rex couldn't read those photos.");
+      setError(photoError instanceof Error ? photoError.message : "Rex couldn't read those photos. Check your connection and try again.");
     } finally {
       setReading(false);
     }
@@ -81,9 +81,9 @@ export function ProductDraftsCard({ state }: { state: ReturnType<typeof useProdu
               <View style={{ flex: 1 }}>
                 <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{item.name || "Name this product"}</T>
                 {needsCheck ? (
-                  <T weight="semibold" style={{ color: colors.accentInk, fontSize: 13 }}>{item.price ? `Check the price: ${naira(item.price)}?` : "Add a price"}</T>
+                  <T weight="semibold" style={{ color: colors.accentInk, fontSize: 14 }}>{item.price ? `Check the price: ${naira(item.price)}?` : "Add a price"}</T>
                 ) : (
-                  <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{[naira(item.price ?? 0), item.detail, `${item.stock} in stock`].filter(Boolean).join(" · ")}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{[naira(item.price ?? 0), item.detail, `${item.stock} in stock`].filter(Boolean).join(" · ")}</T>
                 )}
               </View>
               {editing !== index && <PillButton title={needsCheck ? "Edit" : "✓"} tone="white" size="sm" onPress={() => setEditing(index)} />}

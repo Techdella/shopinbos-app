@@ -23,10 +23,10 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
         toast("Cover image updated", "success");
         window.location.reload();
       } else {
-        toast("Upload failed", "error");
+        toast("That picture didn't upload. Try a smaller photo, or check your connection.", "error");
       }
     } catch {
-      toast("Upload failed", "error");
+      toast("That picture didn't upload. Try a smaller photo, or check your connection.", "error");
     } finally {
       setUploading(false);
     }
@@ -41,16 +41,16 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
         window.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast(data.error || "Generation failed", "error");
+        toast(data.error || "Rex couldn't make a cover just now. Try again in a minute.", "error");
       }
     } catch {
-      toast("Generation failed", "error");
+      toast("Rex couldn't make a cover just now. Try again in a minute.", "error");
     } finally {
       setGenerating(false);
     }
   }
 
-  const button = "inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-[13px] font-bold text-app-ink shadow-sm transition hover:bg-white disabled:opacity-60";
+  const button = "inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-[15px] font-bold text-app-ink shadow-sm transition hover:bg-white disabled:opacity-60";
 
   return (
     <div
@@ -61,7 +61,7 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
       {/* Sits above the strip the logo overlaps from below. */}
       <div className="absolute bottom-12 left-4 right-4 min-w-0 text-white">
         <div className="truncate text-[20px] font-extrabold">{displayName}</div>
-        <div className="truncate text-[13px] opacity-90">{city} · delivery partner</div>
+        <div className="truncate text-[15px] opacity-90">{city} · delivery partner</div>
       </div>
       <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
         <button type="button" onClick={generateWithRex} disabled={generating} className={button}>

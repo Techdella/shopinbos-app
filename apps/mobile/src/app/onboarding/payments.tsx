@@ -41,7 +41,7 @@ export default function Payments() {
       setBankLinked(true);
       setBankOpen(false);
     } catch (bankError) {
-      setError(bankError instanceof Error ? bankError.message : "Couldn't add that bank account.");
+      setError(bankError instanceof Error ? bankError.message : "Couldn't add that bank account. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -58,7 +58,7 @@ export default function Payments() {
       if (status?.store.live) router.replace("/onboarding/live");
       else setLaunchOpen(true);
     } catch (liveError) {
-      setError(liveError instanceof Error ? liveError.message : "Couldn't save your settings.");
+      setError(liveError instanceof Error ? liveError.message : "Couldn't save your settings. Check your connection and try again.");
     } finally {
       setBusy(false);
       setNote(null);
@@ -77,7 +77,7 @@ export default function Payments() {
       if (next?.store.live) router.replace("/onboarding/live");
       else setError("We haven't seen the payment yet. If you paid, wait a moment and tap Put my shop live again.");
     } catch (payError) {
-      setError(payError instanceof Error ? payError.message : "Couldn't open Paystack.");
+      setError(payError instanceof Error ? payError.message : "Couldn't open Paystack. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -101,7 +101,7 @@ export default function Payments() {
           <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 13, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <View style={{ flex: 1 }}>
               <T weight="extrabold" style={{ fontSize: 15 }}>{method.label}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 18 }}>{method.hint}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{method.hint}</T>
             </View>
             <Toggle label={method.label} on={methods[method.key]} onChange={(on) => setMethods((current) => ({ ...current, [method.key]: on }))} />
           </View>
@@ -110,10 +110,10 @@ export default function Payments() {
       <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>Where your money goes</T>
       <Card>
         {bankLinked ? (
-          <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>✓ Payout bank added</T>
+          <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>✓ Your bank is saved</T>
         ) : (
           <>
-            <T style={{ fontSize: 15, lineHeight: 22 }}>You can add your bank later. Until then, payments wait safely in your Shopinbos balance.</T>
+            <T style={{ fontSize: 15, lineHeight: 22 }}>You can add your bank later. Until then, your money is safe here with Shopinbos.</T>
             <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
               <PillButton title="Add bank now" size="md" style={{ flex: 1 }} onPress={() => setBankOpen(true)} />
               <PillButton title="Later" tone="white" size="md" style={{ flex: 1 }} onPress={() => setNote("No problem. It's on your checklist.")} />
@@ -140,7 +140,7 @@ export default function Payments() {
         ))}
       </Card>
       {!status?.store.live && status && (
-        <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 19, marginTop: 14, paddingHorizontal: 4 }}>
+        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginTop: 14, paddingHorizontal: 4 }}>
           Going live costs {naira(status.launch.totalNgn)} once, or {naira(status.launch.depositNgn)} now and the rest by month end. You pay on Paystack next.
         </T>
       )}
@@ -148,7 +148,7 @@ export default function Payments() {
       <Modal visible={bankOpen} transparent animationType="slide" onRequestClose={() => setBankOpen(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setBankOpen(false)}>
           <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 36, maxHeight: "85%" }} onPress={() => undefined}>
-            <T weight="extrabold" style={{ fontSize: 22, marginBottom: 14 }}>Add your payout bank</T>
+            <T weight="extrabold" style={{ fontSize: 22, marginBottom: 14 }}>Where should we send your money?</T>
             <Label>Bank</Label>
             <ScrollView style={{ maxHeight: 180, borderWidth: 1, borderColor: colors.line, borderRadius: 16 }}>
               {banks.map((bank) => (
@@ -175,7 +175,7 @@ export default function Payments() {
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setLaunchOpen(false)}>
           <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 36 }} onPress={() => undefined}>
             <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>Put {status?.store.name} live</T>
-            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>A one-off launch fee. Your shop publishes as soon as Paystack confirms it.</T>
+            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>A one-off launch fee. Your shop opens as soon as Paystack says you paid.</T>
             {status && (
               <>
                 <PillButton title={`Pay ${naira(status.launch.totalNgn)}`} busy={busy} onPress={() => void pay("full")} />
@@ -192,7 +192,7 @@ export default function Payments() {
               </>
             )}
             {error && <View style={{ marginTop: 12 }}><Notice>{error}</Notice></View>}
-            <T style={{ color: colors.inkFaint, fontSize: 12, textAlign: "center", marginTop: 14 }}>Paystack handles the payment. Shopinbos never sees your card.</T>
+            <T style={{ color: colors.inkFaint, fontSize: 13.5, textAlign: "center", marginTop: 14 }}>Paystack handles the payment. Shopinbos never sees your card.</T>
           </Pressable>
         </Pressable>
       </Modal>

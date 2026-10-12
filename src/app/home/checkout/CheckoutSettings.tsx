@@ -10,11 +10,11 @@ import type { CheckoutSettings as Settings } from "@shared/cart-checkout";
 
 const TOGGLES: ReadonlyArray<{ key: keyof Omit<Settings, "upsellProducts">; label: string; desc: string }> = [
   { key: "requirePhone", label: "Ask for a phone number", desc: "Shoppers can't continue without one. Pay on delivery always asks for it." },
-  { key: "enableCoupon", label: "Discount codes", desc: "Show a discount code box in the bag and at checkout. Automatic discounts still apply when this is off." },
+  { key: "enableCoupon", label: "Discount codes", desc: "Show a discount code box in the bag and on the payment page. Automatic discounts still apply when this is off." },
   { key: "enableNotes", label: "Order notes", desc: "Let shoppers add a note, like a good time to deliver." },
   { key: "enableGiftNote", label: "Gift messages", desc: "Let shoppers add a gift message. It's added to the order note you see." },
-  { key: "enableTrustBadges", label: "Secure checkout line", desc: "Show \"Secure checkout\" with the ways you accept payment under the order summary." },
-  { key: "enableUpsells", label: "Add-ons at checkout", desc: "Offer the products you pick below on the review step, and show them first in \"You may also like\" in the bag." },
+  { key: "enableTrustBadges", label: "Safe payment line", desc: "Show a safe-payment line with the ways you accept payment under the order summary." },
+  { key: "enableUpsells", label: "Extras before they pay", desc: "Offer the products you pick below on the review step, and show them first in \"You may also like\" in the bag." },
 ];
 
 const STEPS = [
@@ -180,13 +180,13 @@ export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }
           </ul>
         </section>
 
-        {status === "error" ? <Notice>Couldn&apos;t save your checkout settings. Try again.</Notice> : null}
+        {status === "error" ? <Notice>Couldn&apos;t save. Check your connection and try again.</Notice> : null}
         <div className="flex flex-wrap items-center justify-end gap-3">
           {status === "saved" ? (
             <span role="status" className="inline-flex items-center gap-1.5 text-[14px] font-bold text-app-success"><Icon name="check" size={15} /> Saved</span>
           ) : null}
           <PillButton tone="accent" size="md" onClick={() => void save()} busy={saving} className="w-full sm:w-auto">
-            Save checkout
+            Save
           </PillButton>
         </div>
       </aside>

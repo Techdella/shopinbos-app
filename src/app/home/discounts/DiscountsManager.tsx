@@ -166,7 +166,7 @@ function DiscountEditor({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Name" htmlFor="d-name"><input id="d-name" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} className={inputClass} required maxLength={120} placeholder={d.automatic ? "Weekend sale" : "Welcome code"} /></Field>
           {d.automatic ? (
-            <p className="m-0 self-end text-[13.5px] text-app-ink-soft">Applies at checkout without a code, when the order qualifies.</p>
+            <p className="m-0 self-end text-[13.5px] text-app-ink-soft">Applies when they pay, without a code, when the order qualifies.</p>
           ) : (
             <Field label="Code shoppers type" htmlFor="d-code"><input id="d-code" value={d.code} onChange={(e) => setD({ ...d, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} className={`${inputClass} font-mono`} required maxLength={40} placeholder="WEEKEND20" /></Field>
           )}

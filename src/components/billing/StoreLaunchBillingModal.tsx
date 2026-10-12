@@ -31,11 +31,11 @@ export function StoreLaunchBillingModal({ open, pricing, onClose }: {
         error?: { message?: string };
       } | null;
       if (!response.ok || !json?.data?.authorizationUrl) {
-        throw new Error(json?.error?.message ?? "Could not start Paystack checkout.");
+        throw new Error(json?.error?.message ?? "We couldn't open the payment page. Check your connection and try again.");
       }
       window.location.assign(json.data.authorizationUrl);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not start Paystack checkout.");
+      setError(cause instanceof Error ? cause.message : "We couldn't open the payment page. Check your connection and try again.");
       setBusy(false);
     }
   }

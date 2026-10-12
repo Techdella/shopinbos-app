@@ -6,6 +6,9 @@ import { Card, Pill } from "@/components/app-kit";
 import { cx, Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { ChannelMark, inboxApi } from "@/components/messaging/inbox-ui";
+import { TechFold } from "@/components/simple/Fold";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { plainMetaError } from "@/components/simple/plain";
 import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
 
@@ -177,9 +180,14 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: ChannelView; setup: Setup; onChange: (view: ChannelView) => void; encryptionReady: boolean; extra?: ReactNode }) {
+// Each channel (simplicity rules, section 8A): a plain status and one action, "Ask us to connect it". The keys,
+// steps, callback URLs and the connect form are for "the person who manages your … account", in a TechFold.
+const metaChannelKey = (channel: string) => channel === "whatsapp" || channel === "instagram" || channel === "messenger";
+
+function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { view: ChannelView; setup: Setup; onChange: (view: ChannelView) => void; encryptionReady: boolean; extra?: ReactNode; tech?: ReactNode }) {
   const connected = view.status === "connected";
   const [open, setOpen] = useState(false);
+  const [askUs, setAskUs] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
@@ -197,7 +205,8 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
       setOpen(false);
       setMessage({ tone: "success", text: `${setup.title} is connected.` });
     } catch (error) {
-      setMessage({ tone: "error", text: (error as Error).message });
+      const raw = (error as Error).message;
+      setMessage({ tone: "error", text: metaChannelKey(view.channel) ? plainMetaError(raw) : `${setup.title} didn't accept those details. Check them, or ask us to connect it for you.` });
     } finally {
       setBusy(false);
     }
@@ -219,7 +228,7 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
 
   const needsKeys = setup.fields.some((f) => !f.optional) || view.channel === "voice";
   const blocked = needsKeys && !encryptionReady && view.channel !== "email";
-  const metaChannel = view.channel === "whatsapp" || view.channel === "instagram" || view.channel === "messenger";
+  const metaChannel = metaChannelKey(view.channel);
 
   return (
     <Card className="grid content-start gap-3 p-5">
@@ -234,9 +243,26 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
         </div>
       </div>
 
-      {view.lastError && (connected || view.status === "error") && <Notice tone="error">{view.lastError}</Notice>}
+      {view.lastError && (connected || view.status === "error") && (
+        <Notice tone="error">{metaChannel ? plainMetaError(view.lastError) : `We can't reach ${setup.title} right now. Ask us to help and we'll fix it with you.`}</Notice>
+      )}
       {extra}
 
+      {!connected && setup.fields.length > 0 && (
+        askUs ? (
+          <SetupHelpRequest title={`Connect ${setup.title}`} description={`We'll connect ${setup.title} to your inbox for you and message you when it's working.`} feature={`inbox_${view.channel}`} />
+        ) : (
+          <div><PillButton size="md" tone="ink" onClick={() => setAskUs(true)}>Ask us to connect it</PillButton></div>
+        )
+      )}
+      {connected && view.lastError && !askUs && <div><PillButton size="sm" tone="white" onClick={() => setAskUs(true)}>Ask us to help</PillButton></div>}
+      {connected && view.lastError && askUs && <SetupHelpRequest title={`Fix ${setup.title}`} description={`We'll check ${setup.title} for you and reconnect it.`} feature={`inbox_${view.channel}`} />}
+
+      {setup.fields.length > 0 || tech || (connected && metaChannel && view.webhookUrl) ? (
+      <TechFold forWho={`the person who manages your ${setup.title} account`}>
+      <div className="grid gap-3">
+      {view.lastError && <p className="m-0 break-words text-[12.5px] text-app-ink-soft">Last problem: {view.lastError}</p>}
+      {tech}
       {connected && metaChannel && view.webhookUrl && (
         <div className="grid gap-2">
           <CopyRow label="Callback URL" value={view.webhookUrl} />
@@ -244,15 +270,12 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
         </div>
       )}
 
-      <details className="group rounded-[14px] bg-app-canvas/70 px-3.5 py-2.5" open={!connected && open}>
-        <summary className="cursor-pointer list-none text-[13.5px] font-bold">
-          <span className="inline-flex items-center gap-1.5"><Icon name="chevRight" size={14} className="transition group-open:rotate-90" /> How to set it up</span>
-        </summary>
-        <p className="mb-2 mt-2 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">You need:</strong> {setup.needs}</p>
+      <div className="grid gap-2">
+        <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">You need:</strong> {setup.needs}</p>
         <ol className="m-0 grid gap-1.5 pl-5 text-[13px] leading-[1.5]">
           {setup.steps.map((step) => <li key={step}>{step}</li>)}
         </ol>
-      </details>
+      </div>
 
       {open && (
         <form
@@ -300,18 +323,26 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra }: { view: 
         </form>
       )}
 
-      {!open && (
+      {!open && setup.fields.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {blocked ? (
-            <p className="m-0 text-[13px] text-app-ink-soft">This server can't store channel keys yet. Your Shopinbos admin needs to set INBOX_ENCRYPTION_KEY.</p>
-          ) : setup.fields.length === 0 && !connected ? (
-            <PillButton size="md" busy={busy} onClick={() => void connect()}>Turn on</PillButton>
+            <p className="m-0 text-[13px] text-app-ink-soft">This server can't store channel keys yet (INBOX_ENCRYPTION_KEY isn't set).</p>
           ) : (
-            <PillButton size="md" tone={connected ? "white" : "ink"} onClick={() => setOpen(true)}>{connected ? "Update keys" : "Connect"}</PillButton>
+            <PillButton size="md" tone="white" onClick={() => setOpen(true)}>{connected ? "Update keys" : "Connect with keys"}</PillButton>
           )}
-          {connected && <PillButton size="md" tone="ghost" busy={busy} onClick={() => void disconnect()}>Disconnect</PillButton>}
         </div>
       )}
+      <p className="m-0 text-[12px] text-app-ink-soft">Keys are checked with the provider, stored encrypted, and never shown in the browser again.</p>
+      </div>
+      </TechFold>
+      ) : null}
+
+      {(setup.fields.length === 0 && !connected) || connected ? (
+        <div className="flex flex-wrap gap-2">
+          {setup.fields.length === 0 && !connected ? <PillButton size="md" busy={busy} onClick={() => void connect()}>Turn on</PillButton> : null}
+          {connected && <PillButton size="md" tone="ghost" busy={busy} onClick={() => void disconnect()}>Disconnect</PillButton>}
+        </div>
+      ) : null}
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
     </Card>
   );
@@ -337,7 +368,7 @@ export function ChannelsClient({
   return (
     <div className="grid gap-5">
       {!platform.encryption && (
-        <Notice tone="error">Channel keys can't be saved on this server until INBOX_ENCRYPTION_KEY is set. Live chat, contact forms and email work without it.</Notice>
+        <Notice tone="info">Connecting WhatsApp, Instagram, Facebook, SMS and calls yourself isn&apos;t switched on yet. Tap &quot;Ask us to connect it&quot; and we&apos;ll do it for you. Live chat, contact forms and email already work.</Notice>
       )}
 
       <section aria-label="Built in" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
@@ -382,8 +413,8 @@ export function ChannelsClient({
           if (key === "email") {
             extra = (
               <div className="grid gap-2">
-                {inboxAddress ? <CopyRow label="Your inbox address" value={inboxAddress} /> : <p className="m-0 text-[13px] text-app-ink-soft">Receiving email isn't set up on this server yet (INBOX_EMAIL_DOMAIN). You can still reply by email to form and chat messages; customers' answers will go to your own mailbox.</p>}
-                {!platform.resend && <p className="m-0 text-[13px] font-semibold text-app-danger">Sending email isn't set up on this server (RESEND_API_KEY).</p>}
+                {inboxAddress ? <CopyRow label="Your inbox address" value={inboxAddress} /> : <p className="m-0 text-[13px] text-app-ink-soft">Getting emails here isn&apos;t switched on yet. You can still reply by email to form and chat messages; customers&apos; answers go to your own mailbox.</p>}
+                {!platform.resend && <p className="m-0 text-[13px] font-semibold text-app-danger">Sending email isn&apos;t switched on yet. Tap Help and we&apos;ll sort it out.</p>}
               </div>
             );
           }
@@ -391,7 +422,7 @@ export function ChannelsClient({
             extra = (
               <div className="grid gap-2">
                 <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? `Calls ring ${forwardCallsTo}; missed ones are logged here.` : "Calls go straight to voicemail."} Change this in <Link href="/home/inbox/settings" className="font-bold text-app-ink">inbox settings</Link>.</p>
-                {view.webhookUrl && <CopyRow label="Callback URL (paste in Africa's Talking → Voice → Phone numbers)" value={view.webhookUrl} />}
+
               </div>
             );
           }
@@ -408,17 +439,21 @@ export function ChannelsClient({
               </Link>
             );
           }
+          let tech: ReactNode = null;
+          if (key === "voice" && view.status === "connected" && view.webhookUrl) {
+            tech = <CopyRow label="Callback URL (paste in Africa's Talking → Voice → Phone numbers)" value={view.webhookUrl} />;
+          }
           if (key === "sms" && view.status === "connected" && view.webhookUrl) {
-            extra = <CopyRow label="Webhook URL (paste in your provider's dashboard for replies and delivery reports)" value={view.webhookUrl} />;
+            tech = <CopyRow label="Webhook URL (paste in your provider's dashboard for replies and delivery reports)" value={view.webhookUrl} />;
           }
           if (key === "telegram" && view.status === "connected" && view.webhookUrl) {
-            extra = <CopyRow label="Webhook (set for you)" value={view.webhookUrl} />;
+            tech = <CopyRow label="Webhook (set for you)" value={view.webhookUrl} />;
           }
-          return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} />;
+          return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} tech={tech} />;
         })}
       </section>
-      <p className={cx("m-0 text-[12.5px] text-app-ink-soft")}>
-        Keys you paste are checked with the provider, stored encrypted on our servers, and never shown in the browser again.
+      <p className={cx("m-0 text-[13px] text-app-ink-soft")}>
+        Not sure how to connect something? Tap &quot;Ask us to connect it&quot; and the Shopinbos team does it for you.
       </p>
     </div>
   );

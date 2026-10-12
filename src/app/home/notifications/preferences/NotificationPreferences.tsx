@@ -100,7 +100,7 @@ export function NotificationPreferences() {
         body: JSON.stringify({ preferences: prefs }),
       });
       if (res.ok) setNotice("Preferences saved.");
-      else setNotice("Failed to save preferences");
+      else setNotice("We couldn't save that. Check your connection and try again.");
     } catch {
       setNotice("Could not save preferences");
     } finally {

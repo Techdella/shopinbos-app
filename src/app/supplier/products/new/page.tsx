@@ -35,7 +35,7 @@ export default async function NewSupplierProductPage({
     <AppPage
       frame={supplierFrame(user, supplier)}
       title="Add a product"
-      sub="Trade terms, photos, stock and fulfilment in one pass. Save a draft any time, then send it to marketplace review."
+      sub="Your price to shops, photos, how many you have and delivery in one go. Save a draft any time, then send it to marketplace review."
     >
       {atStarterLimit ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

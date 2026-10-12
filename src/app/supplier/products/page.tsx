@@ -13,7 +13,7 @@ const FILTERS: Record<string, { label: string; where: Prisma.SupplierProductWher
   review: { label: "In review", where: { status: "pending_review" } },
   drafts: { label: "Drafts", where: { status: { in: ["draft", "unpublished", "rejected"] } } },
   "low-stock": { label: "Low stock", where: { stockQuantity: { lte: LOW_STOCK } } },
-  dropship: { label: "Dropship", where: { dropshipAvailable: true } },
+  dropship: { label: "Shops sell it for you", where: { dropshipAvailable: true } },
 };
 
 type PageProps = {

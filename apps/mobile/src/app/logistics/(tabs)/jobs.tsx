@@ -8,13 +8,13 @@ import { fetchJobs, type JobView } from "@/lib/logistics";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 
-// Jobs: new requests (accept and assign, or decline), active jobs (picked up → on the way → delivered),
+// Jobs: new requests (accept and pick a rider, or decline), active jobs (picked up → on the way → delivered),
 // finished ones and issues (failed deliveries to retry). The filter lives in ?view= so Today can open one.
 
 const VIEWS: Array<{ value: JobView; label: string; empty: string }> = [
   { value: "new", label: "New", empty: "No new requests. Shops book you at checkout." },
-  { value: "active", label: "Active", empty: "No jobs on the road right now." },
-  { value: "issues", label: "Issues", empty: "No failed deliveries. Nice." },
+  { value: "active", label: "On the way", empty: "No jobs on the road right now." },
+  { value: "issues", label: "Problems", empty: "No problems. Jobs your riders couldn't deliver show up here." },
   { value: "done", label: "Done", empty: "Delivered and cancelled jobs show up here." },
 ];
 

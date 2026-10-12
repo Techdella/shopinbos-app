@@ -9,7 +9,7 @@ import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server
 import { WhatsAppTemplates } from "./WhatsAppTemplates";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "WhatsApp templates" };
+export const metadata: Metadata = { title: "WhatsApp messages" };
 
 export default async function WhatsAppTemplatesPage() {
   const user = await requireRole(["seller"], "/login");
@@ -21,12 +21,12 @@ export default async function WhatsAppTemplatesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="WhatsApp templates"
-      sub="Messages Meta has approved, for campaigns, automations and order updates outside the 24-hour reply window."
+      title="WhatsApp messages"
+      sub="Messages WhatsApp has approved, so you can send offers and order updates to customers any time, not only when they message you first."
       actions={
         <>
           <PillLink href="/home/marketing/messages" icon="bell">Order messages</PillLink>
-          <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">WhatsApp campaign</PillLink>
+          <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">Send a WhatsApp message</PillLink>
         </>
       }
     >
@@ -35,7 +35,7 @@ export default async function WhatsAppTemplatesPage() {
           initial={templates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables, preset: t.preset, syncedAt: t.syncedAt?.toISOString() ?? null }))}
           whatsapp={channels.whatsapp}
         />
-        <AssistantNote>Meta usually reviews a template within minutes, sometimes up to a day. Utility templates must only be about an order; anything promotional is Marketing, and Meta may move it there.</AssistantNote>
+        <AssistantNote>WhatsApp usually approves a message within minutes, sometimes up to a day. An order update must only be about an order; anything with an offer is a promotion, and WhatsApp may change it to one.</AssistantNote>
       </div>
     </SellerPage>
   );

@@ -38,7 +38,7 @@ export default async function LegalPagesPage() {
       user={user}
       store={storeSummary(store)}
       title="Legal pages"
-      sub={`${publishedCount} of ${pages.length} published. Published pages get their own page in your store and a link in the footer and at checkout.`}
+      sub={`${publishedCount} of ${pages.length} published. Published pages get their own page in your store and a link in the footer and on the payment page.`}
       actions={customCount < MAX_CUSTOM_LEGAL_PAGES ? <AddLegalPage /> : null}
     >
       <PageToast />
@@ -80,7 +80,7 @@ export default async function LegalPagesPage() {
             );
           })}
         </ul>
-        <AssistantNote who="peggy">Not sure what to write? Open a page and start from a template, or ask me for a first draft. Check it fits how you run your business before you publish.</AssistantNote>
+        <AssistantNote who="peggy">Not sure what to write? Open a page and start from a ready-made page, or ask me for a first draft. Check it fits how you run your business before you publish.</AssistantNote>
       </div>
     </SellerPage>
   );

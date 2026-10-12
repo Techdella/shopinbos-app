@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, inputClass } from "@/components/growth/kit";
 import { cx } from "@/components/app-ui/cx";
@@ -44,7 +44,7 @@ export function MetaConnectForm({ channel, canStoreTokens }: { channel: "meta" |
   if (!canStoreTokens) {
     return (
       <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">
-        API sync needs token storage switched on for this workspace (the INBOX_ENCRYPTION_KEY setting). The feed URL above works without it.
+        Faster updates aren&apos;t switched on yet. The product link above works without them.
       </p>
     );
   }
@@ -59,7 +59,7 @@ export function MetaConnectForm({ channel, canStoreTokens }: { channel: "meta" |
         Access token
         <input name="token" type="password" autoComplete="off" required placeholder="System user token with catalog_management" className={inputClass} />
       </label>
-      <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>{pending ? "Checking with Meta…" : "Connect catalog"}</button>
+      <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>{pending ? "Checking with Facebook…" : "Connect catalog"}</button>
       <Message state={state} />
     </form>
   );
@@ -72,9 +72,30 @@ export function SyncButton({ channel }: { channel: "meta" | "whatsapp" }) {
       <input type="hidden" name="channel" value={channel} />
       <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>
         <Icon name="refresh" size={15} />
-        {pending ? "Sending products…" : "Sync now"}
+        {pending ? "Sending products…" : "Send my products now"}
       </button>
       <Message state={state} />
     </form>
+  );
+}
+
+/**
+ * One plain action per channel ("Show my products on Facebook and Instagram"). Tapping it opens what's inside:
+ * the "Ask us to connect it" request and Peggy's steps. Children are rendered by the server page.
+ */
+export function ChannelAction({ label, done, children }: { label: string; done?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="grid min-w-0 gap-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={buttonClass(open || done ? "white" : "ink", "md")}
+      >
+        {open ? "Close" : done ? "Help with this" : label}
+      </button>
+      {open && <div className="grid min-w-0 gap-3">{children}</div>}
+    </div>
   );
 }

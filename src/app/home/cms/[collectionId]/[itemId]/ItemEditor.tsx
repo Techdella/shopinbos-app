@@ -152,7 +152,7 @@ export function ItemEditor(props: {
       const uploaded = await uploadCmsFile(file);
       set({ featuredImage: uploaded.url });
     } catch (e) {
-      setNotice({ tone: "error", text: e instanceof Error ? e.message : "Upload failed" });
+      setNotice({ tone: "error", text: e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again." });
     } finally {
       setUploading(false);
     }

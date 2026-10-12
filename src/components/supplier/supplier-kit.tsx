@@ -57,10 +57,10 @@ export function orderRef(id: string) {
 }
 
 export const ORDER_STATUS: Record<string, { label: string; tone: Tone }> = {
-  pending: { label: "To ship", tone: "accent" },
-  confirmed: { label: "Confirmed", tone: "info" },
+  pending: { label: "New: accept it", tone: "accent" },
+  confirmed: { label: "To pack", tone: "info" },
   processing: { label: "Packing", tone: "warning" },
-  shipped: { label: "On the way", tone: "info" },
+  shipped: { label: "Sent", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
   cancelled: { label: "Cancelled", tone: "muted" },
   refunded: { label: "Refunded", tone: "danger" },
@@ -68,7 +68,7 @@ export const ORDER_STATUS: Record<string, { label: string; tone: Tone }> = {
 
 export const QUOTE_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Waiting on you", tone: "accent" },
-  responded: { label: "Quote sent", tone: "info" },
+  responded: { label: "Price sent", tone: "info" },
   accepted: { label: "Accepted", tone: "success" },
   rejected: { label: "Passed", tone: "muted" },
   expired: { label: "Expired", tone: "muted" },

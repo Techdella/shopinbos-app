@@ -144,7 +144,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
             {supplierOrders.length > 0 && (
               <Card className="p-5">
-                <CardHead title="Supplier fulfilment" sub="Dropship items ship straight from the supplier to your buyer, in your shop's name." />
+                <CardHead title="Sent by the supplier" sub="Products you sell without stock go straight from the supplier to your customer, in your shop's name." />
                 <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                   {supplierOrders.map((supplierOrder) => {
                     const stage = SUPPLIER_STAGE[supplierOrder.status] ?? { label: supplierOrder.status, tone: "muted" as const };

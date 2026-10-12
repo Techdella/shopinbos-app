@@ -60,16 +60,16 @@ export default function LogisticsVerificationPage() {
   const fetchData = useCallback(async () => {
     try {
       const r = await fetch("/api/logistics/me");
-      if (!r.ok) throw new Error("Unable to load verification data.");
+      if (!r.ok) throw new Error("We couldn't open your papers just now. Check your connection, then refresh the page.");
       const d = await r.json();
       const payload = d.data ?? d;
-      if (!payload.partner || !payload.user) throw new Error("Details not returned.");
+      if (!payload.partner || !payload.user) throw new Error("We couldn't open your papers just now. Refresh the page to try again.");
       setPartner(payload.partner);
       setUser(payload.user);
       setDocuments(payload.partner.verificationDocuments ?? []);
       if (payload.trustBreakdown) setTrustData(payload.trustBreakdown);
     } catch (err: any) {
-      setError(err.message || "Unable to load verification.");
+      setError(err.message || "We couldn't open your papers just now. Refresh the page to try again.");
     }
   }, []);
 
@@ -83,10 +83,10 @@ export default function LogisticsVerificationPage() {
     try {
       const r = await fetch("/api/logistics/verification/upload", { method: "POST", body: formData });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "Upload failed"); return; }
-      setMessage("Document uploaded successfully.");
+      if (!result.success) { setMessage(result.error ?? "That file didn't upload. Check your connection and try again."); return; }
+      setMessage("Uploaded.");
       fetchData();
-    } catch { setMessage("Upload failed."); }
+    } catch { setMessage("That file didn't upload. Check your connection and try again."); }
   }, [fetchData]);
 
   const handleDelete = useCallback(async (docId: string) => {
@@ -98,10 +98,10 @@ export default function LogisticsVerificationPage() {
         body: JSON.stringify({ docId }),
       });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "Delete failed"); return; }
+      if (!result.success) { setMessage(result.error ?? "We couldn't remove that file. Try again."); return; }
       setMessage("Document removed.");
       fetchData();
-    } catch { setMessage("Delete failed."); }
+    } catch { setMessage("We couldn't remove that file. Try again."); }
   }, [fetchData]);
 
   const handleSubmit = useCallback(async () => {
@@ -110,10 +110,10 @@ export default function LogisticsVerificationPage() {
     try {
       const r = await fetch("/api/logistics/verification/submit", { method: "POST" });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "Submit failed"); setSubmitting(false); return; }
-      setMessage("Verification submitted for review.");
+      if (!result.success) { setMessage(result.error ?? "We couldn't send your papers. Try again in a minute."); setSubmitting(false); return; }
+      setMessage("Sent. We'll check your papers and let you know, usually within a day or two.");
       fetchData();
-    } catch { setMessage("Submit failed."); }
+    } catch { setMessage("We couldn't send your papers. Check your connection and try again."); }
     finally { setSubmitting(false); }
   }, [fetchData]);
 
@@ -128,7 +128,7 @@ export default function LogisticsVerificationPage() {
   if (!partner || !user) {
     return (
       <div className="grid min-h-dvh place-items-center bg-app-canvas font-app text-app-ink-soft" role="status">
-        <span className="flex items-center gap-2 text-[14.5px]"><Spinner /> Loading verification</span>
+        <span className="flex items-center gap-2 text-[15px]"><Spinner /> Loading verification</span>
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function LogisticsVerificationPage() {
       : "bronze"
     : "none";
 
-  const failed = /fail|error/i.test(message);
+  const failed = !/^(Uploaded\.|Document removed\.|Sent\.)/.test(message);
 
   return (
     <AppFrame
@@ -188,7 +188,7 @@ export default function LogisticsVerificationPage() {
             <h2 className="m-0 text-[18px] font-extrabold">
               {isVerified ? "You're verified" : isPending ? "We're checking your papers" : "Not verified yet"}
             </h2>
-            <p className="m-0 mt-0.5 text-[14px] text-app-ink-soft">
+            <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
               {isVerified
                 ? `Trust score ${trustData?.total ?? partner.reliabilityScore} out of 100.`
                 : isPending

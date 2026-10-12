@@ -6,43 +6,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
-import { Card, Mascot, Notice, T, Wash } from "@/components/ui";
-import type { Dashboard } from "@/lib/dashboard";
+import { HelpButton } from "@/components/Help";
+import { Mascot, Notice, T } from "@/components/ui";
+import { stepWords } from "@/lib/setup-words";
+import { doNextItems, peggyLine, type DoNextItem } from "@/lib/home-pure";
 import { useHomeData } from "@/lib/homeData";
 import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
-import { openPath, openWeb } from "@/lib/web";
-import { colors, radii } from "@/theme";
+import { openPath } from "@/lib/web";
+import { colors } from "@/theme";
 
-// Seller home, following the "Seller app · iOS and Android" mockup.
+// Seller Home (build spec 8A, "Simple app" prototype): today's sales, at most three "Do these next" items and one
+// line about Peggy. Nothing else; everything else is in My shop or the orange +.
 
 function greeting() {
   const hour = (new Date().getUTCHours() + 1) % 24; // Lagos time
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-const TASK_ICON: Record<Dashboard["tasks"][number]["icon"], AppIconName> = { chat: "chat", mail: "mail", truck: "truck", box: "box", coin: "coin" };
-
-const ACTIONS: Array<{ label: string; icon: AppIconName; run: () => unknown; primary?: boolean }> = [
-  { label: "Add product", icon: "plus", run: () => router.push("/add-products"), primary: true },
-  { label: "Record sale", icon: "receipt", run: () => router.push("/record-sale") },
-  { label: "Find stock", icon: "search", run: () => router.push("/find") },
-  { label: "Make video", icon: "play", run: () => openWeb("/home/video") },
-  { label: "Labels", icon: "printer", run: () => openWeb("/home/labels") },
-  { label: "Marketing", icon: "megaphone", run: () => router.push("/marketing") },
-  { label: "Ask Rex", icon: "sparkle", run: () => router.push("/rex") },
-  { label: "More", icon: "grid", run: () => router.push("/more") },
-];
-
-function RoundButton({ icon, label, onPress, dot }: { icon: AppIconName; label: string; onPress: () => void; dot?: boolean }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
-      <AppIcon name={icon} size={20} />
-      {dot && <View style={{ position: "absolute", top: 11, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.surface }} />}
-    </Pressable>
-  );
-}
+const TASK_ICON: Record<DoNextItem["icon"], AppIconName> = { chat: "chat", mail: "mail", truck: "truck", box: "box", coin: "coin", sparkle: "sparkle" };
 
 /** The first open on this phone shows "Opening your shop" at least this long, so it doesn't just flash. */
 const OPENING_MIN_MS = 1500;
@@ -92,16 +75,10 @@ export default function Home() {
   }
 
   const firstName = data?.ownerName.split(/\s+/)[0] ?? "";
-  const week = data?.daily.data.slice(-7) ?? [];
-  const weekMax = Math.max(1, ...week);
-  const doneCount = data?.checklist.filter((item) => item.done).length ?? 0;
-  const checklist = data ? [...data.checklist.filter((i) => i.done), ...data.checklist.filter((i) => !i.done)].slice(0, 5) : [];
+  const items = data ? doNextItems(data.tasks, setup?.checklist.showStart && !setup.checklist.complete && setup.checklist.next ? { key: setup.checklist.next.key, ...stepWords(setup.checklist.next) } : null) : [];
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: 320 }}>
-        <Wash />
-      </View>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 }}
@@ -112,25 +89,17 @@ export default function Home() {
               <T weight="extrabold" style={{ fontSize: 18, color: colors.accentInk }}>{(firstName || "S").charAt(0)}</T>
             </View>
             <View style={{ flex: 1 }}>
-              <T style={{ color: colors.inkSoft, fontSize: 13 }}>{greeting()}</T>
-              <T weight="extrabold" style={{ fontSize: 17 }} numberOfLines={1}>{firstName || " "}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{greeting()}</T>
+              <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{firstName || " "}</T>
             </View>
-            <RoundButton icon="search" label="Find an order" onPress={() => router.push("/orders")} />
-            <RoundButton icon="bell" label="Notifications" onPress={() => void openWeb("/home/notifications")} dot={Boolean(data?.tasks.length)} />
+            <HelpButton />
           </View>
 
-          <T style={{ fontSize: 34, lineHeight: 38, letterSpacing: -0.8, marginTop: 18 }} accessibilityRole="header">
-            Your shop made{"\n"}
-            <T weight="extrabold" style={{ fontSize: 34, lineHeight: 38, letterSpacing: -0.8 }}>{data ? naira(data.sales.today) : "…"} today</T>
-          </T>
-
-          <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: radii.pill, paddingLeft: 10, paddingRight: 6, height: 54, marginTop: 16 }}>
-            <Mascot name="peggy" size={34} />
-            <T style={{ flex: 1, color: colors.inkSoft, fontSize: 15 }}>Ask Peggy about your shop</T>
-            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
-              <AppIcon name="mic" size={18} color="#FFFFFF" />
-            </View>
-          </Pressable>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 26, padding: 20, marginTop: 18, gap: 4 }}>
+            <T style={{ color: colors.inkSoft, fontSize: 16 }}>You sold today</T>
+            <T weight="extrabold" style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1 }} accessibilityRole="header">{data ? naira(data.sales.today) : "…"}</T>
+            {data ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{data.counts.ordersToday} order{data.counts.ordersToday === 1 ? "" : "s"} today</T> : null}
+          </View>
 
           {cachedAt !== null && (
             <View style={{ marginTop: 14 }}>
@@ -139,7 +108,7 @@ export default function Home() {
                 savedAt={cachedAt}
                 action={
                   <Pressable accessibilityRole="button" accessibilityLabel="Try again now" disabled={home.attempting} onPress={() => void load()} hitSlop={8} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "flex-end" }}>
-                    <T weight="extrabold" style={{ fontSize: 13.5, color: "#8A5A08", textDecorationLine: "underline" }}>{home.attempting ? "Trying…" : "Retry"}</T>
+                    <T weight="extrabold" style={{ fontSize: 15, color: "#8A5A08", textDecorationLine: "underline" }}>{home.attempting ? "Trying…" : "Try again"}</T>
                   </Pressable>
                 }
               />
@@ -150,155 +119,37 @@ export default function Home() {
 
           {data && (
             <>
-              <View style={{ backgroundColor: colors.ink, borderRadius: 26, padding: 18, marginTop: 18 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <T style={{ color: "rgba(255,255,255,0.75)" }}>This week · {naira(data.sales.week)}</T>
-                  {data.sales.weekChange !== null && (
-                    <View style={{ backgroundColor: data.sales.weekChange >= 0 ? colors.accent : "#3A3746", borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 4 }}>
-                      <T weight="bold" style={{ color: "#FFFFFF", fontSize: 12.5 }}>{data.sales.weekChange >= 0 ? "Up" : "Down"} {Math.abs(data.sales.weekChange)}%</T>
-                    </View>
-                  )}
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, height: 76, marginTop: 14 }} accessibilityLabel={`Sales this week ${naira(data.sales.week)}`}>
-                  {week.map((value, index) => (
-                    <View key={index} style={{ flex: 1, height: `${Math.max(14, (value / weekMax) * 100)}%`, borderRadius: 10, backgroundColor: index === week.length - 1 ? colors.accent : "#38354A" }} />
-                  ))}
-                </View>
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-                  {[
-                    ["Orders", data.counts.ordersToday],
-                    ["Visitors", data.counts.visitorsToday],
-                    ["Chats", data.counts.chatsToday],
-                  ].map(([label, value]) => (
-                    <View key={label} style={{ flex: 1, backgroundColor: "#24212F", borderRadius: 16, padding: 12 }}>
-                      <T style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>{label}</T>
-                      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 20, marginTop: 2 }}>{String(value)}</T>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={{ backgroundColor: colors.mintTint, borderRadius: 26, padding: 16, marginTop: 14, gap: 10 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 }}>
-                  <Mascot name="peggy" size={44} />
-                  <View style={{ flex: 1 }}>
-                    <T weight="extrabold" style={{ fontSize: 15 }}>
-                      {data.tasks.length ? `Peggy needs you for ${data.tasks.length} thing${data.tasks.length === 1 ? "" : "s"}` : "Nothing needs you right now"}
-                    </T>
-                    <T style={{ color: colors.inkSoft, fontSize: 13 }}>{data.tasks.length ? "Tap one to sort it out" : "Orders, stock and messages all look fine"}</T>
-                  </View>
-                </View>
-                {data.tasks.map((task) => (
-                  <Pressable key={task.key} accessibilityRole="button" onPress={() => void openPath(task.action?.href ?? task.href)} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 }}>
-                    {task.image ? <Image source={{ uri: task.image }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" /> : <AppIcon name={TASK_ICON[task.icon]} size={20} />}
-                    <View style={{ flex: 1 }}>
-                      <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{task.title}</T>
-                      <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{task.hint}</T>
-                    </View>
-                    {task.action ? (
-                      <View style={{ backgroundColor: colors.ink, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 9 }}>
-                        <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13 }}>{task.action.label}</T>
+              <T weight="extrabold" style={{ fontSize: 20, marginTop: 22, marginBottom: 10 }} accessibilityRole="header">Do these next</T>
+              {items.length ? (
+                <View style={{ gap: 10 }} testID="do-next">
+                  {items.map((item) => (
+                    <Pressable key={item.key} accessibilityRole="button" onPress={() => void openPath(item.href)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 14, opacity: pressed ? 0.85 : 1 })}>
+                      {item.image ? (
+                        <Image source={{ uri: item.image }} style={{ width: 44, height: 44, borderRadius: 12 }} contentFit="cover" />
+                      ) : (
+                        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
+                          <AppIcon name={TASK_ICON[item.icon]} size={20} color={colors.accentInk} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={2}>{item.title}</T>
+                        <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={2}>{item.hint}</T>
                       </View>
-                    ) : (
                       <AppIcon name="chevron" size={18} color={colors.inkSoft} />
-                    )}
-                  </Pressable>
-                ))}
-              </View>
-
-              <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 16, marginTop: 20 }}>
-                {ACTIONS.map((action) => (
-                  <Pressable key={action.label} accessibilityRole="button" onPress={() => void action.run()} style={{ width: "25%", alignItems: "center", gap: 7 }}>
-                    <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: action.primary ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center" }}>
-                      <AppIcon name={action.icon} size={21} color={action.primary ? "#FFFFFF" : colors.ink} strokeWidth={action.primary ? 2.4 : 1.9} />
-                    </View>
-                    <T weight="semibold" style={{ fontSize: 12.5 }}>{action.label}</T>
-                  </Pressable>
-                ))}
-              </View>
-
-              {setup ? (
-                setup.checklist.showStart ? (
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Start here, ${setup.checklist.percent} percent set up`} onPress={() => router.push("/start")} style={{ marginTop: 20, borderRadius: 24, backgroundColor: colors.surface, padding: 16, gap: 10 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                      <T weight="extrabold" style={{ fontSize: 17 }}>Start here</T>
-                      <T style={{ color: colors.inkSoft }}>{setup.checklist.done} of {setup.checklist.total} done</T>
-                    </View>
-                    <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.canvas, overflow: "hidden" }}>
-                      <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.success, width: `${setup.checklist.percent}%` }} />
-                    </View>
-                    {setup.checklist.next ? (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                        <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.toggleOff }} />
-                        <View style={{ flex: 1 }}>
-                          <T weight="semibold" style={{ fontSize: 15 }}>{setup.checklist.next.title}</T>
-                          <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{setup.checklist.next.hint}</T>
-                        </View>
-                        <View style={{ backgroundColor: colors.ink, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 8 }}>
-                          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13 }}>Continue</T>
-                        </View>
-                      </View>
-                    ) : null}
-                  </Pressable>
-                ) : null
-              ) : (
-              <Card style={{ marginTop: 20, borderRadius: 24 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <T weight="extrabold" style={{ fontSize: 17 }}>Finish setting up</T>
-                  <T style={{ color: colors.inkSoft }}>{doneCount} of {data.checklist.length} done</T>
-                </View>
-                <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.canvas, marginTop: 12, overflow: "hidden" }}>
-                  <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.success, width: `${(doneCount / Math.max(1, data.checklist.length)) * 100}%` }} />
-                </View>
-                {checklist.map((item, index) => (
-                  <View key={item.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line, marginTop: index ? 0 : 6 }}>
-                    {item.done ? <T weight="extrabold" style={{ color: colors.success }}>✓</T> : <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.toggleOff }} />}
-                    <T weight={item.done ? "regular" : "semibold"} style={{ flex: 1, fontSize: 15, color: item.done ? colors.inkSoft : colors.ink, textDecorationLine: item.done ? "line-through" : "none" }}>{item.label}</T>
-                    {!item.done && (
-                      <Pressable accessibilityRole="button" onPress={() => void openPath(item.href)} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 8 }}>
-                        <T weight="extrabold" style={{ fontSize: 13 }}>Set up</T>
-                      </Pressable>
-                    )}
-                  </View>
-                ))}
-              </Card>
-              )}
-
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 22, marginBottom: 12 }}>
-                <T weight="extrabold" style={{ fontSize: 19 }}>Selling fast</T>
-                <Pressable onPress={() => router.push("/products")} hitSlop={8}><T weight="extrabold" style={{ color: colors.accentInk }}>See all</T></Pressable>
-              </View>
-              {data.sellingFast.length ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                  {data.sellingFast.map((product) => (
-                    <View key={product.id} style={{ width: 150 }}>
-                      <View style={{ width: 150, height: 150, borderRadius: 18, backgroundColor: colors.lilac, overflow: "hidden" }}>
-                        {product.image && <Image source={{ uri: product.image }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
-                        <View style={{ position: "absolute", left: 8, bottom: 8, backgroundColor: product.stock.low ? colors.peach : colors.surface, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 4 }}>
-                          <T weight="bold" style={{ fontSize: 11.5, color: product.stock.low ? colors.accentInk : colors.ink }}>{product.stock.label}</T>
-                        </View>
-                      </View>
-                      <T weight="bold" style={{ marginTop: 8, fontSize: 14 }} numberOfLines={1}>{product.name}</T>
-                      <T weight="extrabold" style={{ fontSize: 14 }}>{naira(product.price)}</T>
-                    </View>
+                    </Pressable>
                   ))}
-                </ScrollView>
+                </View>
               ) : (
-                <Card><T style={{ color: colors.inkSoft }}>Your best sellers show up here after the first sales.</T></Card>
+                <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 16 }}>
+                  <T style={{ fontSize: 15, lineHeight: 22 }}>Nothing needs you right now. Tap the orange + to add a product or record a sale.</T>
+                </View>
               )}
 
-              {data.imports.length > 0 && (
-                <Pressable onPress={() => void openWeb("/home/dropship")} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 20, padding: 14, marginTop: 16 }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-                    <AppIcon name="truck" size={20} color={colors.accentInk} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <T weight="extrabold" style={{ fontSize: 15 }}>{data.imports.length} import{data.imports.length === 1 ? "" : "s"} on the way</T>
-                    <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{data.imports[0].product} from {data.imports[0].supplier}</T>
-                  </View>
-                  <AppIcon name="chevron" size={18} color={colors.inkSoft} />
-                </Pressable>
-              )}
+              <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, paddingVertical: 6 }}>
+                <Mascot name="peggy" size={36} />
+                <T style={{ flex: 1, fontSize: 15, lineHeight: 21 }}>{peggyLine(data.counts)}</T>
+                <T weight="bold" style={{ fontSize: 15, color: colors.forest }}>Ask Peggy</T>
+              </Pressable>
             </>
           )}
         </ScrollView>

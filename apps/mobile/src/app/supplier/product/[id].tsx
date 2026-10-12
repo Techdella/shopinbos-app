@@ -32,7 +32,7 @@ export default function SupplierProductScreen() {
     return (
       <Screen title="Product" refreshing={product.refreshing} onRefresh={() => void product.refresh()}>
         {product.loading ? <LoadingBlock /> : null}
-        {product.error ? <ErrorState message={product.error} onRetry={() => void product.reload()} web={{ label: "Open on web", onPress: () => void openWeb(`/supplier/products/${id}`) }} /> : null}
+        {product.error ? <ErrorState message={product.error} onRetry={() => void product.reload()} /> : null}
       </Screen>
     );
   }
@@ -50,17 +50,17 @@ export default function SupplierProductScreen() {
     if (!data) return;
     const patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number } = {};
     if (stock !== null) {
-      if (stockValue === null) return setNotice({ tone: "error", text: "Stock must be a whole number." });
+      if (stockValue === null) return setNotice({ tone: "error", text: "How many you have should be a whole number, like 12." });
       patch.stockQuantity = stockValue;
     }
     if (wholesale !== null) {
       const value = parseAmount(wholesale);
-      if (!value) return setNotice({ tone: "error", text: "Enter your wholesale price in naira." });
+      if (!value) return setNotice({ tone: "error", text: "Type your price to shops in naira, like 4500." });
       patch.wholesalePrice = value;
     }
     if (retail !== null) {
       const value = parseAmount(retail);
-      if (!value) return setNotice({ tone: "error", text: "Enter the suggested shop price in naira." });
+      if (!value) return setNotice({ tone: "error", text: "Type what shops sell it for, in naira, like 9000." });
       patch.suggestedRetailPrice = value;
     }
     if (!Object.keys(patch).length) return setNotice({ tone: "success", text: "Nothing changed." });
@@ -72,9 +72,9 @@ export default function SupplierProductScreen() {
       setStock(null);
       setWholesale(null);
       setRetail(null);
-      setNotice({ tone: "success", text: saved.status === "pending_review" && data.status === "published" ? "Saved. New prices go live after a quick review." : "Saved." });
+      setNotice({ tone: "success", text: saved.status === "pending_review" && data.status === "published" ? "Saved. Shops see the new price after we check it." : "Saved." });
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : "Couldn't save. Try again." });
+      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again." });
     } finally {
       setBusy(null);
     }
@@ -87,9 +87,9 @@ export default function SupplierProductScreen() {
     try {
       const saved = await quickEditProduct(data.id, { publish: next });
       product.setData({ ...data, ...saved });
-      setNotice({ tone: "success", text: next ? "Sent for review. It goes live once it's approved." : "Hidden. Shops can't add it until you publish it again." });
+      setNotice({ tone: "success", text: next ? "Sent. Shops can see it once we've checked it." : "Hidden. Shops can't add it until you show it again." });
     } catch (publishError) {
-      setNotice({ tone: "error", text: publishError instanceof Error ? publishError.message : "Couldn't change that. Try again." });
+      setNotice({ tone: "error", text: publishError instanceof Error ? publishError.message : "That didn't change. Check your connection and try again." });
     } finally {
       setBusy(null);
     }
@@ -109,17 +109,17 @@ export default function SupplierProductScreen() {
       ) : null}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <TonePill tone={stage.tone} label={stage.label} />
-        {data._count?.storeProducts ? <TonePill tone="muted" label={`In ${data._count.storeProducts} shops`} /> : null}
+        {data._count?.storeProducts ? <TonePill tone="muted" label={`${data._count.storeProducts} shops sell it`} /> : null}
       </View>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
       <Card style={{ gap: 10 }}>
-        <Label>Stock</Label>
+        <Label>How many you have</Label>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Pressable accessibilityRole="button" accessibilityLabel="One less" onPress={() => bump(-1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" style={{ fontSize: 22 }}>−</T>
           </Pressable>
-          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel="Units in stock" style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
+          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel="How many you have" style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
           <Pressable accessibilityRole="button" accessibilityLabel="One more" onPress={() => bump(1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="plus" size={22} strokeWidth={2.4} />
           </Pressable>
@@ -135,25 +135,25 @@ export default function SupplierProductScreen() {
 
       <Card style={{ gap: 12 }}>
         <View>
-          <Label>Wholesale price (₦ per unit)</Label>
-          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel="Wholesale price" />
+          <Label>Your price to shops (for one)</Label>
+          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel="Your price to shops" />
         </View>
         <View>
-          <Label>Suggested shop price (₦)</Label>
-          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel="Suggested shop price" />
-          <T style={{ color: colors.inkSoft, fontSize: 12.5, marginTop: 6 }}>Now {naira(data.wholesalePrice)} to shops · they sell at about {naira(data.suggestedRetailPrice)}. Price changes on a live product are checked before they show.</T>
+          <Label>Shops sell it for about</Label>
+          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel="Shops sell it for about" />
+          <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Now {naira(data.wholesalePrice)} to shops. They sell it for about {naira(data.suggestedRetailPrice)}. We check new prices before shops see them.</T>
         </View>
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? "Not on the marketplace" : data.status === "pending_review" ? "Waiting for review" : "Live on the marketplace"}</T>
+        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? "Shops can't see it" : data.status === "pending_review" ? "We're checking it" : "Shops can see it"}</T>
         <T style={{ color: colors.inkSoft, lineHeight: 20 }}>
-          {hidden ? "Send it for review and it goes live once it's approved." : "Hide it to stop new shops adding it."}
+          {hidden ? "Show it to shops. We check it first, usually within a day." : "Hide it to stop new shops adding it."}
         </T>
-        <PillButton title={hidden ? "Send for review" : "Hide from marketplace"} tone={hidden ? "ink" : "white"} size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
+        <PillButton title={hidden ? "Show it to shops" : "Hide it from shops"} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
       </Card>
 
-      <LinkButton title="Edit details, tiers and regions on the web" color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
+      <LinkButton title="Change photos, bulk prices and where it goes (opens in your browser)" color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
     </Screen>
   );
 }

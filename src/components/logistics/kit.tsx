@@ -55,7 +55,7 @@ const STAGE: Record<string, { label: string; tone: Tone }> = {
   picked_up: { label: "Picked up", tone: "info" },
   in_transit: { label: "Picked up, on the way", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
-  failed: { label: "Delivery failed", tone: "danger" },
+  failed: { label: "Couldn't deliver", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
@@ -70,8 +70,8 @@ export function StatusPill({ status }: { status: string }) {
 
 const QUOTE_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Waiting for your price", tone: "accent" },
-  responded: { label: "Quoted", tone: "info" },
-  accepted: { label: "Won", tone: "success" },
+  responded: { label: "Price sent", tone: "info" },
+  accepted: { label: "Booked you", tone: "success" },
   rejected: { label: "Declined", tone: "muted" },
   expired: { label: "Expired", tone: "muted" },
 };
@@ -124,7 +124,20 @@ export function lagosTime(date: Date) {
   return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, hour: "numeric", minute: "2-digit", hour12: true }).format(date);
 }
 
-export function lagosDate(date: Date, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }) {
+/**
+ * A date the way people say it: "today", "yesterday", "Friday" for the last week, otherwise "12 Oct".
+ * Pass `opts` to force an exact format.
+ */
+export function lagosDate(date: Date, opts?: Intl.DateTimeFormatOptions, now = new Date()) {
+  if (!opts) {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const diff = Math.round((Date.parse(lagosDay(now)) - Date.parse(lagosDay(date))) / dayMs);
+    if (diff === 0) return "today";
+    if (diff === 1) return "yesterday";
+    if (diff === -1) return "tomorrow";
+    if (diff > 1 && diff < 7) return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, weekday: "long" }).format(date);
+    opts = { day: "numeric", month: "short" };
+  }
   return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, ...opts }).format(date);
 }
 
@@ -169,7 +182,7 @@ export function cashToCollect(order: CodOrder | undefined | null) {
 /** Label + value row inside a card. */
 export function KeyValue({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-2.5 text-[14px]">
+    <div className="flex items-baseline justify-between gap-3 py-2.5 text-[15px]">
       <span className="text-app-ink-soft">{label}</span>
       <span className="min-w-0 truncate text-right font-bold">{children}</span>
     </div>
@@ -180,7 +193,7 @@ export const inputClass =
   "h-11 w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 text-[15px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
 export const textareaClass =
   "w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[15px] leading-[1.5] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
-export const labelClass = "mb-1.5 block text-[13.5px] font-bold text-app-ink";
+export const labelClass = "mb-1.5 block text-[15px] font-bold text-app-ink";
 
 const BUTTON = {
   ink: "bg-app-ink text-white hover:bg-black",
@@ -195,7 +208,7 @@ export function SubmitButton({ tone = "ink", size = "md", children, className, .
       type="submit"
       className={[
         "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-extrabold transition disabled:cursor-not-allowed disabled:opacity-55",
-        size === "sm" ? "min-h-[40px] px-4 text-[13.5px]" : "min-h-[44px] px-5 text-[14px]",
+        size === "sm" ? "min-h-[40px] px-4 text-[15px]" : "min-h-[44px] px-5 text-[15px]",
         BUTTON[tone],
         className ?? "",
       ].join(" ")}

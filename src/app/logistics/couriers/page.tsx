@@ -77,9 +77,9 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       frame={{ user, partner }}
       title="Riders"
       sub="The riders and dispatch staff who carry your jobs. Riders use the Shopinbos Riders app."
-      actions={<PillLink href="#add-rider" tone="accent" icon="plus">Add a rider</PillLink>}
+      actions={<PillLink href="#add-rider" icon="plus">Add a rider</PillLink>}
     >
-      <ActionNotice saved={saved} error={error} savedText="Team updated." />
+      <ActionNotice saved={saved} error={error} savedText="Saved." />
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="Riders out now" value={presence.out} hint={`${presence.offline} offline · ${presence.total} active`} />
@@ -107,14 +107,14 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
               {shown.map((member) => (
                 <li key={member.id} className="px-4 py-3.5 sm:px-5">
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:flex-nowrap">
-                    <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas text-[14px] font-extrabold">{initials(member.name)}</span>
+                    <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas text-[15px] font-extrabold">{initials(member.name)}</span>
                     <div className="min-w-0 flex-1 basis-[180px]">
                       <div className="truncate text-[15px] font-extrabold">{member.name}</div>
-                      <div className="truncate text-[13px] text-app-ink-soft">{[member.email, member.phone].filter(Boolean).join(" · ")}</div>
+                      <div className="truncate text-[15px] text-app-ink-soft">{[member.email, member.phone].filter(Boolean).join(" · ")}</div>
                   </div>
-                  <span className="text-[13.5px] capitalize text-app-ink-soft">{member.role}</span>
+                  <span className="text-[15px] capitalize text-app-ink-soft">{member.role}</span>
                   {member.status !== "active" ? (
-                    <Pill tone="muted" dot>Inactive</Pill>
+                    <Pill tone="muted" dot>Paused</Pill>
                   ) : member.role === "rider" ? (
                     <Pill tone={isRiderOut(member, now) ? "success" : "muted"} dot>
                       {isRiderOut(member, now) ? "Online" : member.lastSeenAt ? `Offline · seen ${timeAgo(member.lastSeenAt, now)}` : "Offline"}
@@ -122,12 +122,12 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   ) : (
                     <Pill tone="success" dot>Active</Pill>
                   )}
-                  <span className="hidden text-[13px] text-app-ink-soft lg:inline">Added {lagosDate(member.invitedAt)}</span>
+                  <span className="hidden text-[15px] text-app-ink-soft lg:inline">Added {lagosDate(member.invitedAt)}</span>
                   <form action={updateLogisticsTeamMemberStatus} className="ml-auto">
                     <input type="hidden" name="teamMemberId" value={member.id} />
                     <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
-                    <SubmitButton tone="white" size="sm" aria-label={`${member.status === "active" ? "Deactivate" : "Reactivate"} ${member.name}`}>
-                      {member.status === "active" ? "Deactivate" : "Reactivate"}
+                    <SubmitButton tone="white" size="sm" aria-label={`${member.status === "active" ? "Pause" : "Turn back on"} ${member.name}`}>
+                      {member.status === "active" ? "Pause" : "Turn back on"}
                     </SubmitButton>
                   </form>
                   </div>
@@ -177,7 +177,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
             </div>
             {atStarterLimit && (
               <Notice tone="info">
-                Starter logistics includes {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Deactivate someone or move to Pro to add more.
+                Your free plan has room for {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} people. To add someone new, pause someone you don&apos;t need, or move to Pro.
               </Notice>
             )}
             <SubmitButton disabled={atStarterLimit}>Send invite</SubmitButton>
@@ -195,5 +195,5 @@ function RiderWork({ work }: { work?: { open: number; delivered: number; fees: n
     `${naira(work?.fees ?? 0)} fees today`,
     ...(work?.cash ? [`${naira(work.cash)} cash in hand`] : []),
   ];
-  return <p className="m-0 mt-2 text-[13px] text-app-ink-soft sm:pl-[60px]">{items.join(" · ")}</p>;
+  return <p className="m-0 mt-2 text-[15px] text-app-ink-soft sm:pl-[60px]">{items.join(" · ")}</p>;
 }

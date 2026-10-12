@@ -34,7 +34,7 @@ export default function Brand() {
       void startBuild(resolved, tweak.trim() || undefined);
       router.push({ pathname: "/onboarding/products", params: { door: start === "find" ? "sup" : "snap" } });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Couldn't save your shop name.");
+      setError(saveError instanceof Error ? saveError.message : "Couldn't save your shop name. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -80,7 +80,7 @@ export default function Brand() {
                 <View style={{ flex: 1, borderRadius: 6, backgroundColor: palette.swatches[2] }} />
               </View>
             </View>
-            <T weight="bold" style={{ color: item.ink, fontSize: 13, paddingTop: 8, paddingHorizontal: 4 }}>{item.label}</T>
+            <T weight="bold" style={{ color: item.ink, fontSize: 14, paddingTop: 8, paddingHorizontal: 4 }}>{item.label}</T>
           </Pressable>
         ))}
       </View>
@@ -90,7 +90,7 @@ export default function Brand() {
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><Path d="M5 12h14M13 6l6 6-6 6" /></Svg>
         </View>
       </View>
-      <T style={{ color: colors.inkSoft, fontSize: 12, marginTop: 8, paddingHorizontal: 4 }}>Rex applies this when he builds your shop.</T>
+      <T style={{ color: colors.inkSoft, fontSize: 13.5, marginTop: 8, paddingHorizontal: 4 }}>Rex applies this when he builds your shop.</T>
     </OnboardingFrame>
   );
 }

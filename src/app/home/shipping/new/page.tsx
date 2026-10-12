@@ -17,7 +17,7 @@ export default async function NewShippingZonePage() {
       user={user}
       store={storeSummary(store)}
       title="Add delivery zone"
-      sub="Set the areas this zone covers and the delivery fee shoppers there pay at checkout."
+      sub="Set the areas this zone covers and the delivery fee customers there pay."
       actions={<PillLink href="/home/shipping">All zones</PillLink>}
     >
       {store ? (

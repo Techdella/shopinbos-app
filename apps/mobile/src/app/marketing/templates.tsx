@@ -9,7 +9,7 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Email templates gallery (web /home/marketing/templates), read-only: the shop's saved templates and the starter
+// Ready-made emails (the web's email templates gallery) (web /home/marketing/templates), read-only: the shop's saved templates and the starter
 // library. Tapping one opens the template editor on the web.
 
 function TemplateCard({ template, onPress }: { template: TemplateRow; onPress: () => void }) {
@@ -21,8 +21,8 @@ function TemplateCard({ template, onPress }: { template: TemplateRow; onPress: (
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{template.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={2}>{template.description || template.subject}</T>
-          {template.category ? <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 11.5, textTransform: "capitalize" }}>{template.category.replace(/_/g, " ")}</T> : null}
+          <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={2}>{template.description || template.subject}</T>
+          {template.category ? <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 13, textTransform: "capitalize" }}>{template.category.replace(/_/g, " ")}</T> : null}
         </View>
         <AppIcon name="chevron" size={18} color={colors.inkSoft} />
       </Card>
@@ -35,21 +35,21 @@ export default function Templates() {
   const data = templates.data;
 
   return (
-    <Screen title="Email templates" sub="Start a campaign from one of these. Editing opens the web editor." refreshing={templates.refreshing} onRefresh={() => void templates.refresh()}>
+    <Screen title="Ready-made emails" sub="Pick one to send to your customers. Changing it opens in your browser." refreshing={templates.refreshing} onRefresh={() => void templates.refresh()}>
       {templates.loading && !data ? <LoadingBlock /> : null}
-      {templates.error && !data ? <ErrorState message={templates.error} onRetry={() => void templates.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/marketing/templates") }} /> : null}
+      {templates.error && !data ? <ErrorState message={templates.error} onRetry={() => void templates.reload()} /> : null}
       {data ? (
         <>
-          {data.saved.length ? <SectionTitle>Your templates</SectionTitle> : null}
+          {data.saved.length ? <SectionTitle>Yours</SectionTitle> : null}
           {data.saved.map((template) => (
             <TemplateCard key={template.id} template={template} onPress={() => void openWeb(`/home/marketing/templates/${encodeURIComponent(template.id ?? "")}`)} />
           ))}
           <SectionTitle>Ready-made</SectionTitle>
-          {!data.library.length ? <EmptyState icon="mail" title="No templates yet" /> : null}
+          {!data.library.length ? <EmptyState icon="mail" title="None here yet">Ask Rex to write one for you.</EmptyState> : null}
           {data.library.map((template) => (
             <TemplateCard key={template.key} template={template} onPress={() => void openWeb("/home/marketing/templates")} />
           ))}
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/rex", params: { prompt: "Make me an email template for my store." } })} style={{ alignItems: "center", paddingVertical: 12 }}>
+          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/rex", params: { prompt: "Write me a ready-made email for my customers." } })} style={{ alignItems: "center", paddingVertical: 12 }}>
             <T weight="bold" style={{ color: colors.accentInk }}>Ask Rex to make one</T>
           </Pressable>
         </>

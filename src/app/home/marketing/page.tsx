@@ -60,10 +60,10 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
 
   const steps: Array<{ done: boolean; title: string; sub: string; href: string; icon: IconName }> = [
     { done: livePopups > 0, title: "Turn on a sign-up pop-up", sub: "Collect emails from store visitors, with a small reward", href: "/home/marketing/forms", icon: "mail" },
-    { done: flows.some((f) => f.trigger === "abandoned_checkout" && f.active), title: "Remind people about carts they left", sub: "The abandoned-cart automation", href: "/home/automations", icon: "cart" },
+    { done: flows.some((f) => f.trigger === "abandoned_checkout" && f.active), title: "Remind customers who didn't finish paying", sub: "A reminder that goes out by itself", href: "/home/automations", icon: "cart" },
     { done: flows.some((f) => f.trigger === "welcome_email" && f.active), title: "Welcome new subscribers", sub: "A hello email the moment they join", href: "/home/automations", icon: "sparkle" },
-    { done: segments > 0, title: "Save a segment", sub: "Repeat buyers, big spenders, people in Lagos…", href: "/home/marketing/segments", icon: "layers" },
-    { done: campaigns.some((c) => c.status === "sent"), title: "Send your first campaign", sub: "Email, SMS or WhatsApp", href: "/home/marketing/campaigns/new", icon: "send" },
+    { done: segments > 0, title: "Save a group of customers", sub: "Repeat buyers, big spenders, people in Lagos…", href: "/home/marketing/segments", icon: "layers" },
+    { done: campaigns.some((c) => c.status === "sent"), title: "Send your first message to customers", sub: "Email, SMS or WhatsApp", href: "/home/marketing/campaigns/new", icon: "send" },
   ];
 
   return (
@@ -71,19 +71,19 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
       user={user}
       store={storeSummary(store)}
       title="Marketing"
-      sub="Grow your list, send campaigns and let automations follow up for you."
+      sub="Grow your list, send messages to customers and let automations follow up for you."
       actions={
         <>
           <RexAICopywriter storeName={store.name} />
-          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New campaign</PillLink>
+          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New message</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <StatGrid className="xl:grid-cols-4">
           <StatTile tone="card" label="Subscribers" value={subscribers.toLocaleString("en-NG")} hint={`+${newSubs} in 30 days`} />
-          <StatTile tone="card" label="Campaign messages (30 days)" value={sent.toLocaleString("en-NG")} hint={sent ? `${pct(sentTotals._sum.openCount ?? 0, sent)} opened · ${pct(sentTotals._sum.clickCount ?? 0, sent)} clicked` : "None sent yet"} />
-          <StatTile tone="card" label="Sales from campaigns (30 days)" value={naira(sentTotals._sum.revenueGenerated ?? 0)} hint={`${sentTotals._sum.conversionCount ?? 0} orders`} />
+          <StatTile tone="card" label="Messages sent (30 days)" value={sent.toLocaleString("en-NG")} hint={sent ? `${pct(sentTotals._sum.openCount ?? 0, sent)} opened · ${pct(sentTotals._sum.clickCount ?? 0, sent)} clicked` : "None sent yet"} />
+          <StatTile tone="card" label="Sales from your messages (30 days)" value={naira(sentTotals._sum.revenueGenerated ?? 0)} hint={`${sentTotals._sum.conversionCount ?? 0} orders`} />
           <StatTile tone="card" label="Automation messages (30 days)" value={flowSends.toLocaleString("en-NG")} hint={`${flowsOn.length} automation${flowsOn.length === 1 ? "" : "s"} on`} />
         </StatGrid>
 
@@ -92,7 +92,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
           main={
             <>
               <Card className="p-5">
-                <CardHead title="Recent campaigns" action={<TextLink href="/home/marketing/campaigns">All campaigns</TextLink>} />
+                <CardHead title="Recent messages" action={<TextLink href="/home/marketing/campaigns">All messages</TextLink>} />
                 {campaigns.length ? (
                   <ListCard className="mt-3 border-0">
                     {campaigns.map((c) => (
@@ -109,7 +109,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
                     ))}
                   </ListCard>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No campaigns yet. Write one and send it to a segment by email, SMS or WhatsApp.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No messages yet. Write one and send it to a group of customers by email, SMS or WhatsApp.</p>
                 )}
               </Card>
 
@@ -128,7 +128,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
                     ))}
                   </ul>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">None yet. Add welcome, abandoned cart, review request or win-back in one tap.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">None yet. Add welcome, "didn't finish paying", review request or win-back in one tap.</p>
                 )}
               </Card>
             </>
@@ -170,7 +170,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
                       <span className="min-w-0 flex-1">
                         <strong>{key === "email" ? "Email" : key === "sms" ? "SMS" : "WhatsApp"}</strong>
                         <span className="block text-[12.5px] text-app-ink-soft">
-                          {channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? `Ready via ${channels[key].via}` : channels[key].howTo}{" "}
+                          {channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? `Ready via ${channels[key].via}` : "Not connected yet. Tap Help and we'll set it up for you."}{" "}
                           {channels[key].connectHref && !(channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates)) ? <a href={channels[key].connectHref!} className="font-bold text-app-accent-ink underline">{channels[key].connectLabel}</a> : null}
                         </span>
                       </span>
@@ -186,13 +186,13 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
         <nav aria-label="Marketing tools" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {([
             ["/home/marketing/subscribers", "Subscribers", "users", "Your list, consent, tags, import and export"],
-            ["/home/marketing/segments", "Segments", "layers", "Groups by spend, orders, place, products"],
-            ["/home/marketing/templates", "Email templates", "mail", "Ready-made emails, visual and HTML builder"],
-            ["/home/marketing/whatsapp", "WhatsApp templates", "whatsapp", "Meta-approved messages for campaigns and orders"],
+            ["/home/marketing/segments", "Groups of customers", "layers", "By spend, orders, place, products"],
+            ["/home/marketing/templates", "Email designs", "mail", "Ready-made emails you can change"],
+            ["/home/marketing/whatsapp", "WhatsApp messages", "whatsapp", "Messages WhatsApp has approved, for offers and orders"],
             ["/home/marketing/messages", "Order messages", "bell", "WhatsApp and SMS updates: confirmed, shipped, delivered"],
             ["/home/inbox/auto-replies", "Auto-replies", "clock", "Away message, opening hours, quick replies"],
             ["/home/inbox/chatbot", "Peggy chatbot", "sparkle", "Peggy answers shoppers on your live chat"],
-            ["/home/marketing/analytics", "Reports", "chart", "What each campaign and automation brought in"],
+            ["/home/marketing/analytics", "Reports", "chart", "What each message and automation brought in"],
             ["/home/marketing/rewards", "Rewards and games", "sparkle", "Spin the wheel, scratch cards, loyalty points"],
           ] as Array<[string, string, IconName, string]>).map(([href, label, icon, sub]) => (
             <a key={href} href={href} className="flex items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 text-app-ink no-underline hover:border-app-line-strong">
@@ -207,10 +207,10 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
 
         {subscribers === 0 && !campaigns.length ? (
           <EmptyState icon="megaphone" title="Start by collecting emails" action={<PillLink href="/home/marketing/forms" tone="ink">Make a pop-up</PillLink>}>
-            Every campaign and automation needs people to send to. A welcome pop-up with a small discount is the quickest start.
+            Every message and automation needs people to send to. A welcome pop-up with a small discount is the quickest start.
           </EmptyState>
         ) : null}
-        <AssistantNote>Ask Peggy to “write a campaign for repeat buyers about the new arrivals” or “turn on the abandoned-cart reminder”. She shows you who gets it before anything is sent.</AssistantNote>
+        <AssistantNote>Ask Peggy to “write a message for repeat buyers about the new arrivals” or “turn on the reminder for customers who didn't finish paying”. She shows you who gets it before anything is sent.</AssistantNote>
       </div>
     </SellerPage>
   );

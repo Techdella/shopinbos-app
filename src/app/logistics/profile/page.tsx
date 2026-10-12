@@ -62,13 +62,12 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
       sub="Your company details and the public page sellers see when they choose a delivery partner."
       actions={
         <>
-          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">Public page</PillLink>}
-          <SubmitButton form="profile-form">Save</SubmitButton>
+          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">See your page</PillLink>}
         </>
       }
     >
       <div className="mb-4 grid gap-3 empty:hidden">
-        {params.saved && <Notice tone="success">Company details saved.</Notice>}
+        {params.saved && <Notice tone="success">Saved.</Notice>}
         {params.error && <Notice tone="error">{params.error}</Notice>}
         {limitMessage && <Notice tone="info">{limitMessage}</Notice>}
         {params.verification === "pending" && !isVerified && (
@@ -84,7 +83,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
               <LogoUploadForm currentLogo={partner.logoUrl ?? null} displayName={partner.displayName} />
               <div className="min-w-0 pb-1">
                 <div className="truncate text-[17px] font-extrabold">{partner.displayName}</div>
-                <div className="text-[13px] text-app-ink-soft">Logo and cover save as soon as you pick a picture.</div>
+                <div className="text-[15px] text-app-ink-soft">Logo and cover save as soon as you pick a picture.</div>
               </div>
             </div>
           </Card>
@@ -149,8 +148,14 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
               </div>
             </Card>
 
-            <Card className="p-5">
-              <CardHead title="Opening hours" sub="Cut-off is the latest time a seller can book a same-day pickup." />
+            <details className="group rounded-[22px] border border-app-line bg-white p-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                <span>
+                  <span className="block text-[17px] font-extrabold">Opening hours (optional)</span>
+                  <span className="block text-[15px] text-app-ink-soft">When you work, and the latest time a seller can book a pickup for the same day.</span>
+                </span>
+                <span aria-hidden className="text-[20px] text-app-ink-soft transition group-open:rotate-90">›</span>
+              </summary>
               <div className="mt-4 grid gap-3">
                 {hours.map((row, index) => (
                   <fieldset key={index} className="m-0 grid min-w-0 grid-cols-3 items-end gap-3 rounded-[16px] border border-app-line p-3 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto]">
@@ -158,28 +163,28 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                     <input type="hidden" name={`hours_${index}_day`} value={row.day} />
                     <div className="col-span-3 self-center text-[15px] font-extrabold sm:col-span-1">{row.day}</div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_open`} className="mb-1 block text-[12.5px] text-app-ink-soft">Opens</label>
+                      <label htmlFor={`hours_${index}_open`} className="mb-1 block text-[15px] text-app-ink-soft">Opens</label>
                       <input id={`hours_${index}_open`} name={`hours_${index}_open`} type="time" defaultValue={row.open} className={`${inputClass} px-2.5`} />
                     </div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_close`} className="mb-1 block text-[12.5px] text-app-ink-soft">Closes</label>
+                      <label htmlFor={`hours_${index}_close`} className="mb-1 block text-[15px] text-app-ink-soft">Closes</label>
                       <input id={`hours_${index}_close`} name={`hours_${index}_close`} type="time" defaultValue={row.close} className={`${inputClass} px-2.5`} />
                     </div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_cutoff`} className="mb-1 block text-[12.5px] text-app-ink-soft">Cut-off</label>
+                      <label htmlFor={`hours_${index}_cutoff`} className="mb-1 block text-[15px] text-app-ink-soft">Last same-day booking</label>
                       <input id={`hours_${index}_cutoff`} name={`hours_${index}_cutoff`} type="time" defaultValue={row.cutoff} className={`${inputClass} px-2.5`} />
                     </div>
-                    <label className="col-span-3 flex min-h-[44px] items-center gap-2 text-[14px] font-bold sm:col-span-1">
+                    <label className="col-span-3 flex min-h-[44px] items-center gap-2 text-[15px] font-bold sm:col-span-1">
                       <input type="checkbox" name={`hours_${index}_active`} defaultChecked={row.active} className="h-5 w-5 accent-[#16141F]" />
                       Open
                     </label>
                   </fieldset>
                 ))}
               </div>
-            </Card>
+            </details>
 
             <div className="flex justify-end">
-              <SubmitButton>Save company details</SubmitButton>
+              <SubmitButton>Save</SubmitButton>
             </div>
           </form>
         </div>
@@ -207,7 +212,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                     <span className="truncate text-[15px] font-extrabold">{partner.displayName}</span>
                     {isVerified && <Pill tone="success">Verified</Pill>}
                   </div>
-                  <div className="truncate text-[13px] text-app-ink-soft">{[partner.city, ...partner.vehicleTypes].filter(Boolean).join(" · ")}</div>
+                  <div className="truncate text-[15px] text-app-ink-soft">{[partner.city, ...partner.vehicleTypes].filter(Boolean).join(" · ")}</div>
                 </div>
               </div>
               <div className="mt-3 divide-y divide-app-line">
@@ -225,7 +230,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
 
           <Card className="p-5">
             <CardHead title="Verification" action={<TextLink href="/logistics/verification">{isVerified ? "Details" : "Finish"}</TextLink>} />
-            <p className="m-0 mt-2 text-[14px] leading-[1.5] text-app-ink-soft">
+            <p className="m-0 mt-2 text-[15px] leading-[1.5] text-app-ink-soft">
               {isVerified
                 ? "Your company is verified. Sellers see the verified badge on your page."
                 : "Upload your business papers so Shopinbos can verify you. You can take jobs once you're verified."}
@@ -235,7 +240,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
           <Card className="p-5">
             <CardHead title="Where you deliver" action={<TextLink href="/logistics/coverage">Edit</TextLink>} />
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {partner.coverageZones.length ? partner.coverageZones.map((zone) => <Pill key={zone}>{zone}</Pill>) : <span className="text-[14px] text-app-ink-soft">No areas yet</span>}
+              {partner.coverageZones.length ? partner.coverageZones.map((zone) => <Pill key={zone}>{zone}</Pill>) : <span className="text-[15px] text-app-ink-soft">No areas yet</span>}
             </div>
           </Card>
         </div>

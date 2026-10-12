@@ -15,7 +15,7 @@ export default async function LogisticsCmsPage() {
 
   return (
     <AppPage
-      frame={{ ...partnerFrame({ user, partner }), chipMessage: "Your blog is set up. Rex can write full SEO articles for your logistics profile." }}
+      frame={{ ...partnerFrame({ user, partner }), chipMessage: "Your blog is ready. Rex can write articles that help sellers find you on Google." }}
       title="Blog"
       sub="Articles on your public partner page. Rex can write a draft from a short prompt; you check it and publish."
     >

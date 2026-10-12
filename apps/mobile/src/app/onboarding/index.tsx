@@ -115,7 +115,7 @@ export default function Chat() {
       </View>
       {!turns.length && (
         <Pressable onPress={() => setDraft(SELL_EXAMPLES[lang])} style={{ marginTop: 14 }}>
-          <T style={{ color: colors.inkSoft, fontSize: 13, textDecorationLine: "underline" }}>Example: {SELL_EXAMPLES[lang]}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14, textDecorationLine: "underline" }}>Example: {SELL_EXAMPLES[lang]}</T>
         </Pressable>
       )}
       {answered && (
@@ -127,7 +127,7 @@ export default function Chat() {
               </View>
               <View>
                 <T weight="extrabold" style={{ fontSize: 15 }}>{path.label}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 13 }}>{path.hint}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{path.hint}</T>
               </View>
             </Pressable>
           ))}

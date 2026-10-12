@@ -444,7 +444,7 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
     case "coupon":
       return (
         <div className="grid gap-3">
-          <Field label="Code" hint={<>The code must exist in <a href="/home/discounts" className="font-bold text-app-ink">Discounts</a> for it to work at checkout.</>}>
+          <Field label="Code" hint={<>The code must exist in <a href="/home/discounts" className="font-bold text-app-ink">Discounts</a> for it to work when they pay.</>}>
             <input value={block.code} onChange={(e) => set({ code: e.target.value.toUpperCase().replace(/\s+/g, "") })} className={`${inputClass} font-mono tracking-[0.1em]`} maxLength={40} />
           </Field>
           <Field label="Title"><input value={block.title} onChange={(e) => set({ title: e.target.value })} className={inputClass} /></Field>
@@ -647,7 +647,7 @@ export function BlockSettings({ block, onChange, onFocusText }: { block: EmailBl
             <Field label="Right label"><input value={block.to} onChange={(e) => set({ to: e.target.value })} className={inputClass} placeholder="Gold" /></Field>
           </div>
           <Field label="Note (optional)"><input value={block.note} onChange={(e) => set({ note: e.target.value })} className={inputClass} /></Field>
-          <p className="m-0 text-[12.5px] text-app-ink-soft">These numbers are the same for everyone who gets the email. Send it to a segment that matches.</p>
+          <p className="m-0 text-[12.5px] text-app-ink-soft">These numbers are the same for everyone who gets the email. Send it to a group of customers that matches.</p>
           {look({ color: "Text colour", bg: true })}
         </div>
       );

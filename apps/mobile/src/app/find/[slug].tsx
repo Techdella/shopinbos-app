@@ -6,7 +6,7 @@ import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { Card, Field, Label, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
 import { addToStore, fetchFindContext, fetchFindProduct, requestQuote, type FindContext, type FindProduct } from "@/lib/marketplace";
 import { useLoad } from "@/lib/useLoad";
@@ -26,7 +26,7 @@ function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: 
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       {button("−", onMinus, minusOff)}
       <View style={{ flex: 1, alignItems: "center" }} accessibilityLabel={`${label} ${value}`}>
-        <T style={{ color: colors.inkSoft, fontSize: 12 }}>{label}</T>
+        <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{label}</T>
         <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>{value}</T>
       </View>
       {button("+", onPlus, plusOff)}
@@ -86,7 +86,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
     try {
       const result = await addToStore(product.id, price);
       setAddedId(result.storeProductId);
-      setNote({ tone: "success", text: result.already ? "It's already in your store." : `Added to your store as a draft at ${naira(price)}. Publish it from Products when you're ready.` });
+      setNote({ tone: "success", text: result.already ? "It's already in your shop." : `It's in your shop at ${naira(price)}, hidden for now. Open My products to show it to customers.` });
     } catch (addError) {
       setNote({ tone: "error", text: addError instanceof Error ? addError.message : "Couldn't add it. Try again." });
     } finally {
@@ -99,7 +99,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
     setNote(null);
     try {
       await requestQuote({ supplierId: product.supplier.id, supplierProductId: product.id, quantity, destination: destination.trim() || "Nigeria" });
-      setNote({ tone: "success", text: `Quote requested for ${quantity}. ${product.supplier.name} answers in your notifications and messages.` });
+      setNote({ tone: "success", text: `Asked ${product.supplier.name} for a price for ${quantity}. They answer in Chats and we tell you.` });
     } catch (quoteError) {
       setNote({ tone: "error", text: quoteError instanceof Error ? quoteError.message : "Couldn't send the request. Try again." });
     } finally {
@@ -110,12 +110,12 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
   const footer =
     mode === "dropship" ? (
       already ? (
-        <PillButton title="See it in Products" tone="white" onPress={() => router.push("/products")} />
+        <PillButton title="See it in My products" onPress={() => router.push("/products")} />
       ) : (
-        <PillButton title={`Add to my store at ${naira(price)}`} busy={busy} onPress={() => void add()} />
+        <PillButton title={`Put it in my shop at ${naira(price)}`} busy={busy} onPress={() => void add()} />
       )
     ) : (
-      <PillButton title={`Request a quote for ${quantity}`} busy={busy} onPress={() => void quote()} />
+      <PillButton title={`Ask for a price for ${quantity}`} busy={busy} onPress={() => void quote()} />
     );
 
   return (
@@ -138,29 +138,29 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Badge label={product.category} />
         {product.ships ? <Badge label={product.ships} /> : null}
-        {product.stock > 0 ? <Badge label={`${product.stock} in stock`} /> : <Badge label="Out of stock" bg={colors.dangerTint} fg={colors.danger} />}
-        {already ? <Badge label="In your store" bg={colors.successTint} fg={colors.success} /> : null}
+        {product.stock > 0 ? <Badge label={`Supplier has ${product.stock}`} /> : <Badge label="Finished" bg={colors.dangerTint} fg={colors.danger} />}
+        {already ? <Badge label="In your shop" bg={colors.successTint} fg={colors.success} /> : null}
       </View>
 
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Initials name={product.supplier.name} bg={colors.mintTint} fg={colors.forest} />
         <View style={{ flex: 1 }}>
           <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{product.supplier.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={1}>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
             {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
           </T>
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/partners/[id]", params: { id: product.supplier.id, name: product.supplier.name } })} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.canvas }}>
           <AppIcon name="chat" size={16} />
-          <T weight="bold" style={{ fontSize: 13 }}>Message</T>
+          <T weight="bold" style={{ fontSize: 14 }}>Message</T>
         </Pressable>
       </Card>
 
       {product.dropship && product.wholesale ? (
         <Segmented
           options={[
-            { value: "dropship", label: "Dropship" },
-            { value: "wholesale", label: "Wholesale" },
+            { value: "dropship", label: "No stock needed" },
+            { value: "wholesale", label: "Buy in bulk" },
           ]}
           value={mode}
           onChange={setMode}
@@ -171,7 +171,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
 
       {mode === "dropship" ? (
         <Card style={{ gap: 6 }}>
-          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>No stock to buy. When a shopper orders, {product.supplier.name} sends it to them and you keep the difference.</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>You don&apos;t buy anything now. When a customer pays you, {product.supplier.name} sends it to them and you keep the difference. Your money is safe here until delivery.</T>
           <Stepper
             label="Your selling price"
             value={naira(price)}
@@ -181,16 +181,16 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
             plusOff={price >= clampSellingPrice(Number.MAX_SAFE_INTEGER, product.cost)}
           />
           <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
-            <Line label="Shopper pays" value={naira(sale.shopperPays)} />
+            <Line label="Customer pays" value={naira(sale.shopperPays)} />
             <Line label="Supplier gets" value={`− ${naira(sale.supplierGets)}`} />
-            <Line label="Payment fee" value={`− ${naira(sale.fee)}`} />
+            <Line label="Card and transfer fee" value={`− ${naira(sale.fee)}`} />
             <Line label={`You keep (${sale.keepPct}%)`} value={naira(sale.keep)} strong tone={sale.keep > 0 ? colors.success : colors.danger} />
           </View>
-          {product.price ? <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>Suggested price {naira(product.price)}. Delivery is added at checkout.</T> : null}
+          {product.price ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>Suggested price {naira(product.price)}. The customer pays for delivery when they pay.</T> : null}
         </Card>
       ) : (
         <Card style={{ gap: 8 }}>
-          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>Buy stock to keep and sell yourself. Minimum order {product.moq}.</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>Buy many to keep and sell yourself. The smallest order is {product.moq}.</T>
           <Stepper
             label="Quantity"
             value={String(quantity)}
@@ -204,9 +204,9 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
           </View>
           {product.tiers.length ? (
             <View style={{ gap: 4 }}>
-              <T weight="bold" style={{ fontSize: 13 }}>Bulk prices</T>
+              <T weight="bold" style={{ fontSize: 15 }}>Cheaper when you buy more</T>
               {product.tiers.map((tier) => (
-                <T key={tier.minQty} style={{ color: colors.inkSoft, fontSize: 13 }}>
+                <T key={tier.minQty} style={{ color: colors.inkSoft, fontSize: 14 }}>
                   {tier.maxQty ? `${tier.minQty}–${tier.maxQty}` : `${tier.minQty}+`}: {naira(tier.price)} each
                 </T>
               ))}
@@ -214,7 +214,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
           ) : null}
           <Label>Deliver to</Label>
           <Field value={destination} onChangeText={setDestination} placeholder="City, state" maxLength={200} />
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>The supplier confirms the final price and delivery in their quote.</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }}>The supplier tells you the final price and delivery.</T>
         </Card>
       )}
 
@@ -225,7 +225,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
         </Card>
       ) : null}
 
-      <PillButton title="Open on the web" tone="white" size="md" onPress={() => void openWeb(`/marketplace/product/${encodeURIComponent(product.id)}`)} />
+      <LinkButton title="See it in my browser" color={colors.inkSoft} onPress={() => void openWeb(`/marketplace/product/${encodeURIComponent(product.id)}`)} />
     </Screen>
   );
 }

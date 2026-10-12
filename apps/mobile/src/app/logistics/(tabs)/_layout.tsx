@@ -3,15 +3,15 @@ import { PartnerTabBar } from "@/components/partner";
 import type { AppIconName } from "@/components/icons";
 import { colors } from "@/theme";
 
-// Delivery partner tabs, from the "Shopinbos Partners · mobile" prototype (Today, Jobs, Riders, Cash, More) plus Messages.
+// Delivery partner tabs (spec 8A "Simple supplier, delivery and rider apps"): Today, Jobs, Riders, Money.
+// Messages and More (the menu) keep their routes but have no tab: they open from the "Messages" and "Menu" buttons
+// on Today.
 
 const ITEMS: Record<string, { icon: AppIconName; label: string }> = {
   home: { icon: "home", label: "Today" },
   jobs: { icon: "box", label: "Jobs" },
   riders: { icon: "truck", label: "Riders" },
   earnings: { icon: "wallet", label: "Money" },
-  messages: { icon: "chat", label: "Messages" },
-  more: { icon: "grid", label: "More" },
 };
 
 export default function LogisticsTabs() {

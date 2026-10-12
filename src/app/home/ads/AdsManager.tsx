@@ -115,8 +115,8 @@ function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasW
         {!free && (
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div>
-              <div className="mb-2 text-[14px] font-bold">Budget</div>
-              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Daily budget">
+              <div className="mb-2 text-[14px] font-bold">How much each day</div>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="How much each day">
                 {AD_BUDGETS.map((value) => (
                   <button key={value} type="button" role="radio" aria-checked={budget === value} onClick={() => setBudget(value)} className={cx("min-h-[40px] rounded-full border px-4 text-[14px] font-bold", budget === value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}>
                     {naira(value)} a day

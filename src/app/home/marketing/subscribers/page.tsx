@@ -61,7 +61,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
       actions={
         <>
           <PillLink href="/home/marketing/forms" icon="mail">Sign-up forms</PillLink>
-          <PillLink href="/home/marketing/segments" icon="layers">Segments</PillLink>
+          <PillLink href="/home/marketing/segments" icon="layers">Groups of customers</PillLink>
         </>
       }
     >

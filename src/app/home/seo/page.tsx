@@ -6,6 +6,8 @@ import { PageToast } from "@/components/PageToast";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, FilterChips, Pill } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { AdvancedFold } from "@/components/simple/Fold";
 import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +35,8 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Search and analytics"
-      sub="How your store shows up on Google, plus visitor tracking and Google tools."
+      title="Show up on Google"
+      sub="How your shop shows up on Google, and counting your visitors."
     >
       <PageToast />
       <div className="grid gap-5">
@@ -43,7 +45,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
         <FilterChips
           items={[
             { label: "Search listing", href: "/home/seo", active: activeTab === "seo" },
-            { label: "Google tools", href: "/home/seo?tab=integrations", active: activeTab === "integrations" },
+            { label: "Visitor tracking", href: "/home/seo?tab=integrations", active: activeTab === "integrations" },
           ]}
         />
 
@@ -117,6 +119,15 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
             </aside>
           </form>
         ) : (
+          <div className="grid gap-5">
+          <SetupHelpRequest
+            title="Connect Google visitor tracking"
+            description="We'll connect Google's visitor counting and Search Console to your shop for you, so you can see who visits and how you show up on Google."
+            feature="google_tracking"
+            softwareQuestion="Do you already have a Google account for your business?"
+            softwarePlaceholder="Yes, the email is…"
+          />
+          <AdvancedFold label="Advanced (optional): enter the Google codes yourself" hint={integrations.googleAnalyticsId || integrations.gaSiteVerification ? "Some codes are saved" : "For whoever manages your Google account"}>
           <form action={saveStoreIntegrationSettings} className="grid gap-5">
             <div className="grid gap-5 xl:grid-cols-2">
               <Card className="min-w-0 p-5">
@@ -157,7 +168,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
             <Card className="p-5">
               <CardHead title="Google Merchant Center" action={<Pill tone="success" dot>Ready</Pill>} />
               <p className="mb-0 mt-2 text-[14px] leading-[1.55] text-app-ink-soft">
-                Your products are already set up for Google Shopping: every page of your live store carries product details Google can read. To run Shopping ads, open a free Google Merchant Center account and add your store link.
+                Your products are already set up for Google Shopping: every page of your live shop carries product details Google can read. To show them on Google, see <a href="/channels#google" className="font-bold underline">Sell everywhere</a>.
               </p>
             </Card>
 
@@ -165,6 +176,8 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
               <button className={SUBMIT_ACCENT} type="submit">Save Google settings</button>
             </div>
           </form>
+          </AdvancedFold>
+          </div>
         )}
       </div>
     </SellerPage>

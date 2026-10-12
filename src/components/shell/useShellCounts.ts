@@ -69,14 +69,23 @@ function broadcast(prefs: AppPreferences) {
 
 export function usePreferences() {
   const [prefs, setPrefs] = useState<AppPreferences | null>(null);
+  // True once this page load has the server's copy. The localStorage cache can be stale (new device, cleared
+  // storage), so anything that must not repeat (the guided tour) waits for this.
+  const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
+    let alive = true;
     setPrefs(cachedPreferences());
     const onChange = (event: Event) => setPrefs((event as CustomEvent<AppPreferences>).detail);
     window.addEventListener(PREFS_EVENT, onChange);
     void loadCounts().then((counts) => {
-      if (counts?.preferences) broadcast(parsePreferences(counts.preferences));
+      if (!counts?.preferences) return;
+      broadcast(parsePreferences(counts.preferences));
+      if (alive) setConfirmed(true);
     });
-    return () => window.removeEventListener(PREFS_EVENT, onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener(PREFS_EVENT, onChange);
+    };
   }, []);
 
   async function save(patch: Partial<AppPreferences>) {
@@ -91,7 +100,7 @@ export function usePreferences() {
     broadcast(parsePreferences(body.data));
   }
 
-  return { prefs, loaded: prefs !== null, save };
+  return { prefs, loaded: prefs !== null, confirmed, save };
 }
 
 // The person's photo and logo. Pages pass what they loaded on the server; the shell-counts response fills in

@@ -74,7 +74,7 @@ function EmailStepEditor({ step, templates, onSave, onClose }: { step: Extract<F
       <div className="grid gap-4">
         <Field label="Subject" htmlFor="e-subject"><input id="e-subject" value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} className={inputClass} maxLength={200} /></Field>
         {templates.length ? (
-          <Field label="Or use a saved template" htmlFor="e-template" hint="Its subject and content are used when this email's own are empty.">
+          <Field label="Or use a saved design" htmlFor="e-template" hint="Its subject and content are used when this email's own are empty.">
             <select id="e-template" value={draft.templateId ?? ""} onChange={(e) => setDraft({ ...draft, templateId: e.target.value || null })} className={selectClass}>
               <option value="">None</option>
               {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -117,7 +117,7 @@ function WhatsAppStep({ step, onChange, waTemplates, whatsapp }: { step: Extract
         </p>
       ) : null}
       <select
-        aria-label="WhatsApp template"
+        aria-label="WhatsApp message"
         className={selectClass}
         value={step.template ?? ""}
         onChange={(e) => {
@@ -126,9 +126,9 @@ function WhatsAppStep({ step, onChange, waTemplates, whatsapp }: { step: Extract
           onChange({ ...step, template: value || null, variables: [...next] });
         }}
       >
-        <option value="">No template: free text (only reaches people who wrote in the last 24 hours)</option>
+        <option value="">No approved message: your own words (only reaches people who wrote in the last 24 hours)</option>
         {waTemplates.length ? (
-          <optgroup label="Your templates">
+          <optgroup label="Your saved designs">
             {waTemplates.map((t) => (
               <option key={t.id} value={t.id} disabled={t.status !== "APPROVED"}>{t.name} ({t.language}){t.status !== "APPROVED" ? ` · ${t.status.toLowerCase()}` : ""}</option>
             ))}
@@ -279,8 +279,8 @@ export function FlowEditor({
                       {(Object.keys(CONDITION_LABEL) as FlowCondition[]).map((check) => <option key={check} value={check}>{CONDITION_LABEL[check]}</option>)}
                     </select>
                     {step.check === "in_segment" ? (
-                      <select aria-label="Segment" value={step.segmentId ?? ""} onChange={(e) => setStep(index, { ...step, segmentId: e.target.value || null })} className={selectClass}>
-                        <option value="">Choose a segment</option>
+                      <select aria-label="Group of customers" value={step.segmentId ?? ""} onChange={(e) => setStep(index, { ...step, segmentId: e.target.value || null })} className={selectClass}>
+                        <option value="">Choose a group of customers</option>
                         {segments.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     ) : (

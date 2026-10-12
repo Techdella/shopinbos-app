@@ -83,7 +83,7 @@ export function PaystackCheckoutButton({
           toast("Payment successful!", "success");
           onSuccess?.(response.reference);
         } else {
-          toast("Payment failed", "error");
+          toast("The payment didn't go through. Nothing was taken. Try again.", "error");
         }
       },
       onClose: () => {

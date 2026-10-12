@@ -8,7 +8,6 @@ import { Chip, Notice, T } from "@/components/ui";
 import { fetchThread, sendInboxMessage, setConversationStatus, type InboxMessage } from "@/lib/inbox";
 import { NO_REPLY_CHANNELS, shortTime } from "@/lib/inbox-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
 // One customer conversation (web /home/messages?c=…): the messages, a reply on the conversation's own channel
@@ -25,7 +24,7 @@ function meta(message: InboxMessage) {
   const when = shortTime(message.createdAt);
   if (message.direction === "note") return `Note${message.authorName ? ` · ${message.authorName}` : ""} · ${when}`;
   if (message.direction === "outbound") {
-    if (message.status === "failed") return `Not sent${message.error ? `: ${message.error}` : ""}`;
+    if (message.status === "failed") return "Not sent. Check the number, then send it again";
     return `${message.authorName ?? "You"} · ${when}${message.status === "read" ? " · Read" : ""}`;
   }
   return when;
@@ -53,7 +52,7 @@ export default function InboxThread() {
       await sendInboxMessage(String(id), body, canReply ? mode : "note");
       setDraft("");
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Couldn't send that. Try again.");
+      setError(sendError instanceof Error ? sendError.message : "That didn't send. Check your connection and try again.");
     } finally {
       // A failed send is saved too (marked "Not sent"), so reload either way.
       await thread.reload();
@@ -69,7 +68,7 @@ export default function InboxThread() {
       if (status === "open") await thread.reload();
       else router.back();
     } catch (statusError) {
-      setError(statusError instanceof Error ? statusError.message : "Couldn't update the conversation.");
+      setError(statusError instanceof Error ? statusError.message : "Couldn't update the conversation. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -82,26 +81,10 @@ export default function InboxThread() {
     <>
       <View style={{ flex: 1 }}>
         <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{conversation?.name ?? "Conversation"}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={1}>
+        <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
           {conversation ? [conversation.channelLabel, conversation.contactPhone ?? conversation.contactEmail ?? conversation.contactHandle].filter(Boolean).join(" · ") : " "}
         </T>
       </View>
-      {conversation ? (
-        conversation.status === "open" ? (
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            <Pressable accessibilityRole="button" disabled={saving} onPress={snooze} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.surface }}>
-              <T weight="bold" style={{ fontSize: 13 }}>Snooze</T>
-            </Pressable>
-            <Pressable accessibilityRole="button" disabled={saving} onPress={() => void setStatus("closed")} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.ink }}>
-              <T weight="bold" style={{ fontSize: 13, color: "#FFFFFF" }}>Done</T>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable accessibilityRole="button" disabled={saving} onPress={() => void setStatus("open")} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface }}>
-            <T weight="bold" style={{ fontSize: 13 }}>Reopen</T>
-          </Pressable>
-        )
-      ) : null}
     </>
   );
 
@@ -124,19 +107,34 @@ export default function InboxThread() {
                 {error ? <Notice>{error}</Notice> : null}
                 {snoozing ? (
                   <View style={{ gap: 6 }}>
-                    <T weight="bold" style={{ fontSize: 13 }}>Snooze until… (it comes back sooner if they write again)</T>
+                    <T weight="bold" style={{ fontSize: 15 }}>Show it to me again… (sooner if they write again)</T>
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                       {SNOOZE.map((option) => <Chip key={option.hours} label={option.label} on={false} onPress={() => { setSnoozing(false); void setStatus("snoozed", option.hours); }} />)}
                     </View>
                   </View>
                 ) : null}
-                {canReply ? (
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <Chip label="Reply" on={mode === "reply"} onPress={() => setMode("reply")} />
-                    <Chip label="Note" on={mode === "note"} onPress={() => setMode("note")} />
+                {conversation ? (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {canReply ? <Chip label="Reply" on={mode === "reply"} onPress={() => setMode("reply")} /> : null}
+                    {canReply ? <Chip label="Private note" on={mode === "note"} onPress={() => setMode("note")} /> : null}
+                    {conversation.status === "open" ? (
+                      <>
+                        <Pressable accessibilityRole="button" disabled={saving} onPress={snooze} style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
+                          <T weight="bold" style={{ fontSize: 15 }}>Later</T>
+                        </Pressable>
+                        <Pressable accessibilityRole="button" disabled={saving} onPress={() => void setStatus("closed")} style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
+                          <T weight="bold" style={{ fontSize: 15 }}>Done</T>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <Pressable accessibilityRole="button" disabled={saving} onPress={() => void setStatus("open")} style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
+                        <T weight="bold" style={{ fontSize: 15 }}>Open again</T>
+                      </Pressable>
+                    )}
                   </View>
-                ) : (
-                  <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>You can&apos;t reply on {conversation?.channelLabel} from Shopinbos. Notes stay private.</T>
+                ) : null}
+                {canReply ? null : (
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }}>You can&apos;t reply on {conversation?.channelLabel} from Shopinbos. Notes stay private.</T>
                 )}
               </>
             }
@@ -145,9 +143,9 @@ export default function InboxThread() {
       }
     >
       {thread.loading && !data ? <LoadingBlock /> : null}
-      {thread.error && !data ? <ErrorState message={thread.error} onRetry={() => void thread.reload()} web={{ label: "Open on web", onPress: () => void openWeb(`/home/messages?c=${encodeURIComponent(String(id))}`) }} /> : null}
+      {thread.error && !data ? <ErrorState message={thread.error} onRetry={() => void thread.reload()} /> : null}
       {conversation?.subject ? <T weight="bold" style={{ color: colors.inkSoft }}>{conversation.subject}</T> : null}
-      {conversation?.status === "snoozed" && conversation.snoozedUntil ? <Notice tone="info">Snoozed until {new Date(conversation.snoozedUntil).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" })}.</Notice> : null}
+      {conversation?.status === "snoozed" && conversation.snoozedUntil ? <Notice tone="info">Hidden until {new Date(conversation.snoozedUntil).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" })}.</Notice> : null}
       {data && !data.messages.length ? <T style={{ color: colors.inkSoft, textAlign: "center" }}>No messages yet.</T> : null}
       {data?.messages.map((message) => (
         <Bubble key={message.id} mine={message.direction === "outbound"} note={message.direction === "note"} meta={meta(message)} failed={message.status === "failed"}>
@@ -158,7 +156,7 @@ export default function InboxThread() {
                 <Image key={index} source={{ uri: attachment.url! }} style={{ width: 200, height: 200, borderRadius: 12 }} contentFit="cover" accessibilityLabel={attachment.name ?? "Photo"} />
               ))}
             {message.attachments.some((attachment) => !(attachment.url && (attachment.type === "image" || attachment.contentType?.startsWith("image/")))) ? (
-              <T style={{ fontSize: 13, color: message.direction === "outbound" ? "rgba(255,255,255,0.8)" : colors.inkSoft }}>Attachment (open on the web to see it)</T>
+              <T style={{ fontSize: 14, color: message.direction === "outbound" ? "rgba(255,255,255,0.8)" : colors.inkSoft }}>A file (open it on a computer to see it)</T>
             ) : null}
             {message.body ? <T style={{ fontSize: 15, lineHeight: 21, color: message.direction === "outbound" ? "#FFFFFF" : message.direction === "note" ? "#5C3D00" : colors.ink }}>{message.body}</T> : null}
           </View>

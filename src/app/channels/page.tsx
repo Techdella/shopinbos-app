@@ -16,31 +16,43 @@ import { catalogFeedUrl, ensureCatalogRow } from "@/lib/whatsapp-catalog/server"
 import { channelStatus } from "@/lib/social/status";
 import { naira } from "@shared/onboarding";
 import { setFeedAdded, disconnectChannel } from "./actions";
-import { CopyField, MetaConnectForm, SyncButton } from "./ChannelClient";
+import { ChannelAction, CopyField, MetaConnectForm, SyncButton } from "./ChannelClient";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { Fold, TechFold } from "@/components/simple/Fold";
+import { plainMetaError } from "@/components/simple/plain";
 import { PostComposer } from "./PostComposer";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sell everywhere" };
 
-const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; blurb: string; steps: ReactNode[]; api: boolean; note?: ReactNode }> = [
+// Each channel: one plain action for the seller ("Show my products on …") that opens "Ask us to connect it" and
+// Peggy's steps. Feed links, the private key and the Meta catalog token live behind "Show the technical details
+// (for the person who manages your … account)" (simplicity rules, section 8A).
+const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; name: string; action: string; account: string; blurb: string; steps: ReactNode[]; api: boolean; note?: ReactNode }> = [
   {
     key: "google",
     icon: "search",
     color: "#4285F4",
-    blurb: "Free product listings and Shopping ads on Google Search, Images and YouTube.",
+    name: "Google",
+    action: "Show my products on Google",
+    account: "Google",
+    blurb: "Your products show up free when people search on Google.",
     api: false,
     steps: [
       <>Open <a href="https://merchants.google.com" target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Merchant Center</a> and go to Products, then Add products.</>,
       "Choose “Add products from a file”, then “Enter a link to your file”.",
       "Paste the Google feed URL and set it to fetch daily.",
     ],
-    note: <>Google asks you to verify the website your product links point to. That&apos;s easiest on your own domain (<TextLink href="/home/domain">Domain</TextLink>).</>,
+    note: <>Google asks you to verify the website your product links point to. That&apos;s easiest on your own web address (<TextLink href="/home/domain">Web address</TextLink>).</>,
   },
   {
     key: "meta",
     icon: "instagram",
     color: "#E4405F",
-    blurb: "One Meta catalog for your Facebook Shop, Instagram Shopping tags and catalog ads.",
+    name: "Facebook and Instagram",
+    action: "Show my products on Facebook and Instagram",
+    account: "Facebook",
+    blurb: "Your products in your Facebook Shop and on your Instagram posts.",
     api: true,
     steps: [
       <>In <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Commerce Manager</a>, open your catalog (or create one), then Data sources.</>,
@@ -52,7 +64,10 @@ const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; blurb: 
     key: "tiktok",
     icon: "tiktok",
     color: "#111111",
-    blurb: "A TikTok catalog for product links and catalog ads.",
+    name: "TikTok",
+    action: "Show my products on TikTok",
+    account: "TikTok",
+    blurb: "Product links on your TikTok videos and adverts.",
     api: false,
     steps: [
       <>In <a href="https://ads.tiktok.com" target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">TikTok Ads Manager</a>, go to Assets, then Catalogs, and open or create one.</>,
@@ -65,7 +80,10 @@ const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; blurb: 
     key: "whatsapp",
     icon: "whatsapp",
     color: "#25D366",
-    blurb: "Show your products inside WhatsApp Business so customers can browse and send you a cart.",
+    name: "WhatsApp",
+    action: "Show my products on WhatsApp",
+    account: "WhatsApp Business",
+    blurb: "Customers see your products inside WhatsApp and can send you an order.",
     api: true,
     steps: [
       "WhatsApp Business uses a Meta catalog. Create one in Commerce Manager from the WhatsApp feed URL (Data feed, “Use a URL”, daily).",
@@ -75,6 +93,16 @@ const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; blurb: 
   },
 ];
 
+/** What the card says, in plain words, from what we know (src/lib/social/status.ts has the technical label). */
+function plainStatus(tone: string, facts: { hasToken: boolean; lastSyncStatus: string | null; lastFetchAt: Date | null; feedAddedAt: Date | null } | null) {
+  if (!facts) return "Not set up";
+  if (facts.hasToken && facts.lastSyncStatus === "error") return "Needs your help";
+  if (facts.hasToken) return "Connected";
+  if (facts.lastFetchAt) return tone === "success" ? "Showing your products" : "Not updated for a few days";
+  if (facts.feedAddedAt) return "Waiting for the first update";
+  return "Not set up";
+}
+
 export default async function ChannelsPage() {
   const user = await requireRole(["seller"], "/login");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
@@ -82,8 +110,8 @@ export default async function ChannelsPage() {
   if (!store) {
     return (
       <SellerPage user={user} store={null} title="Sell everywhere">
-        <EmptyState icon="globe" title="Set up your store first" action={<PillLink href="/onboarding" tone="ink">Start setup</PillLink>}>
-          Your product feeds and share links need a store and at least one published product.
+        <EmptyState icon="globe" title="Set up your shop first" action={<PillLink href="/onboarding" tone="ink">Start setup</PillLink>}>
+          To show your products on other apps, you need a shop and at least one product.
         </EmptyState>
       </SellerPage>
     );
@@ -122,43 +150,36 @@ export default async function ChannelsPage() {
       user={user}
       store={storeSummary(store)}
       title="Sell everywhere"
-      sub="List your products on Google, Facebook, Instagram, TikTok and WhatsApp, share tagged links, and see what each channel sells."
-      actions={<PillLink href="/home/analytics" icon="chart">Analytics</PillLink>}
+      sub="Show your products on Google, Facebook, Instagram, TikTok and WhatsApp, share links, and see where your sales come from."
+      actions={<PillLink href="/home/analytics" icon="chart">How your shop is doing</PillLink>}
     >
       <div className="grid gap-5">
         {connections === null && (
-          <p className="m-0 rounded-[14px] bg-app-peach px-4 py-3 text-[14px]">Feeds work, but saving channel settings is switched off until the workspace database is updated (docs/migrations/2026-10-12-analytics-social.sql).</p>
+          <p className="m-0 rounded-[14px] bg-app-peach px-4 py-3 text-[14px]">Your products still show where they&apos;re connected, but changes here can&apos;t be saved right now. Tap Help and we&apos;ll sort it out.</p>
         )}
 
         <section aria-labelledby="catalogs-title" className="grid gap-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
-              <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Product catalogs</h2>
-              <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Each channel reads a live feed of your published products, prices, stock and photos. Each link carries your store&apos;s private key, so keep it to yourself.</p>
+              <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Show your products on other apps</h2>
+              <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">Pick an app. We&apos;ll connect it for you, or Peggy shows you how. Your prices, photos and what&apos;s in stock stay up to date by themselves.</p>
             </div>
-            <Pill tone={health.listed ? "success" : "warning"} dot>{health.listed} product{health.listed === 1 ? "" : "s"} in your feeds</Pill>
-          </div>
-
-          <div role="note" className="flex flex-wrap items-start gap-x-3 gap-y-1 rounded-[14px] border border-[#F2A93B]/40 bg-[#FDF0D5] px-4 py-3 text-[14px] text-[#5C3D00]">
-            <Icon name="warn" size={18} className="mt-0.5 shrink-0" />
-            <p className="m-0 min-w-0 flex-1 basis-[240px]">
-              <b>{FEED_KEY_NOTICE}</b> Links you pasted before stop working; copy the new ones below into Google, Meta and TikTok.{" "}
-              <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-[#5C3D00] underline">Change the key</Link> if a link has leaked.
-            </p>
+            <Pill tone={health.listed ? "success" : "warning"} dot>{health.listed} product{health.listed === 1 ? "" : "s"} ready to show</Pill>
           </div>
 
           <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-2">
             {CHANNELS.map((channel) => {
               const connection = byChannel.get(channel.key) ?? null;
-              const status = channelStatus(
-                connection
-                  ? { feedAddedAt: connection.feedAddedAt, lastFetchAt: connection.lastFetchAt, hasToken: Boolean(connection.tokenEnc), lastSyncAt: connection.lastSyncAt, lastSyncStatus: connection.lastSyncStatus }
-                  : null,
-                now,
-              );
+              const facts = connection
+                ? { feedAddedAt: connection.feedAddedAt, lastFetchAt: connection.lastFetchAt, hasToken: Boolean(connection.tokenEnc), lastSyncAt: connection.lastSyncAt, lastSyncStatus: connection.lastSyncStatus }
+                : null;
+              const status = channelStatus(facts, now);
+              const statusLabel = plainStatus(status.tone, facts);
+              const working = statusLabel === "Connected" || statusLabel === "Showing your products";
               const file = channel.key === "google" ? "google.xml" : `${channel.key}.csv`;
               const alt = channel.key === "google" ? "google.csv" : `${channel.key}.xml`;
               const feedUrlFor = channelFeedUrl(channel.key, file);
+              const syncFailed = Boolean(connection?.tokenEnc) && connection?.lastSyncStatus === "error";
               return (
                 <li key={channel.key} id={channel.key} className="flex min-w-0 flex-col gap-4 rounded-[22px] border border-app-line bg-white p-5">
                   <div className="flex items-start gap-3">
@@ -167,85 +188,97 @@ export default async function ChannelsPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="m-0 text-[16px] font-extrabold">{FEED_CHANNEL_LABEL[channel.key]}</h3>
-                        <Pill tone={status.tone} dot>{status.label}</Pill>
+                        <h3 className="m-0 text-[17px] font-extrabold">{channel.name}</h3>
+                        <Pill tone={status.tone} dot>{statusLabel}</Pill>
                       </div>
-                      <p className="mb-0 mt-1 text-[13.5px] leading-[1.45] text-app-ink-soft">{channel.blurb}</p>
+                      <p className="mb-0 mt-1 text-[14.5px] leading-[1.45] text-app-ink-soft">{channel.blurb}</p>
                     </div>
                   </div>
 
-                  <div className="min-w-0">
-                    <div className="mb-1.5 text-[13px] font-bold">Feed URL <span className="font-normal text-app-ink-soft">(private)</span></div>
-                    {feedUrlFor ? (
-                      <>
-                        <CopyField value={feedUrlFor} label={`${FEED_CHANNEL_LABEL[channel.key]} feed URL`} />
-                        <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">
-                          {channel.key === "whatsapp" ? (
-                            <>In Meta&apos;s catalog format. Sync and problems are on <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-app-ink underline">WhatsApp catalog</Link>.{" "}</>
-                          ) : (
-                            <>Also as <a href={channelFeedUrl(channel.key, alt)!} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{alt}</a>.{" "}</>
-                          )}
-                          <a href={feedUrlFor} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Preview</a>
-                        </p>
-                      </>
-                    ) : (
-                      <p className="m-0 text-[13px] text-app-ink-soft">Feed links are switched off until the workspace database is updated (docs/migrations/2026-10-15-whatsapp-catalog.sql).</p>
-                    )}
-                  </div>
+                  {syncFailed && <p className="m-0 rounded-[12px] bg-app-danger-tint px-3 py-2 text-[14px] text-app-danger">{plainMetaError(connection?.lastSyncMessage)}</p>}
 
-                  <details className="group rounded-[14px] bg-app-canvas px-4 py-3">
-                    <summary className="flex min-h-[32px] cursor-pointer list-none items-center justify-between gap-2 text-[14px] font-bold [&::-webkit-details-marker]:hidden">
-                      How to connect
-                      <Icon name="chevron" size={16} className="transition group-open:rotate-90" />
-                    </summary>
-                    <ol className="mb-0 mt-2 grid gap-1.5 pl-5 text-[13.5px] leading-[1.5]">
-                      {channel.steps.map((step, index) => <li key={index}>{step}</li>)}
-                    </ol>
-                    {channel.note && <p className="mb-0 mt-2 text-[12.5px] leading-[1.5] text-app-ink-soft">{channel.note}</p>}
-                  </details>
+                  <ChannelAction label={channel.action} done={working}>
+                    <SetupHelpRequest
+                      title={channel.action}
+                      description={`We'll connect your ${channel.account} account for you and message you when your products are showing.`}
+                      feature={`channel_${channel.key}`}
+                      softwareQuestion={`Do you already have a ${channel.account} page or account for your business?`}
+                      softwarePlaceholder="Yes, it's called…"
+                    />
+                    <Fold summary="Or do it yourself with Peggy's steps">
+                      <ol className="m-0 grid gap-1.5 pl-5 text-[14px] leading-[1.5]">
+                        {channel.steps.map((step, index) => <li key={index}>{step}</li>)}
+                      </ol>
+                      <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">The link to paste is under &quot;Show the technical details&quot; below.</p>
+                      {channel.note && <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">{channel.note}</p>}
+                    </Fold>
+                  </ChannelAction>
 
-                  {connection?.lastSyncMessage && <p className="m-0 text-[12.5px] leading-[1.45] text-app-ink-soft">{connection.lastSyncMessage}</p>}
-
-                  <div className="mt-auto flex flex-wrap items-center gap-2">
-                    {connections !== null && (
-                      <form action={setFeedAdded}>
-                        <input type="hidden" name="channel" value={channel.key} />
-                        <input type="hidden" name="added" value={connection?.feedAddedAt ? "0" : "1"} />
-                        <button type="submit" className={buttonClass(connection?.feedAddedAt ? "white" : "ink", "sm")}>
-                          {connection?.feedAddedAt ? "Undo “I've added it”" : "I've added the feed"}
-                        </button>
-                      </form>
-                    )}
-                    {channel.api && connection?.tokenEnc && (
-                      <form action={disconnectChannel}>
-                        <input type="hidden" name="channel" value={channel.key} />
-                        <button type="submit" className={buttonClass("danger", "sm")}>Disconnect API</button>
-                      </form>
-                    )}
-                  </div>
-
-                  {channel.api && connections !== null && (channel.key === "meta" || channel.key === "whatsapp") && (
-                    <details className="group border-t border-app-line pt-3" open={Boolean(connection?.tokenEnc)}>
-                      <summary className="flex min-h-[32px] cursor-pointer list-none items-center justify-between gap-2 text-[14px] font-bold [&::-webkit-details-marker]:hidden">
-                        Instant sync with the Meta API <span className="text-[12.5px] font-normal text-app-ink-soft">optional</span>
-                      </summary>
-                      <div className="mt-3 grid gap-3">
-                        {connection?.tokenEnc ? (
+                  <TechFold forWho={`the person who manages your ${channel.account} account`}>
+                    <div className="grid min-w-0 gap-3">
+                      <div className="min-w-0">
+                        <div className="mb-1.5 text-[13px] font-bold">Feed URL <span className="font-normal text-app-ink-soft">(private)</span></div>
+                        {feedUrlFor ? (
                           <>
-                            <p className="m-0 text-[13px] text-app-ink-soft">Catalog {connection.externalId}. Sync sends every product in the feed straight away instead of waiting for the daily fetch.</p>
-                            <SyncButton channel={channel.key} />
+                            <CopyField value={feedUrlFor} label={`${FEED_CHANNEL_LABEL[channel.key]} feed URL`} />
+                            <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">
+                              {channel.key === "whatsapp" ? (
+                                <>In Meta&apos;s catalog format. Sync and problems are on <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-app-ink underline">WhatsApp catalog</Link>.{" "}</>
+                              ) : (
+                                <>Also as <a href={channelFeedUrl(channel.key, alt)!} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{alt}</a>.{" "}</>
+                              )}
+                              <a href={feedUrlFor} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Preview</a>
+                            </p>
                           </>
                         ) : (
-                          <>
-                            <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">
-                              For updates within minutes: in Meta Business Settings create a system user with access to this catalog, generate a token with catalog_management, and paste it with the catalog ID. We check it with Meta and store it encrypted.
-                            </p>
-                            <MetaConnectForm channel={channel.key} canStoreTokens={canStoreTokens} />
-                          </>
+                          <p className="m-0 text-[13px] text-app-ink-soft">Feed links are switched off until the workspace database is updated (docs/migrations/2026-10-15-whatsapp-catalog.sql).</p>
                         )}
                       </div>
-                    </details>
-                  )}
+                      <p className="m-0 rounded-[12px] bg-[#FDF0D5] px-3 py-2 text-[12.5px] leading-[1.5] text-[#5C3D00]">
+                        <b>{FEED_KEY_NOTICE}</b> The link carries the store&apos;s private key, so keep it private.{" "}
+                        <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-[#5C3D00] underline">Change the key</Link> if a link has leaked.
+                      </p>
+                      <p className="m-0 text-[12.5px] text-app-ink-soft">Status: {status.label}.</p>
+                      {connection?.lastSyncMessage && <p className="m-0 break-words text-[12.5px] leading-[1.45] text-app-ink-soft">{connection.lastSyncMessage}</p>}
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {connections !== null && (
+                          <form action={setFeedAdded}>
+                            <input type="hidden" name="channel" value={channel.key} />
+                            <input type="hidden" name="added" value={connection?.feedAddedAt ? "0" : "1"} />
+                            <button type="submit" className={buttonClass("white", "sm")}>
+                              {connection?.feedAddedAt ? "Undo “I've added it”" : "I've added the feed"}
+                            </button>
+                          </form>
+                        )}
+                        {channel.api && connection?.tokenEnc && (
+                          <form action={disconnectChannel}>
+                            <input type="hidden" name="channel" value={channel.key} />
+                            <button type="submit" className={buttonClass("danger", "sm")}>Disconnect</button>
+                          </form>
+                        )}
+                      </div>
+
+                      {channel.api && connections !== null && (channel.key === "meta" || channel.key === "whatsapp") && (
+                        <div className="grid gap-3 border-t border-app-line pt-3">
+                          <div className="text-[14px] font-bold">Faster updates with the Meta API <span className="text-[12.5px] font-normal text-app-ink-soft">optional</span></div>
+                          {connection?.tokenEnc ? (
+                            <>
+                              <p className="m-0 text-[13px] text-app-ink-soft">Catalog {connection.externalId}. This sends every product straight away instead of waiting for the daily update.</p>
+                              <SyncButton channel={channel.key} />
+                            </>
+                          ) : (
+                            <>
+                              <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">
+                                For updates within minutes: in Meta Business Settings create a system user with access to this catalog, generate a token with catalog_management, and paste it with the catalog ID. We check it with Meta and store it encrypted.
+                              </p>
+                              <MetaConnectForm channel={channel.key} canStoreTokens={canStoreTokens} />
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </TechFold>
                 </li>
               );
             })}
@@ -254,8 +287,8 @@ export default async function ChannelsPage() {
 
         <Card className="p-5">
           <CardHead
-            title="Feed health"
-            sub={`${health.listed} listed · ${health.outOfStock} out of stock (listed as out of stock) · ${health.drafts} draft${health.drafts === 1 ? "" : "s"} not listed`}
+            title="Products other apps can show"
+            sub={`${health.listed} ready · ${health.outOfStock} sold out (shown as sold out) · ${health.drafts} draft${health.drafts === 1 ? "" : "s"} not shown`}
             action={<TextLink href="/products">Products</TextLink>}
           />
           {health.skipped.length ? (
@@ -268,7 +301,7 @@ export default async function ChannelsPage() {
               ))}
             </ul>
           ) : (
-            <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{health.listed ? "Every published product has a price and a photo, so all of them are in your feeds." : "Publish products with a price and a photo to fill your feeds."}</p>
+            <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{health.listed ? "Every product has a price and a photo, so all of them can show on other apps." : "Add products with a price and a photo, and they'll show on the apps you connect."}</p>
           )}
         </Card>
 
@@ -281,7 +314,7 @@ export default async function ChannelsPage() {
 
         <div className="grid gap-5 xl:grid-cols-2">
           <Card className="p-5">
-            <CardHead title="Sales by channel" sub="Paid orders, last 30 days" action={<TextLink href="/home/analytics">Full analytics</TextLink>} />
+            <CardHead title="Sales by app" sub="Paid orders, last 30 days" action={<TextLink href="/home/analytics">How your shop is doing</TextLink>} />
             {report.channels.length ? (
               <ul className="m-0 mt-4 grid list-none gap-4 p-0">
                 {report.channels.map((row) => (
@@ -296,7 +329,7 @@ export default async function ChannelsPage() {
             )}
           </Card>
           <Card className="p-5">
-            <CardHead title="Visits by link" sub="Store visits by source and utm_campaign, last 30 days" />
+            <CardHead title="Visits by link" sub="Where people came from when they opened your shop, last 30 days" />
             {report.sources.length ? (
               <ul className="m-0 mt-4 grid list-none gap-2 p-0 text-[14px]">
                 {report.sources.map((row) => (
@@ -307,13 +340,13 @@ export default async function ChannelsPage() {
                 ))}
                 {report.utmCampaigns.slice(0, 6).map((row) => (
                   <li key={`c-${row.key}`} className="flex justify-between gap-3 text-[13px] text-app-ink-soft">
-                    <span className="min-w-0 truncate">Campaign: {row.key}</span>
+                    <span className="min-w-0 truncate">Link: {row.key}</span>
                     <span className="shrink-0">{row.visits}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Visits show up here once people open your store from a link.</p>
+              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Visits show up here once people open your shop from a link.</p>
             )}
           </Card>
         </div>

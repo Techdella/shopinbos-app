@@ -73,7 +73,7 @@ export default async function CmsPage() {
 
         {store && (
           <Card className="p-5">
-            <CardHead title={collections.length ? "Add another collection" : "Start your first collection"} sub="Pick a template; you can change its fields after." className="mb-4" />
+            <CardHead title={collections.length ? "Add another collection" : "Start your first collection"} sub="Pick a ready-made one; you can change its fields after." className="mb-4" />
             <TemplateGallery takenSlugs={taken} />
           </Card>
         )}

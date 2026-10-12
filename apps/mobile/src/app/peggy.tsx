@@ -7,6 +7,7 @@ import { BackButton, Chip, Mascot, T } from "@/components/ui";
 import { api } from "@/lib/api";
 import { openPath } from "@/lib/web";
 import { colors, fonts, radii } from "@/theme";
+import { HelpButton } from "@/components/Help";
 
 const SUGGESTIONS = [
   "How did I do this week?",
@@ -78,10 +79,11 @@ export default function Peggy() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 10 }}>
           <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} />
           <Mascot name="peggy" size={40} />
-          <View>
-            <T weight="extrabold" style={{ fontSize: 16 }}>Peggy</T>
-            <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>Checks your shop and gets things done</T>
+          <View style={{ flex: 1 }}>
+            <T weight="extrabold" style={{ fontSize: 17 }}>Peggy</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>Checks your shop and gets things done</T>
           </View>
+          <HelpButton />
         </View>
         <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 12 }}>
           {!turns.length && (
@@ -114,8 +116,8 @@ export default function Peggy() {
                   >
                     <AppIcon name="sparkle" size={18} />
                     <View style={{ flex: 1 }}>
-                      <T weight="extrabold" style={{ fontSize: 12, color: colors.inkSoft }}>Peggy did this</T>
-                      <T style={{ fontSize: 13.5, lineHeight: 19 }}>{action.summary}</T>
+                      <T weight="extrabold" style={{ fontSize: 13.5, color: colors.inkSoft }}>Peggy did this</T>
+                      <T style={{ fontSize: 14.5, lineHeight: 19 }}>{action.summary}</T>
                     </View>
                     {action.href ? <AppIcon name="chevron" size={16} color={colors.inkSoft} /> : null}
                   </Pressable>

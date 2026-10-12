@@ -106,7 +106,7 @@ export default async function SupplierBuyersPage({ searchParams }: PageProps) {
       {visible.length === 0 ? (
         <EmptyState icon="users" title={buyers.length === 0 ? "No buyers yet" : "No buyers match"}>
           {buyers.length === 0
-            ? "When sellers place wholesale or dropship orders with you, each shop shows up here with what they've spent."
+            ? "When shops buy from you in bulk or sell your products for you, each shop shows up here with what they've spent."
             : "Try another filter or clear the search."}
         </EmptyState>
       ) : (

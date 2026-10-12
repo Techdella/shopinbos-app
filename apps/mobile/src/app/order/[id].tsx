@@ -5,7 +5,8 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
-import { Card, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { Card, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { capitalise, friendlyTime } from "@/lib/friendly";
 import { Screen } from "@/components/Screen";
 import { TONE_COLORS } from "@/lib/dashboard";
 import { fetchOrder, updateOrder, type OrderDetail } from "@/lib/orders";
@@ -17,7 +18,7 @@ type PaidWith = "transfer" | "cash" | "pos";
 function Badge({ label, tone }: OrderDetail["row"]["stage"]) {
   return (
     <View style={{ backgroundColor: TONE_COLORS[tone].bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-      <T weight="bold" style={{ fontSize: 12.5, color: TONE_COLORS[tone].fg }}>{label}</T>
+      <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[tone].fg }}>{label}</T>
     </View>
   );
 }
@@ -50,7 +51,7 @@ export default function OrderScreen() {
       setOrder(await fetchOrder(id));
       setError(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Couldn't load this order.");
+      setError(loadError instanceof Error ? loadError.message : "This order didn't load. Pull down to try again.");
     }
   }, [id]);
 
@@ -64,7 +65,7 @@ export default function OrderScreen() {
     try {
       setOrder(await updateOrder(id, { status, ...extra }));
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Couldn't update this order.");
+      setError(updateError instanceof Error ? updateError.message : "That didn't save. Check your connection and try again.");
     } finally {
       setBusy(null);
     }
@@ -91,12 +92,22 @@ export default function OrderScreen() {
   const phone = order.buyerPhone;
   const reminder = `Hi ${order.buyerName.split(" ")[0]}, a reminder about your order ${order.orderNumber}: ${naira(order.total)}. Let me know once you've paid. Thank you!`;
 
+  // One main button at the bottom: the next thing to do with this order (build spec 8A). Everything else is a link.
+  const footer = unpaid ? (
+    <PillButton title="They paid. Mark as paid" busy={busy === "paid"} onPress={() => void change("paid", { paymentMethod: paidWith })} />
+  ) : toSend ? (
+    <PillButton title="Get a rider" onPress={() => void openWeb(`/home/orders/${order.id}`)} />
+  ) : order.status === "shipped" ? (
+    <PillButton title="It was delivered" busy={busy === "delivered"} onPress={() => void change("delivered")} />
+  ) : null;
+
   return (
     <Screen
       title={order.buyerName}
-      sub={`${order.orderNumber} · ${new Date(order.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}`}
+      sub={`${order.orderNumber} · ${capitalise(friendlyTime(order.createdAt))}`}
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
+      footer={footer}
     >
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
         <Badge {...order.row.stage} />
@@ -104,30 +115,29 @@ export default function OrderScreen() {
       </View>
       {error && <Notice>{error}</Notice>}
 
-      {/* What to do next */}
+      {/* What to do now */}
       {unpaid && (
         <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>Got the money?</T>
+          <T weight="extrabold" style={{ fontSize: 22 }}>How did they pay?</T>
           <Segmented<PaidWith> options={[{ value: "transfer", label: "Transfer" }, { value: "cash", label: "Cash" }, { value: "pos", label: "POS" }]} value={paidWith} onChange={setPaidWith} />
-          <PillButton title="Mark as paid" size="md" busy={busy === "paid"} onPress={() => void change("paid", { paymentMethod: paidWith })} />
-          {phone && <PillButton title="Remind on WhatsApp" tone="white" size="md" onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(reminder)}`)} />}
+          {phone && <LinkButton title="Not paid yet? Remind them on WhatsApp" color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(reminder)}`)} />}
         </Card>
       )}
       {toSend && (
-        <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>Send it out</T>
-          <PillButton title="Book a rider" size="md" onPress={() => void openWeb(`/home/orders/${order.id}`)} />
-          <PillButton title="I sent it myself" tone="white" size="md" busy={busy === "shipped"} onPress={() => void change("shipped", { logisticsType: "personal" })} />
-          <PillButton title="Print a label" tone="white" size="md" onPress={() => void openWeb(`/home/labels?orders=${order.id}`)} />
+        <Card style={{ gap: 6 }}>
+          <T weight="extrabold" style={{ fontSize: 22 }}>Send the order</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>Pack it, and we&apos;ll find a rider to take it to {order.buyerName.split(" ")[0]}. Getting a rider opens in your browser.</T>
+          <LinkButton title={busy === "shipped" ? "Saving…" : "I sent it myself"} onPress={() => void change("shipped", { logisticsType: "personal" })} />
+          <LinkButton title="Print a label" color={colors.inkSoft} onPress={() => void openWeb(`/home/labels?orders=${order.id}`)} />
         </Card>
       )}
       {order.status === "shipped" && (
-        <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>On the way{order.trackingCode ? ` · ${order.trackingCode}` : ""}</T>
-          <PillButton title="Mark as delivered" size="md" busy={busy === "delivered"} onPress={() => void change("delivered")} />
+        <Card style={{ gap: 6 }}>
+          <T weight="extrabold" style={{ fontSize: 22 }}>On the way</T>
+          {order.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>Rider&apos;s code: {order.trackingCode}</T> : null}
+          <T style={{ color: colors.inkSoft, fontSize: 15 }}>Tap the button below when {order.buyerName.split(" ")[0]} has it.</T>
         </Card>
       )}
-
       {/* Items */}
       <Card style={{ gap: 4 }}>
         {order.items.map((item, index) => (
@@ -139,7 +149,7 @@ export default function OrderScreen() {
             )}
             <View style={{ flex: 1 }}>
               <T weight="bold" numberOfLines={2}>{item.name}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13 }}>{item.quantity} × {naira(item.price)}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14 }}>{item.quantity} × {naira(item.price)}</T>
             </View>
             <T weight="extrabold">{naira(item.price * item.quantity)}</T>
           </View>
@@ -150,7 +160,7 @@ export default function OrderScreen() {
         <Row label="Delivery" value={order.shippingFee ? naira(order.shippingFee) : "Free"} />
         <Row label="Total" value={naira(order.total)} strong />
         {(order.paymentMethod || order.channel) && (
-          <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 6 }}>
+          <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>
             {[order.paymentMethod && `Payment: ${PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}`, order.channel && `From ${CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel}`].filter(Boolean).join(" · ")}
           </T>
         )}
@@ -164,14 +174,14 @@ export default function OrderScreen() {
         {address ? <T style={{ color: colors.inkSoft }}>{address}</T> : null}
         {order.notes ? <T style={{ color: colors.inkSoft }}>Note: {order.notes}</T> : null}
         {phone && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
-            <PillButton title="WhatsApp" size="sm" tone="forest" style={{ flex: 1 }} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`)} />
-            <PillButton title="Call" size="sm" tone="white" style={{ flex: 1 }} onPress={() => void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`)} />
+          <View style={{ flexDirection: "row", gap: 16, marginTop: 2 }}>
+            <LinkButton title={`Message on WhatsApp`} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`)} />
+            <LinkButton title="Call" onPress={() => void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`)} />
           </View>
         )}
       </Card>
 
-      {(unpaid || toSend) && <PillButton title="Cancel order" tone="white" size="md" busy={busy === "cancelled"} onPress={confirmCancel} />}
+      {(unpaid || toSend) && <LinkButton title={busy === "cancelled" ? "Cancelling…" : "Cancel this order"} color={colors.danger} onPress={confirmCancel} />}
     </Screen>
   );
 }

@@ -135,7 +135,7 @@ function SegmentEditor({ editing, start, products, tags, onClose, onSaved }: { e
   }
 
   return (
-    <Modal title={editing ? `Edit ${editing.name}` : "New segment"} onClose={onClose} wide>
+    <Modal title={editing ? `Edit ${editing.name}` : "New group of customers"} onClose={onClose} wide>
       <form onSubmit={(event) => void save(event)} className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Name" htmlFor="seg-name">
@@ -216,7 +216,7 @@ export function SegmentsManager({ segments, products, tags }: { segments: Segmen
   const [error, setError] = useState<string | null>(null);
 
   async function remove(segment: Segment) {
-    if (!window.confirm(`Delete "${segment.name}"? Campaigns that used it keep their history.`)) return;
+    if (!window.confirm(`Delete "${segment.name}"? Messages already sent to it keep their history.`)) return;
     setError(null);
     try {
       await api(`/api/app/marketing/segments/${segment.id}`, "DELETE");
@@ -234,7 +234,7 @@ export function SegmentsManager({ segments, products, tags }: { segments: Segmen
           <button key={starter.name} type="button" className={buttonClass("white", "sm")} onClick={() => setEditor({ editing: null, start: starter })}>{starter.name}</button>
         ))}
         <PillButton size="md" tone="accent" className="sm:ml-auto" onClick={() => setEditor({ editing: null, start: null })}>
-          <Icon name="plus" size={16} /> New segment
+          <Icon name="plus" size={16} /> New group of customers
         </PillButton>
       </div>
       {error ? <Notice>{error}</Notice> : null}
@@ -258,8 +258,8 @@ export function SegmentsManager({ segments, products, tags }: { segments: Segmen
           ))}
         </div>
       ) : (
-        <EmptyState icon="layers" title="No segments yet" action={<PillButton size="md" onClick={() => setEditor({ editing: null, start: STARTERS[0] })}>Start with repeat buyers</PillButton>}>
-          A segment is a saved group, like “spent over ₦50,000” or “bought the Ankara dress”. Use it for campaigns, automations and discounts.
+        <EmptyState icon="layers" title="No groups of customers yet" action={<PillButton size="md" onClick={() => setEditor({ editing: null, start: STARTERS[0] })}>Start with repeat buyers</PillButton>}>
+          A group of customers is saved, like “spent over ₦50,000” or “bought the Ankara dress”. Use it for messages to customers, automations and discounts.
         </EmptyState>
       )}
 

@@ -55,7 +55,7 @@ export function ImageGenClient({ storeName: _storeName }: { storeName: string })
       setImage(data.image);
       setCredits(data.creditsRemaining ?? null);
     } catch {
-      setError("Network error. Please try again.");
+      setError("We couldn't reach Shopinbos. Check your connection and try again.");
     } finally {
       setLoading(false);
     }

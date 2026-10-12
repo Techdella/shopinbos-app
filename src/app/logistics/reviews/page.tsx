@@ -36,10 +36,10 @@ export default async function LogisticsReviewsPage() {
         <StatTile tone="card" label="Average rating" value={total ? `${avgRating.toFixed(1)} ★` : "—"} hint={`${total} ${total === 1 ? "review" : "reviews"}`} />
         <StatTile tone="card" label="You replied to" value={`${responded} of ${total}`} hint={`${total ? Math.round((responded / total) * 100) : 0}% replied`} />
         <Card className="col-span-2 px-4 py-3.5 md:col-span-1" as="div">
-          <div className="text-[13px] text-app-ink-soft">Breakdown</div>
+          <div className="text-[15px] text-app-ink-soft">Breakdown</div>
           <ul className="m-0 mt-2 grid list-none gap-1 p-0">
             {[5, 4, 3, 2, 1].map((star) => (
-              <li key={star} className="flex items-center gap-2 text-[12.5px]">
+              <li key={star} className="flex items-center gap-2 text-[15px]">
                 <span className="w-10 shrink-0">{star} star</span>
                 <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-track">
                   <span className="block h-full rounded-full bg-app-ink" style={{ width: `${total ? (distribution[star - 1] / total) * 100 : 0}%` }} />

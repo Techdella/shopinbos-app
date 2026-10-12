@@ -5,11 +5,10 @@ import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { ChipRow, EmptyState, ErrorState, Initials, LinkRow, LoadingBlock } from "@/components/kit";
 import { TabScreen } from "@/components/TabScreen";
-import { Card, Chip, Field, Mascot, Segmented, T } from "@/components/ui";
+import { Card, Chip, Field, Mascot, PillButton, Segmented, T } from "@/components/ui";
 import { fetchInbox, type InboxListItem } from "@/lib/inbox";
 import { channelLabel, channelsInUse, filterInbox, shortTime, type InboxView } from "@/lib/inbox-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
 // The all-in-one inbox (web /home/messages): every customer conversation (WhatsApp, Instagram, email, live
@@ -18,7 +17,7 @@ import { colors, radii } from "@/theme";
 const VIEWS: Array<{ value: InboxView; label: string }> = [
   { value: "open", label: "Open" },
   { value: "unread", label: "Unread" },
-  { value: "snoozed", label: "Snoozed" },
+  { value: "snoozed", label: "Later" },
   { value: "closed", label: "Done" },
 ];
 
@@ -43,26 +42,21 @@ export default function Chats() {
   return (
     <TabScreen
       title="Chats"
-      action={
-        <Pressable accessibilityRole="button" accessibilityLabel="Auto-replies and chatbot" onPress={() => router.push("/inbox/auto-replies")} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
-          <AppIcon name="settings" size={20} />
-        </Pressable>
-      }
       refreshing={inbox.refreshing}
       onRefresh={() => void inbox.refresh()}
     >
       <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.mintTint, borderRadius: radii.card, padding: 12, marginBottom: 14 }}>
         <Mascot name="peggy" size={38} />
         <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>Ask Peggy</T>
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>Sales, stock, what to restock, what to post next.</T>
+          <T weight="extrabold" style={{ fontSize: 16 }}>Ask Peggy</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }}>She can write answers to your customers for you.</T>
         </View>
         <AppIcon name="chevron" size={18} color={colors.inkSoft} />
       </Pressable>
 
       <Segmented options={VIEWS.map((option) => ({ ...option, label: option.value === "unread" && unread ? `Unread ${unread}` : option.label }))} value={view} onChange={setView} />
 
-      <Field value={q} onChangeText={setQ} placeholder="Search name or message" returnKeyType="search" accessibilityLabel="Search conversations" style={{ marginTop: 12, height: 48 }} />
+      <Field value={q} onChangeText={setQ} placeholder="Find a name or message" returnKeyType="search" accessibilityLabel="Search conversations" style={{ marginTop: 12, height: 48 }} />
 
       {channels.length > 1 ? (
         <View style={{ marginTop: 12 }}>
@@ -75,12 +69,14 @@ export default function Chats() {
 
       <View style={{ marginTop: 14, gap: 8 }}>
         {inbox.loading && !items ? <LoadingBlock label="Loading your chats…" /> : null}
-        {inbox.error && !items ? <ErrorState message={inbox.error} onRetry={() => void inbox.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/messages") }} /> : null}
+        {inbox.error && !items ? <ErrorState message={inbox.error} onRetry={() => void inbox.reload()} /> : null}
         {items && !shown.length ? (
-          <EmptyState icon="chat" title={items.length ? "Nothing here" : "No messages yet"}>
-            {items.length
-              ? "Try another filter, or pull down to check for new messages."
-              : "Connect WhatsApp, Instagram, email and more on the web, and every customer message lands here."}
+          <EmptyState
+            icon="chat"
+            title={items.length ? "Nothing here" : "No messages yet"}
+            action={items.length ? undefined : <PillButton title="Connect WhatsApp and Instagram" size="md" onPress={() => router.push({ pathname: "/ask-us", params: { what: "channels" } })} />}
+          >
+            {items.length ? "Tap Open to see the rest, or pull down to check for new messages." : "Connect WhatsApp, Instagram and more, and every customer message comes here. We set it up for you."}
           </EmptyState>
         ) : null}
         {shown.map((item) => (
@@ -95,17 +91,17 @@ export default function Chats() {
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <T weight={item.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{item.name}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(item.at)}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.at)}</T>
               </View>
-              <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{item.preview || "No messages yet"}</T>
+              <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{item.preview || "No messages yet"}</T>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-                <T weight="semibold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? "Partner" : channelLabel(item.channel)}</T>
-                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 11.5, color: colors.accentInk }}>· Snoozed</T> : null}
+                <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? "Partner" : channelLabel(item.channel)}</T>
+                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 13, color: colors.accentInk }}>· Later</T> : null}
               </View>
             </View>
             {item.unread ? (
               <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 12 }}>{String(item.unread)}</T>
+                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13.5 }}>{String(item.unread)}</T>
               </View>
             ) : null}
           </Pressable>
@@ -113,10 +109,9 @@ export default function Chats() {
       </View>
 
       <Card style={{ marginTop: 18, paddingVertical: 2 }}>
-        <LinkRow first icon="truck" label="Suppliers & delivery partners" hint="Message the people you buy from and ship with" onPress={() => router.push("/partners")} />
-        <LinkRow icon="clock" label="Auto-replies" hint="Away message and opening hours" onPress={() => router.push("/inbox/auto-replies")} />
-        <LinkRow icon="bot" label="Peggy chatbot" hint="Answers shoppers on your store's chat" onPress={() => router.push("/inbox/chatbot")} />
-        <LinkRow icon="settings" label="Connect channels" hint="WhatsApp, Instagram, email… (opens the web)" onPress={() => void openWeb("/home/inbox/channels")} />
+        <LinkRow first icon="users" label="Messages with suppliers and riders" onPress={() => router.push("/partners")} />
+        <LinkRow icon="clock" label="Replies when you're busy" hint="Away message and opening hours" onPress={() => router.push("/inbox/auto-replies")} />
+        <LinkRow icon="chat" label="Connect WhatsApp, Instagram, TikTok" hint="We set it up for you" onPress={() => router.push({ pathname: "/ask-us", params: { what: "channels" } })} />
       </Card>
     </TabScreen>
   );

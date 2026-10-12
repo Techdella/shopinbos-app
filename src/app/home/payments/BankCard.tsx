@@ -27,7 +27,7 @@ export function BankCard({ bank }: { bank: PayoutBankSummary | null }) {
 
   return (
     <Card className="p-5">
-      <CardHead title="Payout bank" action={status ? <Pill tone={status.tone} dot>{status.label}</Pill> : undefined} />
+      <CardHead title="Your bank (where we send your money)" action={status ? <Pill tone={status.tone} dot>{status.label}</Pill> : undefined} />
       {bank ? (
         <div className="mt-4 flex items-center gap-3 rounded-[18px] bg-app-canvas p-4">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-white"><Icon name="bank" size={20} /></span>

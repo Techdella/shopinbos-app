@@ -1,15 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardHead, Pill } from "@/components/app-kit";
-import { FieldLabel, Notice, PillButton, Segmented, TextInput, cx } from "@/components/app-ui";
+import { useEffect, useRef, useState } from "react";
+import { Card, Pill } from "@/components/app-kit";
+import { FieldLabel, Notice, PillButton, Segmented, TextInput } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { Fold, TechFold } from "@/components/simple/Fold";
+import { dayLabel } from "@/lib/conversations/pure";
 import type { DnsRecord, DomainSettingsState, HostingStatus, ServeAs, VerifyCheck } from "@/lib/domains/verification";
+import { RegistrarTip } from "./RegistrarTip";
+import { setupStepsMessage, whatsappShareUrl } from "./steps";
 
-// Connect a domain the seller owns: they claim it, add a TXT record that proves ownership plus the record that
-// points it at us, then Verify. Only a verified domain is served (see src/lib/domains/ownership.server.ts).
+// Connect a web address the seller already owns. The seller types it; we make a WhatsApp message with the setup
+// steps for "the person who set it up" and keep checking. The records (TXT proof + routing) and the Verify button
+// live behind "Show the technical details". Only a verified address is served (src/lib/domains/ownership.server.ts).
 
 type ApiError = { error?: { code?: string; message?: string } };
+
+class CallError extends Error {
+  constructor(message: string, readonly code: string | undefined) {
+    super(message);
+  }
+}
 
 async function call<T>(method: "GET" | "POST" | "DELETE", url: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -18,8 +30,38 @@ async function call<T>(method: "GET" | "POST" | "DELETE", url: string, body?: un
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const payload = (await response.json().catch(() => null)) as ({ data?: T } & ApiError) | null;
-  if (!response.ok || !payload?.data) throw new Error(payload?.error?.message ?? "Something went wrong. Try again.");
+  if (!response.ok || !payload?.data) throw new CallError(payload?.error?.message ?? "We couldn't reach Shopinbos. Check your connection and try again.", payload?.error?.code);
   return payload.data;
+}
+
+/** Server reasons in plain words (the server wording is for the technical fold and the API). */
+function plainClaimError(error: unknown) {
+  if (!(error instanceof CallError)) return "We couldn't add that web address. Check your connection and try again.";
+  switch (error.code) {
+    case "invalid_domain":
+      return /platform|Shopinbos/i.test(error.message)
+        ? "That's a Shopinbos address. Your free address already works. Type a web address you bought yourself."
+        : "That doesn't look like a web address. Type it like yourbrand.com.";
+    case "domain_taken":
+      return "That web address is already on another Shopinbos shop. If it's yours, tap Help and we'll move it for you.";
+    case "rate_limited":
+      return "You've changed this a lot in a short time. Wait an hour, then try again.";
+    default:
+      return error.message;
+  }
+}
+
+/** "today", "yesterday", or "on Fri 9 Oct". */
+function connectedWhen(iso: string) {
+  const label = dayLabel(iso);
+  return label === "Today" || label === "Yesterday" ? label.toLowerCase() : `on ${label}`;
+}
+
+function plainCheck(check: VerifyCheck) {
+  if (check.ok) return null;
+  if (check.code === "mismatch") return "Almost: one of the steps was copied wrongly. Send the steps again and ask them to copy them exactly.";
+  if (check.code === "timeout" || check.code === "dns_error") return "We couldn't check just now. We'll try again by ourselves; you don't need to do anything.";
+  return "Not connected yet. Once the person who set up your web address adds the steps, it can take up to an hour to work.";
 }
 
 export function DomainOwnership({
@@ -46,12 +88,14 @@ export function DomainOwnership({
   const [removing, setRemoving] = useState<"live" | "pending" | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [askTeam, setAskTeam] = useState(false);
+  const autoChecked = useRef(false);
 
   useEffect(() => {
     if (initialState) return;
     call<DomainSettingsState>("GET", "/api/domains/connect")
       .then(setState)
-      .catch((error: Error) => setLoadError(error.message));
+      .catch(() => setLoadError("We couldn't load your web address. Check your connection, then refresh the page."));
   }, [initialState]);
 
   const apply = (next: DomainSettingsState) => {
@@ -62,7 +106,7 @@ export function DomainOwnership({
   async function claim() {
     const domain = input.trim();
     if (!domain) {
-      setClaimError("Enter the domain you own, like yourbrand.com.");
+      setClaimError("Type your web address first, like yourbrand.com.");
       return;
     }
     setClaiming(true);
@@ -75,27 +119,41 @@ export function DomainOwnership({
       setChanging(false);
       setInput("");
     } catch (error) {
-      setClaimError(error instanceof Error ? error.message : "We couldn't add that domain.");
+      setClaimError(plainClaimError(error));
     } finally {
       setClaiming(false);
     }
   }
 
-  async function verify() {
+  async function verify(quiet = false) {
     setVerifying(true);
-    setVerifyError(null);
-    setCheck(null);
+    if (!quiet) setVerifyError(null);
     try {
       const result = await call<{ state: DomainSettingsState; check: VerifyCheck }>("POST", "/api/domains/verify");
-      setCheck(result.check);
+      if (!quiet || result.check.ok) setCheck(result.check);
       apply(result.state);
       if (result.check.ok && result.state.live) onVerified?.(result.state.live.domain);
     } catch (error) {
-      setVerifyError(error instanceof Error ? error.message : "We couldn't check your domain.");
+      if (!quiet) {
+        setVerifyError(
+          error instanceof CallError && error.code === "rate_limited"
+            ? "We've checked a lot in a short time. Wait 10 minutes, then check again."
+            : "We couldn't check just now. Try again in a few minutes.",
+        );
+      }
     } finally {
       setVerifying(false);
     }
   }
+
+  // "I'll keep checking": one quiet check each time the page opens while a web address is waiting.
+  const pendingDomain = state?.pending?.domain;
+  useEffect(() => {
+    if (!pendingDomain || autoChecked.current) return;
+    autoChecked.current = true;
+    void verify(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDomain]);
 
   async function remove(which: "live" | "pending") {
     setRemoving(which);
@@ -104,15 +162,15 @@ export function DomainOwnership({
       apply(await call<DomainSettingsState>("DELETE", "/api/domains/connect", { which }));
       setCheck(null);
       setConfirmRemove(false);
-    } catch (error) {
-      setVerifyError(error instanceof Error ? error.message : "We couldn't remove that domain.");
+    } catch {
+      setVerifyError("We couldn't remove it just now. Check your connection and try again.");
     } finally {
       setRemoving(null);
     }
   }
 
   if (!state) {
-    return loadError ? <Notice>{loadError}</Notice> : <Card className="p-4 text-[14px] text-app-ink-soft sm:p-5">Loading your domain…</Card>;
+    return loadError ? <Notice>{loadError}</Notice> : <Card className="p-4 text-[15px] text-app-ink-soft sm:p-5">Loading your web address…</Card>;
   }
 
   const { live, pending } = state;
@@ -125,81 +183,54 @@ export function DomainOwnership({
           <div className="flex flex-wrap items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-success-tint text-app-success"><Icon name="checkCircle" size={18} /></span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[13px] text-app-ink-soft">Your own domain</p>
-              <a href={`https://${live.domain}`} target="_blank" rel="noopener noreferrer" className="break-all text-[16px] font-extrabold text-app-ink no-underline hover:underline">
+              <p className="m-0 text-[13px] text-app-ink-soft">Your own web address</p>
+              <a href={`https://${live.domain}`} target="_blank" rel="noopener noreferrer" className="break-all text-[17px] font-extrabold text-app-ink no-underline hover:underline">
                 {live.domain}
               </a>
             </div>
-            <Pill tone="success" dot>Verified</Pill>
+            <Pill tone="success" dot>Connected</Pill>
           </div>
-          {live.verifiedAt && (
-            <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Ownership verified {new Date(live.verifiedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.</p>
-          )}
-          {check?.ok && check.hosting && <HostingNote hosting={check.hosting} />}
+          {live.verifiedAt && <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Connected {connectedWhen(live.verifiedAt)}. Customers can open your shop there.</p>}
           {!state.hostingConfigured && !check?.ok && (
-            <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">Automatic hosting setup isn&apos;t switched on for this server; Shopinbos support adds verified domains to hosting.</p>
+            <p className="mb-0 mt-2 text-[14px] leading-[1.5] text-app-ink-soft">The Shopinbos team is finishing the last step for you. You don&apos;t need to do anything.</p>
           )}
-          <details className="mt-3">
-            <summary className="cursor-pointer text-[13.5px] font-bold text-app-ink">Routing records</summary>
+          <TechFold forWho="the person who set up your web address" className="mt-3">
+            {check?.ok && check.hosting && <HostingNote hosting={check.hosting} />}
+            <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">Routing records for {live.domain}. Keep them in place at the company it was bought from.</p>
             <RecordList records={live.records} />
-          </details>
+          </TechFold>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {!pending && !changing && (
-              <PillButton size="sm" tone="white" onClick={() => setChanging(true)}>Use a different domain</PillButton>
+              <PillButton size="sm" tone="white" onClick={() => setChanging(true)}>Use a different web address</PillButton>
             )}
             {confirmRemove ? (
               <>
-                <span className="text-[13px] font-semibold text-app-danger">Your store stops opening on {live.domain}.</span>
+                <span className="text-[14px] font-semibold text-app-danger">Your shop stops opening on {live.domain}.</span>
                 <PillButton size="sm" tone="ink" busy={removing === "live"} onClick={() => void remove("live")}>Remove it</PillButton>
                 <PillButton size="sm" tone="ghost" onClick={() => setConfirmRemove(false)}>Keep it</PillButton>
               </>
             ) : (
-              <PillButton size="sm" tone="ghost" onClick={() => setConfirmRemove(true)}>Remove domain</PillButton>
+              <PillButton size="sm" tone="ghost" onClick={() => setConfirmRemove(true)}>Stop using it</PillButton>
             )}
           </div>
-        </Card>
-      )}
-
-      {pending && (
-        <Card className="min-w-0 p-4 sm:p-5">
-          <div className="flex flex-wrap items-start gap-3">
-            <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full", check && !check.ok ? "bg-app-danger-tint text-app-danger" : "bg-[#FDF0D5] text-[#8A5A00]")}>
-              <Icon name={check && !check.ok ? "warn" : "clock"} size={18} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="m-0 text-[13px] text-app-ink-soft">{live ? "Switching to" : "Connecting"}</p>
-              <h3 className="m-0 mt-0.5 break-all text-[20px] font-extrabold">{pending.domain}</h3>
-            </div>
-            {verifying ? <Pill tone="info" dot>Checking DNS…</Pill> : check && !check.ok ? <Pill tone="danger" dot>Not verified yet</Pill> : <Pill tone="warning" dot>Waiting for DNS</Pill>}
-          </div>
-          <p className="mb-0 mt-3 text-[14px] leading-[1.5] text-app-ink-soft">
-            Add these records at the company you bought the domain from, then press Verify. Your store isn&apos;t served on this domain until it&apos;s verified{live ? `; ${live.domain} keeps working meanwhile` : ""}.
-          </p>
-          <RecordList records={pending.records} />
-
-          {check && !check.ok && (
-            <div className="mt-3">
-              <Notice>
-                {check.message}
-                {check.found && check.found.length > 0 && (
-                  <span className="mt-1 block break-all font-mono text-[12.5px]">Found: {check.found.join(" · ")}</span>
-                )}
-              </Notice>
-            </div>
-          )}
           {verifyError && <div className="mt-3"><Notice>{verifyError}</Notice></div>}
-          {!state.hostingConfigured && (
-            <p className="mb-0 mt-3 text-[13px] leading-[1.5] text-app-ink-soft">After verifying, Shopinbos support adds the domain to hosting (automatic setup isn&apos;t switched on for this server).</p>
-          )}
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <PillButton size="md" busy={verifying} onClick={() => void verify()}>Verify</PillButton>
-            <PillButton size="md" tone="ghost" busy={removing === "pending"} onClick={() => void remove("pending")}>
-              {live ? "Keep the current domain" : "Use a different domain"}
-            </PillButton>
-          </div>
         </Card>
       )}
+
+      {pending && <PendingCard
+        domain={pending.domain}
+        records={pending.records}
+        live={live?.domain ?? null}
+        hostingConfigured={state.hostingConfigured}
+        verifying={verifying}
+        check={check}
+        verifyError={verifyError}
+        removing={removing === "pending"}
+        askTeam={askTeam}
+        onAskTeam={() => setAskTeam(true)}
+        onVerify={() => void verify()}
+        onRemove={() => void remove("pending")}
+      />}
 
       {showForm && (
         <Card className="min-w-0 p-4 sm:p-5">
@@ -209,32 +240,31 @@ export function DomainOwnership({
               void claim();
             }}
           >
-            <CardHead title={live ? "Connect a different domain" : "Connect a domain you own"} sub="You'll prove you own it with a DNS record before it goes live." />
-            <div className="mt-4">
-              <FieldLabel htmlFor="own-domain">Your domain</FieldLabel>
-              <TextInput
-                id="own-domain"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="yourbrand.com"
-                autoComplete="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                inputMode="url"
-              />
-            </div>
-            <p className="mb-1.5 mt-4 text-[13px] font-bold text-app-ink-soft">Address buyers see: {serveAs === "www" ? "www.yourbrand.com" : "yourbrand.com"}</p>
-            <Segmented
-              className="w-full border border-app-line sm:w-fit"
-              value={serveAs}
-              onChange={setServeAs}
-              options={[
-                { value: "www", label: "With www." },
-                { value: "apex", label: "Without www." },
-              ]}
+            <FieldLabel htmlFor="own-domain">{live ? "Your other web address" : "What's your web address?"}</FieldLabel>
+            <TextInput
+              id="own-domain"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="yourbrand.com"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              inputMode="url"
             />
+            <p className="mb-0 mt-2 text-[14px] leading-[1.5] text-app-ink-soft">Next, we make a WhatsApp message with the steps for the person who set it up. It takes them about 5 minutes.</p>
+            <Fold className="mt-3" summary="With or without www (optional)" hint={`Customers will see ${serveAs === "www" ? "www.yourbrand.com" : "yourbrand.com"}`}>
+              <Segmented
+                className="w-full border border-app-line sm:w-fit"
+                value={serveAs}
+                onChange={setServeAs}
+                options={[
+                  { value: "www", label: "With www." },
+                  { value: "apex", label: "Without www." },
+                ]}
+              />
+            </Fold>
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <PillButton type="submit" size="md" busy={claiming}>Continue</PillButton>
+              <PillButton type="submit" size="lg" busy={claiming} className="w-full sm:w-auto">Continue</PillButton>
               {live && <PillButton size="md" tone="ghost" onClick={() => setChanging(false)}>Cancel</PillButton>}
             </div>
           </form>
@@ -242,14 +272,139 @@ export function DomainOwnership({
         </Card>
       )}
 
-      {check?.ok && !live && <Notice tone="success">Verified. Your store opens on your domain once its routing record is in place.</Notice>}
+      {check?.ok && !live && <Notice tone="success">Connected. Your shop opens on your web address within the hour.</Notice>}
     </div>
+  );
+}
+
+function PendingCard({
+  domain,
+  records,
+  live,
+  hostingConfigured,
+  verifying,
+  check,
+  verifyError,
+  removing,
+  askTeam,
+  onAskTeam,
+  onVerify,
+  onRemove,
+}: {
+  domain: string;
+  records: DnsRecord[];
+  live: string | null;
+  hostingConfigured: boolean;
+  verifying: boolean;
+  check: VerifyCheck | null;
+  verifyError: string | null;
+  removing: boolean;
+  askTeam: boolean;
+  onAskTeam: () => void;
+  onVerify: () => void;
+  onRemove: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const message = setupStepsMessage(domain, records);
+  const plain = check ? plainCheck(check) : null;
+
+  async function copySteps() {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked: the steps are in the technical details as selectable text.
+    }
+  }
+
+  return (
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FDF0D5] text-[#8A5A00]">
+          <Icon name="clock" size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 text-[13px] text-app-ink-soft">{live ? "Moving your shop to" : "Connecting"}</p>
+          <h3 className="m-0 mt-0.5 break-all text-[20px] font-extrabold">{domain}</h3>
+        </div>
+        <Pill tone="warning" dot>{verifying ? "Checking…" : "Waiting"}</Pill>
+      </div>
+      <p className="mb-0 mt-3 text-[16px] font-bold leading-[1.4]" role="status">Waiting for your web address to be connected</p>
+      <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">
+        Send the steps to the person who set it up. We&apos;ll keep checking and your shop opens there the moment it works.
+        {live ? ` ${live} keeps working meanwhile.` : " Your free address keeps working meanwhile."}
+      </p>
+
+      <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <a
+          href={whatsappShareUrl(message)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-app-ink px-6 text-[15px] font-extrabold text-white no-underline hover:bg-black"
+        >
+          <Icon name="chat" size={18} /> Send the steps on WhatsApp
+        </a>
+        <PillButton size="md" tone="white" onClick={() => void copySteps()}>
+          <Icon name={copied ? "check" : "copy"} size={16} /> {copied ? "Copied" : "Copy the steps"}
+        </PillButton>
+      </div>
+
+      {plain && <div className="mt-3"><Notice tone="info">{plain}</Notice></div>}
+      {verifyError && <div className="mt-3"><Notice>{verifyError}</Notice></div>}
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {!askTeam && (
+          <button type="button" onClick={onAskTeam} className="min-h-[44px] text-[14.5px] font-bold text-app-ink underline underline-offset-4">
+            No one to send it to? Ask the Shopinbos team
+          </button>
+        )}
+        <button type="button" onClick={onRemove} disabled={removing} className="min-h-[44px] text-[14.5px] font-bold text-app-ink-soft underline-offset-4 hover:underline">
+          {live ? "Keep the current web address" : "Use a different web address"}
+        </button>
+      </div>
+
+      {askTeam && (
+        <SetupHelpRequest
+          className="mt-3"
+          title={`Connect my web address ${domain}`}
+          description="Tell us where you bought it. We'll do the setup with you and message you when your shop opens there."
+          feature="custom_domain"
+          softwareQuestion="Where did you buy it?"
+          softwarePlaceholder="Whogohost, GoDaddy, a friend…"
+        />
+      )}
+
+      <TechFold forWho="the person who set up your web address" className="mt-4">
+        <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">
+          Add these DNS records where {domain} was bought, then press Verify. The store is only served on this domain once it&apos;s verified.
+        </p>
+        <RecordList records={records} />
+        {check && !check.ok && (
+          <div className="mt-3">
+            <Notice tone="info">
+              {check.message}
+              {check.found && check.found.length > 0 && <span className="mt-1 block break-all font-mono text-[12.5px]">Found: {check.found.join(" · ")}</span>}
+            </Notice>
+          </div>
+        )}
+        {!hostingConfigured && (
+          <p className="mb-0 mt-3 text-[13px] leading-[1.5] text-app-ink-soft">After verifying, Shopinbos support adds the domain to hosting (automatic setup isn&apos;t switched on for this server).</p>
+        )}
+        <div className="mt-3">
+          <PillButton size="md" busy={verifying} onClick={onVerify}>Verify</PillButton>
+        </div>
+        <div className="mt-4 border-t border-app-line pt-4">
+          <RegistrarTip />
+        </div>
+      </TechFold>
+    </Card>
   );
 }
 
 function HostingNote({ hosting }: { hosting: HostingStatus }) {
   return (
-    <div className="mt-3 grid gap-2">
+    <div className="mb-3 grid gap-2">
       <Notice tone={hosting.status === "failed" ? "error" : hosting.status === "added" ? "success" : "info"}>{hosting.message}</Notice>
       {hosting.records.length > 0 && (
         <RecordList
@@ -322,3 +477,4 @@ function RecordRow({ record }: { record: DnsRecord }) {
     </li>
   );
 }
+

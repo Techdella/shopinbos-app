@@ -977,7 +977,7 @@ export function OnboardingFlow({ initialUser, initialMemory, initialLaunchStatus
                 <span className="italic text-[var(--teal-700)]">I'm Rex.</span>
               </h1>
               <p className="mt-5 max-w-[500px] text-[17px] leading-7 text-[var(--ink-600)]">
-                Tell me what you sell in one sentence. I'll pick a template, write the copy, draw a logo, and seed three products you can edit.
+                Tell me what you sell in one sentence. I'll pick a look, write the words, draw a logo, and seed three products you can edit.
               </p>
 
               <div className="card mt-8 max-w-[540px]" style={{ padding: 18, borderRadius: 18, boxShadow: "var(--shd-md)" }}>
@@ -2124,15 +2124,15 @@ function SupplierOnboardingStage({
           {step === 4 && (
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-600)", marginBottom: 8 }}>Supplier Onboarding · Step 4</div>
-              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Verification & payouts</h2>
-              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>Provide your business registration and bank details for verification and payouts.</p>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--ink-900)", margin: "0 0 6px" }}>Your business and bank</h2>
+              <p style={{ fontSize: 14, color: "var(--ink-500)", margin: "0 0 28px" }}>Add your business registration and bank details, so we can check your business and send you your money.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <label style={labelStyle}>CAC registration number (RC number)</label>
                   <input style={inputStyle} value={cacNumber} onChange={(e) => setCacNumber(e.target.value)} placeholder="e.g. RC-1234567" />
                 </div>
                 <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--ink-50)", border: "1px solid var(--ink-150)" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-900)", marginBottom: 12 }}>Bank account for payouts</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-900)", marginBottom: 12 }}>Bank account (where we send your money)</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <div>
                       <label style={labelStyle}>Bank name</label>

@@ -2,7 +2,8 @@
 
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { Card, CardHead } from "@/components/app-kit";
-import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
+import { Notice, PillButton, Toggle } from "@/components/app-ui";
+import { AdvancedFold } from "@/components/simple/Fold";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, textareaClass } from "@/components/growth/kit";
@@ -262,7 +263,12 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented options={[{ value: "visual", label: "Visual builder" }, { value: "html", label: "HTML" }]} value={mode} onChange={switchMode} className="border border-app-line" />
+        {mode === "html" ? (
+          <>
+            <span className="rounded-full bg-[#FDF0D5] px-3 py-1.5 text-[12.5px] font-bold text-[#5C3D00]">Advanced: HTML code</span>
+            <button type="button" onClick={() => switchMode("visual")} className={buttonClass("white", "sm")}>Back to the easy editor</button>
+          </>
+        ) : null}
         {mode === "visual" ? (
           <div className="flex items-center gap-1">
             <button type="button" onClick={undo} disabled={!past.length} className={cx(buttonClass("white", "sm"), "disabled:opacity-40")} aria-label="Undo"><Icon name="undo" size={14} /> Undo</button>
@@ -420,7 +426,11 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
         </div>
       )}
 
-      {mode === "html" ? peggyPanel : null}
+      {mode === "html" ? peggyPanel : (
+        <AdvancedFold label="Advanced (optional): write the email in HTML code" hint="Only if you or a designer already have the code. Most people never need this.">
+          <button type="button" onClick={() => switchMode("html")} className={buttonClass("white", "sm")}>Switch to HTML code</button>
+        </AdvancedFold>
+      )}
     </div>
   );
 }

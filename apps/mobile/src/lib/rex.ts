@@ -25,8 +25,8 @@ export const REX_STARTERS = [
   { title: "Generate product images", prompt: "Make new pictures for one of my products." },
   { title: "Make a logo", prompt: "Make a logo for my store." },
   { title: "Make a product video", prompt: "Make a short video reel for one of my products." },
-  { title: "Change a section of my store", prompt: "I want to change or rebuild a section of my store." },
-  { title: "Build a campaign", prompt: "Help me build an email campaign for my customers." },
+  { title: "Change part of my shop", prompt: "I want to change or redo part of my shop's page." },
+  { title: "Write to my customers", prompt: "Help me write a message to send to my customers." },
   { title: "Set up an automation", prompt: "Set up an automation for my store." },
   { title: "Write product descriptions", prompt: "Write better descriptions for my products." },
 ];
@@ -41,7 +41,7 @@ export function cardNote(card: RexCard): string {
     case "store":
       return `[Changed the draft${card.version ? ` (version ${card.version.n})` : ""}: ${card.changes.join("; ")}]`;
     case "themes":
-      return "[Showed the theme cards]";
+      return "[Showed the looks for the shop]";
     case "copy":
       return `[Wrote a description for ${card.product.name}]`;
     case "video":

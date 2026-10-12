@@ -6,6 +6,7 @@ import { isValidEmail } from "@shared/phone";
 import { sendPasswordReset } from "@/lib/auth";
 import { BackButton, Field, Label, Mascot, Notice, PillButton, T } from "@/components/ui";
 import { colors } from "@/theme";
+import { HelpButton } from "@/components/Help";
 
 export default function Forgot() {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export default function Forgot() {
       await sendPasswordReset(email.trim().toLowerCase());
       setSent(true);
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "Couldn't send the link.");
+      setError(resetError instanceof Error ? resetError.message : "Couldn't send the link. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -29,8 +30,9 @@ export default function Forgot() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas, paddingHorizontal: 22 }}>
-      <View style={{ paddingTop: 10, marginBottom: 24 }}>
+      <View style={{ paddingTop: 10, marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <BackButton onPress={() => router.back()} />
+        <HelpButton />
       </View>
       {sent ? (
         <>

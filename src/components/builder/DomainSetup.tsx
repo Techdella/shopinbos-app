@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { DomainOwnership } from "@/components/domains/DomainOwnership";
+import { TechFold } from "@/components/simple/Fold";
 import { buildStorefrontOrigin, getPlatformRootDomain } from "@/lib/domains/storefront";
 
 interface DomainResult {
@@ -225,7 +226,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
           | null;
 
         if (!response.ok) {
-          throw new Error(payload?.error?.message ?? "Could not check your domain order.");
+          throw new Error(payload?.error?.message ?? "We couldn't check your order just now. Refresh the page in a minute.");
         }
 
         if (payload?.data?.order) {
@@ -244,7 +245,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         }
       } catch (error) {
         window.clearInterval(interval);
-        setPurchaseError(error instanceof Error ? error.message : "Could not check your domain order.");
+        setPurchaseError(error instanceof Error ? error.message : "We couldn't check your order just now. Refresh the page in a minute.");
       }
     }, 4000);
 
@@ -254,7 +255,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
   async function searchDomains() {
     const query = searchQuery.trim();
     if (!query) {
-      setSearchError("Enter a word or brand name first.");
+      setSearchError("Type a word or your shop name first.");
       return;
     }
 
@@ -268,15 +269,15 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         | null;
 
       if (!response.ok) {
-        throw new Error(payload?.error?.message ?? "Domain search failed.");
+        throw new Error(payload?.error?.message ?? "We couldn't search just now. Check your connection and try again.");
       }
 
       setSearchResults(payload?.data ?? []);
       if ((payload?.data ?? []).length === 0) {
-        setSearchError("No domain ideas came back for that search. Try a shorter keyword.");
+        setSearchError("Nothing came back for that. Try a shorter word.");
       }
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : "Domain search failed.");
+      setSearchError(error instanceof Error ? error.message : "We couldn't search just now. Check your connection and try again.");
     } finally {
       setIsSearching(false);
     }
@@ -298,7 +299,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         | null;
 
       if (!response.ok) {
-        throw new Error(payload?.error?.message ?? "Could not load the registrar checkout fields.");
+        throw new Error(payload?.error?.message ?? "We couldn't load the next step. Try again in a minute.");
       }
 
       const schema = payload?.data ?? {};
@@ -313,7 +314,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
       });
       setExtraContactValues(nextExtraValues);
     } catch (error) {
-      setPurchaseError(error instanceof Error ? error.message : "Could not load the registrar checkout fields.");
+      setPurchaseError(error instanceof Error ? error.message : "We couldn't load the next step. Try again in a minute.");
     } finally {
       setIsLoadingContactSchema(false);
     }
@@ -349,12 +350,12 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
     }
 
     if (!contactValues.phone.trim().startsWith("+")) {
-      setPurchaseError("Use your phone number in international format, for example +2348012345678.");
+      setPurchaseError("Start your phone number with +234, like +2348012345678.");
       return;
     }
 
     if (contactValues.country.trim().length !== 2) {
-      setPurchaseError("Country should be a two-letter ISO code like NG or US.");
+      setPurchaseError("Use two letters for the country, like NG for Nigeria.");
       return;
     }
 
@@ -407,7 +408,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         | null;
 
       if (!response.ok || !payload?.data?.orderId) {
-        throw new Error(payload?.error?.message ?? "Could not complete the registrar checkout.");
+        throw new Error(payload?.error?.message ?? "We couldn't finish the payment. Nothing was charged. Try again, or tap Help.");
       }
 
       setPurchaseOrder({
@@ -425,7 +426,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         ],
       });
     } catch (error) {
-      setPurchaseError(error instanceof Error ? error.message : "Could not complete the registrar checkout.");
+      setPurchaseError(error instanceof Error ? error.message : "We couldn't finish the payment. Nothing was charged. Try again, or tap Help.");
     } finally {
       setIsPurchasing(false);
     }
@@ -451,16 +452,18 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
             <Icon name={ready ? "check" : "clock"} size={18} />
           </span>
           <div className="min-w-0">
-            <p className="m-0 text-[13px] font-bold text-app-ink-soft">{ready ? "Domain ready" : "Almost there"}</p>
+            <p className="m-0 text-[13px] font-bold text-app-ink-soft">{ready ? "Web address ready" : "Almost there"}</p>
             <h3 className="m-0 mt-0.5 break-all text-[20px] font-extrabold">{connectedDomain.domain}</h3>
             <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
               {ready
-                ? "Your store can now use this address."
-                : "The domain is attached. Hosting is finishing its setup; it can take up to a few hours to go live."}
+                ? "Your shop can now use this address."
+                : "We're setting it up for you. Your shop opens there within a few hours, and we'll tell you when it's ready. Your free address keeps working."}
             </p>
           </div>
         </div>
 
+        {(connectedDomain.verification.length > 0 || (connectedDomain.configuration && !connectedDomain.verified)) && (
+          <TechFold forWho="the person who set up your web address">
         {connectedDomain.verification.length > 0 && (
           <RecordList title="Add these records">
             {connectedDomain.verification.map((record) => (
@@ -479,11 +482,13 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
             ))}
           </RecordList>
         )}
+          </TechFold>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <PillButton size="md" onClick={() => onDone(connectedDomain.domain)}>{doneLabel}</PillButton>
           <button type="button" onClick={resetDomainFlow} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
-            Use a different domain
+            Use a different web address
           </button>
         </div>
       </div>
@@ -496,8 +501,8 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Store address">
           {[
             { id: "free" as const, label: "Free address", desc: `${freeDomain}, included with your store.` },
-            { id: "connect" as const, label: "Connect one I own", desc: "A domain you already bought elsewhere." },
-            { id: "buy" as const, label: "Buy a new one", desc: "Search, pay and connect it here." },
+            { id: "connect" as const, label: "I already have one", desc: "A web address you bought before. We send the steps to whoever set it up." },
+            { id: "buy" as const, label: "Buy a new one", desc: "Search, pay, and we set it up for you." },
           ].map((item) => (
             <button
               key={item.id}
@@ -522,7 +527,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
           <p className="m-0 text-[13px] font-bold text-app-ink-soft">Your free address</p>
           <div className="mt-1 break-all text-[22px] font-extrabold tracking-[-0.3px]">{freeDomain}</div>
           <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
-            It already points at {storeName}. You can connect your own domain later.
+            It already opens {storeName}. You can use your own web address later.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <PillButton size="md" onClick={() => onDone(null)}>Use {freeDomain}</PillButton>
@@ -537,7 +542,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         <div className="grid min-w-0 gap-3">
           <DomainOwnership onVerified={(domain) => onDone(domain)} />
           <button type="button" onClick={() => onDone(null)} className="min-h-[44px] justify-self-start px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
-            Use {freeDomain} for now and verify later
+            Use {freeDomain} for now and finish this later
           </button>
         </div>
       )}
@@ -550,7 +555,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
               void searchDomains();
             }}
           >
-            <FieldLabel htmlFor="domain-search">Search for a domain</FieldLabel>
+            <FieldLabel htmlFor="domain-search">Search for a web address</FieldLabel>
             <div className="flex flex-col gap-2 sm:flex-row">
               <TextInput
                 id="domain-search"
@@ -564,7 +569,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
               />
               <PillButton type="submit" size="lg" busy={isSearching} className="sm:w-auto">Search</PillButton>
             </div>
-            <p className="mb-0 mt-2.5 text-[13px] leading-[1.5] text-app-ink-soft">We check which endings are free, then you pay and it connects to your store with a secure certificate.</p>
+            <p className="mb-0 mt-2.5 text-[13px] leading-[1.5] text-app-ink-soft">We show which names are free. You pay, and we set it up for you.</p>
           </form>
 
           {searchError && <div className="mt-3"><Notice>{searchError}</Notice></div>}
@@ -609,7 +614,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                 </label>
               </div>
 
-              <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">Domain companies need the owner&apos;s contact details. Fields marked * are required.</p>
+              <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">The company that sells web addresses needs the owner&apos;s details. Fields with * are needed.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[
                   { key: "firstName", label: "First name", placeholder: "Ada", required: true, auto: "given-name" },
@@ -622,7 +627,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                   { key: "city", label: "City", placeholder: "Lagos", required: true, auto: "address-level2" },
                   { key: "state", label: "State", placeholder: "Lagos", required: true, auto: "address-level1" },
                   { key: "zip", label: "Postal code", placeholder: "101233", required: true, auto: "postal-code" },
-                  { key: "country", label: "Country code", placeholder: "NG", required: true, auto: "country" },
+                  { key: "country", label: "Country (2 letters)", placeholder: "NG", required: true, auto: "country" },
                 ].map((field) => (
                   <div key={field.key} className="min-w-0">
                     <FieldLabel htmlFor={`contact-${field.key}`}>{field.label}{field.required ? " *" : ""}</FieldLabel>
@@ -640,7 +645,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                 ))}
               </div>
 
-              {isLoadingContactSchema && <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">Checking if this ending needs anything else…</p>}
+              {isLoadingContactSchema && <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">Checking if this name needs anything else…</p>}
               {schemaSection.description && <p className="mb-0 mt-4 text-[13px] leading-[1.5] text-app-ink-soft">{schemaSection.description}</p>}
 
               {extraFields.length > 0 && (
@@ -676,7 +681,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
               )}
 
               {purchaseOrder && (
-                <div className="mt-4"><Notice tone="info">Order {purchaseOrder.orderId}: {purchaseOrder.status === "purchasing" ? "buying your domain…" : purchaseOrder.status}</Notice></div>
+                <div className="mt-4"><Notice tone="info">{purchaseOrder.status === "purchasing" ? "Buying your web address…" : purchaseOrder.status === "completed" ? "Bought. We're setting it up for you." : purchaseOrder.status === "failed" ? "The purchase didn't go through. Try again, or tap Help and we'll sort it out." : "Getting your order ready…"}</Notice></div>
               )}
               {purchaseError && <div className="mt-4"><Notice>{purchaseError}</Notice></div>}
               {purchaseIntegrationError && <div className="mt-4"><Notice tone="info">{purchaseIntegrationError}</Notice></div>}
@@ -697,7 +702,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                   }}
                   className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink"
                 >
-                  Choose another domain
+                  Choose another name
                 </button>
               </div>
             </div>

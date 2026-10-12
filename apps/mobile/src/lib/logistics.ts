@@ -37,6 +37,8 @@ export interface DispatchRider {
   name: string;
   online: boolean;
   lastSeenAt: string | null;
+  /** Jobs the rider is carrying now. The server sends riders best first: free and out, then busy, then offline. */
+  openJobs?: number;
 }
 
 export interface LogisticsOverview {
@@ -92,6 +94,13 @@ export interface RiderRow {
 }
 
 export const fetchRiders = () => api<{ riders: RiderRow[] }>("/api/mobile/logistics/riders");
+
+/** Add a rider with just a name and WhatsApp number. Returns their Riders app link and a ready WhatsApp invite. */
+export const addRider = (input: { name: string; whatsapp: string }) =>
+  api<{ id: string; name: string; url: string; whatsapp: string; inviteUrl: string }>("/api/mobile/logistics/riders", { method: "POST", json: input });
+
+/** The "Taking new jobs" switch. */
+export const setTakingJobs = (taking: boolean) => api<{ taking: boolean }>("/api/mobile/logistics/taking", { method: "POST", json: { taking } });
 
 export interface Earnings {
   today: { amount: number; jobs: number };

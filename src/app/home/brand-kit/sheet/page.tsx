@@ -114,7 +114,7 @@ export default async function BrandSheetPage() {
                 ))}
               </ul>
             ) : (
-              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">No theme colours set yet.</p>
+              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">No shop colours set yet.</p>
             )}
           </section>
 

@@ -19,7 +19,7 @@ export default function Products() {
       setProducts(await fetchProducts());
       setError(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Couldn't load products.");
+      setError(loadError instanceof Error ? loadError.message : "Couldn't load products. Check your connection and try again.");
     }
   }, []);
 
@@ -29,16 +29,15 @@ export default function Products() {
 
   return (
     <TabScreen
-      title="Products"
-      action={<PillButton title="Add" size="sm" onPress={() => router.push("/add-products")} />}
+      title="My products"
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
     >
+      <PillButton title="Add a product" onPress={() => router.push("/add-products")} style={{ marginBottom: 14 }} />
       {error && <Notice>{error}</Notice>}
       {products && !products.length && (
         <Card style={{ gap: 12 }}>
-          <T style={{ color: colors.inkSoft }}>No products yet. Snap a few photos and Rex lists them for you.</T>
-          <PillButton title="Add products" onPress={() => router.push("/add-products")} />
+          <T style={{ fontSize: 15, lineHeight: 22 }}>No products yet. Tap &quot;Add a product&quot;, take a photo, and Rex writes the rest.</T>
         </Card>
       )}
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 14 }}>
@@ -49,14 +48,14 @@ export default function Products() {
               <View style={{ aspectRatio: 1, borderRadius: 18, backgroundColor: colors.lilac, overflow: "hidden" }}>
                 {product.images[0] && <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
                 <View style={{ position: "absolute", left: 8, bottom: 8, backgroundColor: low ? colors.peach : colors.surface, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 4 }}>
-                  <T weight="bold" style={{ fontSize: 11.5, color: low ? colors.accentInk : colors.ink }}>
-                    {product.currentStock <= 0 ? "Sold out" : low ? `${product.currentStock} left` : `${product.currentStock} in stock`}
+                  <T weight="bold" style={{ fontSize: 13, color: low ? colors.accentInk : colors.ink }}>
+                    {product.currentStock <= 0 ? "Sold out" : `${product.currentStock} left`}
                   </T>
                 </View>
               </View>
               <T weight="bold" style={{ marginTop: 8, fontSize: 14 }} numberOfLines={1}>{product.name}</T>
               <T weight="extrabold" style={{ fontSize: 14 }}>{naira(Number(product.retailPrice))}</T>
-              {product.status !== "published" && <T style={{ fontSize: 12, color: colors.inkSoft }}>Draft</T>}
+              {product.status !== "published" && <T style={{ fontSize: 14, color: colors.inkSoft }}>Hidden from customers</T>}
             </Pressable>
           );
         })}

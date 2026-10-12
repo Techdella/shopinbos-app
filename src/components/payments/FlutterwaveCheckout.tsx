@@ -70,7 +70,7 @@ export function FlutterwaveCheckoutButton({
           toast("Payment successful!", "success");
           onSuccess?.(response);
         } else {
-          toast("Payment failed", "error");
+          toast("The payment didn't go through. Nothing was taken. Try again.", "error");
         }
       },
       onclose: () => {

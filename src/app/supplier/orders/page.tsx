@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
@@ -16,28 +17,33 @@ export const dynamic = "force-dynamic";
 // The supplier's orders: dropship orders (shops' store orders they ship in the shop's name, SupplierOrder) and
 // wholesale orders (shops buying stock, WholesaleOrder). Accept, ship with a tracking code, mark delivered or
 // decline with a reason (src/app/actions/supplier.ts → src/lib/supplier-orders).
+// Suppliers see plain words (section 8A): orders are grouped New, To pack and Sent; dropship is "shops sell it
+// for you", wholesale is "bulk"; each new order shows "You get ₦X" and one big Accept.
 
 // Wholesale statuses still to send; dropship ones are "pending" and "accepted".
 const TO_SHIP = ["pending", "confirmed", "processing"] as const;
 const DROPSHIP_TO_SHIP = ["pending", "accepted"] as const;
 
 const FILTERS = [
-  { key: "to-ship", label: "To ship", wholesale: [...TO_SHIP], dropship: [...DROPSHIP_TO_SHIP] },
-  { key: "on-the-way", label: "On the way", wholesale: ["shipped"], dropship: ["shipped"] },
-  { key: "delivered", label: "Delivered", wholesale: ["delivered"], dropship: ["delivered"] },
+  { key: "new", label: "New", wholesale: ["pending"], dropship: ["pending"] },
+  { key: "to-pack", label: "To pack", wholesale: ["confirmed", "processing"], dropship: ["accepted"] },
+  { key: "sent", label: "Sent", wholesale: ["shipped", "delivered"], dropship: ["shipped", "delivered"] },
   { key: "closed", label: "Declined and cancelled", wholesale: ["cancelled", "refunded"], dropship: ["rejected", "cancelled"] },
 ] as const;
+// Older links (?status=to-ship, on-the-way, delivered) still land on the right group.
+const LEGACY_FILTER: Record<string, (typeof FILTERS)[number]["key"]> = { "to-ship": "to-pack", "on-the-way": "sent", delivered: "sent" };
+const GROUPS = FILTERS.slice(0, 3);
 
 const KINDS = [
   { key: undefined, label: "All orders" },
-  { key: "dropship", label: "Dropship" },
-  { key: "wholesale", label: "Wholesale" },
+  { key: "dropship", label: "Shops sold it for you" },
+  { key: "wholesale", label: "Bulk orders" },
 ] as const;
 
 const DROPSHIP_STATUS: Record<string, { label: string; tone: "accent" | "info" | "warning" | "success" | "muted" | "danger" }> = {
   pending: { label: "New: accept it", tone: "accent" },
-  accepted: { label: "Accepted: to ship", tone: "warning" },
-  shipped: { label: "On the way", tone: "info" },
+  accepted: { label: "To pack", tone: "warning" },
+  shipped: { label: "Sent", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
   rejected: { label: "Declined", tone: "muted" },
   cancelled: { label: "Cancelled by the shop", tone: "muted" },
@@ -58,8 +64,39 @@ function href(status?: string, q?: string, kind?: string) {
   return `/supplier/orders${query ? `?${query}` : ""}`;
 }
 
+function ShipForm({ hidden, orderId, defaultTracking }: { hidden: ReactNode; orderId: string; defaultTracking: string }) {
+  return (
+    <form action={updateSupplierOrderStatus} className="mt-1 flex flex-wrap items-center gap-2">
+          {hidden}
+          <input type="hidden" name="action" value="ship" />
+          <label htmlFor={`tracking-${orderId}`} className="sr-only">Tracking code</label>
+          <input
+            id={`tracking-${orderId}`}
+            name="trackingCode"
+            required
+            maxLength={80}
+            defaultValue={defaultTracking}
+            placeholder="Tracking code from the rider"
+            className="min-h-[40px] w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[13.5px] outline-none focus:border-app-ink sm:w-[200px]"
+          />
+          <label htmlFor={`carrier-${orderId}`} className="sr-only">Courier (optional)</label>
+          <input
+            id={`carrier-${orderId}`}
+            name="carrier"
+            maxLength={60}
+            placeholder="Courier (optional)"
+            className="min-h-[40px] w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[13.5px] outline-none focus:border-app-ink sm:w-[170px]"
+          />
+          <button type="submit" className={buttonClass.smallInk}>
+            <Icon name="truck" size={14} /> Mark shipped (I&apos;ve sent it)
+          </button>
+    </form>
+  );
+}
+
 function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind; orderId: string; actions: SupplierAction[]; defaultTracking: string }) {
   if (!actions.length) return null;
+  const isNew = actions.includes("accept");
   const hidden = (
     <>
       <input type="hidden" name="kind" value={kind} />
@@ -72,36 +109,17 @@ function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind;
         <form action={updateSupplierOrderStatus}>
           {hidden}
           <input type="hidden" name="action" value="accept" />
-          <button type="submit" className={buttonClass.smallWhite}><Icon name="check" size={14} /> Accept</button>
+          <button type="submit" className={`${buttonClass.ink} min-h-[52px] w-full px-8 text-[16px] sm:w-auto`}><Icon name="check" size={16} /> Accept</button>
         </form>
       )}
-      {actions.includes("ship") && (
-        <form action={updateSupplierOrderStatus} className="flex flex-wrap items-center gap-2">
-          {hidden}
-          <input type="hidden" name="action" value="ship" />
-          <label htmlFor={`tracking-${orderId}`} className="sr-only">Tracking code</label>
-          <input
-            id={`tracking-${orderId}`}
-            name="trackingCode"
-            required
-            maxLength={80}
-            defaultValue={defaultTracking}
-            placeholder="Tracking code"
-            className="min-h-[40px] w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[13.5px] outline-none focus:border-app-ink sm:w-[200px]"
-          />
-          <label htmlFor={`carrier-${orderId}`} className="sr-only">Courier (optional)</label>
-          <input
-            id={`carrier-${orderId}`}
-            name="carrier"
-            maxLength={60}
-            placeholder="Courier (optional)"
-            className="min-h-[40px] w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[13.5px] outline-none focus:border-app-ink sm:w-[170px]"
-          />
-          <button type="submit" className={buttonClass.smallInk}>
-            <Icon name="truck" size={14} /> Mark shipped
-          </button>
-        </form>
-      )}
+      {actions.includes("ship") && isNew ? (
+        <details className="group w-full">
+          <summary className="min-h-[40px] cursor-pointer list-none py-2 text-[13.5px] font-bold text-app-ink underline underline-offset-4">Already sent it? Add the tracking code</summary>
+          <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} />
+        </details>
+      ) : actions.includes("ship") ? (
+        <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} />
+      ) : null}
       {actions.includes("deliver") && (
         <form action={updateSupplierOrderStatus}>
           {hidden}
@@ -112,7 +130,7 @@ function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind;
       {actions.includes("reject") && (
         <details className="group">
           <summary className={`${buttonClass.smallWhite} cursor-pointer list-none`}>
-            <Icon name="x" size={14} /> Decline
+            <Icon name="x" size={14} /> I can&apos;t do this one
           </summary>
           <form action={updateSupplierOrderStatus} className="mt-2 grid gap-2 sm:w-[360px]">
             {hidden}
@@ -146,7 +164,7 @@ function DropshipRow({ order }: { order: DropshipView }) {
         <Thumb src={first?.image} label={first?.name ?? "Order"} size={48} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Dropship</span>
+            <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">A shop sold it</span>
             <span className="truncate text-[14.5px] font-extrabold">{units} {units === 1 ? "unit" : "units"} for {order.shop}</span>
           </div>
           <ul className="m-0 mt-1 list-none p-0 text-[13px]">
@@ -170,8 +188,8 @@ function DropshipRow({ order }: { order: DropshipView }) {
           <span>{order.recipient.address.length ? order.recipient.address.join(", ") : "No delivery address. Message the shop."}</span>
         </div>
         {order.recipient.phone && <div className="mt-0.5 text-app-ink-soft"><a href={`tel:${order.recipient.phone}`} className="text-app-ink no-underline hover:underline">{order.recipient.phone}</a></div>}
-        <div className="mt-1 text-app-ink-soft">Send it as {order.shop}&apos;s parcel: no invoice or branding of your own.</div>
-        {order.collectOnDelivery > 0 && <div className="mt-1 font-bold text-app-accent-ink">Pay on delivery: the rider collects {money(order.collectOnDelivery, order.currency)} from the buyer.</div>}
+        <div className="mt-1 text-app-ink-soft">Pack it with {order.shop}&apos;s label. Don&apos;t put your own name inside.</div>
+        {order.collectOnDelivery > 0 && <div className="mt-1 font-bold text-app-accent-ink">Pay when it arrives: the rider collects {money(order.collectOnDelivery, order.currency)} from the customer.</div>}
         {order.notes && <div className="mt-1 text-app-ink-soft">Note: {order.notes}</div>}
         {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">Tracking {order.trackingCode}{order.carrier ? ` · ${order.carrier}` : ""}</div>}
         {order.rejectReason && <div className="mt-1 text-app-ink-soft">You declined: {order.rejectReason}</div>}
@@ -180,8 +198,8 @@ function DropshipRow({ order }: { order: DropshipView }) {
         <Pill tone={stage.tone} dot>{stage.label}</Pill>
         <PillLink href={messagesHref("supplier", { with: order.sellerUserId })} size="sm" icon="chat">Message shop</PillLink>
         <span className="min-w-[90px] text-right">
-          <span className="block text-[11.5px] text-app-ink-soft">You&apos;re owed</span>
-          <span className="text-[14.5px] font-extrabold">{money(order.costTotal, order.currency)}</span>
+          <span className="block text-[12px] text-app-ink-soft">You get</span>
+          <span className="text-[18px] font-extrabold">{money(order.costTotal, order.currency)}</span>
         </span>
       </div>
       <OrderActions kind="dropship" orderId={order.id} actions={order.next} defaultTracking={order.trackingCode ?? ""} />
@@ -195,7 +213,8 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
 
-  const filter = FILTERS.find((item) => item.key === params.status);
+  const statusKey = params.status ? LEGACY_FILTER[params.status] ?? params.status : undefined;
+  const filter = FILTERS.find((item) => item.key === statusKey);
   const kind: Kind | undefined = params.kind === "dropship" || params.kind === "wholesale" ? params.kind : undefined;
   const q = params.q?.trim() || undefined;
 
@@ -238,8 +257,9 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
   const countOf = (item?: (typeof FILTERS)[number]) =>
     (kind === "dropship" ? 0 : countRows(counts, item?.wholesale)) + (kind === "wholesale" ? 0 : countRows(dropshipCounts, item?.dropship));
   const total = countOf();
-  const toShip = countOf(FILTERS[0]);
-  const onTheWay = countOf(FILTERS[1]);
+  const fresh = countOf(FILTERS[0]);
+  const toPack = countOf(FILTERS[1]);
+  const sent = countOf(FILTERS[2]);
 
   // Newest first across both kinds.
   const rows = [
@@ -247,40 +267,10 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
     ...orders.map((order) => ({ kind: "wholesale" as const, at: order.createdAt.getTime(), order })),
   ].sort((a, b) => b.at - a.at);
 
-  return (
-    <AppPage
-      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search by seller, product, address…" })}
-      title="Orders"
-      sub={`${toShip} to ship · ${onTheWay} on the way · ${total} in total. Dropship orders go to the shop's buyer in the shop's name; add a tracking code when a parcel leaves your workshop.`}
-      toolbar={
-        <>
-          <FilterChips items={KINDS.map((item) => ({ label: item.label, href: href(filter?.key, q, item.key), active: kind === item.key }))} />
-          <FilterChips
-            items={[
-              { label: "All", href: href(undefined, q, kind), count: total, active: !filter },
-              ...FILTERS.map((item) => ({ label: item.label, href: href(item.key, q, kind), count: countOf(item), active: filter?.key === item.key })),
-            ]}
-          />
-          <SearchForm action="/supplier/orders" defaultValue={q} placeholder="Search seller, product or address" keep={{ status: filter?.key, kind }} />
-        </>
-      }
-    >
-      {(params.error || params.saved) && (
-        <div className="mb-4">
-          <Notice tone={params.error ? "error" : "success"}>{params.error ?? "Order updated."}</Notice>
-        </div>
-      )}
+  const statusIn = (row: (typeof rows)[number], group: (typeof FILTERS)[number]) =>
+    row.kind === "dropship" ? (group.dropship as readonly string[]).includes(row.order.status) : (group.wholesale as readonly string[]).includes(row.order.status);
 
-      {rows.length === 0 ? (
-        <EmptyState icon="package" title={total === 0 ? "No orders yet" : "No orders match"}>
-          {total === 0
-            ? "Orders show up here when a shop sells a product you dropship, or buys from you wholesale."
-            : "Try another filter or clear the search."}
-        </EmptyState>
-      ) : (
-        <Card className="overflow-hidden">
-          <ul className="m-0 list-none divide-y divide-app-line p-0">
-            {rows.map((row) => {
+  const renderRow = (row: (typeof rows)[number]) => {
               if (row.kind === "dropship") return <DropshipRow key={`d-${row.order.id}`} order={row.order} />;
               const order = row.order;
               const stage = statusOf(ORDER_STATUS, order.status);
@@ -291,7 +281,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     <Thumb src={order.supplierProduct.images[0]} label={order.supplierProduct.name} size={48} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Wholesale</span>
+                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Bulk order</span>
                         <span className="truncate text-[14.5px] font-extrabold">{order.supplierProduct.name} × {order.quantity.toLocaleString("en-NG")}</span>
                       </div>
                       <div className="truncate text-[12.5px] text-app-ink-soft">
@@ -311,15 +301,79 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     <Pill tone={stage.tone} dot>{stage.label}</Pill>
-                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">Message seller</PillLink>
-                    <span className="min-w-[90px] text-right text-[14.5px] font-extrabold">{money(order.totalPrice, order.currency)}</span>
+                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">Message shop</PillLink>
+                    <span className="min-w-[90px] text-right">
+                      <span className="block text-[12px] text-app-ink-soft">You get</span>
+                      <span className="text-[18px] font-extrabold">{money(order.totalPrice, order.currency)}</span>
+                    </span>
                   </div>
                   <OrderActions kind="wholesale" orderId={order.id} actions={wholesaleActions(order.status)} defaultTracking={order.trackingCode ?? `SIB-${order.id.slice(0, 8).toUpperCase()}`} />
                 </li>
               );
+  };
+
+  return (
+    <AppPage
+      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search by seller, product, address…" })}
+      title="Orders"
+      sub={`${fresh} new · ${toPack} to pack · ${sent} sent. When a shop sells your product, you pack it with the shop's label and a rider collects it.`}
+      toolbar={
+        <>
+          <FilterChips items={KINDS.map((item) => ({ label: item.label, href: href(filter?.key, q, item.key), active: kind === item.key }))} />
+          <FilterChips
+            items={[
+              { label: "All", href: href(undefined, q, kind), count: total, active: !filter },
+              ...FILTERS.map((item) => ({ label: item.label, href: href(item.key, q, kind), count: countOf(item), active: filter?.key === item.key })),
+            ]}
+          />
+          <SearchForm action="/supplier/orders" defaultValue={q} placeholder="Search shop, product or address" keep={{ status: filter?.key, kind }} />
+        </>
+      }
+    >
+      {(params.error || params.saved) && (
+        <div className="mb-4">
+          <Notice tone={params.error ? "error" : "success"}>{params.error ?? "Order updated."}</Notice>
+        </div>
+      )}
+
+      {rows.length === 0 ? (
+        <EmptyState icon="package" title={total === 0 ? "No orders yet" : "No orders match"}>
+          {total === 0
+            ? "Orders show up here when a shop sells your product for you, or buys from you in bulk."
+            : "Try another filter or clear the search."}
+        </EmptyState>
+      ) : (
+        filter ? (
+          <Card className="overflow-hidden">
+            <ul className="m-0 list-none divide-y divide-app-line p-0">{rows.map(renderRow)}</ul>
+          </Card>
+        ) : (
+          <div className="grid gap-6">
+            {GROUPS.map((group) => {
+              const inGroup = rows.filter((row) => statusIn(row, group));
+              return (
+                <section key={group.key} aria-labelledby={`group-${group.key}`} className="grid gap-2">
+                  <h2 id={`group-${group.key}`} className="m-0 text-[18px] font-extrabold">
+                    {group.label} <span className="text-app-ink-soft">({countOf(group)})</span>
+                  </h2>
+                  {inGroup.length ? (
+                    <Card className="overflow-hidden">
+                      <ul className="m-0 list-none divide-y divide-app-line p-0">{inGroup.map(renderRow)}</ul>
+                    </Card>
+                  ) : (
+                    <p className="m-0 rounded-[18px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">{group.key === "new" ? "No new orders. We'll tell you the moment a shop sells one." : group.key === "to-pack" ? "Nothing to pack right now." : "Nothing sent yet."}</p>
+                  )}
+                </section>
+              );
             })}
-          </ul>
-        </Card>
+            {rows.some((row) => statusIn(row, FILTERS[3])) && (
+              <details className="rounded-[18px] border border-app-line bg-white px-4 py-3">
+                <summary className="cursor-pointer text-[14.5px] font-bold">Declined and cancelled ({countOf(FILTERS[3])})</summary>
+                <ul className="m-0 mt-2 list-none divide-y divide-app-line p-0">{rows.filter((row) => statusIn(row, FILTERS[3])).map(renderRow)}</ul>
+              </details>
+            )}
+          </div>
+        )
       )}
     </AppPage>
   );

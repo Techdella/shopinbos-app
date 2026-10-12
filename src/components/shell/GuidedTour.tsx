@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Mascot, PillButton } from "@/components/app-ui";
 import type { Role } from "@/lib/nav";
@@ -42,9 +42,9 @@ const STEPS: Record<Role, Step[]> = {
   logistics_partner: [
     { title: "Welcome to Shopinbos Partners", body: "A one-minute tour. You can skip it and replay it from Company → Customise your menu." },
     { target: "nav-dashboard", title: "Today", body: "New requests to accept, active jobs, deliveries and earnings for today." },
-    { target: "nav-bookings", title: "Jobs", body: "Every delivery job. Hover for quote requests and your inbox." },
+    { target: "nav-bookings", title: "Jobs", body: "Every delivery job. Hover for price requests and your inbox." },
     { target: "nav-couriers", title: "Riders", body: "Add riders and keep track of who's active." },
-    { target: "nav-cash", title: "Cash on delivery", body: "Cash your riders collect, and what's still to collect." },
+    { target: "nav-cash", title: "Cash collected", body: "Cash your riders collect when customers pay on arrival, and what's still to collect." },
     { target: "nav-coverage", title: "Coverage and rates", body: "Where you deliver and what you charge, so sellers see the right price." },
     { target: "nav-profile", title: "Make it yours", body: "Company → Customise your menu lets you switch off what you don't use." },
   ],
@@ -66,9 +66,14 @@ function visibleRect(selector: string) {
   return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight ? rect : null;
 }
 
+// One automatic start per page load, even if the component remounts while the "seen" save is in flight.
+let startedThisLoad = false;
+
 export function GuidedTour({ role }: { role: Role }) {
   const pathname = usePathname();
-  const { prefs, save } = usePreferences();
+  const { prefs, confirmed, save } = usePreferences();
+  const saveRef = useRef(save);
+  saveRef.current = save;
   const [step, setStep] = useState<number | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   // The Start here steps only make sense on Start here; from Home the tour skips them.
@@ -77,13 +82,19 @@ export function GuidedTour({ role }: { role: Role }) {
     [role, pathname],
   );
 
-  // Starts once, on the portal's home page, for people who haven't finished or skipped it.
+  // Shows once, on the portal's home page after onboarding, and never again on its own: it is marked seen the
+  // moment it opens (so leaving mid-tour, reloading or closing the tab doesn't bring it back), and only after
+  // the server confirms it hasn't been seen (a stale or empty localStorage cache on a new device can't restart
+  // it). "Replay the walkthrough" in Customise your menu clears the flag to show it again.
   useEffect(() => {
-    if (prefs && prefs.tour !== "done" && step === null && HOME[role].includes(pathname)) {
-      const timer = window.setTimeout(() => setStep(0), 700);
-      return () => window.clearTimeout(timer);
-    }
-  }, [prefs, pathname, role, step]);
+    if (!confirmed || !prefs || prefs.tour === "done" || step !== null || startedThisLoad || !HOME[role].includes(pathname)) return;
+    const timer = window.setTimeout(() => {
+      startedThisLoad = true;
+      setStep(0);
+      void saveRef.current({ tour: "done" }).catch(() => undefined);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [confirmed, prefs, pathname, role, step]);
 
   const measure = useCallback(() => {
     if (step === null) return;

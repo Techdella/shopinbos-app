@@ -13,11 +13,19 @@ import { colors } from "@/theme";
 
 const RIDER_WINDOW_MS = 30 * 60 * 1000;
 
+/** Riders for the picker, best first (the server already sorts them): free riders who are out, then busy, then offline. */
 export function riderOptions(riders: DispatchRider[], now = Date.now()) {
-  return riders.map((rider) => {
-    const out = rider.online && rider.lastSeenAt && now - new Date(rider.lastSeenAt).getTime() <= RIDER_WINDOW_MS;
-    return { value: rider.id, label: rider.name, hint: out ? "Online" : "Offline" };
+  const rows = riders.map((rider) => {
+    const out = Boolean(rider.online && rider.lastSeenAt && now - new Date(rider.lastSeenAt).getTime() <= RIDER_WINDOW_MS);
+    const busy = (rider.openJobs ?? 0) > 0;
+    return { rider, out, busy, rank: out ? (busy ? 1 : 0) : 2 };
   });
+  rows.sort((a, b) => a.rank - b.rank);
+  return rows.map(({ rider, out, busy }, index) => ({
+    value: rider.id,
+    label: rider.name,
+    hint: !out ? "Offline" : busy ? `Finishing ${rider.openJobs === 1 ? "a job" : `${rider.openJobs} jobs`}` : index === 0 ? "Free now · best pick" : "Free now",
+  }));
 }
 
 export function JobCard({ job, riders, onChanged }: { job: Job; riders: DispatchRider[]; onChanged: () => void }) {
@@ -32,7 +40,7 @@ export function JobCard({ job, riders, onChanged }: { job: Job; riders: Dispatch
       await moveJob(job.id, action === "accept" ? { action, riderId: riderId ?? null } : { action });
       onChanged();
     } catch (error) {
-      Alert.alert("Couldn't update the job", error instanceof Error ? error.message : "Try again.");
+      Alert.alert("That didn't go through", error instanceof Error ? error.message : "Check your connection and try again.");
     } finally {
       setBusy(null);
     }
@@ -60,20 +68,20 @@ export function JobCard({ job, riders, onChanged }: { job: Job; riders: Dispatch
         <Thumb icon="box" size={48} />
         <View style={{ flex: 1, gap: 3 }}>
           <RouteLine from={shortPlace(job.from)} to={shortPlace(job.to)} />
-          <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={2}>{[job.item, job.shop, job.rider ? `Rider: ${job.rider.name}` : null].filter(Boolean).join(" · ")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={2}>{[job.item, job.shop, job.rider ? `Rider: ${job.rider.name}` : null].filter(Boolean).join(" · ")}</T>
         </View>
       </View>
       {job.collect > 0 ? <TonePill tone="warning" label={`Collect ${naira(job.collect)}`} /> : null}
       {isNew ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <PillButton title="Decline" tone="white" size="md" style={{ flex: 0.7 }} busy={busy === "decline"} disabled={Boolean(busy)} onPress={decline} />
-          <PillButton title="Accept and assign" size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setPicking(true)} />
+          <PillButton title="Accept and pick a rider" size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setPicking(true)} />
         </View>
       ) : null}
       <ChoiceSheet
         visible={picking}
-        title="Who takes this job?"
-        options={[...riderOptions(riders), { value: "", label: "Accept, assign later", hint: "Give it to a rider from the job" }]}
+        title="Pick a rider"
+        options={[...riderOptions(riders), { value: "", label: "Accept now, pick a rider later", hint: "Pick from the job when you're ready" }]}
         onPick={(value) => {
           setPicking(false);
           void run("accept", value || null);

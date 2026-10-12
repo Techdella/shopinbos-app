@@ -38,7 +38,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       setError(null);
       return next;
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Couldn't load your shop.");
+      setError(loadError instanceof Error ? loadError.message : "Couldn't load your shop. Check your connection and try again.");
       return null;
     }
   }, []);

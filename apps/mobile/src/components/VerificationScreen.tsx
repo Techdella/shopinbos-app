@@ -57,7 +57,7 @@ export function VerificationScreen({ role, load }: { role: "supplier" | "logisti
                     <T weight="bold" style={{ flex: 1 }}>{config.label}</T>
                     {status ? <TonePill tone={status.tone} label={status.label} /> : <TonePill tone={config.required ? "accent" : "muted"} label={config.required ? "Needed" : "Optional"} />}
                   </View>
-                  <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>{doc?.status === "rejected" && doc.rejectionReason ? doc.rejectionReason : config.hint}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }}>{doc?.status === "rejected" && doc.rejectionReason ? doc.rejectionReason : config.hint}</T>
                 </View>
               );
             })}
