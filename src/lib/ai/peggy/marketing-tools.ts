@@ -125,7 +125,8 @@ async function createCampaignTool(ctx: PeggyToolContext, input: PeggyToolInput<"
   );
   const size = await campaignAudienceSize(ctx.store.id, campaign);
   const summary = `Saved the ${input.channel === "email" ? "email" : input.channel === "sms" ? "SMS" : "WhatsApp"} campaign "${campaign.name}" as a draft for ${input.segment ? `the "${input.segment}" segment` : input.audience === "subscribers" ? "subscribers" : "subscribers and past buyers"} (${size} ${size === 1 ? "person" : "people"} right now). Nothing was sent.`;
-  return { content: `${summary} Campaign id: ${campaign.id}`, action: { summary, href: `/home/marketing/campaigns/${campaign.id}` } };
+  const whatsappNote = input.channel === "whatsapp" ? " WhatsApp campaigns go out as a Meta-approved template: the seller picks one (and what fills its variables) in the campaign editor before sending." : "";
+  return { content: `${summary}${whatsappNote} Campaign id: ${campaign.id}`, action: { summary, href: `/home/marketing/campaigns/${campaign.id}` } };
 }
 
 async function sendCampaignTool(ctx: PeggyToolContext, input: PeggyToolInput<"marketing_send_campaign">): Promise<ToolOutput> {

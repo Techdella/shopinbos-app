@@ -2,9 +2,22 @@ import "server-only";
 
 import type { AutomationTrigger, Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { FLOW_PRESETS, TRIGGER_INFO, countMessages, parseFlowConfig, parseStep, presetByKey, type FlowPreset, type FlowSettings, type FlowStep, type FlowTrigger } from "./flows";
+import { FLOW_PRESETS, TRIGGER_INFO, countMessages, parseFlowConfig, parseStep, presetByKey, stepProblems, type FlowPreset, type FlowSettings, type FlowStep, type FlowTrigger } from "./flows";
 import { MarketingError } from "./segments";
 import { seriesAutomation } from "./template-library";
+import { variableCount } from "./text-channels";
+import { listWhatsAppTemplates } from "./whatsapp-templates.server";
+
+/** Refuses to switch a flow on while a step can't work (unapproved template, unmapped variable, missing segment…). */
+async function checkSteps(storeId: string, steps: FlowStep[]) {
+  const templates = steps.some((step) => step.type === "send_whatsapp" && step.template)
+    ? (await listWhatsAppTemplates(storeId)).map((t) => ({ id: t.id, status: t.status, variableCount: variableCount(t.content) }))
+    : [];
+  for (const [index, step] of steps.entries()) {
+    const problem = stepProblems(step, { templates })[0];
+    if (problem) throw new MarketingError(`Step ${index + 1}: ${problem}`);
+  }
+}
 
 // Automation flows on AutomationRule: steps and settings in actionConfig, on/off in active.
 
@@ -40,6 +53,7 @@ export async function createAutomation(storeId: string, input: AutomationInput &
   const steps = input.steps ? cleanSteps(input.steps) : preset?.steps ?? [];
   if (!steps.length) throw new MarketingError("Add at least one step");
   const settings = input.settings ?? preset?.settings ?? {};
+  if (input.active === true) await checkSteps(storeId, steps);
   return db.automationRule.create({
     data: {
       storeId,
@@ -62,6 +76,7 @@ export async function updateAutomation(storeId: string, id: string, input: Autom
   if (!steps.length) throw new MarketingError("Add at least one step");
   const previous = rule.actionConfig && typeof rule.actionConfig === "object" ? (rule.actionConfig as Record<string, unknown>) : {};
   const trigger = input.trigger && TRIGGERS.includes(input.trigger) ? input.trigger : rule.trigger;
+  if (input.active ?? rule.active) await checkSteps(storeId, steps);
   return db.automationRule.update({
     where: { id },
     data: {
@@ -78,8 +93,9 @@ export async function updateAutomation(storeId: string, id: string, input: Autom
 }
 
 export async function setAutomationActive(storeId: string, id: string, active: boolean) {
-  const rule = await db.automationRule.findFirst({ where: { id, storeId }, select: { id: true } });
+  const rule = await db.automationRule.findFirst({ where: { id, storeId }, select: { id: true, actionConfig: true, actionType: true, delayMinutes: true } });
   if (!rule) throw new MarketingError("Automation not found");
+  if (active) await checkSteps(storeId, parseFlowConfig(rule.actionConfig, rule).steps);
   return db.automationRule.update({ where: { id }, data: { active } });
 }
 

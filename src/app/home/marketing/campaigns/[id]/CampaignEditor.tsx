@@ -7,8 +7,11 @@ import { Notice, PillButton, Segmented } from "@/components/app-ui";
 import { Modal } from "@/components/growth/Modal";
 import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import type { ChannelStatus } from "@/lib/marketing/channels";
+import type { CampaignChannelConfig } from "@/lib/marketing/campaign-config";
+import { variableCount } from "@/lib/marketing/text-channels";
 import { EmailComposer } from "../../_kit/EmailComposer";
 import { EmailPreview, VariableChips, api, errorText, insertAtCursor, useDebounced } from "../../_kit/client";
+import { ChannelHelp, SmsCounter, TemplateStatusPill, VariableMapper, WhatsAppBubble, type TemplateOption } from "../../_kit/text";
 import { TextPreview } from "./TextPreview";
 
 type Channel = "email" | "sms" | "whatsapp";
@@ -24,6 +27,7 @@ interface Draft {
   segmentId: string | null;
   audienceMode: "all" | "subscribers";
   scheduledAt: string;
+  channelConfig: CampaignChannelConfig;
 }
 
 const CHANNEL_LABEL: Record<Channel, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
@@ -34,12 +38,18 @@ export function CampaignEditor({
   templates,
   channels,
   testTo,
+  waTemplates,
+  products,
+  sms,
 }: {
   initial: Draft;
   segments: Array<{ id: string; name: string; summary: string; count: number }>;
   templates: Array<{ id: string; name: string; subject: string; preheader: string; bodyHtml: string; saved: boolean }>;
   channels: Record<Channel, ChannelStatus>;
   testTo: { email: string | null; phone: string | null };
+  waTemplates: TemplateOption[];
+  products: Array<{ id: string; name: string; image: string | null }>;
+  sms: { senderId: string | null; costPerSegment: number | null; currency: string };
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(initial);
@@ -71,7 +81,27 @@ export function CampaignEditor({
   }, [audienceKey]);
 
   const scheduled = draft.status === "scheduled";
-  const ready = channels[draft.channel].ready;
+  const status = channels[draft.channel];
+  const ready = status.ready && (draft.channel !== "whatsapp" || Boolean(status.templates));
+  const config = draft.channelConfig;
+  const setConfig = (patch: Partial<CampaignChannelConfig>) => set({ channelConfig: { ...config, ...patch } });
+  const template = waTemplates.find((t) => t.id === config.templateId) ?? null;
+  const mapping = config.variables?.some(Boolean) ? config.variables : template?.variables ?? [];
+  const product = products.find((p) => p.id === config.productId) ?? null;
+  const whatsappProblem =
+    draft.channel !== "whatsapp"
+      ? null
+      : !template
+        ? "Pick an approved WhatsApp template."
+        : template.status !== "APPROVED"
+          ? "This template isn't approved yet, so it can't be sent."
+          : Array.from({ length: variableCount(template.content) }).some((_, i) => !mapping[i])
+            ? "Choose what fills every {{number}} in the template."
+            : mapping.includes("discount_code") && !config.discountCode
+              ? "Enter the discount code to send."
+              : template.content.header.format === "IMAGE" && !config.headerImageUrl && !product
+                ? "Pick a product or an image for the header."
+                : null;
 
   async function save(quiet = false): Promise<string | null> {
     setError(null);
@@ -81,6 +111,10 @@ export function CampaignEditor({
     }
     if (draft.channel === "email" && !draft.subject.trim()) {
       setError("Add a subject line.");
+      return null;
+    }
+    if (draft.channel === "sms" && config.senderId && !/^(?=.*[A-Za-z])[A-Za-z0-9 ]{3,11}$/.test(config.senderId)) {
+      setError("A sender ID is 3-11 letters or numbers, with at least one letter.");
       return null;
     }
     setBusy("save");
@@ -93,6 +127,7 @@ export function CampaignEditor({
         bodyHtml: draft.bodyHtml,
         segmentId: draft.segmentId,
         audience: { mode: draft.audienceMode },
+        channelConfig: draft.channel === "email" ? {} : draft.channelConfig,
       };
       const saved = draft.id
         ? await api<{ id: string }>(`/api/app/marketing/campaigns/${draft.id}`, "PATCH", body)
@@ -157,7 +192,7 @@ export function CampaignEditor({
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       {!ready ? (
         <Notice tone="info">
-          {CHANNEL_LABEL[draft.channel]} can't send yet. {channels[draft.channel].howTo} You can still write and save the campaign.
+          <ChannelHelp label={`${CHANNEL_LABEL[draft.channel]} can't send yet`} howTo={`${status.howTo} You can still write and save the campaign.`} href={status.connectHref} linkLabel={status.connectLabel} />
         </Notice>
       ) : null}
 
@@ -189,7 +224,7 @@ export function CampaignEditor({
 
             <Card className="grid gap-4 p-5 sm:p-6">
               <CardHead title="Who gets it" sub={audience === null ? "Counting…" : `${peopleWord(audience)} can get this by ${CHANNEL_LABEL[draft.channel]} right now`} />
-              <Field label="Audience" htmlFor="c-audience" hint={draft.channel === "email" ? "People who unsubscribed are always left out. Every email has an unsubscribe link." : "Texts go to subscribers who ticked SMS/WhatsApp and to past buyers who gave a phone number, minus anyone who opted out."}>
+              <Field label="Audience" htmlFor="c-audience" hint={draft.channel === "email" ? "People who unsubscribed are always left out. Every email has an unsubscribe link." : `Only people who said yes to ${CHANNEL_LABEL[draft.channel]} offers (sign-up forms, pop-ups, or added by you with their permission) get it. Anyone who replied STOP is left out. A phone given at checkout is for order messages only.`}>
                 <select
                   id="c-audience"
                   className={selectClass}
@@ -244,27 +279,93 @@ export function CampaignEditor({
                   </div>
                   <EmailComposer key={composerKey} value={draft.bodyHtml} onChange={(bodyHtml) => set({ bodyHtml })} variables={["name", "full_name", "store", "store_url"]} />
                 </>
-              ) : (
+              ) : draft.channel === "sms" ? (
                 <>
                   <VariableChips only={["name", "store", "store_url"]} onInsert={(token) => set({ bodyHtml: insertAtCursor(textRef.current, draft.bodyHtml, token) })} />
-                  <Field label={`${CHANNEL_LABEL[draft.channel]} message`} htmlFor="c-text" hint={draft.channel === "sms" ? "Keep it short and say who it's from. Add “Reply STOP to opt out”." : "WhatsApp only delivers free-form messages to people who messaged you in the last 24 hours, unless your WhatsApp provider sends it as an approved template. Failures show per person after sending."}>
-                    <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={1000} placeholder="Hi {{name}}, our December sale starts today at {{store}}: {{store_url}}" />
+                  <Field label="SMS message" htmlFor="c-text" hint="Plain text only. Say who it's from, and how to stop.">
+                    <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={918} placeholder="{{store}}: our December sale starts today, 20% off everything: {{store_url}} Reply STOP to opt out" />
                   </Field>
+                  <SmsCounter text={draft.bodyHtml.replace(/{{\s*name\s*}}/g, "Adaeze").replace(/{{\s*store\s*}}/g, "Your shop").replace(/{{\s*store_url\s*}}/g, "https://yourshop.shopinbos.com")} recipients={audience} costPerSegment={sms.costPerSegment} currency={sms.currency} />
+                  {!/\bSTOP\b/i.test(draft.bodyHtml) ? (
+                    <button type="button" className={`${buttonClass("white", "sm")} justify-self-start`} onClick={() => set({ bodyHtml: `${draft.bodyHtml.trimEnd()} Reply STOP to opt out` })}>Add “Reply STOP to opt out”</button>
+                  ) : null}
+                  <Field label="Sender ID (optional)" htmlFor="c-sender" hint={`The name people see instead of a number, registered with your SMS provider. ${sms.senderId ? `Leave empty to use ${sms.senderId}.` : "Leave empty to use your account's default."}`}>
+                    <input id="c-sender" value={config.senderId ?? ""} onChange={(e) => setConfig({ senderId: e.target.value.slice(0, 11) || null })} className={`${inputClass} max-w-[220px]`} maxLength={11} placeholder={sms.senderId ?? "e.g. ADIREHOUSE"} />
+                  </Field>
+                </>
+              ) : !status.templates ? (
+                <Notice tone="info">
+                  <ChannelHelp label="WhatsApp campaigns use approved templates" howTo={status.howTo} href={status.connectHref} linkLabel={status.connectLabel} />
+                </Notice>
+              ) : (
+                <>
+                  <Field label="Approved template" htmlFor="c-wa-template" hint="Marketing messages on WhatsApp must use a template Meta has approved.">
+                    <select
+                      id="c-wa-template"
+                      className={selectClass}
+                      value={config.templateId ?? ""}
+                      onChange={(e) => {
+                        const next = waTemplates.find((t) => t.id === e.target.value);
+                        setConfig({ templateId: e.target.value || null, variables: next ? [...next.variables] : [] });
+                      }}
+                    >
+                      <option value="">Choose a template…</option>
+                      {waTemplates.map((t) => (
+                        <option key={t.id} value={t.id} disabled={t.status !== "APPROVED"}>
+                          {t.name} ({t.language}){t.status !== "APPROVED" ? ` · ${t.status.toLowerCase()}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <p className="m-0 text-[13px]">
+                    {waTemplates.some((t) => t.status === "APPROVED") ? null : "No approved templates yet. "}
+                    <a href="/home/marketing/whatsapp" className="font-bold text-app-accent-ink no-underline hover:underline">Manage WhatsApp templates</a>
+                  </p>
+                  {template ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                        <TemplateStatusPill status={template.status} />
+                        <span className="text-app-ink-soft">{template.category === "UTILITY" ? "Utility" : "Marketing"} · {template.language}</span>
+                      </div>
+                      <VariableMapper template={template} value={config.variables ?? []} onChange={(variables) => setConfig({ variables })} />
+                      {mapping.includes("discount_code") ? (
+                        <Field label="Discount code" htmlFor="c-wa-code" hint="Make it in Discounts first; it goes into the message as written.">
+                          <input id="c-wa-code" value={config.discountCode ?? ""} onChange={(e) => setConfig({ discountCode: e.target.value.toUpperCase().slice(0, 40) || null })} className={`${inputClass} max-w-[240px]`} placeholder="e.g. DEC20" />
+                        </Field>
+                      ) : null}
+                      {template.content.header.format === "IMAGE" || mapping.some((v) => v === "product_name" || v === "product_link") ? (
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <Field label="Product (optional)" htmlFor="c-wa-product" hint={template.content.header.format === "IMAGE" ? "Its photo is the header picture." : "Fills the product name and link."}>
+                            <select id="c-wa-product" className={selectClass} value={config.productId ?? ""} onChange={(e) => setConfig({ productId: e.target.value || null })}>
+                              <option value="">None</option>
+                              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                          </Field>
+                          {template.content.header.format === "IMAGE" ? (
+                            <Field label="Or a header image link" htmlFor="c-wa-image" hint="An https:// link to a JPG or PNG.">
+                              <input id="c-wa-image" value={config.headerImageUrl ?? ""} onChange={(e) => setConfig({ headerImageUrl: e.target.value.trim() || null })} className={inputClass} placeholder="https://…" />
+                            </Field>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+                  {whatsappProblem && template ? <p className="m-0 text-[13px] font-semibold text-app-accent-ink">{whatsappProblem}</p> : null}
                 </>
               )}
             </Card>
 
             <Card className="flex flex-wrap items-center gap-2 p-4 sm:p-5">
               <PillButton size="md" tone="white" busy={busy === "save"} onClick={() => void save()}>{draft.id ? "Save" : "Save draft"}</PillButton>
-              <PillButton size="md" tone="white" busy={busy === "test"} onClick={() => void act("test")} disabled={!ready}>
+              <PillButton size="md" tone="white" busy={busy === "test"} onClick={() => void act("test")} disabled={!ready || Boolean(whatsappProblem)}>
                 Send me a test
               </PillButton>
               {scheduled ? (
                 <PillButton size="md" tone="white" busy={busy === "unschedule"} onClick={() => void act("unschedule")}>Unschedule</PillButton>
               ) : (
-                <PillButton size="md" tone="white" onClick={() => setScheduleOpen(true)} disabled={!ready}>Schedule</PillButton>
+                <PillButton size="md" tone="white" onClick={() => setScheduleOpen(true)} disabled={!ready || Boolean(whatsappProblem)}>Schedule</PillButton>
               )}
-              <PillButton size="md" tone="accent" className="sm:ml-auto" onClick={() => setConfirmSend(true)} disabled={!ready || !audience}>
+              <PillButton size="md" tone="accent" className="sm:ml-auto" onClick={() => setConfirmSend(true)} disabled={!ready || !audience || Boolean(whatsappProblem)}>
                 Send now
               </PillButton>
               <p className="m-0 w-full text-[12.5px] text-app-ink-soft">
@@ -277,7 +378,20 @@ export function CampaignEditor({
           <Card className="p-5">
             <CardHead title="Preview" action={scheduled ? <Pill tone="info">Scheduled</Pill> : <Pill tone="muted">Draft</Pill>} />
             <div className="mt-3">
-              {draft.channel === "email" ? <EmailPreview bodyHtml={draft.bodyHtml} preheader={draft.preheader} subject={draft.subject} /> : <TextPreview channel={draft.channel} message={draft.bodyHtml} />}
+              {draft.channel === "email" ? (
+                <EmailPreview bodyHtml={draft.bodyHtml} preheader={draft.preheader} subject={draft.subject} />
+              ) : draft.channel === "whatsapp" ? (
+                template ? (
+                  <div className="grid gap-2">
+                    <WhatsAppBubble content={template.content} mapping={mapping} values={{ ...(config.discountCode ? { discount_code: config.discountCode } : {}), ...(product ? { product_name: product.name } : {}) }} headerImageUrl={config.headerImageUrl || product?.image || null} />
+                    <p className="m-0 text-[12.5px] text-app-ink-soft">Preview uses a sample customer (Ada). Each person gets their own name.</p>
+                  </div>
+                ) : (
+                  <p className="m-0 text-[14px] text-app-ink-soft">Pick a template to see the message.</p>
+                )
+              ) : (
+                <TextPreview channel="sms" message={draft.bodyHtml} />
+              )}
             </div>
           </Card>
         }

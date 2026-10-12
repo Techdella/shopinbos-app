@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { AddFromSupplierSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -62,5 +63,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     });
   }
 
+  await markCatalogDirty(store.id);
   return ok(storeProduct, 201);
 });

@@ -8,6 +8,8 @@ import { formatDate } from "@/components/growth/kit";
 import { parseFlowConfig, type FlowTrigger } from "@/lib/marketing/flows";
 import { listSegments } from "@/lib/marketing/segments";
 import { listTemplates } from "@/lib/marketing/templates";
+import { channelStatus } from "@/lib/marketing/channels";
+import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { FlowEditor } from "./FlowEditor";
 
 export const dynamic = "force-dynamic";
@@ -23,12 +25,15 @@ export default async function AutomationPage({ params }: { params: Promise<{ id:
   const rule = id === "new" ? null : await db.automationRule.findFirst({ where: { id, storeId: store.id } });
   if (id !== "new" && !rule) notFound();
   const flow = rule ? parseFlowConfig(rule.actionConfig, rule) : { steps: [], settings: {} };
-  const [segments, templates, logs, enrollments] = await Promise.all([
+  const [segments, templates, logs, enrollments, waTemplates, channels] = await Promise.all([
     listSegments(store.id),
     listTemplates(store.id),
     rule ? db.automationLog.findMany({ where: { automationId: rule.id }, orderBy: { createdAt: "desc" }, take: 50 }) : [],
     rule ? db.automationEnrollment.groupBy({ by: ["status"], where: { automationId: rule.id }, _count: true }) : [],
+    listWhatsAppTemplates(store.id),
+    channelStatus(store.id),
   ]);
+  const textChannel = (c: (typeof channels)["sms"]) => ({ ready: c.ready, templates: Boolean(c.templates), howTo: c.howTo, connectHref: c.connectHref, connectLabel: c.connectLabel });
   const count = (status: string) => enrollments.find((row) => row.status === status)?._count ?? 0;
 
   return (
@@ -52,6 +57,8 @@ export default async function AutomationPage({ params }: { params: Promise<{ id:
           }}
           segments={segments.map((s) => ({ id: s.id, name: s.name }))}
           templates={templates.saved.map((t) => ({ id: t.id, name: t.name }))}
+          waTemplates={waTemplates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables, preset: t.preset }))}
+          channels={{ sms: textChannel(channels.sms), whatsapp: textChannel(channels.whatsapp) }}
         />
         {rule ? (
           <Card className="p-5">

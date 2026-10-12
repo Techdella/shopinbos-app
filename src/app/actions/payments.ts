@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import type { Prisma } from "@prisma/client";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
+import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
@@ -150,6 +151,7 @@ export async function updateOrderPayment(
       },
     });
     if (moved.count === 1) await creditCampaignConversion(orderId).catch(() => null);
+    if (moved.count === 1) await notifyOrderCustomer(orderId, "payment_received"); // WhatsApp/SMS to the buyer, if switched on (sent once)
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
     revalidatePath("/home/orders");

@@ -36,6 +36,47 @@ export const CampaignSchema = z.object({
   segmentId: z.string().max(64).nullable().optional(),
   audience: AudienceSchema.optional(),
   campaignType: z.string().max(40).optional(),
+  channelConfig: z
+    .object({
+      senderId: z.string().trim().max(11).nullable().optional(),
+      templateId: z.string().max(64).nullable().optional(),
+      variables: z.array(z.string().max(40)).max(20).optional(),
+      headerImageUrl: z.string().trim().max(1000).regex(/^(https:\/\/\S+)?$/, "The header image must be an https:// link").nullable().optional(),
+      productId: z.string().max(64).nullable().optional(),
+      discountCode: z.string().trim().max(40).nullable().optional(),
+    })
+    .optional(),
+});
+
+const TemplateContentSchema = z.object({
+  header: z.object({ format: z.enum(["NONE", "TEXT", "IMAGE"]), text: z.string().max(60).optional() }),
+  body: z.string().trim().min(1, "Write the message").max(1024),
+  footer: z.string().max(60).optional(),
+  buttons: z.array(z.object({ type: z.enum(["URL", "QUICK_REPLY"]), text: z.string().trim().min(1).max(25), url: z.string().max(2000).optional() })).max(3).default([]),
+});
+
+export const WhatsAppTemplateSchema = z.object({
+  name: z.string().trim().min(1, "Name the template").max(512),
+  language: z.string().max(10).default("en"),
+  category: z.enum(["MARKETING", "UTILITY"]),
+  content: TemplateContentSchema,
+  variables: z.array(z.string().max(40)).max(20).default([]),
+});
+
+const EventSettingSchema = z.object({
+  whatsapp: z.boolean().optional(),
+  sms: z.boolean().optional(),
+  templateId: z.string().max(64).nullable().optional(),
+  smsText: z.string().max(480).optional(),
+});
+
+export const MessagingSettingsSchema = z.object({
+  smsSenderId: z.string().trim().max(11).nullable().optional(),
+  smsCostPerSegment: z.number().min(0).max(1_000_000).nullable().optional(),
+  transactional: z
+    .object({ order_confirmed: EventSettingSchema, payment_received: EventSettingSchema, order_shipped: EventSettingSchema, order_delivered: EventSettingSchema, abandoned_cart: EventSettingSchema })
+    .partial()
+    .optional(),
 });
 
 export const FlowSchema = z.object({

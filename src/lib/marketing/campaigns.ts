@@ -5,7 +5,11 @@ import { db } from "@/lib/db/client";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { campaignFilter, resolveCampaignRecipients, resolveTextRecipients, sendCampaign, type CampaignChannel, type RecipientFilter } from "@/lib/campaigns/send";
 import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "./brand";
-import { sendMarketingText } from "./channels";
+import { readChannelConfig, type CampaignChannelConfig } from "./campaign-config";
+import { channelStatus, textSender } from "./channels";
+import { getMessagingSettings } from "./messaging-settings";
+import { validSenderId } from "./text-channels";
+import { defaultHeaderImage, resolveTemplate, sendTemplate } from "./whatsapp-templates.server";
 import { SAMPLE_VARIABLES } from "./email-layout";
 import { fillVariables } from "./flows";
 import { renderEmailPreview } from "./preview";
@@ -24,6 +28,16 @@ export interface CampaignInput {
   segmentId?: string | null;
   audience?: RecipientFilter;
   campaignType?: string;
+  channelConfig?: CampaignChannelConfig;
+}
+
+/** Cleans the SMS / WhatsApp settings; the template must be this store's. */
+async function checkChannelConfig(storeId: string, raw: CampaignChannelConfig | undefined) {
+  const config = readChannelConfig(raw ?? {});
+  if (config.senderId && !validSenderId(config.senderId)) throw new MarketingError("A sender ID is 3-11 letters or numbers (at least one letter), registered with your SMS provider.");
+  if (config.templateId && !(await db.whatsAppTemplate.findFirst({ where: { id: config.templateId, storeId }, select: { id: true } }))) throw new MarketingError("That WhatsApp template doesn't exist any more");
+  if (config.productId && !(await db.storeProduct.findFirst({ where: { id: config.productId, storeId }, select: { id: true } }))) throw new MarketingError("That product doesn't exist any more");
+  return config as unknown as Prisma.InputJsonValue;
 }
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
@@ -55,6 +69,7 @@ export async function createCampaign(storeId: string, input: CampaignInput) {
       campaignType: input.campaignType ?? "newsletter",
       segmentId,
       recipientFilter: (input.audience ?? { mode: "all" }) as unknown as Prisma.InputJsonValue,
+      channelConfig: await checkChannelConfig(storeId, input.channelConfig),
       status: "draft",
     },
   });
@@ -79,6 +94,7 @@ export async function updateCampaign(storeId: string, id: string, input: Partial
   if (input.campaignType !== undefined) data.campaignType = input.campaignType;
   if (input.segmentId !== undefined) data.segmentId = await checkSegment(storeId, input.segmentId);
   if (input.audience !== undefined) data.recipientFilter = input.audience as unknown as Prisma.InputJsonValue;
+  if (input.channelConfig !== undefined) data.channelConfig = await checkChannelConfig(storeId, input.channelConfig);
   return db.broadcastCampaign.update({ where: { id }, data });
 }
 
@@ -119,8 +135,8 @@ export async function testSendCampaign(storeId: string, id: string, to: { email?
   if (!campaign) throw new MarketingError("Campaign not found");
   const store = await db.store.findUnique({ where: { id: storeId }, select: MARKETING_STORE_SELECT });
   if (!store) throw new MarketingError("Store not found");
-  if (!campaign.bodyHtml.trim()) throw new MarketingError("Write the message first");
   const channel = (campaign.channel || "email") as CampaignChannel;
+  if (channel !== "whatsapp" && !campaign.bodyHtml.trim()) throw new MarketingError("Write the message first");
   if (channel === "email") {
     if (!to.email) throw new MarketingError("Add an email address to your account to get test emails");
     if (!isEmailConfigured()) throw new MarketingError("Email isn't set up yet (RESEND_API_KEY)");
@@ -130,8 +146,30 @@ export async function testSendCampaign(storeId: string, id: string, to: { email?
     return { to: to.email };
   }
   if (!to.phone) throw new MarketingError("Add a phone number to your account to get test messages");
-  const body = `[Test] ${fillVariables(campaign.bodyHtml, { ...SAMPLE_VARIABLES, store: store.name, store_url: storeUrl(store) }, "text")}`;
-  const result = await sendMarketingText(store, channel, to.phone, body);
+  const status = (await channelStatus(storeId))[channel];
+  if (!status.ready || (channel === "whatsapp" && !status.templates)) throw new MarketingError(status.howTo);
+  const config = readChannelConfig(campaign.channelConfig);
+  if (channel === "sms") {
+    const settings = await getMessagingSettings(storeId);
+    const sender = await textSender(store, { senderId: config.senderId || settings.smsSenderId });
+    const result = await sender.sms(to.phone, `[Test] ${fillVariables(campaign.bodyHtml, { ...SAMPLE_VARIABLES, store: store.name, store_url: storeUrl(store) }, "text")}`);
+    if (!result.ok) throw new MarketingError(result.error);
+    return { to: to.phone };
+  }
+  // WhatsApp: the approved template, filled with sample values (a template can't carry a [Test] marker).
+  const template = config.templateId ? await resolveTemplate(storeId, config.templateId) : null;
+  if (!template) throw new MarketingError("Pick an approved WhatsApp template first");
+  let product: { name: string; image: string | null; id: string } | null = null;
+  if (config.productId) {
+    const row = await db.storeProduct.findFirst({ where: { id: config.productId, storeId }, select: { id: true, name: true, images: true } });
+    if (row) product = { id: row.id, name: row.name, image: row.images.find((src) => /^https:\/\//.test(src)) ?? null };
+  }
+  const sender = await textSender(store);
+  const result = await sendTemplate(sender, template, to.phone, {
+    mapping: config.variables,
+    values: { first_name: "Ada", store_name: store.name, link: storeUrl(store), discount_code: config.discountCode ?? "TEST10", product_name: product?.name ?? "", product_link: product ? storeUrl(store, `/product/${product.id}`) : storeUrl(store) },
+    headerImageUrl: config.headerImageUrl || product?.image || (template.content.header.format === "IMAGE" ? await defaultHeaderImage(storeId) : null),
+  });
   if (!result.ok) throw new MarketingError(result.error);
   return { to: to.phone };
 }

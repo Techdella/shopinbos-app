@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma, SubscriberSource } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { clearOptOut } from "./opt-outs";
 import { normalizeEmail, normalizePhone } from "./segment-rules";
 
 // Adding people to a shop's list, with a record of how and when they agreed (Subscriber.metadata.consent).
@@ -76,6 +77,12 @@ export async function addSubscriber(storeId: string, input: SubscriberInput, opt
     text: input.consent.text ?? null,
     ip: input.consent.ip ?? null,
   };
+
+  // A fresh SMS / WhatsApp opt-in (form tick box, or the seller confirming it) lifts an earlier STOP for that channel.
+  if (phone && options.optIn) {
+    if (consent.sms) await clearOptOut(storeId, phone, "sms", consent.source).catch(() => null);
+    if (consent.whatsapp) await clearOptOut(storeId, phone, "whatsapp", consent.source).catch(() => null);
+  }
 
   const existing = await db.subscriber.findUnique({ where: { storeId_email: { storeId, email } } });
   if (!existing) {

@@ -8,7 +8,11 @@ import { createNotification } from "@/lib/notifications/create";
 import { formatFromAddress, isEmailConfigured, sendEmailBatch } from "@/lib/notifications/resend";
 import { requestReviews } from "@/lib/reviews/requests";
 import { MARKETING_STORE_SELECT, emailBrand, storeUrl, unsubscribeUrl, type MarketingStore } from "@/lib/marketing/brand";
-import { sendMarketingText } from "@/lib/marketing/channels";
+import { isMarketingOptOutError, textSender } from "@/lib/marketing/channels";
+import { loadOptOuts, recordOptOut } from "@/lib/marketing/opt-outs";
+import { mayText, purposeOfTrigger, type TextChannel } from "@/lib/marketing/text-channels";
+import { defaultHeaderImage, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
+import { getMessagingSettings } from "@/lib/marketing/messaging-settings";
 import { contactsInSegment, loadContacts, segmentRules } from "@/lib/marketing/contacts";
 import { wrapEmail } from "@/lib/marketing/email-layout";
 import { fillVariables, firstName, parseFlowConfig, type FlowStep, type FlowVariables } from "@/lib/marketing/flows";
@@ -119,7 +123,7 @@ export async function runEnrollment(id: string, now = new Date()) {
       }
       continue;
     }
-    const outcome = await runAction(step, { enrollment, store, context }).catch((error): ActionOutcome => ({ status: "failed", message: String(error instanceof Error ? error.message : error) }));
+    const outcome = await runAction(step, { enrollment, store, context, trigger: rule.trigger }).catch((error): ActionOutcome => ({ status: "failed", message: String(error instanceof Error ? error.message : error) }));
     await log(enrollment, index, step.type, outcome.status, outcome.message, outcome.recipient);
     await db.automationEnrollment.update({ where: { id }, data: { currentStep: index + 1, context: context as Prisma.InputJsonValue } });
   }
@@ -172,7 +176,7 @@ async function checkCondition(step: Extract<FlowStep, { type: "condition" }>, en
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 type ActionOutcome = { status: "ok" | "skipped" | "failed"; message: string; recipient?: string | null };
-type ActionInput = { enrollment: Enrollment; store: MarketingStore & { userId: string }; context: Record<string, unknown> };
+type ActionInput = { enrollment: Enrollment; store: MarketingStore & { userId: string }; context: Record<string, unknown>; trigger: string };
 
 const money = (amount: number, currency = "NGN") => new Intl.NumberFormat("en-NG", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 
@@ -201,6 +205,21 @@ async function suppressed(storeId: string, email: string | null) {
   if (!email) return false;
   const row = await db.subscriber.findUnique({ where: { storeId_email: { storeId, email } }, select: { status: true } });
   return Boolean(row && row.status !== "active");
+}
+
+/** Whether this person's latest consent record allows marketing on the channel (matched by email, else phone). */
+async function textConsent(storeId: string, email: string | null, phone: string | null, channel: TextChannel) {
+  const or: Prisma.SubscriberWhereInput[] = [];
+  if (email) or.push({ email });
+  if (phone) or.push({ phone }, { phone: phone.replace(/^\+234/, "0") }, { phone: phone.slice(1) });
+  if (!or.length) return false;
+  const rows = await db.subscriber.findMany({ where: { storeId, OR: or }, select: { status: true, metadata: true }, take: 5 });
+  return rows.some((row) => {
+    const metadata = record(row.metadata);
+    if (row.status === "spam" || metadata.textOptOut) return false;
+    const history = Array.isArray(metadata.consent) ? (metadata.consent as Array<Record<string, unknown>>) : [];
+    return history[history.length - 1]?.[channel] === true;
+  });
 }
 
 async function noteCartReminder(context: Record<string, unknown>) {
@@ -242,11 +261,50 @@ async function runAction(step: FlowStep, input: ActionInput): Promise<ActionOutc
     }
     case "send_sms":
     case "send_whatsapp": {
-      const label = step.type === "send_sms" ? "SMS" : "WhatsApp";
+      const channel: TextChannel = step.type === "send_sms" ? "sms" : "whatsapp";
+      const label = channel === "sms" ? "SMS" : "WhatsApp";
       if (!enrollment.phone) return { status: "skipped", message: "No phone number" };
-      if (enrollment.email && (await suppressed(store.id, enrollment.email))) return { status: "skipped", message: "They unsubscribed", recipient: enrollment.phone };
-      const result = await sendMarketingText(store, step.type === "send_sms" ? "sms" : "whatsapp", enrollment.phone, fillVariables(step.message, variables(input, "text"), "text"));
-      if (!result.ok) return { status: result.error.includes("isn't set up") ? "skipped" : "failed", message: `${label}: ${result.error}`, recipient: enrollment.phone };
+      // Order and cart flows may text the phone given at checkout; marketing flows need that channel's opt-in.
+      const purpose = purposeOfTrigger(input.trigger);
+      const consent = purpose === "transactional" || (await textConsent(store.id, enrollment.email, enrollment.phone, channel));
+      const allowed = mayText({ channel, phone: enrollment.phone, purpose, consent, optOuts: await loadOptOuts(store.id) });
+      if (!allowed.ok) return { status: "skipped", message: `${label}: ${allowed.reason}`, recipient: enrollment.phone };
+      if (purpose === "marketing" && enrollment.email && (await suppressed(store.id, enrollment.email))) return { status: "skipped", message: "They unsubscribed", recipient: enrollment.phone };
+      const settings = channel === "sms" ? await getMessagingSettings(store.id) : null;
+      const sender = await textSender(store, { senderId: settings?.smsSenderId });
+      let result: { ok: true; externalId: string | null } | { ok: false; error: string };
+      if (step.type === "send_whatsapp" && step.template) {
+        const template = await resolveTemplate(store.id, step.template);
+        if (!template) return { status: "skipped", message: step.template.startsWith("preset:") ? `WhatsApp: no approved "${step.template.slice(7).replace(/_/g, " ")}" template yet. Add it in Marketing › WhatsApp templates.` : "WhatsApp: the template was deleted", recipient: enrollment.phone };
+        const vars = variables(input, "text");
+        const header = template.content.header.format === "IMAGE" ? step.headerImageUrl || (typeof context.productImage === "string" ? context.productImage : null) || (await defaultHeaderImage(store.id)) : null;
+        result = await sendTemplate(sender, template, enrollment.phone, {
+          mapping: step.variables,
+          values: {
+            first_name: vars.name,
+            store_name: store.name,
+            link: storeUrl(store),
+            discount_code: vars.discount_code,
+            order_number: vars.order_number,
+            order_total: vars.order_total,
+            order_link: typeof context.orderId === "string" ? storeUrl(store, `/order/${context.orderId}`) : storeUrl(store),
+            tracking_code: typeof context.trackingCode === "string" ? context.trackingCode : vars.order_number,
+            tracking_link: typeof context.orderId === "string" ? storeUrl(store, `/order/${context.orderId}`) : storeUrl(store),
+            cart_link: vars.cart_url,
+            cart_items: vars.cart_items || "your items",
+            product_name: vars.product_name,
+            product_link: vars.store_url,
+          },
+          headerImageUrl: header,
+        });
+      } else {
+        const body = fillVariables(step.message, variables(input, "text"), "text");
+        result = channel === "sms" ? await sender.sms(enrollment.phone, body) : await sender.whatsappText(enrollment.phone, body);
+      }
+      if (!result.ok) {
+        if (isMarketingOptOutError(result.error)) await recordOptOut(store.id, enrollment.phone, "whatsapp", { scope: "marketing", source: "whatsapp_meta" }).catch(() => null);
+        return { status: result.error.includes("isn't set up") ? "skipped" : "failed", message: `${label}: ${result.error}`, recipient: enrollment.phone };
+      }
       await noteCartReminder(context);
       return { status: "ok", message: `${label} sent`, recipient: enrollment.phone };
     }
@@ -323,9 +381,9 @@ export async function triggerFlows(event: string, ctx: TriggerContext) {
   if (!triggers) return;
   const rules = await rulesFor(ctx.storeId, triggers);
   const isOrderEvent = Boolean(ctx.orderNumber);
-  let order: { id: string; buyerPhone: string | null; items: unknown } | null = null;
+  let order: { id: string; buyerPhone: string | null; items: unknown; trackingCode: string | null } | null = null;
   if (isOrderEvent) {
-    order = await db.retailOrder.findFirst({ where: { storeId: ctx.storeId, orderNumber: ctx.orderNumber }, select: { id: true, buyerPhone: true, items: true } });
+    order = await db.retailOrder.findFirst({ where: { storeId: ctx.storeId, orderNumber: ctx.orderNumber }, select: { id: true, buyerPhone: true, items: true, trackingCode: true } });
   }
   // First order from this buyer → also the "First order" flows.
   if (event === "order_placed" && ctx.buyerEmail) {
@@ -340,6 +398,7 @@ export async function triggerFlows(event: string, ctx: TriggerContext) {
     orderTotal: ctx.orderTotal ?? null,
     currency: ctx.currency ?? null,
     productName: items.length ? String(items[0].name ?? "") : null,
+    trackingCode: order?.trackingCode ?? null,
     // A sign-up reward code, so the welcome email can repeat it.
     discountCode: typeof ctx.discountCode === "string" ? ctx.discountCode : null,
   };

@@ -9,6 +9,13 @@ export interface TransferDetails {
   accountNumber: string;
   amount: number;
   reference: string;
+  /** When the order lets its items go if the money hasn't arrived (ISO), or null when unknown. */
+  payBy?: string | null;
+}
+
+/** "Wednesday 14 October, 3:30 pm" in Lagos time. */
+export function payByText(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso));
 }
 
 const INK = "#16141F";
@@ -74,6 +81,11 @@ export function TransferInstructions({ orderId, currency, details, ctaBg, ctaTex
       <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.5, color: SOFT }}>
         Send exactly {money(currency, details.amount)} and use your order number as the reference so the store can match your payment.
       </p>
+      {details.payBy ? (
+        <p style={{ margin: "0 0 12px", padding: "10px 14px", borderRadius: 14, background: "#FFF4E0", color: "#7A4A00", fontSize: 14, lineHeight: 1.5 }}>
+          Pay by <strong suppressHydrationWarning>{payByText(details.payBy)}</strong> (Lagos time). After that the order is cancelled and its items go back on sale.
+        </p>
+      ) : null}
       <CopyRow label="Amount" value={String(Math.round(details.amount))} display={money(currency, details.amount)} />
       <CopyRow label="Account number" value={details.accountNumber} />
       <div style={{ padding: "12px 0", borderTop: "1px solid rgba(22,20,31,0.08)" }}>

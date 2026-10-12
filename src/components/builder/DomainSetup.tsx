@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { DomainOwnership } from "@/components/domains/DomainOwnership";
 import { buildStorefrontOrigin, getPlatformRootDomain } from "@/lib/domains/storefront";
 
 interface DomainResult {
@@ -102,9 +103,6 @@ interface DomainSetupProps {
   option?: DomainOption;
   /** Label of the button that finishes the flow once a domain is attached. */
   doneLabel?: string;
-  /** A domain the store already uses: prefilled, and looked up straight away when `checkOnOpen` is set. */
-  initialDomain?: string | null;
-  checkOnOpen?: boolean;
 }
 
 const STANDARD_CONTACT_KEYS = new Set([
@@ -172,7 +170,7 @@ function getSchemaSection(schema: RegistrarContactSchema | null) {
   };
 }
 
-export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOption, doneLabel = "Continue to launch", initialDomain, checkOnOpen = false }: DomainSetupProps) {
+export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOption, doneLabel = "Continue to launch" }: DomainSetupProps) {
   const [pickedOption, setOption] = useState<DomainOption | null>(null);
   const option = controlledOption ?? pickedOption;
   const [searchQuery, setSearchQuery] = useState(storeSlug);
@@ -180,9 +178,6 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const [customDomainInput, setCustomDomainInput] = useState(initialDomain ?? "");
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectError, setConnectError] = useState<string | null>(null);
   const [connectedDomain, setConnectedDomain] = useState<ConnectedDomain | null>(null);
 
   const [selectedPurchaseDomain, setSelectedPurchaseDomain] = useState<DomainResult | null>(null);
@@ -256,12 +251,6 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
     return () => window.clearInterval(interval);
   }, [connectedDomain, purchaseOrder]);
 
-  useEffect(() => {
-    if (checkOnOpen && initialDomain) void connectDomain(initialDomain);
-    // Runs once when opened to check an existing domain's records.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   async function searchDomains() {
     const query = searchQuery.trim();
     if (!query) {
@@ -290,41 +279,6 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
       setSearchError(error instanceof Error ? error.message : "Domain search failed.");
     } finally {
       setIsSearching(false);
-    }
-  }
-
-  async function connectDomain(domain = customDomainInput) {
-    const normalized = domain.trim();
-    if (!normalized) {
-      setConnectError("Enter the domain you already own.");
-      return;
-    }
-
-    setIsConnecting(true);
-    setConnectError(null);
-    setPurchaseError(null);
-    setPurchaseIntegrationError(null);
-
-    try {
-      const response = await fetch("/api/domains/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: normalized }),
-      });
-
-      const payload = (await response.json().catch(() => null)) as
-        | { data?: ConnectedDomain; error?: { message?: string } }
-        | null;
-
-      if (!response.ok || !payload?.data) {
-        throw new Error(payload?.error?.message ?? "We could not connect that domain.");
-      }
-
-      setConnectedDomain(payload.data);
-    } catch (error) {
-      setConnectError(error instanceof Error ? error.message : "We could not connect that domain.");
-    } finally {
-      setIsConnecting(false);
     }
   }
 
@@ -479,7 +433,6 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
 
   function resetDomainFlow() {
     setConnectedDomain(null);
-    setConnectError(null);
     setPurchaseError(null);
     setPurchaseIntegrationError(null);
     setPurchaseOrder(null);
@@ -503,7 +456,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
             <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
               {ready
                 ? "Your store can now use this address."
-                : "The domain is attached. Add the records below at the company you bought it from, then check again. It can take up to a few hours to go live."}
+                : "The domain is attached. Hosting is finishing its setup; it can take up to a few hours to go live."}
             </p>
           </div>
         </div>
@@ -529,16 +482,10 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
 
         <div className="flex flex-wrap items-center gap-3">
           <PillButton size="md" onClick={() => onDone(connectedDomain.domain)}>{doneLabel}</PillButton>
-          {!ready && (
-            <PillButton size="md" tone="white" busy={isConnecting} onClick={() => void connectDomain(connectedDomain.domain)}>
-              Check again
-            </PillButton>
-          )}
           <button type="button" onClick={resetDomainFlow} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
             Use a different domain
           </button>
         </div>
-        {connectError && <Notice>{connectError}</Notice>}
       </div>
     );
   }
@@ -587,34 +534,12 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
       )}
 
       {option === "connect" && (
-        <Panel>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void connectDomain();
-            }}
-          >
-            <FieldLabel htmlFor="own-domain">Your domain</FieldLabel>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <TextInput
-                id="own-domain"
-                value={customDomainInput}
-                onChange={(event) => setCustomDomainInput(event.target.value)}
-                placeholder={`www.${storeSlug.replace(/-/g, "")}.com`}
-                autoComplete="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                inputMode="url"
-                className="sm:flex-1"
-              />
-              <PillButton type="submit" size="lg" busy={isConnecting} className="sm:w-auto">Continue</PillButton>
-            </div>
-            <p className="mb-0 mt-2.5 text-[13px] leading-[1.5] text-app-ink-soft">
-              Type it the way buyers will visit it, like www.yourbrand.com or yourbrand.com.ng. Next you&apos;ll see the records to add.
-            </p>
-          </form>
-          {connectError && <div className="mt-3"><Notice>{connectError}</Notice></div>}
-        </Panel>
+        <div className="grid min-w-0 gap-3">
+          <DomainOwnership onVerified={(domain) => onDone(domain)} />
+          <button type="button" onClick={() => onDone(null)} className="min-h-[44px] justify-self-start px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
+            Use {freeDomain} for now and verify later
+          </button>
+        </div>
       )}
 
       {option === "buy" && (

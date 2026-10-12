@@ -388,3 +388,17 @@ export async function getDomainOrderOnVercel(orderId: string) {
 
   return getDomainOrder(orderId);
 }
+
+/** Takes a domain off the Vercel project (a seller removed or replaced it). A domain that isn't there is fine. */
+export async function removeDomainFromVercel(rawDomain: string) {
+  const domain = normalizeDomain(rawDomain);
+  if (!domain || !hasVercelDomainConfig()) return false;
+  const { project } = getVercelDomainConfig();
+  try {
+    await vercelRequest<unknown>(`/v9/projects/${encodeURIComponent(project!)}/domains/${encodeURIComponent(domain)}`, { method: "DELETE" });
+    return true;
+  } catch (error) {
+    if (error instanceof VercelApiError && error.status === 404) return true;
+    throw error;
+  }
+}

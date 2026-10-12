@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError, noContent } from "@/lib/api/response";
 import { StoreProductUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const store = await db.store.findUnique({ where: { userId } });
@@ -60,6 +61,7 @@ export const PATCH = withSeller(async (
     },
   });
 
+  await markCatalogDirty(product.storeId);
   return ok(updated);
 });
 
@@ -75,5 +77,6 @@ export const DELETE = withSeller(async (
     data: { status: "archived" },
   });
 
+  await markCatalogDirty(product.storeId);
   return noContent();
 });

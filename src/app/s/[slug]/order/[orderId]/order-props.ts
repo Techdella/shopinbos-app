@@ -2,6 +2,8 @@ import "server-only";
 
 import { db } from "@/lib/db/client";
 import { readTransferAccount } from "@shared/checkout-payments";
+import { orderPaymentDeadline } from "@/lib/commerce/stock-holds";
+import { paymentWindows } from "@/lib/commerce/order-expiry.server";
 import type { TransferDetails } from "./TransferInstructions";
 
 const UNPAID = ["pending", "awaiting_payment"];
@@ -12,7 +14,7 @@ const UNPAID = ["pending", "awaiting_payment"];
  * on the server.
  */
 export async function loadOrderNextSteps(
-  order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null },
+  order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null; createdAt: Date; paymentDueAt?: Date | null },
   store: { userId: string; brandSettings: unknown },
 ): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
   const account = order.paymentMethod === "transfer" && UNPAID.includes(order.status) ? readTransferAccount(store.brandSettings) : null;
@@ -28,7 +30,8 @@ export async function loadOrderNextSteps(
   const published = editor.published && typeof editor.published === "object" ? (editor.published as Record<string, unknown>) : {};
   const tokens = [published.themeTokens, settings.themeTokens].find((value) => value && typeof value === "object") as Record<string, unknown> | undefined;
   return {
-    transfer: account ? { ...account, amount: order.total, reference: order.orderNumber } : null,
+    // The real deadline: what checkout saved, or for older orders the window from when it was placed.
+    transfer: account ? { ...account, amount: order.total, reference: order.orderNumber, payBy: orderPaymentDeadline(order, paymentWindows())?.toISOString() ?? null } : null,
     deliveryCode: booking?.deliveryCode ?? null,
     brandSettings: { ...(palette ? { palette } : {}), ...(tokens ? { themeTokens: tokens } : {}) },
   };

@@ -5,6 +5,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { ProductVisibilitySchema, SalesChannelSchema } from "@/lib/schemas";
 import { z } from "zod";
 import type { AuthUser } from "@/lib/auth/types";
+import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 
 const VisibilityUpdateSchema = z.object({
   visibility: ProductVisibilitySchema.optional(),
@@ -41,5 +42,6 @@ export const PATCH = withSeller(async (
     data: parsed.data,
   });
 
+  await markCatalogDirty(product.storeId);
   return ok(updated);
 });

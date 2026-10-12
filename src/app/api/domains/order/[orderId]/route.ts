@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { domainOrdersOf } from "@/lib/domains/orders";
+import { markPurchasedDomainVerified } from "@/lib/domains/ownership.server";
 import { assignDomainOnVercel, getDomainOrderOnVercel, hasVercelDomainConfig } from "@/lib/domains/vercel";
 
 export const GET = withSeller(async (_req: NextRequest, { params, user }) => {
@@ -48,10 +49,12 @@ export const GET = withSeller(async (_req: NextRequest, { params, user }) => {
     try {
       const assignedDomain = await assignDomainOnVercel(orderDomain);
 
-      await db.store.update({
-        where: { id: store.id },
-        data: { customDomain: assignedDomain.domain },
-      });
+      // Bought through the platform's registrar account, so the platform controls its DNS: verified as is.
+      if (!(await markPurchasedDomainVerified(store.id, assignedDomain.domain))) {
+        return NextResponse.json({
+          data: { order, assignedDomain: null, integrationError: "The domain was purchased but is already connected to another store. Contact support." },
+        });
+      }
 
       return NextResponse.json({ data: { order, assignedDomain } });
     } catch (error) {

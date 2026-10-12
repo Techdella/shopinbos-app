@@ -125,11 +125,8 @@ export async function loadContacts(storeId: string): Promise<MarketingContact[]>
     if (!PAID.has(order.status)) continue;
     contact.orders += 1;
     contact.spent += Number(order.total) || 0;
-    // Buyers who gave a phone at checkout can get texts about the shop unless they opted out.
-    if (contact.phone && contact.status !== "spam" && contact.status !== "bounced") {
-      contact.smsOk ||= contact.status !== "unsubscribed" || contact.subscriberId === null;
-      contact.whatsappOk ||= contact.status !== "unsubscribed" || contact.subscriberId === null;
-    }
+    // A phone given at checkout is for order messages only (src/lib/notifications/customer-messages.ts):
+    // marketing texts need an SMS / WhatsApp opt-in from a form, the seller or an import (smsOk / whatsappOk).
     if (!contact.lastOrderAt || order.createdAt > contact.lastOrderAt) contact.lastOrderAt = order.createdAt;
     if (!contact.firstOrderAt || order.createdAt < contact.firstOrderAt) contact.firstOrderAt = order.createdAt;
     for (const id of itemProductIds(order.items)) if (!contact.productIds.includes(id)) contact.productIds.push(id);

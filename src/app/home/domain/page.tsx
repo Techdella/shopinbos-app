@@ -8,6 +8,7 @@ import { PageToast } from "@/components/PageToast";
 import { db } from "@/lib/db/client";
 import { buildPlatformSubdomainOrigin } from "@/lib/domains/storefront";
 import { hasVercelDomainConfig } from "@/lib/domains/vercel";
+import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
 import { RegistrarTip } from "./RegistrarTip";
 
@@ -120,8 +121,8 @@ export default async function DomainSettingsPage() {
           <DomainConnect
             storeSlug={store.slug}
             storeName={store.name}
-            customDomain={store.customDomain}
             configured={hasVercelDomainConfig()}
+            initialState={await getDomainSettings(user.id)}
             registrars={registrars.map(({ id, name, description, baseUrl, affiliateUrl }) => ({ id, name, description, baseUrl, affiliateUrl }))}
           />
         </div>

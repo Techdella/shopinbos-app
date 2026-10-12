@@ -162,3 +162,39 @@ export async function registerWhatsAppNumber(phoneNumberId: string, accessToken:
   if (/already registered/i.test(message)) return { ok: true };
   return { ok: false, error: whatsappError(json, "Meta couldn't register the number.") };
 }
+
+// ─── Template messages (marketing campaigns, automations, order messages) ────
+
+/** Graph API base for template sends; META_GRAPH_BASE_URL points it at a local stub in tests. */
+export function whatsappGraphBase() {
+  const override = process.env.META_GRAPH_BASE_URL?.trim().replace(/\/$/, "");
+  return override || GRAPH_URL;
+}
+
+/**
+ * Sends an approved template (POST /{PHONE_NUMBER_ID}/messages, type "template"). Templates reach customers
+ * outside the 24-hour window. `message` is { type: "template", template: { name, language, components } }.
+ */
+export async function sendWhatsAppTemplateMessage(credentials: Record<string, string>, to: string, message: Record<string, unknown>): Promise<SendResult> {
+  const { accessToken, phoneNumberId } = credentials;
+  if (!accessToken || !phoneNumberId) return { ok: false, error: "WhatsApp isn't connected." };
+  const res = await fetch(`${whatsappGraphBase()}/${encodeURIComponent(phoneNumberId)}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to: to.replace(/[^\d]/g, ""), ...message }),
+    signal: AbortSignal.timeout(15_000),
+  }).catch((error: Error) => error);
+  if (res instanceof Error) return { ok: false, error: "Couldn't reach WhatsApp. Try again." };
+  const json = await readJson(res);
+  if (!res.ok) {
+    const code = Number(((json.error ?? {}) as { code?: number }).code);
+    if (code === 132001) return { ok: false, error: "WhatsApp doesn't know this template in this language. Sync your templates and check it's approved." };
+    if (code === 132000) return { ok: false, error: "The template's variables don't match what Meta approved. Check the variable mapping." };
+    if (code === 132015 || code === 132016) return { ok: false, error: "Meta paused or disabled this template because of its quality. Pick another one." };
+    if (code === 131049) return { ok: false, error: "Meta held this marketing message back to protect the customer's experience (too many marketing messages)." };
+    if (code === 131050) return { ok: false, error: "This customer stopped marketing messages from your business on WhatsApp." };
+    return { ok: false, error: whatsappError(json, "WhatsApp didn't accept the template message.") };
+  }
+  const id = (json.messages as Array<{ id?: string }> | undefined)?.[0]?.id ?? null;
+  return { ok: true, externalId: id };
+}

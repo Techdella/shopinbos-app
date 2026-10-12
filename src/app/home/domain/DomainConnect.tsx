@@ -3,61 +3,34 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DomainSetup } from "@/components/builder/DomainSetup";
-import { Notice, Segmented } from "@/components/app-ui";
+import { Segmented } from "@/components/app-ui";
+import { DomainOwnership } from "@/components/domains/DomainOwnership";
+import type { DomainSettingsState } from "@/lib/domains/verification";
 import { Icon } from "@/components/ui/Icon";
 
 type Registrar = { id: string; name: string; description: string; baseUrl: string; affiliateUrl: string | null };
 
-// "Connect one I own" / "Buy a new one" on the Domain page. Both run the shared DomainSetup flow (DNS records,
-// verification, registrar checkout). Without the hosting keys on the server neither can work, so we say so
-// instead of showing a form that fails; buying then links out to registrars.
+// "Connect one I own" / "Buy a new one" on the Domain page. Connecting runs the ownership check (DNS records,
+// then Verify); it works without the hosting keys (support then adds the domain to hosting). Buying needs the
+// hosting keys; without them it links out to registrars.
 export function DomainConnect({
   storeSlug,
   storeName,
-  customDomain,
   configured,
+  initialState,
   registrars,
 }: {
   storeSlug: string;
   storeName: string;
-  customDomain: string | null;
   configured: boolean;
+  initialState: DomainSettingsState;
   registrars: Registrar[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"connect" | "buy">("connect");
-  const [checking, setChecking] = useState(0);
-
-  const done = (domain: string | null) => {
-    if (domain) router.refresh();
-  };
 
   return (
-    <div className="grid gap-4">
-      {customDomain && (
-        <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="link" size={18} /></span>
-          <div className="min-w-0 flex-1">
-            <p className="m-0 text-[13px] text-app-ink-soft">Your own domain</p>
-            <a href={`https://${customDomain}`} target="_blank" rel="noopener noreferrer" className="break-all text-[16px] font-extrabold text-app-ink no-underline hover:underline">
-              {customDomain}
-            </a>
-          </div>
-          {configured && (
-            <button
-              type="button"
-              onClick={() => {
-                setTab("connect");
-                setChecking((value) => value + 1);
-              }}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink hover:border-app-line-strong"
-            >
-              Check its records
-            </button>
-          )}
-        </div>
-      )}
-
+    <div className="grid min-w-0 gap-4">
       <Segmented
         className="w-full border border-app-line sm:w-fit"
         value={tab}
@@ -68,22 +41,20 @@ export function DomainConnect({
         ]}
       />
 
-      {!configured ? (
-        tab === "connect" ? (
-          <Notice tone="info">Connecting your own domain isn&apos;t switched on for this Shopinbos server yet. Your free address keeps working in the meantime.</Notice>
-        ) : (
-          <RegistrarList registrars={registrars} />
-        )
+      {tab === "connect" ? (
+        <DomainOwnership initialState={initialState} onChange={() => router.refresh()} />
+      ) : !configured ? (
+        <RegistrarList registrars={registrars} />
       ) : (
         <DomainSetup
-          key={`${tab}-${checking}`}
-          option={tab}
+          key="buy"
+          option="buy"
           storeSlug={storeSlug}
           storeName={storeName}
           doneLabel="Done"
-          initialDomain={tab === "connect" && checking > 0 ? customDomain : null}
-          checkOnOpen={tab === "connect" && checking > 0}
-          onDone={done}
+          onDone={(domain) => {
+            if (domain) router.refresh();
+          }}
         />
       )}
     </div>
