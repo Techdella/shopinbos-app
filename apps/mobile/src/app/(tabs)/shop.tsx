@@ -18,7 +18,7 @@ import { colors, radii } from "@/theme";
 // WhatsApp and Instagram) go to "Ask us", where the Shopinbos team sets them up.
 type ShopLink = { label: string; icon: AppIconName; path: string; hint?: string };
 
-export const SHOP_GROUPS: Array<{ title: string; links: ShopLink[] }> = [
+export const SHOP_GROUPS: { title: string; links: ShopLink[] }[] = [
   {
     title: "Sell",
     links: [

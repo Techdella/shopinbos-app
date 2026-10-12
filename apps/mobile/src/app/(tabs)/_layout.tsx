@@ -14,7 +14,7 @@ import { colors } from "@/theme";
 type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
 /** The tabs in the bar, in order. The "+" sits between Orders and Chats. */
-export const TABS: Array<{ name: string; icon: AppIconName; label: string }> = [
+export const TABS: { name: string; icon: AppIconName; label: string }[] = [
   { name: "home", icon: "home", label: "Home" },
   { name: "orders", icon: "bag", label: "Orders" },
   { name: "chats", icon: "chat", label: "Chats" },
@@ -31,7 +31,7 @@ function TabButton({ label, icon, focused, onPress }: { label: string; icon: App
       style={{ flex: 1, minHeight: 58, alignItems: "center", justifyContent: "center", gap: 3 }}
     >
       <AppIcon name={icon} size={22} color={focused ? colors.ink : colors.inkSoft} strokeWidth={focused ? 2.3 : 1.9} />
-      <T weight={focused ? "extrabold" : "semibold"} numberOfLines={1} style={{ fontSize: 12.5, color: focused ? colors.ink : colors.inkSoft }}>{label}</T>
+      <T weight={focused ? "extrabold" : "semibold"} numberOfLines={1} style={{ fontSize: 14, color: focused ? colors.ink : colors.inkSoft }}>{label}</T>
     </Pressable>
   );
 }

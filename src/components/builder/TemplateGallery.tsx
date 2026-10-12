@@ -207,7 +207,7 @@ function buildPreviewStore(template: TemplateGalleryItem): SurfaceStore {
       {
         id: `${template.id}-preview-1`,
         name: "Signature product",
-        description: `A featured ${categoryName.toLowerCase()} product for this theme.`,
+        description: `A featured ${categoryName.toLowerCase()} product for this look.`,
         images: [],
         retailPrice: 18500,
         currency: "NGN",
@@ -218,7 +218,7 @@ function buildPreviewStore(template: TemplateGalleryItem): SurfaceStore {
       {
         id: `${template.id}-preview-2`,
         name: "Customer favorite",
-        description: "A polished starter product that can be replaced with real store inventory.",
+        description: "A polished starter product that you can swap for your own products.",
         images: [],
         retailPrice: 26000,
         currency: "NGN",
@@ -269,7 +269,7 @@ function ThemeCard({
             className="inline-flex items-center gap-2 rounded-[8px] bg-[#0FA493] px-4 py-2 text-[12px] font-bold text-white transition hover:bg-[#0B8074] disabled:cursor-default disabled:opacity-65"
           >
             <Icon name="rocket" size={14} />
-            {isCurrent ? "In use" : applying ? "Applying" : "Use this theme"}
+            {isCurrent ? "In use" : applying ? "Applying" : "Use this look"}
           </button>
           <button
             type="button"
@@ -341,7 +341,7 @@ function ThemePreview({
           Close
         </button>
         <button type="button" onClick={onApply} disabled={applying} className="inline-flex items-center gap-2 rounded-[8px] bg-[#0FA493] px-4 py-2 text-[12px] font-bold text-white disabled:opacity-60">
-          Use this theme
+          Use this look
           <Icon name="arrow" size={14} />
         </button>
       </header>
@@ -437,12 +437,12 @@ export function TemplateGallery({
       });
       if (!response.ok) {
         const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setApplyError(json?.error?.message ?? "Template could not be applied.");
+        setApplyError(json?.error?.message ?? "That look didn't switch. Check your connection and try again.");
         return;
       }
       startTransition(() => router.push(destination));
     } catch (error) {
-      setApplyError(error instanceof Error ? error.message : "Template could not be applied.");
+      setApplyError(error instanceof Error ? error.message : "That look didn't switch. Check your connection and try again.");
     } finally {
       setApplyingId(null);
     }
@@ -456,8 +456,8 @@ export function TemplateGallery({
           Back
         </button>
         <div className="h-6 w-px bg-[#E3EAE7]" />
-        <h1 className="text-[15px] font-bold">Theme gallery</h1>
-        <span className="rounded-full bg-[#E6F6F2] px-2.5 py-1 text-[10px] font-bold text-[#0FA493]">200+ templates</span>
+        <h1 className="text-[15px] font-bold">Shop looks</h1>
+        <span className="rounded-full bg-[#E6F6F2] px-2.5 py-1 text-[10px] font-bold text-[#0FA493]">200+ shop looks</span>
         <div className="ml-auto">
           <button type="button" onClick={() => router.push("/builder/rex")} className="inline-flex items-center gap-2 rounded-[8px] border border-[#E3EAE7] bg-white px-3 py-2 text-[12px] font-bold text-[#51635D] transition hover:border-[#0FA493] hover:text-[#0FA493]">
             <Icon name="sparkle" size={14} />
@@ -480,7 +480,7 @@ export function TemplateGallery({
               <input
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
-                placeholder="Search themes"
+                placeholder="Search shop looks"
                 className="h-10 w-full rounded-[8px] border border-[#E3EAE7] bg-white pl-9 pr-3 text-[13px] text-[#16302B] outline-none transition focus:border-[#0FA493]"
               />
             </label>
@@ -509,9 +509,9 @@ export function TemplateGallery({
           ) : null}
 
           {loading ? (
-            <div className="rounded-[8px] border border-[#E3EAE7] bg-white p-6 text-[13px] text-[#51635D]">Loading themes...</div>
+            <div className="rounded-[8px] border border-[#E3EAE7] bg-white p-6 text-[13px] text-[#51635D]">Loading shop looks…</div>
           ) : displayedTemplates.length === 0 ? (
-            <div className="rounded-[8px] border border-[#E3EAE7] bg-white p-6 text-[13px] text-[#51635D]">No themes matched that search.</div>
+            <div className="rounded-[8px] border border-[#E3EAE7] bg-white p-6 text-[13px] text-[#51635D]">No shop looks matched that search.</div>
           ) : (
             <div className="grid gap-[18px] md:grid-cols-2 xl:grid-cols-3">
               {displayedTemplates.map((template) => (

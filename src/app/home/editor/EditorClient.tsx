@@ -59,7 +59,7 @@ function updateSection(
 const tools = [
   { id: "pages", label: "Pages", glyph: "▦" },
   { id: "add", label: "Add", glyph: "＋" },
-  { id: "theme", label: "Theme", glyph: "⌬" },
+  { id: "theme", label: "Shop look", glyph: "⌬" },
   { id: "type", label: "Type", glyph: "Aa" },
   { id: "color", label: "Color", glyph: "◐" },
   { id: "nav", label: "Nav", glyph: "⛬" },

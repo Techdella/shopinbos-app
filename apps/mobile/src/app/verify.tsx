@@ -8,6 +8,7 @@ import { asSignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { BackButton, CodeInput, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { colors } from "@/theme";
+import { HelpButton } from "@/components/Help";
 
 export default function Verify() {
   const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string }>();
@@ -63,8 +64,9 @@ export default function Verify() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas, paddingHorizontal: 22 }}>
-      <View style={{ paddingTop: 10, marginBottom: 24 }}>
+      <View style={{ paddingTop: 10, marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <BackButton onPress={() => router.back()} />
+        <HelpButton />
       </View>
       <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">Enter the code</T>
       <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 24 }}>We sent it to {where}</T>

@@ -185,8 +185,8 @@ function StoreCard({ card, onOpenPreview, onUndo, busy }: { card: Extract<RexCar
 
 function ThemesCard({ card, onAsk, busy }: { card: Extract<RexCard, { type: "themes" }> } & RexCardHandlers) {
   return (
-    <section className={shell} aria-label="Themes">
-      <h3 className="m-0 mb-3 text-[14px] font-extrabold">Themes you can try</h3>
+    <section className={shell} aria-label="Shop looks">
+      <h3 className="m-0 mb-3 text-[14px] font-extrabold">Shop looks you can try</h3>
       <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2 2xl:grid-cols-4">
         {card.themes.map((theme) => {
           const current = theme.id === card.current;
@@ -199,7 +199,7 @@ function ThemesCard({ card, onAsk, busy }: { card: Extract<RexCard, { type: "the
               <div className="flex flex-1 flex-col gap-2 p-3">
                 <p className="m-0 text-[12.5px] leading-[1.4] text-app-ink-soft">{theme.blurb}</p>
                 {current ? (
-                  <span className="mt-auto inline-flex min-h-[36px] items-center text-[13px] font-bold text-app-success">Your theme now</span>
+                  <span className="mt-auto inline-flex min-h-[36px] items-center text-[13px] font-bold text-app-success">Your look now</span>
                 ) : (
                   <button type="button" disabled={busy} className={cx(secondary, "mt-auto min-h-[36px]")} onClick={() => onAsk(`Switch my store to the ${theme.name} theme.`)}>
                     Try {theme.name}

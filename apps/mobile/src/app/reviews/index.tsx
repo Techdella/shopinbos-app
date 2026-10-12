@@ -8,7 +8,6 @@ import { Card, Chip, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchReviews, SOURCE_LABELS, stars } from "@/lib/reviews";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // Reviews (web /home/reviews): the overview numbers, every review with a filter for the ones that still need a
@@ -34,14 +33,11 @@ export default function Reviews() {
   return (
     <Screen
       title="Reviews"
-      sub="What customers say about your shop, from your store, Google and social."
+      sub="What customers say about your shop."
       refreshing={reviews.refreshing}
       onRefresh={() => void reviews.refresh()}
     >
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <PillButton title="Ask for reviews" size="sm" style={{ flex: 1 }} onPress={() => router.push("/reviews/ask")} />
-        <PillButton title="Import & widget" size="sm" tone="white" style={{ flex: 1 }} onPress={() => void openWeb("/home/reviews/sources")} />
-      </View>
+      <PillButton title="Ask for reviews" onPress={() => router.push("/reviews/ask")} />
 
       {summary ? (
         <Card style={{ flexDirection: "row", gap: 10 }}>
@@ -53,7 +49,7 @@ export default function Reviews() {
           ].map(([value, label]) => (
             <View key={label} style={{ flex: 1, alignItems: "center" }}>
               <T weight="extrabold" style={{ fontSize: 20 }}>{value}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 11.5 }}>{label}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 13 }}>{label}</T>
             </View>
           ))}
         </Card>
@@ -64,10 +60,10 @@ export default function Reviews() {
       </ChipRow>
 
       {reviews.loading && !reviews.data ? <LoadingBlock /> : null}
-      {reviews.error && !reviews.data ? <ErrorState message={reviews.error} onRetry={() => void reviews.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/reviews") }} /> : null}
+      {reviews.error && !reviews.data ? <ErrorState message={reviews.error} onRetry={() => void reviews.reload()} /> : null}
       {reviews.data && !reviews.data.items.length ? (
-        <EmptyState icon="star" title={filter === "all" ? "No reviews yet" : "Nothing here"} action={filter === "all" ? <PillButton title="Ask for reviews" size="sm" onPress={() => router.push("/reviews/ask")} /> : undefined}>
-          {filter === "all" ? "Send buyers a link to rate what they bought. Reviews help new shoppers trust you." : filter === "needed" ? "You've replied to everything. Nice." : "No reviews with that rating."}
+        <EmptyState icon="star" title={filter === "all" ? "No reviews yet" : "Nothing here"} >
+          {filter === "all" ? "Send buyers a link to rate what they bought. Reviews help new shoppers trust you." : filter === "needed" ? "You've replied to everything. Nice." : "No reviews with that many stars. Tap All to see the rest."}
         </EmptyState>
       ) : null}
 
@@ -76,7 +72,7 @@ export default function Reviews() {
           <Card style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <T weight="extrabold" style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{item.authorName}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(item.createdAt)}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.createdAt)}</T>
             </View>
             {item.rating ? <T style={{ color: "#C98A00", fontSize: 15, letterSpacing: 1 }} accessibilityLabel={`${item.rating} out of 5`}>{stars(item.rating)}</T> : null}
             {item.title ? <T weight="bold">{item.title}</T> : null}

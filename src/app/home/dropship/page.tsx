@@ -12,7 +12,7 @@ import { naira } from "@/lib/marketplace/find";
 import { PauseButton } from "./DropshipActions";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Dropship" };
+export const metadata: Metadata = { title: "Sell without stock" };
 
 // Dropship: the products a supplier sends straight to the seller's buyers, as Find products-style cards
 // (Cost / Sell / You keep), with the supplier's stock, a filter, and Pause / Message supplier.

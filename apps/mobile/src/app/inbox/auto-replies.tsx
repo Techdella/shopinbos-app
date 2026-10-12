@@ -19,7 +19,7 @@ function SwitchRow({ title, hint, on, onChange, first }: { title: string; hint: 
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderTopWidth: first ? 0 : 1, borderTopColor: colors.line }}>
       <View style={{ flex: 1 }}>
         <T weight="bold" style={{ fontSize: 15 }}>{title}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 12.5, marginTop: 2, lineHeight: 18 }}>{hint}</T>
+        <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 2, lineHeight: 18 }}>{hint}</T>
       </View>
       <Toggle on={on} onChange={onChange} label={title} />
     </View>
@@ -33,9 +33,9 @@ export default function AutoReplies() {
   });
   if (!loaded.data) {
     return (
-      <Screen title="Auto-replies" sub="Answer customers on every channel while you're busy or closed." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title="Replies when you're busy" sub="Answer customers on WhatsApp, Instagram and your shop while you're busy or closed." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
-        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/inbox/auto-replies") }} /> : null}
+        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
     );
   }
@@ -66,8 +66,8 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
 
   return (
     <Screen
-      title="Auto-replies"
-      sub="Answer customers on every channel while you're busy or closed."
+      title="Replies when you're busy"
+      sub="Answer customers on WhatsApp, Instagram and your shop while you're busy or closed."
       refreshing={refreshing}
       onRefresh={onRefresh}
       footer={<PillButton title="Save" busy={saving} onPress={() => void save()} />}
@@ -99,7 +99,7 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
         </Card>
       ) : null}
 
-      {!ready ? <Notice tone="info">Instant replies, opening hours and keyword replies need a database update first. The away message works now.</Notice> : null}
+      {!ready ? <Notice tone="info">Quick replies and opening hours aren&apos;t switched on for your shop yet. The away message works now. Tap Help and we&apos;ll switch the rest on.</Notice> : null}
 
       {ready ? (
         <Card style={{ paddingVertical: 2 }}>
@@ -115,8 +115,8 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
       ) : null}
 
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="clock" label="Hours, keywords and channels" hint="Edit them on the web" onPress={() => void openWeb("/home/inbox/auto-replies")} />
-        <LinkRow icon="bot" label="Peggy chatbot" hint="Answers shoppers on your store's chat" onPress={() => router.push("/inbox/chatbot")} />
+        <LinkRow first icon="clock" label="Opening hours and quick replies" hint="Change them in your browser" onPress={() => void openWeb("/home/inbox/auto-replies")} />
+        <LinkRow icon="bot" label="Peggy answers shoppers" hint="On your shop's chat, day and night" onPress={() => router.push("/inbox/chatbot")} />
       </Card>
     </Screen>
   );

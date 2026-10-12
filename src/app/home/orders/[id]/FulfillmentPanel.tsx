@@ -81,7 +81,7 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
         router.refresh();
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError("We couldn't reach Shopinbos. Check your connection and try again.");
     } finally {
       setLoading(null);
     }

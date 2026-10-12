@@ -681,7 +681,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
         <div className="flex flex-wrap items-center gap-1.5">
           <button type="button" onClick={() => router.push("/builder/templates")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
-            Templates
+            Shop looks
           </button>
           <button type="button" onClick={() => router.push("/seller/store/builder")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
             Edit your store

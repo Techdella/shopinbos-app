@@ -102,7 +102,7 @@ export function PlanUpgradeSection({ userEmail, userName, aiCredits, productCoun
           <ul style={{ fontSize: 12.5, color: "var(--ink-600)", paddingLeft: 16, marginTop: 10, lineHeight: 1.8 }}>
             <li>Unlimited products</li>
             <li>Priority marketplace placement</li>
-            <li>Advanced analytics</li>
+            <li>More detail on how your shop is doing</li>
             <li>Priority support</li>
           </ul>
 

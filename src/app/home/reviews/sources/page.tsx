@@ -1,3 +1,4 @@
+import { TechFold } from "@/components/simple/Fold";
 import { AppPage, Card, CardHead, Pill, PillLink, SplitLayout } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { field, pillButton, sellerFrame, timeAgo } from "@/components/seller-core";
@@ -6,7 +7,6 @@ import { aiConfigured } from "@/lib/ai/client";
 import { db } from "@/lib/db/client";
 import { getGoogleConnection, googleConfigured, googleRedirectUri, GoogleReviewsError, listGoogleLocations, type GoogleLocation } from "@/lib/reviews/google";
 import { IMPORT_SOURCES, sourceLabel } from "@/lib/reviews/pure";
-import { encryptionConfigured } from "@/lib/reviews/secrets";
 import { productNames, reviewUrls } from "@/lib/reviews/server";
 import { CopyField } from "../_components/CopyField";
 import { GoogleSyncButton } from "../_components/GoogleSyncButton";
@@ -20,7 +20,7 @@ const GOOGLE_NOTICE: Record<string, { tone: "success" | "danger" | "warning"; te
   cancelled: { tone: "warning", text: "Google sign-in was cancelled." },
   failed: { tone: "danger", text: "Google sign-in didn't work." },
   invalid_state: { tone: "danger", text: "That Google sign-in link expired or wasn't for this store. Try again." },
-  not_configured: { tone: "warning", text: "Google Business Profile isn't set up on this platform yet." },
+  not_configured: { tone: "warning", text: "Connecting Google isn't switched on yet. Add your Google reviews below for now." },
 };
 
 export default async function ReviewSourcesPage({ searchParams }: { searchParams?: Promise<{ google?: string; reason?: string }> }) {
@@ -72,15 +72,14 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
               <div className="mt-4 grid gap-4 text-[14px] leading-[1.55]">
                 {!configured && !connection ? (
                   <>
-                    <p className="m-0">Connecting Google needs a Google Cloud project approved for the Business Profile APIs. Until the platform has one, import Google reviews by pasting them below: open the review on Google Maps, copy the text and the share link, and paste them in. They are labelled as imported from Google.</p>
-                    <details className="rounded-[16px] bg-app-canvas px-4 py-3">
-                      <summary className="cursor-pointer font-bold">For the platform admin: how to turn on the Google connection</summary>
-                      <ol className="mb-0 mt-2 grid gap-1 pl-5 text-[13.5px]">
+                    <p className="m-0">Connecting Google straight to your shop isn&apos;t switched on yet. Until then, add Google reviews yourself below: open the review on Google Maps, copy the words and the share link, and paste them in. They are labelled as coming from Google.</p>
+                    <TechFold forWho="the Shopinbos team">
+                      <ol className="m-0 grid gap-1 pl-5 text-[13.5px]">
                         <li>In Google Cloud, enable the My Business Account Management, Business Information and My Business (v4 reviews) APIs, and apply for Business Profile API access.</li>
                         <li>Create an OAuth client (web) with the redirect URI <code className="break-all">{googleRedirectUri()}</code>.</li>
                         <li>Set GOOGLE_BUSINESS_CLIENT_ID and GOOGLE_BUSINESS_CLIENT_SECRET, and INTEGRATIONS_ENCRYPTION_KEY to encrypt the tokens.</li>
                       </ol>
-                    </details>
+                    </TechFold>
                   </>
                 ) : null}
 
@@ -116,7 +115,7 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
                     <p className="m-0 text-app-ink-soft">
                       {sourceCount.get("google") ?? 0} Google reviews imported{connection.lastSyncedAt ? ` · last import ${timeAgo(connection.lastSyncedAt)}` : ""}. Replies you save on a Google review are posted to Google.
                     </p>
-                    {connection.lastError ? <p className="m-0 text-app-danger">Last import failed: {connection.lastError}</p> : null}
+                    {connection.lastError ? <p className="m-0 text-app-danger" title={connection.lastError}>The last import didn&apos;t work. Press import again, or tap Help and we&apos;ll check it.</p> : null}
                     <GoogleSyncButton />
                   </>
                 ) : null}
@@ -126,7 +125,7 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
                     <button type="submit" className={pillButton.white}>Disconnect Google</button>
                   </form>
                 ) : null}
-                {connection && !encryptionConfigured() ? <p className="m-0 text-[12.5px] text-app-ink-soft">Google tokens are stored on the server only. Set INTEGRATIONS_ENCRYPTION_KEY to also encrypt them.</p> : null}
+                
               </div>
             </Card>
 

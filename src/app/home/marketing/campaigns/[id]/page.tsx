@@ -14,10 +14,11 @@ import { getMessagingSettings } from "@/lib/marketing/messaging-settings";
 import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { naira } from "@shared/onboarding";
 import { CampaignEditor } from "./CampaignEditor";
+import { friendlyName } from "../../_kit/friendly";
 import { SentCampaignPreview } from "./SentCampaignPreview";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Campaign" };
+export const metadata: Metadata = { title: "Message to customers" };
 
 const STATUS: Record<string, { tone: Tone; label: string }> = {
   draft: { tone: "muted", label: "Draft" },
@@ -32,7 +33,7 @@ const RECIPIENT: Record<string, { tone: Tone; label: string }> = {
   sent: { tone: "info", label: "Sent" },
   delivered: { tone: "success", label: "Delivered" },
   read: { tone: "success", label: "Read" },
-  failed: { tone: "danger", label: "Failed" },
+  failed: { tone: "danger", label: "Didn't send" },
 };
 
 function pct(part: number, whole: number) {
@@ -80,17 +81,17 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         store={storeSummary(store)}
         title={campaign.name}
         sub={`${isEmail ? "Email" : campaign.channel === "sms" ? "SMS" : "WhatsApp"} · sent ${formatDate(campaign.sentAt, true)}`}
-        actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
+        actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All messages</PillLink>}
       >
         <div className="grid gap-5">
           {campaign.status === "sending" ? <Pill tone="info">Still sending: {count("queued").toLocaleString("en-NG")} waiting. It carries on by itself within 10 minutes.</Pill> : null}
           <StatGrid className="xl:grid-cols-6">
-            <StatTile tone="card" label="Sent" value={(isEmail ? count("sent") : accepted).toLocaleString("en-NG")} hint={count("failed") ? `${count("failed")} failed` : undefined} />
+            <StatTile tone="card" label="Sent" value={(isEmail ? count("sent") : accepted).toLocaleString("en-NG")} hint={count("failed") ? `${count("failed")} didn't send` : undefined} />
             {isEmail ? <StatTile tone="card" label="Opened" value={pct(opened, count("sent"))} hint={`${opened} people`} /> : null}
             {isEmail ? <StatTile tone="card" label="Clicked" value={pct(clicked, count("sent"))} hint={`${clicked} people`} /> : null}
             {!isEmail ? <StatTile tone="card" label="Delivered" value={pct(delivered, accepted)} hint={`${delivered.toLocaleString("en-NG")} ${delivered === 1 ? "person" : "people"}`} /> : null}
             {isWhatsApp ? <StatTile tone="card" label="Read" value={pct(count("read"), accepted)} hint={`${count("read").toLocaleString("en-NG")} ${count("read") === 1 ? "person" : "people"}`} /> : null}
-            {!isEmail ? <StatTile tone="card" label="Failed" value={count("failed").toLocaleString("en-NG")} hint={count("queued") ? `${count("queued")} waiting` : undefined} /> : null}
+            {!isEmail ? <StatTile tone="card" label="Didn't send" value={count("failed").toLocaleString("en-NG")} hint={count("queued") ? `${count("queued")} waiting` : undefined} /> : null}
             <StatTile tone="card" label="Orders" value={campaign.conversionCount} />
             <StatTile tone="card" label="Sales" value={naira(campaign.revenueGenerated)} />
             {isEmail ? <StatTile tone="card" label="Unsubscribed" value={campaign.unsubscribeCount} /> : null}
@@ -130,7 +131,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                     rows={[
                       ["Audience", segment ? `Segment: ${segment.name}` : parseRecipientFilter(campaign.recipientFilter).mode === "subscribers" ? "Subscribers" : "Subscribers and buyers"],
                       ...(isEmail ? ([["Subject", campaign.subject]] as Array<[string, string]>) : []),
-                      ...(waTemplate ? ([["Template", `${waTemplate.name} (${waTemplate.language})`]] as Array<[string, string]>) : []),
+                      ...(waTemplate ? ([["Message", friendlyName(waTemplate.name)]] as Array<[string, string]>) : []),
                       ...(campaign.channel === "sms" && config.senderId ? ([["Sender ID", config.senderId]] as Array<[string, string]>) : []),
                       ["Sent", formatDate(campaign.sentAt, true)],
                       ["Made", formatDate(campaign.createdAt, true)],
@@ -166,9 +167,9 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={isNew ? "New campaign" : campaign!.name}
-      sub={isNew ? "Write it once, send it to a segment by email, SMS or WhatsApp." : campaign!.status === "scheduled" ? `Scheduled for ${formatDate(campaign!.scheduledAt, true)} (Lagos time)` : "Draft"}
-      actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
+      title={isNew ? "New message to customers" : campaign!.name}
+      sub={isNew ? "Write it once, send it to a group of customers by email, SMS or WhatsApp." : campaign!.status === "scheduled" ? `Scheduled for ${formatDate(campaign!.scheduledAt, true)} (Lagos time)` : "Draft"}
+      actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All messages</PillLink>}
     >
       <CampaignEditor
         initial={{

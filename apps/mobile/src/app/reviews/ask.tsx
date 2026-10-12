@@ -47,7 +47,7 @@ export default function AskForReviews() {
           <Card style={{ gap: 10 }}>
             <T weight="extrabold" style={{ fontSize: 16 }}>Your reviews wall</T>
             <T style={{ color: colors.inkSoft, lineHeight: 20 }}>Every published review on one page. Share it so new shoppers can see what people say.</T>
-            <T weight="semibold" style={{ fontSize: 13 }} selectable numberOfLines={1}>{data.data.wall}</T>
+            <T weight="semibold" style={{ fontSize: 14 }} selectable numberOfLines={1}>{data.data.wall}</T>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <PillButton title="Share" size="sm" style={{ flex: 1 }} onPress={() => void Share.share({ message: `See what customers say about us: ${data.data!.wall}` })} />
               <PillButton title="Copy link" size="sm" tone="white" style={{ flex: 1 }} onPress={() => void copyWall(data.data!.wall)} />
@@ -61,7 +61,7 @@ export default function AskForReviews() {
               <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{order.customerName}</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>#{order.orderNumber} · {order.status.charAt(0).toUpperCase() + order.status.slice(1)} · {shortTime(order.at)}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }}>#{order.orderNumber} · {order.status.charAt(0).toUpperCase() + order.status.slice(1)} · {shortTime(order.at)}</T>
                 </View>
               </View>
               <View style={{ flexDirection: "row", gap: 8 }}>

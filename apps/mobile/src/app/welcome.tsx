@@ -6,6 +6,7 @@ import { AppIcon } from "@/components/icons";
 import { Chip, LinkButton, Mascot, PillButton, T, Wash, Wordmark } from "@/components/ui";
 import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { colors, radii } from "@/theme";
+import { HelpButton } from "@/components/Help";
 
 // First screen: pick what you do (like the web sign-up's "I sell / I supply shops / I deliver"), then sign up
 // with a phone number or email, or log in. Riders open the private link their dispatcher sent.
@@ -24,7 +25,10 @@ export default function Welcome() {
       <Wash />
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 22, paddingBottom: 12 }}>
         <View style={{ paddingTop: 10, gap: 16 }}>
-          <Wordmark />
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Wordmark />
+            <HelpButton />
+          </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="What do you do?">
             {SIGNUP_ROLES.map((item) => <Chip key={item.role} label={item.tab} on={role === item.role} onPress={() => setRole(item.role)} />)}
           </View>
@@ -45,7 +49,7 @@ export default function Welcome() {
               {NEXT[role].lines.map((line, index) => (
                 <View key={line} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
                   <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
-                    <T weight="extrabold" style={{ fontSize: 12, color: colors.forest }}>{index + 1}</T>
+                    <T weight="extrabold" style={{ fontSize: 13.5, color: colors.forest }}>{index + 1}</T>
                   </View>
                   <T weight="semibold" style={{ flex: 1, fontSize: 14.5 }}>{line}</T>
                 </View>

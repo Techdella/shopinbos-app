@@ -185,7 +185,7 @@ export function LaunchSetup({
       <div className="flex items-start gap-3 rounded-[18px] bg-app-peach px-4 py-3.5">
         <Mascot name="rex" className="h-9 w-9 shrink-0" alt="Rex" />
         <p className="m-0 text-[14px] leading-[1.55]">
-          Almost there. Choose how customers pay you, where payouts land and how you deliver, then publish. Publishing makes
+          Almost there. Choose how customers pay you, which bank we send your money to, and how you deliver, then publish. Publishing makes
           your store visible to shoppers; the first launch has a one-time launch fee.
         </p>
       </div>
@@ -204,7 +204,7 @@ export function LaunchSetup({
 
         {paymentProvider && (
           <div className="mt-4 rounded-[18px] bg-app-canvas p-4">
-            <h3 className="m-0 text-[14.5px] font-extrabold">Where should payouts go?</h3>
+            <h3 className="m-0 text-[14.5px] font-extrabold">Which bank should we send your money to?</h3>
             <p className="mb-0 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">{payoutHelp}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="min-w-0">

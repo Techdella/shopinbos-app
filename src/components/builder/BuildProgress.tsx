@@ -51,7 +51,7 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
       : selectedPages.map((type) => ({ type, label: type.charAt(0).toUpperCase() + type.slice(1), userContent: "" }));
     const automatic = [
       { type: "cart", label: "Cart", userContent: "Cart page with quantity controls, order summary, and checkout handoff." },
-      { type: "checkout", label: "Checkout", userContent: "Checkout page with customer details, delivery details, order summary, and payment." },
+      { type: "checkout", label: "Payment page", userContent: "Checkout page with customer details, delivery details, order summary, and payment." },
     ];
     const existing = new Set(base.map((page) => page.type));
     return [...base, ...automatic.filter((page) => !existing.has(page.type))];

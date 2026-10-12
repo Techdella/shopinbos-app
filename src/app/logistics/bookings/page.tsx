@@ -32,8 +32,8 @@ export const metadata: Metadata = { title: "Jobs" };
 const FILTERS: Array<{ key: string; label: string; statuses?: BookingStatusValue[] }> = [
   { key: "all", label: "All" },
   { key: "new", label: "New", statuses: ["pending"] },
-  { key: "active", label: "Active", statuses: ACTIVE_STATUSES },
-  { key: "issues", label: "Issues", statuses: ["failed", "cancelled"] },
+  { key: "active", label: "On the way", statuses: ACTIVE_STATUSES },
+  { key: "issues", label: "Problems", statuses: ["failed", "cancelled"] },
   { key: "delivered", label: "Done", statuses: ["delivered"] },
 ];
 

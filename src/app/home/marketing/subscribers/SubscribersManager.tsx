@@ -300,7 +300,7 @@ export function SubscribersManager({
         </Card>
       ) : (
         <EmptyState icon="users" title="Nobody here yet" action={<PillButton size="md" onClick={() => setModal("import")}>Import a CSV</PillButton>}>
-          Turn on a sign-up pop-up, import a list you already have, or add people one by one. Past buyers can already get campaigns through segments.
+          Turn on a sign-up pop-up, import a list you already have, or add people one by one. Past customers can already get your messages through groups of customers.
         </EmptyState>
       )}
 

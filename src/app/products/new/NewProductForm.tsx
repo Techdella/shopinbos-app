@@ -70,13 +70,13 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
         fd.append("file", file);
         fd.append("folder", "products");
         const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) throw new Error("That picture didn't upload. Check your connection and try again.");
         const data = await res.json();
         uploaded.push(data.data.publicUrl);
       }
       setImages((prev) => [...prev, ...uploaded]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -94,13 +94,13 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error?.message ?? "Generation failed");
+        throw new Error(err.error?.message ?? "Peggy couldn't make that picture. Try again in a minute.");
       }
       const data = await res.json();
       setImages((prev) => [...prev, data.image.url]);
       setImagePrompt("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Image generation failed");
+      setError(e instanceof Error ? e.message : "Peggy couldn't make that picture. Try again in a minute.");
     } finally {
       setGeneratingImage(false);
     }
@@ -118,12 +118,12 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error?.message ?? "Enhancement failed");
+        throw new Error(err.error?.message ?? "Peggy couldn't improve that picture. Try again in a minute.");
       }
       const data = await res.json();
       setImages((prev) => [...prev, data.image.url]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Image enhancement failed");
+      setError(e instanceof Error ? e.message : "Peggy couldn't improve that picture. Try again in a minute.");
     } finally {
       setEnhancingIndex(null);
     }
@@ -155,7 +155,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
         fd.append("file", file);
         fd.append("folder", "product-variants");
         const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!res.ok) throw new Error("Variant image upload failed");
+        if (!res.ok) throw new Error("That picture didn't upload. Check your connection and try again.");
         const data = await res.json();
         uploaded.push(data.data.publicUrl);
       }
@@ -165,7 +165,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
           : variant
       )));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Variant image upload failed");
+      setError(e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again.");
     } finally {
       setUploading(false);
     }
@@ -331,7 +331,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                   <input name="name" className="inp" required minLength={2} maxLength={200} placeholder="e.g. Premium Leather Tote Bag" />
                 </label>
                 <label className="field">
-                  <span className="label">SKU (optional)</span>
+                  <span className="label">Product code (optional)</span>
                   <input name="sku" className="inp" maxLength={60} placeholder="e.g. LTH-TOTE-001" />
                 </label>
               </div>
@@ -434,15 +434,15 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
             <section className="card" style={{ padding: 20 }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="onb-card-kicker">Variants</div>
-                  <h2 className="m-0 mt-1 font-display text-[22px] font-normal text-[var(--ink-900)]">Add size, color, and SKU options.</h2>
+                  <div className="onb-card-kicker">Sizes and colours (optional)</div>
+                  <h2 className="m-0 mt-1 font-display text-[22px] font-normal text-[var(--ink-900)]">Add the sizes and colours you have.</h2>
                 </div>
-                <button type="button" onClick={addVariant} className="dbtn dBtn-ghost dBtn-sm">+ Add variant</button>
+                <button type="button" onClick={addVariant} className="dbtn dBtn-ghost dBtn-sm">+ Add a size or colour</button>
               </div>
 
               {variants.length === 0 ? (
                 <div className="text-center py-6 text-[13px] text-[var(--ink-400)] border-2 border-dashed border-[var(--ink-200)] rounded-[12px]">
-                  No variants yet. Add options like size or color.
+                  None yet. Add a size or colour if this product comes in more than one.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -450,7 +450,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                     <div key={v.id} className="space-y-3 rounded-[10px] border border-[var(--ink-100)] bg-[var(--ink-50)] p-3">
                       <div className="grid gap-2" style={{ gridTemplateColumns: "1fr 1fr 90px 110px 90px 80px 32px" }}>
                         <label className="field"><span className="label text-[11px]">Name</span><input className="inp text-[13px]" value={v.name} onChange={(e) => updateVariant(v.id, "name", e.target.value)} placeholder="Black size 42" /></label>
-                        <label className="field"><span className="label text-[11px]">SKU</span><input className="inp text-[13px]" value={v.sku} onChange={(e) => updateVariant(v.id, "sku", e.target.value)} placeholder="SHOE-BLK-42" /></label>
+                        <label className="field"><span className="label text-[11px]">Product code</span><input className="inp text-[13px]" value={v.sku} onChange={(e) => updateVariant(v.id, "sku", e.target.value)} placeholder="SHOE-BLK-42" /></label>
                         <label className="field"><span className="label text-[11px]">Price</span><input className="inp text-[13px]" type="number" value={v.price} onChange={(e) => updateVariant(v.id, "price", e.target.value)} placeholder="25000" /></label>
                         <label className="field"><span className="label text-[11px]">Color</span><input className="inp text-[13px]" value={v.color} onChange={(e) => updateVariant(v.id, "color", e.target.value)} placeholder="Black" /></label>
                         <label className="field"><span className="label text-[11px]">Size</span><input className="inp text-[13px]" value={v.size} onChange={(e) => updateVariant(v.id, "size", e.target.value)} placeholder="42 / XL" /></label>
@@ -459,7 +459,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                       </div>
                       <div className="grid gap-3 lg:grid-cols-[180px_1fr]">
                         <div>
-                          <div className="label text-[11px]">Variant images</div>
+                          <div className="label text-[11px]">Pictures</div>
                           <label className="dbtn dBtn-ghost dBtn-sm inline-flex cursor-pointer">
                             Upload
                             <input type="file" accept="image/*" multiple className="hidden" onChange={(event) => uploadVariantImages(v.id, event.target.files)} />
@@ -483,12 +483,12 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                               onClick={() => updateVariant(v.id, "imageUrl", url)}
                               className={`overflow-hidden rounded-[8px] border ${v.imageUrl === url ? "border-[var(--teal-600)]" : "border-[var(--ink-100)]"}`}
                               style={{ width: 58, height: 58 }}
-                              title="Set as primary variant image"
+                              title="Use as the main picture for this size or colour"
                             >
                               <img src={url} alt="" className="h-full w-full object-cover" />
                             </button>
                           ))}
-                          {v.images.length === 0 ? <span className="text-[12px] text-[var(--ink-400)]">No variant images yet.</span> : null}
+                          {v.images.length === 0 ? <span className="text-[12px] text-[var(--ink-400)]">No pictures yet.</span> : null}
                         </div>
                       </div>
                       <div>

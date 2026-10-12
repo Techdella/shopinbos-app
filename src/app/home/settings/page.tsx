@@ -97,7 +97,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                       name={storeName}
                       title="Store logo"
                       hideTitle
-                      hint="Shows on your storefront, checkout, order pages, shipping labels and your menu. A square image works best."
+                      hint="Shows on your shop, payment page, order pages, shipping labels and your menu. A square image works best."
                     />
                   </div>
                 </Card>

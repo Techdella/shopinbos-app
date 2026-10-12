@@ -329,7 +329,7 @@ function ProgressCard({ config, patch, products, currency, freeDeliveryOver, col
     <Card className="p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">Reward progress {config.progress.enabled ? <Pill tone="success" dot>In the bag and checkout</Pill> : null}</span>} sub="“Add ₦4,500 more for free delivery” in the bag, the bag page and checkout, plus rewards you choose at higher amounts." />
+          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">Reward progress {config.progress.enabled ? <Pill tone="success" dot>In the bag and when paying</Pill> : null}</span>} sub="“Add ₦4,500 more for free delivery” in the bag, the bag page and the payment page, plus rewards you choose at higher amounts." />
         </div>
         <Toggle on={config.progress.enabled} onChange={(enabled) => patch("progress", { enabled })} label="Reward progress" />
       </div>
@@ -371,7 +371,7 @@ function ProgressCard({ config, patch, products, currency, freeDeliveryOver, col
               <PillButton size="sm" tone="white" disabled={tiers.length >= MAX_TIERS} onClick={() => setTiers([...tiers, { id: newId("t"), threshold: Math.round((top * 1.5) / 1000) * 1000, kind: "free_gift", value: 0, productId: null, label: "" }])}>
                 <Icon name="plus" size={13} /> Add a reward
               </PillButton>
-              <span className="text-[12.5px] text-app-ink-soft">Rewards apply automatically at checkout when no other code is used. A free gift comes off once it&apos;s in the bag.</span>
+              <span className="text-[12.5px] text-app-ink-soft">Rewards apply by themselves when paying, if no other code is used. A free gift comes off once it&apos;s in the bag.</span>
             </div>
           </div>
           <div className="grid content-start gap-3 rounded-[18px] p-4" style={{ background: colors.paper, color: colors.ink }}>
@@ -403,7 +403,7 @@ function LoyaltyCard({ config, patch, currency, placedPill }: { config: Gamifica
     <Card className="p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">Loyalty points {l.enabled ? placedPill : null}</span>} sub="Shoppers earn points on paid orders and spend them at checkout. Bronze, Silver and Gold earn faster." />
+          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">Loyalty points {l.enabled ? placedPill : null}</span>} sub="Shoppers earn points on paid orders and spend them when they pay. Bronze, Silver and Gold earn faster." />
         </div>
         <Toggle on={l.enabled} onChange={(enabled) => set({ enabled })} label="Loyalty points" />
       </div>

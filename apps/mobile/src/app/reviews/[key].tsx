@@ -90,7 +90,7 @@ function ReviewView({ item, onSaved, refreshing, onRefresh }: { item: ReviewItem
       <Card style={{ gap: 8 }}>
         <Label>Your public reply to {item.authorName}</Label>
         <Field value={reply} onChangeText={setReply} multiline maxLength={4000} placeholder="Thank them, answer what they asked, and keep it short." style={{ height: 140, paddingTop: 14, textAlignVertical: "top" }} />
-        {item.source === "google" ? <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>When Google is connected, saving posts the reply on Google too.</T> : null}
+        {item.source === "google" ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>When Google is connected, saving posts the reply on Google too.</T> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <PillButton title="Draft with Peggy" size="sm" tone="white" busy={busy === "draft"} disabled={busy !== null} onPress={() => void draft()} />
           {item.reply ? <PillButton title="Delete reply" size="sm" tone="white" busy={busy === "delete"} disabled={busy !== null} onPress={() => void save("", "delete")} /> : null}

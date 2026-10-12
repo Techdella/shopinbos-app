@@ -22,9 +22,9 @@ export default function Chatbot() {
   const loaded = useLoad(fetchAutomation);
   if (!loaded.data) {
     return (
-      <Screen title="Peggy chatbot" refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title="Peggy answers shoppers" refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
-        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/inbox/chatbot") }} /> : null}
+        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
     );
   }
@@ -43,7 +43,7 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
     try {
       const saved = await saveAutomation({ chatbot: bot });
       setBot(saved.chatbot);
-      setNote({ tone: "success", text: bot.enabled ? `Saved. ${bot.name} is answering on your store.` : "Saved. The chatbot is off." });
+      setNote({ tone: "success", text: bot.enabled ? `Saved. ${bot.name} is answering on your shop.` : "Saved. Peggy won't answer shoppers for now." });
     } catch (saveError) {
       setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again." });
     } finally {
@@ -53,21 +53,21 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
 
   return (
     <Screen
-      title="Peggy chatbot"
+      title="Peggy answers shoppers"
       sub="Answers shoppers on your store's chat, day and night, and hands over to you when they ask for a person."
       refreshing={refreshing}
       onRefresh={onRefresh}
       footer={<PillButton title="Save" busy={saving} disabled={!ready} onPress={() => void save()} />}
     >
-      {!ready ? <Notice tone="info">The chatbot needs a database update before it can be switched on. Ask your Shopinbos admin to run the inbox update.</Notice> : null}
+      {!ready ? <Notice tone="info">Peggy can&apos;t answer shoppers on your shop yet. Tap Help and we&apos;ll switch it on for you.</Notice> : null}
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Mascot name="peggy" size={48} />
         <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>{bot.enabled ? `${bot.name} is on` : "Chatbot is off"}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 13 }}>{bot.when === "always" ? "Answers every chat" : "Answers outside your opening hours"}</T>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{bot.enabled ? `${bot.name} is answering` : "Peggy isn't answering"}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }}>{bot.when === "always" ? "Answers every chat" : "Answers outside your opening hours"}</T>
         </View>
-        <Toggle on={bot.enabled} onChange={(on) => setBot({ ...bot, enabled: on })} label="Chatbot on" />
+        <Toggle on={bot.enabled} onChange={(on) => setBot({ ...bot, enabled: on })} label="Peggy answers shoppers" />
       </Card>
 
       <Card style={{ gap: 8 }}>
@@ -110,7 +110,7 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
       </Card>
 
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="doc" label={`FAQs${bot.faqs.length ? ` (${bot.faqs.length})` : ""} and hand-off words`} hint="Edit them and test the chatbot on the web" onPress={() => void openWeb("/home/inbox/chatbot")} />
+        <LinkRow first icon="doc" label={`Questions and answers${bot.faqs.length ? ` (${bot.faqs.length})` : ""}`} hint="Change them and try Peggy out in your browser" onPress={() => void openWeb("/home/inbox/chatbot")} />
       </Card>
     </Screen>
   );

@@ -48,7 +48,7 @@ export default function Products() {
               <View style={{ aspectRatio: 1, borderRadius: 18, backgroundColor: colors.lilac, overflow: "hidden" }}>
                 {product.images[0] && <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
                 <View style={{ position: "absolute", left: 8, bottom: 8, backgroundColor: low ? colors.peach : colors.surface, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 4 }}>
-                  <T weight="bold" style={{ fontSize: 11.5, color: low ? colors.accentInk : colors.ink }}>
+                  <T weight="bold" style={{ fontSize: 13, color: low ? colors.accentInk : colors.ink }}>
                     {product.currentStock <= 0 ? "Sold out" : `${product.currentStock} left`}
                   </T>
                 </View>

@@ -83,7 +83,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       user={user}
       store={storeSummary(store)}
       title="Find products to sell"
-      sub="Local suppliers who dropship or sell wholesale, and imports from China."
+      sub="Local suppliers whose products you can sell without stock or buy in bulk, and imports from China."
       actions={
         <PillLink href="/home/imports" icon="truck">
           {importsOnTheWay > 0 ? `My imports · ${importsOnTheWay}` : "My imports"}

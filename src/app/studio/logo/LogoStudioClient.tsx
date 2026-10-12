@@ -45,7 +45,7 @@ export function LogoStudioClient({ storeName }: { storeName: string }) {
       setLogos(data.logos ?? []);
       setCredits(data.creditsRemaining ?? null);
     } catch {
-      setError("Network error. Please try again.");
+      setError("We couldn't reach Shopinbos. Check your connection and try again.");
     } finally {
       setLoading(false);
     }

@@ -113,7 +113,7 @@ export function CollectionDetailClient({ id }: { id: string }) {
       const data = await res.json();
       if (Array.isArray(data.data)) setSearchResults(data.data.map(toProduct));
     } catch {
-      setNotice({ tone: "error", text: "Search failed" });
+      setNotice({ tone: "error", text: "We couldn't search just now. Check your connection and try again." });
     } finally {
       setSearching(false);
     }

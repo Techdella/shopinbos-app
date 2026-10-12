@@ -53,7 +53,7 @@ export default async function SellerProfilePage() {
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Store logo" sub="Shows on your storefront, checkout, order pages, shipping labels and your menu." />
+            <CardHead title="Store logo" sub="Shows on your shop, payment page, order pages, shipping labels and your menu." />
             <div className="mt-4">
               {store ? (
                 <IdentityImageUploader

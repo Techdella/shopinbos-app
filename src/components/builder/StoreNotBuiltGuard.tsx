@@ -52,7 +52,7 @@ export function StoreNotBuiltGuard() {
             Build it with Rex
           </Link>
           <Link href="/builder/templates" className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white px-6 text-[15px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
-            Pick a template
+            Choose how your shop looks
           </Link>
         </div>
         <button type="button" onClick={dismiss} className="mt-3 min-h-[40px] px-3 text-[13.5px] font-bold text-app-ink-soft hover:text-app-ink">

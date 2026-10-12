@@ -63,7 +63,7 @@ export function CategoriesClient({ startOpen }: { startOpen: boolean }) {
         const err = await res.json();
         setNotice({ tone: "error", text: err.error?.message ?? "Failed to create" });
       }
-    } catch { setNotice({ tone: "error", text: "Network error" }); }
+    } catch { setNotice({ tone: "error", text: "We couldn't reach Shopinbos. Check your connection and try again." }); }
     setSaving(false);
     setTimeout(() => setNotice(null), 3000);
   }, [form, router, startOpen]);

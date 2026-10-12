@@ -15,7 +15,7 @@ import { naira } from "@shared/onboarding";
 import { TrendChart } from "./TrendChart";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Analytics" };
+export const metadata: Metadata = { title: "How your shop is doing" };
 
 type Search = Promise<{ range?: string; from?: string; to?: string }>;
 

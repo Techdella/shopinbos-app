@@ -50,15 +50,15 @@ function CampaignCard({ campaign }: { campaign: CampaignRow }) {
         <T weight="extrabold" style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{campaign.name}</T>
         <Badge label={tone.label} bg={tone.bg} fg={tone.fg} />
       </View>
-      <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={1}>
+      <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
         {[CHANNEL[campaign.channel] ?? campaign.channel, campaign.subject, campaign.sentAt ? `sent ${friendlyDay(campaign.sentAt)}` : campaign.scheduledAt ? `for ${friendlyDay(campaign.scheduledAt)}` : null].filter(Boolean).join(" · ")}
       </T>
       {campaign.status === "sent" ? (
         <View style={{ flexDirection: "row", gap: 14, marginTop: 2 }}>
-          <T style={{ fontSize: 12.5 }}><T weight="bold" style={{ fontSize: 12.5 }}>{String(campaign.sentCount)}</T> sent</T>
-          <T style={{ fontSize: 12.5 }}><T weight="bold" style={{ fontSize: 12.5 }}>{pct(campaign.openCount, campaign.sentCount)}</T> opened</T>
-          <T style={{ fontSize: 12.5 }}><T weight="bold" style={{ fontSize: 12.5 }}>{pct(campaign.clickCount, campaign.sentCount)}</T> tapped</T>
-          {campaign.revenueGenerated ? <T weight="bold" style={{ fontSize: 12.5, color: colors.success }}>{naira(campaign.revenueGenerated)}</T> : null}
+          <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{String(campaign.sentCount)}</T> sent</T>
+          <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{pct(campaign.openCount, campaign.sentCount)}</T> opened</T>
+          <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{pct(campaign.clickCount, campaign.sentCount)}</T> tapped</T>
+          {campaign.revenueGenerated ? <T weight="bold" style={{ fontSize: 14, color: colors.success }}>{naira(campaign.revenueGenerated)}</T> : null}
         </View>
       ) : null}
     </Card>
@@ -158,11 +158,11 @@ export default function Marketing() {
                   <T weight="extrabold" style={{ flex: 1, fontSize: 16, letterSpacing: 0.5 }} selectable>{discount.code}</T>
                   <Badge label={expired ? "Ended" : discount.status === "active" ? "Active" : discount.status === "draft" ? "Draft" : "Off"} bg={!expired && discount.status === "active" ? colors.successTint : colors.canvas} fg={!expired && discount.status === "active" ? colors.success : colors.inkSoft} />
                 </View>
-                <T style={{ color: colors.inkSoft, fontSize: 13 }}>
+                <T style={{ color: colors.inkSoft, fontSize: 14 }}>
                   {[discountLabel(discount, naira), discount.name !== discount.code ? discount.name : null, discount.expiresAt ? `${expired ? "ended" : "ends"} ${friendlyDay(discount.expiresAt)}` : null].filter(Boolean).join(" · ")}
                 </T>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                  <T style={{ fontSize: 12.5 }}>{discount.orders} order{discount.orders === 1 ? "" : "s"}{discount.revenue ? ` · ${naira(discount.revenue)} sold` : ""}</T>
+                  <T style={{ fontSize: 14 }}>{discount.orders} order{discount.orders === 1 ? "" : "s"}{discount.revenue ? ` · ${naira(discount.revenue)} sold` : ""}</T>
                   {discount.status === "active" && !expired ? <LinkButton title="Share" style={{ minHeight: 30 }} onPress={() => void Share.share({ message: `Use code ${discount.code} for ${discountLabel(discount, naira).toLowerCase()} when you pay!` })} /> : null}
                 </View>
               </Card>

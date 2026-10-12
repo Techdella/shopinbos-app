@@ -101,7 +101,7 @@ export default function Payments() {
           <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 13, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <View style={{ flex: 1 }}>
               <T weight="extrabold" style={{ fontSize: 15 }}>{method.label}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 18 }}>{method.hint}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{method.hint}</T>
             </View>
             <Toggle label={method.label} on={methods[method.key]} onChange={(on) => setMethods((current) => ({ ...current, [method.key]: on }))} />
           </View>
@@ -140,7 +140,7 @@ export default function Payments() {
         ))}
       </Card>
       {!status?.store.live && status && (
-        <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 19, marginTop: 14, paddingHorizontal: 4 }}>
+        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginTop: 14, paddingHorizontal: 4 }}>
           Going live costs {naira(status.launch.totalNgn)} once, or {naira(status.launch.depositNgn)} now and the rest by month end. You pay on Paystack next.
         </T>
       )}
@@ -192,7 +192,7 @@ export default function Payments() {
               </>
             )}
             {error && <View style={{ marginTop: 12 }}><Notice>{error}</Notice></View>}
-            <T style={{ color: colors.inkFaint, fontSize: 12, textAlign: "center", marginTop: 14 }}>Paystack handles the payment. Shopinbos never sees your card.</T>
+            <T style={{ color: colors.inkFaint, fontSize: 13.5, textAlign: "center", marginTop: 14 }}>Paystack handles the payment. Shopinbos never sees your card.</T>
           </Pressable>
         </Pressable>
       </Modal>

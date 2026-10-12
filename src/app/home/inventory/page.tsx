@@ -56,7 +56,7 @@ export default async function InventoryPage() {
   return (
     <AppPage
       frame={sellerFrame(user, store)}
-      title="Inventory"
+      title="How many you have"
       sub="How much you have of everything, and what is running low."
       actions={
         <>
@@ -105,7 +105,7 @@ export default async function InventoryPage() {
                       <div className="truncate text-[13px] text-app-ink-soft">{[p.sku, source].filter(Boolean).join(" · ")}</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-app-ink-soft xl:contents">
-                      <span>{isDropship ? <Pill tone="muted">Dropship</Pill> : <Pill tone={status.tone} dot>{status.label}</Pill>}</span>
+                      <span>{isDropship ? <Pill tone="muted">Sell without stock</Pill> : <Pill tone={status.tone} dot>{status.label}</Pill>}</span>
                       <span>{isDropship ? "—" : `${p.reservedStock} reserved`}</span>
                       <span>{p.soldStock} sold</span>
                       <span className={cx(!isDropship && p.incomingStock > 0 && "font-bold text-app-success")}>

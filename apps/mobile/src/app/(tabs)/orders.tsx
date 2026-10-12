@@ -3,11 +3,10 @@ import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { EmptyState } from "@/components/kit";
-import { Chip, Notice, T } from "@/components/ui";
+import { Chip, Notice, PillButton, T } from "@/components/ui";
 import { TabScreen } from "@/components/TabScreen";
 import { fetchOrders, TONE_COLORS, type OrderRow } from "@/lib/dashboard";
 import { router, useFocusEffect } from "expo-router";
-import { PillButton } from "@/components/ui";
 import { capitalise, friendlyDay } from "@/lib/friendly";
 import { colors } from "@/theme";
 
@@ -21,7 +20,7 @@ const FILTERS = [
 
 export default function Orders() {
   const [filter, setFilter] = useState("");
-  const [orders, setOrders] = useState<Array<OrderRow & { createdAt: string }> | null>(null);
+  const [orders, setOrders] = useState<(OrderRow & { createdAt: string })[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -71,10 +70,10 @@ export default function Orders() {
               <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{order.summary} · {capitalise(friendlyDay(order.createdAt))}</T>
               <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
                 <View style={{ backgroundColor: TONE_COLORS[order.stage.tone].bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <T weight="bold" style={{ fontSize: 13, color: TONE_COLORS[order.stage.tone].fg }}>{order.stage.label}</T>
+                  <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[order.stage.tone].fg }}>{order.stage.label}</T>
                 </View>
                 <View style={{ backgroundColor: TONE_COLORS[order.payment.tone].bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <T weight="bold" style={{ fontSize: 13, color: TONE_COLORS[order.payment.tone].fg }}>{order.payment.label}</T>
+                  <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[order.payment.tone].fg }}>{order.payment.label}</T>
                 </View>
               </View>
             </View>

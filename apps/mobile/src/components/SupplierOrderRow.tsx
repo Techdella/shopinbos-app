@@ -31,7 +31,7 @@ export function OrderRow({ order }: { order: DropshipOrder | WholesaleOrder }) {
       <Thumb uri={image} />
       <View style={{ flex: 1, gap: 3 }}>
         <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{title}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 13.5 }} numberOfLines={1}>
+        <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>
           {single ? `For ${order.shop} · to ${order.label.address[order.label.address.length - 1] ?? order.label.to}` : `${ORDER_KIND_LABEL.wholesale} · ${order.shop}`} · {capitalise(friendlyDay(order.createdAt))}
         </T>
         <TonePill tone={tone} label={stage} style={{ marginTop: 2 }} />

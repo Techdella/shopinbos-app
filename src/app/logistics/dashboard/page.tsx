@@ -249,13 +249,15 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
           {(cashOwed > 0 || cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
             <Card className="border-0 bg-[#FDF0D5] p-5">
               <CardHead
-                title="Pay in by 6pm"
-                action={<span className="text-[18px] font-extrabold">{naira(cashOwed)}</span>}
+                title={cashOwed > 0 ? "Pay in by 6pm" : "Cash to collect"}
+                action={<span className="text-[18px] font-extrabold">{naira(cashOwed > 0 ? cashOwed : cashOnActiveJobs)}</span>}
               />
               <p className="m-0 mt-1 text-[15px] leading-[1.5] text-[#5C4100]">
-                Cash your riders collected from customers who paid when it arrived, not paid in yet
-                {cashCollectedToday > 0 ? ` · ${naira(cashCollectedToday)} collected today` : ""}
-                {cashOnActiveJobs > 0 ? ` · ${naira(cashOnActiveJobs)} more to collect on active jobs` : ""}.
+                {cashOwed > 0
+                  ? "Cash your riders collected from customers who paid when it arrived, not paid in yet."
+                  : "Customers on jobs that are on the way pay when it arrives. Your riders collect it."}
+                {cashCollectedToday > 0 ? ` ${naira(cashCollectedToday)} collected today.` : ""}
+                {cashOwed > 0 && cashOnActiveJobs > 0 ? ` ${naira(cashOnActiveJobs)} more to collect on jobs on the way.` : ""}
               </p>
               <PillLink href="/logistics/cash" size="sm" className="mt-3">See cash</PillLink>
             </Card>

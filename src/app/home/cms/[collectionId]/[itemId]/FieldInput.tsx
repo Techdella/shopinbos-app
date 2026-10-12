@@ -36,7 +36,7 @@ function useUpload(accept: string, onDone: (files: Array<{ url: string; name: st
           for (const file of files.slice(0, 20)) uploaded.push(await uploadCmsFile(file));
           onDone(uploaded);
         } catch (e) {
-          setError(e instanceof Error ? e.message : "Upload failed");
+          setError(e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again.");
         } finally {
           setBusy(false);
           if (ref.current) ref.current.value = "";

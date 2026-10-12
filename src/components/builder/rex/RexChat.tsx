@@ -339,7 +339,7 @@ export function RexChat({
                 onKeyDown={onKeyDown}
                 rows={2}
                 maxLength={2000}
-                placeholder="Ask Rex to edit a photo, make a logo, change your store, build a campaign…"
+                placeholder="Ask Rex to edit a photo, make a logo, change your shop, plan an advert…"
                 className="block max-h-40 min-h-[52px] w-full resize-none border-0 bg-transparent px-2 py-1.5 text-[15px] leading-[1.45] outline-none placeholder:text-app-ink-faint"
               />
               {linkOpen ? (

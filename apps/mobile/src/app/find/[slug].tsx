@@ -26,7 +26,7 @@ function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: 
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       {button("−", onMinus, minusOff)}
       <View style={{ flex: 1, alignItems: "center" }} accessibilityLabel={`${label} ${value}`}>
-        <T style={{ color: colors.inkSoft, fontSize: 12 }}>{label}</T>
+        <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{label}</T>
         <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>{value}</T>
       </View>
       {button("+", onPlus, plusOff)}
@@ -146,13 +146,13 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
         <Initials name={product.supplier.name} bg={colors.mintTint} fg={colors.forest} />
         <View style={{ flex: 1 }}>
           <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{product.supplier.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={1}>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
             {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
           </T>
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/partners/[id]", params: { id: product.supplier.id, name: product.supplier.name } })} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.canvas }}>
           <AppIcon name="chat" size={16} />
-          <T weight="bold" style={{ fontSize: 13 }}>Message</T>
+          <T weight="bold" style={{ fontSize: 14 }}>Message</T>
         </Pressable>
       </Card>
 
@@ -171,7 +171,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
 
       {mode === "dropship" ? (
         <Card style={{ gap: 6 }}>
-          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>You don't buy anything now. When a customer pays you, {product.supplier.name} sends it to them and you keep the difference. Your money is safe here until delivery.</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>You don&apos;t buy anything now. When a customer pays you, {product.supplier.name} sends it to them and you keep the difference. Your money is safe here until delivery.</T>
           <Stepper
             label="Your selling price"
             value={naira(price)}
@@ -186,7 +186,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
             <Line label="Card and transfer fee" value={`− ${naira(sale.fee)}`} />
             <Line label={`You keep (${sale.keepPct}%)`} value={naira(sale.keep)} strong tone={sale.keep > 0 ? colors.success : colors.danger} />
           </View>
-          {product.price ? <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>Suggested price {naira(product.price)}. The customer pays for delivery when they pay.</T> : null}
+          {product.price ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>Suggested price {naira(product.price)}. The customer pays for delivery when they pay.</T> : null}
         </Card>
       ) : (
         <Card style={{ gap: 8 }}>
@@ -206,7 +206,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
             <View style={{ gap: 4 }}>
               <T weight="bold" style={{ fontSize: 15 }}>Cheaper when you buy more</T>
               {product.tiers.map((tier) => (
-                <T key={tier.minQty} style={{ color: colors.inkSoft, fontSize: 13 }}>
+                <T key={tier.minQty} style={{ color: colors.inkSoft, fontSize: 14 }}>
                   {tier.maxQty ? `${tier.minQty}–${tier.maxQty}` : `${tier.minQty}+`}: {naira(tier.price)} each
                 </T>
               ))}
@@ -214,7 +214,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
           ) : null}
           <Label>Deliver to</Label>
           <Field value={destination} onChangeText={setDestination} placeholder="City, state" maxLength={200} />
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>The supplier tells you the final price and delivery.</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }}>The supplier tells you the final price and delivery.</T>
         </Card>
       )}
 

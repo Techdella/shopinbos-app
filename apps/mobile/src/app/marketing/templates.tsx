@@ -21,8 +21,8 @@ function TemplateCard({ template, onPress }: { template: TemplateRow; onPress: (
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{template.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={2}>{template.description || template.subject}</T>
-          {template.category ? <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 11.5, textTransform: "capitalize" }}>{template.category.replace(/_/g, " ")}</T> : null}
+          <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={2}>{template.description || template.subject}</T>
+          {template.category ? <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 13, textTransform: "capitalize" }}>{template.category.replace(/_/g, " ")}</T> : null}
         </View>
         <AppIcon name="chevron" size={18} color={colors.inkSoft} />
       </Card>

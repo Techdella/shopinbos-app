@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Pressable, type StyleProp, type ViewStyle } from "react-native";
+import { Linking, Pressable, type StyleProp, type ViewStyle } from "react-native";
 import { router, usePathname } from "expo-router";
 import { AppIcon } from "@/components/icons";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { LinkButton, T } from "@/components/ui";
 import { useRole } from "@/lib/role";
-import { openSupportWhatsApp, SUPPORT_WHATSAPP } from "@/lib/support";
+import { openSupportWhatsApp, SUPPORT_EMAIL, SUPPORT_WHATSAPP } from "@/lib/support";
 import { colors } from "@/theme";
 
 // "Help" on every screen (build spec 8A): chat with a person on WhatsApp, or ask Peggy. Without a support
@@ -13,13 +13,15 @@ import { colors } from "@/theme";
 
 export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const { role } = useRole();
+  const { role, signedIn } = useRole();
   // Peggy works on a seller's shop; suppliers and delivery partners get a person.
   const peggy = !role || role === "seller";
 
   async function person() {
     onClose();
     if (await openSupportWhatsApp(`Hello Shopinbos, I need help in the app (${pathname}).`)) return;
+    // The in-app chat needs an account; before logging in, email the team.
+    if (!signedIn) return void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Help with the Shopinbos app")}`);
     router.push({ pathname: "/help/chat", params: { from: pathname } });
   }
 
@@ -36,12 +38,12 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
         tint={colors.successTint}
         iconColor={colors.success}
         title={SUPPORT_WHATSAPP ? "Chat with a person on WhatsApp" : "Chat with a person"}
-        sub={SUPPORT_WHATSAPP ? "Our team answers on WhatsApp. English or Pidgin." : "Our team answers you here in the app."}
+        sub={SUPPORT_WHATSAPP ? "Our team answers on WhatsApp. English or Pidgin." : signedIn ? "Our team answers you here in the app." : `Email our team at ${SUPPORT_EMAIL}.`}
         onPress={() => void person()}
       />
-      {peggy ? <ChoiceRow testID="help-peggy" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title="Ask Peggy" sub="Say what you need. She'll do it or show you how." onPress={() => go("/peggy")} /> : null}
-      <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title="Ask us to set something up" sub="We do the hard parts for you." onPress={() => go("/ask-us")} />
-      <LinkButton title="See my chats with the team" color={colors.inkSoft} onPress={() => go("/help")} />
+      {peggy && signedIn ? <ChoiceRow testID="help-peggy" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title="Ask Peggy" sub="Say what you need. She'll do it or show you how." onPress={() => go("/peggy")} /> : null}
+      {signedIn ? <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title="Ask us to set something up" sub="We do the hard parts for you." onPress={() => go("/ask-us")} /> : null}
+      {signedIn ? <LinkButton title="See my chats with the team" color={colors.inkSoft} onPress={() => go("/help")} /> : null}
     </Sheet>
   );
 }

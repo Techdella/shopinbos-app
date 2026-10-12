@@ -53,7 +53,7 @@ export default function Products() {
         {PRODUCT_DOORS.map((item) => (
           <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: door === item.key }} onPress={() => setDoor(item.key)} style={{ width: "48.4%", minHeight: 118, backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, borderWidth: 2, borderColor: door === item.key ? colors.ink : "transparent" }}>
             <T weight="extrabold" style={{ fontSize: 15, lineHeight: 18 }}>{item.label}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 18, marginTop: 6 }}>{item.hint}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18, marginTop: 6 }}>{item.hint}</T>
           </Pressable>
         ))}
       </View>
@@ -64,7 +64,7 @@ export default function Products() {
           <Card style={{ padding: 20 }}>
             <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{info.note}</T>
             {door === "ig" ? (
-              <T weight="bold" style={{ color: colors.inkFaint, fontSize: 13, marginTop: 12 }}>Instagram import is coming soon. Snap photos for now.</T>
+              <T weight="bold" style={{ color: colors.inkFaint, fontSize: 14, marginTop: 12 }}>Instagram import is coming soon. Snap photos for now.</T>
             ) : (
               <PillButton
                 title={door === "file" ? "Upload a spreadsheet on the web" : "Browse suppliers"}

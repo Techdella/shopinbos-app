@@ -17,7 +17,7 @@ import { colors } from "@/theme";
 
 const LOW = 5;
 
-const FILTERS: Array<{ key: string; label: string; test: (product: SupplierProduct) => boolean }> = [
+const FILTERS: { key: string; label: string; test: (product: SupplierProduct) => boolean }[] = [
   { key: "all", label: "All", test: () => true },
   { key: "live", label: "Shops can see", test: (product) => product.status === "published" },
   { key: "low", label: "Almost finished", test: (product) => product.stockQuantity <= LOW && product.status !== "unpublished" },
@@ -64,7 +64,7 @@ export default function SupplierProducts() {
               <Thumb uri={product.images[0]} size={56} />
               <View style={{ flex: 1, gap: 4 }}>
                 <T weight="extrabold" style={{ fontSize: 14.5 }} numberOfLines={1}>{product.name}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={1}>
+                <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
                   {naira(product.wholesalePrice)} to shops{product._count?.storeProducts ? ` · ${product._count.storeProducts} shops sell it` : ""}
                 </T>
                 <View style={{ flexDirection: "row", gap: 6 }}>

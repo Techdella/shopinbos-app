@@ -250,14 +250,14 @@ export function StoreBuilderStandalone({ storeName, storeDomain }: PortalProps) 
           <span style={{ width: 10, height: 10, borderRadius: 99, background: T.green, boxShadow: `0 0 0 4px ${T.green}33` }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>{storeName} is live</div>
-            <div style={{ fontSize: 13, color: T.textSec }}>Last published 2 days ago - Minimal theme - 8 sections</div>
+            <div style={{ fontSize: 13, color: T.textSec }}>Last published 2 days ago - Minimal look - 8 parts</div>
           </div>
           <Button href="/builder/editor" variant="soft" icon="eye">Preview</Button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18, marginBottom: 22 }}>
           <BigCard href="/builder/rex" tint={T.mint} mascot="rex" eyebrow="AI BUILDER" title="Build with Rex" body="Describe your shop in a sentence. Rex designs the brand, writes copy and generates products - live." cta="Open Rex builder" />
           <BigCard href="/builder/editor" tint={T.purple} icon="edit" eyebrow="MANUAL EDITOR" title="Customise everything" body="Drag, drop and style every block. Full control over layout, type, colour and content like a pro page builder." cta="Open store editor" />
-          <BigCard href="/builder/templates" tint={T.yellow} icon="grid" eyebrow="THEME GALLERY" title="Start from a theme" body="Pick from mobile-first templates across every industry. Rex adapts it to your brand." cta="Browse themes" />
+          <BigCard href="/builder/templates" tint={T.yellow} icon="grid" eyebrow="SHOP LOOKS" title="Start from a shop look" body="Pick from mobile-first looks for every kind of business. Rex adapts it to your brand." cta="See shop looks" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 18 }}>
           <Card style={{ padding: 20 }}>
@@ -472,7 +472,7 @@ function PagesPanel({ pages }: { pages: PageRow[] }) {
   return (
     <Card style={{ overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1.3fr 1fr 1fr .8fr 100px", gap: 10, padding: "12px 20px", borderBottom: `1px solid ${T.border}`, fontSize: 11, fontWeight: 800, color: T.muted, textTransform: "uppercase", letterSpacing: ".04em" }}>
-        <span>Page</span><span>URL</span><span>Template</span><span>Last edited</span><span>Views</span><span />
+        <span>Page</span><span>URL</span><span>Look</span><span>Last edited</span><span>Views</span><span />
       </div>
       {pages.length === 0 ? (
         <div style={{ padding: 28, textAlign: "center", color: T.muted, fontSize: 13 }}>

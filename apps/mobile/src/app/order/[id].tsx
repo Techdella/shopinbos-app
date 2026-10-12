@@ -18,7 +18,7 @@ type PaidWith = "transfer" | "cash" | "pos";
 function Badge({ label, tone }: OrderDetail["row"]["stage"]) {
   return (
     <View style={{ backgroundColor: TONE_COLORS[tone].bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-      <T weight="bold" style={{ fontSize: 12.5, color: TONE_COLORS[tone].fg }}>{label}</T>
+      <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[tone].fg }}>{label}</T>
     </View>
   );
 }
@@ -149,7 +149,7 @@ export default function OrderScreen() {
             )}
             <View style={{ flex: 1 }}>
               <T weight="bold" numberOfLines={2}>{item.name}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13 }}>{item.quantity} × {naira(item.price)}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14 }}>{item.quantity} × {naira(item.price)}</T>
             </View>
             <T weight="extrabold">{naira(item.price * item.quantity)}</T>
           </View>
@@ -160,7 +160,7 @@ export default function OrderScreen() {
         <Row label="Delivery" value={order.shippingFee ? naira(order.shippingFee) : "Free"} />
         <Row label="Total" value={naira(order.total)} strong />
         {(order.paymentMethod || order.channel) && (
-          <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 6 }}>
+          <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>
             {[order.paymentMethod && `Payment: ${PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}`, order.channel && `From ${CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel}`].filter(Boolean).join(" · ")}
           </T>
         )}

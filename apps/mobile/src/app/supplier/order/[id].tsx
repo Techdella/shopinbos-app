@@ -20,7 +20,7 @@ import { colors, radii } from "@/theme";
 
 type LabelWay = "share" | "phone" | "hand";
 
-const LABEL_WAYS: Array<{ key: LabelWay; icon: AppIconName; label: string; hint: string }> = [
+const LABEL_WAYS: { key: LabelWay; icon: AppIconName; label: string; hint: string }[] = [
   { key: "phone", icon: "phone", label: "Show it on my phone", hint: "The rider reads it from your screen" },
   { key: "share", icon: "printer", label: "Print it or send it", hint: "To a printer, or to someone on WhatsApp" },
   { key: "hand", icon: "doc", label: "Write it by hand", hint: "Copy these words onto the parcel" },
@@ -45,7 +45,7 @@ function Step({ n, children }: { n: number; children: string }) {
   return (
     <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
       <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
-        <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13 }}>{String(n)}</T>
+        <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 14 }}>{String(n)}</T>
       </View>
       <T style={{ flex: 1, fontSize: 15, lineHeight: 22 }}>{children}</T>
     </View>

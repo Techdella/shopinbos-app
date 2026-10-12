@@ -17,7 +17,7 @@ const read = (path) => readFileSync(join(ROOT, path), "utf8");
 // ─── Which files ──────────────────────────────────────────────────────────────
 
 const SELLER_DIRS = ["src/app/home", "src/app/marketplace", "src/app/channels", "src/app/builder", "src/app/studio", "src/app/products", "src/app/seller"];
-const SUPPLIER_DIRS = ["src/app/supplier"];
+const SUPPLIER_DIRS = ["src/app/supplier", "src/components/supplier"];
 // Seller- and supplier-facing component folders (storefront/cms render for shoppers; logistics, admin, support,
 // ops and rider belong to other portals).
 const COMPONENT_DIRS = [
@@ -27,7 +27,6 @@ const COMPONENT_DIRS = [
   "src/components/domains",
   "src/components/builder",
   "src/components/marketplace",
-  "src/components/supplier",
   "src/components/growth",
   "src/components/simple",
   "src/components/payments",
@@ -92,7 +91,10 @@ const SUPPLIER_EXTRA = [
 
 // Hits that are fine where they are (file → words). Keep this short and say why.
 const ALLOW = {
-  // The supplier help article names words sellers may hear elsewhere; none so far.
+  // The SMS/Telegram/Meta key fields (SETUPS) and callback URLs only render inside the card's TechFold.
+  "src/app/home/inbox/channels/ChannelsClient.tsx": ["API", "webhook", "dashboard"],
+  // A preview of the storefront as shoppers see it ("Proceed to checkout"), not text addressed to the seller.
+  "src/components/builder/StorePreview.tsx": ["checkout", "campaign"],
 };
 
 // ─── Extracting what people read ──────────────────────────────────────────────
@@ -100,7 +102,7 @@ const ALLOW = {
 const TEXT_PROPS = "title|sub|label|placeholder|hint|description|aria-label|summary|alt|eyebrow|subtitle|heading|cta|empty|emptyText|confirmLabel|helper|caption";
 
 // What text between ">" and "<" looks like when it is TypeScript (generics, comparisons), not JSX text.
-const CODE = /^[\w.]+\s*(?:=>|\()|[;=]\s*$|&&|\|\||=>|===|!==|\b(?:const|let|return|useState|useRef|Array|Record|Promise|void|typeof)\b|\);|\?\s*\\?["'`]|\w\??:\s*(?:string|number|boolean)\b|^\(|\)$/;
+const CODE = /^[\w.]+\s*(?:=>|\()|[;=]\s*$|&&|\|\||=>|===|!==|\b(?:const|let|return|useState|useRef|Array|Record|Promise|void|typeof)\b|\);|\?\s*\\?["'`]|\w\??:\s*(?:string|number|boolean)\b|^\(|^\)|\)$|\?\s*\($/;
 
 /** Removes folded technical/advanced sections, comments and className strings, then returns the readable bits. */
 export function readableText(source) {

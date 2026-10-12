@@ -117,7 +117,7 @@ function WhatsAppStep({ step, onChange, waTemplates, whatsapp }: { step: Extract
         </p>
       ) : null}
       <select
-        aria-label="WhatsApp template"
+        aria-label="WhatsApp message"
         className={selectClass}
         value={step.template ?? ""}
         onChange={(e) => {
@@ -279,7 +279,7 @@ export function FlowEditor({
                       {(Object.keys(CONDITION_LABEL) as FlowCondition[]).map((check) => <option key={check} value={check}>{CONDITION_LABEL[check]}</option>)}
                     </select>
                     {step.check === "in_segment" ? (
-                      <select aria-label="Segment" value={step.segmentId ?? ""} onChange={(e) => setStep(index, { ...step, segmentId: e.target.value || null })} className={selectClass}>
+                      <select aria-label="Group of customers" value={step.segmentId ?? ""} onChange={(e) => setStep(index, { ...step, segmentId: e.target.value || null })} className={selectClass}>
                         <option value="">Choose a group of customers</option>
                         {segments.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>

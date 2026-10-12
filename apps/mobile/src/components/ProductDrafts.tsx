@@ -81,9 +81,9 @@ export function ProductDraftsCard({ state }: { state: ReturnType<typeof useProdu
               <View style={{ flex: 1 }}>
                 <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{item.name || "Name this product"}</T>
                 {needsCheck ? (
-                  <T weight="semibold" style={{ color: colors.accentInk, fontSize: 13 }}>{item.price ? `Check the price: ${naira(item.price)}?` : "Add a price"}</T>
+                  <T weight="semibold" style={{ color: colors.accentInk, fontSize: 14 }}>{item.price ? `Check the price: ${naira(item.price)}?` : "Add a price"}</T>
                 ) : (
-                  <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{[naira(item.price ?? 0), item.detail, `${item.stock} in stock`].filter(Boolean).join(" · ")}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{[naira(item.price ?? 0), item.detail, `${item.stock} in stock`].filter(Boolean).join(" · ")}</T>
                 )}
               </View>
               {editing !== index && <PillButton title={needsCheck ? "Edit" : "✓"} tone="white" size="sm" onPress={() => setEditing(index)} />}

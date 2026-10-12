@@ -73,7 +73,7 @@ export function DownloadLogoButton({ url, fileName, label = "Download", classNam
     setBusy(true);
     try {
       const response = await fetch(url);
-      if (!response.ok) throw new Error("fetch failed");
+      if (!response.ok) throw new Error(String(response.status));
       const blob = await response.blob();
       const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/jpeg" ? "jpg" : blob.type === "image/svg+xml" ? "svg" : "png";
       const href = URL.createObjectURL(blob);
@@ -139,7 +139,7 @@ export function ColourSwatches({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ops: [{ op: "update-theme", changes }] }),
       });
-      if (!response.ok) throw new Error("save failed");
+      if (!response.ok) throw new Error(String(response.status));
       setState("saved");
       router.refresh();
     } catch {
@@ -205,7 +205,7 @@ export function VoiceNote({ initial }: { initial: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brandSettings: { onboardingMemory: { customerProfile: { vibe: value.trim() } } } }),
       });
-      if (!response.ok) throw new Error("save failed");
+      if (!response.ok) throw new Error(String(response.status));
       setSaved(value.trim());
       setState("saved");
       setEditing(false);

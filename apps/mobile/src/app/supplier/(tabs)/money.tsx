@@ -43,7 +43,7 @@ export default function SupplierMoney() {
             </T>
             <T style={{ fontSize: 15, lineHeight: 21 }}>The shop pays first. We keep the money safe and send it to you after delivery.</T>
             <PillButton title={data.overview.bank ? "See money sent to my bank" : "Add my bank"} tone={data.overview.bank ? "white" : "ink"} style={{ marginTop: 6 }} onPress={() => void openWeb("/supplier/payouts")} />
-            <T style={{ color: colors.inkSoft, fontSize: 13, textAlign: "center" }}>Opens in your browser</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>Opens in your browser</T>
           </Card>
 
           <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">Recent</T>
@@ -54,7 +54,7 @@ export default function SupplierMoney() {
                   <Thumb uri={order.kind === "dropship" ? order.items[0]?.image : order.product.image} size={40} />
                   <View style={{ flex: 1 }}>
                     <T weight="bold" style={{ fontSize: 15 }} numberOfLines={1}>{orderTitle(order)}</T>
-                    <T style={{ color: colors.inkSoft, fontSize: 13.5 }} numberOfLines={1}>{order.shop} · {supplierOrderStage(order.status).toLowerCase()} · {capitalise(friendlyDay(order.createdAt))}</T>
+                    <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{order.shop} · {supplierOrderStage(order.status).toLowerCase()} · {capitalise(friendlyDay(order.createdAt))}</T>
                   </View>
                   <T weight="extrabold" style={{ fontSize: 15 }}>{naira(order.kind === "dropship" ? order.yourTotal : order.total)}</T>
                 </View>

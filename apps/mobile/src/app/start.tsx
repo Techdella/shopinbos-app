@@ -97,7 +97,7 @@ export default function StartHere() {
                     <PillButton title={words(step).label} size="sm" tone={open ? "ink" : "white"} busy={busy === step.key} onPress={() => run(step, data)} />
                     {open && step.helper ? (
                       <Pressable accessibilityRole="button" onPress={() => ask(step)} style={{ minHeight: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.mintTint }}>
-                        <T weight="bold" style={{ fontSize: 13, color: colors.forest }}>Ask {step.helper.who === "rex" ? "Rex" : "Peggy"}</T>
+                        <T weight="bold" style={{ fontSize: 14, color: colors.forest }}>Ask {step.helper.who === "rex" ? "Rex" : "Peggy"}</T>
                       </Pressable>
                     ) : null}
                   </View>

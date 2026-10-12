@@ -45,7 +45,7 @@ export default function BulkRequests() {
             <Thumb uri={quote.supplierProduct.images[0]} />
             <View style={{ flex: 1, gap: 3 }}>
               <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{quote.seller.name} wants {countWord(quote.quantity)}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13.5 }} numberOfLines={1}>{quote.supplierProduct.name} · {capitalise(friendlyDay(quote.createdAt))}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{quote.supplierProduct.name} · {capitalise(friendlyDay(quote.createdAt))}</T>
               <View style={{ flexDirection: "row", gap: 6 }}>
                 <TonePill tone={quoteStage(quote.status).tone} label={bulkRequestStage(quote.status)} />
                 {quote.quotedPrice ? <TonePill tone="muted" label={`${naira(quote.quotedPrice)} each`} /> : null}

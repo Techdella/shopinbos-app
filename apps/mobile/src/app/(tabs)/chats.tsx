@@ -91,17 +91,17 @@ export default function Chats() {
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <T weight={item.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{item.name}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(item.at)}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.at)}</T>
               </View>
               <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{item.preview || "No messages yet"}</T>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-                <T weight="semibold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? "Partner" : channelLabel(item.channel)}</T>
-                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 11.5, color: colors.accentInk }}>· Later</T> : null}
+                <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? "Partner" : channelLabel(item.channel)}</T>
+                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 13, color: colors.accentInk }}>· Later</T> : null}
               </View>
             </View>
             {item.unread ? (
               <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 12 }}>{String(item.unread)}</T>
+                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13.5 }}>{String(item.unread)}</T>
               </View>
             ) : null}
           </Pressable>

@@ -46,7 +46,7 @@ type Option = { value: string; label: string };
 function Actions({ template, size = "sm" }: { template: GalleryTemplate; size?: "sm" | "md" }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Link href={`/home/marketing/campaigns/new?template=${template.id}`} className={cx(buttonClass("ink", size), "no-underline")}>Use in a campaign</Link>
+      <Link href={`/home/marketing/campaigns/new?template=${template.id}`} className={cx(buttonClass("ink", size), "no-underline")}>Use in a message</Link>
       {template.saved ? (
         <Link href={`/home/marketing/templates/${template.id}`} className={cx(buttonClass("white", size), "no-underline")}>Edit</Link>
       ) : (
@@ -135,7 +135,7 @@ function SeriesButton({ series }: { series: GallerySeries }) {
     } catch (error) {
       try {
         for (const step of series.steps) await api("/api/app/marketing/templates", "POST", { copy: step.templateId });
-        setMessage({ tone: "info", text: `The automation couldn't be made (${errorText(error)}), so the ${series.steps.length} emails were saved to your templates. Add them to a flow in Automations.` });
+        setMessage({ tone: "info", text: `The automation couldn't be made (${errorText(error)}), so the ${series.steps.length} emails were saved to your designs. Add them to a flow in Automations.` });
       } catch (copyError) {
         setMessage({ tone: "error", text: errorText(copyError) });
       }
@@ -213,7 +213,7 @@ export function TemplateGallery({ saved, library, series, flows, styles }: { sav
 
   return (
     <div className="grid gap-5">
-      <nav aria-label="Template journeys" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <nav aria-label="Email series" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
           {tabs.map((tab) => (
             <button
@@ -233,7 +233,7 @@ export function TemplateGallery({ saved, library, series, flows, styles }: { sav
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex min-h-[44px] w-full items-center gap-2 rounded-full border border-app-line bg-white px-4 sm:w-[300px]">
           <Icon name="search" size={16} className="shrink-0 text-app-ink-soft" />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search templates" aria-label="Search templates" className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search designs" aria-label="Search designs" className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
         </label>
         <label className="flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white pl-4 pr-2 text-[13.5px] font-bold">
           <Icon name="palette" size={15} className="shrink-0 text-app-ink-soft" />
@@ -247,13 +247,13 @@ export function TemplateGallery({ saved, library, series, flows, styles }: { sav
 
       {(filter === "all" || filter === "mine") && (saved.length > 0 || filter === "mine") && style === "all" ? (
         <section className="grid gap-3">
-          <h2 className="m-0 text-[17px] font-extrabold">Your templates</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">Your designs</h2>
           {mine.length ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {mine.map((t) => <TemplateCard key={t.id} template={t} onPreview={() => setPreview(t)} />)}
             </div>
           ) : (
-            <p className="m-0 text-[14px] text-app-ink-soft">None of your templates match.</p>
+            <p className="m-0 text-[14px] text-app-ink-soft">None of your designs match.</p>
           )}
         </section>
       ) : null}
@@ -278,13 +278,13 @@ export function TemplateGallery({ saved, library, series, flows, styles }: { sav
               {starters.map((t) => <TemplateCard key={t.id} template={t} onPreview={() => setPreview(t)} />)}
             </div>
           ) : (
-            <EmptyState icon="search" title="No starters match">Try another word or style, or start a new template and ask Peggy to write it.</EmptyState>
+            <EmptyState icon="search" title="No starters match">Try another word or style, or start a new design and ask Peggy to write it.</EmptyState>
           )}
         </section>
       ) : null}
 
       {!saved.length && filter === "all" && !query ? (
-        <p className="m-0 text-[13.5px] text-app-ink-soft">Templates you save show up first here, and in the campaign editor.</p>
+        <p className="m-0 text-[13.5px] text-app-ink-soft">Designs you save show up first here, and when you write a message to customers.</p>
       ) : null}
 
       {preview ? <PreviewDialog template={preview} onClose={() => setPreview(null)} /> : null}

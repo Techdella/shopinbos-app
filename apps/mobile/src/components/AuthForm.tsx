@@ -9,6 +9,7 @@ import { BackButton, Chip, Field, Label, LinkButton, Notice, PhoneField, PillBut
 import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { colors } from "@/theme";
+import { HelpButton } from "@/components/Help";
 
 type Mode = "signup" | "login";
 type Method = "phone" | "email";
@@ -107,7 +108,10 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
-            <LinkButton title={mode === "signup" ? "Log in" : "Create a shop"} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <LinkButton title={mode === "signup" ? "Log in" : "Create a shop"} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
+              <HelpButton />
+            </View>
           </View>
           <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
             {mode === "signup" ? ROLE_HEADING[role] : "Welcome back"}

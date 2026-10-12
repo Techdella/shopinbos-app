@@ -144,13 +144,13 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           navigation: { ...localNav, menuLabel: localNav.menuLabel || page.title },
         }),
       });
-      if (!res.ok) throw new Error("Failed to save");
+      if (!res.ok) throw new Error("We couldn't save the page. Check your connection and try again.");
       const json = await res.json();
       setPage((prev) => ({ ...prev, ...json.data, draftContent: json.data.draftContent }));
       toast({ title: "Draft saved", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to save", variant: "error" });
+      toast({ title: "We couldn't save the page. Check your connection and try again.", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -167,13 +167,13 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           content: page.draftContent ?? {},
         }),
       });
-      if (!res.ok) throw new Error("Failed to publish");
+      if (!res.ok) throw new Error("We couldn't publish the page. Check your connection and try again.");
       const json = await res.json();
       setPage((prev) => ({ ...prev, ...json.data }));
       toast({ title: "Page published", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to publish", variant: "error" });
+      toast({ title: "We couldn't publish the page. Check your connection and try again.", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -187,13 +187,13 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isPublished: false }),
       });
-      if (!res.ok) throw new Error("Failed to unpublish");
+      if (!res.ok) throw new Error("We couldn't hide the page. Try again.");
       const json = await res.json();
       setPage((prev) => ({ ...prev, ...json.data }));
       toast({ title: "Page unpublished", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to unpublish", variant: "error" });
+      toast({ title: "We couldn't hide the page. Try again.", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -207,13 +207,13 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "archived" }),
       });
-      if (!res.ok) throw new Error("Failed to archive");
+      if (!res.ok) throw new Error("We couldn't archive the page. Try again.");
       const json = await res.json();
       setPage((prev) => ({ ...prev, ...json.data }));
       toast({ title: "Page archived", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to archive", variant: "error" });
+      toast({ title: "We couldn't archive the page. Try again.", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -227,13 +227,13 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "draft" }),
       });
-      if (!res.ok) throw new Error("Failed to restore");
+      if (!res.ok) throw new Error("We couldn't bring the page back. Try again.");
       const json = await res.json();
       setPage((prev) => ({ ...prev, ...json.data }));
       toast({ title: "Page restored from archive", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to restore", variant: "error" });
+      toast({ title: "We couldn't bring the page back. Try again.", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -254,13 +254,13 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           publishAt: new Date(localScheduling.publishAt).toISOString(),
         }),
       });
-      if (!res.ok) throw new Error("Failed to schedule");
+      if (!res.ok) throw new Error("We couldn't schedule the page. Try again.");
       const json = await res.json();
       setPage((prev) => ({ ...prev, ...json.data }));
       toast({ title: "Page scheduled", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to schedule", variant: "error" });
+      toast({ title: "We couldn't schedule the page. Try again.", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -270,11 +270,11 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
     if (!confirm("Are you sure you want to delete this page? This cannot be undone.")) return;
     try {
       const res = await fetch(`/api/store/pages/${page.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) throw new Error("We couldn't delete the page. Try again.");
       toast({ title: "Page deleted", variant: "success" });
       router.push("/home/pages");
     } catch {
-      toast({ title: "Failed to delete", variant: "error" });
+      toast({ title: "We couldn't delete the page. Try again.", variant: "error" });
     }
   }, [page.id, router]);
 
@@ -295,7 +295,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
       toast({ title: "Schedule cancelled", variant: "success" });
       router.refresh();
     } catch {
-      toast({ title: "Failed to cancel schedule", variant: "error" });
+      toast({ title: "We couldn't cancel the schedule. Try again.", variant: "error" });
     }
   };
 

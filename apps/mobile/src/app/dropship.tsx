@@ -37,11 +37,11 @@ function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: 
         </View>
         <View style={{ flex: 1, gap: 3 }}>
           <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={2}>{item.product.name}</T>
-          <T style={{ fontSize: 12.5, color: colors.inkSoft }} numberOfLines={1}>{[item.supplier.name, item.supplier.city, item.ships].filter(Boolean).join(" · ")}</T>
-          <T style={{ fontSize: 13 }}>
-            Cost <T weight="extrabold" style={{ fontSize: 13 }}>{naira(item.sale.supplierGets)}</T>  ·  Sell <T weight="extrabold" style={{ fontSize: 13 }}>{naira(item.sale.shopperPays)}</T>
+          <T style={{ fontSize: 14, color: colors.inkSoft }} numberOfLines={1}>{[item.supplier.name, item.supplier.city, item.ships].filter(Boolean).join(" · ")}</T>
+          <T style={{ fontSize: 14 }}>
+            Cost <T weight="extrabold" style={{ fontSize: 14 }}>{naira(item.sale.supplierGets)}</T>  ·  Sell <T weight="extrabold" style={{ fontSize: 14 }}>{naira(item.sale.shopperPays)}</T>
           </T>
-          <T weight="extrabold" style={{ fontSize: 13, color: item.sale.keep > 0 ? colors.success : colors.danger }}>
+          <T weight="extrabold" style={{ fontSize: 14, color: item.sale.keep > 0 ? colors.success : colors.danger }}>
             {item.sale.keep > 0 ? `You keep ${naira(item.sale.keep)} · ${item.sale.keepPct}%` : `You lose ${naira(-item.sale.keep)}. Raise the price`}
           </T>
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 2 }}>

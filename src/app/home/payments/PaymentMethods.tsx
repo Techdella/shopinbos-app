@@ -77,7 +77,7 @@ export function PaymentMethods({ initial, transferWindow }: {
         </div>
       )}
       <p className="m-0 mt-2 text-[12.5px] leading-[1.45] text-app-ink-soft">
-        Bank transfer shows at checkout once your payout bank is verified. Pay on delivery shows for orders up to ₦50,000 in your delivery zones.
+        Bank transfer shows on the payment page once your bank is checked. Pay on delivery shows for orders up to ₦50,000 in your delivery zones.
       </p>
       {error && <div className="mt-3"><Notice>{error}</Notice></div>}
     </Card>

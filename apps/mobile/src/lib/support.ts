@@ -4,6 +4,9 @@ import { api } from "./api";
 // Help: a person on WhatsApp, or the in-app chat with the Shopinbos team (the same support tickets as the
 // web's "Talk to a person", /api/support/tickets).
 
+/** Same address as the web (src/lib/support/pure.ts SUPPORT_EMAIL). */
+export const SUPPORT_EMAIL = "support@shopinbos.com";
+
 /**
  * The support team's WhatsApp number, digits only with the country code (e.g. 234…).
  * TODO: set EXPO_PUBLIC_SUPPORT_WHATSAPP (the web uses NEXT_PUBLIC_SUPPORT_WHATSAPP) to the real support number.
@@ -39,7 +42,7 @@ export interface SupportMessage {
   authorName: string | null;
   body: string;
   createdAt: string;
-  attachments: Array<{ name: string; url: string }>;
+  attachments: { name: string; url: string }[];
 }
 
 export interface SupportTicket {

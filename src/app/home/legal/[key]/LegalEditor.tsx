@@ -140,7 +140,7 @@ export function LegalEditor(props: {
   function applyTemplate() {
     const doc = legalTemplate(props.page.key, props.templateContext);
     if (!doc) return;
-    if (!empty && !window.confirm("Replace what you've written with the template? You can undo this by leaving without saving.")) return;
+    if (!empty && !window.confirm("Replace what you've written with the ready-made page? You can undo this by leaving without saving.")) return;
     set({ doc });
     setNotice({ tone: "info", text: "Ready-made page added. Replace every [Check: …] with your own details before you publish." });
   }
