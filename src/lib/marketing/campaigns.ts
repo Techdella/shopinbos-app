@@ -6,8 +6,10 @@ import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notificat
 import { campaignFilter, resolveCampaignRecipients, resolveTextRecipients, sendCampaign, type CampaignChannel, type RecipientFilter } from "@/lib/campaigns/send";
 import { MARKETING_STORE_SELECT, emailBrand, storeUrl } from "./brand";
 import { sendMarketingText } from "./channels";
-import { SAMPLE_VARIABLES, wrapEmail } from "./email-layout";
+import { SAMPLE_VARIABLES } from "./email-layout";
 import { fillVariables } from "./flows";
+import { renderEmailPreview } from "./preview";
+import { sanitizeEmailHtml } from "./sanitize";
 import { MarketingError } from "./segments";
 
 // Campaign drafts, scheduling, audience counts and test sends. Sending itself is src/lib/campaigns/send.ts.
@@ -47,7 +49,7 @@ export async function createCampaign(storeId: string, input: CampaignInput) {
       channel,
       subject: (input.subject?.trim() || (channel === "email" ? name : `${channel.toUpperCase()} message`)).slice(0, 200),
       preheader: input.preheader?.trim() || null,
-      bodyHtml: input.bodyHtml ?? "",
+      bodyHtml: channel === "email" ? sanitizeEmailHtml(input.bodyHtml ?? "") : (input.bodyHtml ?? ""),
       templateId: input.templateId || null,
       senderName: store.name,
       campaignType: input.campaignType ?? "newsletter",
@@ -72,7 +74,7 @@ export async function updateCampaign(storeId: string, id: string, input: Partial
   if (input.channel !== undefined && CHANNELS.includes(input.channel)) data.channel = input.channel;
   if (input.subject !== undefined) data.subject = input.subject.trim().slice(0, 200) || campaign.subject;
   if (input.preheader !== undefined) data.preheader = input.preheader?.trim() || null;
-  if (input.bodyHtml !== undefined) data.bodyHtml = input.bodyHtml;
+  if (input.bodyHtml !== undefined) data.bodyHtml = (input.channel ?? campaign.channel) === "email" ? sanitizeEmailHtml(input.bodyHtml) : input.bodyHtml;
   if (input.templateId !== undefined) data.templateId = input.templateId || null;
   if (input.campaignType !== undefined) data.campaignType = input.campaignType;
   if (input.segmentId !== undefined) data.segmentId = await checkSegment(storeId, input.segmentId);
@@ -108,9 +110,7 @@ export async function campaignAudienceSize(storeId: string, campaign: { channel:
 export async function previewCampaignHtml(storeId: string, input: { bodyHtml: string; preheader?: string | null }) {
   const store = await db.store.findUnique({ where: { id: storeId }, select: MARKETING_STORE_SELECT });
   if (!store) throw new MarketingError("Store not found");
-  const brand = emailBrand(store);
-  const vars = { ...SAMPLE_VARIABLES, store: store.name, store_url: storeUrl(store), cart_url: storeUrl(store, "/cart"), unsubscribe_url: "#", brand_accent: brand.accent };
-  return wrapEmail({ bodyHtml: fillVariables(input.bodyHtml, vars, "html"), brand, preheader: input.preheader });
+  return renderEmailPreview({ bodyHtml: input.bodyHtml, preheader: input.preheader, brand: emailBrand(store), shop: { name: store.name, url: storeUrl(store) } });
 }
 
 /** Sends the current draft to the seller only, marked [Test]. */

@@ -180,11 +180,13 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
           }
         />
 
-        <nav aria-label="Marketing tools" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <nav aria-label="Marketing tools" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {([
             ["/home/marketing/subscribers", "Subscribers", "users", "Your list, consent, tags, import and export"],
             ["/home/marketing/segments", "Segments", "layers", "Groups by spend, orders, place, products"],
-            ["/home/marketing/templates", "Email templates", "mail", "Branded layouts you reuse"],
+            ["/home/marketing/templates", "Email templates", "mail", "Ready-made emails, visual and HTML builder"],
+            ["/home/inbox/auto-replies", "Auto-replies", "clock", "Away message, opening hours, quick replies"],
+            ["/home/inbox/chatbot", "Peggy chatbot", "sparkle", "Peggy answers shoppers on your live chat"],
             ["/home/marketing/analytics", "Reports", "chart", "What each campaign and automation brought in"],
           ] as Array<[string, string, IconName, string]>).map(([href, label, icon, sub]) => (
             <a key={href} href={href} className="flex items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 text-app-ink no-underline hover:border-app-line-strong">

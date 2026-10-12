@@ -95,6 +95,8 @@ interface Props {
   storeBasePath: string;
   previewSnapshot?: StoreEditorSnapshot | null;
   previewMode?: boolean;
+  /** The owner viewing their own store before it's live (/s/<slug> or /preview). */
+  ownerPreview?: boolean;
   device?: "desktop" | "mobile";
   selectedPage?: string;
   onSelectPage?: (page: string) => void;
@@ -543,6 +545,7 @@ export function StorefrontClient({
   storeBasePath,
   previewSnapshot = null,
   previewMode = false,
+  ownerPreview = false,
   device = "desktop",
   selectedPage,
   onSelectPage,
@@ -578,7 +581,12 @@ export function StorefrontClient({
   const snapshot = useMemo(() => {
     if (previewSnapshot) return previewSnapshot;
     if (store.brandSettings?.editor?.published) return store.brandSettings.editor.published;
-    if (!previewMode) return buildPublishedPagesSnapshot(store) ?? buildEmptyPublishedSnapshot(store);
+    if (!previewMode) {
+      const published = buildPublishedPagesSnapshot(store);
+      if (published) return published;
+      // The owner previewing a store with nothing published yet sees its draft or template, not a blank page.
+      if (!ownerPreview) return buildEmptyPublishedSnapshot(store);
+    }
     if (store.brandSettings?.editor?.draft) return store.brandSettings.editor.draft;
     if (store.brandSettings?.themeTokens) {
       const templateId = store.brandSettings?.template?.templateId;
@@ -588,7 +596,7 @@ export function StorefrontClient({
       return snapshot;
     }
     return buildLegacySnapshot(store);
-  }, [previewSnapshot, store]);
+  }, [previewSnapshot, store, previewMode, ownerPreview]);
   const cartVariation = useMemo(() => {
     const cartPage = snapshot.pages.find((entry) => entry.pageType === "cart");
     const cartSection = cartPage?.sections.find((entry) => entry.kind === "cart-summary");

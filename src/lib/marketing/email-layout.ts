@@ -1,5 +1,3 @@
-import { htmlFromBlocks, type EmailBlock } from "./blocks.ts";
-
 // Branded email shell and the starter template library. Pure (no server imports), unit-tested.
 // Templates are stored as body HTML with {{variables}}; wrapEmail puts the shop's logo and brand colours
 // around them at send time and in previews, so a brand kit change shows up in every email.
@@ -46,77 +44,7 @@ ${bodyHtml.replace(/{{\s*brand_accent\s*}}/g, accent)}
 </body></html>`;
 }
 
-export interface LibraryTemplate {
-  key: string;
-  name: string;
-  category: "newsletter" | "promotion" | "product_launch" | "announcement" | "abandoned_cart" | "welcome" | "order";
-  subject: string;
-  preheader: string;
-  bodyHtml: string;
-}
-
-const h = (text: string): EmailBlock => ({ type: "heading", text });
-const t = (text: string): EmailBlock => ({ type: "text", text });
-const b = (label: string, url = "{{store_url}}"): EmailBlock => ({ type: "button", label, url });
-
-export const TEMPLATE_LIBRARY: LibraryTemplate[] = [
-  {
-    key: "newsletter",
-    name: "Simple newsletter",
-    category: "newsletter",
-    subject: "News from {{store}}",
-    preheader: "What's new this week",
-    bodyHtml: htmlFromBlocks([h("What's new at {{store}}"), t("Hi {{name}},"), t("Here's what we've been working on this week. Write a few lines about new stock, a story from the shop, or a tip for your customers."), b("Visit the shop")]),
-  },
-  {
-    key: "sale",
-    name: "Sale announcement",
-    category: "promotion",
-    subject: "Our sale starts now at {{store}}",
-    preheader: "For a few days only",
-    bodyHtml: htmlFromBlocks([h("The sale is on"), t("Hi {{name}},"), t("For the next few days, selected items are reduced. Use code **SALE** at checkout."), b("Shop the sale"), t("The offer ends soon, so don't wait too long.")]),
-  },
-  {
-    key: "new_arrival",
-    name: "New arrivals",
-    category: "product_launch",
-    subject: "Just in at {{store}}",
-    preheader: "Fresh stock, first look",
-    bodyHtml: htmlFromBlocks([h("Just landed"), t("Hi {{name}},"), t("New pieces are in and you're getting the first look. Tell your customers what makes them special."), b("See what's new")]),
-  },
-  {
-    key: "announcement",
-    name: "Shop announcement",
-    category: "announcement",
-    subject: "An update from {{store}}",
-    preheader: "Something you should know",
-    bodyHtml: htmlFromBlocks([h("A quick update"), t("Hi {{name}},"), t("Share news: new opening hours, a delivery change, a holiday break, or a new way to pay."), t("Thank you for shopping with us.\n{{store}}")]),
-  },
-  {
-    key: "welcome",
-    name: "Welcome email",
-    category: "welcome",
-    subject: "Welcome to {{store}}",
-    preheader: "Thanks for joining",
-    bodyHtml: htmlFromBlocks([h("Welcome, {{name}}"), t("Thanks for joining {{store}}. You'll hear about new arrivals and offers before anyone else."), b("Start shopping")]),
-  },
-  {
-    key: "cart",
-    name: "Cart reminder",
-    category: "abandoned_cart",
-    subject: "You left something at {{store}}",
-    preheader: "Your cart is saved",
-    bodyHtml: htmlFromBlocks([h("Still thinking it over?"), t("Hi {{name}}, your cart is saved: {{cart_items}}."), t("**Total: {{cart_total}}**"), b("Finish your order", "{{cart_url}}")]),
-  },
-  {
-    key: "thank_you",
-    name: "Thank you",
-    category: "order",
-    subject: "Thank you for your order",
-    preheader: "We're getting it ready",
-    bodyHtml: htmlFromBlocks([h("Thank you, {{name}}"), t("We've received order {{order_number}} ({{order_total}}) and we're getting it ready."), t("Reply to this email if you need anything.")]),
-  },
-];
+export { TEMPLATE_LIBRARY, TEMPLATE_CATEGORIES, nearestStarter, type LibraryTemplate, type TemplateCategory } from "./template-library.ts";
 
 /** Sample values for previews, so a preview never pretends a real customer got it. */
 export const SAMPLE_VARIABLES = {

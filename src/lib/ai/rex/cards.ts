@@ -26,7 +26,7 @@ export type RexCard =
       language: string;
       script: { captions: string[]; voiceover: string; cta: string };
     }
-  | { type: "marketing"; kind: "campaign" | "automation" | "segment" | "content"; id: string; title: string; summary: string; href: string; canActivate: boolean }
+  | { type: "marketing"; kind: "campaign" | "automation" | "segment" | "content" | "template"; id: string; title: string; summary: string; href: string; canActivate: boolean }
   | { type: "health"; score: number; missing: Array<{ label: string; rexPrompt: string | null; href: string | null }> }
   | { type: "preview"; page: string | null };
 

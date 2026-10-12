@@ -89,7 +89,7 @@ export const MARKETING_TOOL_SPECS = {
   },
   marketing_list_templates: {
     write: false,
-    description: "The shop's saved email templates and the starter library (newsletter, sale, new arrivals, announcement, welcome, cart reminder, thank you).",
+    description: "The shop's saved email templates and the starter library (welcome, newsletter, sale, new arrivals, cart reminder, thank you, shipping, review request, win-back, birthday, Sallah, Christmas, Detty December, Valentine's, back in stock, event invite, announcement).",
     schema: z.object({}).strict(),
   },
 } as const;

@@ -10,8 +10,9 @@ import { FulfillmentPanel } from "./FulfillmentPanel";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { naira } from "@shared/onboarding";
+import { messagesHref } from "@/lib/conversations/pure";
 
-type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string };
+type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
@@ -41,10 +42,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const booking = await db.deliveryBooking.findFirst({
     where: { orderId: order.id, sellerId: user.id, status: { not: "cancelled" } },
     orderBy: { createdAt: "desc" },
-    select: { status: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
+    select: { id: true, status: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { id: true, displayName: true } } },
   });
 
   const items = (Array.isArray(order.items) ? order.items : []) as OrderItem[];
+  // Suppliers behind the products on this order (dropshipped or bought wholesale), to message about it.
+  const itemProductIds = [...new Set(items.map((item) => item.productId).filter((value): value is string => typeof value === "string"))];
+  const orderSuppliers = itemProductIds.length
+    ? await db.storeProduct
+        .findMany({
+          where: { storeId: store.id, id: { in: itemProductIds }, supplierProductId: { not: null } },
+          select: { supplierProduct: { select: { supplier: { select: { id: true, displayName: true } } } } },
+        })
+        .then((rows) => [...new Map(rows.flatMap((row) => (row.supplierProduct ? [[row.supplierProduct.supplier.id, row.supplierProduct.supplier] as const] : []))).values()])
+        .catch(() => [])
+    : [];
   const address = addressLines(order.deliveryAddress);
   const logistics = order.logisticsDetails && typeof order.logisticsDetails === "object" && !Array.isArray(order.logisticsDetails)
     ? (order.logisticsDetails as Record<string, unknown>)
@@ -185,6 +197,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   {needsRider && (
                     <div>
                       <PillLink href="/home/logistics" size="sm" icon="truck">Find a delivery partner</PillLink>
+                    </div>
+                  )}
+                  {(booking || orderSuppliers.length > 0) && (
+                    <div className="flex flex-wrap gap-2">
+                      {booking && (
+                        <PillLink href={messagesHref("seller", { with: booking.logisticsPartner.id, context: { kind: "booking", id: booking.id } })} size="sm" icon="chat">
+                          Message delivery partner
+                        </PillLink>
+                      )}
+                      {orderSuppliers.map((supplier) => (
+                        <PillLink key={supplier.id} href={messagesHref("seller", { with: supplier.id, context: { kind: "order", id: order.id } })} size="sm" icon="chat">
+                          Message {orderSuppliers.length > 1 ? supplier.displayName : "supplier"}
+                        </PillLink>
+                      ))}
                     </div>
                   )}
                 </div>

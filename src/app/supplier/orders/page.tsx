@@ -2,11 +2,12 @@ import type { Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { db } from "@/lib/db/client";
-import { AppPage, Card, EmptyState, FilterChips, Pill, SearchForm, Thumb } from "@/components/app-kit";
+import { AppPage, Card, EmptyState, FilterChips, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { ORDER_STATUS, buttonClass, money, orderRef, statusOf, supplierFrame, timeAgo } from "@/components/supplier/supplier-kit";
 import { updateSupplierOrderStatus } from "@/app/actions/supplier";
+import { messagesHref } from "@/lib/conversations/pure";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +129,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     <Pill tone={stage.tone} dot>{stage.label}</Pill>
+                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">Message seller</PillLink>
                     <span className="min-w-[90px] text-right text-[14.5px] font-extrabold">{money(order.totalPrice, order.currency)}</span>
                   </div>
                   {canShip && (

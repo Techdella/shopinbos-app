@@ -285,7 +285,7 @@ function VideoCard({ card }: { card: Extract<RexCard, { type: "video" }> } & Rex
   );
 }
 
-const MARKETING_LABEL = { campaign: "Email campaign (draft)", automation: "Automation", segment: "Customer segment", content: "Content" } as const;
+const MARKETING_LABEL = { campaign: "Email campaign (draft)", automation: "Automation", segment: "Customer segment", content: "Content", template: "Email template (draft)" } as const;
 
 function MarketingCard({ card }: { card: Extract<RexCard, { type: "marketing" }> } & RexCardHandlers) {
   const confirm = useConfirm();
@@ -293,7 +293,7 @@ function MarketingCard({ card }: { card: Extract<RexCard, { type: "marketing" }>
     <section className={shell} aria-label={card.title}>
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-app-peach">
-          <Icon name={card.kind === "campaign" ? "megaphone" : card.kind === "automation" ? "automation" : card.kind === "content" ? "document" : "users"} size={17} />
+          <Icon name={card.kind === "campaign" ? "megaphone" : card.kind === "automation" ? "automation" : card.kind === "content" ? "document" : card.kind === "template" ? "mail" : "users"} size={17} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[12.5px] font-bold text-app-ink-soft">{MARKETING_LABEL[card.kind]}</p>

@@ -464,28 +464,6 @@ export async function saveStoreNavigationSettings(formData: FormData) {
   redirect("/home/navigation?saved=1");
 }
 
-export async function saveStoreLegalSettings(formData: FormData) {
-  const user = await getSellerUserOrThrow();
-  const store = await db.store.findUnique({ where: { userId: user.id } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      brandSettings: mergeBrandSettings(store.brandSettings, {
-        legal: {
-          privacyPolicy: String(formData.get("privacyPolicy") || "").trim(),
-          terms: String(formData.get("terms") || "").trim(),
-          returnPolicy: String(formData.get("returnPolicy") || "").trim(),
-          shippingPolicy: String(formData.get("shippingPolicy") || "").trim(),
-        },
-      }),
-    },
-  });
-
-  redirect("/home/legal?saved=1");
-}
-
 export async function saveStoreCartSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
   const store = await db.store.findUnique({ where: { userId: user.id } });

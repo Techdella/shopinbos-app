@@ -12,6 +12,7 @@ import {
 } from "@/lib/store-templates";
 import { loadShopperInfo } from "./shopper-info.server";
 import type { StorefrontShopperInfo } from "./shopper-info";
+import { PREVIEW_PRODUCT_STATUSES } from "./store-visibility";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
 
@@ -79,7 +80,12 @@ const catalogSelect = {
   supplierProduct: { select: { stockQuantity: true } },
 } as const;
 
-export const loadProductPage = cache(async (slug: string, productId: string) => {
+/**
+ * preview: the owner's view of a store that isn't live (the caller checks ownership with resolveStorefront);
+ * the store needn't be active and draft products show.
+ */
+export const loadProductPage = cache(async (slug: string, productId: string, preview = false) => {
+  const statuses: readonly string[] = preview ? PREVIEW_PRODUCT_STATUSES : ["published"];
   const [store, product] = await Promise.all([
     db.store.findUnique({
       where: { slug },
@@ -103,7 +109,8 @@ export const loadProductPage = cache(async (slug: string, productId: string) => 
 
   if (!store || !product || product.storeId !== store.id || product.currency !== store.currency) return null;
   // Shoppers only see live stores and published products (drafts aren't reachable by id).
-  if (store.status !== "active" || product.status !== "published") return null;
+  if (!preview && store.status !== "active") return null;
+  if (!statuses.includes(product.status)) return null;
 
   await ensureReviewTable();
   const reviews = await db
@@ -125,7 +132,7 @@ export const loadProductPage = cache(async (slug: string, productId: string) => 
 
   const [catalog, shopper] = await Promise.all([
     db.storeProduct
-      .findMany({ where: { storeId: store.id, status: "published" }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 })
+      .findMany({ where: { storeId: store.id, status: { in: [...statuses] } }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 })
       .catch(() => []),
     loadShopperInfo(store.id, store.brandSettings),
   ]);
@@ -156,3 +163,31 @@ export const loadProductPage = cache(async (slug: string, productId: string) => 
 });
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof loadProductPage>>>;
+
+/**
+ * What a live 2026-theme store needs to frame any other page (policies…) in its own header and footer:
+ * the theme, its snapshot, the catalogue for search, and shopper info. Null for classic stores.
+ */
+export const loadStoreChrome = cache(async (slug: string) => {
+  const store = await db.store
+    .findUnique({ where: { slug }, select: { id: true, name: true, slug: true, description: true, logoUrl: true, city: true, country: true, currency: true, brandSettings: true, status: true } })
+    .catch(() => null);
+  if (!store) return null;
+  const templateId = resolveStoreTemplateId(store.brandSettings);
+  if (!isBoutiqueTheme(templateId)) return null;
+  const [catalog, shopper] = await Promise.all([
+    db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 }).catch(() => []),
+    loadShopperInfo(store.id, store.brandSettings),
+  ]);
+  const { status: _status, brandSettings, ...rest } = store;
+  void _status;
+  return {
+    themeId: templateId,
+    snapshot: boutiqueSnapshotFor(templateId, brandSettings),
+    store: { ...rest, brandSettings: publicBrandSettings(brandSettings) },
+    catalog,
+    shopper: shopper as StorefrontShopperInfo,
+  };
+});
+
+export type StoreChromeData = NonNullable<Awaited<ReturnType<typeof loadStoreChrome>>>;

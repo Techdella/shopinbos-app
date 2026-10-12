@@ -234,8 +234,30 @@ const alignStyle = (node: RichNode) => {
   return align ? ` style="text-align:${align}"` : "";
 };
 
+/** The anchor id a heading gets ("Sizes & fit" → "sizes-fit"). */
+export function headingSlug(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+}
+
+/**
+ * Hands out heading ids in document order, numbering repeats ("faq", "faq-2") so every anchor is unique.
+ * renderDoc and anything listing a document's headings (the legal pages' table of contents) walk the
+ * document in the same order with one of these, so their ids match.
+ */
+export function headingIds() {
+  const used = new Map<string, number>();
+  return (value: string) => {
+    const base = headingSlug(value);
+    if (!base) return "";
+    const count = (used.get(base) ?? 0) + 1;
+    used.set(base, count);
+    return count === 1 ? base : `${base}-${count}`;
+  };
+}
+
 /** HTML for a sanitised document. Call sanitizeDoc first on anything that came from a browser. */
 export function renderDoc(doc: RichDoc, options: RenderOptions = {}): string {
+  const nextId = headingIds();
   const inner = (node: RichNode): string => (node.content ?? []).map(render).join("");
   const render = (node: RichNode): string => {
     const attrs = rec(node.attrs);
@@ -245,8 +267,8 @@ export function renderDoc(doc: RichDoc, options: RenderOptions = {}): string {
       case "heading": {
         // h1 is the item title, so document headings start at h2.
         const level = Math.min(6, int(attrs.level, 1, 4, 2) + 1);
+        const id = nextId(plainText(node));
         const content = inner(node);
-        const id = plainText(node).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
         return `<h${level}${id ? ` id="${id}"` : ""}${alignStyle(node)}>${content}</h${level}>`;
       }
       case "bulletList": return `<ul>${inner(node)}</ul>`;

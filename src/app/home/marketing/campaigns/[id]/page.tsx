@@ -156,7 +156,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         }}
         segments={segments.map((s) => ({ id: s.id, name: s.name, summary: s.summary, count: s.count }))}
         templates={[
-          ...templates.saved.map((t) => ({ id: t.id, name: t.name, subject: t.subject, preheader: "", bodyHtml: t.bodyHtml, saved: true })),
+          ...templates.saved.map((t) => ({ id: t.id, name: t.name, subject: t.subject, preheader: t.preheader, bodyHtml: t.bodyHtml, saved: true })),
           ...templates.library.map((t) => ({ id: t.key, name: t.name, subject: t.subject, preheader: t.preheader, bodyHtml: t.bodyHtml, saved: false })),
         ]}
         channels={{ email: channels.email, sms: channels.sms, whatsapp: channels.whatsapp }}

@@ -14,6 +14,8 @@ export interface ChromeStore {
 }
 
 export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean };
+/** A plain link (legal pages live on their own URLs, not ?page=). */
+export type ChromeHref = { key: string; label: string; href: string };
 
 export function AnnouncementBar({ text, look }: { text: string | null; look: BoutiqueLook }) {
   if (!text) return null;
@@ -202,6 +204,7 @@ export function BoutiqueFooter({
   links,
   summary,
   onTrackOrder,
+  legalLinks = [],
 }: {
   store: ChromeStore;
   look: BoutiqueLook;
@@ -209,6 +212,8 @@ export function BoutiqueFooter({
   links: ChromeLink[];
   summary?: string;
   onTrackOrder?: () => void;
+  /** The store's published legal pages, shown in the bottom row. */
+  legalLinks?: ChromeHref[];
 }) {
   const t = look.tokens;
   const place = [store.city, store.country].filter(Boolean).join(", ");
@@ -244,6 +249,17 @@ export function BoutiqueFooter({
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5 text-[12.5px]" style={{ borderColor: t.border, color: t.muted }}>
           <span>© {new Date().getFullYear()} {store.name}</span>
+          {legalLinks.length ? (
+            <nav aria-label="Policies">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                {legalLinks.map((link) => (
+                  <li key={link.key}>
+                    <a href={link.href} className="inline-flex min-h-[32px] items-center underline-offset-4 hover:underline" style={{ color: t.muted }}>{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
           {shopper.paymentLabels.length ? <span>{shopper.paymentLabels.join(" · ")}</span> : null}
         </div>
       </div>

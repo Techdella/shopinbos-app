@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { WishlistPage } from "@/components/storefront/shopper/WishlistPage";
-import { fetchPublicStore, loadCommerceContext } from "@/lib/commerce/storefront.server";
+import { renderShopperPage } from "@/components/storefront/shopper/shopper-page.server";
+import { shopperPageMetadata } from "@/lib/commerce/storefront.server";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 
+// Live store: the wishlist page. Not live: the owner gets a preview (nothing is charged or ordered),
+// everyone else "This store isn't open yet".
 export const dynamic = "force-dynamic";
 
 interface Props {
@@ -14,18 +15,16 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const store = await fetchPublicStore(slug);
-  return { title: store ? `Wishlist | ${store.name}` : "Wishlist", robots: { index: false } };
+  return shopperPageMetadata(slug, "Wishlist");
 }
 
 export default async function StoreWishlistPage({ params }: Props) {
   const { slug } = await params;
-  const [store, commerce] = await Promise.all([fetchPublicStore(slug), loadCommerceContext(slug)]);
-  if (!store) notFound();
   const basePath = getStorefrontBasePathForHost((await headers()).get("host"), slug);
-  return (
-    <Suspense>
-      <WishlistPage store={store} basePath={basePath} commerce={commerce} />
-    </Suspense>
-  );
+  return renderShopperPage({
+    slug,
+    basePath,
+    signInPath: `/s/${slug}/wishlist`,
+    render: (store, commerce, preview) => <WishlistPage store={store} basePath={basePath} commerce={commerce} preview={preview} />,
+  });
 }

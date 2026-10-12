@@ -24,6 +24,9 @@ import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { draftItem, setupCollection } from "@/lib/cms/ai.server";
 import { CmsError } from "@/lib/cms/server";
 import { FIELD_TYPE_INFO, readFields } from "@/lib/cms/fields";
+import { readBlocks, readPreheader } from "@/lib/marketing/blocks";
+import { draftEmail, findTemplate, saveDraftTemplate } from "@/lib/marketing/template-ai.server";
+import { matchStarter } from "@/lib/marketing/template-library";
 
 // Rex's tools. Each is declared once in ./agent-pure (name, description, zod schema) and run here, always in
 // the signed-in seller's own store (the store comes from the session, never from the model). Image tools only
@@ -379,6 +382,43 @@ async function cmsWriteItem(ctx: RexToolContext, input: RexToolInput<"cms_write_
   }
 }
 
+// ─── Email templates ─────────────────────────────────────────────────────────
+
+async function draftEmailTemplate(ctx: RexToolContext, input: RexToolInput<"draft_email_template">): Promise<RexToolOutput> {
+  await meter(ctx, "text");
+  try {
+    const draft = await draftEmail(ctx.storeId, input.brief);
+    const template = await saveDraftTemplate(ctx.storeId, draft, input.name || draft.subject.replace(/{{\s*\w+\s*}}/g, "").trim().slice(0, 80) || "New email", matchStarter(input.brief)?.category ?? "marketing");
+    const href = `/home/marketing/templates/${template.id}`;
+    const summary = `Designed the email "${template.name}" and saved it as a draft template (subject: "${draft.subject}"). Nothing was sent.`;
+    await logActivity(ctx, { type: "marketing", title: `Rex designed an email: ${template.name}`, description: summary, tool: "draft_email_template", link: href, data: { templateId: template.id } });
+    return { content: `${summary} ${draft.note}`, card: { type: "marketing", kind: "template", id: template.id, title: template.name, summary: `Draft. Subject: ${draft.subject}`, href, canActivate: false } };
+  } catch (error) {
+    if (error instanceof MarketingError) throw new RexToolError(error.message);
+    throw error;
+  }
+}
+
+async function improveEmailCopy(ctx: RexToolContext, input: RexToolInput<"improve_email_copy">): Promise<RexToolOutput> {
+  const original = await findTemplate(ctx.storeId, input.template);
+  if (!original) throw new RexToolError(`No saved template called "${input.template}".`);
+  const blocks = readBlocks(original.bodyHtml);
+  if (!blocks?.length) throw new RexToolError("That template is hand-written HTML, so it can't be edited block by block. Suggest changes in your reply.");
+  await meter(ctx, "text");
+  try {
+    const draft = await draftEmail(ctx.storeId, input.instruction, { subject: original.subject, preheader: readPreheader(original.bodyHtml), blocks });
+    if (!draft.ai) throw new RexToolError("The writer is offline, so nothing changed. Suggest the edits in your reply.");
+    const copy = await saveDraftTemplate(ctx.storeId, draft, `${original.name} (Rex's edit)`, original.category);
+    const href = `/home/marketing/templates/${copy.id}`;
+    const summary = `Saved my edit of "${original.name}" as a new draft "${copy.name}". The original is unchanged; nothing was sent.`;
+    await logActivity(ctx, { type: "marketing", title: `Rex edited an email: ${original.name}`, description: summary, tool: "improve_email_copy", link: href, data: { templateId: copy.id } });
+    return { content: `${summary} ${draft.note}`, card: { type: "marketing", kind: "template", id: copy.id, title: copy.name, summary: `Draft. Subject: ${draft.subject}`, href, canActivate: false } };
+  } catch (error) {
+    if (error instanceof MarketingError) throw new RexToolError(error.message);
+    throw error;
+  }
+}
+
 type Runner<N extends RexToolName> = (ctx: RexToolContext, input: RexToolInput<N>) => Promise<RexToolOutput>;
 
 export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
@@ -401,6 +441,8 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   create_automation: createAutomation,
   cms_create_collection: cmsCreateCollection,
   cms_write_item: cmsWriteItem,
+  draft_email_template: draftEmailTemplate,
+  improve_email_copy: improveEmailCopy,
 };
 
 export { MarketingError };

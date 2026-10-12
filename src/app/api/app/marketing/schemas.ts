@@ -56,6 +56,7 @@ export const TemplateSchema = z.object({
   subject: z.string().trim().min(1, "Add a subject").max(200),
   bodyHtml: z.string().max(200_000),
   category: z.string().max(40).optional(),
+  preheader: z.string().max(200).nullable().optional(),
 });
 
 export const DiscountSchema = z.object({

@@ -1,4 +1,6 @@
 import "server-only";
+import type { Metadata } from "next";
+import { resolveStorefront } from "@/lib/storefront/public-store.server";
 import { db } from "@/lib/db/client";
 import { checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { readCartSettings, readCheckoutSettings } from "@shared/cart-checkout";
@@ -6,7 +8,7 @@ import type { ShopperCommerce } from "@/components/storefront/shopper/types";
 
 // What the bag, wishlist and checkout pages need beyond the public store payload: payment methods on offer,
 // delivery zones with their rate names, and the seller's cart and checkout settings. Payout account numbers
-// are never included.
+// are never included. The store itself comes from resolveStorefront (live, owner preview, or not open yet).
 
 export type CommerceContext = ShopperCommerce;
 
@@ -40,11 +42,10 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
   };
 }
 
-/** The public store payload (/api/public/store/[slug]), as the storefront pages load it. */
-export async function fetchPublicStore(slug: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
-  const res = await fetch(`${baseUrl}/api/public/store/${encodeURIComponent(slug)}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data ?? null;
+/** Tab title for a shopper page (bag, wishlist, checkout): "Your bag | Store", or the store's name when it isn't open. */
+export async function shopperPageMetadata(slug: string, label: string): Promise<Metadata> {
+  const view = await resolveStorefront(slug);
+  if (view.access === "missing") return { title: label, robots: { index: false } };
+  const name = view.access === "closed" ? view.brand.name : view.store.name;
+  return { title: { absolute: view.access === "closed" ? name : `${label} | ${name}` }, robots: { index: false } };
 }

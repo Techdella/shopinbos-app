@@ -7,6 +7,9 @@ import { PageToast } from "@/components/PageToast";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
 import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
+import { RexPreferencesForm } from "@/components/settings/RexPreferencesForm";
+import { parseRexPreferences } from "@shared/rex-preferences";
+import { readRexVersions } from "@/lib/ai/rex/studio-versions";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, Pill, PillLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
@@ -19,7 +22,9 @@ type PageProps = {
   searchParams?: Promise<{ tab?: string }>;
 };
 
-const TABS = ["Store", "Peggy & AI", "Team", "Billing", "Notifications"] as const;
+const TABS = ["Store", "Peggy & Rex", "Team", "Billing", "Notifications"] as const;
+/** Old tab names still in links and redirects. */
+const TAB_ALIASES: Record<string, (typeof TABS)[number]> = { "Peggy & AI": "Peggy & Rex" };
 
 const NOTIFY_EVENTS = [
   { e: "orderPlaced", l: "New orders", d: "When a customer places an order" },
@@ -30,7 +35,7 @@ const NOTIFY_EVENTS = [
 
 export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const activeTab = params?.tab ?? "Store";
+  const activeTab = params?.tab ? TAB_ALIASES[params.tab] ?? params.tab : "Store";
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
 
@@ -65,7 +70,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const pendingInvites = (brandSettings.pendingInvites ?? []) as string[];
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Settings" sub="Your store, what Peggy knows, your team, billing and alerts.">
+    <SellerPage user={user} store={storeSummary(store)} title="Settings" sub="Your store, how Peggy and Rex work for you, your team, billing and alerts.">
       <PageToast />
       <div className="grid gap-5">
         <FilterChips items={TABS.map((t) => ({ label: t, href: `/home/settings?tab=${encodeURIComponent(t)}`, active: t === activeTab }))} />
@@ -155,13 +160,16 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               </>
             )}
 
-            {activeTab === "Peggy & AI" && (
-              <PeggyPreferencesForm
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                defaultMemory={(workspace.settings.onboardingMemory as any)?.notes ?? ""}
-                defaultCommStyle={savedCommStyle}
-                defaultDailyBrief={savedDailyBrief}
-              />
+            {activeTab === "Peggy & Rex" && (
+              <div className="grid items-start gap-5 2xl:grid-cols-2">
+                <PeggyPreferencesForm
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  defaultMemory={(workspace.settings.onboardingMemory as any)?.notes ?? ""}
+                  defaultCommStyle={savedCommStyle}
+                  defaultDailyBrief={savedDailyBrief}
+                />
+                <RexPreferencesForm initial={parseRexPreferences(brandSettings.rexPreferences)} versionCount={readRexVersions(brandSettings).items.length} />
+              </div>
             )}
 
             {activeTab === "Team" && (
@@ -257,7 +265,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
             <Card className="p-5">
               <CardHead title="Customise your menu" sub="Switch off the parts of Shopinbos you don't use, and replay the walkthrough." action={<PillLink href="/home/features" size="sm" tone="ink">Open</PillLink>} />
             </Card>
-            <AssistantNote who="peggy" action={<PillLink href="/home/settings?tab=Peggy+%26+AI" size="sm" tone="ink">Review</PillLink>}>
+            <AssistantNote who="peggy" action={<PillLink href="/home/settings?tab=Peggy+%26+Rex" size="sm" tone="ink">Review</PillLink>}>
               I remember your preferences, regular suppliers and brand voice. You can check or clear what I know any time.
             </AssistantNote>
 

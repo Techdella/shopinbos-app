@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
-import { router, useNavigation } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
@@ -11,6 +11,7 @@ import type { Dashboard } from "@/lib/dashboard";
 import { useHomeData } from "@/lib/homeData";
 import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
+import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openPath, openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
@@ -26,11 +27,11 @@ const TASK_ICON: Record<Dashboard["tasks"][number]["icon"], AppIconName> = { cha
 const ACTIONS: Array<{ label: string; icon: AppIconName; run: () => unknown; primary?: boolean }> = [
   { label: "Add product", icon: "plus", run: () => router.push("/add-products"), primary: true },
   { label: "Record sale", icon: "receipt", run: () => router.push("/record-sale") },
-  { label: "Find stock", icon: "search", run: () => openWeb("/marketplace") },
+  { label: "Find stock", icon: "search", run: () => router.push("/find") },
   { label: "Make video", icon: "play", run: () => openWeb("/home/video") },
   { label: "Labels", icon: "printer", run: () => openWeb("/home/labels") },
-  { label: "Broadcast", icon: "megaphone", run: () => openWeb("/home/marketing/campaigns") },
-  { label: "Ask Rex", icon: "sparkle", run: () => openWeb("/studio") },
+  { label: "Marketing", icon: "megaphone", run: () => router.push("/marketing") },
+  { label: "Ask Rex", icon: "sparkle", run: () => router.push("/rex") },
   { label: "More", icon: "grid", run: () => router.push("/more") },
 ];
 
@@ -53,6 +54,16 @@ export default function Home() {
   const { data, error, cachedAt } = home;
   const load = home.reload;
   const [refreshing, setRefreshing] = useState(false);
+
+  // Start here (the web's /home/start checklist). Loaded on its own so Home never waits for it; refreshed when
+  // coming back from the Start here screen. Null (e.g. an error) falls back to the onboarding checklist below.
+  const [setup, setSetup] = useState<SetupOverview | null>(null);
+  const loadSetup = useCallback(() => fetchSetup().then(setSetup).catch(() => null), []);
+  useFocusEffect(
+    useCallback(() => {
+      void loadSetup();
+    }, [loadSetup]),
+  );
 
   // First time this seller's Home loads on this phone → "Opening your shop"; every later open → skeleton.
   const [firstOpen] = useState(() => (uid ? !hasOpenedHome(uid) : false));
@@ -94,7 +105,7 @@ export default function Home() {
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await Promise.all([load(), loadSetup()]); setRefreshing(false); }} />}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
@@ -206,6 +217,31 @@ export default function Home() {
                 ))}
               </View>
 
+              {setup ? (
+                setup.checklist.showStart ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Start here, ${setup.checklist.percent} percent set up`} onPress={() => router.push("/start")} style={{ marginTop: 20, borderRadius: 24, backgroundColor: colors.surface, padding: 16, gap: 10 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                      <T weight="extrabold" style={{ fontSize: 17 }}>Start here</T>
+                      <T style={{ color: colors.inkSoft }}>{setup.checklist.done} of {setup.checklist.total} done</T>
+                    </View>
+                    <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.canvas, overflow: "hidden" }}>
+                      <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.success, width: `${setup.checklist.percent}%` }} />
+                    </View>
+                    {setup.checklist.next ? (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                        <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.toggleOff }} />
+                        <View style={{ flex: 1 }}>
+                          <T weight="semibold" style={{ fontSize: 15 }}>{setup.checklist.next.title}</T>
+                          <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{setup.checklist.next.hint}</T>
+                        </View>
+                        <View style={{ backgroundColor: colors.ink, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 8 }}>
+                          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13 }}>Continue</T>
+                        </View>
+                      </View>
+                    ) : null}
+                  </Pressable>
+                ) : null
+              ) : (
               <Card style={{ marginTop: 20, borderRadius: 24 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <T weight="extrabold" style={{ fontSize: 17 }}>Finish setting up</T>
@@ -226,6 +262,7 @@ export default function Home() {
                   </View>
                 ))}
               </Card>
+              )}
 
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 22, marginBottom: 12 }}>
                 <T weight="extrabold" style={{ fontSize: 19 }}>Selling fast</T>

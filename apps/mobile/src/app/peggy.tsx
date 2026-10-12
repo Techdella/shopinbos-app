@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { BackButton, Chip, Mascot, T } from "@/components/ui";
@@ -38,6 +38,9 @@ export default function Peggy() {
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
   const scroll = useRef<ScrollView>(null);
+  // Start here and other screens open Peggy with a question ready (?prompt=…); it's asked once.
+  const { prompt } = useLocalSearchParams<{ prompt?: string }>();
+  const asked = useRef(false);
 
   async function ask(text = draft) {
     const message = text.trim();
@@ -61,6 +64,13 @@ export default function Peggy() {
       setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
     }
   }
+
+  useEffect(() => {
+    if (!prompt || asked.current) return;
+    asked.current = true;
+    void ask(prompt);
+    // Only on open: `ask` changes every render.
+  }, [prompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>

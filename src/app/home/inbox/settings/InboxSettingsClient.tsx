@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { AssistantNote, Card, CardHead } from "@/components/app-kit";
-import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
+import { Card, CardHead } from "@/components/app-kit";
+import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { inboxApi } from "@/components/messaging/inbox-ui";
 
@@ -66,32 +66,21 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
   return (
     <div className="grid gap-5 xl:grid-cols-2">
       <div className="grid content-start gap-5">
-        <Card className="grid gap-4 p-5">
-          <CardHead title="Away auto-reply" sub="Sent once every 12 hours per conversation, only when your inbox hasn't been open for 5 minutes." />
-          <div className="flex min-h-[52px] items-center justify-between gap-3 rounded-[14px] bg-app-canvas px-4">
-            <span className="text-[14px] font-semibold">Reply automatically while I'm away</span>
-            <Toggle on={settings.autoReplyEnabled} onChange={(on) => setSettings((s) => ({ ...s, autoReplyEnabled: on }))} label="Away auto-reply" />
-          </div>
-          {settings.autoReplyEnabled && (
-            <>
-              <Segmented
-                options={[{ value: "message", label: "My message" }, { value: "peggy", label: "Peggy answers" }]}
-                value={settings.autoReplyMode}
-                onChange={(mode) => setSettings((s) => ({ ...s, autoReplyMode: mode }))}
-              />
-              {settings.autoReplyMode === "peggy" ? (
-                <AssistantNote>
-                  {aiAvailable
-                    ? "Peggy answers from your products, prices and store details, says you'll follow up, and never makes up stock, prices or delivery times. If she can't answer, your away message below is sent instead."
-                    : "Peggy needs an AI key on the server (ANTHROPIC_API_KEY or OPENAI_API_KEY). Until then your away message is sent."}
-                </AssistantNote>
-              ) : null}
-              <label className="grid gap-1 text-[13.5px] font-bold">
-                Away message
-                <textarea rows={3} maxLength={600} value={settings.awayMessage} onChange={(e) => setSettings((s) => ({ ...s, awayMessage: e.target.value }))} placeholder="Thanks for your message! We're away right now and will reply as soon as we're back." className={area} />
-              </label>
-            </>
-          )}
+        <Card className="grid gap-3 p-5">
+          <CardHead title="Automatic answers" sub="Reply to customers while you're busy or closed." />
+          {[
+            { href: "/home/inbox/auto-replies", icon: "clock" as const, title: "Auto-replies", sub: settings.autoReplyEnabled ? `On: ${settings.autoReplyMode === "peggy" ? "Peggy answers" : "away message"}, opening hours, quick replies` : "Off. Away message, opening hours, quick replies to common questions" },
+            { href: "/home/inbox/chatbot", icon: "sparkle" as const, title: "Peggy chatbot", sub: aiAvailable ? "Peggy answers shoppers on your store's live chat" : "Needs an AI key on the server" },
+          ].map((item) => (
+            <Link key={item.href} href={item.href} className="flex min-h-[60px] items-center gap-3 rounded-[14px] bg-app-canvas px-4 py-2.5 text-app-ink no-underline hover:bg-app-peach">
+              <Icon name={item.icon} size={18} className="shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14.5px] font-extrabold">{item.title}</span>
+                <span className="block text-[12.5px] text-app-ink-soft">{item.sub}</span>
+              </span>
+              <Icon name="chevRight" size={16} className="shrink-0 text-app-ink-soft" />
+            </Link>
+          ))}
         </Card>
 
         <Card className="grid gap-4 p-5">

@@ -44,7 +44,9 @@ export function AppFrame({
   children,
 }: AppFrameProps) {
   return (
-    <div className="app-scope flex h-dvh w-full overflow-hidden bg-app-canvas font-app text-app-ink">
+    // relative on the frame, main and scroll area: absolutely positioned bits inside pages (sr-only labels, badges)
+    // anchor to them instead of <body>, so they can't stretch the document past the viewport and add a second scrollbar.
+    <div className="app-scope relative flex h-dvh w-full overflow-hidden bg-app-canvas font-app text-app-ink">
       <RexDrawerProvider chipMessage={_chipMessage}>
         <Sidebar
           role={role}
@@ -57,7 +59,7 @@ export function AppFrame({
         {/* Short walkthrough on the first visit to the portal's home page (replayable from Customise your menu). */}
         <GuidedTour role={role} />
 
-        <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <main className="relative flex-1 flex flex-col overflow-hidden min-w-0">
           <GlobalTopBar
             userName={userName}
             userInitials={userInitials}
@@ -73,7 +75,7 @@ export function AppFrame({
               displayName={storeName}
             />
           )}
-          <div className="flex-1 overflow-y-auto bg-app-canvas">
+          <div className="relative flex-1 overflow-y-auto bg-app-canvas">
             {children}
           </div>
         </main>

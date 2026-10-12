@@ -13,7 +13,11 @@ import { sendTelegram } from "./channels/telegram";
 import { sendTwilioSms } from "./channels/twilio";
 import type { SendResult } from "./channels/types";
 import { sendWhatsApp } from "./channels/whatsapp";
-import { CHANNELS, isSellerOnline, previewText, shouldAutoReply, type InboundAttachment, type InboxChannelKey } from "./pure";
+import { CHANNELS, isSellerOnline, previewText, type InboundAttachment, type InboxChannelKey } from "./pure";
+import { AUTO_REPLY_COOLDOWN_MS, chatbotOnDuty, decideAutoReply } from "./assistant";
+import { loadAutomation } from "./automation.server";
+import { chatbotAnswer } from "./chatbot.server";
+import { hasAiProvider } from "./ai";
 
 // The inbox core: every webhook and the live-chat widget call ingestInbound; every reply goes through
 // sendReply, which picks the adapter for the conversation's channel. Nothing here pretends to send: a
@@ -191,6 +195,8 @@ export interface ReplyInput {
   body: string;
   authorName: string;
   kind?: "text" | "auto_reply";
+  /** Extra details kept on the message (e.g. { bot: true } for the chatbot, { rule } for a keyword reply). */
+  meta?: Record<string, string | boolean | null>;
 }
 
 async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null }, body: string, sellerEmail: string | null): Promise<SendResult & { via?: string }> {
@@ -263,8 +269,8 @@ export async function sendReply(input: ReplyInput) {
   const saved = await db.inboxMessage.update({
     where: { id: message.id },
     data: result.ok
-      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null } }
-      : { status: "failed", error: result.error.slice(0, 300) },
+      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null, ...(input.meta ?? {}) } }
+      : { status: "failed", error: result.error.slice(0, 300), ...(input.meta ? { meta: input.meta } : {}) },
   });
   await db.inboxConversation.update({
     where: { id: conversation.id },
@@ -342,22 +348,103 @@ export async function draftReplyWithPeggy(storeId: string, conversationId: strin
   return result?.text.trim() || null;
 }
 
+const BOT_TAG = "needs-human";
+const BOT_REPLIES_PER_HOUR = 20;
+
+/**
+ * Automatic replies to a new customer message: the storefront chatbot on live chat, keyword quick replies,
+ * the away message (outside business hours, or while the seller is away) and the instant "got it". Away and
+ * "got it" go out at most once per conversation every 12 hours; each keyword reply once per 12 hours.
+ */
 async function maybeAutoReply(conversationId: string) {
   const conversation = await db.inboxConversation.findUnique({ where: { id: conversationId } });
   if (!conversation) return;
-  const settings = await db.inboxSettings.findUnique({ where: { storeId: conversation.storeId } });
+  const [settings, automation, lastInbound] = await Promise.all([
+    db.inboxSettings.findUnique({ where: { storeId: conversation.storeId } }),
+    loadAutomation(conversation.storeId),
+    db.inboxMessage.findFirst({ where: { conversationId, direction: "inbound" }, orderBy: { createdAt: "desc" }, select: { body: true } }),
+  ]);
   const channel = conversation.channel as InboxChannelKey;
-  const canReply = CHANNELS[channel]?.replies && !(channel === "form" && !conversation.contactEmail);
-  if (!settings || !shouldAutoReply({ enabled: settings.autoReplyEnabled, sellerLastSeenAt: settings.sellerLastSeenAt, lastAutoReplyAt: conversation.autoRepliedAt, channelReplies: Boolean(canReply) })) return;
+  const canReply = Boolean(CHANNELS[channel]?.replies && !(channel === "form" && !conversation.contactEmail));
+  const sellerOnline = isSellerOnline(settings?.sellerLastSeenAt);
+  const { autoReply: rules, chatbot: bot } = automation;
+  const since = new Date(Date.now() - AUTO_REPLY_COOLDOWN_MS);
 
-  let body = settings.awayMessage?.trim() || DEFAULT_AWAY;
-  if (settings.autoReplyMode === "peggy") {
+  // The chatbot: live chat only, in its hours, not after a hand-off, quiet while the seller is replying by hand.
+  let botActive = false;
+  if (channel === "livechat" && bot.enabled && !conversation.tags.includes(BOT_TAG) && chatbotOnDuty(bot, rules, sellerOnline)) {
+    const [sellerReplied, botReplies] = await Promise.all([
+      db.inboxMessage.count({ where: { conversationId, direction: "outbound", kind: "text", createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } }),
+      db.inboxMessage.count({ where: { conversationId, direction: "outbound", kind: "auto_reply", createdAt: { gte: new Date(Date.now() - 60 * 60_000) } } }),
+    ]);
+    botActive = !sellerReplied && botReplies < BOT_REPLIES_PER_HOUR;
+  }
+
+  const recentKeywords = rules.keywordsEnabled
+    ? await db.inboxMessage
+        .findMany({ where: { conversationId, direction: "outbound", kind: "auto_reply", createdAt: { gte: since } }, select: { meta: true }, take: 50 })
+        .then((rows) => rows.map((row) => (row.meta as { rule?: unknown } | null)?.rule).filter((rule): rule is string => typeof rule === "string"))
+        .catch(() => [])
+    : [];
+
+  const decision = decideAutoReply({
+    // With the chatbot on but no AI key, live chat still gets keyword replies and the away message.
+    enabled: Boolean(settings?.autoReplyEnabled) || (botActive && !hasAiProvider()),
+    mode: settings?.autoReplyMode === "peggy" ? "peggy" : "message",
+    awayMessage: settings?.awayMessage ?? null,
+    rules: botActive && !hasAiProvider() ? { ...rules, keywordsEnabled: true } : rules,
+    channel,
+    channelReplies: canReply,
+    message: lastInbound?.body ?? "",
+    sellerOnline,
+    lastAutoReplyAt: conversation.autoRepliedAt,
+    chatbot: botActive && hasAiProvider(),
+    recentKeywordIds: recentKeywords,
+  });
+  if (!decision) return;
+  const base = { storeId: conversation.storeId, conversationId: conversation.id, kind: "auto_reply" as const };
+
+  if (decision.kind === "chatbot") {
+    const history = await db.inboxMessage.findMany({ where: { conversationId, direction: { in: ["inbound", "outbound"] }, status: { not: "failed" } }, orderBy: { createdAt: "desc" }, take: 12, select: { direction: true, body: true } });
+    const answer = await chatbotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })));
+    await sendReply({ ...base, body: answer.reply, authorName: `${bot.name} (chatbot)`, meta: { bot: true, source: answer.source } });
+    if (answer.handoff) await handOff(conversation.storeId, conversation.id, conversation.tags, lastInbound?.body ?? "");
+    return;
+  }
+  if (decision.kind === "keyword") {
+    await sendReply({ ...base, body: decision.body, authorName: "Quick reply", meta: { rule: decision.ruleId } });
+    return;
+  }
+  if (decision.kind === "ack") {
+    await sendReply({ ...base, body: decision.body, authorName: "Auto-reply" });
+    return;
+  }
+  let body = decision.body;
+  if (decision.peggy) {
     const drafted = await draftReplyWithPeggy(conversation.storeId, conversation.id, {
       instruction: "The owner is away right now. Answer what you can from the shop details, and say the owner will follow up soon.",
     }).catch(() => null);
     if (drafted) body = drafted;
   }
-  await sendReply({ storeId: conversation.storeId, conversationId: conversation.id, body, authorName: settings.autoReplyMode === "peggy" ? "Peggy (auto-reply)" : "Auto-reply", kind: "auto_reply" });
+  await sendReply({ ...base, body, authorName: decision.peggy ? "Peggy (auto-reply)" : "Auto-reply" });
+}
+
+/** The chatbot stops on this conversation and the seller is told a shopper wants a person. */
+async function handOff(storeId: string, conversationId: string, tags: string[], lastMessage: string) {
+  await db.inboxConversation.update({ where: { id: conversationId }, data: { tags: [...new Set([...tags, BOT_TAG])].slice(0, 10), status: "open" } }).catch(() => null);
+  const store = await storeById(storeId);
+  if (!store) return;
+  await createNotification({
+    userId: store.userId,
+    type: "customers",
+    priority: "warning",
+    title: "A shopper wants to talk to you",
+    description: previewText(lastMessage) || "Peggy handed a live chat over to you.",
+    link: `/home/messages?c=${conversationId}`,
+    actionLabel: "Reply",
+    actionUrl: `/home/messages?c=${conversationId}`,
+    metadata: { source: "chatbot", conversationId },
+  }).catch((error) => console.error("[inbox] hand-off notification failed", error));
 }
 
 // ─── Customer sidebar ────────────────────────────────────────────────────────

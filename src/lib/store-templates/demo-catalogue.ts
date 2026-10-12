@@ -1,10 +1,12 @@
 // Sample catalogues for theme previews on /builder/templates and in the builder's Themes view: 6 to 12 made-up
-// products per industry with Nigerian names and naira prices, drawn as flat illustrations in the theme's palette
-// (demo-art.ts). They only ever render inside a preview marked "Sample products"; nothing here is saved to a
-// store, and there are no reviews, ratings or brands. Pure data, so tests can load it directly.
+// products per industry with Nigerian names and naira prices, shown with real photos (demo-photos.ts) and, for any
+// product without one, a flat illustration in the theme's palette (demo-art.ts). They only ever render inside a
+// preview marked "Sample products"; nothing here is saved to a store, and there are no reviews, ratings or brands.
+// Pure data, so tests can load it directly.
 
 import type { ThemeLibraryId } from "./theme-library";
 import { demoProductArt, demoSceneArt, type DemoArtKind } from "./demo-art.ts";
+import { DEMO_PHOTOS, unsplashUrl } from "./demo-photos.ts";
 
 export interface DemoProductSeed {
   name: string;
@@ -357,13 +359,15 @@ export function demoCatalogueFor(themeId: string): DemoCatalogue {
 /** The sample products for a theme, drawn in its colours. Ids are prefixed "demo-" so they can never match a real product. */
 export function demoProducts(themeId: string, colours: DemoThemeColours): DemoShopperProduct[] {
   const catalogue = demoCatalogueFor(themeId);
+  const photos = DEMO_PHOTOS[themeId in DEMO_CATALOGUES ? themeId : "plain"];
   return catalogue.products.map((product, index) => {
     const main = product.tint ?? catalogue.mains[index % catalogue.mains.length] ?? colours.accent;
+    const photo = photos?.products[index];
     return {
       id: `demo-${themeId}-${index + 1}`,
       name: product.name,
       description: product.description,
-      images: [demoProductArt(product.art, { bg: colours.cardBg, main, accent: colours.accent, ink: colours.ink })],
+      images: [photo ? unsplashUrl(photo, 800, 1000) : demoProductArt(product.art, { bg: colours.cardBg, main, accent: colours.accent, ink: colours.ink })],
       retailPrice: product.price,
       compareAtPrice: product.compareAt ?? null,
       currency: "NGN",
@@ -376,11 +380,13 @@ export function demoProducts(themeId: string, colours: DemoThemeColours): DemoSh
 /** Themes whose hero frames its picture tall (an arch, an oval, a circle): their sample banner is one object, 4:5. */
 const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare"]);
 
-/** Sample banner (16:9, or 4:5 for tall hero frames) and story (4:5) pictures for a theme. */
+/** Sample banner (16:9, or 4:5 for tall hero frames) and story (4:5) pictures for a theme: photos, or drawn scenes. */
 export function demoBanners(themeId: string, colours: DemoThemeColours) {
   const catalogue = demoCatalogueFor(themeId);
   const palette = { bg: colours.cardBg, field: colours.cardBg, main: colours.accent, accent: colours.accent, ink: colours.ink, mains: catalogue.mains };
   const tall = TALL_HERO_THEMES.has(themeId);
+  const photos = DEMO_PHOTOS[themeId in DEMO_CATALOGUES ? themeId : "plain"];
+  if (photos) return { hero: tall ? unsplashUrl(photos.hero, 1200, 1500) : unsplashUrl(photos.hero, 1920, 1080), story: unsplashUrl(photos.story, 1000, 1250) };
   return {
     hero: tall ? demoSceneArt(catalogue.heroArt.slice(0, 1), palette, 4 / 5) : demoSceneArt(catalogue.heroArt, palette, 16 / 9),
     story: demoSceneArt(catalogue.heroArt.slice(0, 2).reverse(), { ...palette, field: colours.paperBg }, 4 / 5),

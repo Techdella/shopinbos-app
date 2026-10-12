@@ -45,7 +45,8 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com ${storageOrigin}`.trim(),
+              // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
+              `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com ${storageOrigin}`.trim(),
               "font-src 'self' https://fonts.gstatic.com data:",
               // Video studio previews its reel (blob:) and product videos are stored on Supabase.
               "media-src 'self' blob: https://*.supabase.co",
@@ -65,6 +66,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "*.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
     ],
   },

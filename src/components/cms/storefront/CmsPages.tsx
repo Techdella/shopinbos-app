@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
+import { BoutiquePageFrame } from "@/components/storefront/boutique/BoutiquePageFrame";
+import type { StoreChromeData } from "@/lib/storefront/product-page.server";
 import { CMS_PROSE_CSS } from "@/components/cms/prose-css";
 import { CmsContactForm, CmsSignupForm } from "@/components/cms/storefront/CmsForms";
 import { readStoreLook, toHex6 } from "@/app/home/store/look";
@@ -9,6 +11,7 @@ import { mainRichField, videoValue, type CalloutValue, type CmsField, type FileV
 import { escapeHtml, renderDoc, safeImageUrl, safeLinkUrl, sanitizeDoc, wordCount, type ProductCardData } from "@/lib/cms/richtext";
 import { itemJsonLd, jsonLdString, listJsonLd } from "@/lib/cms/jsonld";
 import { cmsTheme, storeLink } from "@/lib/cms/storefront";
+import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { loadStoreForm, type PublicStore } from "@/lib/cms/server";
 import { naira } from "@shared/onboarding";
 
@@ -16,6 +19,7 @@ import { naira } from "@shared/onboarding";
 // Rich text is re-sanitised and rendered from JSON here, so stored HTML is never trusted.
 
 const SHELL_CSS = `
+.cms-in-theme{min-height:0!important;background:transparent}
 .cms-shell{min-height:100dvh;display:flex;flex-direction:column;font-family:var(--font-jakarta),'Plus Jakarta Sans',system-ui,sans-serif}
 .cms-shell a{color:inherit}
 .cms-top{border-bottom:1px solid var(--cms-border);background:var(--cms-paper)}
@@ -86,11 +90,26 @@ const SHELL_CSS = `
 .cms-form-error{color:#B42318;margin:4px 0 0;font-size:14px}
 .cms-more{margin-top:56px;padding-top:28px;border-top:1px solid var(--cms-border)}
 .cms-foot{border-top:1px solid var(--cms-border);padding:22px 0;font-size:13.5px;color:var(--cms-muted)}
+.cms-foot-inner{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:center}
+.cms-foot-links{display:flex;flex-wrap:wrap;gap:4px 18px;list-style:none;margin:0;padding:0}
+.cms-foot-links a{display:inline-flex;align-items:center;min-height:32px;text-decoration:none}.cms-foot-links a:hover{text-decoration:underline}
 .cms-empty{padding:56px 20px;text-align:center;color:var(--cms-muted);border:1px dashed var(--cms-border);border-radius:var(--cms-radius)}
 `;
 
-export function CmsShell({ store, basePath, children, collection }: { store: PublicStore; basePath: string; collection?: { name: string; slug: string }; children: ReactNode }) {
+export function CmsShell({ store, basePath, children, collection, chrome }: { store: PublicStore; basePath: string; collection?: { name: string; slug: string }; children: ReactNode; chrome?: StoreChromeData | null }) {
   const theme = cmsTheme(store);
+  // 2026-theme stores: the page sits inside the theme's own header, footer, bottom nav and bag.
+  if (chrome) {
+    return (
+      <BoutiquePageFrame themeId={chrome.themeId} snapshot={chrome.snapshot} store={chrome.store} catalog={chrome.catalog} shopper={chrome.shopper} storeBasePath={basePath}>
+        <div className="cms-shell cms-in-theme" style={theme.vars}>
+          <style>{CMS_PROSE_CSS + SHELL_CSS}</style>
+          <div className="cms-main">{children}</div>
+        </div>
+      </BoutiquePageFrame>
+    );
+  }
+  const policies = legalLinks(store.brandSettings);
   return (
     <div className={`cms-shell ${BOUTIQUE_FONT_CLASS}`} style={theme.vars}>
       <style>{CMS_PROSE_CSS + SHELL_CSS}</style>
@@ -111,7 +130,16 @@ export function CmsShell({ store, basePath, children, collection }: { store: Pub
       </header>
       <main className="cms-main" id="main">{children}</main>
       <footer className="cms-foot">
-        <div className="cms-foot-inner">© {new Date().getFullYear()} {store.name}</div>
+        <div className="cms-foot-inner">
+          <span>© {new Date().getFullYear()} {store.name}</span>
+          {policies.length > 0 && (
+            <nav aria-label="Policies">
+              <ul className="cms-foot-links">
+                {policies.map((link) => <li key={link.key}><Link href={storeLink(basePath, legalPagePath(link.key))}>{link.title}</Link></li>)}
+              </ul>
+            </nav>
+          )}
+        </div>
       </footer>
     </div>
   );
@@ -141,6 +169,7 @@ export function CmsCollectionView({
   layout,
   basePath,
   canonical,
+  chrome,
 }: {
   store: PublicStore;
   collection: { name: string; slug: string; description: string; template: string };
@@ -149,6 +178,7 @@ export function CmsCollectionView({
   layout: "grid" | "list";
   basePath: string;
   canonical: string;
+  chrome?: StoreChromeData | null;
 }) {
   const href = (item: ListItem) => storeLink(basePath, `/${collection.slug}/${item.slug}`);
   const jsonLd = listJsonLd(
@@ -158,7 +188,7 @@ export function CmsCollectionView({
   );
   const main = mainRichField(fields);
   return (
-    <CmsShell store={store} basePath={basePath}>
+    <CmsShell store={store} basePath={basePath} chrome={chrome}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href={storeLink(basePath, "/")}>{store.name}</Link><span aria-hidden>/</span><span aria-current="page">{collection.name}</span></nav>
       <h1 className="cms-h1">{collection.name}</h1>
@@ -412,6 +442,7 @@ export async function CmsItemView({
   basePath,
   canonical,
   refs,
+  chrome,
 }: {
   store: PublicStore;
   collection: { name: string; slug: string; template: string; itemLabel: string };
@@ -421,6 +452,7 @@ export async function CmsItemView({
   basePath: string;
   canonical: string;
   refs: { products: Record<string, ProductCardData>; items: Record<string, { title: string; href: string; image: string | null }> };
+  chrome?: StoreChromeData | null;
 }) {
   const data = (item.data ?? {}) as Record<string, unknown>;
   const main = mainRichField(fields);
@@ -432,7 +464,7 @@ export async function CmsItemView({
   const firstImageField = fields.find((field) => field.type === "image");
 
   return (
-    <CmsShell store={store} basePath={basePath} collection={collection}>
+    <CmsShell store={store} basePath={basePath} collection={collection} chrome={chrome}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <article className="cms-article">
         <nav className="cms-crumbs" aria-label="Breadcrumb">

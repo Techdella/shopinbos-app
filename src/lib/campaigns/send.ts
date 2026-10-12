@@ -202,7 +202,7 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
           return {
             to: recipient.email,
             subject: subject.replace(/{{\s*name\s*}}/g, firstName(recipient.name) || "there"),
-            html: wrapEmail({ bodyHtml: rendered.html, brand, preheader: campaign.preheader }),
+            html: wrapEmail({ bodyHtml: rendered.html, brand, preheader: campaign.preheader?.replace(/{{\s*store\s*}}/g, campaign.store.name).replace(/{{\s*name\s*}}/g, firstName(recipient.name) || "there") ?? null }),
             from,
             replyTo: campaign.replyTo ?? undefined,
             headers: {

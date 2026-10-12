@@ -26,6 +26,7 @@ export function MessageBuyerButton({ sellerUserId, sellerName }: MessageBuyerBut
         open={chatOpen}
         onClose={() => setChatOpen(false)}
         preselectedContactId={sellerUserId}
+        role="supplier"
       />
     </>
   );

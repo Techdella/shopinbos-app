@@ -9,6 +9,8 @@ import { getTemplateManifest, isBoutiqueTheme } from "@/lib/store-templates";
 import { normalizeImage } from "@/lib/store-templates/images";
 import { getThemeOverrides } from "@/lib/store-templates/themes";
 import { readShopperInfo } from "@/lib/storefront/shopper-info";
+import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
 
 export interface SurfaceProduct {
@@ -38,6 +40,8 @@ export interface SurfaceStore {
   storeProducts: SurfaceProduct[];
   /** Delivery, payment, WhatsApp and review details from /api/public/store/[slug] (StorefrontShopperInfo). */
   shopper?: unknown;
+  /** Public brand settings (legal page links for the footer). */
+  brandSettings?: unknown;
 }
 
 interface RenderProduct {
@@ -773,6 +777,7 @@ function ClassicTemplateSurface({
   }, [selectedPage]);
 
   const currentPage = selectedPage ?? internalPage;
+  const policyLinks = mode === "live" ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath ?? "", legalPagePath(link.key)) })) : [];
   const page = snapshot.pages.find((entry) => entry.pageType === currentPage) ?? snapshot.pages[0];
   const sections = page?.sections.filter((entry) => entry.visible !== false) ?? [];
 
@@ -3303,7 +3308,12 @@ function ClassicTemplateSurface({
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: rgba(theme.heroText, 0.6) }}>Legal</div>
                 <div className="mt-4 flex flex-col gap-2.5 text-[13px]" style={{ color: rgba(theme.heroText, 0.7) }}>
-                  {["Privacy Policy", "Terms", "Cookie Policy", "Refund Policy", "Shipping Policy", "Return Policy"].map((label) => <span key={label}>{label}</span>)}
+                  {/* The live store links its published legal pages; the builder shows where they will go. */}
+                  {policyLinks.length
+                    ? policyLinks.map((link) => <a key={link.key} href={link.href} className="w-fit transition-colors hover:opacity-80" style={{ color: rgba(theme.heroText, 0.8) }}>{link.label}</a>)
+                    : mode === "live"
+                      ? null
+                      : ["Privacy policy", "Terms of service", "Returns and refunds", "Delivery policy"].map((label) => <span key={label}>{label}</span>)}
                 </div>
               </div>
             ) : null}
@@ -3311,6 +3321,11 @@ function ClassicTemplateSurface({
         )}
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 border-t px-5 py-5 text-[11px] sm:px-8" style={{ borderColor: rgba(theme.heroText, 0.14), color: rgba(theme.heroText, 0.62) }}>
           <span>Secure payment methods accepted</span>
+          {footer.settings?.layout !== "mega-footer" && policyLinks.length ? (
+            <nav aria-label="Policies" className="flex flex-wrap gap-x-4 gap-y-1">
+              {policyLinks.map((link) => <a key={link.key} href={link.href} className="inline-flex min-h-[32px] items-center hover:underline" style={{ color: rgba(theme.heroText, 0.8) }}>{link.label}</a>)}
+            </nav>
+          ) : null}
           {footer.settings?.showPayments !== false ? (
             <div className="flex flex-wrap gap-2">
               {footerPaymentBadges.map((badge) => (

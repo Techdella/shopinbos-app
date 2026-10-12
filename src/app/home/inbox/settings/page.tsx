@@ -26,7 +26,7 @@ export default async function InboxSettingsPage() {
       user={user}
       store={storeSummary(store)}
       title="Inbox settings"
-      sub="Away auto-replies, saved replies and where calls ring."
+      sub="Auto-replies, the Peggy chatbot, saved replies and where calls ring."
       actions={<PillLink href="/home/messages" icon="chat" tone="ink">Open inbox</PillLink>}
     >
       <InboxSettingsClient

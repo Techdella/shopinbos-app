@@ -152,7 +152,7 @@ export function StoreStartClient({ storeName, storeSlug, hasContent, isLive = fa
     { icon: "type", name: "Brand kit", value: hasContent ? "Draft ready" : "Not configured", href: "/seller/store/settings?tab=brand" },
     { icon: "search", name: "SEO", value: isLive ? "Published pages" : "Draft SEO", href: "/seller/store/settings?tab=seo" },
     { icon: "link", name: "Navigation", value: pages.length ? "Main menu" : "Not configured", href: "/seller/store/settings?tab=navigation" },
-    { icon: "shield", name: "Legal pages", value: pages.some((page) => page.name.toLowerCase().includes("privacy") || page.name.toLowerCase().includes("terms")) ? "Configured" : "Needs setup", href: "/seller/store/settings?tab=legal" },
+    { icon: "shield", name: "Legal pages", value: pages.some((page) => page.name.toLowerCase().includes("privacy") || page.name.toLowerCase().includes("terms")) ? "Configured" : "Needs setup", href: "/home/legal" },
   ];
   const setupItems = [
     { label: "Add store name", done: Boolean(storeName?.trim()) },
