@@ -733,8 +733,8 @@ test("proxy keeps auth cookies and sends protected portals to their own login", 
   assert.match(proxy, /"\/logistics\/signup"/);
   assert.match(proxy, /createServerClient/);
   assert.match(proxy, /getLoginPath/);
-  assert.match(proxy, /isKnownAppHost/);
-  assert.match(proxy, /LOCAL_APP_HOSTS/);
+  assert.match(proxy, /classifyHost\(/, "app hosts vs store hosts come from src/lib/storefront/host-routing.ts");
+  assert.match(read("src/lib/storefront/host-routing.ts"), /LOCAL_HOSTS/);
   assert.match(proxy, /hasSupabaseAuthCookie/);
   assert.match(proxy, /portalLoginPath\(portalRoleFromPath\(pathname\)\)/);
   assert.match(proxy, /portalDashboardPath\(role\)/);

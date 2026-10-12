@@ -20,6 +20,28 @@ export interface VerificationDoc {
   uploadedAt: string;
   updatedAt: string;
   rejectionReason?: string;
+  /** Set when the business was checked against the CAC registry instead of (or before) a file upload. */
+  registry?: RegistryCheck;
+}
+
+/** Result of an instant CAC registry lookup, kept on the "cac" document so admins see what was matched. */
+export interface RegistryCheck {
+  source: "cac";
+  provider: string;
+  rcNumber: string;
+  companyType: string;
+  enteredName: string;
+  registeredName: string;
+  registryStatus: string;
+  /** Registered name matches what the business entered. */
+  nameMatched: boolean;
+  /** The account holder is listed on the CAC record as a director, proprietor or shareholder. */
+  ownerMatched: boolean;
+  /** Name and owner matched and the company is active: counts as the CAC document. */
+  verified: boolean;
+  address?: string;
+  registeredAt?: string;
+  checkedAt: string;
 }
 
 export interface DocConfig {
@@ -74,6 +96,8 @@ const DOC_EXTENSIONS: Record<string, (typeof DOC_MIME_TYPES)[number]> = {
   png: "image/png",
   webp: "image/webp",
 };
+/** What people are told they can upload. Keep in step with DOC_MIME_TYPES and MAX_DOC_BYTES. */
+export const DOC_FORMATS_LABEL = "PDF, JPG, PNG or WebP, up to 10 MB";
 /** Value for `<input type="file" accept>`. */
 export const DOC_FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp";
 
@@ -141,23 +165,55 @@ export function normalizeVerificationDocs(value: unknown): VerificationDoc[] {
       uploadedAt,
       updatedAt: text(row.updatedAt) || uploadedAt,
       ...(typeof row.rejectionReason === "string" && row.rejectionReason ? { rejectionReason: row.rejectionReason } : {}),
+      ...(normalizeRegistry(row.registry) ? { registry: normalizeRegistry(row.registry)! } : {}),
     });
   }
   return docs;
+}
+
+function normalizeRegistry(value: unknown): RegistryCheck | null {
+  if (!value || typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
+  if (r.source !== "cac" || !text(r.rcNumber) || !text(r.checkedAt)) return null;
+  return {
+    source: "cac",
+    provider: text(r.provider),
+    rcNumber: text(r.rcNumber),
+    companyType: text(r.companyType),
+    enteredName: text(r.enteredName),
+    registeredName: text(r.registeredName),
+    registryStatus: text(r.registryStatus),
+    nameMatched: r.nameMatched === true,
+    ownerMatched: r.ownerMatched === true,
+    verified: r.verified === true,
+    ...(text(r.address) ? { address: text(r.address) } : {}),
+    ...(text(r.registeredAt) ? { registeredAt: text(r.registeredAt) } : {}),
+    checkedAt: text(r.checkedAt),
+  };
 }
 
 export function docHasFile(doc: Pick<VerificationDoc, "filePath"> | null | undefined): boolean {
   return Boolean(doc?.filePath && doc.filePath.trim());
 }
 
-/** A document counts towards verification only when a stored file backs it and it hasn't been rejected. */
+/** The CAC registry confirmed this business, so no certificate upload is needed. */
+export function docRegistryVerified(doc: Pick<VerificationDoc, "registry"> | null | undefined): boolean {
+  return Boolean(doc?.registry?.verified);
+}
+
+/** A file or a registry match backs the document. */
+export function docHasEvidence(doc: Pick<VerificationDoc, "filePath" | "registry"> | null | undefined): boolean {
+  return docHasFile(doc) || docRegistryVerified(doc);
+}
+
+/** A document counts towards verification only when a stored file (or a CAC registry match) backs it and it hasn't been rejected. */
 export function isDocComplete(doc: VerificationDoc | null | undefined): boolean {
-  return Boolean(doc && docHasFile(doc) && doc.status !== "draft" && doc.status !== "rejected");
+  return Boolean(doc && docHasEvidence(doc) && doc.status !== "draft" && doc.status !== "rejected");
 }
 
 export function findDoc(docs: VerificationDoc[], type: DocType): VerificationDoc | undefined {
-  // Prefer a row with a file if an old record and a real upload share a type.
-  return docs.find((doc) => doc.type === type && docHasFile(doc)) ?? docs.find((doc) => doc.type === type);
+  // Prefer a row with a file or registry match if an old record and a real one share a type.
+  return docs.find((doc) => doc.type === type && docHasEvidence(doc)) ?? docs.find((doc) => doc.type === type);
 }
 
 export function missingRequiredDocs(configs: DocConfig[], docs: VerificationDoc[]): DocConfig[] {
@@ -168,7 +224,7 @@ export type DocDisplayState = "missing" | "needs_file" | DocStatus;
 
 export function docDisplayState(doc: VerificationDoc | null | undefined): DocDisplayState {
   if (!doc) return "missing";
-  if (!docHasFile(doc) && doc.status !== "draft" && doc.status !== "rejected") return "needs_file";
+  if (!docHasEvidence(doc) && doc.status !== "draft" && doc.status !== "rejected") return "needs_file";
   return doc.status;
 }
 
@@ -189,7 +245,7 @@ export function docStatusLabel(doc: VerificationDoc | null | undefined, audience
     case "under_review":
       return "Under review";
     case "approved":
-      return "Approved";
+      return docRegistryVerified(doc) && !docHasFile(doc) ? "Verified with CAC" : "Approved";
     case "rejected":
       return "Rejected";
   }
@@ -197,5 +253,5 @@ export function docStatusLabel(doc: VerificationDoc | null | undefined, audience
 
 /** Marks uploaded documents as sent for review. Rows without a file are left alone. */
 export function submitUploadedDocs(docs: VerificationDoc[], now = new Date().toISOString()): VerificationDoc[] {
-  return docs.map((doc) => (doc.status === "uploaded" && docHasFile(doc) ? { ...doc, status: "submitted", updatedAt: now } : doc));
+  return docs.map((doc) => (doc.status === "uploaded" && docHasEvidence(doc) ? { ...doc, status: "submitted", updatedAt: now } : doc));
 }

@@ -6,6 +6,7 @@ import { Card, CardHead, PageHead } from "@/components/app-kit";
 import { Notice, PillButton, Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
+import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
 import { VerificationProgress } from "@/components/verification/VerificationProgress";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
 import { VerificationBadge } from "@/components/verification/VerificationBadge";
@@ -201,14 +202,22 @@ export default function LogisticsVerificationPage() {
           <Card className="min-w-0 p-5">
             <CardHead title="Your documents" />
             <div className="mt-4">
-              <VerificationDocUploader
-                role="logistics_partner"
-                docs={documents}
-                docConfigs={logisticsDocTypes}
-                onUpload={handleUpload}
-                onDelete={handleDelete}
-                readOnly={isVerified}
+              <CacInstantCheck
+                apiPath="/api/logistics/verification/cac"
+                defaultName={partner.companyName}
+                cacDoc={documents.find((d) => d.type === "cac")}
+                onVerified={(doc) => { setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc]); fetchData(); }}
               />
+              <div className="mt-4">
+                <VerificationDocUploader
+                  role="logistics_partner"
+                  docs={documents}
+                  docConfigs={logisticsDocTypes}
+                  onUpload={handleUpload}
+                  onDelete={handleDelete}
+                  readOnly={isVerified}
+                />
+              </div>
             </div>
             {!isVerified && !isPending && (
               <PillButton size="md" className="mt-4 w-full" onClick={handleSubmit} busy={submitting}>

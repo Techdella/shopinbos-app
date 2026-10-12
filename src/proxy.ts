@@ -6,10 +6,12 @@ import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/li
 import { csrfRejection } from "@/lib/auth/csrf";
 import { loginRedirectPath, PORTAL_API_PREFIXES, PROTECTED_PREFIXES, rolesForPath, type PortalRole } from "@/lib/auth/route-access";
 import { decodeAccessToken, sessionMaxAgeMs, sessionTooOld } from "@/lib/auth/session-claims";
+import { getPlatformRootDomain } from "@/lib/domains/storefront";
+import { resolveCustomDomainSlug } from "@/lib/domains/lookup";
 import { getOnboardingDestination } from "@/lib/onboarding-router";
 import { portalDashboardPath, portalLoginPath, portalOnboardingPath, portalRoleFromPath } from "@/lib/portal-routes";
+import { classifyHost, storePathAction } from "@/lib/storefront/host-routing";
 
-const LOCAL_APP_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const GUEST_ROUTES = [
   "/login",
   "/signup",
@@ -28,16 +30,54 @@ const REQUEST_PATH_HEADER = "x-shopinbos-path";
 const NO_STORE = "private, no-store, max-age=0, must-revalidate";
 const SESSION_COOKIE_OPTIONS = { path: "/", sameSite: "lax" as const, secure: process.env.NODE_ENV === "production" };
 
+// Store hosts need the proxy on every path (including /s/ and /api/public, so they can be kept to their own
+// store); on app hosts those two are passed straight through below, exactly as when the matcher skipped them.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand|api/public|s/).*)"],
+  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand).*)"],
 };
 
 function matchesRoute(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
-function isKnownAppHost(host: string) {
-  return LOCAL_APP_HOSTS.has(host) || host.endsWith(".vercel.app") || host.endsWith(".shopinbos.com");
+/** Paths the matcher used to skip on app hosts; the proxy still leaves them alone there. */
+function skippedOnAppHost(pathname: string) {
+  return pathname.startsWith("/api/public") || pathname.startsWith("/s/");
+}
+
+function hostRoute(request: NextRequest) {
+  return classifyHost(request.headers.get("host") || request.nextUrl.host, {
+    rootDomain: getPlatformRootDomain(),
+    appHosts: [process.env.NEXT_PUBLIC_APP_URL, process.env.APP_URL, process.env.CSRF_TRUSTED_ORIGINS],
+  });
+}
+
+function notFound(pathname: string) {
+  const headers = { "Cache-Control": "public, max-age=60" };
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: { code: "NOT_FOUND", message: "Not found." } }, { status: 404, headers });
+  }
+  return new NextResponse("Not found", { status: 404, headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" } });
+}
+
+/**
+ * <slug>.shopinbos.com and a seller's own (active store's) domain serve that store's storefront at /s/<slug>.
+ * The app's portals and APIs are never reachable there; hosts that are neither app nor store get a 404.
+ */
+async function routeStoreHost(request: NextRequest, route: Exclude<ReturnType<typeof classifyHost>, { kind: "app" }>) {
+  const { pathname } = request.nextUrl;
+  let slug: string | null | undefined = null;
+  if (route.kind === "store") slug = route.slug;
+  else if (route.kind === "custom") slug = await resolveCustomDomainSlug(route.domain);
+  if (slug === undefined) return new NextResponse("Temporarily unavailable", { status: 503, headers: { "Retry-After": "30" } });
+  if (!slug) return notFound(pathname);
+
+  const action = storePathAction(pathname, slug);
+  if (action.action === "pass") return NextResponse.next();
+  if (action.action === "not-found") return notFound(pathname);
+  const url = request.nextUrl.clone();
+  url.pathname = action.pathname;
+  return NextResponse.rewrite(url);
 }
 
 function hasSupabaseAuthCookie(request: NextRequest) {
@@ -64,7 +104,11 @@ function trustedOrigins() {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname, host, search } = request.nextUrl;
+  const route = hostRoute(request);
+  if (route.kind !== "app") return routeStoreHost(request, route);
+  if (skippedOnAppHost(request.nextUrl.pathname)) return NextResponse.next();
+
+  const { pathname, search } = request.nextUrl;
   const isApi = pathname.startsWith("/api/");
   const portalApi = isApi && matchesRoute(pathname, PORTAL_API_PREFIXES);
   const protectedPage = !isApi && matchesRoute(pathname, AUTH_ROUTES) && !matchesRoute(pathname, PUBLIC_ROUTES);
@@ -101,10 +145,6 @@ export async function proxy(request: NextRequest) {
     redirect.headers.set("Cache-Control", NO_STORE);
     return redirect;
   };
-
-  if (!isKnownAppHost(hostnameFromHost(host))) {
-    return response;
-  }
 
   if (matchesRoute(pathname, PUBLIC_ROUTES)) {
     return response;
@@ -255,8 +295,4 @@ export async function proxy(request: NextRequest) {
   }
 
   return response;
-}
-
-function hostnameFromHost(host: string) {
-  return host.split(":")[0] ?? host;
 }

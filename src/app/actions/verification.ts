@@ -6,6 +6,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import type { DocType, VerificationDoc } from "@/lib/verification-utils";
 import { computeBadgeTier, parseVerificationDocs } from "@/lib/verification-utils";
 import {
+  DOC_FORMATS_LABEL,
   DOC_TYPE_LABELS,
   docHasFile,
   docMimeType,
@@ -60,7 +61,15 @@ export async function uploadVerificationDoc(
       upsert: false,
       contentType: mimeType,
     });
-    if (uploadError) return { success: false, error: uploadError.message };
+    if (uploadError) {
+      console.error("[verification] storage upload failed", uploadError.message);
+      return {
+        success: false,
+        error: /mime|type/i.test(uploadError.message)
+          ? `${file.name} couldn't be stored. We accept ${DOC_FORMATS_LABEL}.`
+          : "Upload failed. Please try again.",
+      };
+    }
 
     // Old onboarding rows of this type that never had a file are replaced by the real upload.
     const placeholders = docs.filter((d) => d.type === docType && !docHasFile(d));
@@ -76,6 +85,8 @@ export async function uploadVerificationDoc(
       status: "uploaded",
       uploadedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      // A CAC registry result stays with the certificate so the review team sees both.
+      ...(previous?.registry ? { registry: previous.registry } : {}),
     };
 
     const kept = docs.filter((d, index) => index !== existingIdx && !placeholders.includes(d));

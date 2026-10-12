@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { isUniqueViolation } from "@/lib/inbox/pure";
 import { getPublicEnv } from "@/lib/env";
 import { createNotification } from "@/lib/notifications/create";
 import { isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
@@ -190,18 +191,24 @@ async function openTicket(input: NewTicket) {
   });
   // Files go under the ticket's own folder, so they're stored once the ticket exists.
   const attachments = input.files?.length ? await storeFiles(ticket.id, input.files).catch(() => []) : [];
-  await db.supportMessage.create({
-    data: {
-      ticketId: ticket.id,
-      authorType: "user",
-      authorId: input.userId,
-      authorName: input.name,
-      body,
-      attachments: attachments as unknown as Prisma.InputJsonValue,
-      channel: input.source,
-      externalId: input.externalId ?? null,
-    },
-  });
+  try {
+    await db.supportMessage.create({
+      data: {
+        ticketId: ticket.id,
+        authorType: "user",
+        authorId: input.userId,
+        authorName: input.name,
+        body,
+        attachments: attachments as unknown as Prisma.InputJsonValue,
+        channel: input.source,
+        externalId: input.externalId ?? null,
+      },
+    });
+  } catch (error) {
+    // e.g. a concurrent replay of the same inbound email (unique externalId): don't leave an empty ticket behind.
+    await db.supportTicket.delete({ where: { id: ticket.id } }).catch(() => null);
+    throw error;
+  }
   void notifyAdminsOfTicket(ticket, body, attachments.length, "new").catch(() => null);
   return ticket;
 }
@@ -856,7 +863,19 @@ export function renderMacro(body: string, ticket: { name: string; number: number
  * An email to the support inbox. Replies ("support+sb-1042@…" or "[SB-1042]" in the subject) from the ticket's
  * own customer join that thread; anything else opens a new ticket. Message-IDs are stored so retries are no-ops.
  */
-export async function ingestSupportEmail(email: { fromEmail: string; fromName: string | null; subject: string; text: string; messageId: string | null; attachments: number; number: number | null; body: string }) {
+type InboundSupportEmail = { fromEmail: string; fromName: string | null; subject: string; text: string; messageId: string | null; attachments: number; number: number | null; body: string };
+
+export async function ingestSupportEmail(email: InboundSupportEmail) {
+  try {
+    return await ingestSupportEmailOnce(email);
+  } catch (error) {
+    // Two deliveries of the same email racing past the check below: the unique externalId stops the second.
+    if (email.messageId && isUniqueViolation(error)) return "duplicate";
+    throw error;
+  }
+}
+
+async function ingestSupportEmailOnce(email: InboundSupportEmail) {
   if (!(await supportReady())) return "not-ready";
   if (email.messageId) {
     const seen = await db.supportMessage.findUnique({ where: { externalId: email.messageId }, select: { id: true } });
