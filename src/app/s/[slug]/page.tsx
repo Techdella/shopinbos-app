@@ -6,6 +6,9 @@ import { StorefrontClient } from "./StorefrontClient";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { storePageSeo } from "@/lib/seo/page-seo";
 import { seoMetadata } from "@/lib/seo/fields";
+import { resolveStorefront } from "@/lib/storefront/public-store.server";
+import { StoreClosedPage } from "@/components/storefront/shopper/StoreClosedPage";
+import { PreviewClient } from "./preview/PreviewClient";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -14,13 +17,6 @@ interface Props {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StoreData = any;
 
-async function fetchStore(slug: string): Promise<StoreData> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
-  const res = await fetch(`${baseUrl}/api/public/store/${slug}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data ?? null;
-}
 
 function getIntegrations(brandSettings?: Record<string, unknown>) {
   const integrations = brandSettings?.integrations;
@@ -46,8 +42,12 @@ function getSeoSettings(brandSettings?: Record<string, unknown>) {
 
 export async function generateMetadata({ params, searchParams }: Props & { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const { slug } = await params;
-  const store = await fetchStore(slug);
-  if (!store) return { title: "Store not found" };
+  const view = await resolveStorefront(slug);
+  if (view.access === "missing") return { title: "Store not found" };
+  // Not live yet: the owner's preview or the "not open yet" page, neither of which should be indexed.
+  if (view.access === "closed") return { title: { absolute: view.brand.name }, robots: { index: false, follow: false } };
+  if (view.access === "preview") return { title: { absolute: `Preview: ${view.store.name}` }, robots: { index: false, follow: false } };
+  const store: StoreData = view.store;
 
   // ?page=about etc.: that page's own SEO tab.
   const requested = (await searchParams).page;
@@ -157,11 +157,16 @@ function buildJsonLd(store: StoreData) {
 
 export default async function StorefrontPage({ params }: Props) {
   const { slug } = await params;
-  const store = await fetchStore(slug);
-  if (!store) notFound();
+  const view = await resolveStorefront(slug);
+  if (view.access === "missing") notFound();
 
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), slug);
+  if (view.access === "closed") return <StoreClosedPage store={view.brand} basePath={storeBasePath} path={`/s/${slug}`} />;
+  // The owner of a store that isn't live sees it with their builder draft, under the preview bar.
+  if (view.access === "preview") return <PreviewClient store={view.store} storeBasePath={storeBasePath} live={false} />;
+
+  const store: StoreData = view.store;
   const { googleAnalyticsId } = getIntegrations(store.brandSettings);
   const jsonLdItems = buildJsonLd(store);
 

@@ -18,7 +18,7 @@ import type { ShopperCommerce, ShopperStore } from "./types";
 // /wishlist: the shopper's saved products (move to bag, remove, share), or a list someone shared with them
 // (?items=a,b,c — product ids only, nothing personal in the link).
 
-export function WishlistPage({ store, basePath, commerce }: { store: ShopperStore; basePath: string; commerce: ShopperCommerce }) {
+export function WishlistPage({ store, basePath, commerce, preview = false }: { store: ShopperStore; basePath: string; commerce: ShopperCommerce; preview?: boolean }) {
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
@@ -29,7 +29,8 @@ export function WishlistPage({ store, basePath, commerce }: { store: ShopperStor
   const [shareStatus, setShareStatus] = useState("");
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
-  useStoreVisitBeacon(store.slug);
+  // The owner's preview doesn't count as a shopper visit.
+  useStoreVisitBeacon(preview ? "" : store.slug);
 
   const byId = useMemo(() => new Map(store.storeProducts.map((product) => [product.id, product])), [store.storeProducts]);
   const ids = shared ? sharedIds : wishlist.productIds;
@@ -122,6 +123,19 @@ export function WishlistPage({ store, basePath, commerce }: { store: ShopperStor
           <h2 className="text-[20px] font-semibold" style={{ fontFamily: theme.heading }}>{shared ? "Nothing to show" : "No saved items yet"}</h2>
           <p className="max-w-[42ch] text-[15px]" style={{ color: theme.muted }}>{shared ? "These products are no longer for sale." : "Tap the heart on any product to save it here for later."}</p>
           <Link href={getPublicStorefrontPath(basePath, "/")} className="mt-2 inline-flex min-h-12 items-center rounded-full px-7 text-[15px] font-semibold" style={{ background: theme.cta, color: theme.ctaText }}>Browse {store.name}</Link>
+          {preview && !shared && store.storeProducts.length ? (
+            <SecondaryButton
+              theme={theme}
+              type="button"
+              onClick={() => {
+                const picks = store.storeProducts.slice(0, 4);
+                for (const product of picks) void wishlist.add(product.id);
+                setNotice(`${picks.length} sample ${picks.length === 1 ? "item" : "items"} saved to your wishlist.`);
+              }}
+            >
+              <Icon name="sparkle" size={15} /> Try it with sample items
+            </SecondaryButton>
+          ) : null}
         </Panel>
       ) : (
         <ProductRow

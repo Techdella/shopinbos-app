@@ -40,7 +40,7 @@ export function ShopperShell({
       <a href="#shopper-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
-      <header className="sticky top-0 z-30 border-b backdrop-blur" style={{ background: `${theme.headerBg}F2`, borderColor: theme.border }}>
+      <header className="sticky top-[var(--sb-preview-h,0px)] z-30 border-b backdrop-blur" style={{ background: `${theme.headerBg}F2`, borderColor: theme.border }}>
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-10">
           <Link href={getPublicStorefrontPath(basePath, "/")} className="flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">
             {logoUrl ? <img src={logoUrl} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-[10px] object-cover" /> : null}

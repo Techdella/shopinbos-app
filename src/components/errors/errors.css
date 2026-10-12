@@ -1,0 +1,68 @@
+/* Error, 404 and "not open yet" scenes. Everything animates transforms and opacity only (no layout), and
+   all of it stops under prefers-reduced-motion. Colours come from --sx-* variables set by ErrorScene. */
+
+.sbx-scene svg { overflow: visible; }
+:where(.sbx-scene) [class*="sbx-a-"] { transform-box: fill-box; transform-origin: center; }
+
+/* Okada (404): the bike bobs, wheels spin, the road slides, the parcel tumbles off the back. */
+.sbx-a-bob { animation: sbx-bob 0.9s ease-in-out infinite; }
+.sbx-a-spin { animation: sbx-spin 0.7s linear infinite; }
+.sbx-a-road { animation: sbx-road 0.9s linear infinite; transform-box: view-box; }
+.sbx-a-tumble { animation: sbx-tumble 4.8s cubic-bezier(.45,.05,.55,.95) infinite; }
+.sbx-a-puff { animation: sbx-puff 0.9s ease-out infinite; transform-origin: right center; }
+.sbx-a-puff2 { animation: sbx-puff 0.9s ease-out 0.45s infinite; transform-origin: right center; }
+.sbx-a-float { animation: sbx-float 2.4s ease-in-out infinite; }
+
+@keyframes sbx-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes sbx-spin { to { transform: rotate(360deg); } }
+@keyframes sbx-road { from { transform: translateX(0); } to { transform: translateX(-48px); } }
+@keyframes sbx-tumble {
+  0%, 52% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  56% { transform: translate(-2px, -18px) rotate(-14deg); }
+  66% { transform: translate(-34px, -30px) rotate(-120deg); }
+  78% { transform: translate(-76px, 38px) rotate(-250deg); opacity: 1; }
+  84% { transform: translate(-96px, 34px) rotate(-270deg); opacity: 0; }
+  92% { transform: translate(0, -40px) rotate(0); opacity: 0; }
+  100% { transform: translate(0, 0) rotate(0); opacity: 1; }
+}
+@keyframes sbx-puff { 0% { transform: scale(0.4); opacity: 0.7; } 100% { transform: translateX(-22px) scale(1.4); opacity: 0; } }
+@keyframes sbx-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
+
+/* Rex with a screwdriver (errors): arm twists, eyes blink, antenna light flickers, sparks pop, a bolt rolls. */
+.sbx-a-twist { animation: sbx-twist 0.6s ease-in-out infinite alternate; transform-origin: 8% 50%; }
+.sbx-a-blink { animation: sbx-blink 3.6s ease-in-out infinite; }
+.sbx-a-flicker { animation: sbx-flicker 1.4s steps(2, jump-none) infinite; }
+.sbx-a-spark { animation: sbx-spark 1.2s ease-out infinite; }
+.sbx-a-spark2 { animation: sbx-spark 1.2s ease-out 0.4s infinite; }
+.sbx-a-spark3 { animation: sbx-spark 1.2s ease-out 0.8s infinite; }
+.sbx-a-wobble { animation: sbx-wobble 2.8s ease-in-out infinite; transform-origin: 50% 100%; }
+.sbx-a-roll { animation: sbx-roll 3.2s ease-in-out infinite alternate; }
+
+@keyframes sbx-twist { from { transform: rotate(-16deg); } to { transform: rotate(14deg); } }
+@keyframes sbx-blink { 0%, 44%, 50%, 100% { transform: scaleY(1); } 47% { transform: scaleY(0.1); } }
+@keyframes sbx-flicker { 0% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes sbx-spark { 0% { transform: scale(0.2); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(1.3); opacity: 0; } }
+@keyframes sbx-wobble { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+@keyframes sbx-roll { from { transform: translateX(0) rotate(0); } to { transform: translateX(26px) rotate(220deg); } }
+
+/* Tumbling parcel (storefront 404) and the swinging sign ("not open yet"). */
+.sbx-a-hop { animation: sbx-hop 2.6s cubic-bezier(.5,0,.5,1) infinite; }
+.sbx-a-shadow { animation: sbx-shadow 2.6s cubic-bezier(.5,0,.5,1) infinite; }
+.sbx-a-swing { animation: sbx-swing 3.2s ease-in-out infinite; transform-origin: 50% 0%; }
+
+@keyframes sbx-hop {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); }
+  10% { transform: translateY(0) rotate(0) scale(1.06, 0.92); }
+  40% { transform: translateY(-46px) rotate(-150deg) scale(1, 1); }
+  60% { transform: translateY(-46px) rotate(-210deg); }
+  88% { transform: translateY(0) rotate(-360deg) scale(1.05, 0.94); }
+}
+@keyframes sbx-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.25; } 50% { transform: scaleX(0.55); opacity: 0.1; } }
+@keyframes sbx-swing { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+/* The quip swap. */
+.sbx-quip { transition: opacity 260ms ease, transform 260ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sbx-scene *, .sbx-quip { animation: none !important; transition: none !important; }
+}

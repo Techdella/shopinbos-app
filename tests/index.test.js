@@ -230,10 +230,12 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(supplierSettings, /messageEmail/);
   assert.match(supplierSettings, /messageSms/);
 
-  assert.match(messages, /notifyMessageRecipient/);
-  assert.match(messages, /sendEmail/);
-  assert.match(messages, /sendSms/);
-  assert.match(messages, /eventKey:\s*"message_received"/);
+  // Partner messages notify through the conversations service: in-app at once, SMS if opted in, email if left unread.
+  const conversations = read("src/lib/conversations/service.server.ts");
+  assert.match(messages, /sendPartnerMessage/);
+  assert.match(conversations, /sendEmail/);
+  assert.match(conversations, /sendSms/);
+  assert.match(conversations, /eventKey: "message_received"/);
 
   assert.match(suppliersPage, /export async function generateMetadata/);
   assert.match(suppliersPage, /supplier\.verificationStatus === "verified"/);
@@ -873,7 +875,7 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   }
   assert.match(productView, /shopper\.payOnDelivery \?/, "pay on delivery badge only when the seller enabled it");
   assert.match(productView, /shopper\.whatsappNumber/);
-  assert.match(publicStore, /loadShopperInfo\(store\.id/);
+  assert.match(read("src/lib/storefront/public-store.server.ts"), /loadShopperInfo\(store\.id/);
   assert.match(lookup, /order numbers can't be probed/);
 });
 

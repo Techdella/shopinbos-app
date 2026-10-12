@@ -59,12 +59,15 @@ import { TransferInstructions, type TransferDetails } from "../order/[orderId]/T
 // Multi-step checkout: Contact → Delivery → Payment → Review. Guest checkout (no account), details saved on
 // this device when the shopper agrees, delivery options from the seller's zones, the seller's payment methods
 // (Paystack, bank transfer, pay on delivery), totals quoted by the server, and the bag saved for reminders
-// once we can reach the shopper.
+// once we can reach the shopper. In the owner's preview of a store that isn't live, every step works but
+// nothing is quoted by the server, saved for reminders, charged or ordered.
 
 interface Props {
   store: ShopperStore;
   storeBasePath: string;
   commerce: ShopperCommerce;
+  /** Owner preview of a store that isn't live: the full checkout UI, without payment or order creation. */
+  preview?: boolean;
 }
 
 interface CreatedOrder {
@@ -82,13 +85,13 @@ interface Quote {
 
 const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "" };
 
-export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
+export function CheckoutClient({ store, storeBasePath, commerce, preview = false }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cart = useCart(store.slug);
   const visitorKey = useStoreVisitor(store.slug);
-  const campaignToken = useCampaignAttribution(store.slug);
-  useStoreCheckoutStart(store.slug);
+  const campaignToken = useCampaignAttribution(preview ? "" : store.slug);
+  useStoreCheckoutStart(preview ? "" : store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const policies = useMemo(() => checkoutLegalLinks(store.brandSettings), [store.brandSettings]);
   const info = useMemo(() => readShopperInfo(store.shopper), [store.shopper]);
@@ -190,7 +193,7 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
 
   // ─── Server quote once the address is known ────────────────────────────────
   useEffect(() => {
-    if (!cart.loaded || cart.items.length === 0 || createdOrder || stepIndex < 1) return;
+    if (preview || !cart.loaded || cart.items.length === 0 || createdOrder || stepIndex < 1) return;
     if (commerce.zones.length > 0 && !details.city && !details.state) return;
     const key = quoteKey;
     const controller = new AbortController();
@@ -227,7 +230,7 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
 
   // ─── Save the bag for reminders once we can reach the shopper ──────────────
   useEffect(() => {
-    if (!visitorKey || cart.items.length === 0 || createdOrder) return;
+    if (preview || !visitorKey || cart.items.length === 0 || createdOrder) return;
     const email = isEmail(details.email) ? details.email.trim() : "";
     const phone = isPhone(details.phone) ? details.phone.trim() : "";
     if (!email && !phone) return;
@@ -304,7 +307,8 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
 
   async function placeOrder() {
     setError(null);
-    if (cart.items.length === 0) return;
+    // Preview never creates an order or opens a payment window.
+    if (preview || cart.items.length === 0) return;
     for (const [index, entry] of CHECKOUT_STEPS.entries()) {
       const found = stepErrors(entry, details, rules, choice);
       if (Object.keys(found).length) {
@@ -431,6 +435,18 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
         <h1 className="text-[22px] font-semibold" style={{ fontFamily: theme.heading }}>Your bag is empty</h1>
         <p className="text-[15px]" style={{ color: theme.muted }}>Add something to your bag, then come back to check out.</p>
         <Link href={getPublicStorefrontPath(storeBasePath, "/")} className="mt-2 inline-flex min-h-12 items-center rounded-full px-7 text-[15px] font-semibold" style={{ background: theme.cta, color: theme.ctaText }}>Continue shopping</Link>
+        {preview && store.storeProducts.length ? (
+          <SecondaryButton
+            theme={theme}
+            type="button"
+            onClick={() => {
+              const simple = store.storeProducts.filter((product) => readVariants(product.variants).length === 0);
+              for (const product of (simple.length ? simple : store.storeProducts).slice(0, 3)) cart.add({ productId: product.id, name: product.name, price: product.retailPrice, image: product.images[0] });
+            }}
+          >
+            <Icon name="sparkle" size={15} /> Try checkout with sample items
+          </SecondaryButton>
+        ) : null}
       </Panel>,
     );
   }
@@ -488,6 +504,7 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
 
         <StepProgress theme={theme} current={stepIndex} reached={reached} onSelect={(index) => !createdOrder && goTo(index)} />
 
+        {preview ? <Banner theme={theme} tone="info">Test run: fill in anything you like. Nothing is charged and no order is created in preview.</Banner> : null}
         {error ? <Banner theme={theme} tone="error">{error}</Banner> : null}
         {quoteError && !error ? <Banner theme={theme} tone="error">{quoteError} <Link href={getPublicStorefrontPath(storeBasePath, "/cart")} className="font-semibold underline underline-offset-4">Edit bag</Link></Banner> : null}
 
@@ -662,7 +679,17 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
                 </Link>
               ) : null}
               <div className="sm:ml-auto sm:min-w-[260px]">
-                {step === "review" && createdOrder && isPaystack ? (
+                {step === "review" && preview ? (
+                  <button
+                    type="button"
+                    disabled
+                    aria-describedby="co-preview-note"
+                    className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border-2 border-dashed px-6 text-[15px] font-semibold"
+                    style={{ borderColor: theme.border, color: theme.muted, background: theme.paper }}
+                  >
+                    <Icon name="lock" size={16} /> Checkout is off in preview
+                  </button>
+                ) : step === "review" && createdOrder && isPaystack ? (
                   <PaystackCheckoutButton
                     amount={createdOrder.total}
                     email={details.email}
@@ -690,6 +717,16 @@ export function CheckoutClient({ store, storeBasePath, commerce }: Props) {
                 )}
               </div>
             </div>
+            {step === "review" && preview ? (
+              <div id="co-preview-note" className="mt-4 rounded-[14px] border border-dashed px-4 py-3 text-[13.5px] leading-6" style={{ borderColor: theme.border, background: theme.paper }}>
+                <p className="m-0 font-semibold">This is where shoppers pay.</p>
+                <p className="m-0 mt-1" style={{ color: theme.muted }}>
+                  Once your store is live, this button reads{" "}
+                  <strong style={{ color: theme.ink }}>{isPaystack ? `Pay ${formatStoreMoney(totals.total, store.currency)}` : "Place order"}</strong>. In preview nothing is charged and no order is created.
+                  To try a real test order, go live, place one with pay on delivery or bank transfer, then cancel it from Orders.
+                </p>
+              </div>
+            ) : null}
             {step === "review" && policies.length ? (
               <p className="mb-0 mt-3 text-[12.5px] leading-5" style={{ color: theme.muted }}>
                 By placing your order you agree to our{" "}

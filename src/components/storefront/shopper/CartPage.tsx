@@ -40,7 +40,7 @@ import type { ShopperProduct } from "./catalog";
 
 type RecoverState = { status: "idle" } | { status: "loading" } | { status: "done"; unavailable: string[]; recovered: boolean } | { status: "error"; message: string };
 
-export function CartPage({ store, basePath, commerce }: { store: ShopperStore; basePath: string; commerce: ShopperCommerce }) {
+export function CartPage({ store, basePath, commerce, preview = false }: { store: ShopperStore; basePath: string; commerce: ShopperCommerce; preview?: boolean }) {
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const info = useMemo(() => readShopperInfo(store.shopper), [store.shopper]);
   const cart = useCart(store.slug);
@@ -50,7 +50,8 @@ export function CartPage({ store, basePath, commerce }: { store: ShopperStore; b
   const recoverToken = searchParams.get("recover");
   const [recover, setRecover] = useState<RecoverState>({ status: "idle" });
   const [notice, setNotice] = useState("");
-  useStoreVisitBeacon(store.slug);
+  // The owner's preview doesn't count as a shopper visit.
+  useStoreVisitBeacon(preview ? "" : store.slug);
 
   const products = store.storeProducts;
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
@@ -154,6 +155,14 @@ export function CartPage({ store, basePath, commerce }: { store: ShopperStore; b
     setNotice(`${product.name} added to your bag.`);
   }
 
+  // Preview: fill the bag with a few of the store's own products so the owner can try the whole flow.
+  function fillWithSamples() {
+    const simple = products.filter((product) => readVariants(product.variants).length === 0);
+    const picks = (simple.length ? simple : products).slice(0, 3);
+    for (const product of picks) cart.add({ productId: product.id, name: product.name, price: product.retailPrice, image: product.images[0] });
+    setNotice(`${picks.length} sample ${picks.length === 1 ? "item" : "items"} added to your bag.`);
+  }
+
   function moveToBag(product: ShopperProduct) {
     addProduct(product);
     void wishlist.remove(product.id);
@@ -186,7 +195,7 @@ export function CartPage({ store, basePath, commerce }: { store: ShopperStore; b
           {[0, 1].map((i) => <div key={i} className="h-28 animate-pulse rounded-[18px]" style={{ background: theme.border }} />)}
         </div>
       ) : lines.length === 0 ? (
-        <EmptyBag theme={theme} basePath={basePath} saved={saved} currency={store.currency} onMove={moveToBag} productHref={productHref} />
+        <EmptyBag theme={theme} basePath={basePath} saved={saved} currency={store.currency} onMove={moveToBag} productHref={productHref} preview={preview ? { hasProducts: products.length > 0, onFill: fillWithSamples } : null} />
       ) : (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:gap-10">
           <div className="grid min-w-0 gap-6">
@@ -420,7 +429,23 @@ function DeliveryEstimate({
   );
 }
 
-function EmptyBag({ theme, basePath, saved, currency, onMove, productHref }: { theme: ReturnType<typeof resolveShopperTheme>; basePath: string; saved: ShopperProduct[]; currency: string; onMove: (product: ShopperProduct) => void; productHref: (id: string) => string }) {
+function EmptyBag({
+  theme,
+  basePath,
+  saved,
+  currency,
+  onMove,
+  productHref,
+  preview,
+}: {
+  theme: ReturnType<typeof resolveShopperTheme>;
+  basePath: string;
+  saved: ShopperProduct[];
+  currency: string;
+  onMove: (product: ShopperProduct) => void;
+  productHref: (id: string) => string;
+  preview: { hasProducts: boolean; onFill: () => void } | null;
+}) {
   return (
     <div className="grid gap-8">
       <Panel theme={theme} className="grid justify-items-center gap-3 px-6 py-14 text-center">
@@ -430,6 +455,17 @@ function EmptyBag({ theme, basePath, saved, currency, onMove, productHref }: { t
         <Link href={getPublicStorefrontPath(basePath, "/")} className="mt-2 inline-flex min-h-12 items-center rounded-full px-7 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ background: theme.cta, color: theme.ctaText }}>
           Start shopping
         </Link>
+        {preview ? (
+          preview.hasProducts ? (
+            <SecondaryButton theme={theme} type="button" onClick={preview.onFill}>
+              <Icon name="sparkle" size={15} /> Try it with sample items
+            </SecondaryButton>
+          ) : (
+            <p className="max-w-[44ch] text-[13.5px]" style={{ color: theme.muted }}>
+              Preview tip: add a product in <a href="/products" className="font-semibold underline underline-offset-4" style={{ color: theme.ink }}>Products</a> to try the bag and checkout with real items.
+            </p>
+          )
+        ) : null}
       </Panel>
       {saved.length ? (
         <section aria-labelledby="empty-saved-heading">
