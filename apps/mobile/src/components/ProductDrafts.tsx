@@ -31,7 +31,7 @@ export function useProductDrafts() {
       setDrafts((current) => [...current, ...next].slice(0, 12));
       if (!drafted) setError("Rex couldn't name these yet. Add a name and price for each one.");
     } catch (photoError) {
-      setError(photoError instanceof Error ? photoError.message : "Rex couldn't read those photos.");
+      setError(photoError instanceof Error ? photoError.message : "Rex couldn't read those photos. Check your connection and try again.");
     } finally {
       setReading(false);
     }

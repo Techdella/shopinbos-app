@@ -128,7 +128,7 @@ export default function LogisticsVerificationPage() {
   if (!partner || !user) {
     return (
       <div className="grid min-h-dvh place-items-center bg-app-canvas font-app text-app-ink-soft" role="status">
-        <span className="flex items-center gap-2 text-[14.5px]"><Spinner /> Loading verification</span>
+        <span className="flex items-center gap-2 text-[15px]"><Spinner /> Loading verification</span>
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function LogisticsVerificationPage() {
             <h2 className="m-0 text-[18px] font-extrabold">
               {isVerified ? "You're verified" : isPending ? "We're checking your papers" : "Not verified yet"}
             </h2>
-            <p className="m-0 mt-0.5 text-[14px] text-app-ink-soft">
+            <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
               {isVerified
                 ? `Trust score ${trustData?.total ?? partner.reliabilityScore} out of 100.`
                 : isPending

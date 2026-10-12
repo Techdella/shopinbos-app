@@ -111,7 +111,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="New requests" value={newCount} />
-        <StatTile tone="card" label="Active jobs" value={activeCount} />
+        <StatTile tone="card" label="On the way" value={activeCount} />
         <StatTile tone="card" label="Delivered today" value={deliveredToday.length} />
         <StatTile tone="card" label="Earned today" value={naira(earnedToday)} />
       </StatGrid>
@@ -124,7 +124,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
               <h2 className="m-0 text-[17px] font-extrabold">
                 {riders.length === 0 ? "No riders added yet" : `${presence.out} ${presence.out === 1 ? "rider" : "riders"} out · ${presence.offline} offline`}
               </h2>
-              <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
+              <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
                 {riders.length === 0 ? "Add the riders who carry your jobs so you can manage them here." : "Riders go online in the Shopinbos Riders app."}
               </p>
             </div>
@@ -133,11 +133,11 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
 
           <section aria-labelledby="active-jobs" className="min-w-0">
             <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h2 id="active-jobs" className="m-0 text-[18px] font-extrabold">Active jobs</h2>
+              <h2 id="active-jobs" className="m-0 text-[18px] font-extrabold">On the way</h2>
               <TextLink href="/logistics/bookings">All jobs</TextLink>
             </div>
             {activeJobs.length === 0 ? (
-              <Card className="px-5 py-8 text-center text-[14.5px] text-app-ink-soft">No jobs on the road right now. Accepted jobs show up here.</Card>
+              <Card className="px-5 py-8 text-center text-[15px] text-app-ink-soft">No jobs on the road right now. Accepted jobs show up here.</Card>
             ) : (
               <ListCard>
                 {activeJobs.map((job) => {
@@ -147,10 +147,10 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-app-line bg-app-canvas text-app-ink-soft"><Icon name="box" size={18} /></span>
                       <div className="min-w-0 flex-1 basis-[180px]">
                         <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
-                        <div className="truncate text-[13px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name}</div>
+                        <div className="truncate text-[15px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name}</div>
                       </div>
                       <div className="min-w-0 basis-full sm:basis-[200px]"><StageDot tone={stage.tone}>{stage.label}</StageDot></div>
-                      <div className={`min-w-0 truncate text-[13.5px] sm:w-[140px] ${job.rider ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
+                      <div className={`min-w-0 truncate text-[15px] sm:w-[140px] ${job.rider ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
                         {job.rider?.name ?? "No rider yet"}
                       </div>
                       <div className="ml-auto text-[15px] font-extrabold">{naira(job.deliveryFee)}</div>
@@ -169,7 +169,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
           </div>
 
           {newBookings.length + newQuotes.length === 0 && (
-            <Card className="px-5 py-8 text-center text-[14.5px] text-app-ink-soft">
+            <Card className="px-5 py-8 text-center text-[15px] text-app-ink-soft">
               No new requests. When a seller books you or asks for a price, it lands here.
             </Card>
           )}
@@ -184,7 +184,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                 </div>
                 <div className="mt-3 min-w-0">
                   <Route from={job.pickupLocation} to={job.destination} className="block break-words text-[15px]" />
-                  <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
+                  <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
                     {packageSummary(job.packageDetails)} · {job.seller.name}
                     {job.estimatedDelivery ? ` · Deliver by ${lagosTime(job.estimatedDelivery)}, ${lagosDate(job.estimatedDelivery)}` : ""}
                   </p>
@@ -207,11 +207,11 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
             <Card key={quote.id} as="article" className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <Pill tone="accent">{quote.expiresAt ? `Reply by ${lagosTime(quote.expiresAt)}` : `Asked ${timeAgo(quote.createdAt, now)}`}</Pill>
-                <span className="text-[13.5px] font-bold text-app-ink-soft">Needs your price</span>
+                <span className="text-[15px] font-bold text-app-ink-soft">Needs your price</span>
               </div>
               <div className="mt-3 min-w-0">
                 <Route from={quote.pickupLocation} to={quote.destination} className="block break-words text-[15px]" />
-                <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
+                <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
                   {packageSummary(quote.packageDetails)} · {quote.seller.name}
                   {quote.preferredDate ? ` · Wanted ${lagosDate(quote.preferredDate)}` : ""}
                 </p>
@@ -240,7 +240,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                     placeholder="₦ price"
                     className={`${inputClass} h-10 min-w-[90px] flex-1 rounded-full`}
                   />
-                  <SubmitButton size="sm">Send price</SubmitButton>
+                  <SubmitButton size="sm" tone="white">Send price</SubmitButton>
                 </form>
               </div>
             </Card>
@@ -249,15 +249,15 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
           {(cashOwed > 0 || cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
             <Card className="border-0 bg-[#FDF0D5] p-5">
               <CardHead
-                title="Cash to pay in"
+                title="Pay in by 6pm"
                 action={<span className="text-[18px] font-extrabold">{naira(cashOwed)}</span>}
               />
-              <p className="m-0 mt-1 text-[13.5px] leading-[1.5] text-[#5C4100]">
-                Cash your riders collected on pay-on-delivery orders and you haven&apos;t paid in yet
+              <p className="m-0 mt-1 text-[15px] leading-[1.5] text-[#5C4100]">
+                Cash your riders collected from customers who paid when it arrived, not paid in yet
                 {cashCollectedToday > 0 ? ` · ${naira(cashCollectedToday)} collected today` : ""}
                 {cashOnActiveJobs > 0 ? ` · ${naira(cashOnActiveJobs)} more to collect on active jobs` : ""}.
               </p>
-              <PillLink href="/logistics/cash" tone="ink" size="sm" className="mt-3">Open cash</PillLink>
+              <PillLink href="/logistics/cash" size="sm" className="mt-3">See cash</PillLink>
             </Card>
           )}
         </div>

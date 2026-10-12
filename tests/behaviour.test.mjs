@@ -637,7 +637,7 @@ test("delivery jobs: allowed moves, delivery code, failure reason and cash on de
   assert.ok(rules.nextStatuses("failed").includes("confirmed"), "failed jobs can be retried");
 
   const job = { status: "picked_up", deliveryCode: "0427", codAmount: null };
-  assert.match(rules.checkTransition({ ...job, status: "pending" }, { to: "delivered", actor: "partner" }).error, /can't move/);
+  assert.match(rules.checkTransition({ ...job, status: "pending" }, { to: "delivered", actor: "partner" }).error, /already moved on/);
   assert.match(rules.checkTransition(job, { to: "delivered", actor: "rider", code: "1111" }).error, /doesn't match/);
   assert.match(rules.checkTransition(job, { to: "delivered", actor: "api" }).error, /doesn't match/);
   assert.equal(rules.checkTransition(job, { to: "delivered", actor: "rider", code: " 0427 " }).ok, true);
@@ -647,7 +647,7 @@ test("delivery jobs: allowed moves, delivery code, failure reason and cash on de
 
   const cod = { ...job, codAmount: 34100 };
   assert.match(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427" }).error, /how much/);
-  assert.match(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427", codCollected: 34100, codMethod: "card" }).error, /cash or by transfer/);
+  assert.match(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427", codCollected: 34100, codMethod: "card" }).error, /cash or transfer/);
   assert.equal(rules.checkTransition(cod, { to: "delivered", actor: "rider", code: "0427", codCollected: 34100, codMethod: "cash" }).ok, true);
   assert.match(rules.checkTransition(cod, { to: "delivered", actor: "partner" }).error, /how much/, "partner still records the cash");
 

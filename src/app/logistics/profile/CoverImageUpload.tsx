@@ -50,7 +50,7 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
     }
   }
 
-  const button = "inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-[13px] font-bold text-app-ink shadow-sm transition hover:bg-white disabled:opacity-60";
+  const button = "inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-[15px] font-bold text-app-ink shadow-sm transition hover:bg-white disabled:opacity-60";
 
   return (
     <div
@@ -61,7 +61,7 @@ export function CoverImageUpload({ currentBanner, displayName, city }: { current
       {/* Sits above the strip the logo overlaps from below. */}
       <div className="absolute bottom-12 left-4 right-4 min-w-0 text-white">
         <div className="truncate text-[20px] font-extrabold">{displayName}</div>
-        <div className="truncate text-[13px] opacity-90">{city} · delivery partner</div>
+        <div className="truncate text-[15px] opacity-90">{city} · delivery partner</div>
       </div>
       <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
         <button type="button" onClick={generateWithRex} disabled={generating} className={button}>

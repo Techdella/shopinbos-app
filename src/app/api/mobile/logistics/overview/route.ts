@@ -5,7 +5,7 @@ import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { cashToPayIn, isRiderOut } from "@/lib/logistics/job-rules";
 import { ACTIVE_STATUSES, bookingNet, lagosStartOfToday } from "@/components/logistics/kit";
-import { JOB_SELECT, jobView, ordersFor, partnerForUser } from "../_shared";
+import { JOB_SELECT, dispatchRiders, jobView, ordersFor, partnerForUser } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     }),
   ]);
 
-  const orders = await ordersFor(newJobs);
+  const [orders, riderList] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now)]);
   const out = riders.filter((rider) => isRiderOut(rider, now)).length;
   const onTime = timed.length ? Math.round((timed.filter((job) => job.deliveredAt! <= job.estimatedDelivery!).length / timed.length) * 100) : null;
 
@@ -56,7 +56,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     counts: { new: newCount, quotes: quoteCount, active: activeCount, issues: issueCount },
     newJobs: newJobs.map((job) => jobView(job, job.orderId ? orders.get(job.orderId) : undefined)),
     riders: { total: riders.length, out, offline: riders.length - out },
-    riderList: riders.map((rider) => ({ id: rider.id, name: rider.name, online: rider.online, lastSeenAt: rider.lastSeenAt?.toISOString() ?? null })),
+    riderList,
     cashToPayIn: cashToPayIn(unremitted),
     onTime,
     onTimeJobs: timed.length,

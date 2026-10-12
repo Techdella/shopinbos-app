@@ -31,7 +31,7 @@ export const images = {
 
 export function T({ style, weight = "regular", children, ...props }: { style?: StyleProp<TextStyle>; weight?: keyof typeof fonts; children: ReactNode } & Omit<React.ComponentProps<typeof Text>, "style">) {
   return (
-    <Text style={[{ fontFamily: fonts[weight], color: colors.ink, fontSize: 14 }, style]} {...props}>
+    <Text style={[{ fontFamily: fonts[weight], color: colors.ink, fontSize: 15 }, style]} {...props}>
       {children}
     </Text>
   );
@@ -85,7 +85,8 @@ export function PillButton({
 }: { title?: string; tone?: Tone; size?: "lg" | "md" | "sm"; busy?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode } & Omit<PressableProps, "style" | "children">) {
   const bg = tone === "ink" ? colors.ink : tone === "accent" ? colors.accent : tone === "forest" ? colors.forest : colors.surface;
   const fg = tone === "white" ? colors.ink : "#FFFFFF";
-  const height = size === "lg" ? 58 : size === "md" ? 50 : 38;
+  // lg is the one main button per screen: full width, 56 tall (build spec 8A).
+  const height = size === "lg" ? 56 : size === "md" ? 50 : 44;
   const off = disabled || busy;
   return (
     <Pressable
@@ -100,15 +101,15 @@ export function PillButton({
       ]}
       {...props}
     >
-      {busy ? <ActivityIndicator color={fg} /> : children ?? <T weight={size === "lg" ? "extrabold" : "bold"} style={{ color: fg, fontSize: size === "lg" ? 16 : size === "md" ? 15 : 13 }}>{title}</T>}
+      {busy ? <ActivityIndicator color={fg} /> : children ?? <T weight={size === "lg" ? "extrabold" : "bold"} style={{ color: fg, fontSize: size === "lg" ? 17 : size === "md" ? 16 : 15 }}>{title}</T>}
     </Pressable>
   );
 }
 
-export function LinkButton({ title, onPress, style, color = colors.ink }: { title: string; onPress: () => void; style?: StyleProp<ViewStyle>; color?: string }) {
+export function LinkButton({ title, onPress, style, color = colors.ink, testID }: { title: string; onPress: () => void; style?: StyleProp<ViewStyle>; color?: string; testID?: string }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={[{ minHeight: 44, alignItems: "center", justifyContent: "center" }, style]}>
-      <T weight="bold" style={{ fontSize: 15, color }}>{title}</T>
+    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} hitSlop={8} style={[{ minHeight: 44, alignItems: "center", justifyContent: "center" }, style]}>
+      <T weight="bold" style={{ fontSize: 15, color, textAlign: "center" }}>{title}</T>
     </Pressable>
   );
 }
@@ -124,7 +125,7 @@ export function BackButton({ onPress }: { onPress: () => void }) {
 }
 
 export function Label({ children }: { children: ReactNode }) {
-  return <T weight="bold" style={{ fontSize: 14, marginBottom: 8 }}>{children}</T>;
+  return <T weight="bold" style={{ fontSize: 15, marginBottom: 8 }}>{children}</T>;
 }
 
 export const Field = forwardRef<TextInput, TextInputProps>(function Field({ style, ...props }, ref) {
@@ -171,7 +172,7 @@ export function Chip({ label, on, onPress }: { label: string; on: boolean; onPre
       onPress={onPress}
       style={{ borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line }}
     >
-      <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
+      <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink, fontSize: 15 }}>{label}</T>
     </Pressable>
   );
 }
@@ -219,7 +220,7 @@ export function Notice({ tone = "error", children }: { tone?: "error" | "info" |
   const fg = tone === "error" ? colors.danger : tone === "success" ? colors.success : colors.forest;
   return (
     <View accessibilityRole={tone === "error" ? "alert" : undefined} style={{ backgroundColor: bg, borderRadius: radii.field, paddingHorizontal: 16, paddingVertical: 12 }}>
-      <T weight="medium" style={{ color: fg, lineHeight: 21 }}>{children}</T>
+      <T weight="medium" style={{ color: fg, fontSize: 15, lineHeight: 22 }}>{children}</T>
     </View>
   );
 }

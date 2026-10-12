@@ -43,7 +43,7 @@ function ReviewView({ item, onSaved, refreshing, onRefresh }: { item: ReviewItem
       onSaved(next);
       setNote({ tone: result.google === "failed" ? "error" : "success", text: result.message });
     } catch (saveError) {
-      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "Couldn't save the reply." });
+      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "Couldn't save the reply. Check your connection and try again." });
     } finally {
       setBusy(null);
     }
@@ -55,7 +55,7 @@ function ReviewView({ item, onSaved, refreshing, onRefresh }: { item: ReviewItem
     try {
       setReply((await draftReviewReply(item.key)).reply);
     } catch (draftError) {
-      setNote({ tone: "error", text: draftError instanceof Error ? draftError.message : "Peggy couldn't draft a reply just now." });
+      setNote({ tone: "error", text: draftError instanceof Error ? draftError.message : "Peggy couldn't draft a reply just now. Check your connection and try again." });
     } finally {
       setBusy(null);
     }

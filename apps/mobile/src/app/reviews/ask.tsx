@@ -26,7 +26,7 @@ export default function AskForReviews() {
       if (via === "whatsapp" && result.whatsappUrl) await Linking.openURL(result.whatsappUrl);
       else await Share.share({ message: result.message });
     } catch (askError) {
-      setNote({ tone: "error", text: askError instanceof Error ? askError.message : "Couldn't make the link." });
+      setNote({ tone: "error", text: askError instanceof Error ? askError.message : "Couldn't make the link. Check your connection and try again." });
     } finally {
       setBusy(null);
     }

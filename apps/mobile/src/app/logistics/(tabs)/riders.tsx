@@ -1,4 +1,5 @@
 import { Linking, Pressable, View } from "react-native";
+import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
@@ -12,7 +13,7 @@ import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // Riders: who is out (switched Online in the Riders app and seen in the last 30 minutes), what each is carrying
-// and has delivered today. Adding riders and sending their Riders app links is on the web.
+// and has delivered today. "Add a rider" needs only a name and a WhatsApp number.
 
 export default function LogisticsRiders() {
   const riders = useLoad(fetchRiders);
@@ -21,14 +22,14 @@ export default function LogisticsRiders() {
   const active = list.filter((rider) => rider.active).length;
 
   return (
-    <TabScreen title="Riders" action={<PillButton title="Add" size="sm" onPress={() => void openWeb("/logistics/couriers")} />} refreshing={riders.refreshing} onRefresh={() => void riders.refresh()}>
-      {riders.data ? <T style={{ color: colors.inkSoft, marginBottom: 12 }}>{out} out · {active - out} offline{list.length > active ? ` · ${list.length - active} paused` : ""}</T> : null}
+    <TabScreen title="Riders" action={<PillButton title="Add a rider" size="sm" onPress={() => router.push("/logistics/add-rider")} />} refreshing={riders.refreshing} onRefresh={() => void riders.refresh()}>
+      {riders.data ? <T style={{ color: colors.inkSoft, fontSize: 15, marginBottom: 12 }}>{out} out · {active - out} offline{list.length > active ? ` · ${list.length - active} paused` : ""}</T> : null}
       <View style={{ gap: 8 }}>
         {riders.loading && !riders.data ? <LoadingBlock label="Loading riders…" /> : null}
         {riders.error && !riders.data ? <ErrorState message={riders.error} onRetry={() => void riders.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/logistics/couriers") }} /> : null}
         {riders.data && !list.length ? (
-          <EmptyState icon="truck" title="No riders yet" action={<PillButton title="Add riders on the web" size="sm" onPress={() => void openWeb("/logistics/couriers")} />}>
-            Add your riders and send each one their Riders app link. They switch Online when they start work.
+          <EmptyState icon="truck" title="No riders yet" action={<PillButton title="Add a rider" size="md" onPress={() => router.push("/logistics/add-rider")} />}>
+            Add a rider with their name and WhatsApp number. They get a link to the Riders app and switch Online when they start work.
           </EmptyState>
         ) : null}
         {list.map((rider) => (
@@ -40,14 +41,15 @@ export default function LogisticsRiders() {
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <T weight="extrabold" style={{ fontSize: 15 }}>{rider.name}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>
-                  {!rider.active ? "Paused" : rider.out ? "Online" : rider.lastSeenAt ? `Offline · seen ${timeAgo(rider.lastSeenAt)}` : "Offline"}
-                  {rider.hasAppLink ? "" : " · no app link yet"}
+                <T style={{ color: colors.inkSoft, fontSize: 14 }}>
+                  {!rider.active ? "Paused" : rider.out ? (rider.openJobs ? "On a job" : "Free now") : rider.lastSeenAt ? `Offline · seen ${timeAgo(rider.lastSeenAt)}` : "Offline"}
+                  {rider.hasAppLink ? "" : " · hasn't got the app link yet"}
                 </T>
               </View>
               {rider.phone ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Call ${rider.name}`} onPress={() => void Linking.openURL(`tel:${rider.phone}`)} hitSlop={6} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Call ${rider.name}`} onPress={() => void Linking.openURL(`tel:${rider.phone}`)} hitSlop={6} style={{ minHeight: 42, borderRadius: 21, paddingHorizontal: 14, backgroundColor: colors.canvas, flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <AppIcon name="phone" size={18} />
+                  <T weight="bold" style={{ fontSize: 15 }}>Call</T>
                 </Pressable>
               ) : null}
             </View>

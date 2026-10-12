@@ -182,7 +182,7 @@ export function cashToCollect(order: CodOrder | undefined | null) {
 /** Label + value row inside a card. */
 export function KeyValue({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-2.5 text-[14px]">
+    <div className="flex items-baseline justify-between gap-3 py-2.5 text-[15px]">
       <span className="text-app-ink-soft">{label}</span>
       <span className="min-w-0 truncate text-right font-bold">{children}</span>
     </div>
@@ -193,7 +193,7 @@ export const inputClass =
   "h-11 w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 text-[15px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
 export const textareaClass =
   "w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[15px] leading-[1.5] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
-export const labelClass = "mb-1.5 block text-[13.5px] font-bold text-app-ink";
+export const labelClass = "mb-1.5 block text-[15px] font-bold text-app-ink";
 
 const BUTTON = {
   ink: "bg-app-ink text-white hover:bg-black",
@@ -208,7 +208,7 @@ export function SubmitButton({ tone = "ink", size = "md", children, className, .
       type="submit"
       className={[
         "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-extrabold transition disabled:cursor-not-allowed disabled:opacity-55",
-        size === "sm" ? "min-h-[40px] px-4 text-[13.5px]" : "min-h-[44px] px-5 text-[14px]",
+        size === "sm" ? "min-h-[40px] px-4 text-[15px]" : "min-h-[44px] px-5 text-[15px]",
         BUTTON[tone],
         className ?? "",
       ].join(" ")}

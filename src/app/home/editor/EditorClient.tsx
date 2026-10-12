@@ -335,10 +335,10 @@ export function EditorClient() {
           🏪
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: "-0.03em" }}>
-          No template selected yet
+          No look chosen yet
         </h1>
         <p style={{ fontSize: 15, color: "var(--ink-3, #6A7A7E)", maxWidth: 440, lineHeight: 1.5, margin: 0 }}>
-          Choose a template to set up your storefront. You can customise every section, page, and colour after.
+          Choose how your shop looks. You can change every part, page and colour after.
         </p>
         <button
           onClick={() => router.push("/builder/templates")}
@@ -354,7 +354,7 @@ export function EditorClient() {
             fontFamily: "inherit",
           }}
         >
-          Browse templates
+          See shop looks
         </button>
       </div>
     );
@@ -1147,7 +1147,7 @@ export function EditorClient() {
                                     boxSizing: "border-box",
                                   }}
                                 >
-                                  <option value="">Template demo only</option>
+                                  <option value="">Example only</option>
                                   {envelope?.store.storeProducts.map((product) => (
                                     <option key={product.id} value={product.id}>
                                       {product.name}

@@ -21,7 +21,7 @@ export default function Forgot() {
       await sendPasswordReset(email.trim().toLowerCase());
       setSent(true);
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "Couldn't send the link.");
+      setError(resetError instanceof Error ? resetError.message : "Couldn't send the link. Check your connection and try again.");
     } finally {
       setBusy(false);
     }

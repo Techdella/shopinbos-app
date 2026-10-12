@@ -39,7 +39,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-app-success" aria-hidden />
                   <div className="min-w-0 flex-1 basis-[160px]">
                     <div className="truncate text-[15px] font-extrabold">{zone.name}</div>
-                    <div className="truncate text-[13px] text-app-ink-soft">{zone.service}{zone.demandSignal ? ` · ${zone.demandSignal}` : ""}</div>
+                    <div className="truncate text-[15px] text-app-ink-soft">{zone.service}{zone.demandSignal ? ` · ${zone.demandSignal}` : ""}</div>
                   </div>
                   <span className="ml-auto text-[15px] font-extrabold">{zone.basePrice > 0 ? `From ${naira(zone.basePrice)}` : "Price on request"}</span>
                 </ListRow>
@@ -50,18 +50,18 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="p-5">
               <h2 className="m-0 text-[15px] font-extrabold">Riders start from</h2>
-              <p className="m-0 mt-1 text-[14px] text-app-ink-soft">{depot || "Not set"}</p>
+              <p className="m-0 mt-1 text-[15px] text-app-ink-soft">{depot || "Not set"}</p>
             </Card>
             <Card className="p-5">
               <h2 className="m-0 text-[15px] font-extrabold">Vehicles</h2>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {partner.vehicleTypes.length ? partner.vehicleTypes.map((type) => <Pill key={type}>{type}</Pill>) : <span className="text-[14px] text-app-ink-soft">None yet</span>}
+                {partner.vehicleTypes.length ? partner.vehicleTypes.map((type) => <Pill key={type}>{type}</Pill>) : <span className="text-[15px] text-app-ink-soft">None yet</span>}
               </div>
             </Card>
             <Card className="p-5">
               <h2 className="m-0 text-[15px] font-extrabold">Kinds of delivery</h2>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {partner.deliveryTypes.length ? partner.deliveryTypes.map((type) => <Pill key={type}>{type.replace(/_/g, " ")}</Pill>) : <span className="text-[14px] text-app-ink-soft">None yet</span>}
+                {partner.deliveryTypes.length ? partner.deliveryTypes.map((type) => <Pill key={type}>{type.replace(/_/g, " ")}</Pill>) : <span className="text-[15px] text-app-ink-soft">None yet</span>}
               </div>
             </Card>
           </div>
@@ -73,7 +73,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
             <div>
               <label htmlFor="coverageZones" className={labelClass}>Areas you deliver to</label>
               <textarea id="coverageZones" name="coverageZones" rows={4} defaultValue={partner.coverageZones.join("\n")} placeholder={"Yaba\nIkeja\nLekki"} className={textareaClass} />
-              <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">One area per line.</p>
+              <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">One area per line.</p>
             </div>
             <div>
               <label htmlFor="vehicleTypes" className={labelClass}>Vehicles</label>
@@ -94,7 +94,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
                     placeholder="Yaba|Same-day|2500"
                     className={textareaClass}
                   />
-                  <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">One area per line, like this: Yaba|Same-day|2500. Leave it empty to charge your usual price everywhere.</p>
+                  <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">One area per line, like this: Yaba|Same-day|2500. Leave it empty to charge your usual price everywhere.</p>
                 </div>
                 <div>
                   <label htmlFor="deliveryTypes" className={labelClass}>Kinds of delivery</label>

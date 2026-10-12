@@ -13,9 +13,10 @@ import {
   type TemplateContent,
   type TemplateVariable,
 } from "@/lib/marketing/text-channels";
+import { DETAIL_LABEL } from "./friendly";
 
-// Client pieces for SMS and WhatsApp: the SMS segment counter, WhatsApp template status pills, the variable
-// mapper for {{1}}..{{n}}, and a WhatsApp-style preview bubble.
+// Client pieces for SMS and WhatsApp: the SMS segment counter, WhatsApp template status pills (plain words), the
+// mapper for what fills each {{1}}..{{n}} ("Customer detail 1 is …"), and a WhatsApp-style preview bubble.
 
 export interface TemplateOption {
   id: string;
@@ -30,14 +31,14 @@ export interface TemplateOption {
 }
 
 export const TEMPLATE_STATUS: Record<string, { tone: Tone; label: string }> = {
-  DRAFT: { tone: "muted", label: "Draft" },
-  PENDING: { tone: "info", label: "In review" },
-  IN_APPEAL: { tone: "info", label: "In appeal" },
+  DRAFT: { tone: "muted", label: "Not sent to WhatsApp yet" },
+  PENDING: { tone: "info", label: "Waiting for WhatsApp to approve (usually a few minutes)" },
+  IN_APPEAL: { tone: "info", label: "WhatsApp is looking at it again" },
   APPROVED: { tone: "success", label: "Approved" },
-  REJECTED: { tone: "danger", label: "Rejected" },
-  PAUSED: { tone: "warning", label: "Paused" },
-  DISABLED: { tone: "danger", label: "Disabled" },
-  LOCAL_ERROR: { tone: "danger", label: "Not submitted" },
+  REJECTED: { tone: "danger", label: "WhatsApp said no" },
+  PAUSED: { tone: "warning", label: "Paused by WhatsApp" },
+  DISABLED: { tone: "danger", label: "Turned off by WhatsApp" },
+  LOCAL_ERROR: { tone: "danger", label: "Didn't reach WhatsApp: try again" },
 };
 
 export function TemplateStatusPill({ status }: { status: string }) {
@@ -54,7 +55,7 @@ export function SmsCounter({ text, recipients, costPerSegment, currency }: { tex
   return (
     <div className="grid gap-1 text-[12.5px] text-app-ink-soft" aria-live="polite">
       <p className="m-0">
-        <strong className="text-app-ink">{count.segments}</strong> SMS part{count.segments === 1 ? "" : "s"} per person · {count.units} of {count.segments > 1 ? `${count.segments} × ${count.perSegment}` : count.perSegment} {count.encoding === "GSM-7" ? "characters" : "Unicode characters"} ({count.encoding}) · {count.remaining} left in this part
+        <strong className="text-app-ink">{count.segments}</strong> SMS part{count.segments === 1 ? "" : "s"} per person · {count.units} of {count.segments > 1 ? `${count.segments} × ${count.perSegment}` : count.perSegment} letters · {count.remaining} left in this part
         {cost != null && recipients ? (
           <>
             {" "}· about <strong className="text-app-ink">{money(cost, currency)}</strong> for {recipients.toLocaleString("en-NG")} {recipients === 1 ? "person" : "people"}
@@ -73,15 +74,13 @@ export function SmsCounter({ text, recipients, costPerSegment, currency }: { tex
 /** One select per {{n}}: what fills it. */
 export function VariableMapper({ template, value, onChange }: { template: TemplateOption; value: string[]; onChange: (next: string[]) => void }) {
   const count = variableCount(template.content);
-  if (!count) return <p className="m-0 text-[13px] text-app-ink-soft">This template has no variables.</p>;
+  if (!count) return <p className="m-0 text-[13px] text-app-ink-soft">This message has no customer details to fill in.</p>;
   const mapping = value.some(Boolean) ? value : template.variables;
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {Array.from({ length: count }, (_, i) => (
         <label key={i} className="grid gap-1 text-[13px] font-bold">
-          <span>
-            <span className="font-mono text-[12px]">{`{{${i + 1}}}`}</span> is
-          </span>
+          <span>Customer detail {i + 1} is</span>
           <select
             className={selectClass}
             value={mapping[i] ?? ""}
@@ -93,7 +92,7 @@ export function VariableMapper({ template, value, onChange }: { template: Templa
           >
             <option value="">Choose…</option>
             {TEMPLATE_VARIABLE_KEYS.map((key) => (
-              <option key={key} value={key}>{TEMPLATE_VARIABLES[key].label}</option>
+              <option key={key} value={key}>{DETAIL_LABEL[key]}</option>
             ))}
           </select>
         </label>
@@ -115,7 +114,7 @@ export function WhatsAppBubble({ content, mapping, values, headerImageUrl }: { c
             // eslint-disable-next-line @next/next/no-img-element
             <img src={headerImageUrl} alt="" className="block h-[150px] w-full object-cover" />
           ) : (
-            <div className="grid h-[120px] place-items-center bg-app-canvas text-[12.5px] text-app-ink-soft">Header picture</div>
+            <div className="grid h-[120px] place-items-center bg-app-canvas text-[12.5px] text-app-ink-soft">Picture</div>
           )
         ) : null}
         <p className="m-0 whitespace-pre-wrap break-words px-3 py-2.5 text-[14px] leading-[1.45]">{text || "Your message will show here."}</p>

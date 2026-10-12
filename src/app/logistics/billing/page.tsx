@@ -67,12 +67,12 @@ export default async function LogisticsBillingPage() {
                   <ListRow key={booking.id}>
                     <div className="min-w-0 flex-1 basis-[160px]">
                       <div className="truncate text-[15px] font-extrabold">{booking.seller.name}</div>
-                      <div className="truncate text-[13px] text-app-ink-soft">
+                      <div className="truncate text-[15px] text-app-ink-soft">
                         {lagosDate(booking.createdAt)} · fee paid by {(booking.feeBearer || bearer).replace(/_/g, " ")}
                       </div>
                     </div>
                     <StatusPill status={booking.status} />
-                    <div className="text-[13px] text-app-ink-soft">{naira(booking.deliveryFee)} − {naira(fee)}</div>
+                    <div className="text-[15px] text-app-ink-soft">{naira(booking.deliveryFee)} − {naira(fee)}</div>
                     <div className="ml-auto text-[15px] font-extrabold">{naira(booking.netAmount || booking.deliveryFee - fee)}</div>
                   </ListRow>
                 );

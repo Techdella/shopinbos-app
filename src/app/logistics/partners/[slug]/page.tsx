@@ -39,7 +39,7 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
   return (
     <div className="app-scope min-h-dvh w-full bg-app-canvas font-app text-app-ink">
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
-        <Link href="/marketplace/logistics" className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-ink no-underline hover:underline">
+        <Link href="/marketplace/logistics" className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[15px] font-bold text-app-ink no-underline hover:underline">
           <Icon name="arrowLeft" size={15} /> Delivery partners
         </Link>
 
@@ -64,7 +64,7 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
                 <h1 className="m-0 break-words text-[26px] font-extrabold leading-[1.1] tracking-[-0.6px] sm:text-[30px]">{partner.displayName}</h1>
                 <Pill tone="success">Verified</Pill>
               </div>
-              <p className="m-0 mt-1 text-[14.5px] text-app-ink-soft">{[place, partner.estimatedSpeed || "Same-day delivery"].filter(Boolean).join(" · ")}</p>
+              <p className="m-0 mt-1 text-[15px] text-app-ink-soft">{[place, partner.estimatedSpeed || "Same-day delivery"].filter(Boolean).join(" · ")}</p>
             </div>
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               <PillLink href={`/home/logistics?partner=${partner.slug}`} tone="accent" icon="truck" className="flex-1 sm:flex-none">Ask for a price</PillLink>
@@ -92,20 +92,20 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
             <Card className="p-5">
               <CardHead title="Where they deliver" />
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {partner.coverageZones.length ? partner.coverageZones.map((zone) => <Pill key={zone} tone="ink">{zone}</Pill>) : <span className="text-[14px] text-app-ink-soft">Ask for areas</span>}
+                {partner.coverageZones.length ? partner.coverageZones.map((zone) => <Pill key={zone} tone="ink">{zone}</Pill>) : <span className="text-[15px] text-app-ink-soft">Ask for areas</span>}
               </div>
             </Card>
             <div className="grid gap-5 sm:grid-cols-2">
               <Card className="p-5">
                 <CardHead title="Vehicles" />
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {partner.vehicleTypes.length ? partner.vehicleTypes.map((type) => <Pill key={type}>{type}</Pill>) : <span className="text-[14px] text-app-ink-soft">Not listed</span>}
+                  {partner.vehicleTypes.length ? partner.vehicleTypes.map((type) => <Pill key={type}>{type}</Pill>) : <span className="text-[15px] text-app-ink-soft">Not listed</span>}
                 </div>
               </Card>
               <Card className="p-5">
                 <CardHead title="Delivery types" />
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {partner.deliveryTypes.length ? partner.deliveryTypes.map((type) => <Pill key={type}>{type.replace(/_/g, " ")}</Pill>) : <span className="text-[14px] text-app-ink-soft">Not listed</span>}
+                  {partner.deliveryTypes.length ? partner.deliveryTypes.map((type) => <Pill key={type}>{type.replace(/_/g, " ")}</Pill>) : <span className="text-[15px] text-app-ink-soft">Not listed</span>}
                 </div>
               </Card>
             </div>
@@ -127,7 +127,7 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
                   href={`https://wa.me/${partner.whatsappNumber.replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong"
+                  className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line px-5 text-[15px] font-extrabold text-app-ink no-underline hover:border-app-line-strong"
                 >
                   <Icon name="whatsapp" size={16} /> Message on WhatsApp
                 </a>

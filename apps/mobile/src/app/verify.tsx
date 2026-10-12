@@ -43,7 +43,7 @@ export default function Verify() {
       await rememberSignedInRole(actual);
       router.replace("/");
     } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : "Couldn't check that code.");
+      setError(verifyError instanceof Error ? verifyError.message : "Couldn't check that code. Check your connection and try again.");
       setBusy(false);
     }
   }
@@ -55,7 +55,7 @@ export default function Verify() {
       setTarget(next);
       startCountdown();
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Couldn't send a new code.");
+      setError(sendError instanceof Error ? sendError.message : "Couldn't send a new code. Check your connection and try again.");
     }
   }
 

@@ -11,7 +11,7 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
-// Cash: cash collected when customers pay on arrival that's still to pay in, then what the company earned (after the
+// Money: cash collected when customers pay on arrival that's still to pay in, then what the company earned (after the
 // Shopinbos fee) today, this week and in 30 days, recent pay-ins and where we send your money. Saving a pay-in and
 // changing the bank happen on the web.
 
@@ -20,7 +20,7 @@ export default function LogisticsEarnings() {
   const data = earnings.data;
 
   return (
-    <TabScreen title="Cash" refreshing={earnings.refreshing} onRefresh={() => void earnings.refresh()}>
+    <TabScreen title="Money" refreshing={earnings.refreshing} onRefresh={() => void earnings.refresh()}>
       {earnings.loading && !data ? <LoadingBlock /> : null}
       {earnings.error && !data ? <ErrorState message={earnings.error} onRetry={() => void earnings.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/logistics/cash") }} /> : null}
       {data ? (

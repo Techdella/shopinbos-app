@@ -50,18 +50,18 @@ export function ReviewsClient({ reviews }: { reviews: ReviewData[] }) {
             <div className="flex flex-wrap items-center gap-2">
               <span className="min-w-0 truncate text-[15px] font-extrabold">{review.reviewer.name}</span>
               <span className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold text-app-ink-soft">{review.reviewer.role.replace(/_/g, " ")}</span>
-              <span className="ml-auto text-[13px] text-app-ink-soft">{shortDate(review.createdAt)}</span>
+              <span className="ml-auto text-[15px] text-app-ink-soft">{shortDate(review.createdAt)}</span>
             </div>
             <div className="mt-1 text-[15px] tracking-[2px]" aria-label={`${review.rating} out of 5 stars`}>
               <span className="text-[#F2A93B]">{"★".repeat(review.rating)}</span>
               <span className="text-app-track">{"★".repeat(Math.max(0, 5 - review.rating))}</span>
             </div>
-            {review.comment && <p className="m-0 mt-1.5 text-[14.5px] leading-[1.55]">{review.comment}</p>}
-            {review.booking && <p className="m-0 mt-1 text-[13px] text-app-ink-soft">{review.booking.pickup} → {review.booking.dest}</p>}
+            {review.comment && <p className="m-0 mt-1.5 text-[15px] leading-[1.55]">{review.comment}</p>}
+            {review.booking && <p className="m-0 mt-1 text-[15px] text-app-ink-soft">{review.booking.pickup} → {review.booking.dest}</p>}
 
             {review.response ? (
-              <div className="mt-3 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px]">
-                <div className="mb-0.5 text-[12.5px] font-bold text-app-ink-soft">Your reply{review.respondedAt ? ` · ${shortDate(review.respondedAt)}` : ""}</div>
+              <div className="mt-3 rounded-[16px] bg-app-canvas px-4 py-3 text-[15px]">
+                <div className="mb-0.5 text-[15px] font-bold text-app-ink-soft">Your reply{review.respondedAt ? ` · ${shortDate(review.respondedAt)}` : ""}</div>
                 {review.response}
               </div>
             ) : (

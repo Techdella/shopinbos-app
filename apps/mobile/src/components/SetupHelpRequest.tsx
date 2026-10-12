@@ -86,7 +86,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
   return (
     <Card style={[{ gap: 16, padding: 18 }, style]}>
       <View style={{ flexDirection: "row", gap: 12 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.mint, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="chat" size={20} />
         </View>
         <View style={{ flex: 1 }}>

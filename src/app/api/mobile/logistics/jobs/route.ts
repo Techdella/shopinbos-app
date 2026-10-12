@@ -3,7 +3,7 @@ import type { BookingStatus } from "@prisma/client";
 import { withLogistics } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
-import { JOB_SELECT, jobView, ordersFor, partnerForUser } from "../_shared";
+import { JOB_SELECT, dispatchRiders, jobView, ordersFor, partnerForUser } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export const GET = withLogistics(async (req: NextRequest, { user }) => {
       select: JOB_SELECT,
     }),
     db.deliveryBooking.groupBy({ by: ["status"], where, _count: { _all: true } }),
-    db.logisticsTeamMember.findMany({ where: { ...where, role: "rider", status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true, online: true, lastSeenAt: true } }),
+    dispatchRiders(partner.id),
   ]);
 
   const orders = await ordersFor(jobs);
@@ -41,6 +41,6 @@ export const GET = withLogistics(async (req: NextRequest, { user }) => {
     view,
     jobs: jobs.map((job) => jobView(job, job.orderId ? orders.get(job.orderId) : undefined)),
     counts: { new: countOf(VIEWS.new), active: countOf(VIEWS.active), done: countOf(VIEWS.done), issues: countOf(VIEWS.issues) },
-    riders: riders.map((rider) => ({ id: rider.id, name: rider.name, online: rider.online, lastSeenAt: rider.lastSeenAt?.toISOString() ?? null })),
+    riders,
   });
 });

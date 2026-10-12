@@ -74,7 +74,7 @@ export default async function LogisticsAnalyticsPage() {
           <Card className="p-5">
             <CardHead title="Deliveries per day" sub={`${twoWeekTotal} in the last 14 days`} />
             {twoWeekTotal === 0 ? (
-              <p className="m-0 mt-6 text-[14.5px] text-app-ink-soft">No deliveries in the last 14 days.</p>
+              <p className="m-0 mt-6 text-[15px] text-app-ink-soft">No deliveries in the last 14 days.</p>
             ) : (
               <>
                 <ol aria-label="Deliveries per day, last 14 days" className="m-0 mt-5 flex h-[180px] list-none items-end gap-1.5 p-0 sm:gap-2.5">
@@ -100,7 +100,7 @@ export default async function LogisticsAnalyticsPage() {
           <Card className="p-5">
             <CardHead title="Jobs by stage" />
             {byStatus.length === 0 ? (
-              <p className="m-0 mt-3 text-[14.5px] text-app-ink-soft">No jobs in the last 30 days.</p>
+              <p className="m-0 mt-3 text-[15px] text-app-ink-soft">No jobs in the last 30 days.</p>
             ) : (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {byStatus.map((row) => (
@@ -119,24 +119,24 @@ export default async function LogisticsAnalyticsPage() {
             <CardHead title="Rating" action={<TextLink href="/logistics/reviews">Reviews</TextLink>} />
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-[34px] font-extrabold leading-none">{partner.ratingCount ? partner.rating.toFixed(1) : "—"}</span>
-              <span className="text-[14px] text-app-ink-soft">{partner.ratingCount ? `from ${partner.ratingCount} ${partner.ratingCount === 1 ? "review" : "reviews"}` : "No reviews yet"}</span>
+              <span className="text-[15px] text-app-ink-soft">{partner.ratingCount ? `from ${partner.ratingCount} ${partner.ratingCount === 1 ? "review" : "reviews"}` : "No reviews yet"}</span>
             </div>
-            {partner.reliabilityScore > 0 && <p className="m-0 mt-2 text-[14px] text-app-ink-soft">Reliability score {partner.reliabilityScore} out of 100</p>}
+            {partner.reliabilityScore > 0 && <p className="m-0 mt-2 text-[15px] text-app-ink-soft">Reliability score {partner.reliabilityScore} out of 100</p>}
           </Card>
 
           <Card className="p-5">
             <CardHead title="Top sellers" sub="By delivery fees" />
             {topSellers.length === 0 ? (
-              <p className="m-0 mt-3 text-[14.5px] text-app-ink-soft">No jobs yet.</p>
+              <p className="m-0 mt-3 text-[15px] text-app-ink-soft">No jobs yet.</p>
             ) : (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {topSellers.map((seller) => (
                   <li key={seller.name} className="flex items-center gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14.5px] font-bold">{seller.name}</div>
-                      <div className="text-[13px] text-app-ink-soft">{seller.count} {seller.count === 1 ? "job" : "jobs"}</div>
+                      <div className="truncate text-[15px] font-bold">{seller.name}</div>
+                      <div className="text-[15px] text-app-ink-soft">{seller.count} {seller.count === 1 ? "job" : "jobs"}</div>
                     </div>
-                    <span className="text-[14.5px] font-extrabold">{naira(seller.value)}</span>
+                    <span className="text-[15px] font-extrabold">{naira(seller.value)}</span>
                   </li>
                 ))}
               </ul>
@@ -146,13 +146,13 @@ export default async function LogisticsAnalyticsPage() {
           <Card className="p-5">
             <CardHead title="Busiest drop-off areas" />
             {topDestinations.length === 0 ? (
-              <p className="m-0 mt-3 text-[14.5px] text-app-ink-soft">No jobs yet.</p>
+              <p className="m-0 mt-3 text-[15px] text-app-ink-soft">No jobs yet.</p>
             ) : (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {topDestinations.map((place) => (
                   <li key={place.name} className="flex items-center justify-between gap-3 py-2.5">
-                    <span className="min-w-0 truncate text-[14.5px] font-bold">{place.name}</span>
-                    <span className="shrink-0 text-[13.5px] text-app-ink-soft">{place.count} {place.count === 1 ? "job" : "jobs"}</span>
+                    <span className="min-w-0 truncate text-[15px] font-bold">{place.name}</span>
+                    <span className="shrink-0 text-[15px] text-app-ink-soft">{place.count} {place.count === 1 ? "job" : "jobs"}</span>
                   </li>
                 ))}
               </ul>

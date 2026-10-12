@@ -1,170 +1,390 @@
 import { useState } from "react";
 import { Alert, Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
-import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
-import { TonePill } from "@/components/partner";
-import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
-import { jobStage } from "@/lib/partner-pure";
-import { fetchRider, forgetRiderToken, riderAction, riderToken, type RiderRun } from "@/lib/rider";
+import { AppIcon, type AppIconName } from "@/components/icons";
+import { ErrorState, LoadingBlock } from "@/components/kit";
+import { ChoiceSheet } from "@/components/partner";
+import { Field, Notice, T } from "@/components/ui";
+import { fetchRider, forgetRiderToken, riderAction, riderToken, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
+import { RIDER_LANGS, STRINGS, useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
-// Shopinbos Riders, from the "Riders app" prototype: Online switch, earned today and cash in hand, the next run
-// (pick up, drops, cash collections, what you earn) with Accept run, then each drop to deliver.
+// Shopinbos Riders (spec 8A, "Simple supplier, delivery and rider apps"): no tabs, one screen at a time with very
+// large buttons. Home: language, Online switch, earned today and cash with you, and the next delivery
+// ("Take this delivery"). Then: Go to the shop ("I have the parcel") → Take it to the customer ("I'm with the
+// customer") → the customer's 4 numbers on a big keypad → "I collected it" when there's cash → "Delivered".
+// Every word comes from lib/rider-strings.ts.
 
-function RunCard({ run, next, busy, onStart }: { run: RiderRun; next: boolean; busy: boolean; onStart: () => void }) {
-  const waiting = run.drops.filter((drop) => drop.status === "confirmed");
-  const cashDrops = run.drops.filter((drop) => drop.collect > 0).length;
+type Step = "home" | "pickup" | "dropoff" | "code" | "cash" | "done";
+
+function BigButton({ title, onPress, busy, tone = "ink", disabled }: { title: string; onPress: () => void; busy?: boolean; tone?: "ink" | "forest" | "accent"; disabled?: boolean }) {
+  const bg = tone === "forest" ? colors.forest : tone === "accent" ? colors.accent : colors.ink;
+  const off = disabled || busy;
   return (
-    <Card style={{ gap: 14, opacity: next ? 1 : 0.95 }}>
-      <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-        <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-          <AppIcon name="store" color={colors.accentInk} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>Pick up: {run.pickupName}</T>
-          <T style={{ color: colors.inkSoft }} numberOfLines={2}>{run.pickupAddress}</T>
-        </View>
-      </View>
-      <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-        <TonePill tone="muted" label={`${run.drops.length} drop${run.drops.length === 1 ? "" : "s"}`} />
-        {cashDrops ? <TonePill tone="accent" label={`${cashDrops} cash collection${cashDrops === 1 ? "" : "s"}`} /> : null}
-      </View>
-      <T weight="extrabold" style={{ fontSize: 22 }}>You earn {naira(run.fees)}</T>
-      {waiting.length ? (
-        <PillButton title="Accept run" tone="accent" busy={busy} onPress={onStart} />
-      ) : null}
-      {run.drops.map((drop) => {
-        const stage = jobStage(drop.status);
-        const canDeliver = drop.status === "picked_up" || drop.status === "in_transit";
-        return (
-          <Pressable
-            key={drop.id}
-            accessibilityRole="button"
-            disabled={!canDeliver}
-            onPress={() => router.push({ pathname: "/rider/drop/[id]", params: { id: drop.id } })}
-            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line, opacity: pressed ? 0.8 : 1 })}
-          >
-            <AppIcon name="pin" size={18} color={colors.forest} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <T weight="bold" numberOfLines={1}>{drop.buyerName ?? drop.area}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={2}>{drop.address}</T>
-              <View style={{ flexDirection: "row", gap: 6, marginTop: 2 }}>
-                <TonePill tone={stage.tone} label={stage.label} />
-                {drop.collect ? <TonePill tone="warning" label={`Collect ${naira(drop.collect)}`} /> : null}
-              </View>
-            </View>
-            {canDeliver ? <T weight="bold" style={{ color: colors.accentInk }}>Deliver</T> : null}
-          </Pressable>
-        );
-      })}
-    </Card>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(off), busy: Boolean(busy) }}
+      disabled={off}
+      onPress={onPress}
+      style={({ pressed }) => ({ minHeight: 64, borderRadius: radii.pill, backgroundColor: bg, alignItems: "center", justifyContent: "center", paddingHorizontal: 20, opacity: off ? 0.55 : pressed ? 0.85 : 1 })}
+    >
+      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 20 }}>{busy ? "…" : title}</T>
+    </Pressable>
   );
 }
 
-export default function RiderHome() {
+function SmallAction({ icon, label, onPress }: { icon: AppIconName; label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ flex: 1, minHeight: 52, borderRadius: radii.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.8 : 1 })}>
+      <AppIcon name={icon} size={18} />
+      <T weight="bold" style={{ fontSize: 16 }}>{label}</T>
+    </Pressable>
+  );
+}
+
+const mapUrl = (address: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+const firstName = (name: string | null) => (name ? name.split(" ")[0] : null);
+
+export default function RiderApp() {
+  const params = useLocalSearchParams<{ drop?: string }>();
   const [token] = useState(riderToken);
   const rider = useLoad(fetchRider);
+  const { lang, setLang, t } = useRiderStrings();
+  const [step, setStep] = useState<Step>(params.drop ? "dropoff" : "home");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [pay, setPay] = useState<"cash" | "transfer">("cash");
+  const [otherAmount, setOtherAmount] = useState<string | null>(null);
+  const [failing, setFailing] = useState(false);
+  const [photoDone, setPhotoDone] = useState(false);
+  const [last, setLast] = useState<{ earned: number; cash: number } | null>(null);
   const data = rider.data;
 
   if (!token) return <Redirect href="/rider/link" />;
 
-  async function act(key: string, run: () => Promise<unknown>) {
+  const runs = data?.runs ?? [];
+  const drops = runs.flatMap((run) => run.drops.map((drop) => ({ run, drop })));
+  // The delivery in hand comes first (picked up / on the way), then the next one waiting to be taken.
+  const focus =
+    (params.drop ? drops.find((item) => item.drop.id === params.drop) : undefined) ??
+    drops.find((item) => item.drop.status === "picked_up" || item.drop.status === "in_transit") ??
+    drops.find((item) => item.drop.status === "confirmed");
+  const run: RiderRun | undefined = focus?.run;
+  const drop: RiderDrop | undefined = focus?.drop;
+  const carrying = drop ? drop.status === "picked_up" || drop.status === "in_transit" : false;
+  const who = firstName(drop?.buyerName ?? null) ?? t.customer;
+
+  function reset(next: Step) {
+    setError(null);
+    setStep(next);
+  }
+
+  async function act(key: string, work: () => Promise<unknown>, after?: () => void) {
     setBusy(key);
     setError(null);
     try {
-      await run();
+      await work();
       await rider.reload();
+      after?.();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "That didn't work. Try again.");
+      setError(actionError instanceof Error ? actionError.message : t.tryAgain);
     } finally {
       setBusy(null);
     }
   }
 
+  function pickedUp() {
+    if (!run) return;
+    const waiting = run.drops.filter((item) => item.status === "confirmed").map((item) => item.id);
+    if (!waiting.length) return reset("dropoff");
+    void act("pickup", () => riderAction({ action: "start_run", jobIds: waiting }), () => reset("dropoff"));
+  }
+
+  function deliver() {
+    if (!drop) return;
+    if (code.length !== 4) return setError(t.typeAll4);
+    let collected: number | null = null;
+    if (drop.collect > 0) {
+      collected = otherAmount === null ? drop.collect : Number(otherAmount.replace(/[,₦\s]/g, ""));
+      if (!Number.isFinite(collected) || collected < 0 || (otherAmount !== null && !otherAmount.trim())) return setError(t.typeAmount);
+    }
+    const earnedBefore = data?.earnedToday ?? 0;
+    setBusy("deliver");
+    setError(null);
+    riderAction({ action: "delivered", jobId: drop.id, code, codCollected: collected, codMethod: drop.collect > 0 ? pay : null })
+      .then(async () => {
+        const next = await fetchRider().catch(() => null);
+        if (next) rider.setData(next);
+        setLast({ earned: Math.max(0, (next?.earnedToday ?? earnedBefore) - earnedBefore), cash: next?.cashInHand ?? 0 });
+        setCode("");
+        setOtherAmount(null);
+        setPhotoDone(false);
+        reset("done");
+      })
+      .catch((deliverError: unknown) => {
+        const message = deliverError instanceof Error ? deliverError.message : t.tryAgain;
+        setCode("");
+        setStep("code");
+        setError(message);
+      })
+      .finally(() => setBusy(null));
+  }
+
+  async function addPhoto() {
+    if (!drop) return;
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return setError(t.cameraOff);
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.6 });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    await act("photo", () => uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName }), () => setPhotoDone(true));
+  }
+
   function leave() {
-    Alert.alert("Remove your Riders link from this phone?", "You'll need the link from your dispatcher to open your runs again.", [
-      { text: "Keep it", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: () => { forgetRiderToken(); router.replace("/welcome"); } },
+    Alert.alert(t.removeTitle, t.removeBody, [
+      { text: t.keep, style: "cancel" },
+      { text: t.remove, style: "destructive", onPress: () => { forgetRiderToken(); router.replace("/welcome"); } },
     ]);
   }
 
   const linkDead = rider.error && !data && /link/i.test(rider.error);
-  const runs = data?.runs ?? [];
-  const nextRun = runs.find((run) => run.drops.some((drop) => drop.status === "confirmed")) ?? runs[0];
+  const onStep = step !== "home" && step !== "done" && drop;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }} refreshControl={<RefreshControl refreshing={rider.refreshing} onRefresh={() => void rider.refresh()} />}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Initials name={data?.rider.name ?? "Rider"} size={48} bg={colors.mintTint} fg={colors.forest} />
-          <View style={{ flex: 1 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 13 }}>Shopinbos Riders{data ? ` · ${data.rider.partnerName}` : ""}</T>
-            <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1} accessibilityRole="header">{data?.rider.name ?? "Your runs"}</T>
-          </View>
-          {data ? (
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityState={{ checked: data.rider.online, busy: busy === "online" }}
-              accessibilityLabel="Online"
-              disabled={busy === "online"}
-              onPress={() => void act("online", () => riderAction({ action: "online", online: !data.rider.online }))}
-              style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 18, justifyContent: "center", backgroundColor: data.rider.online ? colors.success : colors.surface, borderWidth: data.rider.online ? 0 : 1, borderColor: colors.line }}
-            >
-              <T weight="extrabold" style={{ color: data.rider.online ? "#FFFFFF" : colors.inkSoft }}>{data.rider.online ? "Online" : "Offline"}</T>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {rider.loading && !data ? <LoadingBlock label="Loading your runs…" /> : null}
-        {rider.error && !data ? (
-          <ErrorState message={rider.error} onRetry={linkDead ? undefined : () => void rider.reload()} web={linkDead ? { label: "Use a new link", onPress: () => { forgetRiderToken(); router.replace("/rider/link"); } } : undefined} />
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, flexGrow: 1 }} refreshControl={step === "home" ? <RefreshControl refreshing={rider.refreshing} onRefresh={() => void rider.refresh()} /> : undefined} keyboardShouldPersistTaps="handled">
+        {onStep ? (
+          <Pressable accessibilityRole="button" onPress={() => reset(step === "pickup" ? "home" : step === "dropoff" ? (carrying ? "home" : "pickup") : step === "code" ? "dropoff" : "code")} style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}>
+            <View style={{ transform: [{ rotate: "180deg" }] }}>
+              <AppIcon name="chevron" size={18} color={colors.inkSoft} />
+            </View>
+            <T weight="bold" style={{ fontSize: 16, color: colors.inkSoft }}>{t.back}</T>
+          </Pressable>
         ) : null}
-        {error ? <Notice>{error}</Notice> : null}
 
-        {data ? (
+        {step === "home" || (!drop && step !== "done") ? (
           <>
-            <View style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 18, flexDirection: "row", gap: 12 }}>
-              <View style={{ flex: 1, gap: 4 }}>
-                <T style={{ color: "rgba(255,255,255,0.75)" }}>Earned today</T>
-                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 30, letterSpacing: -0.6 }}>{naira(data.earnedToday)}</T>
-                <T style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{data.dropsDone} drop{data.dropsDone === 1 ? "" : "s"} done</T>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.appName}{data ? ` · ${data.rider.partnerName}` : ""}</T>
+                <T weight="extrabold" style={{ fontSize: 22 }} numberOfLines={1} accessibilityRole="header">{data?.rider.name ?? t.appName}</T>
               </View>
-              <View style={{ flex: 1, backgroundColor: "#2E2B3B", borderRadius: 18, padding: 14, gap: 4 }}>
-                <T style={{ color: "rgba(255,255,255,0.75)" }}>Cash in hand</T>
-                <T weight="extrabold" style={{ color: "#FFB591", fontSize: 22 }}>{naira(data.cashInHand)}</T>
-                <T style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>Hand in to your dispatcher</T>
+              <View accessibilityRole="radiogroup" style={{ flexDirection: "row", backgroundColor: colors.surface, borderRadius: radii.pill, padding: 4, borderWidth: 1, borderColor: colors.line }}>
+                {RIDER_LANGS.map((item) => (
+                  <Pressable key={item.code} accessibilityRole="radio" accessibilityState={{ selected: lang === item.code }} onPress={() => setLang(item.code)} style={{ minHeight: 40, paddingHorizontal: 12, borderRadius: radii.pill, justifyContent: "center", backgroundColor: lang === item.code ? colors.ink : "transparent" }}>
+                    <T weight="bold" style={{ fontSize: 15, color: lang === item.code ? "#FFFFFF" : colors.ink }}>{item.label}</T>
+                  </Pressable>
+                ))}
               </View>
             </View>
 
-            <T weight="extrabold" style={{ fontSize: 18 }}>{runs.length ? "Your next run" : "Your runs"}</T>
-            {nextRun ? (
-              <RunCard run={nextRun} next busy={busy === nextRun.key} onStart={() => void act(nextRun.key, () => riderAction({ action: "start_run", jobIds: nextRun.drops.filter((drop) => drop.status === "confirmed").map((drop) => drop.id) }))} />
-            ) : (
-              <EmptyState icon="truck" title="No runs right now">
-                {data.rider.online ? "Your dispatcher gives you jobs here. Pull down to check." : "Switch Online when you're ready, so your dispatcher knows you can take jobs."}
-              </EmptyState>
-            )}
-            {runs.filter((run) => run !== nextRun).map((run) => (
-              <RunCard key={run.key} run={run} next={false} busy={busy === run.key} onStart={() => void act(run.key, () => riderAction({ action: "start_run", jobIds: run.drops.filter((drop) => drop.status === "confirmed").map((drop) => drop.id) }))} />
-            ))}
-
-            {data.rider.partnerPhone ? (
-              <PillButton tone="white" size="md" onPress={() => void Linking.openURL(`tel:${data.rider.partnerPhone}`)}>
-                <AppIcon name="phone" size={18} />
-                <T weight="bold">Call {data.rider.partnerName}</T>
-              </PillButton>
+            {rider.loading && !data ? <LoadingBlock label={t.loading} /> : null}
+            {rider.error && !data ? (
+              <ErrorState message={rider.error} onRetry={linkDead ? undefined : () => void rider.reload()} web={linkDead ? { label: t.newLink, onPress: () => { forgetRiderToken(); router.replace("/rider/link"); } } : undefined} />
             ) : null}
+            {error ? <Notice>{error}</Notice> : null}
+
+            {data ? (
+              <>
+                <Pressable
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: data.rider.online, busy: busy === "online" }}
+                  accessibilityLabel={data.rider.online ? t.online : t.offline}
+                  disabled={busy === "online"}
+                  onPress={() => void act("online", () => riderAction({ action: "online", online: !data.rider.online }))}
+                  style={{ minHeight: 88, borderRadius: radii.card, padding: 18, flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: data.rider.online ? colors.successTint : colors.surface, borderWidth: 1, borderColor: data.rider.online ? colors.success : colors.line }}
+                >
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <T weight="extrabold" style={{ fontSize: 22, color: data.rider.online ? colors.success : colors.ink }}>{data.rider.online ? t.online : t.offline}</T>
+                    <T style={{ color: colors.inkSoft, fontSize: 15 }}>{data.rider.online ? t.onlineHint : t.offlineHint}</T>
+                  </View>
+                  <View style={{ width: 64, height: 38, borderRadius: 19, backgroundColor: data.rider.online ? colors.success : colors.toggleOff, justifyContent: "center" }}>
+                    <View style={{ position: "absolute", left: data.rider.online ? 30 : 4, width: 30, height: 30, borderRadius: 15, backgroundColor: "#FFFFFF" }} />
+                  </View>
+                </Pressable>
+
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, gap: 4 }}>
+                    <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.earnedToday}</T>
+                    <T weight="extrabold" style={{ fontSize: 26 }}>{naira(data.earnedToday)}</T>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: data.cashInHand > 0 ? "#FDF0D5" : colors.surface, borderRadius: radii.card, padding: 16, gap: 4 }}>
+                    <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.cashWithYou}</T>
+                    <T weight="extrabold" style={{ fontSize: 26 }}>{naira(data.cashInHand)}</T>
+                    {data.cashInHand > 0 ? <T style={{ color: "#6B4A00", fontSize: 14 }}>{t.cashWithYouHint}</T> : null}
+                  </View>
+                </View>
+
+                {drop && run ? (
+                  <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 10 }}>
+                    <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }}>{carrying ? t.carrying : t.newJob}</T>
+                    <T weight="extrabold" style={{ fontSize: 20 }}>{run.pickupName}</T>
+                    <T style={{ fontSize: 16, color: colors.inkSoft }}>{run.pickupAddress} → {drop.area}</T>
+                    <T weight="extrabold" style={{ fontSize: 18 }}>{t.forYou({ amount: naira(run.fees) })}</T>
+                    {drop.collect > 0 ? <T weight="bold" style={{ fontSize: 16, color: "#8A5A00" }}>{t.collect({ amount: naira(drop.collect) })}</T> : null}
+                    {run.drops.length > 1 ? <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.parcels({ count: run.drops.length })}</T> : null}
+                    <View style={{ marginTop: 6 }}>
+                      <BigButton title={carrying ? t.continueJob : t.accept} tone="accent" onPress={() => reset(carrying ? "dropoff" : "pickup")} />
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 20, gap: 6, alignItems: "center" }}>
+                    <AppIcon name="truck" size={28} color={colors.inkSoft} />
+                    <T weight="extrabold" style={{ fontSize: 18 }}>{t.noJobs}</T>
+                    <T style={{ fontSize: 15, color: colors.inkSoft, textAlign: "center", lineHeight: 21 }}>{data.rider.online ? t.noJobsOnline : t.noJobsOffline}</T>
+                  </View>
+                )}
+
+                {data.rider.partnerPhone ? <SmallAction icon="phone" label={t.callCompany({ name: data.rider.partnerName })} onPress={() => void Linking.openURL(`tel:${data.rider.partnerPhone}`)} /> : null}
+              </>
+            ) : null}
+            <Pressable accessibilityRole="button" onPress={leave} style={{ minHeight: 48, justifyContent: "center", alignItems: "center", marginTop: "auto" }}>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.removeLink}</T>
+            </Pressable>
           </>
         ) : null}
-        <LinkButton title="Remove my Riders link from this phone" color={colors.inkSoft} onPress={leave} />
+
+        {step === "pickup" && drop && run ? (
+          <View style={{ flex: 1, gap: 14 }}>
+            <T weight="extrabold" style={{ fontSize: 28 }} accessibilityRole="header">{t.pickupT}</T>
+            <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
+              <T weight="extrabold" style={{ fontSize: 20 }}>{run.pickupName}</T>
+              <T style={{ fontSize: 17, lineHeight: 24 }} selectable>{run.pickupAddress}</T>
+              <T style={{ fontSize: 15, color: colors.inkSoft }}>{run.drops.length > 1 ? t.parcels({ count: run.drops.length }) : drop.item}</T>
+            </View>
+            <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(mapUrl(run.pickupAddress))} />
+            {error ? <Notice>{error}</Notice> : null}
+            <View style={{ marginTop: "auto" }}>
+              <BigButton title={t.have} busy={busy === "pickup"} onPress={pickedUp} />
+            </View>
+          </View>
+        ) : null}
+
+        {step === "dropoff" && drop ? (
+          <View style={{ flex: 1, gap: 14 }}>
+            <T weight="extrabold" style={{ fontSize: 28 }} accessibilityRole="header">{t.dropT({ name: who })}</T>
+            <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
+              {drop.buyerName ? <T weight="extrabold" style={{ fontSize: 20 }}>{drop.buyerName}</T> : null}
+              <T style={{ fontSize: 17, lineHeight: 24 }} selectable>{drop.address}</T>
+              {drop.collect > 0 ? <T weight="bold" style={{ fontSize: 17, color: "#8A5A00" }}>{t.collect({ amount: naira(drop.collect) })}</T> : null}
+            </View>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(mapUrl(drop.address))} />
+              {drop.buyerPhone ? <SmallAction icon="phone" label={t.call} onPress={() => void Linking.openURL(`tel:${drop.buyerPhone}`)} /> : null}
+            </View>
+            {drop.buyerPhone ? <SmallAction icon="chat" label={t.whatsapp} onPress={() => void Linking.openURL(`https://wa.me/${drop.buyerPhone!.replace(/\D/g, "")}`)} /> : null}
+            {error ? <Notice>{error}</Notice> : null}
+            <View style={{ marginTop: "auto", gap: 10 }}>
+              <BigButton title={t.with} onPress={() => { setCode(""); reset("code"); }} />
+              <Pressable accessibilityRole="button" onPress={() => setFailing(true)} style={{ minHeight: 48, alignItems: "center", justifyContent: "center" }}>
+                <T weight="bold" style={{ fontSize: 16, color: colors.danger }}>{t.cantDeliver}</T>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {step === "code" && drop ? (
+          <View style={{ flex: 1, gap: 14 }}>
+            <T weight="extrabold" style={{ fontSize: 26 }} accessibilityRole="header">{t.codeT({ name: who })}</T>
+            <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.codeHint}</T>
+            <View style={{ flexDirection: "row", gap: 10, justifyContent: "center" }} accessibilityLabel={`${code.length} of 4`}>
+              {[0, 1, 2, 3].map((index) => (
+                <View key={index} style={{ width: 62, height: 72, borderRadius: 16, borderWidth: 2, borderColor: code.length === index ? colors.ink : colors.line, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
+                  <T weight="extrabold" style={{ fontSize: 32 }}>{code.charAt(index)}</T>
+                </View>
+              ))}
+            </View>
+            {error ? <Notice>{error}</Notice> : null}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((key, index) =>
+                key === "" ? (
+                  <View key={`blank-${index}`} style={{ width: "30%", height: 64 }} />
+                ) : (
+                  <Pressable
+                    key={key}
+                    accessibilityRole="button"
+                    accessibilityLabel={key === "⌫" ? "Delete" : key}
+                    onPress={() => { setError(null); setCode((current) => (key === "⌫" ? current.slice(0, -1) : current.length < 4 ? current + key : current)); }}
+                    style={({ pressed }) => ({ width: "30%", height: 64, borderRadius: 18, backgroundColor: pressed ? colors.line : colors.surface, alignItems: "center", justifyContent: "center" })}
+                  >
+                    <T weight="extrabold" style={{ fontSize: 28 }}>{key}</T>
+                  </Pressable>
+                ),
+              )}
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => void addPhoto()} disabled={busy === "photo" || photoDone} style={{ minHeight: 48, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center" }}>
+              <AppIcon name={photoDone ? "check" : "camera"} size={18} color={colors.inkSoft} />
+              <T weight="bold" style={{ fontSize: 15, color: colors.inkSoft }}>{photoDone ? t.photoDone : t.photo}</T>
+            </Pressable>
+            <View style={{ marginTop: "auto" }}>
+              {drop.collect > 0 ? (
+                <BigButton title={t.next} disabled={code.length !== 4} onPress={() => reset("cash")} />
+              ) : (
+                <BigButton title={t.delivered} tone="forest" disabled={code.length !== 4} busy={busy === "deliver"} onPress={deliver} />
+              )}
+            </View>
+          </View>
+        ) : null}
+
+        {step === "cash" && drop ? (
+          <View style={{ flex: 1, gap: 14 }}>
+            <T weight="extrabold" style={{ fontSize: 28 }} accessibilityRole="header">{t.cashT({ amount: naira(drop.collect) })}</T>
+            <T style={{ fontSize: 16, color: colors.inkSoft, lineHeight: 23 }}>{t.cashHint}</T>
+            <View style={{ gap: 10 }}>
+              {(["cash", "transfer"] as const).map((value) => (
+                <Pressable key={value} accessibilityRole="radio" accessibilityState={{ selected: pay === value }} onPress={() => setPay(value)} style={{ minHeight: 60, borderRadius: radii.card, paddingHorizontal: 18, justifyContent: "center", backgroundColor: pay === value ? colors.ink : colors.surface, borderWidth: 1, borderColor: pay === value ? colors.ink : colors.line }}>
+                  <T weight="extrabold" style={{ fontSize: 18, color: pay === value ? "#FFFFFF" : colors.ink }}>{value === "cash" ? t.paidCash : t.paidTransfer}</T>
+                </Pressable>
+              ))}
+            </View>
+            {otherAmount === null ? (
+              <Pressable accessibilityRole="button" onPress={() => setOtherAmount("")} style={{ minHeight: 48, justifyContent: "center" }}>
+                <T weight="bold" style={{ fontSize: 15, color: colors.inkSoft }}>{t.otherAmount}</T>
+              </Pressable>
+            ) : (
+              <Field value={otherAmount} onChangeText={setOtherAmount} keyboardType="decimal-pad" placeholder={String(drop.collect)} accessibilityLabel={t.otherAmount} style={{ fontSize: 22, height: 60 }} />
+            )}
+            {error ? <Notice>{error}</Notice> : null}
+            <View style={{ marginTop: "auto" }}>
+              <BigButton title={t.got} tone="forest" busy={busy === "deliver"} onPress={deliver} />
+            </View>
+          </View>
+        ) : null}
+
+        {step === "done" ? (
+          <View style={{ flex: 1, gap: 14, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+              <AppIcon name="check" size={44} color="#FFFFFF" />
+            </View>
+            <T weight="extrabold" style={{ fontSize: 30 }} accessibilityRole="header">{t.doneT}</T>
+            <T style={{ fontSize: 17, textAlign: "center", lineHeight: 24 }}>
+              {last && last.earned > 0 ? `${naira(last.earned)} · ${t.doneEarned}` : t.doneEarned}
+              {last && last.cash > 0 ? ` ${t.doneCash({ amount: naira(last.cash) })}` : ""}
+            </T>
+            <View style={{ alignSelf: "stretch", marginTop: 12 }}>
+              <BigButton title={t.findNext} onPress={() => { router.setParams({ drop: undefined }); reset("home"); }} />
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
+
+      <ChoiceSheet
+        visible={failing}
+        title={t.whyNot}
+        options={t.reasons.map((reason, index) => ({ value: String(index), label: reason }))}
+        onPick={(value) => {
+          setFailing(false);
+          // The company and the shop read the reason in English, whatever language the rider uses.
+          const reason = STRINGS.en.reasons[Number(value)] ?? STRINGS.en.reasons[0];
+          if (drop) void act("fail", () => riderAction({ action: "failed", jobId: drop.id, reason }), () => reset("home"));
+        }}
+        onClose={() => setFailing(false)}
+      />
     </SafeAreaView>
   );
 }
-

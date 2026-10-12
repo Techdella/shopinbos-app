@@ -19,7 +19,7 @@ export default function AddProducts() {
     try {
       if (await drafts.save()) setSaved((total) => total + count);
     } catch (saveError) {
-      drafts.setError(saveError instanceof Error ? saveError.message : "Couldn't add those products.");
+      drafts.setError(saveError instanceof Error ? saveError.message : "Couldn't add those products. Check your connection and try again.");
     } finally {
       setBusy(false);
     }

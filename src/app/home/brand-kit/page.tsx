@@ -109,7 +109,7 @@ export default async function BrandKitPage() {
           <Card className="p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="m-0 text-[17px] font-extrabold">Colours{paletteName ? ` · ${paletteName}` : ""}</h2>
-              <Link href="/seller/store/builder" className="text-[13.5px] font-extrabold text-app-accent-ink no-underline hover:underline">All theme colours</Link>
+              <Link href="/seller/store/builder" className="text-[13.5px] font-extrabold text-app-accent-ink no-underline hover:underline">All your shop colours</Link>
             </div>
             {tokens ? (
               <ColourSwatches
@@ -119,7 +119,7 @@ export default async function BrandKitPage() {
               />
             ) : (
               <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">
-                Your store doesn&apos;t have a theme yet. <Link href="/builder/templates" className="font-bold text-app-accent-ink">Pick a template</Link> and its colours show here.
+                Your shop doesn&apos;t have a look yet. <Link href="/builder/templates" className="font-bold text-app-accent-ink">Choose how your shop looks</Link> and its colours show here.
               </p>
             )}
           </Card>

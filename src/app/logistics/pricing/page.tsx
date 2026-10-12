@@ -49,14 +49,14 @@ export default async function LogisticsPricingPage({ searchParams }: { searchPar
               <TextLink href="/logistics/coverage">Edit areas</TextLink>
             </div>
             {zones.length === 0 ? (
-              <Card className="px-5 py-8 text-center text-[14.5px] text-app-ink-soft">No areas yet. Add them in Coverage and rates.</Card>
+              <Card className="px-5 py-8 text-center text-[15px] text-app-ink-soft">No areas yet. Add them in Coverage and rates.</Card>
             ) : (
               <ListCard>
                 {zones.map((zone) => (
                   <ListRow key={zone.name}>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[15px] font-extrabold">{zone.name}</div>
-                      <div className="truncate text-[13px] text-app-ink-soft">{zone.service}</div>
+                      <div className="truncate text-[15px] text-app-ink-soft">{zone.service}</div>
                     </div>
                     <span className="text-[15px] font-extrabold">{zone.basePrice > 0 ? naira(zone.basePrice) : "—"}</span>
                   </ListRow>

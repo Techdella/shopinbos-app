@@ -37,7 +37,7 @@ function ProductCard({ product, added }: { product: FindProduct; added: boolean 
       <View style={{ aspectRatio: 1, backgroundColor: colors.lilac }}>
         {product.images[0] ? <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} /> : null}
         <View style={{ position: "absolute", left: 8, top: 8, flexDirection: "row", gap: 4 }}>
-          {added ? <Badge label="In your store" bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label="Dropship" bg={colors.surface} /> : <Badge label="Wholesale" bg={colors.surface} />}
+          {added ? <Badge label="In your store" bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label="No stock needed" bg={colors.surface} /> : <Badge label="Buy in bulk" bg={colors.surface} />}
         </View>
       </View>
       <View style={{ padding: 10, gap: 6 }}>
@@ -84,12 +84,12 @@ export default function FindProducts() {
   );
 
   return (
-    <Screen title="Find products" sub="Local suppliers who dropship or sell wholesale, and imports from China." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title="Find products to sell" sub="From suppliers near you. Sell without stock, or buy in bulk." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       <Segmented
         options={[
           { value: "nigeria", label: country === "Nigeria" ? "Nigeria" : country },
           { value: "china", label: "China · 1688" },
-          { value: "trending", label: "Trending" },
+          { value: "trending", label: "Popular" },
         ]}
         value={tab}
         onChange={setTab}
@@ -105,13 +105,13 @@ export default function FindProducts() {
             </ChipRow>
           ) : null}
           {loaded.loading && !loaded.data ? <LoadingBlock label="Finding products…" /> : null}
-          {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/marketplace") }} /> : null}
+          {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
           {loaded.data && !products.length ? (
-            <EmptyState icon="search" title="Suppliers are joining now" action={<PillButton title="See sample products on the web" size="sm" tone="white" onPress={() => void openWeb("/marketplace")} />}>
-              Verified suppliers in {country} show up here as they join. Meanwhile you can import from China.
+            <EmptyState icon="search" title="Suppliers are joining now" action={<PillButton title="Ask Peggy what to sell" size="md" onPress={() => router.push({ pathname: "/peggy", params: { prompt: "What should I sell in my shop?" } })} />}>
+              Checked suppliers in {country} show up here as they join. Come back in a few days, or bring products from China.
             </EmptyState>
           ) : null}
-          {products.length && !shown.length ? <EmptyState icon="search" title="Nothing matches">Try fewer words or another category.</EmptyState> : null}
+          {products.length && !shown.length ? <EmptyState icon="search" title="Nothing matches">Try fewer words, or tap &quot;All&quot;.</EmptyState> : null}
           {grid(shown)}
         </>
       ) : null}
@@ -136,10 +136,10 @@ export default function FindProducts() {
                 <T style={{ flex: 1, lineHeight: 20 }}>{line}</T>
               </View>
             ))}
-            <PillButton title="Request an import" size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
+            <PillButton title="Ask for a price (opens in your browser)" size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
           </Card>
           <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="box" label="My imports" hint="Quotes and shipments on the way" onPress={() => void openWeb("/home/imports")} />
+            <LinkRow first icon="box" label="Things I'm bringing in" hint="Prices and what's on the way. Opens in your browser" onPress={() => void openWeb("/home/imports")} />
           </Card>
         </>
       ) : null}
@@ -148,10 +148,10 @@ export default function FindProducts() {
         <>
           <Card style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.mintTint }}>
             <Mascot name="peggy" size={44} />
-            <T style={{ flex: 1, lineHeight: 20 }}>What shoppers are buying from suppliers right now. Add one and price it to keep a healthy margin.</T>
+            <T style={{ flex: 1, lineHeight: 20 }}>What customers are buying right now. Add one and set a price that leaves you a good profit.</T>
           </Card>
           {loaded.loading && !loaded.data ? <LoadingBlock /> : null}
-          {loaded.data && !trending.length ? <EmptyState icon="sparkle" title="No trends yet">Trends show up once suppliers&apos; products start selling.</EmptyState> : null}
+          {loaded.data && !trending.length ? <EmptyState icon="sparkle" title="Nothing popular yet">Popular products show up once suppliers&apos; products start selling.</EmptyState> : null}
           {grid(trending)}
         </>
       ) : null}

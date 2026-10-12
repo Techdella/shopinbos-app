@@ -6,6 +6,7 @@ import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { fetchSetup, patchSetup, type SetupOverview, type SetupPatch, type SetupStep } from "@/lib/setup";
+import { stepWords as words } from "@/lib/setup-words";
 import { useLoad } from "@/lib/useLoad";
 import { openPath, openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
@@ -26,7 +27,7 @@ export default function StartHere() {
       setup.setData(await patchSetup(patch));
       return true;
     } catch (changeError) {
-      setError(changeError instanceof Error ? changeError.message : "Couldn't save that. Try again.");
+      setError(changeError instanceof Error ? changeError.message : "That didn't save. Check your connection and try again.");
       return false;
     } finally {
       setBusy(null);
@@ -41,6 +42,10 @@ export default function StartHere() {
   }
 
   function run(step: SetupStep, overview: SetupOverview) {
+    // Technical steps never show their workings on a phone: the team sets up the web address.
+    if (step.key === "domain") return void router.push({ pathname: "/ask-us", params: { what: "web-address" } });
+    if (step.key === "look") return void router.push({ pathname: "/web-only", params: { what: "look" } });
+    if (step.key === "audience") return void router.push("/marketing");
     if (step.action.kind === "link") return void openPath(step.action.href);
     if (step.key === "share") return void share(overview);
     // Payments, delivery, payout bank and going live have their forms on the web Start here page.
@@ -55,7 +60,7 @@ export default function StartHere() {
   return (
     <Screen title="Start here" sub="Get your shop ready to sell. Each step ticks itself off when it's done." refreshing={setup.refreshing} onRefresh={() => void setup.refresh()}>
       {setup.loading && !data ? <LoadingBlock /> : null}
-      {setup.error && !data ? <ErrorState message={setup.error} onRetry={() => void setup.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/start") }} /> : null}
+      {setup.error && !data ? <ErrorState message={setup.error} onRetry={() => void setup.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}
       {data ? (
         <>
@@ -67,7 +72,7 @@ export default function StartHere() {
             <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.canvas, overflow: "hidden" }} accessibilityLabel={`${data.checklist.percent} percent set up`}>
               <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.success, width: `${data.checklist.percent}%` }} />
             </View>
-            {data.checklist.next ? <T style={{ color: colors.inkSoft }}>Next: {data.checklist.next.title}</T> : null}
+            {data.checklist.next ? <T style={{ color: colors.inkSoft }}>Next: {words(data.checklist.next).title}</T> : null}
           </Card>
 
           {data.checklist.steps.map((step) => {
@@ -80,16 +85,16 @@ export default function StartHere() {
                   </View>
                   <View style={{ flex: 1, gap: 4 }}>
                     <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-                      <T weight="extrabold" style={{ fontSize: 15, textDecorationLine: step.done ? "line-through" : "none", color: step.done ? colors.inkSoft : colors.ink }}>{step.title}</T>
+                      <T weight="extrabold" style={{ fontSize: 15, textDecorationLine: step.done ? "line-through" : "none", color: step.done ? colors.inkSoft : colors.ink }}>{words(step).title}</T>
                       {step.optional ? <Badge label="Optional" /> : null}
                       {step.skipped ? <Badge label="Skipped" /> : null}
                     </View>
-                    <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 19 }}>{step.hint}</T>
+                    <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{words(step).hint}</T>
                   </View>
                 </View>
                 {open || (step.done && step.action.kind === "link") ? (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingLeft: 40 }}>
-                    <PillButton title={step.action.label} size="sm" tone={open ? "ink" : "white"} busy={busy === step.key} onPress={() => run(step, data)} />
+                    <PillButton title={words(step).label} size="sm" tone={open ? "ink" : "white"} busy={busy === step.key} onPress={() => run(step, data)} />
                     {open && step.helper ? (
                       <Pressable accessibilityRole="button" onPress={() => ask(step)} style={{ minHeight: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.mintTint }}>
                         <T weight="bold" style={{ fontSize: 13, color: colors.forest }}>Ask {step.helper.who === "rex" ? "Rex" : "Peggy"}</T>

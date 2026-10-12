@@ -23,7 +23,7 @@ export default function RiderLink() {
 
   async function open() {
     const token = parseRiderToken(text);
-    if (!token) return setError("That doesn't look like a Riders app link. Copy the whole link your dispatcher sent.");
+    if (!token) return setError("That doesn't look like a Riders app link. Copy the whole link your company sent you.");
     setBusy(true);
     setError(null);
     saveRiderToken(token);
@@ -32,7 +32,7 @@ export default function RiderLink() {
       router.replace("/rider");
     } catch (linkError) {
       forgetRiderToken();
-      setError(linkError instanceof Error ? linkError.message : "That link didn't work.");
+      setError(linkError instanceof Error ? linkError.message : "That link didn't work. Ask your company for a new one.");
     } finally {
       setBusy(false);
     }
@@ -41,8 +41,8 @@ export default function RiderLink() {
   return (
     <Screen
       title="Open your Riders app"
-      sub="Your dispatcher sends you a private link on WhatsApp. Paste it here once and your runs show up every day."
-      footer={<PillButton title="Open my runs" busy={busy} onPress={() => void open()} />}
+      sub="Your company sends you a private link on WhatsApp. Paste it here once and your deliveries show up every day."
+      footer={<PillButton title="Open my deliveries" busy={busy} onPress={() => void open()} />}
     >
       {error ? <Notice>{error}</Notice> : null}
       <View>
@@ -50,7 +50,7 @@ export default function RiderLink() {
         <Field value={text} onChangeText={setText} placeholder="https://app.shopinbos.com/rider/…" autoCapitalize="none" autoCorrect={false} />
       </View>
       <PillButton title="Paste from clipboard" tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void paste()} />
-      <T style={{ color: colors.inkSoft, lineHeight: 20 }}>Keep the link to yourself: anyone with it can see your drops. Lost it? Ask your dispatcher for a new one.</T>
+      <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>Keep the link to yourself: anyone with it can see your drops. Lost it? Ask your company for a new one.</T>
     </Screen>
   );
 }

@@ -501,7 +501,7 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(logisticsRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsProfileRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsCouriers, /addLogisticsTeamMember/);
-  assert.match(logisticsCouriers, /Starter logistics includes \{LOGISTICS_FREE_TEAM_MEMBER_LIMIT\} active team members/);
+  assert.match(logisticsCouriers, /Your free plan has room for \{LOGISTICS_FREE_TEAM_MEMBER_LIMIT\} people/);
   assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
   assert.match(supplierNew, /Free product limit reached/);
   assert.match(onboarding, /completed: payload\.completed \?\? true/);
@@ -544,19 +544,19 @@ test("logistics pages support quote, booking, coverage, and pricing workflows", 
 
   assert.match(quotes, /respondToDeliveryQuote/);
   assert.match(quotes, /Price good until/);
-  assert.match(quotes, /Send quote/);
+  assert.match(quotes, /Send price/);
   assert.match(quotes, /name="intent" value="reject"/);
 
   assert.match(bookings, /updateDeliveryBookingStatus/);
-  assert.match(bookings, /Update job/);
-  assert.match(bookings, /Tracking code/);
-  assert.match(bookings, /Estimated delivery/);
+  assert.match(bookings, /Where is this job now\?/);
+  assert.match(bookings, /Your own tracking number/);
+  assert.match(bookings, /When will it arrive\?/);
 
   assert.match(coverage, /updateLogisticsCoverage/);
-  assert.match(coverage, /Edit coverage/);
+  assert.match(coverage, /Change your areas/);
   assert.match(coverage, /name="coverageRows"/);
   assert.match(pricing, /updateLogisticsPricing/);
-  assert.match(pricing, /Edit pricing/);
+  assert.match(pricing, /Change your prices/);
   assert.match(pricing, /What sellers see/);
 
   assert.match(actions, /export async function updateLogisticsCoverage/);

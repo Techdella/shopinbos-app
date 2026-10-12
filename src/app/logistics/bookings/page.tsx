@@ -114,15 +114,15 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-app-line bg-app-canvas text-app-ink-soft"><Icon name="box" size={18} /></span>
                   <div className="min-w-0 flex-1 basis-[200px]">
                     <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
-                    <div className="truncate text-[13px] text-app-ink-soft">
+                    <div className="truncate text-[15px] text-app-ink-soft">
                       {jobId(job.id)} · {job.seller.name} · {packageSummary(job.packageDetails)}
                     </div>
                   </div>
                   <div className="shrink-0"><StatusPill status={job.status} /></div>
-                  <div className={`w-full min-w-0 truncate text-[13.5px] sm:w-[130px] ${job.rider || !["confirmed", "picked_up", "in_transit"].includes(job.status) ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
+                  <div className={`w-full min-w-0 truncate text-[15px] sm:w-[130px] ${job.rider || !["confirmed", "picked_up", "in_transit"].includes(job.status) ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
                     {job.rider?.name ?? (job.status === "pending" ? "Not accepted yet" : "No rider")}
                   </div>
-                  <div className="hidden w-[120px] shrink-0 text-[13px] text-app-ink-soft lg:block">
+                  <div className="hidden w-[120px] shrink-0 text-[15px] text-app-ink-soft lg:block">
                     {lagosDate(job.createdAt)}, {lagosTime(job.createdAt)}
                   </div>
                   <div className="ml-auto text-[15px] font-extrabold">{naira(job.deliveryFee)}</div>
@@ -135,10 +135,10 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                   <div className="mb-3">
                     <PillLink href={messagesHref("logistics_partner", { with: job.sellerId, context: { kind: "booking", id: job.id } })} size="sm" icon="chat">Message {job.seller.name}</PillLink>
                   </div>
-                  {job.notes && <p className="m-0 mb-3 text-[13.5px] text-app-ink-soft">Seller note: {job.notes}</p>}
-                  {job.status === "failed" && job.failedReason && <p className="m-0 mb-3 text-[13.5px] font-bold text-app-danger">Not delivered: {job.failedReason}</p>}
+                  {job.notes && <p className="m-0 mb-3 text-[15px] text-app-ink-soft">Seller note: {job.notes}</p>}
+                  {job.status === "failed" && job.failedReason && <p className="m-0 mb-3 text-[15px] font-bold text-app-danger">Not delivered: {job.failedReason}</p>}
                   {job.codAmount ? (
-                    <p className="m-0 mb-3 text-[13.5px] text-app-ink-soft">
+                    <p className="m-0 mb-3 text-[15px] text-app-ink-soft">
                       Customer pays when it arrives: collect {naira(job.codAmount)}
                       {job.codCollected !== null ? ` · ${naira(job.codCollected)} collected by ${job.codMethod === "transfer" ? "transfer (straight to the seller)" : "cash"}` : ""}
                     </p>

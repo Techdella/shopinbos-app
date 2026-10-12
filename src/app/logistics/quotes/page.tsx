@@ -81,10 +81,10 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
               <Card key={quote.id} as="article" className="flex flex-col p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Pill tone="accent">{quote.expiresAt ? `Reply by ${lagosDate(quote.expiresAt)}, ${lagosTime(quote.expiresAt)}` : `Asked ${timeAgo(quote.createdAt, now)}`}</Pill>
-                  <span className="truncate text-[13.5px] text-app-ink-soft">{quote.seller.name}{quote.seller.city ? ` · ${quote.seller.city}` : ""}</span>
+                  <span className="truncate text-[15px] text-app-ink-soft">{quote.seller.name}{quote.seller.city ? ` · ${quote.seller.city}` : ""}</span>
                 </div>
                 <Route from={quote.pickupLocation} to={quote.destination} className="mt-3 block break-words text-[16px]" />
-                <dl className="m-0 mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[13.5px]">
+                <dl className="m-0 mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[15px]">
                   <div><dt className="text-app-ink-soft">Package</dt><dd className="m-0 font-bold">{packageSummary(quote.packageDetails)}</dd></div>
                   <div><dt className="text-app-ink-soft">Wanted</dt><dd className="m-0 font-bold">{quote.preferredDate ? lagosDate(quote.preferredDate, { weekday: "short", day: "numeric", month: "short" }) : "Any day"}</dd></div>
                   {typeof pkg.declaredValue === "number" && (
@@ -137,10 +137,10 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
               <ListRow key={quote.id}>
                 <div className="min-w-0 flex-1 basis-[220px]">
                   <Route from={quote.pickupLocation} to={quote.destination} className="block truncate text-[15px]" />
-                  <div className="truncate text-[13px] text-app-ink-soft">
+                  <div className="truncate text-[15px] text-app-ink-soft">
                     {quote.seller.name} · {packageSummary(quote.packageDetails)} · asked {lagosDate(quote.createdAt)}
                   </div>
-                  {quote.partnerResponse && <div className="mt-0.5 truncate text-[13px] text-app-ink-soft">You said: {quote.partnerResponse}</div>}
+                  {quote.partnerResponse && <div className="mt-0.5 truncate text-[15px] text-app-ink-soft">You said: {quote.partnerResponse}</div>}
                 </div>
                 <Pill tone={stage.tone} dot>{stage.label}</Pill>
                 <div className="ml-auto text-[15px] font-extrabold">{quote.quotedPrice ? naira(quote.quotedPrice) : "No price"}</div>

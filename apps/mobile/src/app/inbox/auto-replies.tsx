@@ -58,7 +58,7 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
       if (ready) await saveAutomation({ autoReply: rules });
       setNote({ tone: "success", text: "Saved. New messages get these replies straight away." });
     } catch (saveError) {
-      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "Couldn't save. Try again." });
+      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again." });
     } finally {
       setSaving(false);
     }

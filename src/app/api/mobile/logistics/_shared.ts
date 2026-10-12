@@ -93,3 +93,25 @@ export function proofFile(form: FormData | null): { ok: true; file: File } | { o
   if (file.size > MAX_PROOF_BYTES) return { ok: false, error: "That photo is too big (max 10 MB)." };
   return { ok: true, file };
 }
+
+/**
+ * Active riders for the "pick a rider" sheet, best first: free riders who are out now (online, no open job), then
+ * riders out but finishing a job, then offline riders. We don't keep rider locations, so "free and out" stands in
+ * for "closest".
+ */
+export async function dispatchRiders(partnerId: string, now = new Date()) {
+  const [riders, open] = await Promise.all([
+    db.logisticsTeamMember.findMany({ where: { logisticsPartnerId: partnerId, role: "rider", status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true, online: true, lastSeenAt: true } }),
+    db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partnerId, status: { in: ["confirmed", "picked_up", "in_transit"] }, riderId: { not: null } }, _count: { _all: true } }),
+  ]);
+  const openBy = new Map(open.map((row) => [row.riderId, row._count._all]));
+  const windowMs = 30 * 60 * 1000;
+  const rank = (rider: { online: boolean; lastSeenAt: Date | null; openJobs: number }) => {
+    const out = rider.online && rider.lastSeenAt && now.getTime() - rider.lastSeenAt.getTime() <= windowMs;
+    return out ? (rider.openJobs ? 1 : 0) : 2;
+  };
+  return riders
+    .map((rider) => ({ ...rider, openJobs: openBy.get(rider.id) ?? 0 }))
+    .sort((a, b) => rank(a) - rank(b) || a.openJobs - b.openJobs || a.name.localeCompare(b.name))
+    .map((rider) => ({ id: rider.id, name: rider.name, online: rider.online, lastSeenAt: rider.lastSeenAt?.toISOString() ?? null, openJobs: rider.openJobs }));
+}

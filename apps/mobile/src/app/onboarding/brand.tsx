@@ -34,7 +34,7 @@ export default function Brand() {
       void startBuild(resolved, tweak.trim() || undefined);
       router.push({ pathname: "/onboarding/products", params: { door: start === "find" ? "sup" : "snap" } });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Couldn't save your shop name.");
+      setError(saveError instanceof Error ? saveError.message : "Couldn't save your shop name. Check your connection and try again.");
     } finally {
       setBusy(false);
     }

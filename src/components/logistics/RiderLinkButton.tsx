@@ -43,14 +43,14 @@ export function RiderLinkButton({ teamMemberId, riderName, hasLink }: { teamMemb
       {result && !result.ok && <Notice>{result.error}</Notice>}
       {link && (
         <div className="grid gap-2 rounded-[16px] bg-app-mint p-3.5" role="status">
-          <p className="m-0 text-[13px] font-bold text-app-forest">Send this to {link.riderName} now. You won&apos;t see it again.</p>
+          <p className="m-0 text-[15px] font-bold text-app-forest">Send this to {link.riderName} now. You won&apos;t see it again.</p>
           <label htmlFor={`link-${teamMemberId}`} className="sr-only">Riders app link for {link.riderName}</label>
           <input
             id={`link-${teamMemberId}`}
             readOnly
             value={link.url}
             onFocus={(event) => event.currentTarget.select()}
-            className="h-11 w-full min-w-0 rounded-[12px] border border-app-line bg-white px-3 font-mono text-[12.5px] text-app-ink outline-none focus:border-app-ink"
+            className="h-11 w-full min-w-0 rounded-[12px] border border-app-line bg-white px-3 font-mono text-[15px] text-app-ink outline-none focus:border-app-ink"
           />
           <div className="flex flex-wrap gap-2">
             <PillButton tone="ink" size="sm" onClick={() => copy(link.url)} className="min-h-[40px]">
@@ -61,7 +61,7 @@ export function RiderLinkButton({ teamMemberId, riderName, hasLink }: { teamMemb
               href={`https://wa.me/${link.whatsapp ?? ""}?text=${encodeURIComponent(message)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-app-success px-4 text-[13px] font-bold text-white no-underline"
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-app-success px-4 text-[15px] font-bold text-white no-underline"
             >
               <Icon name="whatsapp" size={15} />
               {link.whatsapp ? "Send on WhatsApp" : "Share on WhatsApp"}

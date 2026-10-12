@@ -68,9 +68,9 @@ export default async function LogisticsPayoutsPage() {
                 <ListRow key={booking.id}>
                   <div className="min-w-0 flex-1 basis-[200px]">
                     <Route from={booking.pickupLocation} to={booking.destination} className="block truncate text-[15px]" />
-                    <div className="truncate text-[13px] text-app-ink-soft">{jobId(booking.id)} · {booking.seller.name} · {lagosDate(doneAt(booking))}</div>
+                    <div className="truncate text-[15px] text-app-ink-soft">{jobId(booking.id)} · {booking.seller.name} · {lagosDate(doneAt(booking))}</div>
                   </div>
-                  <div className="text-[13px] text-app-ink-soft">
+                  <div className="text-[15px] text-app-ink-soft">
                     {naira(booking.deliveryFee)}{booking.platformFee ? ` − ${naira(booking.platformFee)} fee` : ""}
                   </div>
                   <div className="ml-auto text-[15px] font-extrabold">{naira(bookingNet(booking))}</div>

@@ -11,20 +11,20 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Dropship (web /home/dropship): products suppliers send straight to buyers, with Cost / Sell / You keep,
+// Sell without stock (web /home/dropship): products suppliers send straight to buyers, with Cost / Sell / You keep,
 // the supplier's stock, and Pause / Sell again. Prices are edited on the web product page.
 
 const FILTERS: { key: DropshipFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "selling", label: "Selling" },
   { key: "paused", label: "Paused" },
-  { key: "attention", label: "Low stock" },
+  { key: "attention", label: "Almost finished" },
 ];
 
 function stockBadge(stock: number) {
-  if (stock <= 0) return { label: "Out of stock at supplier", bg: colors.dangerTint, fg: colors.danger };
+  if (stock <= 0) return { label: "Finished at the supplier", bg: colors.dangerTint, fg: colors.danger };
   if (stock < 5) return { label: `${stock} left at supplier`, bg: "#FDF0D5", fg: "#8A5A00" };
-  return { label: `${stock} in stock`, bg: colors.successTint, fg: colors.success };
+  return { label: `Supplier has ${stock}`, bg: colors.successTint, fg: colors.success };
 }
 
 function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: () => void; busy: boolean }) {
@@ -42,7 +42,7 @@ function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: 
             Cost <T weight="extrabold" style={{ fontSize: 13 }}>{naira(item.sale.supplierGets)}</T>  ·  Sell <T weight="extrabold" style={{ fontSize: 13 }}>{naira(item.sale.shopperPays)}</T>
           </T>
           <T weight="extrabold" style={{ fontSize: 13, color: item.sale.keep > 0 ? colors.success : colors.danger }}>
-            {item.sale.keep > 0 ? `You keep ${naira(item.sale.keep)} · ${item.sale.keepPct}%` : `You lose ${naira(-item.sale.keep)} — raise the price`}
+            {item.sale.keep > 0 ? `You keep ${naira(item.sale.keep)} · ${item.sale.keepPct}%` : `You lose ${naira(-item.sale.keep)}. Raise the price`}
           </T>
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
             <Badge label={item.paused ? "Paused" : item.live ? "Selling" : "Not published"} bg={item.live ? colors.mintTint : colors.canvas} fg={item.live ? colors.forest : colors.inkSoft} />
@@ -51,7 +51,7 @@ function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: 
         </View>
       </View>
       <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingBottom: 12 }}>
-        <PillButton title="Edit price" size="sm" style={{ flex: 1 }} onPress={() => void openWeb(`/products/${item.product.id}`)} />
+        <PillButton title="Price" tone="white" size="sm" style={{ flex: 1 }} onPress={() => void openWeb(`/products/${item.product.id}`)} />
         <PillButton title={item.paused ? "Sell again" : "Pause"} tone="white" size="sm" busy={busy} style={{ flex: 1 }} onPress={onToggle} />
         <PillButton title="Message" tone="white" size="sm" style={{ flex: 1 }} onPress={() => router.push({ pathname: "/partners/[id]", params: { id: item.supplier.userId, name: item.supplier.name } })} />
       </View>
@@ -75,31 +75,31 @@ export default function DropshipScreen() {
       const result = await setPaused(item.id, !item.paused);
       loaded.setData((current) => (current ?? []).map((row) => (row.id === item.id ? { ...row, paused: result.status === "paused", live: result.status === "active" } : row)));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't change that. Try again.");
+      setError(e instanceof Error ? e.message : "That didn't change. Check your connection and try again.");
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <Screen title="Dropship" sub="Suppliers send these straight to your buyers, packed with your label." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title="Sell without stock" sub="You don't buy these. When a customer pays, the supplier sends it with your shop's name on it." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading ? <LoadingBlock /> : null}
-      {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/dropship") }} /> : null}
+      {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}
       {loaded.data && items.length === 0 ? (
-        <EmptyState icon="truck" title="No dropship products yet" action={<PillButton title="Find products to sell" size="md" onPress={() => router.push("/find")} />}>
-          The supplier holds the stock, packs each order with your label and a rider delivers it. You pay nothing until a shopper pays you.
+        <EmptyState icon="truck" title="Nothing here yet" action={<PillButton title="Find products to sell" size="md" onPress={() => router.push("/find")} />}>
+          Pick products from suppliers and put them in your shop. You pay nothing until a customer pays you. Your money is safe here until delivery.
         </EmptyState>
       ) : null}
       {items.length > 0 ? (
         <>
-          {attention > 0 ? <Notice tone="info">{`${attention} running low or out at the supplier. Pause them so shoppers don't order what can't ship.`}</Notice> : null}
+          {attention > 0 ? <Notice tone="info">{`${attention} almost finished at the supplier. Pause them so customers don't order what can't be sent.`}</Notice> : null}
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {FILTERS.map((entry) => <Chip key={entry.key} label={entry.label} on={filter === entry.key} onPress={() => setFilter(entry.key)} />)}
           </View>
-          {shown.length === 0 ? <T style={{ color: colors.inkSoft, textAlign: "center", paddingVertical: 20 }}>Nothing here right now.</T> : null}
+          {shown.length === 0 ? <T style={{ color: colors.inkSoft, textAlign: "center", paddingVertical: 20 }}>Nothing here right now. Tap &quot;All&quot; to see everything.</T> : null}
           {shown.map((item) => <DropshipCard key={item.id} item={item} busy={busy === item.id} onToggle={() => void toggle(item)} />)}
-          <PillButton title="Find more products" tone="white" size="md" onPress={() => router.push("/find")} />
+          <PillButton title="Find more products" onPress={() => router.push("/find")} />
         </>
       ) : null}
     </Screen>

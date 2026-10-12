@@ -27,7 +27,7 @@ export default function Products() {
       await saveMemory({ screen: "payments" }).catch(() => null);
       router.push("/onboarding/payments");
     } catch (productError) {
-      drafts.setError(productError instanceof Error ? productError.message : "Couldn't add those products.");
+      drafts.setError(productError instanceof Error ? productError.message : "Couldn't add those products. Check your connection and try again.");
     } finally {
       setBusy(false);
     }

@@ -61,7 +61,7 @@ export default function Checklist() {
             </View>
           ))}
         </View>
-        <PillButton title="Go to my dashboard" busy={busy} style={{ marginTop: 16, borderRadius: radii.pill }} onPress={() => void finish()} />
+        <PillButton title="Go to my shop" busy={busy} style={{ marginTop: 16, borderRadius: radii.pill }} onPress={() => void finish()} />
       </ScrollView>
     </SafeAreaView>
   );

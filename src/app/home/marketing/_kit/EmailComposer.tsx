@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Segmented } from "@/components/app-ui";
+import { AdvancedFold } from "@/components/simple/Fold";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, textareaClass } from "@/components/growth/kit";
 import { BLOCK_LABELS, blocksToHtml, htmlFromBlocks, readBlocks, type EmailBlock, type EmailBlockType } from "@/lib/marketing/blocks";
@@ -81,7 +81,12 @@ export function EmailComposer({ value, onChange, variables }: { value: string; o
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Segmented options={[{ value: "visual", label: "Write" }, { value: "html", label: "HTML" }]} value={mode} onChange={switchMode} />
+        {mode === "html" ? (
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#FDF0D5] px-3 py-1.5 text-[12.5px] font-bold text-[#5C3D00]">Advanced: HTML code</span>
+            <button type="button" onClick={() => switchMode("visual")} className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px] font-bold">Back to the easy editor</button>
+          </span>
+        ) : null}
         <span className="text-[12.5px] text-app-ink-soft">Tap a detail to add it where you&apos;re typing</span>
       </div>
       <VariableChips onInsert={insertVariable} only={variables} />
@@ -146,6 +151,11 @@ export function EmailComposer({ value, onChange, variables }: { value: string; o
             </button>
           ))}
         </div>
+      ) : null}
+      {mode === "visual" ? (
+        <AdvancedFold label="Advanced (optional): write the email in HTML code" hint="Only if you or a designer already have the code.">
+          <button type="button" onClick={() => switchMode("html")} className={buttonClass("white", "sm")}>Switch to HTML code</button>
+        </AdvancedFold>
       ) : null}
     </div>
   );

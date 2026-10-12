@@ -8,6 +8,9 @@ import { Icon } from "@/components/ui/Icon";
 import { formatWhen, inboxApi } from "@/components/messaging/inbox-ui";
 import type { ChatbotSettings, WhatsAppBotSettings } from "@/lib/inbox/assistant";
 import type { ChannelView } from "@/lib/inbox/connect";
+import { TechFold } from "@/components/simple/Fold";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { plainMetaError } from "@/components/simple/plain";
 import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
 
 // "Put Peggy on your WhatsApp": 1. connect WhatsApp Business (Embedded Signup when the platform has a Meta app,
@@ -138,6 +141,7 @@ export function WhatsAppPeggyClient({
 
   // Step 1
   const [manual, setManual] = useState(!signup);
+  const [askTeam, setAskTeam] = useState(false);
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [connecting, setConnecting] = useState(false);
   const [connectMessage, setConnectMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
@@ -159,10 +163,10 @@ export function WhatsAppPeggyClient({
       const next = await inboxApi<ChannelView>("/api/app/inbox/channels/whatsapp", { method: "POST", body: JSON.stringify(body) });
       setView(next);
       setKeys({});
-      setConnectMessage({ tone: "success", text: "WhatsApp is connected. Now paste the callback URL and verify token into your Meta app (below)." });
+      setConnectMessage({ tone: "success", text: "WhatsApp is connected. One last step for whoever set up your Meta app: it's under \"Show the technical details\" above." });
       setHealth(await inboxApi<WhatsAppHealth>("/api/app/inbox/whatsapp"));
     } catch (error) {
-      setConnectMessage({ tone: "error", text: (error as Error).message });
+      setConnectMessage({ tone: "error", text: plainMetaError((error as Error).message) });
     } finally {
       setConnecting(false);
     }
@@ -260,28 +264,32 @@ export function WhatsAppPeggyClient({
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="grid min-w-0 content-start gap-5">
-        {!ready ? <Notice tone="info">Peggy&apos;s settings need a quick database update first (docs/migrations/2026-10-12-email-autoreply.sql). You can connect WhatsApp now.</Notice> : null}
+        {!ready ? <Notice tone="info">Peggy&apos;s settings aren&apos;t switched on yet. You can connect WhatsApp now; tap Help and we&apos;ll switch the rest on.</Notice> : null}
         {!aiAvailable ? (
-          <Notice tone="info">Peggy needs an AI key on the server (ANTHROPIC_API_KEY or OPENAI_API_KEY) to answer open questions. Without it she still shows your products, takes orders, looks up order status and hands over to you; other messages get your <Link href="/home/inbox/auto-replies" className="font-bold underline">quick replies and away message</Link>.</Notice>
+          <Notice tone="info">Peggy&apos;s open answers aren&apos;t switched on yet. She still shows your products, takes orders, looks up order status and hands over to you; other messages get your <Link href="/home/inbox/auto-replies" className="font-bold underline">quick replies and away message</Link>.</Notice>
         ) : null}
 
-        <Step n={1} title="Connect WhatsApp Business" sub="Your WhatsApp Business number on Meta's Cloud API. Customers' messages arrive in your Shopinbos inbox." done={connected}>
+        <Step n={1} title="Connect WhatsApp Business" sub="Your WhatsApp Business number. Customers' messages arrive in your Shopinbos inbox." done={connected}>
           {connected ? (
             <div className="grid gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? "Needs attention" : "Connected"}</Pill>
                 <span className="text-[14px] font-semibold">{view.displayName}</span>
               </div>
-              {view.lastError ? <Notice tone="error">{view.lastError}</Notice> : null}
+              {view.lastError ? <Notice tone="error">{plainMetaError(view.lastError)}</Notice> : null}
+              {view.lastError ? <SetupHelpRequest title="Fix my WhatsApp connection" description="We'll check your WhatsApp connection and fix it with you." feature="whatsapp_connect" /> : null}
               {health.via !== "embedded" && view.webhookUrl ? (
-                <div className="grid gap-2">
-                  <p className="m-0 text-[13px] text-app-ink-soft">In your Meta app → WhatsApp → Configuration, set this callback URL and verify token, then subscribe to <strong>messages</strong>.</p>
-                  <CopyRow label="Callback URL" value={view.webhookUrl} />
-                  {view.verifyToken ? <CopyRow label="Verify token" value={view.verifyToken} /> : null}
-                </div>
+                <TechFold forWho="the person who manages your Facebook account">
+                  <div className="grid gap-2">
+                    {view.lastError ? <p className="m-0 break-words text-[12.5px] text-app-ink-soft">Last problem: {view.lastError}</p> : null}
+                    <p className="m-0 text-[13px] text-app-ink-soft">In your Meta app → WhatsApp → Configuration, set this callback URL and verify token, then subscribe to <strong>messages</strong>.</p>
+                    <CopyRow label="Callback URL" value={view.webhookUrl} />
+                    {view.verifyToken ? <CopyRow label="Verify token" value={view.verifyToken} /> : null}
+                  </div>
+                </TechFold>
               ) : null}
               <div className="flex flex-wrap gap-2">
-                <PillButton size="md" tone="white" busy={checking} onClick={() => void testConnection()}>Test connection</PillButton>
+                <PillButton size="md" tone="white" busy={checking} onClick={() => void testConnection()}>Check it&apos;s working</PillButton>
                 <Link href="/home/inbox/channels" className="inline-flex min-h-[48px] items-center rounded-full px-5 text-[15px] font-bold text-app-ink no-underline hover:bg-black/[0.04]">Change or disconnect</Link>
               </div>
               {checks ? (
@@ -298,7 +306,7 @@ export function WhatsAppPeggyClient({
               ) : null}
             </div>
           ) : !encryptionReady ? (
-            <Notice tone="error">This server can&apos;t store WhatsApp keys safely yet. Your Shopinbos admin needs to set INBOX_ENCRYPTION_KEY.</Notice>
+            <SetupHelpRequest title="Connect my WhatsApp Business number" description="We'll connect your WhatsApp Business number to Shopinbos for you and message you when it's working." feature="whatsapp_connect" softwareQuestion="Which WhatsApp number do customers message?" softwarePlaceholder="0803 123 4567" />
           ) : (
             <div className="grid gap-4">
               {signup ? (
@@ -308,11 +316,18 @@ export function WhatsAppPeggyClient({
                       <Icon name="whatsapp" size={16} /> Connect with Facebook
                     </PillButton>
                   </div>
-                  <p className="m-0 text-[12.5px] text-app-ink-soft">Log in to Facebook, pick or create your business, and add your WhatsApp number. It takes about 5 minutes. A number already in the WhatsApp Business app may need to be moved to the platform.</p>
-                  <button type="button" onClick={() => setManual((m) => !m)} className="w-fit text-[13px] font-bold text-app-ink underline">{manual ? "Hide manual connect" : "I have my own Meta app (connect manually)"}</button>
+                  <p className="m-0 text-[13px] text-app-ink-soft">Log in to Facebook, pick or create your business, and add your WhatsApp number. It takes about 5 minutes.</p>
                 </div>
               ) : null}
-              {manual ? (
+              {askTeam ? (
+                <SetupHelpRequest title="Connect my WhatsApp Business number" description="We'll connect your WhatsApp Business number to Shopinbos for you and message you when it's working." feature="whatsapp_connect" softwareQuestion="Which WhatsApp number do customers message?" softwarePlaceholder="0803 123 4567" />
+              ) : (
+                <button type="button" onClick={() => setAskTeam(true)} className="w-fit min-h-[44px] text-[14px] font-bold text-app-ink underline">Ask us to connect it for you</button>
+              )}
+              <TechFold forWho="the person who manages your Facebook account">
+              <div className="grid gap-3">
+              <button type="button" onClick={() => setManual((m) => !m)} className="w-fit text-[13px] font-bold text-app-ink underline">{manual || !signup ? "Connect with your own Meta app" : "I have my own Meta app (connect manually)"}</button>
+              {manual || !signup ? (
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -353,6 +368,8 @@ export function WhatsAppPeggyClient({
                   <div><PillButton type="submit" size="md" busy={connecting && manual}>Connect WhatsApp</PillButton></div>
                 </form>
               ) : null}
+              </div>
+              </TechFold>
             </div>
           )}
           {connectMessage ? <Notice tone={connectMessage.tone}>{connectMessage.text}</Notice> : null}
@@ -367,7 +384,7 @@ export function WhatsAppPeggyClient({
           <div className="grid gap-1.5">
             <span className="text-[13.5px] font-bold">When a customer wants to buy</span>
             <Segmented
-              options={[{ value: "link", label: "Send checkout link" }, { value: "collect", label: "Take the order for me" }, { value: "off", label: "Off" }]}
+              options={[{ value: "link", label: "Send a link to pay" }, { value: "collect", label: "Take the order for me" }, { value: "off", label: "Off" }]}
               value={wa.ordering}
               onChange={(ordering) => setWa({ ordering })}
               className="border border-app-line"
@@ -406,7 +423,7 @@ export function WhatsAppPeggyClient({
           <p className="m-0 rounded-[14px] bg-app-canvas px-4 py-3 text-[13px] leading-[1.5] text-app-ink-soft">
             <strong className="text-app-ink">Hand-off:</strong> when a customer says &quot;agent&quot;, &quot;person&quot;, &quot;human&quot; or asks something Peggy can&apos;t answer, she stops on that chat, tags it &quot;needs-human&quot; and you get a notification. She also goes quiet when you reply yourself.
             <br />
-            <strong className="text-app-ink">24-hour rule:</strong> WhatsApp only allows replies within 24 hours of the customer&apos;s last message. After that you need an approved message template (WhatsApp Manager → Message templates). Peggy never sends templates.
+            <strong className="text-app-ink">24-hour rule:</strong> WhatsApp only allows replies within 24 hours of the customer&apos;s last message. After that you need a message WhatsApp has approved (see <Link href="/home/marketing/whatsapp" className="font-bold underline">WhatsApp messages</Link>). Peggy only replies inside the 24 hours.
           </p>
         </Step>
 
@@ -429,7 +446,7 @@ export function WhatsAppPeggyClient({
               className="border border-app-line"
             />
           </div>
-          {liveBlocked && wa.mode !== "off" ? <Notice tone="info">{!connected ? "Connect WhatsApp in step 1 first." : "Run the database update first."}</Notice> : null}
+          {liveBlocked && wa.mode !== "off" ? <Notice tone="info">{!connected ? "Connect WhatsApp in step 1 first." : "This isn't switched on yet. Tap Help and we'll sort it out."}</Notice> : null}
           <div className="flex flex-wrap items-center gap-3">
             <PillButton size="md" busy={saving} disabled={!ready || (wa.mode !== "off" && !connected)} onClick={() => void save()}>{wa.mode === "live" ? "Save and go live" : "Save"}</PillButton>
           </div>
@@ -450,21 +467,21 @@ export function WhatsAppPeggyClient({
           <dd className="m-0 text-right font-semibold">{when(health.lastPeggyReplyAt)}</dd>
           <dt className="text-app-ink-soft">Peggy replies (24h)</dt>
           <dd className="m-0 text-right font-semibold">{health.peggyRepliesToday}</dd>
-          <dt className="text-app-ink-soft">Failed sends (24h)</dt>
+          <dt className="text-app-ink-soft">Messages that didn&apos;t send (24h)</dt>
           <dd className={`m-0 text-right font-semibold ${health.failedLastDay ? "text-app-danger" : ""}`}>{health.failedLastDay}</dd>
           <dt className="text-app-ink-soft">Waiting for you</dt>
           <dd className="m-0 text-right font-semibold">{health.handedOffOpen ? <Link href="/home/messages" className="text-app-ink underline">{health.handedOffOpen} chat{health.handedOffOpen === 1 ? "" : "s"}</Link> : "None"}</dd>
-          <dt className="text-app-ink-soft">Token</dt>
+          <dt className="text-app-ink-soft">Connection lasts</dt>
           <dd className={`m-0 text-right font-semibold ${tokenWarn ? "text-app-danger" : ""}`}>{connected ? tokenText(health.tokenExpiresAt) : "-"}</dd>
           {health.qualityRating ? (
             <>
-              <dt className="text-app-ink-soft">Meta quality</dt>
+              <dt className="text-app-ink-soft">WhatsApp quality score</dt>
               <dd className="m-0 text-right font-semibold">{health.qualityRating}</dd>
             </>
           ) : null}
         </dl>
-        {health.lastFailure ? <Notice tone="error">Last failure: {health.lastFailure}</Notice> : null}
-        {tokenWarn ? <Notice tone="error">Your token expires soon. Reconnect with a permanent System User token so Peggy doesn&apos;t stop.</Notice> : null}
+        {health.lastFailure ? <Notice tone="error"><span title={health.lastFailure}>A message didn&apos;t reach a customer lately. Check their number is on WhatsApp, or tap Help and we&apos;ll look.</span></Notice> : null}
+        {tokenWarn ? <Notice tone="error">Your WhatsApp connection ends soon. Ask us to reconnect it (tap Help) so Peggy doesn&apos;t stop.</Notice> : null}
         <p className="m-0 text-[12.5px] text-app-ink-soft">Peggy&apos;s replies show in your inbox labelled &quot;{bot.name} (WhatsApp bot)&quot;, so you can see everything she told {storeName}&apos;s customers.</p>
       </Card>
     </div>

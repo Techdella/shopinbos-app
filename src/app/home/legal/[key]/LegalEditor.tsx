@@ -142,7 +142,7 @@ export function LegalEditor(props: {
     if (!doc) return;
     if (!empty && !window.confirm("Replace what you've written with the template? You can undo this by leaving without saving.")) return;
     set({ doc });
-    setNotice({ tone: "info", text: "Template added. Replace every [Check: …] with your own details before you publish." });
+    setNotice({ tone: "info", text: "Ready-made page added. Replace every [Check: …] with your own details before you publish." });
   }
 
   async function askPeggy() {
@@ -234,7 +234,7 @@ export function LegalEditor(props: {
             <div className="flex flex-wrap items-center gap-2">
               {props.standard && (
                 <PillButton tone="white" size="sm" type="button" onClick={applyTemplate} disabled={Boolean(busy)}>
-                  <Icon name="document" size={14} /> Start from a template
+                  <Icon name="document" size={14} /> Start from a ready-made page
                 </PillButton>
               )}
               <PillButton tone="white" size="sm" type="button" onClick={() => setAsking((value) => !value)} disabled={Boolean(busy)} aria-expanded={asking}>
@@ -243,7 +243,7 @@ export function LegalEditor(props: {
               <span className="text-[12.5px] text-app-ink-soft">{words.toLocaleString("en-GB")} {words === 1 ? "word" : "words"}{toc.length ? ` · ${toc.length} ${toc.length === 1 ? "section" : "sections"}` : ""}</span>
             </div>
             {props.standard && (
-              <p className="m-0 text-[12.5px] text-app-ink-soft">Templates are written for Nigerian businesses and filled in with your store name, place, contacts and delivery zones. They are a starting point, not legal advice.</p>
+              <p className="m-0 text-[12.5px] text-app-ink-soft">Ready-made pages are written for Nigerian businesses and filled in with your store name, place, contacts and delivery zones. They are a starting point, not legal advice.</p>
             )}
             {asking && (
               <div className="grid gap-2">
@@ -256,7 +256,7 @@ export function LegalEditor(props: {
             )}
           </div>
 
-          <RichTextEditor label={`${draft.title || "Page"} text`} value={draft.doc} onChange={(doc) => set({ doc })} placeholder="Write your page, or start from a template above. Use Heading 1 and Heading 2 for sections; they become the table of contents." />
+          <RichTextEditor label={`${draft.title || "Page"} text`} value={draft.doc} onChange={(doc) => set({ doc })} placeholder="Write your page, or start from a ready-made page above. Use Heading 1 and Heading 2 for sections; they become the table of contents." />
 
           {!props.standard && (
             <div className="flex justify-end">
@@ -283,7 +283,7 @@ export function LegalEditor(props: {
           siteName={props.storeName}
           content={content}
         />
-        <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">The web address of a legal page is fixed, so links in your footer and checkout keep working.</p>
+        <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">The web address of a legal page is fixed, so links in your footer and payment page keep working.</p>
       </div>
 
       <div className="sticky bottom-0 z-20 -mx-4 border-t border-app-line bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-[18px] sm:border">
@@ -360,19 +360,19 @@ function StylePanel({ style, setStyle, theme, tocCount }: { style: LegalStyle; s
         <Toggle on={style.showUpdated} onChange={(showUpdated) => setStyle({ showUpdated })} label='Show "Last updated" date' />
         <div>
           <span className="mb-1.5 block text-[13.5px] font-bold">Heading font</span>
-          <Segmented<LegalStyle["headingFont"]> options={[{ value: "theme", label: "From theme" }, { value: "serif", label: "Serif" }, { value: "sans", label: "Sans" }]} value={style.headingFont} onChange={(headingFont) => setStyle({ headingFont })} />
+          <Segmented<LegalStyle["headingFont"]> options={[{ value: "theme", label: "From your shop look" }, { value: "serif", label: "Serif" }, { value: "sans", label: "Sans" }]} value={style.headingFont} onChange={(headingFont) => setStyle({ headingFont })} />
         </div>
         <div>
           <span className="mb-1.5 block text-[13.5px] font-bold">Link and accent colour</span>
           <div className="flex flex-wrap items-center gap-3">
-            <Segmented<"theme" | "custom"> options={[{ value: "theme", label: "From theme" }, { value: "custom", label: "Custom" }]} value={style.accent ? "custom" : "theme"} onChange={(mode) => setStyle({ accent: mode === "custom" ? (style.accent || theme.accent.toUpperCase()) : "" })} />
+            <Segmented<"theme" | "custom"> options={[{ value: "theme", label: "From your shop look" }, { value: "custom", label: "Custom" }]} value={style.accent ? "custom" : "theme"} onChange={(mode) => setStyle({ accent: mode === "custom" ? (style.accent || theme.accent.toUpperCase()) : "" })} />
             {style.accent ? (
               <label className="inline-flex min-h-[44px] items-center gap-2 text-[13.5px] font-bold">
                 <input type="color" value={style.accent} onChange={(e) => setStyle({ accent: e.target.value.toUpperCase() })} className="h-9 w-12 cursor-pointer rounded-[10px] border border-app-line bg-white p-0.5" aria-label="Accent colour" />
                 <span className="font-mono text-[12.5px] text-app-ink-soft">{style.accent}</span>
               </label>
             ) : (
-              <span className="inline-flex items-center gap-2 text-[13px] text-app-ink-soft"><span className="h-5 w-5 rounded-full border border-app-line" style={{ background: theme.accent }} aria-hidden /> Your theme&apos;s accent</span>
+              <span className="inline-flex items-center gap-2 text-[13px] text-app-ink-soft"><span className="h-5 w-5 rounded-full border border-app-line" style={{ background: theme.accent }} aria-hidden /> Your shop&apos;s accent colour</span>
             )}
           </div>
         </div>

@@ -45,7 +45,7 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
       setBot(saved.chatbot);
       setNote({ tone: "success", text: bot.enabled ? `Saved. ${bot.name} is answering on your store.` : "Saved. The chatbot is off." });
     } catch (saveError) {
-      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "Couldn't save. Try again." });
+      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again." });
     } finally {
       setSaving(false);
     }

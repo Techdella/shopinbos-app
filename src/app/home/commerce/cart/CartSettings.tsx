@@ -10,7 +10,7 @@ import type { AfterAddBehaviour, CartSettings as Settings } from "@shared/cart-c
 const AFTER_ADD: ReadonlyArray<{ value: AfterAddBehaviour; label: string; desc: string }> = [
   { value: "drawer", label: "Open the bag", desc: "A quick bag slides in. Shoppers keep browsing or check out." },
   { value: "cart_page", label: "Go to the bag page", desc: "The full bag with delivery estimate and suggestions." },
-  { value: "checkout", label: "Go straight to checkout", desc: "Best for stores that sell one thing at a time." },
+  { value: "checkout", label: "Go straight to paying", desc: "Best for stores that sell one thing at a time." },
 ];
 
 export function CartSettings({ initial }: { initial: Settings }) {

@@ -34,14 +34,14 @@ function Section({ id, title, sub, children }: { id: string; title: string; sub?
   return (
     <section aria-labelledby={id} className="min-w-0">
       <h2 id={id} className="m-0 text-[18px] font-extrabold">{title}</h2>
-      {sub && <p className="m-0 mb-3 mt-0.5 text-[13.5px] text-app-ink-soft">{sub}</p>}
+      {sub && <p className="m-0 mb-3 mt-0.5 text-[15px] text-app-ink-soft">{sub}</p>}
       <div className={sub ? "" : "mt-3"}>{children}</div>
     </section>
   );
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <Card className="px-5 py-8 text-center text-[14.5px] text-app-ink-soft">{children}</Card>;
+  return <Card className="px-5 py-8 text-center text-[15px] text-app-ink-soft">{children}</Card>;
 }
 
 export default async function LogisticsCashPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
@@ -147,7 +147,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <ListRow key={job.id}>
                         <div className="min-w-0 flex-1 basis-[200px]">
                           <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
-                          <div className="truncate text-[13px] text-app-ink-soft">
+                          <div className="truncate text-[15px] text-app-ink-soft">
                             {jobId(job.id)} · {job.rider?.name ?? "No rider"} · {lagosDate(job.codCollectedAt ?? job.deliveredAt ?? job.createdAt)}
                           </div>
                         </div>
@@ -168,7 +168,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                     <ListRow key={job.id}>
                       <div className="min-w-0 flex-1 basis-[200px]">
                         <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
-                        <div className="truncate text-[13px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? "No rider yet"}</div>
+                        <div className="truncate text-[15px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? "No rider yet"}</div>
                       </div>
                       <StatusPill status={job.status} />
                       <div className="ml-auto text-[15px] font-extrabold">{naira(job.cash)}</div>
@@ -187,7 +187,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                     <ListRow key={job.id}>
                       <div className="min-w-0 flex-1 basis-[200px]">
                         <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
-                        <div className="truncate text-[13px] text-app-ink-soft">
+                        <div className="truncate text-[15px] text-app-ink-soft">
                           {jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? "No rider"} · {lagosDate(job.codCollectedAt ?? job.createdAt)}
                         </div>
                       </div>
@@ -247,12 +247,12 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                     <ListRow key={row.id}>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
-                        <div className="truncate text-[13px] text-app-ink-soft">
+                        <div className="truncate text-[15px] text-app-ink-soft">
                           {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
                           {row.reference ? ` · ${row.reference}` : ""}
                         </div>
                       </div>
-                      <span className="text-[13px] text-app-ink-soft">{row._count.bookings} {row._count.bookings === 1 ? "job" : "jobs"}</span>
+                      <span className="text-[15px] text-app-ink-soft">{row._count.bookings} {row._count.bookings === 1 ? "job" : "jobs"}</span>
                     </ListRow>
                   ))}
                 </ListCard>

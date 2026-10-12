@@ -83,7 +83,7 @@ export default async function InventoryPage() {
 
       {products.length === 0 ? (
         <EmptyState icon="box" title="No products yet" action={<PillLink href="/products/new" tone="ink" icon="plus">Add product</PillLink>}>
-          Add products to start tracking inventory.
+          Add products to start counting how many you have.
         </EmptyState>
       ) : (
         <ListCard>

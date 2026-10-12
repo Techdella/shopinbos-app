@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, 
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
+import { HelpButton } from "@/components/Help";
 import { BackButton, T } from "@/components/ui";
 import { colors, fonts, radii } from "@/theme";
 
@@ -16,6 +17,7 @@ export function ChatScreen({
   refreshing,
   onRefresh,
   scrollKey,
+  help = true,
 }: {
   header: ReactNode;
   children: ReactNode;
@@ -24,6 +26,8 @@ export function ChatScreen({
   onRefresh?: () => void;
   /** Changes when a message is added, to scroll to the newest one. */
   scrollKey?: string | number;
+  /** Help in the header (build spec 8A). */
+  help?: boolean;
 }) {
   const scroll = useRef<ScrollView>(null);
   useEffect(() => {
@@ -37,6 +41,7 @@ export function ChatScreen({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 10 }}>
           <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/chats"))} />
           {header}
+          {help ? <HelpButton /> : null}
         </View>
         <ScrollView
           ref={scroll}

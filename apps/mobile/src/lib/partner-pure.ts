@@ -74,7 +74,7 @@ const JOB_STAGE: Record<string, { label: string; tone: Tone }> = {
   picked_up: { label: "Picked up", tone: "info" },
   in_transit: { label: "On the way", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
-  failed: { label: "Delivery failed", tone: "danger" },
+  failed: { label: "Couldn't deliver", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
@@ -95,11 +95,11 @@ export function canFail(status: string) {
   return status === "confirmed" || status === "picked_up" || status === "in_transit";
 }
 
-export const FAIL_REASONS = ["Buyer didn't answer", "Buyer not at the address", "Buyer refused the parcel", "Wrong or incomplete address", "Buyer couldn't pay"];
+export const FAIL_REASONS = ["Customer didn't pick up calls", "Customer not at the address", "Customer refused the parcel", "Wrong or incomplete address", "Customer couldn't pay"];
 
 const ORDER_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "New", tone: "accent" },
-  awaiting_payment: { label: "Pay on delivery", tone: "accent" },
+  awaiting_payment: { label: "Pay when it arrives", tone: "accent" },
   paid: { label: "To accept", tone: "accent" },
   confirmed: { label: "Accepted", tone: "warning" },
   accepted: { label: "Accepted, to send", tone: "warning" },
