@@ -2,7 +2,9 @@ import "server-only";
 
 import { db } from "@/lib/db/client";
 import { getPublicEnv } from "@/lib/env";
-import { isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
+import { isEmailConfigured } from "@/lib/notifications/resend";
+import { sendPlatformEmail } from "@/lib/email/compliance.server";
+import { platformEmailAllowed } from "@/lib/email/preferences.server";
 import { cacCheckEnabled } from "@/lib/kyb/verify-cac.server";
 import { LOGISTICS_DOC_TYPES, SUPPLIER_DOC_TYPES, missingRequiredDocs, normalizeVerificationDocs } from "@shared/verification-docs";
 import { dueReminder, reminderEmail, reminderStart, sentReminders } from "./reminders";
@@ -32,7 +34,7 @@ export async function sendVerificationReminders(now = new Date()) {
         verificationStatus: true,
         ...(kind === "supplier" ? { businessName: true } : { companyName: true }),
         displayName: true,
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
       },
       orderBy: { updatedAt: "asc" },
       take: 500,
@@ -53,7 +55,9 @@ export async function sendVerificationReminders(now = new Date()) {
 
       const businessName = (kind === "supplier" ? row.businessName : row.companyName) || row.displayName || "your business";
       const firstName = String(row.user?.name ?? "").trim().split(/\s+/)[0] || "there";
-      const { subject, html } = reminderEmail({
+      // Onboarding nudges are lifecycle mail: skip anyone who turned them off in their email preferences.
+      if (row.user?.id && !(await platformEmailAllowed(row.user.id, "lifecycle"))) continue;
+      const { subject, heading, preheader, bodyHtml } = reminderEmail({
         index,
         role: kind,
         firstName,
@@ -66,7 +70,7 @@ export async function sendVerificationReminders(now = new Date()) {
       // Record first, so a slow send can't make the next run email them twice.
       const state = row.onboardingState && typeof row.onboardingState === "object" ? row.onboardingState : {};
       await model.update({ where: { id: row.id }, data: { onboardingState: { ...state, docReminders: [...already, now.toISOString()] } } });
-      const result = await sendEmail({ to: [email], subject, html });
+      const result = await sendPlatformEmail({ to: email, user: { id: row.user.id, role: row.user.role ?? kind }, kind: "lifecycle", topic: "lifecycle", subject, heading, preheader, bodyHtml, eyebrow: "Verification" });
       if (result.success) sent++;
       else console.error("[verification-reminders] send failed", result.message);
     }

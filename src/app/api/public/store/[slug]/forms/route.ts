@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, created, apiError } from "@/lib/api/response";
-import { sendSellerNotification } from "@/lib/notifications/resend";
+import { sendSellerNotification } from "@/lib/email/notices.server";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
 import { ingestFormMessage } from "@/lib/inbox/forms";
 import { overPublicLimit } from "@/lib/rate-limit";
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const store = await db.store.findUnique({
     where: { slug },
-    select: { id: true, name: true, status: true, user: { select: { email: true } } },
+    select: { id: true, name: true, status: true, userId: true, user: { select: { email: true } } },
   });
   if (!store || store.status !== "active") {
     return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
@@ -76,7 +76,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       title: `New ${input.type} submission from ${store.name}`,
       description: `${input.name || input.email || "A visitor"} submitted ${input.type}. ${input.message ?? ""}`,
       type: "form_submission",
-    });
+      link: "/home/messages",
+      actionLabel: "Open your inbox",
+    }, { id: store.userId, role: "seller" });
   }
 
   return withCors(req, created({ id: rows[0]?.id ?? null }), CORS);

@@ -4,7 +4,9 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createNotification } from "@/lib/notifications/create";
-import { isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
+import { isEmailConfigured } from "@/lib/notifications/resend";
+import { sendPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
 import { sendSms } from "@/lib/notifications/service";
 import { getPublicEnv } from "@/lib/env";
 import {
@@ -605,17 +607,18 @@ export async function sendUnreadEmails(now = new Date()) {
     const link = `${appUrl}${messagesHref(recipient.role, { conversation: messages[messages.length - 1].conversation.id })}`;
     const rows = messages
       .slice(-5)
-      .map((row) => `<p style="margin:0 0 10px;color:#333;line-height:1.5"><b>${escapeHtml(people.get(row.senderId)?.name ?? "A business")}:</b> ${escapeHtml(messagePreview({ text: row.text }) || "Sent a file")}</p>`)
+      .map((row) => html.raw(`<b>${escapeHtml(people.get(row.senderId)?.name ?? "A business")}:</b> ${escapeHtml(messagePreview({ text: row.text }) || "Sent a file")}`))
       .join("");
-    const result = await sendEmail({
-      to: [recipient.email],
+    const result = await sendPlatformEmail({
+      to: recipient.email,
+      user: { id: recipientId, role: recipient.role },
+      kind: "notification",
       subject,
-      html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
-        <h2 style="font-size:18px;margin:0 0 14px">${escapeHtml(subject)}</h2>
-        ${rows}
-        <a href="${escapeHtml(link)}" style="display:inline-block;padding:10px 20px;background:#16141F;color:#fff;text-decoration:none;border-radius:999px;margin:12px 0;font-size:14px">Reply on Shopinbos</a>
-        <p style="color:#999;font-size:12px;margin-top:20px">You get this when a message waits ${UNREAD_EMAIL_DELAY_MINUTES} minutes unread. Turn it off in Settings › Notifications.</p>
-      </div>`,
+      heading: subject,
+      eyebrow: "Messages",
+      preheader: messagePreview({ text: messages[messages.length - 1].text }) || subject,
+      bodyHtml: html.quote(rows) + html.small(`You get this when a message waits ${UNREAD_EMAIL_DELAY_MINUTES} minutes unread. Turn it off in your notification settings.`),
+      cta: { label: "Reply on Shopinbos", url: link },
     }).catch(() => ({ success: false }));
     if (result.success) sent += 1;
   }

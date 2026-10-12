@@ -1,3 +1,5 @@
+import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
+import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
@@ -143,24 +145,28 @@ export async function POST(req: NextRequest) {
         if (moved.count === 1 && resendKey && !resendKey.includes("your_")) {
           const order = await db.retailOrder.findUnique({ where: { id: ref } });
           if (order) {
-            const storeData = await db.store.findUnique({
-              where: { id: order.storeId },
-              select: { name: true, slug: true, customDomain: true },
-            });
+            const storeData = await db.store.findUnique({ where: { id: order.storeId }, select: SENDER_STORE_SELECT });
 
-            await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${resendKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: process.env.RESEND_FROM_EMAIL ?? "Shopinbos <noreply@shopinbos.com>",
-                to: [order.buyerEmail],
-                subject: `Order Confirmed - ${order.orderNumber}`,
-                html: buildOrderConfirmationEmail(order, storeData),
-              }),
-            }).catch(() => null);
+            if (storeData && order.buyerEmail) {
+              const money = (amount: number) => {
+                try {
+                  return new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(amount);
+                } catch {
+                  return `${order.currency} ${Math.round(amount).toLocaleString("en-NG")}`;
+                }
+              };
+              const items = Array.isArray(order.items) ? (order.items as Array<{ name?: string; quantity?: number; price?: number }>) : [];
+              await sendOrderConfirmationEmail({
+                store: storeData,
+                to: order.buyerEmail,
+                buyerName: order.buyerName,
+                orderNumber: order.orderNumber,
+                items: items.map((item) => ({ name: String(item.name ?? "Item"), qty: Number(item.quantity ?? 1), price: money(Number(item.price ?? 0) * Number(item.quantity ?? 1)) })),
+                total: money(Number(order.total)),
+                orderUrl: buildStorefrontUrl(storeData, `/order/${order.id}`),
+                paymentNote: "Payment received. Thank you!",
+              }).catch(() => null);
+            }
 
             Promise.allSettled([
               triggerAutomations("payment_received", {
@@ -189,31 +195,4 @@ export async function POST(req: NextRequest) {
   }
 
   return new NextResponse("OK", { status: 200 });
-}
-
-function buildOrderConfirmationEmail(order: any, store: any) {
-  const escapeHtml = (value: unknown) => String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-  const items = (order.items as any[])
-    .map((i: any) => `<tr><td>${escapeHtml(i.name)}</td><td>${escapeHtml(i.quantity)}</td><td>${escapeHtml(order.currency)} ${(i.price * i.quantity).toLocaleString()}</td></tr>`)
-    .join("");
-  const orderUrl = store ? buildStorefrontUrl(store, `/order/${order.id}`) : "";
-
-  return `
-    <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px">
-      <h2>Order Confirmed</h2>
-      <p>Hi ${escapeHtml(order.buyerName)}, your order from <strong>${escapeHtml(store?.name ?? "the store")}</strong> is confirmed.</p>
-      <p><strong>Order #${escapeHtml(order.orderNumber)}</strong></p>
-      <table style="width:100%;border-collapse:collapse;margin:16px 0">
-        <thead><tr style="background:#f4f1ea"><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
-        <tbody>${items}</tbody>
-      </table>
-      <p><strong>Total: ${escapeHtml(order.currency)} ${Number(order.total).toLocaleString()}</strong></p>
-      <p style="color:#6e6e68;font-size:13px">Track your order at: <a href="${escapeHtml(orderUrl)}">${escapeHtml(orderUrl)}</a></p>
-    </div>
-  `;
 }

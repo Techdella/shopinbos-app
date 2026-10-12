@@ -1,3 +1,5 @@
+import { html } from "../email/shell.ts";
+
 // Reminders for suppliers and delivery partners who are in their portal but haven't finished verification
 // (usually because they chose "Continue without documents"). Pure, so it is unit-tested in
 // tests/verification-reminders.test.mjs; the sending lives in reminders.server.ts.
@@ -36,10 +38,6 @@ export function sentReminders(state: unknown): string[] {
   return Array.isArray(list) ? list.filter((t): t is string => typeof t === "string") : [];
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
-
 export interface ReminderEmailInput {
   index: number;
   role: "supplier" | "logistics_partner";
@@ -50,7 +48,7 @@ export interface ReminderEmailInput {
   cacEnabled: boolean;
 }
 
-export function reminderEmail(input: ReminderEmailInput): { subject: string; html: string } {
+export function reminderEmail(input: ReminderEmailInput): { subject: string; heading: string; preheader: string; html: string; bodyHtml: string } {
   const who = input.role === "supplier" ? "sellers" : "sellers who need deliveries";
   const subject =
     input.index === 0
@@ -64,19 +62,9 @@ export function reminderEmail(input: ReminderEmailInput): { subject: string; htm
       : input.index === 1
         ? `${input.businessName} is set up, but stays hidden from ${who} until it's verified. It takes a few minutes once your documents are to hand.`
         : `This is our last reminder. Your account stays, and you can verify whenever you're ready.`;
-  const cac = input.cacEnabled
-    ? `<p style="margin:0 0 16px">Have your RC or BN number? Verify your registration instantly with CAC, so you don't need to upload the certificate.</p>`
-    : "";
-  const list = input.missing.length
-    ? `<p style="margin:0 0 8px;font-weight:700">Still needed:</p><ul style="margin:0 0 16px;padding-left:20px">${input.missing.map((m) => `<li>${escapeHtml(m)}</li>`).join("")}</ul>`
-    : "";
-  const html = `<div style="font-family:'Space Grotesk',Arial,sans-serif;max-width:520px;margin:0 auto;padding:28px 24px;color:#0E2A38;background:#FAF7F1">
-<p style="margin:0 0 20px;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#2E7E78">Shopinbos</p>
-<h1 style="margin:0 0 12px;font-size:24px;line-height:1.2">Hi ${escapeHtml(input.firstName)},</h1>
-<p style="margin:0 0 16px;line-height:1.55">${escapeHtml(lead)}</p>
-${list}${cac}
-<p style="margin:24px 0"><a href="${escapeHtml(input.link)}" style="display:inline-block;background:#0E2A38;color:#F4F1EA;text-decoration:none;font-weight:700;padding:13px 24px;border-radius:999px">Finish verification</a></p>
-<p style="margin:0;font-size:13px;color:#6E6E68">PDF, JPG, PNG or WebP, up to 10 MB each. Questions? Reply to this email.</p>
-</div>`;
-  return { subject, html };
+  const cac = input.cacEnabled ? html.p("Have your RC or BN number? Verify your registration instantly with CAC, so you don't need to upload the certificate.") : "";
+  const list = input.missing.length ? `<p class="sib-ink" style="margin:0 0 8px;font-weight:700">Still needed:</p>${html.list(input.missing)}` : "";
+  // The card body for the shared shell (sendPlatformEmail adds the logo, footer and unsubscribe links).
+  const body = `${html.p(lead)}${list}${cac}${html.button("Finish verification", input.link)}${html.small("PDF, JPG, PNG or WebP, up to 10 MB each. Questions? Reply to this email.")}`;
+  return { subject, heading: `Hi ${input.firstName},`, preheader: lead, html: `${html.h1(`Hi ${input.firstName},`)}${body}`, bodyHtml: body };
 }

@@ -10,6 +10,10 @@ export interface EmailOptions {
   html: string;
   from?: string;
   replyTo?: string;
+  /** Extra headers, e.g. List-Unsubscribe / List-Unsubscribe-Post (see src/lib/email/shell.ts). */
+  headers?: Record<string, string>;
+  /** Plain-text alternative. */
+  text?: string;
 }
 
 export interface EmailSendResult {
@@ -37,7 +41,9 @@ export async function sendEmail(options: EmailOptions): Promise<EmailSendResult>
     to: options.to,
     subject: options.subject,
     html: options.html,
+    text: options.text,
     replyTo: options.replyTo,
+    headers: options.headers,
   });
 
   if (error) {
@@ -88,91 +94,8 @@ export async function sendEmailBatch(emails: BatchEmail[]): Promise<{ success: b
   return { success: true, ids: (data?.data ?? []).map((item) => item.id) };
 }
 
-export async function sendOrderConfirmationEmail(
-  to: string,
-  orderNumber: string,
-  storeName: string,
-  items: { name: string; qty: number; price: string }[],
-  total: string,
-): Promise<EmailSendResult> {
-  const itemsHtml = items.map(
-    (item) => `<tr><td style="padding:8px 0;border-bottom:1px solid #eee">${item.name} × ${item.qty}</td><td style="text-align:right;padding:8px 0;border-bottom:1px solid #eee">${item.price}</td></tr>`,
-  ).join("");
-
-  return sendEmail({
-    to: [to],
-    subject: `Order confirmed — ${orderNumber}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-        <h2 style="font-size:20px;margin:0 0 8px">Thank you for your order!</h2>
-        <p style="color:#666;margin:0 0 20px">Your order <strong>${orderNumber}</strong> from <strong>${storeName}</strong> is confirmed.</p>
-        <table style="width:100%;border-collapse:collapse">${itemsHtml}</table>
-        <div style="margin-top:16px;text-align:right;font-weight:700;font-size:18px">Total: ${total}</div>
-        <p style="color:#888;font-size:13px;margin-top:24px">We'll send you a shipping update soon.</p>
-      </div>
-    `,
-  });
-}
-
-export async function sendPasswordResetEmail(
-  to: string,
-  resetLink: string,
-): Promise<EmailSendResult> {
-  return sendEmail({
-    to: [to],
-    subject: "Reset your Shopinbos password",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="font-size:18px;margin:0 0 12px">Reset your password</h2>
-        <p style="color:#555;line-height:1.6">Click the button below to reset your password. This link expires in 1 hour.</p>
-        <a href="${resetLink}" style="display:inline-block;padding:12px 24px;background:#195754;color:white;text-decoration:none;border-radius:8px;margin:16px 0;font-weight:600">Reset password</a>
-        <p style="color:#999;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
-      </div>
-    `,
-  });
-}
-
-export async function sendPayoutNotification(
-  to: string,
-  amount: string,
-  status: "paid" | "pending" | "failed",
-): Promise<EmailSendResult> {
-  const statusColors: Record<string, string> = {
-    paid: "#059669",
-    pending: "#D97706",
-    failed: "#DC2626",
-  };
-
-  return sendEmail({
-    to: [to],
-    subject: `Payout ${status} — ${amount}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="font-size:18px;margin:0 0 8px">Payout ${status === "paid" ? "completed" : status === "pending" ? "processing" : "failed"}</h2>
-        <p style="color:#555">Amount: <strong style="font-size:20px;color:${statusColors[status]}">${amount}</strong></p>
-        <p style="color:#888;font-size:13px;margin-top:16px">Status: <span style="color:${statusColors[status]};font-weight:600">${status.toUpperCase()}</span></p>
-      </div>
-    `,
-  });
-}
-
-export async function sendSellerNotification(
-  to: string | null,
-  notification: { title: string; description: string; type?: string },
-): Promise<EmailSendResult> {
-  // Sellers who signed up with a phone number have no email until they add one.
-  if (!to) return { success: false, message: "No email address on this account" };
-  return sendEmail({
-    to: [to],
-    subject: notification.title,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <p style="color:#333;line-height:1.6;font-size:15px">${notification.description}</p>
-        <p style="color:#999;font-size:12px;margin-top:24px">Shopinbos · ${notification.type ?? "notification"}</p>
-      </div>
-    `,
-  });
-}
+// Order confirmations, payout notices and seller alerts live in src/lib/email/notices.server.ts, built with the
+// shared email shell (src/lib/email/shell.ts) so every email carries the logo and the compliance footer.
 
 export async function addContactToAudience(
   email: string,

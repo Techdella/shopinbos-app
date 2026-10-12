@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
+import { emailLinkSecret, signEmailToken, verifyEmailToken } from "@/lib/email/tokens";
 import { readStoreLook, toHex6 } from "@/app/home/store/look";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { DEFAULT_BRAND, type EmailBrand } from "./email-layout";
@@ -41,28 +42,17 @@ export function appUrl() {
 }
 
 function linkSecret() {
-  return process.env.MARKETING_LINK_SECRET || process.env.CRON_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.JWT_SECRET || "";
-}
-
-function sign(payload: string) {
-  return createHmac("sha256", linkSecret()).update(payload).digest("base64url").slice(0, 32);
+  return emailLinkSecret();
 }
 
 /** Unsubscribe link for an automation email: /api/public/marketing/unsubscribe?t=<store.email.sig>. */
 export function unsubscribeUrl(storeId: string, email: string) {
-  const payload = Buffer.from(`${storeId}\n${email.toLowerCase()}`).toString("base64url");
-  return `${appUrl()}/api/public/marketing/unsubscribe?t=${payload}.${sign(payload)}`;
+  return `${appUrl()}/api/public/marketing/unsubscribe?t=${signEmailToken({ kind: "contact", storeId, email })}`;
 }
 
 export function readUnsubscribeToken(token: string | null): { storeId: string; email: string } | null {
-  if (!token || !linkSecret()) return null;
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return null;
-  const expected = Buffer.from(sign(payload));
-  const given = Buffer.from(signature);
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
-  const [storeId, email] = Buffer.from(payload, "base64url").toString("utf8").split("\n");
-  return storeId && email ? { storeId, email } : null;
+  const target = verifyEmailToken(token);
+  return target?.kind === "contact" ? { storeId: target.storeId, email: target.email } : null;
 }
 
 // Key for Peggy's confirmation codes. Never a hard-coded fallback: in production with no secret set nothing can
