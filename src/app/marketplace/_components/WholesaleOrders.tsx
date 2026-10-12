@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Card, Pill, Thumb } from "@/components/app-kit";
 import { FieldLabel, Notice, PillButton, cx } from "@/components/app-ui";
 import { Modal } from "@/components/growth/Modal";
@@ -34,7 +35,10 @@ function money(amount: number, currency: string) {
 }
 
 export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) {
+  const router = useRouter();
   const [rows, setRows] = useState(initial);
+  // A refresh (after a 409: the order moved on elsewhere) brings the server's view of every row.
+  useEffect(() => setRows(initial), [initial]);
   const [cancelling, setCancelling] = useState<SellerWholesaleRow | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -67,6 +71,7 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
       const json = (await response.json().catch(() => null)) as { data?: { id: string; status: string }; error?: { message?: string } } | null;
       if (!response.ok || !json?.data) {
         setError(json?.error?.message ?? "We couldn't cancel this order. Try again.");
+        if (response.status === 409) router.refresh();
         return;
       }
       const said = reason.trim();
