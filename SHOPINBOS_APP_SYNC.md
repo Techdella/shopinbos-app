@@ -185,7 +185,7 @@ Status: built and verified locally (tsc clean, 124 unit tests, production build,
 
 ## Lifecycle Email
 
-68 emails from Shopinbos to its own users, by role and journey stage (catalog: `src/lib/lifecycle/catalog.ts`; review page: `node scripts/preview-lifecycle-emails.mjs`). Sellers, suppliers and delivery partners get welcome, onboarding, activation tips, milestones, win-backs, anniversaries and a Monday summary; admins get a welcome and a Monday platform summary. Account news (welcome, verified, not verified, store live) always sends; everything else honours the "Tips, milestones and reminders" and "Weekly summaries" email preferences.
+65 emails from Shopinbos to its own users, by role and journey stage (catalog: `src/lib/lifecycle/catalog.ts`; review page: `node scripts/preview-lifecycle-emails.mjs`). Sellers, suppliers and delivery partners get welcome, onboarding, activation tips, milestones, win-backs and anniversaries (their Monday summary is the separate weekly-summary job); admins get a welcome and a Monday platform summary. Account news (welcome, verified, not verified, store live) always sends; everything else honours the "Tips, milestones and reminders" and "Weekly summaries" email preferences.
 
 Sent from in-app events (sign-up, store published, order paid, dropship/wholesale order, delivery booking, admin verification) and an hourly sweep (`GET /api/cron/lifecycle`, Bearer `CRON_SECRET`). Each email goes once per occurrence (`LifecycleEmail`, unique per user and key); nudges are at least 20 hours apart; accounts older than two days are baselined on first sight, so launch doesn't send anyone old news.
 

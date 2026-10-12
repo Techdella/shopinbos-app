@@ -2593,15 +2593,87 @@ model CustomerMessage {
   @@index([externalId])
 }
 
+// ─── Shopinbos's own emails: weekly summaries and product news ──────────────────
+// docs/migrations/2026-10-16-weekly-summary-product-news.sql
+
+// One row per user and week: claimed before the email goes out, so a re-run (or two overlapping runs) never sends
+// the same week twice. Users with nothing to report and no quiet-week email due get a "skipped" row too, so each
+// run carries on where the last one stopped.
+model WeeklySummaryLog {
+  id        String    @id @default(cuid())
+  userId    String
+  weekStart String // YYYY-MM-DD, the Monday (Africa/Lagos) the week starts
+  role      String
+  kind      String    @default("full") // full | quiet | none
+  status    String    @default("claimed") // claimed | sent | failed (refused, retried up to 3 tries) | skipped | unknown (no answer from the provider, never retried)
+  attempts  Int       @default(1)
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@unique([userId, weekStart])
+  @@index([weekStart, status])
+  @@index([userId, kind, status])
+}
+
+// A product news email an admin writes (/admin/product-news) and sends to sellers, suppliers and delivery partners.
+model ProductNewsBroadcast {
+  id             String    @id @default(cuid())
+  subject        String
+  preheader      String?
+  heading        String
+  body           String // simple markdown, escaped when rendered (src/lib/email/product-news.ts)
+  imageUrl       String?
+  ctaLabel       String?
+  ctaUrl         String?
+  audience       String[] // seller | supplier | logistics_partner
+  status         String    @default("draft") // draft | scheduled | sending | sent | failed
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  sentAt         DateTime?
+  recipientCount Int       @default(0)
+  sentCount      Int       @default(0)
+  failedCount    Int       @default(0)
+  skippedCount   Int       @default(0)
+  lastError      String?
+  createdById    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  recipients ProductNewsRecipient[]
+
+  @@index([status, scheduledAt])
+}
+
+// Who a broadcast goes to, one row each (unique per broadcast and user), so a retry never sends twice.
+model ProductNewsRecipient {
+  id          String    @id @default(cuid())
+  broadcastId String
+  userId      String
+  email       String
+  role        String
+  status      String    @default("queued") // queued | sending | sent | failed | skipped
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  broadcast ProductNewsBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, userId])
+  @@index([broadcastId, status])
+}
+
 // ─── Lifecycle emails ─────────────────────────────────────────────────────────
 // One row per lifecycle email a user got (or was deliberately not sent): welcome, onboarding nudges, milestones,
-// win-backs, anniversaries, weekly summaries (catalog: src/lib/lifecycle/catalog.ts). The unique key makes every
+// win-backs, anniversaries, the admin weekly summary (catalog: src/lib/lifecycle/catalog.ts). The unique key makes every
 // send happen once, however many times the hourly cron or an in-app event re-evaluates the user.
 // docs/migrations/2026-10-16-lifecycle-emails.sql
 model LifecycleEmail {
   id        String    @id @default(cuid())
   userId    String
-  key       String // rule id plus an occurrence for repeating rules: "seller.weekly_summary:2026-W42"
+  key       String // rule id plus an occurrence for repeating rules: "seller.winback_14:2026-10-01"
   rule      String // rule id: "seller.first_sale"
   status    String    @default("sending") // sending | sent | skipped | failed | baseline
   attempts  Int       @default(1)

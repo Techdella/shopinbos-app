@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import type { SendResult } from "./types";
+import type { BatchSendResult } from "@/lib/email/batch-outcome";
 
 const RESEND_AUDIENCE_ID = process.env.RESEND_AUDIENCE_ID;
 
@@ -73,25 +74,40 @@ export interface BatchEmail {
   headers?: Record<string, string>;
 }
 
-/** Sends up to 100 emails in one Resend call. Results are per message, in input order. */
-export async function sendEmailBatch(emails: BatchEmail[]): Promise<{ success: boolean; ids?: string[]; message?: string }> {
+/**
+ * Sends up to 100 emails in one Resend call. `statusCode` is the provider's HTTP status when it answered with an
+ * error, and null when it never answered (network error or timeout: the emails may have gone out, see
+ * src/lib/email/batch-outcome.ts). With `permissive`, Resend sends the valid emails and reports the invalid ones
+ * in `errors` (by index) instead of refusing the whole batch over one bad address.
+ */
+export async function sendEmailBatch(emails: BatchEmail[], options: { permissive?: boolean } = {}): Promise<BatchSendResult> {
   const resend = getResendClient();
   if (!resend) return { success: false, message: "Resend API key not configured" };
   if (emails.length === 0) return { success: true, ids: [] };
   if (emails.length > 100) return { success: false, message: "Resend batches are limited to 100 emails" };
 
-  const { data, error } = await resend.batch.send(
-    emails.map((email) => ({
-      from: email.from ?? DEFAULT_FROM,
-      to: [email.to],
-      subject: email.subject,
-      html: email.html,
-      replyTo: email.replyTo,
-      headers: email.headers,
-    })),
-  );
-  if (error) return { success: false, message: error.message };
-  return { success: true, ids: (data?.data ?? []).map((item) => item.id) };
+  const payload = emails.map((email) => ({
+    from: email.from ?? DEFAULT_FROM,
+    to: [email.to],
+    subject: email.subject,
+    html: email.html,
+    replyTo: email.replyTo,
+    headers: email.headers,
+  }));
+  let response: Awaited<ReturnType<Resend["batch"]["send"]>>;
+  try {
+    response = options.permissive ? await resend.batch.send(payload, { batchValidation: "permissive" }) : await resend.batch.send(payload);
+  } catch (error) {
+    return { success: false, statusCode: null, message: `The email provider call failed: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const { data, error } = response;
+  if (error) {
+    const statusCode = (error as { statusCode?: number | null }).statusCode;
+    return { success: false, message: error.message, statusCode: typeof statusCode === "number" ? statusCode : statusCode === null ? null : undefined };
+  }
+  const body = (data ?? {}) as { data?: Array<{ id: string }>; errors?: Array<{ index: number; message: string }> };
+  const errors = Array.isArray(body.errors) ? body.errors.filter((e) => typeof e?.index === "number") : [];
+  return { success: true, ids: (body.data ?? []).map((item) => item.id), ...(errors.length ? { errors } : {}) };
 }
 
 // Order confirmations, payout notices and seller alerts live in src/lib/email/notices.server.ts, built with the

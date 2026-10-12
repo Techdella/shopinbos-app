@@ -34,7 +34,8 @@ export type Journey =
   | "onboarding"
   /** Bringing people back after a quiet spell. */
   | "retention"
-  /** The weekly recap (its own preference: weekly_summary). */
+  /** The weekly recap (its own preference: weekly_summary). Sellers, suppliers and delivery partners get theirs from
+   * src/lib/email/weekly-summary.server.ts; only admins get one from here. */
   | "summary";
 
 /** Send order when several are due at once (one email per evaluation). */
@@ -66,8 +67,6 @@ export interface SellerFacts {
   /** Store products that come from a supplier (dropship). */
   dropshipProducts: number;
   deliveryBookings: number;
-  /** The summary week (summaryWindow): paid orders, their revenue and store visits; orders waiting to ship now. */
-  week: { orders: number; revenue: number; visits: number; toFulfil: number };
 }
 
 export interface SupplierFacts {
@@ -81,7 +80,6 @@ export interface SupplierFacts {
   orders: number;
   revenue: number;
   payoutAccount: boolean;
-  week: { orders: number; revenue: number; quotes: number; toFulfil: number };
 }
 
 export interface LogisticsFacts {
@@ -93,7 +91,6 @@ export interface LogisticsFacts {
   delivered: number;
   riders: number;
   payoutAccount: boolean;
-  week: { bookings: number; delivered: number; earnings: number; open: number };
 }
 
 export interface AdminFacts {
@@ -642,46 +639,6 @@ const SELLER_RULES: LifecycleRule[] = [
     }),
   },
   ...winbackRules("seller"),
-  {
-    id: "seller.weekly_summary",
-    role: "seller",
-    journey: "summary",
-    summary: "Monday recap: orders, sales, visits",
-    kind: "lifecycle",
-    topic: "weekly_summary",
-    due: (f, ctx) => {
-      const window = summaryWindow(ctx.now);
-      const w = s(f).week;
-      const engaged = w.orders > 0 || w.visits > 0 || w.toFulfil > 0 || daysSince(f.lastActiveAt, ctx.now) < 30;
-      return window.due && s(f).live && engaged ? window.key : null;
-    },
-    render: (f) => {
-      const w = s(f).week;
-      const conversion = w.visits > 0 ? `${((w.orders / w.visits) * 100).toFixed(1)}%` : "–";
-      const tip =
-        w.toFulfil > 0
-          ? `You have ${plural(w.toFulfil, "order")} waiting to ship. Fast delivery is what brings buyers back.`
-          : w.orders > 0
-            ? "Nice week. Ask happy buyers for a review: reviews are the strongest reason new visitors buy."
-            : w.visits > 0
-              ? "People are visiting but not buying yet. A small discount or free delivery over a set amount often tips them."
-              : "No visits last week. Share one product a day on WhatsApp and Instagram this week.";
-      return {
-        subject: w.orders > 0 ? `Your week: ${plural(w.orders, "order")}, ${money(w.revenue, s(f).currency)}` : `Your week on ${s(f).storeName}`,
-        heading: "Your week",
-        eyebrow: `${s(f).storeName} · weekly summary`,
-        preheader: `${plural(w.orders, "order")}, ${plural(w.visits, "visit")} last week.`,
-        bodyHtml: `${html.rows([
-          { label: "Orders", value: w.orders.toLocaleString("en-NG") },
-          { label: "Sales", value: money(w.revenue, s(f).currency) },
-          { label: "Store visits", value: w.visits.toLocaleString("en-NG") },
-          { label: "Visits that ordered", value: conversion },
-          { label: "Waiting to ship", value: w.toFulfil.toLocaleString("en-NG") },
-        ])}${html.p(tip)}`,
-        cta: { label: "Open your dashboard", url: url(f, "/home/analytics") },
-      };
-    },
-  },
 ];
 
 // ─── Suppliers ────────────────────────────────────────────────────────────────
@@ -880,36 +837,6 @@ const SUPPLIER_RULES: LifecycleRule[] = [
     }),
   },
   ...winbackRules("supplier"),
-  {
-    id: "supplier.weekly_summary",
-    role: "supplier",
-    journey: "summary",
-    summary: "Monday recap: orders, value, quotes",
-    kind: "lifecycle",
-    topic: "weekly_summary",
-    due: (f, ctx) => {
-      const window = summaryWindow(ctx.now);
-      const w = sup(f).week;
-      const engaged = w.orders > 0 || w.quotes > 0 || w.toFulfil > 0 || daysSince(f.lastActiveAt, ctx.now) < 30;
-      return window.due && sup(f).liveProducts > 0 && engaged ? window.key : null;
-    },
-    render: (f) => {
-      const w = sup(f).week;
-      return {
-        subject: w.orders > 0 ? `Your week: ${plural(w.orders, "order")}, ${money(w.revenue)}` : `Your week on Shopinbos`,
-        heading: "Your week",
-        eyebrow: `${sup(f).businessName} · weekly summary`,
-        preheader: `${plural(w.orders, "order")} and ${plural(w.quotes, "quote request")} last week.`,
-        bodyHtml: `${html.rows([
-          { label: "Orders", value: w.orders.toLocaleString("en-NG") },
-          { label: "Order value", value: money(w.revenue) },
-          { label: "Quote requests", value: w.quotes.toLocaleString("en-NG") },
-          { label: "Waiting to ship", value: w.toFulfil.toLocaleString("en-NG") },
-        ])}${html.p(w.toFulfil > 0 ? `You have ${plural(w.toFulfil, "order")} to ship. Sellers re-order from suppliers who ship fast.` : "Keep stock and prices current so sellers order with confidence.")}`,
-        cta: { label: "Open your portal", url: url(f, "/supplier/dashboard") },
-      };
-    },
-  },
 ];
 
 // ─── Delivery partners ────────────────────────────────────────────────────────
@@ -1095,36 +1022,6 @@ const LOGISTICS_RULES: LifecycleRule[] = [
     },
   },
   ...winbackRules("logistics_partner"),
-  {
-    id: "logistics.weekly_summary",
-    role: "logistics_partner",
-    journey: "summary",
-    summary: "Monday recap: bookings, deliveries, earnings",
-    kind: "lifecycle",
-    topic: "weekly_summary",
-    due: (f, ctx) => {
-      const window = summaryWindow(ctx.now);
-      const w = lp(f).week;
-      const engaged = w.bookings > 0 || w.open > 0 || daysSince(f.lastActiveAt, ctx.now) < 30;
-      return window.due && lp(f).verification === "verified" && engaged ? window.key : null;
-    },
-    render: (f) => {
-      const w = lp(f).week;
-      return {
-        subject: w.bookings > 0 ? `Your week: ${plural(w.bookings, "booking")}, ${plural(w.delivered, "delivery", "deliveries")}` : "Your week on Shopinbos",
-        heading: "Your week",
-        eyebrow: `${lp(f).companyName} · weekly summary`,
-        preheader: `${plural(w.bookings, "booking")} last week.`,
-        bodyHtml: `${html.rows([
-          { label: "New bookings", value: w.bookings.toLocaleString("en-NG") },
-          { label: "Delivered", value: w.delivered.toLocaleString("en-NG") },
-          { label: "Earnings", value: money(w.earnings) },
-          { label: "Open bookings", value: w.open.toLocaleString("en-NG") },
-        ])}${html.p(w.open > 0 ? `${plural(w.open, "booking")} still open. Keep statuses current so sellers can update their customers.` : "Keep your coverage and prices current so sellers keep booking you.")}`,
-        cta: { label: "Open your portal", url: url(f, "/logistics/dashboard") },
-      };
-    },
-  },
 ];
 
 // ─── Admins ───────────────────────────────────────────────────────────────────

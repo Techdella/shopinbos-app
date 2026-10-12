@@ -103,7 +103,7 @@ async function processUser(facts: LifecycleFacts, history: SentEntry[], now: Dat
 }
 
 async function processBatch(userIds: string[], now: Date, admin: AdminFacts | null, tally: Record<LifecycleOutcome, number>, maxSends: number) {
-  const [facts, history] = await Promise.all([loadLifecycleFacts(userIds, now, admin), historyFor(userIds)]);
+  const [facts, history] = await Promise.all([loadLifecycleFacts(userIds, admin), historyFor(userIds)]);
   for (const id of userIds) {
     if (tally.sent >= maxSends) return;
     const userFacts = facts.get(id);

@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS "LifecycleEmail_rule_status_idx" ON "LifecycleEmail"(
 ALTER TABLE "LifecycleEmail" ENABLE ROW LEVEL SECURITY;
 
 -- Hourly sweep: /api/cron/lifecycle evaluates every account against the catalog (time-based nudges, weekly
--- summaries, win-backs, anniversaries) and catches any event the in-app hooks missed. Vercel Hobby only allows
+-- summary for admins, win-backs, anniversaries) and catches any event the in-app hooks missed. Vercel Hobby only allows
 -- daily crons, so call it from pg_cron like the other jobs (reuses the "cron_secret" Vault secret = CRON_SECRET in
 -- Vercel). Run once the app is deployed with the route (kept commented out so it is never run by accident):
 --

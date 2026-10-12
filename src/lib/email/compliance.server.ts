@@ -125,6 +125,8 @@ export interface PlatformSendInput {
   replyTo?: string;
   from?: string;
   serviceNote?: string | null;
+  /** Extra head CSS (dark-mode colours for classes the body uses). */
+  extraCss?: string;
 }
 
 /** Builds the (A) email in the shell and sends it, honouring email preferences for lifecycle mail. */
@@ -144,6 +146,7 @@ export function buildPlatformEmail(input: Omit<PlatformSendInput, "to" | "subjec
     unsubscribeUrl: links?.unsubscribe,
     preferencesUrl: unsubscribing ? links?.preferences : input.kind === "notification" ? notificationSettingsUrl(input.user?.role) : null,
     serviceNote: input.serviceNote,
+    extraCss: input.extraCss,
   });
   return { html, headers: unsubscribing && links ? unsubscribeHeaders(links) : undefined };
 }

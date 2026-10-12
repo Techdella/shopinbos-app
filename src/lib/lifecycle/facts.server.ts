@@ -4,13 +4,11 @@ import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { appBase } from "@/lib/email/compliance.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
-import { lagosDay, summaryWindow, type AdminFacts, type LifecycleFacts, type LifecycleRole } from "./catalog";
+import { summaryWindow, type AdminFacts, type LifecycleFacts, type LifecycleRole } from "./catalog";
 
 // Loads what the lifecycle catalog (./catalog.ts) needs for a batch of users, in a fixed number of grouped queries
 // per batch rather than per user. Optional tables (AuthEvent, ActivityEvent) are read best-effort.
 
-const TO_FULFIL_RETAIL = ["paid", "processing", "packed"] as const;
-const OPEN_BOOKING = ["pending", "confirmed", "picked_up", "in_transit"] as const;
 
 const USER_SELECT = {
   id: true,
@@ -99,14 +97,11 @@ export async function loadAdminFacts(now = new Date()): Promise<AdminFacts> {
   };
 }
 
-export async function loadLifecycleFacts(userIds: string[], now = new Date(), admin?: AdminFacts | null): Promise<Map<string, LifecycleFacts>> {
+export async function loadLifecycleFacts(userIds: string[], admin?: AdminFacts | null): Promise<Map<string, LifecycleFacts>> {
   const out = new Map<string, LifecycleFacts>();
   if (!userIds.length) return out;
 
   const users = await db.user.findMany({ where: { id: { in: userIds } }, select: USER_SELECT });
-  const window = summaryWindow(now.getTime());
-  // Weekly numbers only matter while summaries are going out.
-  const week = window.due ? { gte: new Date(window.start), lt: new Date(window.end) } : null;
 
   const storeIds = users.flatMap((user) => (user.store ? [user.store.id] : []));
   const sellerIds = users.filter((user) => user.role === "seller").map((user) => user.id);
@@ -117,9 +112,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
   const [
     storeFlags,
     paid,
-    paidWeek,
-    toFulfil,
-    visits,
     dropship,
     sellerBookings,
     activity,
@@ -128,16 +120,8 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
     supplierDropship,
     dropshipOrders,
     wholesaleOrders,
-    dropshipWeek,
-    wholesaleWeek,
-    supplierToFulfil,
-    wholesaleToFulfil,
-    quotesWeek,
     bookings,
     delivered,
-    bookingsWeek,
-    deliveredWeek,
-    openBookings,
     riders,
   ] = await Promise.all([
     when(
@@ -157,26 +141,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
         _sum: { total: true },
         _max: { createdAt: true },
       }),
-    ),
-    when(storeIds.length && week, () =>
-      db.retailOrder.groupBy({
-        by: ["storeId"],
-        where: { storeId: { in: storeIds }, status: { in: [...PAID_RETAIL_STATUSES] }, createdAt: week! },
-        _count: { _all: true },
-        _sum: { total: true },
-      }),
-    ),
-    when(storeIds.length && week, () =>
-      db.retailOrder.groupBy({ by: ["storeId"], where: { storeId: { in: storeIds }, status: { in: [...TO_FULFIL_RETAIL] } }, _count: { _all: true } }),
-    ),
-    when(storeIds.length && week, () =>
-      db.storeMetricDaily
-        .groupBy({
-          by: ["storeId"],
-          where: { storeId: { in: storeIds }, metric: "visit", day: { gte: lagosDay(window.start), lt: lagosDay(window.end) } },
-          _sum: { count: true },
-        })
-        .catch(() => []),
     ),
     when(storeIds.length, () =>
       db.dropshipRelationship.groupBy({ by: ["storeId"], where: { storeId: { in: storeIds }, status: "active" }, _count: { _all: true } }),
@@ -212,39 +176,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
         _max: { updatedAt: true },
       }),
     ),
-    when(supplierIds.length && week, () =>
-      db.supplierOrder.groupBy({
-        by: ["supplierId"],
-        where: { supplierId: { in: supplierIds }, status: { notIn: ["rejected", "cancelled"] }, createdAt: week! },
-        _count: { _all: true },
-        _sum: { costTotal: true },
-      }),
-    ),
-    when(supplierIds.length && week, () =>
-      db.wholesaleOrder.groupBy({
-        by: ["supplierId"],
-        where: { supplierId: { in: supplierIds }, status: { notIn: ["cancelled", "refunded"] }, createdAt: week! },
-        _count: { _all: true },
-        _sum: { totalPrice: true },
-      }),
-    ),
-    when(supplierIds.length && week, () =>
-      db.supplierOrder.groupBy({
-        by: ["supplierId"],
-        where: { supplierId: { in: supplierIds }, status: { in: ["pending", "accepted"] } },
-        _count: { _all: true },
-      }),
-    ),
-    when(supplierIds.length && week, () =>
-      db.wholesaleOrder.groupBy({
-        by: ["supplierId"],
-        where: { supplierId: { in: supplierIds }, status: { in: ["pending", "confirmed", "processing"] } },
-        _count: { _all: true },
-      }),
-    ),
-    when(supplierIds.length && week, () =>
-      db.supplierQuoteRequest.groupBy({ by: ["supplierId"], where: { supplierId: { in: supplierIds }, createdAt: week! }, _count: { _all: true } }),
-    ),
     when(partnerIds.length, () =>
       db.deliveryBooking.groupBy({
         by: ["logisticsPartnerId"],
@@ -260,24 +191,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
         _count: { _all: true },
       }),
     ),
-    when(partnerIds.length && week, () =>
-      db.deliveryBooking.groupBy({ by: ["logisticsPartnerId"], where: { logisticsPartnerId: { in: partnerIds }, createdAt: week! }, _count: { _all: true } }),
-    ),
-    when(partnerIds.length && week, () =>
-      db.deliveryBooking.groupBy({
-        by: ["logisticsPartnerId"],
-        where: { logisticsPartnerId: { in: partnerIds }, status: "delivered", deliveredAt: week! },
-        _count: { _all: true },
-        _sum: { netAmount: true },
-      }),
-    ),
-    when(partnerIds.length && week, () =>
-      db.deliveryBooking.groupBy({
-        by: ["logisticsPartnerId"],
-        where: { logisticsPartnerId: { in: partnerIds }, status: { in: [...OPEN_BOOKING] } },
-        _count: { _all: true },
-      }),
-    ),
     when(partnerIds.length, () =>
       db.logisticsTeamMember.groupBy({
         by: ["logisticsPartnerId"],
@@ -289,9 +202,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
 
   const flags = indexBy(storeFlags, "id");
   const paidBy = indexBy(paid, "storeId");
-  const paidWeekBy = indexBy(paidWeek, "storeId");
-  const toFulfilBy = indexBy(toFulfil, "storeId");
-  const visitsBy = indexBy(visits as Array<{ storeId: string; _sum: { count: number | null } }>, "storeId");
   const dropshipBy = indexBy(dropship, "storeId");
   const sellerBookingsBy = indexBy(sellerBookings, "sellerId");
   const activityBy = indexBy(activity as Array<{ userId: string; _max: { createdAt: Date | null } }>, "userId");
@@ -299,16 +209,8 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
   const dropshipProductsBy = indexBy(supplierDropship, "supplierId");
   const dropshipOrdersBy = indexBy(dropshipOrders, "supplierId");
   const wholesaleOrdersBy = indexBy(wholesaleOrders, "supplierId");
-  const dropshipWeekBy = indexBy(dropshipWeek, "supplierId");
-  const wholesaleWeekBy = indexBy(wholesaleWeek, "supplierId");
-  const supplierToFulfilBy = indexBy(supplierToFulfil, "supplierId");
-  const wholesaleToFulfilBy = indexBy(wholesaleToFulfil, "supplierId");
-  const quotesWeekBy = indexBy(quotesWeek, "supplierId");
   const bookingsBy = indexBy(bookings, "logisticsPartnerId");
   const deliveredBy = indexBy(delivered, "logisticsPartnerId");
-  const bookingsWeekBy = indexBy(bookingsWeek, "logisticsPartnerId");
-  const deliveredWeekBy = indexBy(deliveredWeek, "logisticsPartnerId");
-  const openBookingsBy = indexBy(openBookings, "logisticsPartnerId");
   const ridersBy = indexBy(riders, "logisticsPartnerId");
 
   const appUrl = appBase();
@@ -343,12 +245,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
         lastPaidOrderAt: lastPaid,
         dropshipProducts: dropshipBy.get(store.id)?._count._all ?? 0,
         deliveryBookings: sellerBookingsBy.get(user.id)?._count._all ?? 0,
-        week: {
-          orders: paidWeekBy.get(store.id)?._count._all ?? 0,
-          revenue: Number(paidWeekBy.get(store.id)?._sum.total ?? 0),
-          visits: Number(visitsBy.get(store.id)?._sum.count ?? 0),
-          toFulfil: toFulfilBy.get(store.id)?._count._all ?? 0,
-        },
       };
       facts.lastActiveAt = latest(lastLogin, ms(activityBy.get(user.id)?._max.createdAt), lastPaid);
     }
@@ -367,12 +263,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
         orders: (dropshipRow?._count._all ?? 0) + (wholesaleRow?._count._all ?? 0),
         revenue: Number(dropshipRow?._sum.costTotal ?? 0) + Number(wholesaleRow?._sum.totalPrice ?? 0),
         payoutAccount: Boolean(supplier.payoutAccount),
-        week: {
-          orders: (dropshipWeekBy.get(supplier.id)?._count._all ?? 0) + (wholesaleWeekBy.get(supplier.id)?._count._all ?? 0),
-          revenue: Number(dropshipWeekBy.get(supplier.id)?._sum.costTotal ?? 0) + Number(wholesaleWeekBy.get(supplier.id)?._sum.totalPrice ?? 0),
-          quotes: quotesWeekBy.get(supplier.id)?._count._all ?? 0,
-          toFulfil: (supplierToFulfilBy.get(supplier.id)?._count._all ?? 0) + (wholesaleToFulfilBy.get(supplier.id)?._count._all ?? 0),
-        },
       };
       facts.lastActiveAt = latest(lastLogin, ms(supplier.updatedAt), ms(dropshipRow?._max.updatedAt), ms(wholesaleRow?._max.updatedAt));
     }
@@ -389,12 +279,6 @@ export async function loadLifecycleFacts(userIds: string[], now = new Date(), ad
         delivered: deliveredBy.get(partner.id)?._count._all ?? 0,
         riders: ridersBy.get(partner.id)?._count._all ?? 0,
         payoutAccount: Boolean(partner.payoutAccount),
-        week: {
-          bookings: bookingsWeekBy.get(partner.id)?._count._all ?? 0,
-          delivered: deliveredWeekBy.get(partner.id)?._count._all ?? 0,
-          earnings: Number(deliveredWeekBy.get(partner.id)?._sum.netAmount ?? 0),
-          open: openBookingsBy.get(partner.id)?._count._all ?? 0,
-        },
       };
       facts.lastActiveAt = latest(lastLogin, ms(partner.updatedAt), ms(bookingRow?._max.updatedAt));
     }

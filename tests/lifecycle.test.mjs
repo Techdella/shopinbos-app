@@ -98,7 +98,8 @@ test("every rule is well formed: unique id, role prefix, journey, and the right 
   for (const role of ["seller", "supplier", "logistics_partner", "admin"]) {
     const roleRules = LIFECYCLE_RULES.filter((rule) => rule.role === role);
     assert.ok(roleRules.some((rule) => rule.journey === "welcome"), `${role} has a welcome`);
-    assert.ok(roleRules.some((rule) => rule.journey === "summary"), `${role} has a weekly summary`);
+    // Sellers, suppliers and delivery partners get their Monday summary from src/lib/email/weekly-summary.server.ts.
+    assert.equal(roleRules.some((rule) => rule.journey === "summary"), role === "admin", `${role}: summary comes from the right place`);
   }
   for (const role of ["seller", "supplier", "logistics_partner"]) {
     const journeys = new Set(LIFECYCLE_RULES.filter((rule) => rule.role === role).map((rule) => rule.journey));
@@ -249,7 +250,7 @@ test("win-backs fire per quiet spell, keyed by the day they were last seen", () 
   assert.ok(!ids(planLifecycle({ ...facts, lastActiveAt: NOW - DAY }, history, NOW)).some((key) => key.includes("winback")));
 });
 
-test("weekly summaries go out Monday 8am Lagos to Wednesday, once per week, only to engaged accounts", () => {
+test("the admin weekly summary goes out Monday 8am Lagos to Wednesday, once per week", () => {
   const monday = summaryWindow(MONDAY);
   assert.equal(monday.due, true);
   assert.equal(monday.key, "2026-W43");
@@ -261,16 +262,10 @@ test("weekly summaries go out Monday 8am Lagos to Wednesday, once per week, only
   assert.equal(summaryWindow(Date.UTC(2026, 11, 28, 10)).key, "2026-W53");
   assert.equal(summaryWindow(Date.UTC(2027, 0, 4, 10)).key, "2027-W01");
 
+  // Only admins: everyone else's Monday summary is the separate weekly-summary job, so this never doubles up.
   const history = [sent("seller.welcome", MONDAY - 90 * DAY), sent("seller.store_live", MONDAY - 80 * DAY)];
-  const busy = sellerFacts({ live: true, products: 5, payoutBank: true, week: { orders: 3, revenue: 45_000, visits: 120, toFulfil: 1 } }, { createdAt: MONDAY - 90 * DAY, lastActiveAt: MONDAY - DAY });
-  const plan = planLifecycle(busy, history, MONDAY);
-  assert.equal(plan.send?.rule.id, "seller.weekly_summary");
-  assert.equal(plan.send?.key, "seller.weekly_summary:2026-W43");
-  assert.equal(plan.send?.rule.topic, "weekly_summary");
-  assert.match(plan.send.rule.render(busy, plan.ctx).subject, /3 orders/);
-
-  const dormant = sellerFacts({ live: true, products: 5, payoutBank: true }, { createdAt: MONDAY - 90 * DAY, lastActiveAt: MONDAY - 50 * DAY });
-  assert.ok(!ids(planLifecycle(dormant, history, MONDAY)).some((key) => key.startsWith("seller.weekly_summary")), "no weekly zeros for dormant stores");
+  const busy = sellerFacts({ live: true, products: 5, payoutBank: true }, { createdAt: MONDAY - 90 * DAY, lastActiveAt: MONDAY - DAY });
+  assert.ok(!ids(planLifecycle(busy, history, MONDAY)).some((key) => key.includes("weekly_summary")));
 
   assert.equal(planLifecycle(adminFacts({ createdAt: MONDAY - 90 * DAY }), [sent("admin.welcome", MONDAY - 90 * DAY)], MONDAY).send?.rule.id, "admin.weekly_summary");
 });

@@ -183,7 +183,11 @@ export const divider: EmailBlock = { type: "divider" };
 export const rule = (variant: Of<"divider">["variant"], extra: Partial<Of<"divider">> = {}): EmailBlock => ({ type: "divider", variant, ...extra });
 export const space = (height = 12): EmailBlock => ({ type: "spacer", height });
 export const social: EmailBlock = { type: "social", links: [{ network: "instagram", url: "https://instagram.com/" }, { network: "whatsapp", url: "https://wa.me/" }, { network: "website", url: "{{store_url}}" }] };
-export const footer = (text = "You're getting this because you shop with {{store}}. Reply to this email any time, a real person reads it.", extra: Partial<Of<"footer">> = {}): EmailBlock => ({ type: "footer", text, ...extra });
+/**
+ * The template's own sign-off. Compliance lines (why they're getting it, Unsubscribe, the address) are not written
+ * here: the shell adds them in the footer of every email (src/lib/email/shell.ts).
+ */
+export const footer = (text = "Reply to this email any time, a real person reads it.", extra: Partial<Of<"footer">> = {}): EmailBlock => ({ type: "footer", text, ...extra });
 
 interface HeroInput {
   image?: string;
