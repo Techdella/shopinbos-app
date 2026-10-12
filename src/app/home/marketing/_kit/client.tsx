@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { DeviceToggle, Spinner } from "@/components/app-ui";
-import { cx } from "@/components/app-ui/cx";
 import { FLOW_VARIABLES } from "@/lib/marketing/flows";
+import { EmailFrame } from "./EmailFrame";
 
 // Client pieces shared by the marketing editors (campaigns, templates, automations, forms).
 
@@ -67,14 +67,7 @@ export function EmailPreview({ bodyHtml, preheader, subject }: { bodyHtml: strin
         </div>
       ) : null}
       {error ? <p className="m-0 text-[13px] text-app-danger">{error}</p> : null}
-      <div className="overflow-hidden rounded-[18px] border border-app-line bg-app-canvas">
-        <iframe
-          title="Email preview"
-          sandbox=""
-          srcDoc={html}
-          className={cx("mx-auto block h-[560px] border-0 bg-white transition-all", device === "mobile" ? "w-[375px] max-w-full" : "w-full")}
-        />
-      </div>
+      <EmailFrame html={html} device={device} className="[&_iframe]:h-[560px]" />
       <p className="m-0 text-[12.5px] text-app-ink-soft">Preview uses a sample customer (Ada). Links and your logo and colours come from your brand kit.</p>
     </div>
   );
