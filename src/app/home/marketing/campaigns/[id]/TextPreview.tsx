@@ -2,13 +2,11 @@
 
 import { fillVariables } from "@/lib/marketing/flows";
 import { SAMPLE_VARIABLES } from "@/lib/marketing/email-layout";
+import { smsSegments } from "@/lib/marketing/text-channels";
 
-/** SMS segments: 160 characters for plain text (153 when split), 70 (67) when it needs Unicode. */
+/** SMS parts for a message (GSM-7: 160, or 153 per part; Unicode: 70, or 67 per part). */
 export function smsParts(text: string) {
-  const unicode = /[^\u0000-\u007F£¥èéùìòÇØøÅå€]/.test(text);
-  const single = unicode ? 70 : 160;
-  const multi = unicode ? 67 : 153;
-  return text.length <= single ? 1 : Math.ceil(text.length / multi);
+  return smsSegments(text).segments;
 }
 
 export function TextPreview({ channel, message, storeName = "your shop" }: { channel: "sms" | "whatsapp"; message: string; storeName?: string }) {

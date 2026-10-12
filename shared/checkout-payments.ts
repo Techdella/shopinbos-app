@@ -76,6 +76,19 @@ export function readCodLimit(brandSettings: unknown): number | null {
   return limit > 0 ? limit : null;
 }
 
+/** How long a seller can give buyers to send a bank transfer before the order lets its items go (hours). */
+export const TRANSFER_WINDOW_CHOICES = [2, 6, 12, 24, 48, 72] as const;
+
+/**
+ * paymentConfig.transferWindowHours: the seller's own window for unpaid bank-transfer orders, or null to use the
+ * platform default (env UNPAID_TRANSFER_TTL_HOURS, 24 hours). Whole hours from 1 to 168.
+ */
+export function readTransferWindowHours(brandSettings: unknown): number | null {
+  const hours = record(record(brandSettings).paymentConfig).transferWindowHours;
+  if (typeof hours !== "number" || !Number.isFinite(hours) || hours <= 0) return null;
+  return Math.max(1, Math.min(Math.round(hours), 168));
+}
+
 /**
  * The account buyers pay into for bank transfer. The Money page stores only a masked number, so the full one
  * comes from the verified Paystack recipient (its details carry the account number) and must match the mask.

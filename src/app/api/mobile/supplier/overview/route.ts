@@ -6,11 +6,13 @@ import { isOnboardingComplete } from "@/lib/role-queries";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import { DROPSHIP_OPEN, LOW_STOCK } from "../_rules";
 import { WHOLESALE_SELECT, dropshipOrders, supplierForUser, wholesaleView } from "../_shared";
+import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/money.server";
 
 export const dynamic = "force-dynamic";
 
 // Supplier Home in the mobile app: today's dropship orders to pack, wholesale orders, quote requests, low stock,
-// what's been earned (web /supplier/payouts counts shipped and delivered orders) and verification.
+// what's been earned, owed and paid across wholesale and dropship (the same numbers as web /supplier/payouts) and
+// verification.
 
 const OPEN_WHOLESALE = ["pending", "confirmed", "processing"] as const;
 
@@ -19,8 +21,8 @@ export const GET = withSupplier(async (_req: NextRequest, { user }) => {
   if (!supplier) return apiError("NOT_FOUND", "Supplier profile not found", 404);
 
   const where = { supplierId: supplier.id };
-  const [dropship, wholesale, wholesaleCount, quotes, quoteCount, lowStock, earnedWholesale, bank, productCount, earnedDropshipSum] = await Promise.all([
-    dropshipOrders(supplier.id, { statuses: DROPSHIP_OPEN, order: "asc", take: 60 }),
+  const [dropship, wholesale, wholesaleCount, quotes, quoteCount, lowStock, earnings, bank, productCount, toShip] = await Promise.all([
+    dropshipOrders(supplier.id, { statuses: DROPSHIP_OPEN, order: "asc", take: 3 }),
     db.wholesaleOrder.findMany({ where: { ...where, status: { in: [...OPEN_WHOLESALE] } }, orderBy: { createdAt: "asc" }, take: 3, select: WHOLESALE_SELECT }),
     db.wholesaleOrder.count({ where: { ...where, status: { in: [...OPEN_WHOLESALE] } } }),
     db.supplierQuoteRequest.findMany({
@@ -36,14 +38,13 @@ export const GET = withSupplier(async (_req: NextRequest, { user }) => {
       take: 5,
       select: { id: true, name: true, stockQuantity: true, images: true },
     }),
-    db.wholesaleOrder.aggregate({ where: { ...where, status: { in: ["shipped", "delivered"] } }, _sum: { totalPrice: true } }),
+    supplierEarnings(supplier.id),
     db.supplierPayoutAccount.findUnique({ where: { supplierId: supplier.id }, select: { bankName: true, accountNumberMask: true, verificationStatus: true } }),
     db.supplierProduct.count({ where }),
-    db.supplierOrder.aggregate({ where: { ...where, status: { in: ["shipped", "delivered"] } }, _sum: { costTotal: true } }),
+    supplierOrdersToShip(supplier.id),
   ]);
 
   const toPack = dropship.filter((order) => order.next.length > 0);
-  const earnedDropship = earnedDropshipSum._sum.costTotal ?? 0;
   const docs = parseVerificationDocs(supplier.verificationDocuments);
 
   return ok({
@@ -58,7 +59,8 @@ export const GET = withSupplier(async (_req: NextRequest, { user }) => {
       ratingCount: supplier.ratingCount,
     },
     firstName: user.name.split(" ")[0] ?? user.name,
-    counts: { toPack: toPack.length, wholesale: wholesaleCount, quotes: quoteCount, lowStock: lowStock.length, products: productCount },
+    // Every open dropship order (pending or accepted all have a next step), not just the ones listed.
+    counts: { toPack: toShip.dropship, toShip: toShip.total, wholesale: wholesaleCount, quotes: quoteCount, lowStock: lowStock.length, products: productCount },
     toPack: toPack.slice(0, 3),
     wholesale: wholesale.map(wholesaleView),
     quotes: quotes.map((quote) => ({
@@ -71,7 +73,9 @@ export const GET = withSupplier(async (_req: NextRequest, { user }) => {
       createdAt: quote.createdAt.toISOString(),
     })),
     lowStock: lowStock.map((product) => ({ id: product.id, name: product.name, stock: product.stockQuantity, image: product.images[0] ?? null })),
-    earned: (earnedWholesale._sum.totalPrice ?? 0) + earnedDropship,
+    earned: earnings.earned,
+    owed: earnings.owed,
+    paid: earnings.paid,
     bank: bank ? { bankName: bank.bankName, account: bank.accountNumberMask, ready: bank.verificationStatus === "verified" } : null,
   });
 });

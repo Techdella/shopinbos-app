@@ -209,7 +209,14 @@ model Store {
   city                       String?
   currency                   String   @default("NGN")
   brandSettings              Json     @default("{}")
+  // The address buyers see on the seller's own domain. Only set once ownership is verified (TXT record, or
+  // bought through the app); customDomainKey is its www-less lowercase form, unique across stores.
   customDomain               String?
+  customDomainKey            String?   @unique
+  customDomainVerifiedAt     DateTime?
+  // A domain the seller is proving they own, and the token they publish at _shopinbos-verify.<domain>.
+  pendingDomain              String?
+  domainVerifyToken          String?
   status                     String   @default("active")
   onboardingState            String?
   firstDashboardVisitComplete Boolean  @default(false)
@@ -736,6 +743,9 @@ model WholesaleOrder {
   rejectReason      String?   // why the supplier declined (status cancelled)
   shippedAt         DateTime?
   deliveredAt       DateTime?
+  stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
+  stockReleasedAt   DateTime?   // given back once (declined or cancelled)
+  paidOutAt         DateTime?   // the supplier confirmed they were paid
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -773,6 +783,7 @@ model SupplierOrder {
   shippedAt       DateTime?
   deliveredAt     DateTime?
   rejectedAt      DateTime?
+  paidOutAt       DateTime? // the supplier confirmed they were paid what they're owed (costTotal)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -1575,6 +1586,7 @@ model BroadcastCampaign {
   senderEmail     String?
   replyTo         String?
   channel         String         @default("email") // marketing: email | sms | whatsapp (recipient address goes in CampaignRecipient.email)
+  channelConfig   Json           @default("{}") // marketing-channels: SMS { senderId } | WhatsApp { templateId, variables[], headerImageUrl, productId }
   campaignType    String         @default("newsletter") // newsletter | promotion | product_launch | sale | announcement | abandoned_cart | welcome | custom
   recipientFilter Json           @default("[]") // JSON array of filters
   segmentId       String?        // FK to CustomerSegment
@@ -1637,6 +1649,14 @@ model RetailOrder {
   stockReleasedAt DateTime?
   expiredAt       DateTime? // cancelled because it stayed unpaid too long
   paymentIssue    String?   // e.g. paid after it expired and the stock was gone: refund the buyer
+  // When an unpaid card/transfer order expires: set at checkout from the method's window (card 30 min, bank transfer
+  // 24 h or the seller's choice). Null on older orders: their window is worked out from createdAt.
+  paymentDueAt       DateTime?
+  discountReleasedAt DateTime? // the discount/coupon use this order took was given back (expired or cancelled unpaid)
+  // Automatic refund of a payment that arrived after the order expired and its stock sold (src/lib/commerce/refunds.ts).
+  refundStatus       String? // pending (claimed) | processing | processed | failed | manual
+  refundId           String? // Paystack refund id
+  refundedAt         DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -1652,6 +1672,7 @@ model RetailOrder {
   @@index([paystackRef])
   @@index([affiliateId])
   @@index([adCampaignId])
+  @@index([refundId])
 }
 
 model AbandonedCartEvent {
@@ -1774,9 +1795,12 @@ model CampaignRecipient {
   email       String
   name        String?
   token       String    @unique
-  status      String    @default("queued") // queued | sent | failed
+  status      String    @default("queued") // queued | sent | delivered | read | failed
   error       String?
+  externalId  String? // marketing-channels: provider message id (WhatsApp wamid, SMS id) for delivery receipts
   sentAt      DateTime?
+  deliveredAt DateTime? // marketing-channels
+  readAt      DateTime? // marketing-channels: WhatsApp blue ticks
   openedAt    DateTime?
   clickedAt   DateTime?
   convertedAt DateTime?
@@ -1789,6 +1813,7 @@ model CampaignRecipient {
   @@unique([campaignId, email])
   @@index([storeId])
   @@index([campaignId, status])
+  @@index([externalId])
 }
 
 // ─── Affiliates (creators earn a share of delivered orders from their link) ───
@@ -2437,3 +2462,132 @@ model AuthThrottle {
   @@index([updatedAt])
 }
 // ---- end auth security ----
+
+// ---- WhatsApp catalog (agent: whatsapp-catalog) ----
+// A store's WhatsApp product catalog: the token-protected Meta feed URL, and the optional direct Graph API sync
+// (catalog chosen or created, linked to the WhatsApp Business Account, cart and catalog switched on).
+// docs/migrations/2026-10-15-whatsapp-catalog.sql; src/lib/whatsapp-catalog.
+
+model WhatsAppCatalog {
+  id                   String    @id @default(cuid())
+  storeId              String    @unique
+  feedToken            String // random, in the feed URL; rotating it breaks old copies of the URL
+  feedTokenRotatedAt   DateTime?
+  feedFetchedAt        DateTime? // Meta's crawler last downloaded the feed
+  catalogId            String?
+  catalogName          String?
+  businessId           String?
+  wabaId               String?
+  wabaLinkedAt         DateTime?
+  commerceSettingsAt   DateTime?
+  cartEnabled          Boolean   @default(false)
+  catalogVisible       Boolean   @default(false)
+  permissionState      String    @default("unknown") // ok | missing | unknown
+  missingPermissions   String[]  @default([])
+  permissionsCheckedAt DateTime?
+  dirty                Boolean   @default(false) // products changed since the last API sync
+  dirtyAt              DateTime?
+  syncStartedAt        DateTime? // a sync holds this while it runs (stale after 10 minutes)
+  lastSyncAt           DateTime?
+  lastSyncStatus       String? // ok | partial | error
+  lastSyncError        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([dirty])
+}
+
+model WhatsAppCatalogItem {
+  id        String    @id @default(cuid())
+  storeId   String
+  productId String // also the catalog retailer_id
+  catalogId String
+  status    String    @default("pending") // pending | synced | failed | skipped | deleted
+  method    String? // CREATE | UPDATE | DELETE, last sent
+  hash      String? // fingerprint of the data last sent
+  remote    Boolean   @default(false) // Meta has (or had) this item
+  handle    String? // items_batch handle still being checked
+  error     String?
+  syncedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([storeId, productId])
+  @@index([storeId, status])
+  @@index([handle])
+}
+// ---- end WhatsApp catalog ----
+
+// ─── Marketing channels: WhatsApp templates, SMS/WhatsApp opt-outs, order messages ─────────────────────────
+// docs/migrations/2026-10-15-marketing-channels.sql
+
+/// A WhatsApp message template on the store's WhatsApp Business Account. Drafts live only here until
+/// submitted to Meta (POST /{WABA_ID}/message_templates); status is synced from Meta.
+model WhatsAppTemplate {
+  id             String    @id @default(cuid())
+  storeId        String
+  name           String // Meta template name: lowercase letters, digits, underscores
+  language       String    @default("en")
+  category       String    @default("MARKETING") // MARKETING | UTILITY
+  components     Json      @default("{}") // { header: { format: NONE|TEXT|IMAGE, text }, body, footer, buttons: [{ type: URL|QUICK_REPLY, text, url }] }
+  variables      Json      @default("[]") // default mapping for {{1}}..{{n}}: ["first_name", "store_name", ...]
+  status         String    @default("DRAFT") // DRAFT | PENDING | APPROVED | REJECTED | PAUSED | DISABLED | IN_APPEAL | LOCAL_ERROR
+  rejectedReason String?
+  metaId         String? // Meta's template id
+  preset         String? // ready-made key: order_confirmation | order_shipped | order_delivered | abandoned_cart | back_in_stock | promo
+  submittedAt    DateTime?
+  syncedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([storeId, name, language])
+  @@index([storeId, status])
+}
+
+/// A phone number that asked a store to stop texting it (SMS STOP, WhatsApp "Stop promotions"), or that the
+/// seller removed. scope "marketing" stops campaigns and marketing flows; "all" also stops order messages.
+model MarketingOptOut {
+  id        String   @id @default(cuid())
+  storeId   String
+  phone     String // E.164, e.g. +2348012345678
+  channel   String // sms | whatsapp
+  scope     String   @default("all") // marketing | all
+  source    String // sms_keyword | whatsapp_keyword | whatsapp_button | seller
+  keyword   String?
+  createdAt DateTime @default(now())
+
+  @@unique([storeId, phone, channel])
+  @@index([storeId, channel])
+}
+
+/// Per-store SMS/WhatsApp settings: sender ID, SMS price per segment, and which order messages go out.
+model StoreMessagingSettings {
+  id                String   @id @default(cuid())
+  storeId           String   @unique
+  smsSenderId       String?
+  smsCostPerSegment Float? // in the store currency, for campaign cost estimates
+  transactional     Json     @default("{}") // { order_confirmed: { whatsapp, sms, templateId, smsText }, payment_received, order_shipped, order_delivered, abandoned_cart }
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+/// One order or cart message sent to a store's customer by WhatsApp or SMS (deduped per event and channel).
+model CustomerMessage {
+  id          String    @id @default(cuid())
+  storeId     String
+  event       String // order_confirmed | payment_received | order_shipped | order_delivered | abandoned_cart
+  refId       String // RetailOrder.id or AbandonedCartEvent.id
+  channel     String // sms | whatsapp
+  to          String
+  status      String    @default("queued") // queued | sent | delivered | read | failed | skipped
+  error       String?
+  externalId  String?
+  templateId  String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([storeId, event, refId, channel])
+  @@index([storeId, createdAt])
+  @@index([externalId])
+}

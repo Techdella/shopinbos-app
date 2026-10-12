@@ -79,13 +79,6 @@ export function getStorefrontBasePathForHost(hostHeader: string | null | undefin
   return "";
 }
 
-export function getDomainLookupCandidates(domain: string) {
-  const normalized = normalizeDomain(domain);
-  const apex = normalized.replace(/^www\./, "");
-
-  return Array.from(new Set([normalized, apex, `www.${apex}`].filter(Boolean)));
-}
-
 export function getSubdomainSlug(hostHeader: string | null | undefined) {
   const host = normalizeDomain(hostHeader ?? "");
   const rootDomain = getPlatformRootDomain();

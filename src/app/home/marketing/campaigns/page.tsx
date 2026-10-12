@@ -45,7 +45,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
           where: { storeId: store.id, ...(active.status ? { status: active.status } : {}) },
           orderBy: { createdAt: "desc" },
           take: 100,
-          select: { id: true, name: true, subject: true, channel: true, campaignType: true, status: true, sentCount: true, openCount: true, clickCount: true, revenueGenerated: true, scheduledAt: true, sentAt: true, createdAt: true },
+          select: { id: true, name: true, subject: true, channel: true, campaignType: true, status: true, sentCount: true, deliveredCount: true, openCount: true, clickCount: true, revenueGenerated: true, scheduledAt: true, sentAt: true, createdAt: true },
         }),
         db.broadcastCampaign.aggregate({
           where: { storeId: store.id, status: "sent" },
@@ -70,6 +70,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
         <>
           <RexAICopywriter storeName={store?.name} />
           <PillLink href="/home/marketing/templates" icon="mail">Templates</PillLink>
+          <PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp templates</PillLink>
           <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New campaign</PillLink>
         </>
       }
@@ -103,7 +104,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
                     <span className="block truncate text-[13px] text-app-ink-soft">{CHANNEL[campaign.channel] ?? "Email"} · {campaign.channel === "email" ? campaign.subject : humanize(campaign.campaignType || "broadcast")}</span>
                   </span>
                   <span className="text-[13px] text-app-ink-soft sm:w-[210px]">
-                    {campaign.sentCount.toLocaleString("en-NG")} sent{campaign.channel === "email" ? ` · ${campaign.openCount.toLocaleString("en-NG")} opened · ${campaign.clickCount.toLocaleString("en-NG")} clicked` : ""}
+                    {campaign.sentCount.toLocaleString("en-NG")} sent{campaign.channel === "email" ? ` · ${campaign.openCount.toLocaleString("en-NG")} opened · ${campaign.clickCount.toLocaleString("en-NG")} clicked` : ` · ${campaign.deliveredCount.toLocaleString("en-NG")} delivered${campaign.channel === "whatsapp" ? ` · ${campaign.openCount.toLocaleString("en-NG")} read` : ""}`}
                   </span>
                   <span className="text-[13px] text-app-ink-soft sm:w-[120px]">
                     {campaign.scheduledAt ? formatDate(campaign.scheduledAt) : campaign.sentAt ? formatDate(campaign.sentAt) : `Made ${formatDate(campaign.createdAt)}`}

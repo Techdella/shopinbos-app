@@ -2,8 +2,9 @@ import "server-only";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { triggerAutomations } from "@/lib/automations/engine";
+import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { statusWhenMarkedPaid } from "@shared/sales";
-import { recoverExpiredOrderPayment, releaseOrderStock } from "@/lib/commerce/order-expiry.server";
+import { recoverExpiredOrderPayment, releaseOrderDiscount, releaseOrderStock } from "@/lib/commerce/order-expiry.server";
 import { cancelSupplierOrdersFor, ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 
 // Changing a retail order's status: PATCH /api/app/orders/[id] (web + mobile) and Peggy's mark_order tool
@@ -83,6 +84,8 @@ export async function updateOrderStatus(
     if (!["shipped", "delivered", "returned"].includes(order.status) && supplierShipped === 0) {
       await releaseOrderStock(order.id).catch((error) => console.error("[orders] could not give back stock", error));
     }
+    // Cancelled before it was paid: the discount code's use goes back too (once; expiry does the same).
+    await releaseOrderDiscount(order, order.status).catch((error) => console.error("[orders] could not give back the discount use", error));
   }
 
   const event = STATUS_EVENTS[input.status];
@@ -99,6 +102,9 @@ export async function updateOrderStatus(
       }),
     ]).catch(() => {});
   }
+
+  // WhatsApp/SMS to the buyer for paid / shipped / delivered, if the seller switched it on (Marketing › Order messages).
+  await notifyOrderCustomer(order.id, input.status);
 
   return { ok: true, order: updated };
 }

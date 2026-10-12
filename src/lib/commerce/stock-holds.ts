@@ -88,45 +88,168 @@ export function parseStockHold(value: unknown): StockHold[] {
 // ─── Unpaid order expiry ──────────────────────────────────────────────────────
 
 export const DEFAULT_UNPAID_ORDER_TTL_MINUTES = 30;
+export const DEFAULT_UNPAID_TRANSFER_TTL_HOURS = 24;
+/** The longest any unpaid order can hold stock: a week. */
+export const MAX_UNPAID_TTL_HOURS = 7 * 24;
 
-/** Minutes an unpaid card/transfer order holds stock (env UNPAID_ORDER_TTL_MINUTES, default 30, at least 5). */
+/** Minutes an unpaid card order holds stock (env UNPAID_ORDER_TTL_MINUTES, default 30, at least 5). */
 export function unpaidOrderTtlMinutes(raw: string | undefined | null = undefined) {
   const minutes = Math.floor(Number(raw));
   if (!raw || !Number.isFinite(minutes) || minutes <= 0) return DEFAULT_UNPAID_ORDER_TTL_MINUTES;
-  return Math.max(5, Math.min(minutes, 7 * 24 * 60));
+  return Math.max(5, Math.min(minutes, MAX_UNPAID_TTL_HOURS * 60));
+}
+
+/** Hours an unpaid bank-transfer order holds stock (env UNPAID_TRANSFER_TTL_HOURS, default 24, 1 to 168). */
+export function unpaidTransferTtlHours(raw: string | number | undefined | null = undefined) {
+  const hours = Number(raw);
+  if (raw === undefined || raw === null || raw === "" || !Number.isFinite(hours) || hours <= 0) return DEFAULT_UNPAID_TRANSFER_TTL_HOURS;
+  return Math.max(1, Math.min(Math.round(hours), MAX_UNPAID_TTL_HOURS));
 }
 
 export const UNPAID_STATUSES = ["pending", "awaiting_payment"] as const;
+/** Card checkout through Paystack (saved as null or "paystack"): the short window. */
+export const CARD_METHODS = ["paystack"] as const;
+/** Ways to pay the buyer does by hand, outside Paystack, that still expire: the long window. Never pay on delivery. */
+export const OFFLINE_EXPIRING_METHODS = ["transfer"] as const;
 /** Payment methods that expire: Paystack (saved as null or "paystack") and bank transfer. Never pay on delivery. */
-export const EXPIRING_METHODS = ["paystack", "transfer"] as const;
+export const EXPIRING_METHODS = [...CARD_METHODS, ...OFFLINE_EXPIRING_METHODS] as const;
+
+export interface PaymentWindows {
+  /** Card (Paystack) orders. */
+  cardMinutes: number;
+  /** Bank transfer (and any other offline method that expires). */
+  transferMinutes: number;
+}
+
+export function isCardMethod(method: string | null | undefined) {
+  return !method || (CARD_METHODS as readonly string[]).includes(method);
+}
+
+/** Minutes an unpaid order paid this way holds its stock, or null when it never expires (pay on delivery, cash...). */
+export function paymentWindowMinutes(method: string | null | undefined, windows: PaymentWindows): number | null {
+  if (isCardMethod(method)) return windows.cardMinutes;
+  if ((OFFLINE_EXPIRING_METHODS as readonly string[]).includes(method!)) return windows.transferMinutes;
+  return null;
+}
+
+/** When an unpaid order placed at `createdAt` expires, or null when it never does. Saved on the order at checkout. */
+export function paymentDueAt(createdAt: Date, method: string | null | undefined, windows: PaymentWindows): Date | null {
+  const minutes = paymentWindowMinutes(method, windows);
+  return minutes === null ? null : new Date(createdAt.getTime() + minutes * 60_000);
+}
+
+function asWindows(windows: number | PaymentWindows): PaymentWindows {
+  return typeof windows === "number" ? { cardMinutes: windows, transferMinutes: DEFAULT_UNPAID_TRANSFER_TTL_HOURS * 60 } : windows;
+}
+
+/** The order's deadline: what checkout saved (paymentDueAt), else worked out from when it was placed. */
+export function orderPaymentDeadline(order: { createdAt: Date; paymentMethod: string | null; paymentDueAt?: Date | null }, windows: number | PaymentWindows): Date | null {
+  if (order.paymentDueAt) return order.paymentDueAt;
+  return paymentDueAt(order.createdAt, order.paymentMethod, asWindows(windows));
+}
+
+/** "30 minutes", "24 hours", "2 days": a window in words for buyers and sellers. */
+export function windowInWords(minutes: number) {
+  if (minutes < 120) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round(minutes / 60);
+  if (hours % 24 === 0 && hours >= 48) return `${hours / 24} days`;
+  return `${hours} hour${hours === 1 ? "" : "s"}`;
+}
 
 export function expiryCutoff(now: Date, ttlMinutes: number) {
   return new Date(now.getTime() - ttlMinutes * 60_000);
 }
 
-export interface ExpiryCandidate {
+// ─── Orders placed before stock holds were saved ──────────────────────────────
+
+interface LegacyOrderShape {
+  stockHold: unknown;
+  items?: unknown;
+  channel?: string | null;
+  logisticsDetails?: unknown;
+  /** Checkout leaves it at "pending" (then "success"); a sale the seller records saves null. */
+  paystackStatus?: string | null;
+}
+
+/**
+ * Whether an order with no saved hold came through storefront checkout (which took stock) rather than a sale the
+ * seller recorded by hand (src/lib/orders/record-sale.ts). Recorded sales never have a hold, save paystackStatus
+ * as null, and the unpaid ones that could otherwise look expirable are "customer has it" sales (logisticsDetails
+ * type "collected", no payment method) or in person. Checkout does none of these.
+ */
+export function isLegacyCheckoutOrder(order: LegacyOrderShape) {
+  if (order.stockHold !== null && order.stockHold !== undefined) return false;
+  if (order.paystackStatus === null) return false;
+  if (order.channel === "in_person") return false;
+  const details = order.logisticsDetails && typeof order.logisticsDetails === "object" ? (order.logisticsDetails as Record<string, unknown>) : {};
+  return details.type !== "collected";
+}
+
+/**
+ * What checkout took for an order placed before holds were saved. Back then it took the store's own stock
+ * (StoreProduct.currentStock, soldStock up) for every line, dropship or not, summed per product.
+ */
+export function legacyStockHold(items: unknown): StockHold[] {
+  const totals = new Map<string, StockHold & { source: "store" }>();
+  for (const raw of Array.isArray(items) ? items : []) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as Record<string, unknown>;
+    const productId = typeof item.productId === "string" ? item.productId : "";
+    const quantity = Math.floor(Number(item.quantity));
+    if (!productId || !Number.isFinite(quantity) || quantity <= 0) continue;
+    const entry = totals.get(productId);
+    if (entry) entry.quantity += quantity;
+    else totals.set(productId, { source: "store", productId, quantity, name: typeof item.name === "string" && item.name ? item.name : "Product" });
+  }
+  return [...totals.values()];
+}
+
+/** The stock an order holds: its saved hold, or for an older checkout order, what checkout took then. */
+export function orderStockHolds(order: LegacyOrderShape): StockHold[] {
+  if (order.stockHold !== null && order.stockHold !== undefined) return parseStockHold(order.stockHold);
+  return isLegacyCheckoutOrder(order) ? legacyStockHold(order.items) : [];
+}
+
+export interface ExpiryCandidate extends LegacyOrderShape {
   status: string;
   paymentMethod: string | null;
   createdAt: Date;
-  stockHold: unknown;
+  paymentDueAt?: Date | null;
   stockReleasedAt?: Date | null;
 }
 
-/** An unpaid card or transfer order past its time that still holds stock. Paid and pay-on-delivery orders never expire. */
-export function isExpirableOrder(order: ExpiryCandidate, now: Date, ttlMinutes: number) {
+/**
+ * An unpaid card or transfer order past its deadline that still holds stock. Paid and pay-on-delivery orders
+ * never expire. `windows` is the card window in minutes, or both windows.
+ */
+export function isExpirableOrder(order: ExpiryCandidate, now: Date, windows: number | PaymentWindows) {
   if (!(UNPAID_STATUSES as readonly string[]).includes(order.status)) return false;
   const method = order.paymentMethod ?? "paystack";
   if (!(EXPIRING_METHODS as readonly string[]).includes(method)) return false;
   if (order.stockReleasedAt) return false;
-  if (parseStockHold(order.stockHold).length === 0) return false;
-  return order.createdAt.getTime() <= expiryCutoff(now, ttlMinutes).getTime();
+  if (orderStockHolds(order).length === 0) return false;
+  const deadline = orderPaymentDeadline(order, windows);
+  return deadline !== null && deadline.getTime() <= now.getTime();
+}
+
+// ─── Discount codes ───────────────────────────────────────────────────────────
+
+/**
+ * Whether cancelling or expiring this order gives its discount use back: it used a code (or an automatic
+ * discount, saved by its code), was never paid, and hasn't given it back already.
+ */
+export function shouldRestoreDiscount(order: { discountCode?: string | null; discountReleasedAt?: Date | null }, statusBefore: string) {
+  if (!order.discountCode || order.discountReleasedAt) return false;
+  return (UNPAID_STATUSES as readonly string[]).includes(statusBefore);
 }
 
 /** A store order as the buyer's browser gets it: without the stock bookkeeping (it names supplier products). */
-export function shopperOrder<T extends { stockHold?: unknown; stockReleasedAt?: unknown; paymentIssue?: unknown }>(order: T) {
-  const { stockHold: _hold, stockReleasedAt: _released, paymentIssue: _issue, ...rest } = order;
+export function shopperOrder<T extends { stockHold?: unknown; stockReleasedAt?: unknown; paymentIssue?: unknown; discountReleasedAt?: unknown; refundId?: unknown }>(order: T) {
+  const { stockHold: _hold, stockReleasedAt: _released, paymentIssue: _issue, discountReleasedAt: _discount, refundId: _refund, ...rest } = order;
   void _hold;
   void _released;
   void _issue;
+  void _discount;
+  void _refund;
   return rest;
 }

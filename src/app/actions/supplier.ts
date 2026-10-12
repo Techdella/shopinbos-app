@@ -12,6 +12,7 @@ import { slugify } from "@/lib/workspace";
 import { z } from "zod";
 import { moveSupplierOrder } from "@/lib/supplier-orders/service.server";
 import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
+import { setSupplierPayout } from "@/lib/supplier-orders/money.server";
 
 async function getSupplierActor() {
   const user = await requireRole(["supplier"], "/supplier/login");
@@ -287,6 +288,19 @@ export async function updateSupplierOrderStatus(formData: FormData) {
   revalidatePath("/supplier/orders");
   revalidatePath("/supplier/dashboard");
   redirect(back({ saved: "1" }));
+}
+
+/** /supplier/payouts: the supplier marks a shipped or delivered order as paid to them (or not paid after all). */
+export async function markSupplierPayout(formData: FormData) {
+  const { supplier } = await getSupplierActor();
+  const kind = String(formData.get("kind") ?? "");
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const paid = String(formData.get("paid") ?? "") === "1";
+  if ((kind !== "wholesale" && kind !== "dropship") || !orderId) redirect("/supplier/payouts?error=" + encodeURIComponent("Choose an order."));
+  const changed = await setSupplierPayout({ supplierId: supplier.id, kind, orderId, paid });
+  revalidatePath("/supplier/payouts");
+  revalidatePath("/supplier/dashboard");
+  redirect(changed ? "/supplier/payouts?saved=1" : "/supplier/payouts?error=" + encodeURIComponent("That order has already been updated. Refresh to see it."));
 }
 
 export async function updateSupplierProfile(formData: FormData) {

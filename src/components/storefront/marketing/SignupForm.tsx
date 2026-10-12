@@ -47,7 +47,8 @@ export function SignupForm({
   const uid = useId();
   const [values, setValues] = useState<Record<string, string | boolean>>({});
   const [emailOk, setEmailOk] = useState(false);
-  const [textOk, setTextOk] = useState(false);
+  const [smsOk, setSmsOk] = useState(false);
+  const [whatsappOk, setWhatsappOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasPhone = fields.some((field) => field.type === "phone");
@@ -64,7 +65,7 @@ export function SignupForm({
       const res = await fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formId, visitorKey: visitorKey(storeSlug), values, consent: { email: true, sms: textOk, whatsapp: textOk } }),
+        body: JSON.stringify({ formId, visitorKey: visitorKey(storeSlug), values, consent: { email: true, sms: smsOk, whatsapp: whatsappOk } }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) throw new Error(json?.error?.message ?? "Something went wrong. Try again.");
@@ -132,10 +133,17 @@ export function SignupForm({
         <span>{design.consentText}</span>
       </label>
       {design.askSmsConsent && hasPhone ? (
-        <label className="flex items-start gap-2.5 text-[12.5px] leading-[1.45] opacity-90">
-          <input type="checkbox" checked={textOk} onChange={(event) => setTextOk(event.target.checked)} className="mt-0.5 h-[18px] w-[18px] shrink-0" style={{ accentColor: colors.accent }} />
-          <span>Also send me offers by SMS and WhatsApp. Reply STOP any time.</span>
-        </label>
+        <>
+          {/* One tick box per channel: SMS and WhatsApp permission are recorded separately. */}
+          <label className="flex items-start gap-2.5 text-[12.5px] leading-[1.45] opacity-90">
+            <input type="checkbox" checked={whatsappOk} onChange={(event) => setWhatsappOk(event.target.checked)} className="mt-0.5 h-[18px] w-[18px] shrink-0" style={{ accentColor: colors.accent }} />
+            <span>Send me offers on WhatsApp. Reply STOP any time.</span>
+          </label>
+          <label className="flex items-start gap-2.5 text-[12.5px] leading-[1.45] opacity-90">
+            <input type="checkbox" checked={smsOk} onChange={(event) => setSmsOk(event.target.checked)} className="mt-0.5 h-[18px] w-[18px] shrink-0" style={{ accentColor: colors.accent }} />
+            <span>Send me offers by SMS. Reply STOP any time.</span>
+          </label>
+        </>
       ) : null}
       {error ? <p role="alert" className="m-0 text-[13px] font-semibold text-[#B42318]">{error}</p> : null}
       <button

@@ -98,7 +98,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     >
       {(order.paymentIssue || order.expiredAt) && (
         <div role={order.paymentIssue ? "alert" : undefined} className={`mb-4 rounded-[16px] px-4 py-3 text-[14px] ${order.paymentIssue ? "bg-app-danger-tint font-bold text-app-danger" : "bg-app-canvas text-app-ink-soft"}`}>
-          {order.paymentIssue ?? `This order expired unpaid on ${formatDate(order.expiredAt!)} and its stock went back on sale. If the buyer pays now it's taken again, if there's still stock.`}
+          {order.paymentIssue ??
+            (order.refundStatus && order.refundStatus !== "manual"
+              ? `The payment came in after this order expired and its stock had sold, so it was refunded through Paystack${order.refundStatus === "processed" ? "" : " (Paystack is still processing it)"}.`
+              : `This order expired unpaid on ${formatDate(order.expiredAt!)} and its stock went back on sale. If the buyer pays now it's taken again, if there's still stock.`)}
         </div>
       )}
       <div className="mb-5 flex flex-wrap items-center gap-3">

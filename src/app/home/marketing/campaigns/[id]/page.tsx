@@ -9,6 +9,9 @@ import { channelStatus } from "@/lib/marketing/channels";
 import { listSegments } from "@/lib/marketing/segments";
 import { listTemplates } from "@/lib/marketing/templates";
 import { parseRecipientFilter } from "@/lib/campaigns/send";
+import { readChannelConfig } from "@/lib/marketing/campaign-config";
+import { getMessagingSettings } from "@/lib/marketing/messaging-settings";
+import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { naira } from "@shared/onboarding";
 import { CampaignEditor } from "./CampaignEditor";
 import { SentCampaignPreview } from "./SentCampaignPreview";
@@ -26,7 +29,9 @@ const STATUS: Record<string, { tone: Tone; label: string }> = {
 
 const RECIPIENT: Record<string, { tone: Tone; label: string }> = {
   queued: { tone: "muted", label: "Waiting" },
-  sent: { tone: "success", label: "Sent" },
+  sent: { tone: "info", label: "Sent" },
+  delivered: { tone: "success", label: "Delivered" },
+  read: { tone: "success", label: "Read" },
   failed: { tone: "danger", label: "Failed" },
 };
 
@@ -63,6 +68,12 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     const count = (status: string) => byStatus.find((row) => row.status === status)?._count ?? 0;
     const segment = segments.find((s) => s.id === campaign.segmentId);
     const isEmail = (campaign.channel || "email") === "email";
+    const isWhatsApp = campaign.channel === "whatsapp";
+    // Text channels: accepted by the provider = sent + delivered + read; receipts move people along.
+    const accepted = count("sent") + count("delivered") + count("read");
+    const delivered = count("delivered") + count("read");
+    const config = readChannelConfig(campaign.channelConfig);
+    const waTemplate = isWhatsApp && config.templateId ? (await listWhatsAppTemplates(store.id)).find((t) => t.id === config.templateId) : null;
     return (
       <SellerPage
         user={user}
@@ -72,10 +83,14 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
       >
         <div className="grid gap-5">
+          {campaign.status === "sending" ? <Pill tone="info">Still sending: {count("queued").toLocaleString("en-NG")} waiting. It carries on by itself within 10 minutes.</Pill> : null}
           <StatGrid className="xl:grid-cols-6">
-            <StatTile tone="card" label="Sent" value={count("sent").toLocaleString("en-NG")} hint={count("failed") ? `${count("failed")} failed` : undefined} />
+            <StatTile tone="card" label="Sent" value={(isEmail ? count("sent") : accepted).toLocaleString("en-NG")} hint={count("failed") ? `${count("failed")} failed` : undefined} />
             {isEmail ? <StatTile tone="card" label="Opened" value={pct(opened, count("sent"))} hint={`${opened} people`} /> : null}
             {isEmail ? <StatTile tone="card" label="Clicked" value={pct(clicked, count("sent"))} hint={`${clicked} people`} /> : null}
+            {!isEmail ? <StatTile tone="card" label="Delivered" value={pct(delivered, accepted)} hint={`${delivered.toLocaleString("en-NG")} people`} /> : null}
+            {isWhatsApp ? <StatTile tone="card" label="Read" value={pct(count("read"), accepted)} hint={`${count("read").toLocaleString("en-NG")} people`} /> : null}
+            {!isEmail ? <StatTile tone="card" label="Failed" value={count("failed").toLocaleString("en-NG")} hint={count("queued") ? `${count("queued")} waiting` : undefined} /> : null}
             <StatTile tone="card" label="Orders" value={campaign.conversionCount} />
             <StatTile tone="card" label="Sales" value={naira(campaign.revenueGenerated)} />
             {isEmail ? <StatTile tone="card" label="Unsubscribed" value={campaign.unsubscribeCount} /> : null}
@@ -84,7 +99,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
             sideWidth="440px"
             main={
               <Card className="p-5">
-                <CardHead title="Who got it" sub={isEmail ? "Opens need images switched on, so the real number is usually higher. Clicks and orders are exact." : "SMS and WhatsApp show whether the provider accepted each message."} />
+                <CardHead title="Who got it" sub={isEmail ? "Opens need images switched on, so the real number is usually higher. Clicks and orders are exact." : isWhatsApp ? "Sent means WhatsApp accepted it; delivered and read come from WhatsApp's receipts." : "Sent means the SMS provider accepted it; delivered comes from the provider's delivery reports (when your SMS account sends them to Shopinbos)."} />
                 {recipients.length ? (
                   <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                     {recipients.map((recipient) => {
@@ -115,12 +130,20 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                     rows={[
                       ["Audience", segment ? `Segment: ${segment.name}` : parseRecipientFilter(campaign.recipientFilter).mode === "subscribers" ? "Subscribers" : "Subscribers and buyers"],
                       ...(isEmail ? ([["Subject", campaign.subject]] as Array<[string, string]>) : []),
+                      ...(waTemplate ? ([["Template", `${waTemplate.name} (${waTemplate.language})`]] as Array<[string, string]>) : []),
+                      ...(campaign.channel === "sms" && config.senderId ? ([["Sender ID", config.senderId]] as Array<[string, string]>) : []),
                       ["Sent", formatDate(campaign.sentAt, true)],
                       ["Made", formatDate(campaign.createdAt, true)],
                     ]}
                   />
                 </Card>
-                <SentCampaignPreview channel={campaign.channel || "email"} bodyHtml={campaign.bodyHtml} preheader={campaign.preheader} subject={campaign.subject} />
+                <SentCampaignPreview
+                  channel={campaign.channel || "email"}
+                  bodyHtml={campaign.bodyHtml}
+                  preheader={campaign.preheader}
+                  subject={campaign.subject}
+                  whatsapp={waTemplate ? { content: waTemplate.content, mapping: config.variables?.some(Boolean) ? config.variables : waTemplate.variables, headerImageUrl: config.headerImageUrl ?? null } : null}
+                />
               </>
             }
           />
@@ -131,7 +154,13 @@ export default async function CampaignPage({ params, searchParams }: { params: P
 
   const template = query.template ? templates.library.find((t) => t.key === query.template) ?? templates.saved.find((t) => t.id === query.template) : null;
   const filter = parseRecipientFilter(campaign?.recipientFilter ?? { mode: "all" });
-  const me = await db.user.findUnique({ where: { id: user.id }, select: { email: true, phone: true } });
+  const [me, waTemplates, productRows, messaging] = await Promise.all([
+    db.user.findUnique({ where: { id: user.id }, select: { email: true, phone: true } }),
+    listWhatsAppTemplates(store.id),
+    db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }], take: 100, select: { id: true, name: true, images: true } }).catch(() => []),
+    getMessagingSettings(store.id),
+  ]);
+  const initialConfig = readChannelConfig(campaign?.channelConfig);
 
   return (
     <SellerPage
@@ -153,7 +182,11 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           segmentId: campaign?.segmentId ?? (query.segment && segments.some((s) => s.id === query.segment) ? query.segment : null),
           audienceMode: filter.mode === "subscribers" ? "subscribers" : "all",
           scheduledAt: lagosInput(campaign?.scheduledAt ?? null),
+          channelConfig: initialConfig,
         }}
+        waTemplates={waTemplates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables }))}
+        products={productRows.map((p) => ({ id: p.id, name: p.name, image: p.images.find((src) => /^https:\/\//.test(src)) ?? null }))}
+        sms={{ senderId: messaging.smsSenderId, costPerSegment: messaging.smsCostPerSegment, currency: store.currency || "NGN" }}
         segments={segments.map((s) => ({ id: s.id, name: s.name, summary: s.summary, count: s.count }))}
         templates={[
           ...templates.saved.map((t) => ({ id: t.id, name: t.name, subject: t.subject, preheader: t.preheader, bodyHtml: t.bodyHtml, saved: true })),

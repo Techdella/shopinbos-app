@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { StoreProductCreateSchema, StoreProductQuerySchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const store = await db.store.findUnique({ where: { userId: user.id } });
@@ -122,5 +123,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     },
   });
 
+  await markCatalogDirty(store.id);
   return ok(product, 201);
 });

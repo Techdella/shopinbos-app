@@ -7,7 +7,9 @@ import { Notice, PillButton, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/growth/Modal";
 import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
-import { CONDITION_LABEL, STEP_LABEL, TRIGGER_INFO, describeStep, type FlowCondition, type FlowStep, type FlowStepType, type FlowTrigger } from "@/lib/marketing/flows";
+import { CONDITION_LABEL, STEP_LABEL, TRIGGER_INFO, describeStep, stepProblems, stepWarnings, type FlowCondition, type FlowStep, type FlowStepType, type FlowTrigger } from "@/lib/marketing/flows";
+import { TEMPLATE_PRESETS, purposeOfTrigger, variableCount } from "@/lib/marketing/text-channels";
+import { ChannelHelp, SmsCounter, TemplateStatusPill, VariableMapper, WhatsAppBubble, type TemplateOption } from "../../marketing/_kit/text";
 import { EmailComposer } from "../../marketing/_kit/EmailComposer";
 import { EmailPreview, VariableChips, api, errorText, insertAtCursor } from "../../marketing/_kit/client";
 
@@ -34,8 +36,9 @@ function blank(type: FlowStepType): FlowStep {
     case "send_email":
       return { type, subject: "", bodyHtml: "" };
     case "send_sms":
+      return { type, message: "{{store}}: hi {{name}}, " };
     case "send_whatsapp":
-      return { type, message: "Hi {{name}}, " };
+      return { type, message: "", template: null, variables: [] };
     case "add_tag":
       return { type, tag: "" };
     case "give_discount":
@@ -92,7 +95,81 @@ function EmailStepEditor({ step, templates, onSave, onClose }: { step: Extract<F
   );
 }
 
-export function FlowEditor({ initial, segments, templates }: { initial: Initial; segments: Array<{ id: string; name: string }>; templates: Array<{ id: string; name: string }> }) {
+interface TextChannelInfo {
+  ready: boolean;
+  templates: boolean;
+  howTo: string;
+  connectHref: string | null;
+  connectLabel: string | null;
+}
+
+/** The WhatsApp step: an approved template (or a ready-made one, used once approved) and what fills it. */
+function WhatsAppStep({ step, onChange, waTemplates, whatsapp }: { step: Extract<FlowStep, { type: "send_whatsapp" }>; onChange: (step: FlowStep) => void; waTemplates: TemplateOption[]; whatsapp: TextChannelInfo }) {
+  const preset = step.template?.startsWith("preset:") ? TEMPLATE_PRESETS.find((p) => p.key === step.template!.slice(7)) ?? null : null;
+  const chosen: TemplateOption | null = preset
+    ? { id: step.template!, name: preset.name, language: "en", category: preset.category, status: waTemplates.some((t) => t.status === "APPROVED" && t.preset === preset.key) ? "APPROVED" : "DRAFT", rejectedReason: null, content: preset.content, variables: [...preset.variables] }
+    : waTemplates.find((t) => t.id === step.template) ?? null;
+  return (
+    <div className="grid gap-3">
+      {!whatsapp.templates ? (
+        <p className="m-0 text-[13px] text-app-ink-soft">
+          <ChannelHelp label="Not connected" howTo="WhatsApp steps are skipped (and logged) until your WhatsApp Business number is connected." href={whatsapp.connectHref} linkLabel={whatsapp.connectLabel} />
+        </p>
+      ) : null}
+      <select
+        aria-label="WhatsApp template"
+        className={selectClass}
+        value={step.template ?? ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          const next = value.startsWith("preset:") ? TEMPLATE_PRESETS.find((p) => p.key === value.slice(7))?.variables ?? [] : waTemplates.find((t) => t.id === value)?.variables ?? [];
+          onChange({ ...step, template: value || null, variables: [...next] });
+        }}
+      >
+        <option value="">No template: free text (only reaches people who wrote in the last 24 hours)</option>
+        {waTemplates.length ? (
+          <optgroup label="Your templates">
+            {waTemplates.map((t) => (
+              <option key={t.id} value={t.id} disabled={t.status !== "APPROVED"}>{t.name} ({t.language}){t.status !== "APPROVED" ? ` · ${t.status.toLowerCase()}` : ""}</option>
+            ))}
+          </optgroup>
+        ) : null}
+        <optgroup label="Ready-made (uses your approved copy)">
+          {TEMPLATE_PRESETS.map((p) => <option key={p.key} value={`preset:${p.key}`}>{p.title}</option>)}
+        </optgroup>
+      </select>
+      {chosen ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <TemplateStatusPill status={chosen.status} />
+            {preset && chosen.status !== "APPROVED" ? <a href="/home/marketing/whatsapp" className="font-bold text-app-accent-ink no-underline hover:underline">Submit “{preset.title}” for approval</a> : null}
+          </div>
+          <VariableMapper template={chosen} value={step.variables ?? []} onChange={(variables) => onChange({ ...step, variables })} />
+          {chosen.content.header.format === "IMAGE" ? (
+            <input aria-label="Header image link" value={step.headerImageUrl ?? ""} onChange={(e) => onChange({ ...step, headerImageUrl: e.target.value.trim() || null })} className={inputClass} placeholder="Header picture link (https://…). Empty uses your best-selling product's photo." />
+          ) : null}
+          <WhatsAppBubble content={chosen.content} mapping={step.variables?.some(Boolean) ? step.variables : chosen.variables} headerImageUrl={step.headerImageUrl} />
+        </>
+      ) : (
+        <TextStep label="WhatsApp message" value={step.message} onChange={(message) => onChange({ ...step, message })} />
+      )}
+    </div>
+  );
+}
+
+export function FlowEditor({
+  initial,
+  segments,
+  templates,
+  waTemplates = [],
+  channels,
+}: {
+  initial: Initial;
+  segments: Array<{ id: string; name: string }>;
+  templates: Array<{ id: string; name: string }>;
+  waTemplates?: TemplateOption[];
+  channels?: { sms: TextChannelInfo; whatsapp: TextChannelInfo };
+}) {
   const router = useRouter();
   const [flow, setFlow] = useState(initial);
   const [editingEmail, setEditingEmail] = useState<number | null>(null);
@@ -215,8 +292,16 @@ export function FlowEditor({ initial, segments, templates }: { initial: Initial;
                     <span className="min-w-0 flex-1 truncate text-[14px]">{step.subject || (step.templateId ? `Template: ${templates.find((t) => t.id === step.templateId)?.name ?? "missing"}` : "No subject yet")}</span>
                     <button type="button" className={buttonClass("white", "sm")} onClick={() => setEditingEmail(index)}>Edit email</button>
                   </div>
-                ) : step.type === "send_sms" || step.type === "send_whatsapp" ? (
-                  <TextStep label={STEP_LABEL[step.type]} value={step.message} onChange={(message) => setStep(index, { ...step, message })} />
+                ) : step.type === "send_whatsapp" ? (
+                  <WhatsAppStep step={step} onChange={(next) => setStep(index, next)} waTemplates={waTemplates} whatsapp={channels?.whatsapp ?? { ready: false, templates: false, howTo: "", connectHref: "/home/inbox/chatbot?tab=whatsapp", connectLabel: "Connect WhatsApp" }} />
+                ) : step.type === "send_sms" ? (
+                  <div className="grid gap-2">
+                    <TextStep label={STEP_LABEL[step.type]} value={step.message} onChange={(message) => setStep(index, { ...step, message })} />
+                    <SmsCounter text={step.message.replace(/{{\s*[a-z_]+\s*}}/g, "XXXXXXXX")} />
+                    {channels && !channels.sms.ready ? (
+                      <p className="m-0 text-[13px] text-app-ink-soft"><ChannelHelp label="SMS isn't set up" howTo="this step is skipped (and logged) until it is." href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} /></p>
+                    ) : null}
+                  </div>
                 ) : step.type === "add_tag" ? (
                   <input aria-label="Tag" value={step.tag} onChange={(e) => setStep(index, { type: "add_tag", tag: e.target.value })} className={inputClass} placeholder="e.g. vip" />
                 ) : step.type === "give_discount" ? (
@@ -231,6 +316,9 @@ export function FlowEditor({ initial, segments, templates }: { initial: Initial;
                 ) : (
                   <p className="m-0 text-[13.5px] text-app-ink-soft">{describeStep(step)} (a review link by email, or SMS when there's no email). Only works for automations about an order.</p>
                 )}
+                {[...stepProblems(step, { templates: waTemplates.map((t) => ({ id: t.id, status: t.status, variableCount: variableCount(t.content) })) }), ...stepWarnings(step)].map((problem) => (
+                  <p key={problem} className="m-0 text-[13px] font-semibold text-app-accent-ink">{problem}</p>
+                ))}
               </Card>
             </li>
           ))}
@@ -248,7 +336,12 @@ export function FlowEditor({ initial, segments, templates }: { initial: Initial;
         <PillButton size="md" busy={busy === "save"} onClick={() => void save()} disabled={!flow.steps.length}>Save</PillButton>
         {!flow.active ? <PillButton size="md" tone="accent" onClick={() => void save(true)} disabled={!flow.steps.length}>Save and switch on</PillButton> : null}
         {flow.id ? <PillButton size="md" tone="white" className="text-app-danger sm:ml-auto" busy={busy === "delete"} onClick={() => void remove()}>Delete</PillButton> : null}
-        <p className="m-0 w-full text-[12.5px] text-app-ink-soft">Messages skip anyone who unsubscribed. Waits are checked every 10 minutes. SMS and WhatsApp steps are skipped (and logged) until a sender is connected.</p>
+        <p className="m-0 w-full text-[12.5px] text-app-ink-soft">
+          Messages skip anyone who unsubscribed or replied STOP. Waits are checked every 10 minutes. SMS and WhatsApp steps are skipped (and logged) until a sender is connected.{" "}
+          {purposeOfTrigger(flow.trigger) === "transactional"
+            ? "This flow is about the customer's own order or cart, so texts may go to the phone they gave at checkout."
+            : "This is a marketing flow: SMS and WhatsApp only reach people who said yes to that channel."}
+        </p>
       </Card>
 
       {editing && editing.type === "send_email" ? (

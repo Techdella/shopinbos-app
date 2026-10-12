@@ -169,9 +169,12 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
                       <Icon name={key === "email" ? "mail" : key === "sms" ? "message" : "whatsapp"} size={18} className="mt-0.5 shrink-0" />
                       <span className="min-w-0 flex-1">
                         <strong>{key === "email" ? "Email" : key === "sms" ? "SMS" : "WhatsApp"}</strong>
-                        <span className="block text-[12.5px] text-app-ink-soft">{channels[key].ready ? `Ready via ${channels[key].via}` : channels[key].howTo}</span>
+                        <span className="block text-[12.5px] text-app-ink-soft">
+                          {channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? `Ready via ${channels[key].via}` : channels[key].howTo}{" "}
+                          {channels[key].connectHref && !(channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates)) ? <a href={channels[key].connectHref!} className="font-bold text-app-accent-ink underline">{channels[key].connectLabel}</a> : null}
+                        </span>
                       </span>
-                      <Pill tone={channels[key].ready ? "success" : "warning"}>{channels[key].ready ? "Ready" : "Not set up"}</Pill>
+                      <Pill tone={channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? "success" : "warning"}>{channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? "Ready" : "Not set up"}</Pill>
                     </li>
                   ))}
                 </ul>
@@ -185,6 +188,8 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
             ["/home/marketing/subscribers", "Subscribers", "users", "Your list, consent, tags, import and export"],
             ["/home/marketing/segments", "Segments", "layers", "Groups by spend, orders, place, products"],
             ["/home/marketing/templates", "Email templates", "mail", "Ready-made emails, visual and HTML builder"],
+            ["/home/marketing/whatsapp", "WhatsApp templates", "whatsapp", "Meta-approved messages for campaigns and orders"],
+            ["/home/marketing/messages", "Order messages", "bell", "WhatsApp and SMS updates: confirmed, shipped, delivered"],
             ["/home/inbox/auto-replies", "Auto-replies", "clock", "Away message, opening hours, quick replies"],
             ["/home/inbox/chatbot", "Peggy chatbot", "sparkle", "Peggy answers shoppers on your live chat"],
             ["/home/marketing/analytics", "Reports", "chart", "What each campaign and automation brought in"],

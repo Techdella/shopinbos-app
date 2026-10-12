@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { findChannelByAccount, ingestInbound, markChannelError, updateMessageStatus } from "@/lib/inbox/service";
 import { parseWhatsAppWebhook, parseWhatsAppWebhookErrors, verifyMetaSignature } from "@/lib/inbox/pure";
 import { metaVerifyHandshake } from "@/lib/inbox/webhooks";
+import { marketingInboundHook, marketingStatusHook } from "@/lib/marketing/webhook-hooks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,9 +49,14 @@ export async function POST(req: NextRequest) {
         console.error("[webhooks/whatsapp] ingest failed", error);
         await markChannelError(channel.row.id, "A message couldn't be saved. We'll keep trying on the next one.");
       });
+      // "STOP" / "Stop promotions" replies opt the number out of this shop's WhatsApp marketing.
+      await marketingInboundHook({ storeId, channel: "whatsapp", phone: message.contactPhone, text: message.text });
     }
     // Delivery receipts only touch this store's messages, matched by Meta's message id.
-    for (const status of statuses.filter((s) => s.accountId === accountId)) await updateMessageStatus(status.externalId, status.status, status.error, storeId);
+    for (const status of statuses.filter((s) => s.accountId === accountId)) {
+      await updateMessageStatus(status.externalId, status.status, status.error, storeId);
+      await marketingStatusHook(status.externalId, status.status, status.error, storeId); // campaigns and order messages
+    }
     const error = errors.find((e) => e.accountId === accountId);
     if (error) await markChannelError(channel.row.id, `WhatsApp reported a problem: ${error.message}`);
   }

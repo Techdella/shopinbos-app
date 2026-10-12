@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { parsePricingTiers, tierPrice } from "@/lib/marketplace/find";
-import { plainText, wholesaleStatusAfter, type SupplierAction } from "./pure";
+import { SELLER_CANCELLABLE_WHOLESALE, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
 import type { ServiceResult } from "./service.server";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
@@ -44,26 +44,43 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
   if (product.supplier.userId === input.sellerId) return { ok: false, code: "BAD_REQUEST", message: "You can't order your own product." };
   const moq = Math.max(1, product.moq);
   if (input.quantity < moq) return { ok: false, code: "BAD_REQUEST", message: `The minimum order is ${moq.toLocaleString("en-NG")}.` };
-  if (product.stockQuantity > 0 && input.quantity > product.stockQuantity) {
-    return { ok: false, code: "BAD_REQUEST", message: `${plainText(product.supplier.displayName)} has ${product.stockQuantity.toLocaleString("en-NG")} in stock. Lower the quantity or request a quote.` };
-  }
+  const short = (stock: number) => ({ ok: false as const, code: "BAD_REQUEST" as const, message: `${plainText(product.supplier.displayName)} has ${stock.toLocaleString("en-NG")} in stock. Lower the quantity or request a quote.` });
+  const reservation = wholesaleReservation(product.stockQuantity, input.quantity);
+  if ("short" in reservation) return short(product.stockQuantity);
 
   const unitPrice = tierPrice(parsePricingTiers(product.pricingTiers), input.quantity, product.wholesalePrice);
   const totalPrice = Math.round(unitPrice * input.quantity * 100) / 100;
-  const order = await db.wholesaleOrder.create({
-    data: {
-      sellerId: input.sellerId,
-      supplierId: product.supplierId,
-      supplierProductId: product.id,
-      quantity: input.quantity,
-      unitPrice,
-      totalPrice,
-      currency: product.currency,
-      deliveryAddress: input.deliveryAddress.trim(),
-      notes: input.notes?.trim() || null,
-    },
-    include: { supplierProduct: { select: { id: true, name: true, images: true } } },
+  // The units are reserved as the order is made (conditionally, so two sellers can't take the same stock and it
+  // never goes below zero). They go back if the supplier declines or the seller cancels.
+  const order = await db.$transaction(async (tx) => {
+    if (reservation.reserve > 0) {
+      const taken = await tx.supplierProduct.updateMany({
+        where: { id: product.id, status: "published", stockQuantity: { gte: reservation.reserve } },
+        data: { stockQuantity: { decrement: reservation.reserve } },
+      });
+      if (taken.count !== 1) return null;
+    }
+    return tx.wholesaleOrder.create({
+      data: {
+        stockReserved: reservation.reserve,
+        sellerId: input.sellerId,
+        supplierId: product.supplierId,
+        supplierProductId: product.id,
+        quantity: input.quantity,
+        unitPrice,
+        totalPrice,
+        currency: product.currency,
+        deliveryAddress: input.deliveryAddress.trim(),
+        notes: input.notes?.trim() || null,
+      },
+      include: { supplierProduct: { select: { id: true, name: true, images: true } } },
+    });
   });
+  if (!order) {
+    // Someone else took the stock a moment ago.
+    const fresh = await db.supplierProduct.findUnique({ where: { id: product.id }, select: { stockQuantity: true } });
+    return short(fresh?.stockQuantity ?? 0);
+  }
 
   await createNotification({
     userId: product.supplier.userId,
@@ -109,7 +126,12 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
   }
   if (next === "delivered") data.deliveredAt = now;
   if (next === "cancelled") data.rejectReason = reason!.slice(0, 500);
-  const moved = await db.wholesaleOrder.updateMany({ where: { id: order.id, supplierId: input.supplierId, status: order.status }, data });
+  // Only if nobody moved it in the meantime; a decline gives the reserved stock back in the same transaction.
+  const moved = await db.$transaction(async (tx) => {
+    const result = await tx.wholesaleOrder.updateMany({ where: { id: order.id, supplierId: input.supplierId, status: order.status }, data });
+    if (result.count === 1 && wholesaleReleasesStock(next)) await releaseWholesaleStock(tx, order.id);
+    return result;
+  });
   if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
 
   const supplierName = plainText(order.supplier.displayName) || "Your supplier";
@@ -130,4 +152,49 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
     sendEmail: next !== "delivered",
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: next } };
+}
+
+/**
+ * Gives back the supplier stock a wholesale order reserved, once: stockReleasedAt is claimed with a conditional
+ * update first, so a retried decline or cancel can't add it twice. Orders that reserved nothing are left alone.
+ */
+export async function releaseWholesaleStock(tx: Prisma.TransactionClient, orderId: string) {
+  const order = await tx.wholesaleOrder.findUnique({ where: { id: orderId }, select: { id: true, supplierProductId: true, stockReserved: true, stockReleasedAt: true } });
+  if (!order || order.stockReleasedAt || order.stockReserved <= 0) return false;
+  const claimed = await tx.wholesaleOrder.updateMany({ where: { id: order.id, stockReleasedAt: null, stockReserved: { gt: 0 } }, data: { stockReleasedAt: new Date() } });
+  if (claimed.count !== 1) return false;
+  await tx.supplierProduct.updateMany({ where: { id: order.supplierProductId }, data: { stockQuantity: { increment: order.stockReserved } } });
+  return true;
+}
+
+/** The seller cancels a wholesale order before the supplier starts packing it; the reserved stock goes back. */
+export async function cancelWholesaleOrder(input: { sellerId: string; orderId: string; reason?: string | null }): Promise<ServiceResult<{ id: string; status: string }>> {
+  const order = await db.wholesaleOrder.findFirst({
+    where: { id: input.orderId, sellerId: input.sellerId },
+    select: { id: true, status: true, quantity: true, supplier: { select: { userId: true } }, supplierProduct: { select: { name: true } } },
+  });
+  if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
+  if (!(SELLER_CANCELLABLE_WHOLESALE as readonly string[]).includes(order.status)) {
+    return { ok: false, code: "CONFLICT", message: "The supplier is already packing or has sent this order. Contact them to cancel it." };
+  }
+  const reason = input.reason?.trim().slice(0, 500) || null;
+  const moved = await db.$transaction(async (tx) => {
+    const result = await tx.wholesaleOrder.updateMany({
+      where: { id: order.id, sellerId: input.sellerId, status: { in: [...SELLER_CANCELLABLE_WHOLESALE] } },
+      data: { status: "cancelled", ...(reason ? { rejectReason: `Cancelled by the seller: ${reason}`.slice(0, 500) } : {}) },
+    });
+    if (result.count === 1) await releaseWholesaleStock(tx, order.id);
+    return result;
+  });
+  if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
+  await createNotification({
+    userId: order.supplier.userId,
+    type: "suppliers",
+    priority: "warning",
+    title: `Wholesale order ${wholesaleRef(order.id)} was cancelled`,
+    description: `The seller cancelled ${order.quantity.toLocaleString("en-NG")} × ${plainText(order.supplierProduct.name)}. Don't send it.${reason ? ` "${plainText(reason, 300)}"` : ""}`,
+    link: "/supplier/orders?kind=wholesale",
+    sendEmail: true,
+  }).catch(() => null);
+  return { ok: true, data: { id: order.id, status: "cancelled" } };
 }

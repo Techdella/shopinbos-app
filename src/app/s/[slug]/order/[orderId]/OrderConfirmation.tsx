@@ -9,7 +9,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
-import { TransferInstructions, type TransferDetails } from "./TransferInstructions";
+import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
 import { shopperGameColors } from "@/components/storefront/gamification/client";
 
@@ -86,7 +86,9 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
     : isPaid
       ? `Your order is confirmed. We've sent the details to ${order.buyerEmail}.`
       : method === "transfer"
-        ? "Your order is placed. Send your bank transfer below soon: unpaid orders release their items after about 30 minutes. The store confirms it once the money arrives."
+        ? transfer?.payBy
+          ? `Your order is placed. Send your bank transfer below by ${payByText(transfer.payBy)} (Lagos time), or the order is cancelled and its items go back on sale. The store confirms it once the money arrives.`
+          : "Your order is placed. Send your bank transfer below. The store confirms it once the money arrives."
         : method === "pay_on_delivery"
           ? `Your order is placed. You pay ${amount} when it arrives.`
           : "We haven't received your payment yet. If you paid, this page updates once Paystack confirms it.";
@@ -105,7 +107,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
               <Icon name={isPaid ? "checkCircle" : "clock"} size={14} /> {isPaid ? "Payment confirmed" : order.status === "cancelled" ? "Cancelled" : "Order received"}
             </span>
             <h1 className="mt-3 text-[30px] font-semibold leading-tight sm:text-[36px]" style={{ fontFamily: theme.heading }}>{headline}</h1>
-            <p className="mt-2 max-w-[60ch] text-[15.5px] leading-7" style={{ color: theme.muted }}>{subline}</p>
+            <p className="mt-2 max-w-[60ch] text-[15.5px] leading-7" style={{ color: theme.muted }} suppressHydrationWarning>{subline}</p>
             <p className="mt-2 text-[14px]">Order number <strong className="tabular-nums">{order.orderNumber}</strong></p>
           </div>
 

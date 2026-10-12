@@ -6,7 +6,8 @@ import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, Split
 import { Bars, ShareBar, formatDate } from "@/components/growth/kit";
 import { DEFAULT_PAYMENT_METHODS, naira, type PaymentMethodKey } from "@shared/onboarding";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
-import { readSavedPaymentMethods } from "@shared/checkout-payments";
+import { readSavedPaymentMethods, readTransferWindowHours } from "@shared/checkout-payments";
+import { unpaidTransferTtlHours } from "@/lib/commerce/stock-holds";
 import { BankCard, type PayoutBankSummary } from "./BankCard";
 import { PaymentMethods } from "./PaymentMethods";
 
@@ -194,7 +195,7 @@ export default async function SellerPaymentsPage() {
                 <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Shows up after your first paid order.</p>
               )}
             </Card>
-            <PaymentMethods initial={readMethods(settings)} />
+            <PaymentMethods initial={readMethods(settings)} transferWindow={{ hours: readTransferWindowHours(settings), defaultHours: unpaidTransferTtlHours(process.env.UNPAID_TRANSFER_TTL_HOURS) }} />
             <AssistantNote>
               Online payments go through Paystack checkout and are paid out to your payout bank. Cash, transfers and POS you record yourself never pass through Shopinbos.
             </AssistantNote>

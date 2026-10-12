@@ -9,6 +9,7 @@ import { randomBytes } from "crypto";
 import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/notifications/resend";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { validCampaignToken } from "@/lib/campaigns/send";
+import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { cleanAffiliateCode, commissionFor } from "@shared/affiliates";
 import { priceOrder } from "@/lib/commerce/pricing.server";
 import { markCartRecovered } from "@/lib/commerce/abandoned-cart.server";
@@ -25,6 +26,7 @@ import {
 } from "@shared/checkout-payments";
 import { overPublicLimit } from "@/lib/rate-limit";
 import { reserveStock } from "@/lib/commerce/stock.server";
+import { checkoutPaymentDueAt } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
@@ -216,6 +218,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           status: "pending",
           stockHold: JSON.parse(JSON.stringify(priced.stockHolds)),
+          // When it lets its stock go if still unpaid: card 30 min, bank transfer 24 h or the seller's choice.
+          paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" ? null : paymentMethod, store.brandSettings),
         },
       });
       // Points used are taken off in the same transaction (fails the order if the balance changed meanwhile).
@@ -261,6 +265,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         metadata: { orderId: order.id, paymentMethod },
       },
     }),
+    notifyOrderCustomer(order.id, "order_confirmed"), // WhatsApp/SMS order confirmation, if switched on
     triggerAutomations("order_placed", {
       storeId: store.id,
       storeName: store.name,
@@ -322,6 +327,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     },
     paystack: paystackData,
     // Where to send a bank transfer: the exact total, with the order number as the reference.
-    transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber } : null,
+    transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber, payBy: order.paymentDueAt?.toISOString() ?? null } : null,
   }), CHECKOUT_CORS);
 }

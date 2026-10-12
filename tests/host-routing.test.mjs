@@ -72,14 +72,12 @@ test("store hosts: storefront pages are rewritten, portals never served, storefr
   }
 });
 
-test("custom domains: www/apex twins match, exact wins, two claimants serve nobody", () => {
-  assert.deepEqual(routing.customDomainCandidates("www.adas.ng"), ["www.adas.ng", "adas.ng"]);
-  assert.deepEqual(routing.customDomainCandidates("adas.ng"), ["adas.ng", "www.adas.ng"]);
-  assert.equal(routing.pickCustomDomainStore("www.adas.ng", [{ slug: "adas", customDomain: "adas.ng" }]), "adas");
-  assert.equal(routing.pickCustomDomainStore("adas.ng", [{ slug: "adas", customDomain: "ADAS.ng" }, { slug: "other", customDomain: "www.adas.ng" }]), "adas");
-  assert.equal(routing.pickCustomDomainStore("adas.ng", [{ slug: "a", customDomain: "adas.ng" }, { slug: "b", customDomain: "adas.ng" }]), null);
-  assert.equal(routing.pickCustomDomainStore("adas.ng", []), null);
-  assert.equal(routing.pickCustomDomainStore("adas.ng", [{ slug: "x", customDomain: "notadas.ng" }]), null);
+test("custom domains: a host and its www twin share one ownership key", () => {
+  assert.equal(routing.customDomainKeyForHost("www.adas.ng"), "adas.ng");
+  assert.equal(routing.customDomainKeyForHost("ADAS.ng.:443"), "adas.ng");
+  assert.equal(routing.customDomainKeyForHost("shop.adas.ng"), "shop.adas.ng");
+  assert.equal(routing.customDomainKeyForHost(""), "");
+  assert.equal("pickCustomDomainStore" in routing, false, "no two-claimant rule: the verified key is unique");
 });
 
 test("the proxy routes store hosts before auth, keeps app-host auth, and the dead root middleware is gone", () => {
@@ -90,6 +88,7 @@ test("the proxy routes store hosts before auth, keeps app-host auth, and the dea
   assert.match(proxy, /resolveCustomDomainSlug\(/);
   const lookup = readFileSync(new URL("../src/lib/domains/lookup.ts", import.meta.url), "utf8");
   assert.match(lookup, /status: "active"/, "only active stores are served on custom domains");
+  assert.match(lookup, /customDomainVerifiedAt: \{ not: null \}/, "only verified domains are served");
   assert.match(lookup, /CACHE_TTL_MS = 60_000/);
   assert.equal(existsSync(new URL("../middleware.ts", import.meta.url)), false);
 });

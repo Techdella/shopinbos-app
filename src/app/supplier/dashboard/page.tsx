@@ -4,19 +4,37 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { AppFrame } from "@/components/shell/AppFrame";
-import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatTile, TextLink, Thumb } from "@/components/app-kit";
+import { AssistantNote, type Tone, Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatTile, TextLink, Thumb } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
 import { SUPPLIER_DOC_TYPES } from "@shared/verification-docs";
 import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, VERIFICATION_LABEL, money, statusOf, supplierFrame, timeAgo } from "@/components/supplier/supplier-kit";
+import { DROPSHIP_TO_SHIP, WHOLESALE_TO_SHIP } from "@/lib/supplier-orders/pure";
+import { listDropshipOrders } from "@/lib/supplier-orders/views.server";
+import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/money.server";
 
 // Supplier home in the "Seller app · web" language: greeting, real tiles, orders to ship and quote requests.
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard" };
 
-const TO_SHIP = ["pending", "confirmed", "processing"] as const;
-const EARNED = ["shipped", "delivered"] as const;
+const DROPSHIP_STAGE: Record<string, { label: string; tone: "accent" | "warning" }> = {
+  pending: { label: "New: accept it", tone: "accent" },
+  accepted: { label: "Accepted: to ship", tone: "warning" },
+};
+
+/** One row of "Orders to ship": wholesale and dropship orders in one list, oldest first. */
+interface ShipRow {
+  key: string;
+  href: string;
+  image: string | null | undefined;
+  title: string;
+  sub: string;
+  stage: { label: string; tone: Tone };
+  createdAt: Date;
+  amount: number;
+  currency: string;
+}
 
 function lagosGreeting(now: Date) {
   const hour = (now.getUTCHours() + 1) % 24;
@@ -91,10 +109,11 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
     totalProducts,
     publishedProducts,
     pendingQuotes,
-    toShipCount,
+    toShip,
     earned30,
     earnedAll,
-    ordersToShip,
+    wholesaleToShip,
+    dropshipToShip,
     waitingQuotes,
     topProducts,
     recommendedLogistics,
@@ -103,17 +122,12 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
     db.supplierProduct.count({ where: { supplierId: supplier.id } }),
     db.supplierProduct.count({ where: { supplierId: supplier.id, status: "published" } }),
     db.supplierQuoteRequest.count({ where: { supplierId: supplier.id, status: "pending" } }),
-    db.wholesaleOrder.count({ where: { supplierId: supplier.id, status: { in: [...TO_SHIP] } } }),
-    db.wholesaleOrder.aggregate({
-      where: { supplierId: supplier.id, status: { in: [...EARNED] }, createdAt: { gte: monthAgo } },
-      _sum: { totalPrice: true },
-    }),
-    db.wholesaleOrder.aggregate({
-      where: { supplierId: supplier.id, status: { in: [...EARNED] } },
-      _sum: { totalPrice: true },
-    }),
+    // Wholesale and dropship orders alike (src/lib/supplier-orders/money.server.ts).
+    supplierOrdersToShip(supplier.id),
+    supplierEarnings(supplier.id, { since: monthAgo }),
+    supplierEarnings(supplier.id),
     db.wholesaleOrder.findMany({
-      where: { supplierId: supplier.id, status: { in: [...TO_SHIP] } },
+      where: { supplierId: supplier.id, status: { in: [...WHOLESALE_TO_SHIP] } },
       orderBy: { createdAt: "asc" },
       take: 6,
       select: {
@@ -128,6 +142,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         supplierProduct: { select: { name: true, images: true } },
       },
     }),
+    listDropshipOrders(supplier.id, { statuses: DROPSHIP_TO_SHIP, order: "asc", take: 6 }),
     db.supplierQuoteRequest.findMany({
       where: { supplierId: supplier.id, status: "pending" },
       orderBy: { createdAt: "desc" },
@@ -162,6 +177,38 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
     getActiveSellersByCategory(supplier),
   ]);
 
+  const toShipCount = toShip.total;
+  const ordersToShip: ShipRow[] = [
+    ...wholesaleToShip.map((order): ShipRow => ({
+      key: `w-${order.id}`,
+      href: "/supplier/orders?kind=wholesale",
+      image: order.supplierProduct.images[0],
+      title: `${order.supplierProduct.name} × ${order.quantity.toLocaleString("en-NG")}`,
+      sub: `${order.seller.name} · ${order.deliveryAddress || "No address yet"}`,
+      stage: statusOf(ORDER_STATUS, order.status),
+      createdAt: order.createdAt,
+      amount: order.totalPrice,
+      currency: order.currency,
+    })),
+    ...dropshipToShip.orders.map((order): ShipRow => {
+      const units = order.items.reduce((sum, item) => sum + item.quantity, 0);
+      const first = order.items[0];
+      return {
+        key: `d-${order.id}`,
+        href: "/supplier/orders?kind=dropship",
+        image: first?.image,
+        title: order.items.length > 1 ? `${first?.name ?? "Products"} and ${order.items.length - 1} more · ${units} units` : `${first?.name ?? "Product"} × ${units}`,
+        sub: `Dropship for ${order.shop} · ${order.recipient.address[order.recipient.address.length - 1] ?? order.recipient.name}`,
+        stage: statusOf(DROPSHIP_STAGE, order.status),
+        createdAt: new Date(order.createdAt),
+        amount: order.costTotal,
+        currency: order.currency,
+      };
+    }),
+  ]
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    .slice(0, 6);
+
   const firstName = user.name.split(/\s+/)[0] || user.name;
   const verified = supplier.verificationStatus === "verified";
 
@@ -194,7 +241,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
           <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatTile label="Orders to ship" value={toShipCount.toLocaleString("en-NG")} />
             <StatTile label="Quotes waiting" value={pendingQuotes.toLocaleString("en-NG")} />
-            <StatTile label="Earned, 30 days" value={money(earned30._sum.totalPrice ?? 0)} hint={`${money(earnedAll._sum.totalPrice ?? 0)} all time`} />
+            <StatTile label="Earned, 30 days" value={money(earned30.earned)} hint={earnedAll.owed > 0 ? `${money(earnedAll.owed)} still owed to you` : `${money(earnedAll.earned)} all time`} />
             <StatTile label="Products live" value={publishedProducts.toLocaleString("en-NG")} hint={`of ${totalProducts} in your catalogue`} />
           </div>
         </Card>
@@ -237,21 +284,18 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
           </div>
           {ordersToShip.length ? (
             <ListCard>
-              {ordersToShip.map((order) => {
-                const stage = statusOf(ORDER_STATUS, order.status);
-                return (
-                  <ListRow key={order.id} href="/supplier/orders">
-                    <Thumb src={order.supplierProduct.images[0]} label={order.supplierProduct.name} size={44} />
-                    <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
-                      <span className="block truncate text-[14px] font-extrabold">{order.supplierProduct.name} × {order.quantity.toLocaleString("en-NG")}</span>
-                      <span className="block truncate text-[12.5px] text-app-ink-soft">{order.seller.name} · {order.deliveryAddress || "No address yet"}</span>
-                    </span>
-                    <span className="hidden w-[130px] sm:block"><StageDot tone={stage.tone}>{stage.label}</StageDot></span>
-                    <span className="hidden w-[90px] text-[13px] text-app-ink-soft md:block">{timeAgo(order.createdAt)}</span>
-                    <span className="ml-auto text-right text-[14px] font-extrabold">{money(order.totalPrice, order.currency)}</span>
-                  </ListRow>
-                );
-              })}
+              {ordersToShip.map((order) => (
+                <ListRow key={order.key} href={order.href}>
+                  <Thumb src={order.image ?? undefined} label={order.title} size={44} />
+                  <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
+                    <span className="block truncate text-[14px] font-extrabold">{order.title}</span>
+                    <span className="block truncate text-[12.5px] text-app-ink-soft">{order.sub}</span>
+                  </span>
+                  <span className="hidden w-[130px] sm:block"><StageDot tone={order.stage.tone}>{order.stage.label}</StageDot></span>
+                  <span className="hidden w-[90px] text-[13px] text-app-ink-soft md:block">{timeAgo(order.createdAt)}</span>
+                  <span className="ml-auto text-right text-[14px] font-extrabold">{money(order.amount, order.currency)}</span>
+                </ListRow>
+              ))}
             </ListCard>
           ) : (
             <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">

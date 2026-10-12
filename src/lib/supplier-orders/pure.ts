@@ -153,3 +153,58 @@ export function plainText(value: unknown, max = 120) {
 export function supplierOrderRef(id: string) {
   return `DS-${id.slice(-6).toUpperCase()}`;
 }
+
+// ─── Wholesale: stock ─────────────────────────────────────────────────────────
+
+/**
+ * Supplier stock a wholesale order takes when placed. A product with stock on record reserves the quantity (the
+ * order is refused if there isn't enough); one with none on record (0, made to order) reserves nothing.
+ */
+export function wholesaleReservation(stockQuantity: number, quantity: number): { reserve: number } | { short: true } {
+  if (stockQuantity <= 0) return { reserve: 0 };
+  if (quantity > stockQuantity) return { short: true };
+  return { reserve: quantity };
+}
+
+/** Declined or cancelled wholesale orders give their reserved stock back; shipping or delivering never does. */
+export function wholesaleReleasesStock(status: string) {
+  return status === "cancelled";
+}
+
+/** A seller can cancel a wholesale order until the supplier starts packing it. */
+export const SELLER_CANCELLABLE_WHOLESALE = ["pending", "confirmed"] as const;
+
+// ─── Supplier money: earned, owed, paid ───────────────────────────────────────
+
+/** Orders a supplier has earned on: shipped or delivered (wholesale and dropship alike). */
+export const SUPPLIER_EARNED_STATUSES = ["shipped", "delivered"] as const;
+
+export interface SupplierMoneyRow {
+  status: string;
+  amount: number;
+  paidOutAt?: Date | string | null;
+}
+
+/** Earned (shipped or delivered), of which paid (the supplier confirmed it) and owed (not yet). */
+export function supplierMoney(rows: SupplierMoneyRow[]) {
+  const round = (value: number) => Math.round(value * 100) / 100;
+  let earned = 0;
+  let paid = 0;
+  let earnedCount = 0;
+  let paidCount = 0;
+  for (const row of rows) {
+    if (!(SUPPLIER_EARNED_STATUSES as readonly string[]).includes(row.status)) continue;
+    const amount = Number(row.amount) || 0;
+    earned += amount;
+    earnedCount += 1;
+    if (row.paidOutAt) {
+      paid += amount;
+      paidCount += 1;
+    }
+  }
+  return { earned: round(earned), paid: round(paid), owed: round(earned - paid), earnedCount, paidCount, owedCount: earnedCount - paidCount };
+}
+
+/** Wholesale orders still to send (OrderStatus) and dropship orders still to send (SupplierOrder.status). */
+export const WHOLESALE_TO_SHIP = ["pending", "confirmed", "processing"] as const;
+export const DROPSHIP_TO_SHIP = ["pending", "accepted"] as const;

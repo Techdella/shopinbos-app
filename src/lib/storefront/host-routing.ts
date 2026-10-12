@@ -144,25 +144,10 @@ export function storePathAction(pathname: string, slug: string): StorePathAction
 
 // ─── Custom domains ──────────────────────────────────────────────────────────
 
-/** The stored customDomain values a host may match: itself, its apex and its www form. */
-export function customDomainCandidates(host: string) {
-  const normalized = normalizeHost(host);
-  if (!normalized) return [];
-  const apex = normalized.replace(/^www\./, "");
-  return Array.from(new Set([normalized, apex, `www.${apex}`]));
-}
-
 /**
- * Picks the store for a custom-domain host from the active stores whose customDomain is one of the candidates.
- * An exact match beats the www/apex twin; if two stores claim the same domain, neither is served.
+ * The ownership key a host is served under: its www-less form ("www.adas.ng" and "adas.ng" → "adas.ng").
+ * Store.customDomainKey is unique and only set once the domain is verified, so a key names at most one store.
  */
-export function pickCustomDomainStore(host: string, rows: readonly { slug: string; customDomain: string | null }[]) {
-  const wanted = normalizeHost(host);
-  const normalized = rows
-    .map((row) => ({ slug: row.slug, domain: normalizeHost(row.customDomain) }))
-    .filter((row) => row.domain && customDomainCandidates(wanted).includes(row.domain));
-  const exact = normalized.filter((row) => row.domain === wanted);
-  const pool = exact.length ? exact : normalized;
-  const slugs = new Set(pool.map((row) => row.slug));
-  return slugs.size === 1 ? pool[0]!.slug : null;
+export function customDomainKeyForHost(host: string | null | undefined) {
+  return normalizeHost(host).replace(/^www\./, "");
 }

@@ -4,6 +4,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
+import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 
 type ProductImportRow = Record<string, string | undefined>;
 
@@ -73,5 +74,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     }
   }
 
+  if (imported) await markCatalogDirty(store.id);
   return ok({ imported, errors });
 });

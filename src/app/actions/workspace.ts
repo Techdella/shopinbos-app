@@ -363,13 +363,13 @@ export async function saveStoreDomainSettings(formData: FormData) {
   if (!store) redirect("/builder?firstRun=1");
 
   const slug = slugify(String(formData.get("slug") || store.slug));
-  const customDomain = String(formData.get("customDomain") || "").trim().toLowerCase();
 
+  // A custom domain is never set here: it goes live only after ownership is verified (/api/domains/connect
+  // then /api/domains/verify), so a "customDomain" field in this form is ignored.
   await db.store.update({
     where: { id: store.id },
     data: {
       slug: slug || store.slug,
-      customDomain: customDomain || null,
     },
   });
 

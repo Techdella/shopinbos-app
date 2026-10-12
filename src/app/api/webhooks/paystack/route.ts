@@ -5,8 +5,10 @@ import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
+import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
+import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 
@@ -128,6 +130,7 @@ export async function POST(req: NextRequest) {
             data: { status: "paid", paystackStatus: "success", paystackRef: ref },
           });
       if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
+      if (moved.count === 1) await notifyOrderCustomer(ref, "payment_received"); // WhatsApp/SMS to the buyer, if switched on
       // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
         await ensureSupplierOrdersSafely(ref);
@@ -176,6 +179,13 @@ export async function POST(req: NextRequest) {
         console.error("Paystack webhook follow-up failed:", error);
       }
     }
+  }
+
+  // ── Refunds we started (a payment that arrived after its order expired and the stock sold) ──
+  if (eventType?.startsWith("refund.")) {
+    await applyRefundEvent(eventType, event.data ?? {}).catch((error) => {
+      console.error(`[paystack webhook] ${eventType} could not be applied`, error);
+    });
   }
 
   return new NextResponse("OK", { status: 200 });

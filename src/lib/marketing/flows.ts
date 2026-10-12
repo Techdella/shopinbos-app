@@ -56,7 +56,12 @@ export type FlowStep =
   | { type: "condition"; check: FlowCondition; segmentId?: string | null }
   | { type: "send_email"; subject: string; bodyHtml: string; templateId?: string | null }
   | { type: "send_sms"; message: string }
-  | { type: "send_whatsapp"; message: string }
+  /**
+   * WhatsApp: an approved template (`template` is a WhatsAppTemplate id, or "preset:<key>" for the store's approved
+   * template made from a ready-made one) with {{1}}..{{n}} filled from `variables`; or, without a template, a
+   * free-form `message`, which WhatsApp only delivers within 24 hours of the customer's last message.
+   */
+  | { type: "send_whatsapp"; message: string; template?: string | null; variables?: string[]; headerImageUrl?: string | null }
   | { type: "add_tag"; tag: string }
   | { type: "give_discount"; percent: number; days: number }
   | { type: "request_review" }
@@ -108,10 +113,17 @@ export function parseStep(raw: unknown): FlowStep | null {
       const templateId = typeof s.templateId === "string" && s.templateId ? s.templateId : null;
       return subject || templateId ? { type: "send_email", subject, bodyHtml, templateId } : null;
     }
-    case "send_sms":
+    case "send_sms": {
+      const message = str(s.message, 1000).trim();
+      return message ? { type: "send_sms", message } : null;
+    }
     case "send_whatsapp": {
       const message = str(s.message, 1000).trim();
-      return message ? { type: s.type, message } : null;
+      const template = typeof s.template === "string" && s.template.trim() ? s.template.trim().slice(0, 80) : null;
+      if (!message && !template) return null;
+      const variables = Array.isArray(s.variables) ? s.variables.map((v) => (typeof v === "string" ? v.slice(0, 40) : "")).slice(0, 20) : [];
+      const headerImageUrl = typeof s.headerImageUrl === "string" && /^https:\/\/\S+$/.test(s.headerImageUrl) ? s.headerImageUrl.slice(0, 1000) : null;
+      return { type: "send_whatsapp", message, ...(template ? { template, variables, ...(headerImageUrl ? { headerImageUrl } : {}) } : {}) };
     }
     case "add_tag": {
       const tag = str(s.tag, 40).trim().toLowerCase();
@@ -171,7 +183,7 @@ export function describeStep(step: FlowStep): string {
     case "send_sms":
       return `SMS: ${step.message.slice(0, 60)}`;
     case "send_whatsapp":
-      return `WhatsApp: ${step.message.slice(0, 60)}`;
+      return step.template ? `WhatsApp template${step.template.startsWith("preset:") ? ` (${step.template.slice(7).replace(/_/g, " ")})` : ""}` : `WhatsApp: ${step.message.slice(0, 60)}`;
     case "add_tag":
       return `Tag them "${step.tag}"`;
     case "give_discount":
@@ -187,6 +199,51 @@ export function formatMinutes(minutes: number) {
   if (minutes % 1440 === 0) return `${minutes / 1440} day${minutes === 1440 ? "" : "s"}`;
   if (minutes % 60 === 0) return `${minutes / 60} hour${minutes === 60 ? "" : "s"}`;
   return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+}
+
+/**
+ * What's wrong with a step before the flow can be switched on, in the seller's words. `templates` are the store's
+ * WhatsApp templates (id, status, how many variables) when known; "preset:" references are checked at send time.
+ */
+export function stepProblems(step: FlowStep, context: { templates?: Array<{ id: string; status: string; variableCount: number }>; whatsappTemplates?: boolean } = {}): string[] {
+  const problems: string[] = [];
+  switch (step.type) {
+    case "send_sms":
+      if (!step.message.trim()) problems.push("Write the SMS.");
+      if (step.message.length > 480) problems.push("Keep the SMS under 480 characters (3 parts).");
+      break;
+    case "send_whatsapp": {
+      if (!step.template) {
+        if (!step.message.trim()) problems.push("Pick a WhatsApp template or write a message.");
+        break;
+      }
+      if (context.whatsappTemplates === false) problems.push("Connect WhatsApp (Inbox › Chatbot › WhatsApp) to send templates.");
+      if (step.template.startsWith("preset:")) break;
+      const template = context.templates?.find((t) => t.id === step.template);
+      if (context.templates && !template) problems.push("The WhatsApp template was deleted. Pick another one.");
+      else if (template && template.status !== "APPROVED") problems.push(`The WhatsApp template isn't approved yet (${template.status.toLowerCase()}).`);
+      if (template) for (let i = 0; i < template.variableCount; i++) if (!step.variables?.[i]) problems.push(`Choose what {{${i + 1}}} is filled with.`);
+      break;
+    }
+    case "send_email":
+      if (!step.subject.trim() && !step.templateId) problems.push("Give the email a subject or pick a template.");
+      break;
+    case "condition":
+      if (step.check === "in_segment" && !step.segmentId) problems.push("Choose the segment.");
+      break;
+    case "add_tag":
+      if (!step.tag.trim()) problems.push("Name the tag.");
+      break;
+    default:
+      break;
+  }
+  return [...new Set(problems)];
+}
+
+/** Things that won't stop a flow from running but will make messages go missing. */
+export function stepWarnings(step: FlowStep): string[] {
+  if (step.type === "send_whatsapp" && !step.template) return ["Without a template, WhatsApp only delivers this to people who messaged you in the last 24 hours. Pick an approved template."];
+  return [];
 }
 
 // ─── Message variables ────────────────────────────────────────────────────────
@@ -259,11 +316,35 @@ export const FLOW_PRESETS: FlowPreset[] = [
       { type: "wait", minutes: 60 },
       { type: "condition", check: "cart_not_recovered" },
       { type: "send_email", subject: "You left something at {{store}}", bodyHtml: email(t("Hi {{name}},"), t("Your cart is saved: {{cart_items}}."), t("**Total: {{cart_total}}**"), button("Finish your order", "{{cart_url}}")) },
-      { type: "send_whatsapp", message: "Hi {{name}}, your cart at {{store}} is saved: {{cart_items}}. Finish your order here: {{cart_url}}" },
       { type: "wait", minutes: 1440 },
       { type: "condition", check: "cart_not_recovered" },
       { type: "give_discount", percent: 10, days: 3 },
       { type: "send_email", subject: "10% off your cart at {{store}}", bodyHtml: email(t("Hi {{name}},"), t("Still thinking it over? Use code **{{discount_code}}** for 10% off. It's yours for the next 3 days."), button("Go back to your cart", "{{cart_url}}")) },
+    ],
+  },
+  {
+    key: "abandoned_cart_whatsapp",
+    name: "Abandoned cart: WhatsApp first",
+    description: "A WhatsApp reminder an hour after someone leaves checkout, then an email a day later if they still haven't paid.",
+    trigger: "abandoned_checkout",
+    steps: [
+      { type: "wait", minutes: 60 },
+      { type: "condition", check: "cart_not_recovered" },
+      { type: "condition", check: "has_phone" },
+      { type: "send_whatsapp", message: "", template: "preset:abandoned_cart", variables: ["first_name", "cart_items", "store_name", "cart_link"] },
+      { type: "wait", minutes: 23 * 60 },
+      { type: "condition", check: "cart_not_recovered" },
+      { type: "send_email", subject: "Your cart at {{store}} is still saved", bodyHtml: email(t("Hi {{name}},"), t("Your cart is still waiting: {{cart_items}}. Items sell out, so finish your order while they are here."), button("Finish your order", "{{cart_url}}")) },
+    ],
+  },
+  {
+    key: "order_updates_whatsapp",
+    name: "Shipping update on WhatsApp",
+    description: "Tell buyers on WhatsApp the moment you mark their order shipped, with the tracking code.",
+    trigger: "order_shipped",
+    steps: [
+      { type: "condition", check: "has_phone" },
+      { type: "send_whatsapp", message: "", template: "preset:order_shipped", variables: ["first_name", "order_number", "store_name", "tracking_code", "tracking_link"] },
     ],
   },
   {
@@ -305,6 +386,18 @@ export const FLOW_PRESETS: FlowPreset[] = [
       { type: "condition", check: "subscribed" },
       { type: "give_discount", percent: 15, days: 7 },
       { type: "send_email", subject: "We miss you at {{store}}", bodyHtml: email(t("Hi {{name}},"), t("It's been a while. Here's 15% off your next order with code **{{discount_code}}**, valid for 7 days."), button("Shop now", "{{store_url}}")) },
+    ],
+  },
+  {
+    key: "win_back_whatsapp",
+    name: "Win-back on WhatsApp",
+    description: "When a customer who said yes to WhatsApp hasn't ordered in 90 days, send a code on WhatsApp.",
+    trigger: "win_back",
+    settings: { days: 90 },
+    steps: [
+      { type: "condition", check: "has_phone" },
+      { type: "give_discount", percent: 15, days: 7 },
+      { type: "send_whatsapp", message: "", template: "preset:promo", variables: ["first_name", "store_name", "discount_code", "link"] },
     ],
   },
   {

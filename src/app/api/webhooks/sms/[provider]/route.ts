@@ -3,6 +3,7 @@ import { ingestInbound, updateMessageStatus } from "@/lib/inbox/service";
 import { smsProvider } from "@/lib/sms";
 import { isSmsProvider, parseBody } from "@/lib/sms/pure";
 import { authenticateWebhook } from "@/lib/sms/webhook";
+import { marketingInboundHook, marketingStatusHook } from "@/lib/marketing/webhook-hooks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,10 +30,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
       contact: { phone: inbound.phone },
       message: { body: inbound.text, externalId: inbound.externalId ? `${key}:${inbound.externalId}` : null, createdAt: inbound.timestamp, meta: { provider: key, to: inbound.to } },
     });
+    // STOP / START replies opt the number out of (or back into) this shop's texts.
+    await marketingInboundHook({ storeId: auth.channel.row.storeId, channel: "sms", phone: inbound.phone ?? inbound.from, text: inbound.text });
     return new NextResponse("OK", { status: 200 });
   }
 
   const status = provider.parseStatus(body);
   if (status) await updateMessageStatus(status.externalId, status.status, status.error, auth.channel?.row.storeId);
+  // Delivery receipts for SMS campaigns and order messages.
+  if (status) await marketingStatusHook(status.externalId, status.status, status.error, auth.channel?.row.storeId);
   return new NextResponse("OK", { status: 200 });
 }

@@ -216,7 +216,8 @@ test("expiry selects only unpaid card/transfer orders past their time that still
   const base = { status: "pending", paymentMethod: null, createdAt: old, stockHold: hold, stockReleasedAt: null };
   const expirable = (order) => stock.isExpirableOrder({ ...base, ...order }, now, 30);
   assert.ok(expirable({}), "Paystack (null method)");
-  assert.ok(expirable({ paymentMethod: "transfer" }));
+  assert.ok(!expirable({ paymentMethod: "transfer" }), "bank transfer has its own, longer window (tests/orders-followups.test.mjs)");
+  assert.ok(expirable({ paymentMethod: "transfer", createdAt: new Date("2026-10-13T11:00:00Z") }), "transfer after 24 hours");
   assert.ok(expirable({ paymentMethod: "paystack", status: "awaiting_payment" }));
   assert.ok(expirable({ createdAt: new Date("2026-10-14T11:30:00Z") }), "exactly at the cutoff");
   assert.ok(!expirable({ createdAt: fresh }), "still within 30 minutes");
@@ -225,7 +226,7 @@ test("expiry selects only unpaid card/transfer orders past their time that still
   assert.ok(!expirable({ status: "paid" }), "paid orders never expire");
   assert.ok(!expirable({ status: "cancelled" }));
   assert.ok(!expirable({ stockReleasedAt: now }), "stock already given back");
-  assert.ok(!expirable({ stockHold: null }), "older orders without a hold are left alone");
+  assert.ok(!expirable({ stockHold: null }), "an older order with no hold and no lines has nothing to give back");
   assert.equal(stock.expiryCutoff(now, 30).toISOString(), "2026-10-14T11:30:00.000Z");
 });
 

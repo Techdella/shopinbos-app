@@ -42,6 +42,18 @@ export default async function AutomationsPage() {
     >
       <div className="grid gap-5">
         {channels && !channels.email.ready ? <Notice tone="info">Automation emails can't go out yet. {channels.email.howTo}</Notice> : null}
+        {channels && flows.some((f) => f.active && f.steps.some((step) => step.type === "send_whatsapp")) && !channels.whatsapp.templates ? (
+          <Notice tone="info">
+            WhatsApp steps in your automations are being skipped. {channels.whatsapp.howTo}{" "}
+            {channels.whatsapp.connectHref ? <a href={channels.whatsapp.connectHref} className="font-bold underline">{channels.whatsapp.connectLabel}</a> : null}
+          </Notice>
+        ) : null}
+        {channels && flows.some((f) => f.active && f.steps.some((step) => step.type === "send_sms")) && !channels.sms.ready ? (
+          <Notice tone="info">
+            SMS steps in your automations are being skipped. {channels.sms.howTo}{" "}
+            {channels.sms.connectHref ? <a href={channels.sms.connectHref} className="font-bold underline">{channels.sms.connectLabel}</a> : null}
+          </Notice>
+        ) : null}
         <StatGrid>
           <StatTile tone="card" label="Automations on" value={flows.filter((f) => f.active).length} hint={`of ${flows.length}`} />
           <StatTile tone="card" label="People started a flow" value={enrolled30.toLocaleString("en-NG")} hint="last 30 days" />
