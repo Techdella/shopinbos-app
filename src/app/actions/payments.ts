@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import type { Prisma } from "@prisma/client";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
+import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
+import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
 
 interface PaystackTransaction {
@@ -90,12 +92,14 @@ export async function updateOrderPayment(
   try {
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true },
+      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
     }
-    if (order.status !== "pending" && order.status !== "awaiting_payment") {
+    // Expired unpaid orders can still be paid (the checks below run first); stock is taken again if it's there.
+    const expired = order.status === "cancelled" && Boolean(order.expiredAt);
+    if (order.status !== "pending" && order.status !== "awaiting_payment" && !expired) {
       return order.paystackRef === reference ? { success: true } : { success: false, error: "Order is not awaiting payment" };
     }
 
@@ -127,6 +131,15 @@ export async function updateOrderPayment(
       return { success: false, error: "Payment customer does not match this order" };
     }
 
+    if (expired) {
+      const outcome = await recoverExpiredOrderPayment(orderId, { reference });
+      if (outcome === "reinstated") await creditCampaignConversion(orderId).catch(() => null);
+      revalidatePath("/home/orders");
+      return outcome === "needs_refund"
+        ? { success: false, error: "This order expired before the payment arrived and the items have sold out. The store will refund you." }
+        : { success: true };
+    }
+
     // Only a still-unpaid order moves (the webhook may have marked it paid a moment ago).
     const moved = await db.retailOrder.updateMany({
       where: { id: orderId, status: { in: ["pending", "awaiting_payment"] } },
@@ -137,6 +150,8 @@ export async function updateOrderPayment(
       },
     });
     if (moved.count === 1) await creditCampaignConversion(orderId).catch(() => null);
+    // Dropship items go to their suppliers (idempotent: the webhook may do the same).
+    await ensureSupplierOrdersSafely(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };

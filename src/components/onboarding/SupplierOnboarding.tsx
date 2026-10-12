@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
+import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
 import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
 import intentRouting from "@/lib/intent-routing";
 import {
@@ -103,7 +104,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
     return trimmed.length >= 2 ? trimmed : undefined;
   }
 
-  async function save(completed: boolean) {
+  async function save(completed: boolean, docsLater = false) {
     setSaving(true);
     setSaved("");
     setError("");
@@ -141,6 +142,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
           categories,
           readinessScore,
           completed,
+          ...(docsLater ? { docsLater: true } : {}),
         }),
       }).catch(() => null);
 
@@ -150,6 +152,10 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
         return;
       }
 
+      if (docsLater) {
+        router.push("/supplier/dashboard?docs=later");
+        return;
+      }
       if (completed) {
         const intentParams = extractIntentParams(searchParams);
         const destination = getContinuationPath({
@@ -278,6 +284,15 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
               )}
 
               <div className="mt-6">
+                <CacInstantCheck
+                  apiPath="/api/supplier/verification/cac"
+                  defaultName={businessName}
+                  cacDoc={documents.find((d) => d.type === "cac")}
+                  onVerified={(doc) => setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc])}
+                />
+              </div>
+
+              <div className="mt-4">
                 <VerificationDocUploader
                   role="supplier"
                   docs={documents}
@@ -286,7 +301,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                   onDelete={handleDocumentRemove}
                 />
               </div>
-              <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">PDF, JPG, PNG or WebP, up to 10 MB each. Files save as soon as they upload.</p>
+              <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">Files save as soon as they upload.</p>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <PillButton tone="ghost" size="md" onClick={() => setStep(1)}>
@@ -298,6 +313,20 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                     Submit for admin review <Icon name="arrow" size={15} />
                   </PillButton>
                 </div>
+              </div>
+
+              {/* Not everyone has their papers to hand. Let them in to set up, and remind them to finish. */}
+              <div className="mt-6 flex flex-wrap items-center gap-4 rounded-[22px] border border-dashed border-app-line-strong bg-white p-5">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-peach text-app-ink"><Icon name="clock" size={18} /></span>
+                <div className="min-w-0 flex-1 basis-[260px]">
+                  <h2 className="m-0 text-[16px] font-extrabold">Documents not ready yet?</h2>
+                  <p className="mb-0 mt-1 text-[14px] leading-[1.5] text-app-ink-soft">
+                    Go to your supplier portal now and set up your profile and draft products. We&apos;ll save what you&apos;ve added and remind you by email. Sellers see you once your documents are approved.
+                  </p>
+                </div>
+                <PillButton tone="ink" size="md" onClick={() => void save(false, true)} disabled={saving || uploadsInFlight > 0}>
+                  Continue without documents <Icon name="arrow" size={15} />
+                </PillButton>
               </div>
             </section>
 

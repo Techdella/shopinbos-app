@@ -1,9 +1,13 @@
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { WholesaleOrderCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { WHOLESALE_PAYMENT_NOTE, placeWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
+
+// A seller places a wholesale order with a supplier: at least the minimum order, priced at the supplier's tier
+// for that quantity. No payment is taken here: the supplier confirms and invoices the seller, who pays them
+// directly (`payment` in the response says so). The supplier sees it in /supplier/orders.
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -14,41 +18,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   }
 
   const { supplierId, supplierProductId, quantity, deliveryAddress, notes } = parsed.data;
+  const result = await placeWholesaleOrder({ sellerId: user.id, supplierId, supplierProductId, quantity, deliveryAddress, notes });
+  if (!result.ok) return apiError(result.code, result.message);
 
-  const [supplier, product] = await Promise.all([
-    db.supplier.findFirst({
-      where: { id: supplierId, status: "active", verificationStatus: "verified" },
-    }),
-    db.supplierProduct.findFirst({
-      where: {
-        id: supplierProductId,
-        supplierId,
-        status: "published",
-        bulkOrderAvailable: true,
-      },
-    }),
-  ]);
-
-  if (!supplier) return apiError("NOT_FOUND", "Supplier not found", 404);
-  if (!product) return apiError("NOT_FOUND", "Product not found", 404);
-  if (quantity < product.moq) {
-    return apiError("BAD_REQUEST", `Minimum order quantity is ${product.moq}`, 400);
-  }
-
-  const unitPrice = product.wholesalePrice;
-  const order = await db.wholesaleOrder.create({
-    data: {
-      sellerId: user.id,
-      supplierId,
-      supplierProductId,
-      quantity,
-      unitPrice,
-      totalPrice: unitPrice * quantity,
-      currency: product.currency,
-      deliveryAddress,
-      notes,
-    },
-  });
-
-  return ok(order, 201);
+  return ok({ ...result.data, payment: { method: "invoice", note: WHOLESALE_PAYMENT_NOTE } }, 201);
 });

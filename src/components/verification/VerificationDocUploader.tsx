@@ -6,6 +6,7 @@ import { Spinner, cx } from "@/components/app-ui";
 import {
   DOC_FILE_ACCEPT,
   docDisplayState,
+  DOC_FORMATS_LABEL,
   docHasFile,
   docStatusLabel,
   findDoc,
@@ -81,6 +82,7 @@ export function VerificationDocUploader({ docs, docConfigs, onUpload, onDelete, 
   }
 
   return (
+    <div>
     <ul className="m-0 list-none divide-y divide-app-line overflow-hidden rounded-[22px] border border-app-line bg-white p-0">
       {docConfigs.map((config) => {
         const doc = findDoc(docs, config.type);
@@ -195,5 +197,7 @@ export function VerificationDocUploader({ docs, docConfigs, onUpload, onDelete, 
         );
       })}
     </ul>
+    {!readOnly && <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">We accept {DOC_FORMATS_LABEL}.</p>}
+    </div>
   );
 }

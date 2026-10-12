@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import type { VerificationDoc } from "@/lib/verification-utils";
-import { DOC_TYPE_LABELS, docDisplayState, docHasFile, docStatusLabel, formatBytes, type DocDisplayState } from "@shared/verification-docs";
+import { DOC_TYPE_LABELS, docDisplayState, docHasEvidence, docHasFile, docStatusLabel, formatBytes, type DocDisplayState } from "@shared/verification-docs";
 import { docFileUrl } from "./upload-client";
 
 interface AdminDocumentViewerProps {
@@ -88,10 +88,10 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
               <span
                 className={cx(
                   "grid h-11 w-11 shrink-0 place-items-center rounded-[12px]",
-                  doc.status === "approved" ? "bg-app-success-tint text-app-success" : doc.status === "rejected" || !hasFile ? "bg-app-danger-tint text-app-danger" : "bg-app-canvas text-app-ink",
+                  doc.status === "approved" ? "bg-app-success-tint text-app-success" : doc.status === "rejected" || !docHasEvidence(doc) ? "bg-app-danger-tint text-app-danger" : "bg-app-canvas text-app-ink",
                 )}
               >
-                <Icon name={!hasFile ? "warn" : doc.type === "product-images" ? "image" : "file"} size={18} />
+                <Icon name={!docHasEvidence(doc) ? "warn" : !hasFile ? "shield" : doc.type === "product-images" ? "image" : "file"} size={18} />
               </span>
 
               <div className="min-w-0 flex-1 basis-[200px]">
@@ -102,6 +102,8 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
                       {doc.fileName && <span className="max-w-full truncate">{doc.fileName}</span>}
                       {formatBytes(doc.fileSize) && <span>{formatBytes(doc.fileSize)}</span>}
                     </>
+                  ) : docHasEvidence(doc) ? (
+                    <span>No file: verified against the CAC registry</span>
                   ) : (
                     <span>No file was stored{doc.fileName ? ` (${doc.fileName} was picked but never uploaded)` : ""}. Ask for a re-upload.</span>
                   )}
@@ -109,6 +111,17 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
                 </div>
                 {doc.rejectionReason && (
                   <div className="mt-1 text-[13px] text-app-danger">Reason: {doc.rejectionReason}</div>
+                )}
+                {doc.registry && (
+                  <div className="mt-1.5 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5]">
+                    <div className="font-bold">
+                      CAC registry ({doc.registry.provider}): {doc.registry.registeredName} · {doc.registry.companyType === "BUSINESS_NAME" ? "BN" : "RC"} {doc.registry.rcNumber}
+                    </div>
+                    <div className="text-app-ink-soft">
+                      Status {doc.registry.registryStatus || "unknown"} · name {doc.registry.nameMatched ? "matches" : "differs"} (entered “{doc.registry.enteredName}”) · account holder {doc.registry.ownerMatched ? "listed on the record" : "not found on the record"}
+                      {doc.registry.address ? ` · ${doc.registry.address}` : ""} · checked {new Date(doc.registry.checkedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    </div>
+                  </div>
                 )}
               </div>
 

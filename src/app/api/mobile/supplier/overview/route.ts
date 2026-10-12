@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { parseVerificationDocs } from "@/lib/verification-utils";
-import { LOW_STOCK } from "../_rules";
+import { DROPSHIP_OPEN, LOW_STOCK } from "../_rules";
 import { WHOLESALE_SELECT, dropshipOrders, supplierForUser, wholesaleView } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +19,8 @@ export const GET = withSupplier(async (_req: NextRequest, { user }) => {
   if (!supplier) return apiError("NOT_FOUND", "Supplier profile not found", 404);
 
   const where = { supplierId: supplier.id };
-  const [dropship, wholesale, wholesaleCount, quotes, quoteCount, lowStock, earnedWholesale, bank, productCount] = await Promise.all([
-    dropshipOrders(supplier.id),
+  const [dropship, wholesale, wholesaleCount, quotes, quoteCount, lowStock, earnedWholesale, bank, productCount, earnedDropshipSum] = await Promise.all([
+    dropshipOrders(supplier.id, { statuses: DROPSHIP_OPEN, order: "asc", take: 60 }),
     db.wholesaleOrder.findMany({ where: { ...where, status: { in: [...OPEN_WHOLESALE] } }, orderBy: { createdAt: "asc" }, take: 3, select: WHOLESALE_SELECT }),
     db.wholesaleOrder.count({ where: { ...where, status: { in: [...OPEN_WHOLESALE] } } }),
     db.supplierQuoteRequest.findMany({
@@ -39,10 +39,11 @@ export const GET = withSupplier(async (_req: NextRequest, { user }) => {
     db.wholesaleOrder.aggregate({ where: { ...where, status: { in: ["shipped", "delivered"] } }, _sum: { totalPrice: true } }),
     db.supplierPayoutAccount.findUnique({ where: { supplierId: supplier.id }, select: { bankName: true, accountNumberMask: true, verificationStatus: true } }),
     db.supplierProduct.count({ where }),
+    db.supplierOrder.aggregate({ where: { ...where, status: { in: ["shipped", "delivered"] } }, _sum: { costTotal: true } }),
   ]);
 
   const toPack = dropship.filter((order) => order.next.length > 0);
-  const earnedDropship = dropship.filter((order) => order.status === "shipped" || order.status === "delivered").reduce((sum, order) => sum + order.yourTotal, 0);
+  const earnedDropship = earnedDropshipSum._sum.costTotal ?? 0;
   const docs = parseVerificationDocs(supplier.verificationDocuments);
 
   return ok({

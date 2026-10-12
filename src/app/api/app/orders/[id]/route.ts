@@ -13,8 +13,14 @@ export const GET = withSeller(async (req, { user, params }) => {
 
   const order = await db.retailOrder.findFirst({ where: { id, storeId: store.id } });
   if (!order) return apiError("NOT_FOUND", "Order not found", 404);
+  // Dropship items: where each supplier is with them.
+  const supplierOrders = await db.supplierOrder.findMany({
+    where: { retailOrderId: order.id, storeId: store.id },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, supplier: { select: { id: true, displayName: true } } },
+  });
 
-  return ok({ ...order, row: orderRow({ ...order, total: Number(order.total) }) });
+  return ok({ ...order, supplierOrders, row: orderRow({ ...order, total: Number(order.total) }) });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {

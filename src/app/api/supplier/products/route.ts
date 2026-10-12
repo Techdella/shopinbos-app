@@ -55,8 +55,10 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   if (!isOnboardingComplete(supplier)) {
     return apiError("ONBOARDING_REQUIRED", "Complete supplier onboarding before adding products.", 403);
   }
-  if (supplier.verificationStatus !== "verified") {
-    return apiError("VERIFICATION_REQUIRED", "Supplier products can be added after admin verification.", 403);
+  // Unverified suppliers can build their catalogue as drafts; nothing is public or sent for review until approval.
+  const unverified = supplier.verificationStatus !== "verified";
+  if (unverified && parsed.data.status && parsed.data.status !== "draft") {
+    return apiError("VERIFICATION_REQUIRED", "Save it as a draft for now. You can send products for review once your business is verified.", 403);
   }
 
   const [dbUser, productCount] = await Promise.all([

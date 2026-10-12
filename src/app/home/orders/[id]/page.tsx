@@ -14,6 +14,15 @@ import { messagesHref } from "@/lib/conversations/pure";
 
 type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
 
+const SUPPLIER_STAGE: Record<string, { label: string; tone: "accent" | "info" | "warning" | "success" | "muted" | "danger" }> = {
+  pending: { label: "Sent to supplier", tone: "accent" },
+  accepted: { label: "Supplier is preparing it", tone: "warning" },
+  shipped: { label: "Shipped by supplier", tone: "info" },
+  delivered: { label: "Delivered", tone: "success" },
+  rejected: { label: "Supplier declined", tone: "danger" },
+  cancelled: { label: "Cancelled", tone: "muted" },
+};
+
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
 }
@@ -57,6 +66,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         .then((rows) => [...new Map(rows.flatMap((row) => (row.supplierProduct ? [[row.supplierProduct.supplier.id, row.supplierProduct.supplier] as const] : []))).values()])
         .catch(() => [])
     : [];
+  // Dropship items: what each supplier is doing with them (src/lib/supplier-orders).
+  const supplierOrders = await db.supplierOrder
+    .findMany({
+      where: { retailOrderId: order.id, storeId: store.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, supplier: { select: { id: true, displayName: true } } },
+    })
+    .catch(() => []);
   const address = addressLines(order.deliveryAddress);
   const logistics = order.logisticsDetails && typeof order.logisticsDetails === "object" && !Array.isArray(order.logisticsDetails)
     ? (order.logisticsDetails as Record<string, unknown>)
@@ -79,6 +96,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </>
       }
     >
+      {(order.paymentIssue || order.expiredAt) && (
+        <div role={order.paymentIssue ? "alert" : undefined} className={`mb-4 rounded-[16px] px-4 py-3 text-[14px] ${order.paymentIssue ? "bg-app-danger-tint font-bold text-app-danger" : "bg-app-canvas text-app-ink-soft"}`}>
+          {order.paymentIssue ?? `This order expired unpaid on ${formatDate(order.expiredAt!)} and its stock went back on sale. If the buyer pays now it's taken again, if there's still stock.`}
+        </div>
+      )}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <StageDot tone={row.stage.tone}>{row.stage.label}</StageDot>
         <Pill tone={row.payment.tone}>{row.payment.label}</Pill>
@@ -116,6 +138,31 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </ul>
               )}
             </Card>
+
+            {supplierOrders.length > 0 && (
+              <Card className="p-5">
+                <CardHead title="Supplier fulfilment" sub="Dropship items ship straight from the supplier to your buyer, in your shop's name." />
+                <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
+                  {supplierOrders.map((supplierOrder) => {
+                    const stage = SUPPLIER_STAGE[supplierOrder.status] ?? { label: supplierOrder.status, tone: "muted" as const };
+                    const lines = (Array.isArray(supplierOrder.items) ? supplierOrder.items : []) as Array<{ name?: string; quantity?: number }>;
+                    return (
+                      <li key={supplierOrder.id} className="grid gap-1.5 py-3 text-[14px]">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-bold">{supplierOrder.supplier.displayName}</span>
+                          <Pill tone={stage.tone} dot>{stage.label}</Pill>
+                        </div>
+                        <div className="text-[13px] text-app-ink-soft">{lines.map((line) => `${line.name ?? "Item"} × ${line.quantity ?? 1}`).join(", ")}</div>
+                        {supplierOrder.trackingCode && (
+                          <div className="text-[13px]">Tracking <span className="font-bold">{supplierOrder.trackingCode}</span>{supplierOrder.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder.shippedAt ? ` · shipped ${formatDate(supplierOrder.shippedAt)}` : ""}</div>
+                        )}
+                        {supplierOrder.rejectReason && <div className="text-[13px] font-bold text-app-danger">Declined: {supplierOrder.rejectReason}. Contact your buyer, then refund or replace these items.</div>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            )}
 
             <div className="grid gap-5 lg:grid-cols-2">
               {/* Customer */}

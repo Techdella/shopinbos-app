@@ -24,6 +24,8 @@ import {
   readTransferAccount,
 } from "@shared/checkout-payments";
 import { overPublicLimit } from "@/lib/rate-limit";
+import { reserveStock } from "@/lib/commerce/stock.server";
+import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -165,32 +167,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     ? await db.adCampaign.findFirst({ where: { storeId: store.id, code: adCampaignCode }, select: { id: true } })
     : null;
 
-  const productQuantities = new Map<string, { quantity: number; name: string }>();
-  for (const item of orderItems) {
-    const entry = productQuantities.get(item.productId);
-    productQuantities.set(item.productId, { quantity: (entry?.quantity ?? 0) + item.quantity, name: item.name });
-  }
-
   let order: Awaited<ReturnType<typeof db.retailOrder.create>>;
   try {
     order = await db.$transaction(async (tx) => {
-      for (const [productId, { quantity, name }] of productQuantities) {
-        const updated = await tx.storeProduct.updateMany({
-          where: {
-            id: productId,
-            storeId: store.id,
-            status: "published",
-            currentStock: { gte: quantity },
-          },
-          data: {
-            currentStock: { decrement: quantity },
-            soldStock: { increment: quantity },
-          },
-        });
-        if (updated.count !== 1) {
-          throw new Error(`Insufficient stock for ${name}`);
-        }
-      }
+      // Takes the stock now (the store's, or the supplier's for dropship products), conditionally so the last
+      // unit can't sell twice. Unpaid card/transfer orders give it back when they expire (order-expiry.server.ts).
+      await reserveStock(tx, store.id, priced.stockHolds);
 
       if (usedDiscountId) {
         await tx.discount.update({
@@ -233,6 +215,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           // Null keeps meaning "Paystack checkout" for older readers; transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           status: "pending",
+          stockHold: JSON.parse(JSON.stringify(priced.stockHolds)),
         },
       });
       // Points used are taken off in the same transaction (fails the order if the balance changed meanwhile).
@@ -245,6 +228,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       : "Could not place this order. Please try again.";
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);
   }
+
+  // Pay on delivery: the order is live now, so suppliers of dropship items get their orders straight away
+  // (card and transfer orders reach suppliers once paid: the Paystack webhook / payment return page).
+  if (paymentMethod === "pay_on_delivery") await ensureSupplierOrdersSafely(order.id);
 
   const money = (amount: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(amount);
   const sellerDescription = `${buyerName} placed an order worth ${money(total)}. ${paymentChoiceText(paymentMethod)}`;

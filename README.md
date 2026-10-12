@@ -206,7 +206,6 @@ src/
 │   ├── supabase/     # Supabase browser + server clients
 │   └── store-templates/ # Template system
 ├── proxy.ts          # Next.js 16 Proxy (auth + storefront routing)
-├── middleware.ts      # Deprecated — use proxy.ts
 └── actions/          # Server Actions for forms
 prisma/
 ├── schema.prisma     # Database schema

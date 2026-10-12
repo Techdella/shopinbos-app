@@ -99,6 +99,8 @@ const ORDER_STAGE: Record<string, { label: string; tone: Tone }> = {
   awaiting_payment: { label: "Pay on delivery", tone: "accent" },
   paid: { label: "To accept", tone: "accent" },
   confirmed: { label: "Accepted", tone: "warning" },
+  accepted: { label: "Accepted, to send", tone: "warning" },
+  rejected: { label: "Declined", tone: "muted" },
   processing: { label: "To pack", tone: "warning" },
   packed: { label: "Packed, waiting for rider", tone: "info" },
   shipped: { label: "With the rider", tone: "info" },
@@ -112,7 +114,7 @@ export function orderStage(status: string) {
   return ORDER_STAGE[status] ?? { label: status.replace(/_/g, " "), tone: "muted" as Tone };
 }
 
-export const ORDER_ACTION_LABEL: Record<string, string> = { accept: "Accept", decline: "Decline", packed: "Mark packed", handed_over: "Handed to rider" };
+export const ORDER_ACTION_LABEL: Record<string, string> = { accept: "Accept", decline: "Decline", packed: "Mark packed", handed_over: "Handed to rider", delivered: "Mark delivered" };
 
 const PRODUCT_STAGE: Record<string, { label: string; tone: Tone }> = {
   draft: { label: "Draft", tone: "muted" },

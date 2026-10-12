@@ -105,8 +105,7 @@ export function verifySvixSignature(
   now = Date.now(),
 ) {
   if (!headers.id || !headers.timestamp || !headers.signature || !secret) return false;
-  const seconds = Number(headers.timestamp);
-  if (!Number.isFinite(seconds) || Math.abs(now / 1000 - seconds) > 300) return false;
+  if (!timestampFresh(headers.timestamp, now)) return false;
   const key = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
   const expected = createHmac("sha256", key).update(`${headers.id}.${headers.timestamp}.${rawBody}`, "utf8").digest("base64");
   return headers.signature
@@ -115,11 +114,66 @@ export function verifySvixSignature(
     .some((candidate) => candidate && safeEqual(candidate, expected));
 }
 
-/** Generic inbound email relays (Cloudflare Email Workers, Postmark, Mailgun scripts): hex HMAC-SHA256 of the body. */
+/**
+ * Hex HMAC-SHA256 of the body alone. Not replay-safe on its own (a captured request verifies forever), so the
+ * email webhooks use verifyInboundEmailSignature below, which signs a timestamp too.
+ */
 export function verifyHmacHex(rawBody: string, header: string | null | undefined, secret: string | null | undefined) {
   if (!header || !secret) return false;
   const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
   return safeEqual(header.trim().replace(/^sha256=/, ""), expected);
+}
+
+/** How far a signed webhook timestamp may be from our clock, either way (Svix uses the same 5 minutes). */
+export const WEBHOOK_TOLERANCE_SECONDS = 300;
+
+/** A unix-seconds timestamp header within WEBHOOK_TOLERANCE_SECONDS of now. */
+export function timestampFresh(timestamp: string | null | undefined, now = Date.now()) {
+  if (!timestamp || !/^\d{1,12}$/.test(timestamp.trim())) return false;
+  return Math.abs(now / 1000 - Number(timestamp.trim())) <= WEBHOOK_TOLERANCE_SECONDS;
+}
+
+/**
+ * Generic inbound email relays (Cloudflare Email Workers, Postmark, Mailgun scripts) sign
+ * "<X-Inbox-Timestamp>.<raw body>" with hex HMAC-SHA256 and send it in X-Inbox-Signature (an optional "sha256="
+ * prefix is accepted). X-Inbox-Timestamp is unix seconds and must be within 5 minutes, so a captured request
+ * can't be replayed later; within the window, replays are dropped by message id (inboundDedupeId).
+ */
+export function signInboundEmail(rawBody: string, timestamp: string | number, secret: string) {
+  return createHmac("sha256", secret).update(`${timestamp}.${rawBody}`, "utf8").digest("hex");
+}
+
+export function verifyInboundEmailSignature(
+  headers: { signature: string | null | undefined; timestamp: string | null | undefined },
+  rawBody: string,
+  secret: string | null | undefined,
+  now = Date.now(),
+) {
+  if (!headers.signature || !headers.timestamp || !secret) return false;
+  if (!timestampFresh(headers.timestamp, now)) return false;
+  const expected = signInboundEmail(rawBody, headers.timestamp.trim(), secret);
+  return safeEqual(normaliseHexSignature(headers.signature), expected);
+}
+
+/** "sha256=ABC…" / " abc… " → "abc…", so one signed request always maps to one delivery id. */
+export function normaliseHexSignature(signature: string | null | undefined) {
+  return (signature ?? "").trim().replace(/^sha256=/i, "").toLowerCase();
+}
+
+/**
+ * The id an inbound email is de-duplicated on: its Message-ID, else the delivery's own id (svix-id, or the
+ * relay's signature, which is unique per signed request). A replay of the same delivery maps to the same id.
+ */
+export function inboundDedupeId(messageId: string | null | undefined, deliveryId: string | null | undefined, prefix: string) {
+  const id = messageId?.trim();
+  if (id) return id.slice(0, 500);
+  const delivery = deliveryId?.trim();
+  return delivery ? `${prefix}:${delivery}`.slice(0, 500) : null;
+}
+
+/** Prisma's unique-constraint error (a concurrent duplicate insert): treat as "already have it". */
+export function isUniqueViolation(error: unknown) {
+  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "P2002";
 }
 
 // ─── Store scoping ───────────────────────────────────────────────────────────

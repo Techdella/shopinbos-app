@@ -1,56 +1,53 @@
 // What a supplier can do next with an order in the mobile app. Pure (no imports) so tests/mobile-partners.test.mjs
 // can load it directly.
 //
-// Dropship orders are the seller's store orders (RetailOrder) with the supplier's products in them. The supplier
-// accepts (paid → processing), packs (→ packed) and hands the parcel to the rider (→ shipped), but only when
-// every line in the order is theirs: a mixed order is the seller's to move.
-// Wholesale orders (WholesaleOrder) go pending → confirmed (accept) → processing (packed) → shipped (handed over),
-// and a new one can be declined (→ cancelled).
+// Dropship orders are SupplierOrder rows (src/lib/supplier-orders): one per shop order and supplier, made once the
+// shop's order is paid (or placed, for pay on delivery). The supplier accepts (pending → accepted) or declines,
+// hands the parcel to the rider (→ shipped, the shop's order follows) and marks it delivered. Only their own lines
+// are in it, so an order with other products too no longer blocks them.
+// Wholesale orders (WholesaleOrder) go pending → confirmed (accept) → processing (packed) → shipped (handed over)
+// → delivered, and a new one can be declined (→ cancelled).
 
 export type SupplierOrderKind = "dropship" | "wholesale";
-export type SupplierOrderAction = "accept" | "decline" | "packed" | "handed_over";
+export type SupplierOrderAction = "accept" | "decline" | "packed" | "handed_over" | "delivered";
 
-/** Store order statuses a supplier sees (unpaid orders only when they're pay on delivery). */
-export const DROPSHIP_VISIBLE = ["paid", "processing", "packed", "shipped", "delivered"] as const;
-
-export function dropshipVisible(order: { status: string; paymentMethod: string | null }) {
-  return (DROPSHIP_VISIBLE as readonly string[]).includes(order.status) || (order.paymentMethod === "pay_on_delivery" && ["pending", "awaiting_payment"].includes(order.status));
-}
-
-export function nextActions(kind: SupplierOrderKind, status: string, options: { mixed?: boolean } = {}): SupplierOrderAction[] {
+export function nextActions(kind: SupplierOrderKind, status: string): SupplierOrderAction[] {
   if (kind === "dropship") {
-    if (options.mixed) return [];
-    if (["paid", "pending", "awaiting_payment"].includes(status)) return ["accept"];
-    if (status === "processing") return ["packed"];
-    if (status === "packed") return ["handed_over"];
+    if (status === "pending") return ["accept", "decline"];
+    if (status === "accepted") return ["handed_over"];
+    if (status === "shipped") return ["delivered"];
     return [];
   }
   if (status === "pending") return ["accept", "decline"];
   if (status === "confirmed") return ["packed", "handed_over"];
   if (status === "processing") return ["handed_over"];
+  if (status === "shipped") return ["delivered"];
   return [];
 }
 
 /** The status an action moves the order to, or null when it can't from here. */
-export function statusAfter(kind: SupplierOrderKind, status: string, action: SupplierOrderAction, options: { mixed?: boolean } = {}): string | null {
-  if (!nextActions(kind, status, options).includes(action)) return null;
-  if (action === "decline") return "cancelled";
+export function statusAfter(kind: SupplierOrderKind, status: string, action: SupplierOrderAction): string | null {
+  if (!nextActions(kind, status).includes(action)) return null;
   if (action === "handed_over") return "shipped";
-  if (kind === "dropship") return action === "accept" ? "processing" : "packed";
+  if (action === "delivered") return "delivered";
+  if (kind === "dropship") return action === "accept" ? "accepted" : "rejected";
+  if (action === "decline") return "cancelled";
   return action === "accept" ? "confirmed" : "processing";
 }
 
-/** Waiting on the supplier: to accept or to pack. */
-export function needsSupplier(kind: SupplierOrderKind, status: string, options: { mixed?: boolean } = {}) {
-  return nextActions(kind, status, options).length > 0;
+/** The portal action (src/lib/supplier-orders) an app action is; "packed" is wholesale-only and has none. */
+export function portalAction(action: SupplierOrderAction): "accept" | "reject" | "ship" | "deliver" | null {
+  return ({ accept: "accept", decline: "reject", handed_over: "ship", delivered: "deliver", packed: null } as const)[action];
 }
 
-/** The supplier's lines in a store order: items whose store product dropships one of theirs. */
-export function supplierLines<T extends { productId?: unknown; quantity?: unknown }>(items: unknown, storeProductIds: Set<string>) {
-  const list = Array.isArray(items) ? (items as T[]) : [];
-  const mine = list.filter((item) => typeof item?.productId === "string" && storeProductIds.has(item.productId));
-  return { mine, mixed: mine.length > 0 && mine.length < list.length };
+/** Waiting on the supplier: to accept or to send. */
+export function needsSupplier(kind: SupplierOrderKind, status: string) {
+  return nextActions(kind, status).some((action) => action !== "delivered");
 }
+
+/** Dropship statuses still to do (open) and finished (done). */
+export const DROPSHIP_OPEN = ["pending", "accepted"] as const;
+export const DROPSHIP_DONE = ["shipped", "delivered", "rejected", "cancelled"] as const;
 
 export const LOW_STOCK = 5;
 

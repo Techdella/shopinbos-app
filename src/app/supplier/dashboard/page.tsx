@@ -6,6 +6,8 @@ import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatTile, TextLink, Thumb } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
+import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
+import { SUPPLIER_DOC_TYPES } from "@shared/verification-docs";
 import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, VERIFICATION_LABEL, money, statusOf, supplierFrame, timeAgo } from "@/components/supplier/supplier-kit";
 
 // Supplier home in the "Seller app · web" language: greeting, real tiles, orders to ship and quote requests.
@@ -76,10 +78,11 @@ async function getActiveSellersByCategory(supplier: { id: string }) {
   return recentOrders.map((o) => o.seller).filter((s) => s.id);
 }
 
-export default async function SupplierDashboardPage() {
+export default async function SupplierDashboardPage({ searchParams }: { searchParams: Promise<{ docs?: string }> }) {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const { docs: docsParam } = await searchParams;
 
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -165,6 +168,14 @@ export default async function SupplierDashboardPage() {
   return (
     <AppFrame {...supplierFrame(user, supplier)}>
       <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
+        <VerificationChecklist
+          docs={supplier.verificationDocuments}
+          configs={SUPPLIER_DOC_TYPES}
+          verificationStatus={supplier.verificationStatus}
+          href="/supplier/verification"
+          welcome={docsParam === "later"}
+        />
+
         {/* Hero */}
         <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
           <div className="text-[14px] text-app-ink-soft">{lagosDate(now)}</div>
@@ -201,9 +212,6 @@ export default async function SupplierDashboardPage() {
             </div>
           </div>
           <div className="grid gap-2">
-            {!verified && (
-              <BriefLink href="/supplier/verification" icon="shield" title="Finish verification" hint="Sellers see your products once an admin verifies your documents." action="Open" />
-            )}
             {toShipCount > 0 && (
               <BriefLink href="/supplier/orders" icon="truck" title={`${toShipCount} order${toShipCount === 1 ? "" : "s"} to ship`} hint="Mark them shipped with a tracking code." action="Ship" />
             )}

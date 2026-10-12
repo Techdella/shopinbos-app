@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { statusWhenMarkedPaid } from "@shared/sales";
+import { recoverExpiredOrderPayment, releaseOrderStock } from "@/lib/commerce/order-expiry.server";
+import { cancelSupplierOrdersFor, ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 
 // Changing a retail order's status: PATCH /api/app/orders/[id] (web + mobile) and Peggy's mark_order tool
 // share these rules so an order moves the same way whoever moves it.
@@ -37,6 +39,13 @@ export async function updateOrderStatus(
   input: OrderStatusUpdate,
 ): Promise<OrderStatusResult> {
   const updateData: Record<string, unknown> = { status: input.status };
+  if (input.status === "paid" && order.status === "cancelled" && order.expiredAt) {
+    // The buyer's transfer came in after the order expired unpaid: take the stock again if it's still there.
+    const outcome = await recoverExpiredOrderPayment(order.id, { paymentMethod: input.paymentMethod ?? order.paymentMethod ?? "transfer" });
+    if (outcome === "needs_refund") return { ok: false, error: "This order expired unpaid and its items have since sold. Refund the buyer or offer a replacement." };
+    const reinstated = await db.retailOrder.findUnique({ where: { id: order.id } });
+    return reinstated ? { ok: true, order: reinstated } : { ok: false, error: "Order not found" };
+  }
   if (input.status === "paid") {
     if (order.status !== "pending" && order.status !== "awaiting_payment") return { ok: false, error: "This order is already paid" };
     const status = statusWhenMarkedPaid(order.logisticsDetails);
@@ -50,7 +59,31 @@ export async function updateOrderStatus(
   if (input.status === "shipped") updateData.shippedAt = new Date();
   if (input.status === "delivered") updateData.deliveredAt = new Date();
 
-  const updated = await db.retailOrder.update({ where: { id: order.id }, data: updateData });
+  let updated: Order;
+  if (input.status === "paid") {
+    // Conditional on still being unpaid, so it can't race the unpaid-order expiry (which gives the stock back).
+    const moved = await db.retailOrder.updateMany({ where: { id: order.id, status: { in: ["pending", "awaiting_payment"] } }, data: updateData });
+    const current = await db.retailOrder.findUnique({ where: { id: order.id } });
+    if (!current) return { ok: false, error: "Order not found" };
+    if (moved.count !== 1) {
+      if (current.status === "cancelled" && current.expiredAt) return updateOrderStatus(store, current, input);
+      return { ok: false, error: "This order is already paid" };
+    }
+    updated = current;
+  } else {
+    updated = await db.retailOrder.update({ where: { id: order.id }, data: updateData });
+  }
+
+  // Dropship items: paid → their suppliers get orders (idempotent); cancelled → suppliers stop.
+  if (input.status === "paid") await ensureSupplierOrdersSafely(order.id);
+  if (input.status === "cancelled") {
+    await cancelSupplierOrdersFor(order.id).catch((error) => console.error("[orders] could not cancel supplier orders", error));
+    // Not sent yet: the stock it held goes back (the store's, or the supplier's for dropship).
+    const supplierShipped = await db.supplierOrder.count({ where: { retailOrderId: order.id, status: { in: ["shipped", "delivered"] } } }).catch(() => 0);
+    if (!["shipped", "delivered", "returned"].includes(order.status) && supplierShipped === 0) {
+      await releaseOrderStock(order.id).catch((error) => console.error("[orders] could not give back stock", error));
+    }
+  }
 
   const event = STATUS_EVENTS[input.status];
   if (event) {

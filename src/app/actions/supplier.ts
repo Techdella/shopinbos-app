@@ -9,8 +9,9 @@ import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
 import { SUPPLIER_FREE_PRODUCT_LIMIT } from "@/lib/plan-limits";
 import { OrderStatusUpdateSchema, QuoteResponseSchema, SupplierProductCreateSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/workspace";
-
-const orderStatuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"] as const;
+import { z } from "zod";
+import { moveSupplierOrder } from "@/lib/supplier-orders/service.server";
+import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 
 async function getSupplierActor() {
   const user = await requireRole(["supplier"], "/supplier/login");
@@ -22,6 +23,14 @@ async function getSupplierActor() {
 
   return { user, supplier };
 }
+
+/** Onboarded is enough to draft products; only verified suppliers can send them for review. */
+function assertOnboardedSupplier(supplier: { verificationStatus: string; onboardingState: unknown }) {
+  if (!isOnboardingComplete(supplier)) redirect("/supplier/onboarding");
+  return supplier.verificationStatus === "verified";
+}
+
+const DRAFT_UNTIL_VERIFIED = "Saved as a draft. You can send products for review once your business is verified.";
 
 function assertVerifiedSupplier(supplier: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(supplier)) redirect("/supplier/onboarding");
@@ -103,7 +112,7 @@ function readProductPayload(formData: FormData, status: "draft" | "pending_revie
 
 export async function createSupplierProduct(formData: FormData) {
   const { user, supplier } = await getSupplierActor();
-  assertVerifiedSupplier(supplier);
+  const verified = assertOnboardedSupplier(supplier);
 
   const [dbUser, productCount] = await Promise.all([
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
@@ -113,7 +122,8 @@ export async function createSupplierProduct(formData: FormData) {
     redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=products");
   }
 
-  const status = formData.get("intent") === "submit" ? "pending_review" : "draft";
+  const wantsReview = formData.get("intent") === "submit";
+  const status = wantsReview && verified ? "pending_review" : "draft";
   const parsed = SupplierProductCreateSchema.safeParse(readProductPayload(formData, status));
 
   if (!parsed.success) {
@@ -134,12 +144,12 @@ export async function createSupplierProduct(formData: FormData) {
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: category.slug });
   revalidatePath("/supplier/products");
   revalidatePath("/supplier/dashboard");
-  redirect(`/supplier/products/${product.id}/edit`);
+  redirect(`/supplier/products/${product.id}/edit${wantsReview && !verified ? `?error=${encodeURIComponent(DRAFT_UNTIL_VERIFIED)}` : ""}`);
 }
 
 export async function updateSupplierProduct(formData: FormData) {
   const { supplier } = await getSupplierActor();
-  assertVerifiedSupplier(supplier);
+  const verified = assertOnboardedSupplier(supplier);
   const productId = String(formData.get("productId") || "");
   const product = productId
     ? await db.supplierProduct.findFirst({
@@ -150,7 +160,8 @@ export async function updateSupplierProduct(formData: FormData) {
 
   if (!product) redirect("/supplier/products");
 
-  const requestedStatus = formData.get("intent") === "submit" ? "pending_review" : product.status === "published" ? "pending_review" : "draft";
+  const wantsReview = formData.get("intent") === "submit";
+  const requestedStatus = !verified ? "draft" : wantsReview ? "pending_review" : product.status === "published" ? "pending_review" : "draft";
   const parsed = SupplierProductCreateSchema.safeParse(readProductPayload(formData, requestedStatus));
 
   if (!parsed.success) {
@@ -169,7 +180,7 @@ export async function updateSupplierProduct(formData: FormData) {
   revalidatePath("/supplier/products");
   revalidatePath(`/supplier/products/${product.id}/edit`);
   revalidatePath("/supplier/dashboard");
-  redirect(`/supplier/products/${product.id}/edit?saved=1`);
+  redirect(`/supplier/products/${product.id}/edit?${wantsReview && !verified ? `error=${encodeURIComponent(DRAFT_UNTIL_VERIFIED)}` : "saved=1"}`);
 }
 
 export async function respondToSupplierQuote(formData: FormData) {
@@ -233,38 +244,49 @@ export async function respondToSupplierQuote(formData: FormData) {
   redirect("/supplier/quote-requests?saved=1");
 }
 
+const SupplierOrderFormSchema = z.object({
+  kind: z.enum(["dropship", "wholesale"]).default("wholesale"),
+  orderId: z.string().min(1).max(64),
+  action: z.enum(["accept", "ship", "deliver", "reject"]),
+  trackingCode: OrderStatusUpdateSchema.shape.trackingCode,
+  carrier: z.string().trim().max(60).optional(),
+  reason: z.string().trim().max(500).optional(),
+});
+
+/** /supplier/orders: accept, ship (with tracking), mark delivered or decline (with a reason) one of the supplier's orders. */
 export async function updateSupplierOrderStatus(formData: FormData) {
   const { supplier } = await getSupplierActor();
   assertVerifiedSupplier(supplier);
-  const orderId = String(formData.get("orderId") || "");
-  const status = String(formData.get("status") || "");
-  const trackingCode = String(formData.get("trackingCode") || "").trim();
-  const parsed = OrderStatusUpdateSchema.safeParse({ status, trackingCode: trackingCode || undefined });
-
-  if (!parsed.success || !orderStatuses.includes(status as never)) {
-    redirect("/supplier/orders?error=Choose%20a%20valid%20order%20status.");
-  }
-
-  const order = orderId
-    ? await db.wholesaleOrder.findFirst({
-        where: { id: orderId, supplierId: supplier.id },
-        select: { id: true },
-      })
-    : null;
-
-  if (!order) redirect("/supplier/orders?error=Order%20not%20found.");
-
-  await db.wholesaleOrder.update({
-    where: { id: order.id },
-    data: {
-      status: parsed.data.status,
-      trackingCode: parsed.data.trackingCode,
-    },
+  const text = (name: string) => {
+    const value = String(formData.get(name) ?? "").trim();
+    return value || undefined;
+  };
+  // Older forms post status=shipped instead of an action.
+  const legacy = text("status");
+  const parsed = SupplierOrderFormSchema.safeParse({
+    kind: text("kind"),
+    orderId: text("orderId"),
+    action: text("action") ?? (legacy === "shipped" ? "ship" : legacy === "delivered" ? "deliver" : legacy === "confirmed" ? "accept" : undefined),
+    trackingCode: text("trackingCode"),
+    carrier: text("carrier"),
+    reason: text("reason"),
   });
+  const back = (query: Record<string, string>) => {
+    const params = new URLSearchParams(query);
+    const kind = text("kind");
+    if (kind === "dropship" || kind === "wholesale") params.set("kind", kind);
+    return `/supplier/orders?${params.toString()}`;
+  };
+  if (!parsed.success) redirect(back({ error: "Choose a valid order action." }));
+  if (parsed.data.action === "ship" && !parsed.data.trackingCode) redirect(back({ error: "Add the tracking code before you mark it shipped." }));
+
+  const input = { supplierId: supplier.id, orderId: parsed.data.orderId, action: parsed.data.action, trackingCode: parsed.data.trackingCode, carrier: parsed.data.carrier, reason: parsed.data.reason };
+  const result = parsed.data.kind === "dropship" ? await moveSupplierOrder(input) : await moveWholesaleOrder(input);
+  if (!result.ok) redirect(back({ error: result.message }));
 
   revalidatePath("/supplier/orders");
   revalidatePath("/supplier/dashboard");
-  redirect("/supplier/orders?saved=1");
+  redirect(back({ saved: "1" }));
 }
 
 export async function updateSupplierProfile(formData: FormData) {

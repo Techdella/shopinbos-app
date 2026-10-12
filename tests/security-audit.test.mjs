@@ -229,7 +229,7 @@ test("sanitizeNextPath refuses backslash and protocol-relative tricks", () => {
 test("session cookies are Secure in production on every Supabase client", () => {
   assert.match(read("src/lib/supabase/server.ts"), /cookieOptions: \{ path: "\/", sameSite: "lax", secure: process\.env\.NODE_ENV === "production" \}/);
   assert.match(read("src/lib/supabase/browser.ts"), /cookieOptions: \{ path: "\/", sameSite: "lax", secure \}/);
-  assert.match(read("middleware.ts"), /^\/\/ NOT RUN\./, "the dead root middleware says so");
+  assert.equal(fs.existsSync(path.join(ROOT, "middleware.ts")), false, "the dead root middleware is gone (src/proxy.ts is the only one)");
 });
 
 test("shoppers never get the owner's setup, notification settings or unpublished draft", () => {

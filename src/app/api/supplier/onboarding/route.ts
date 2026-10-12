@@ -59,6 +59,15 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
     return apiError("BAD_REQUEST", `Upload ${missingRequiredDocuments.map((config) => config.label).join(", ")} before submitting.`);
   }
 
+  const previousState = supplier.onboardingState && typeof supplier.onboardingState === "object" && !Array.isArray(supplier.onboardingState)
+    ? (supplier.onboardingState as Record<string, unknown>)
+    : {};
+  if (parsed.data.docsLater && !(parsed.data.businessName ?? supplier.businessName)?.trim()) {
+    return apiError("BAD_REQUEST", "Add your business name first.");
+  }
+  // Once someone chooses "add documents later" they keep portal access; submitting later still works as normal.
+  const docsLaterAt = typeof previousState.docsLaterAt === "string" ? previousState.docsLaterAt : parsed.data.docsLater ? now : undefined;
+
   const requiredTypes = SUPPLIER_DOC_TYPES.filter((config) => config.required);
   const readCount = requiredTypes.filter((config) => isDocComplete(findDoc(storedDocuments, config.type))).length;
   const readinessScore = Math.round((readCount / Math.max(requiredTypes.length, 1)) * 100);
@@ -69,6 +78,10 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
     documentFindings: parsed.data.documentFindings,
     submittedAt: parsed.data.completed ? now : undefined,
     updatedAt: now,
+    ...(docsLaterAt ? { docsLaterAt } : {}),
+    // Reminder emails already sent for missing documents (see src/lib/verification/reminders.server.ts).
+    ...(Array.isArray(previousState.docReminders) ? { docReminders: previousState.docReminders } : {}),
+    ...(Array.isArray(previousState.cacChecks) ? { cacChecks: previousState.cacChecks } : {}),
   };
 
   if (parsed.data.country || parsed.data.city) {

@@ -37,6 +37,12 @@ export const PATCH = withSupplier(async (
   if (parsed.data.status && !["draft", "pending_review"].includes(parsed.data.status)) {
     return apiError("FORBIDDEN", "Products must stay in draft or pending review until admin approval.", 403);
   }
+  if (parsed.data.status === "pending_review") {
+    const owner = await db.supplier.findUnique({ where: { userId: user.id }, select: { verificationStatus: true } });
+    if (owner?.verificationStatus !== "verified") {
+      return apiError("VERIFICATION_REQUIRED", "You can send products for review once your business is verified. Keep it as a draft for now.", 403);
+    }
+  }
 
   const publicFieldKeys: Array<keyof typeof parsed.data> = [
     "name",

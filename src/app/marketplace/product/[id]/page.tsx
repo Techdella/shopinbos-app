@@ -6,7 +6,7 @@ import { db } from "@/lib/db/client";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { sellerFrame } from "@/components/seller-core";
 import { findSample, isSampleId, parseSourcing, similarRange, toFindProduct, type FindProduct } from "@/lib/marketplace/find";
-import { ProductDetail } from "../../_components/ProductDetail";
+import { ProductDetail, type MyWholesaleOrder } from "../../_components/ProductDetail";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Find products" };
@@ -17,13 +17,14 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
   const { id: rawId } = await params;
   const id = decodeURIComponent(rawId);
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true, city: true, country: true } });
   if (!store) redirect("/builder?firstRun=1");
   const settings = (store.brandSettings && typeof store.brandSettings === "object" ? store.brandSettings : {}) as Record<string, unknown>;
   const sourcing = parseSourcing(settings.sourcing);
 
   let product: FindProduct | null = null;
   let added = false;
+  let wholesaleOrders: MyWholesaleOrder[] = [];
   if (isSampleId(id)) {
     product = findSample(id);
   } else {
@@ -33,14 +34,21 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
     }), null);
     if (row) {
       product = toFindProduct(row);
-      const [peers, inStore] = await Promise.all([
+      const [peers, inStore, mine] = await Promise.all([
         safeQuery(() => db.supplierProduct.findMany({
           where: { categoryId: row.categoryId, status: "published", supplier: { status: "active", verificationStatus: "verified" } },
           include: { supplier: { select: supplierSelect }, category: { select: { name: true } } },
           take: 60,
         }), []),
         safeQuery(() => db.storeProduct.count({ where: { storeId: store.id, supplierProductId: row.id } }), 0),
+        safeQuery(() => db.wholesaleOrder.findMany({
+          where: { sellerId: user.id, supplierProductId: row.id },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: { id: true, quantity: true, totalPrice: true, status: true, trackingCode: true, rejectReason: true, createdAt: true },
+        }), []),
       ]);
+      wholesaleOrders = mine.map((order) => ({ ...order, createdAt: order.createdAt.toISOString() }));
       product = { ...product, similar: similarRange(product, peers.map(toFindProduct)) };
       added = inStore > 0;
     }
@@ -50,7 +58,14 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
   return (
     <AppFrame {...sellerFrame(user, store)}>
       <div className="w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10">
-        <ProductDetail product={product} added={added} saved={sourcing.saved.includes(product.id)} notified={sourcing.notifyNewSuppliers} />
+        <ProductDetail
+          product={product}
+          added={added}
+          saved={sourcing.saved.includes(product.id)}
+          notified={sourcing.notifyNewSuppliers}
+          defaultAddress={[store.city, store.country].filter(Boolean).join(", ")}
+          wholesaleOrders={wholesaleOrders}
+        />
       </div>
     </AppFrame>
   );

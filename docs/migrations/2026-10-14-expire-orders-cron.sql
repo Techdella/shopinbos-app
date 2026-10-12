@@ -1,0 +1,27 @@
+-- Unpaid storefront orders give their stock back: /api/cron/expire-orders cancels card/transfer orders still
+-- unpaid after UNPAID_ORDER_TTL_MINUTES (default 30) and returns the stock they held (the store's, or the
+-- supplier's for dropship). Pay-on-delivery and paid orders are never touched.
+-- Needs 2026-10-14-supplier-orders.sql first (RetailOrder.stockHold / stockReleasedAt / expiredAt).
+--
+-- Vercel Hobby only allows daily crons, so call it from pg_cron like the other jobs
+-- (2026-10-11-campaign-scheduler.sql, 2026-10-12-marketing.sql; reuses the "cron_secret" Vault secret =
+-- CRON_SECRET in Vercel). Checkout also runs the expiry opportunistically, so nothing breaks before this exists.
+-- Run once the app is deployed with the route (kept commented out so it is never run by accident):
+--
+-- select cron.schedule(
+--   'expire-unpaid-orders',
+--   '*/5 * * * *',
+--   $$
+--   select net.http_get(
+--     url := 'https://shopinbos-app.vercel.app/api/cron/expire-orders',
+--     headers := jsonb_build_object(
+--       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+--     ),
+--     timeout_milliseconds := 60000
+--   );
+--   $$
+-- )
+-- where not exists (select 1 from cron.job where jobname = 'expire-unpaid-orders');
+--
+-- To stop it:
+--   select cron.unschedule('expire-unpaid-orders');

@@ -4,6 +4,8 @@ import { bestAutomaticDiscount, discountAmount, describeDiscount, parseDiscountC
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { quotePoints, type PointsRedemption } from "@/lib/gamification/loyalty.server";
+import { buildStockHolds, stockShortfalls, type StockHold } from "@/lib/commerce/stock-holds";
+import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
 import {
   chooseDelivery,
   deliveryOptionsFor,
@@ -48,6 +50,8 @@ export interface PricedOrder {
   /** Loyalty points used on this order (already inside totals.productDiscount and totals.total). */
   points: PointsRedemption | null;
   totals: OrderTotals;
+  /** The stock this order takes: the store's, or the supplier's for dropship products. Server-only, never sent to the browser. */
+  stockHolds: StockHold[];
 }
 
 export interface PricingInput {
@@ -89,14 +93,22 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   const quantities = new Map<string, number>();
   for (const item of input.items) quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
 
+  // Unpaid orders past their time give their stock back first, so it counts as available below.
+  await maybeExpireUnpaidOrders(input.store.id);
+
   const products = await db.storeProduct.findMany({
     where: { storeId: input.store.id, id: { in: [...quantities.keys()] }, status: "published" },
-    select: { id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true },
+    select: {
+      id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true,
+      // Dropship products sell from the supplier's stock (the seller holds none).
+      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true } },
+    },
   });
   if (products.length !== quantities.size) return { ok: false, message: "One or more items in your bag are no longer available. Remove them and try again." };
 
-  const short = products.filter((product) => (product.currentStock ?? 0) < (quantities.get(product.id) ?? 0)).map((product) => product.name);
+  const short = stockShortfalls(products, quantities);
   if (short.length) return { ok: false, message: `Not enough stock for: ${short.join(", ")}. Lower the quantity and try again.` };
+  const stockHolds = buildStockHolds(products, quantities);
 
   const byId = new Map(products.map((product) => [product.id, product]));
   const merged = new Map<string, PricedItem>();
@@ -194,5 +206,6 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     codeError,
     points,
     totals,
+    stockHolds,
   };
 }

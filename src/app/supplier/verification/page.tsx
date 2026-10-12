@@ -6,6 +6,7 @@ import { Notice, PillButton, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
+import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
 import { VerificationBadge } from "@/components/verification/VerificationBadge";
 import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
@@ -189,16 +190,24 @@ export default function SupplierVerificationPage() {
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
           <Card className="min-w-0 p-5 sm:p-6">
-            <CardHead title="Documents" sub={isVerified ? "Your approved documents." : "PDF or photo, clear and readable."} />
+            <CardHead title="Documents" sub={isVerified ? "Your approved documents." : "PDF, JPG, PNG or WebP, up to 10 MB. Clear and readable."} />
             <div className="mt-4">
-              <VerificationDocUploader
-                role="supplier"
-                docs={documents}
-                docConfigs={supplierDocTypes}
-                onUpload={handleUpload}
-                onDelete={handleDelete}
-                readOnly={isVerified}
+              <CacInstantCheck
+                apiPath="/api/supplier/verification/cac"
+                defaultName={supplier.businessName}
+                cacDoc={documents.find((d) => d.type === "cac")}
+                onVerified={(doc) => { setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc]); fetchData(); }}
               />
+              <div className="mt-4">
+                <VerificationDocUploader
+                  role="supplier"
+                  docs={documents}
+                  docConfigs={supplierDocTypes}
+                  onUpload={handleUpload}
+                  onDelete={handleDelete}
+                  readOnly={isVerified}
+                />
+              </div>
             </div>
             {!isVerified && !isPending && (
               <PillButton tone="accent" size="md" onClick={handleSubmit} busy={submitting} className="mt-5 w-full">
