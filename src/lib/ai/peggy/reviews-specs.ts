@@ -18,12 +18,12 @@ export const REVIEWS_TOOL_SPECS = {
   reviews_request: {
     write: true,
     description:
-      "Ask buyers of recent paid or delivered orders to review them, with a review link. This really sends by email, SMS or WhatsApp (or makes links for the seller's own WhatsApp with channel=link). First call with confirmed=false to see who would be asked and say it to the seller; call again with confirmed=true only after the seller clearly says yes.",
+      "Ask buyers of recent paid or delivered orders to review them, with a review link. This really sends by email, SMS or WhatsApp (or makes links for the seller's own WhatsApp with channel=link). First call with confirmCode null to see who would be asked (nothing is sent) and tell the seller; only after they clearly say yes (in their next message) call again with the same orders, channel and that code.",
     schema: z
       .object({
         orderNumbers: z.array(z.string().trim().min(1).max(60)).max(50).nullable().describe("Specific order numbers; null for delivered orders from the last 30 days that were never asked"),
         channel: z.enum(["email", "sms", "whatsapp", "link"]),
-        confirmed: z.boolean().describe("true only after the seller approved sending to exactly these buyers"),
+        confirmCode: z.string().trim().max(12).nullable().describe("null on the first call; then the code the tool gave, only after the seller approved sending to exactly these buyers"),
       })
       .strict(),
   },

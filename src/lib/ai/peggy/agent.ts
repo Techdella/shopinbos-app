@@ -6,7 +6,16 @@ import { db } from "@/lib/db/client";
 import { getAnthropicClient, getOpenAIClient, PEGGY_CLAUDE_MODEL, PEGGY_OPENAI_MODEL, providerOrder } from "@/lib/ai/client";
 import { buildSellerSnapshot } from "./context";
 import { PEGGY_INSTRUCTIONS, peggyContextBlock } from "./prompt";
-import { parseToolInput, providerSchema, PEGGY_TOOL_NAMES, PEGGY_TOOL_SPECS, type PeggyToolName, type PeggyTurn } from "./pure";
+import {
+  issuedConfirmationCodes,
+  parseToolInput,
+  presentedConfirmationCode,
+  providerSchema,
+  PEGGY_TOOL_NAMES,
+  PEGGY_TOOL_SPECS,
+  type PeggyToolName,
+  type PeggyTurn,
+} from "./pure";
 import { isWriteTool, PEGGY_TOOL_RUNNERS, ToolError, type PeggyAction, type PeggyToolContext } from "./tools";
 
 // Peggy's agent loop over Claude (Messages API, manual tool loop) and OpenAI (Responses API, function tools).
@@ -14,6 +23,10 @@ import { isWriteTool, PEGGY_TOOL_RUNNERS, ToolError, type PeggyAction, type Pegg
 // provider gets the whole conversation again.
 
 const MAX_STEPS = 8;
+// The chat route allows 120 seconds; stop calling the model in time to answer, and never let one call hang.
+const RUN_BUDGET_MS = 100_000;
+const CALL_TIMEOUT_MS = 60_000;
+const MIN_CALL_MS = 8_000;
 
 export interface PeggyReply {
   text: string;
@@ -25,9 +38,20 @@ interface RunState {
   ctx: PeggyToolContext | null;
   actions: PeggyAction[];
   wrote: boolean;
+  /** Confirmation codes handed out during this request; they only work after the seller's next message. */
+  issued: Set<string>;
+  deadline: number;
 }
 
 class ProviderRefused extends Error {}
+class OutOfTime extends Error {}
+
+/** Request options for one model call: what is left of the budget, capped, with one retry at most. */
+function callOptions(state: RunState) {
+  const left = state.deadline - Date.now();
+  if (left < MIN_CALL_MS) throw new OutOfTime();
+  return { timeout: Math.min(CALL_TIMEOUT_MS, left), maxRetries: 1 };
+}
 
 /** Runs one tool call: validates the input with zod, runs it in the seller's store, never throws. */
 async function runTool(state: RunState, name: string, rawInput: unknown): Promise<{ content: string; isError: boolean }> {
@@ -36,9 +60,14 @@ async function runTool(state: RunState, name: string, rawInput: unknown): Promis
   if (!state.ctx) return { content: "This seller has no shop yet, so there is nothing to look up or change. Point them to /onboarding/rex to set one up.", isError: true };
   const parsed = parseToolInput(tool, rawInput);
   if (!parsed.ok) return { content: parsed.error, isError: true };
+  const code = presentedConfirmationCode(parsed.input);
+  if (code && state.issued.has(code)) {
+    return { content: "Not done. That confirmation code was only just given in this same turn, so the seller hasn't answered yet. Show them what will happen and wait for their reply.", isError: true };
+  }
   try {
     const runner = PEGGY_TOOL_RUNNERS[tool] as (ctx: PeggyToolContext, input: unknown) => ReturnType<(typeof PEGGY_TOOL_RUNNERS)[PeggyToolName]>;
     const output = await runner(state.ctx, parsed.input);
+    for (const issued of issuedConfirmationCodes(output.content)) state.issued.add(issued);
     if (output.action) {
       state.actions.push({ tool, summary: output.action.summary, ...(output.action.href ? { href: output.action.href } : {}) });
     }
@@ -84,7 +113,7 @@ async function viaClaude(client: Anthropic, context: string, turns: PeggyTurn[],
       tool_choice: { type: "auto" },
       output_config: { effort: "medium" },
       messages,
-    });
+    }, callOptions(state));
 
     if (response.stop_reason === "refusal") {
       if (!state.wrote) throw new ProviderRefused("Claude declined");
@@ -134,7 +163,7 @@ async function viaOpenAI(client: OpenAI, context: string, turns: PeggyTurn[], st
       tools: openaiTools(),
       tool_choice: "auto",
       max_output_tokens: 8000,
-    });
+    }, callOptions(state));
 
     const calls = response.output.filter((item): item is OpenAI.Responses.ResponseFunctionToolCall => item.type === "function_call");
     if (!calls.length) {
@@ -166,7 +195,13 @@ export async function runPeggy(user: { id: string; phone?: string | null }, turn
     db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, currency: true } }),
   ]);
   const context = peggyContextBlock(snapshot);
-  const state: RunState = { ctx: store ? { userId: user.id, userPhone: user.phone ?? null, store } : null, actions: [], wrote: false };
+  const state: RunState = {
+    ctx: store ? { userId: user.id, userPhone: user.phone ?? null, store } : null,
+    actions: [],
+    wrote: false,
+    issued: new Set(),
+    deadline: Date.now() + RUN_BUDGET_MS,
+  };
 
   for (const provider of providerOrder()) {
     try {
@@ -177,6 +212,9 @@ export async function runPeggy(user: { id: string; phone?: string | null }, turn
         return { text: await viaOpenAI(openai, context, turns, state), actions: state.actions, provider };
       }
     } catch (error) {
+      if (error instanceof OutOfTime) {
+        return { text: fallbackText(state, "That took longer than I can wait. Ask me again, or split it into smaller steps."), actions: state.actions, provider };
+      }
       console.error(`[peggy] ${provider} failed`, error);
       // Once Peggy has changed something, re-running on another provider could do it twice.
       if (state.wrote) return { text: fallbackText(state, "I lost my connection before I could finish. Check the rest and ask me again if needed."), actions: state.actions, provider };

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { firstJsonObject, generateText } from "@/lib/ai/text";
+import { meterAi } from "@/lib/ai/usage";
 import { MAX_PHOTOS, VIDEO_LANGUAGES, fallbackScript, normaliseScript } from "@shared/video";
 
 export const runtime = "nodejs";
@@ -26,11 +27,14 @@ const LANGUAGE_NOTE: Record<string, string> = {
 };
 
 // Video studio: captions, a voiceover and an end-card line for a short product reel.
-export const POST = withSeller(async (req) => {
+export const POST = withSeller(async (req, { user }) => {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the details");
   const { name, price, description, language, photos } = parsed.data;
   const fallback = fallbackScript(name, price, language as never, photos);
+
+  const limited = await meterAi(user.id, "text");
+  if (limited) return limited;
 
   const raw = await generateText(
     [

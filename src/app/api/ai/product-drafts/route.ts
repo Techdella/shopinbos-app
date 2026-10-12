@@ -5,6 +5,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { getAnthropicClient, getOpenAIClient, PEGGY_CLAUDE_MODEL, REX_OPENAI_MODEL } from "@/lib/ai/client";
 import { uploadFileServer } from "@/lib/supabase/storage.server";
 import { db } from "@/lib/db/client";
+import { meterAi } from "@/lib/ai/usage";
 import { parseOnboardingMemory } from "@/lib/onboarding-memory";
 
 export const runtime = "nodejs";
@@ -66,6 +67,10 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     }
   }
 
+  // One AI request per photo read; over the limit, nothing is uploaded.
+  const limited = await meterAi(user.id, "text", files.length);
+  if (limited) return limited;
+
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { brandSettings: true, city: true } });
   const settings = store?.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings)
     ? (store.brandSettings as Record<string, unknown>)
@@ -94,7 +99,7 @@ Use "check" when the price is a rough guess or the item is unclear. Never invent
     if (openai) {
       const content: ResponseInputContent[] = [{ type: "input_text", text: instructions }];
       for (const item of payloads) content.push({ type: "input_image", detail: "low", image_url: `data:${item.file.type};base64,${item.base64}` });
-      const response = await openai.responses.create({ model: REX_OPENAI_MODEL, input: [{ role: "user", content }] });
+      const response = await openai.responses.create({ model: REX_OPENAI_MODEL, input: [{ role: "user", content }] }, { timeout: 45_000, maxRetries: 1 });
       raw = response.output_text ?? "";
     } else {
       const anthropic = getAnthropicClient();
@@ -103,8 +108,12 @@ Use "check" when the price is a rough guess or the item is unclear. Never invent
         for (const item of payloads) {
           content.push({ type: "image", source: { type: "base64", media_type: item.file.type as "image/jpeg" | "image/png" | "image/webp", data: item.base64 } });
         }
-        const response = await anthropic.messages.create({ model: PEGGY_CLAUDE_MODEL, max_tokens: 1500, messages: [{ role: "user", content }] });
-        raw = response.content[0]?.type === "text" ? response.content[0].text : "";
+        // Claude thinks before answering, so the first block may be thinking: read every text block, with room.
+        const response = await anthropic.messages.create(
+          { model: PEGGY_CLAUDE_MODEL, max_tokens: 8000, output_config: { effort: "low" }, messages: [{ role: "user", content }] },
+          { timeout: 45_000, maxRetries: 1 },
+        );
+        raw = response.content.map((block) => (block.type === "text" ? block.text : "")).join("");
       }
     }
   } catch (error) {

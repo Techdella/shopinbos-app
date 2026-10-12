@@ -33,6 +33,9 @@ export interface AiTextResult {
   provider: "anthropic" | "openai";
 }
 
+// One writing call never holds a request for long: fast jobs get 30 seconds, others a minute, one retry.
+const requestOptions = (options: AiTextOptions) => ({ timeout: options.fast ? 30_000 : 60_000, maxRetries: 1 });
+
 function turns(options: AiTextOptions): ChatTurn[] {
   if (options.messages?.length) return options.messages.filter((turn) => turn.content.trim());
   return [{ role: "user", content: options.prompt ?? "" }];
@@ -47,7 +50,7 @@ async function viaAnthropic(options: AiTextOptions): Promise<string | null> {
     ...(options.system ? { system: options.system } : {}),
     output_config: { effort: options.fast ? "low" : "medium" },
     messages: turns(options) as Anthropic.MessageParam[],
-  });
+  }, requestOptions(options));
   if (response.stop_reason === "refusal") return null;
   const text = response.content.map((block) => (block.type === "text" ? block.text : "")).join("").trim();
   return text || null;
@@ -61,7 +64,7 @@ async function viaOpenAI(options: AiTextOptions): Promise<string | null> {
     ...(options.system ? { instructions: options.system } : {}),
     input: turns(options).map((turn) => ({ role: turn.role, content: turn.content })),
     max_output_tokens: options.maxTokens ?? 4000,
-  });
+  }, requestOptions(options));
   return response.output_text?.trim() || null;
 }
 

@@ -6,10 +6,12 @@ import { CHANNELS, isChannelKey } from "@/lib/inbox/pure";
 import { contactLabel } from "@/lib/inbox/queries";
 import { draftReplyWithPeggy, sendReply } from "@/lib/inbox/service";
 import { meterAi } from "@/lib/ai/usage";
-import type { PeggyToolInput } from "./pure";
+import { checkConfirmationCode, confirmationCode } from "@/lib/marketing/brand";
+import { replyConfirmationParts, type PeggyToolInput } from "./pure";
 import { ToolError, type PeggyToolContext, type ToolOutput } from "./tools";
 
-// Peggy's inbox tools: read unread conversations, draft a reply, and send one only after the seller confirms.
+// Peggy's inbox tools: read unread conversations, draft a reply, and send one only after the seller confirms
+// with the code the first call hands out (tied to the conversation and the exact words, and expiring).
 
 const channelLabel = (channel: string) => (isChannelKey(channel) ? CHANNELS[channel].label : channel);
 
@@ -76,11 +78,14 @@ async function draftReply(ctx: PeggyToolContext, input: PeggyToolInput<"inbox_dr
 async function sendReplyTool(ctx: PeggyToolContext, input: PeggyToolInput<"inbox_send_reply">): Promise<ToolOutput> {
   const conversation = await findConversation(ctx, input.conversation);
   const who = `${contactLabel(conversation)} on ${channelLabel(conversation.channel)}`;
-  if (!input.confirmed) {
-    return { content: `Not sent. Show the seller this exact message for ${who} and ask them to confirm, then call again with confirmed=true:\n${input.message}` };
-  }
   if (!isChannelKey(conversation.channel) || !CHANNELS[conversation.channel].replies) {
     throw new ToolError(`${channelLabel(conversation.channel)} conversations can't be answered from Shopinbos. Suggest calling back or replying in that app.`);
+  }
+  const parts = replyConfirmationParts(ctx.store.id, conversation.id, input.message);
+  if (!checkConfirmationCode(input.confirmCode, parts)) {
+    return {
+      content: `NOT SENT YET. Show the seller this exact message for ${who} and ask them to confirm. Confirmation code: ${confirmationCode(parts)}. Only call inbox_send_reply again, with the same text and this code, after they clearly say yes.${input.confirmCode ? " (The code given was wrong, expired, or for different words.)" : ""}\n${input.message}`,
+    };
   }
   const result = await sendReply({ storeId: ctx.store.id, conversationId: conversation.id, body: input.message, authorName: "Peggy" });
   if (!result.ok) throw new ToolError(`The message to ${who} was not sent: ${result.error}`);

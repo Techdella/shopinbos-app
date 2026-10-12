@@ -220,6 +220,36 @@ export function parseToolInput<N extends PeggyToolName>(name: N, raw: unknown): 
   return { ok: true, input: result.data as PeggyToolInput<N> };
 }
 
+// ─── Confirmation codes ───────────────────────────────────────────────────────
+
+const CODE_IN_RESULT = /Confirmation code: ([A-Z0-9]{4,12})\b/g;
+
+/**
+ * Codes a tool handed out in its result ("Confirmation code: AB12CD"). The agent remembers them for the rest of
+ * the request so the model can't approve its own preview in the same turn: a code only works once the seller
+ * has answered in a new message.
+ */
+export function issuedConfirmationCodes(content: string): string[] {
+  return [...content.matchAll(CODE_IN_RESULT)].map((match) => match[1]);
+}
+
+/** The confirmation code a tool call presents (its `confirmCode` argument), upper-cased; null when none. */
+export function presentedConfirmationCode(input: unknown): string | null {
+  if (!input || typeof input !== "object" || !("confirmCode" in input)) return null;
+  const code = (input as { confirmCode?: unknown }).confirmCode;
+  return typeof code === "string" && code.trim() ? code.trim().toUpperCase() : null;
+}
+
+/** The parts a send-a-reply confirmation code is tied to: the conversation and the exact words (spacing aside). */
+export function replyConfirmationParts(storeId: string, conversationId: string, message: string) {
+  return [storeId, "reply", conversationId, message.replace(/\s+/g, " ").trim()];
+}
+
+/** The parts a review-request confirmation code is tied to: the channel and exactly these orders. */
+export function reviewRequestConfirmationParts(storeId: string, channel: string, orderIds: string[]) {
+  return [storeId, "reviews", channel, [...orderIds].sort().join(",")];
+}
+
 const SCHEMA_KEYS = new Set(["type", "properties", "required", "additionalProperties", "items", "enum", "const", "anyOf", "description"]);
 
 /**
