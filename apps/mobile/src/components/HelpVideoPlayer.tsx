@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { T } from "@/components/ui";
@@ -11,6 +12,11 @@ export function HelpVideoPlayer({ video, url }: { video: HelpVideoItem; url: str
   const player = useVideoPlayer(url, (created) => {
     created.play();
   });
+  // The web build only starts once the view is on screen; native starts from the setup above.
+  useEffect(() => {
+    const timer = setTimeout(() => player.play(), 300);
+    return () => clearTimeout(timer);
+  }, [player]);
   return (
     <View style={{ gap: 10 }} testID="help-video-player">
       <VideoView

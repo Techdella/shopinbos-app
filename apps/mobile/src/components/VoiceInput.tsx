@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { RecordingPresets, getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from "expo-audio";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
@@ -56,6 +56,12 @@ export function VoiceInput({
   async function allowed(): Promise<boolean> {
     const current = await getRecordingPermissionsAsync();
     if (current.granted) return true;
+    // The web build has no native alerts: the browser's own prompt asks, and a refusal shows the plain line.
+    if (Platform.OS === "web") {
+      const asked = await requestRecordingPermissionsAsync().catch(() => null);
+      if (!asked?.granted) setMessage(VOICE_COPY.deniedWeb);
+      return Boolean(asked?.granted);
+    }
     if (!current.canAskAgain) {
       setMessage(VOICE_COPY.deniedPhone);
       Alert.alert("Allow the microphone", VOICE_COPY.deniedPhone, [
@@ -129,25 +135,26 @@ export function VoiceInput({
 
   if (variant === "icon") {
     return (
-      <Pressable
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={listening ? `${label} ${voiceTimer(elapsed)}` : label}
-        accessibilityHint={message ?? undefined}
-        accessibilityState={{ disabled: disabled || phase === "working", busy: phase === "working" }}
-        disabled={disabled || phase === "working"}
-        onPress={() => {
-          if (message && phase === "idle") Alert.alert("Voice typing", message);
-          press();
-        }}
-        style={({ pressed }) => [
-          { minWidth: 50, height: 50, paddingHorizontal: listening ? 12 : 0, borderRadius: 25, backgroundColor: listening ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, opacity: pressed ? 0.85 : 1 },
-          style,
-        ]}
-      >
-        {phase === "working" ? <ActivityIndicator color={colors.ink} /> : <AppIcon name="mic" size={20} color={listening ? "#FFFFFF" : colors.ink} />}
-        {listening ? <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14, fontVariant: ["tabular-nums"] }}>{voiceTimer(elapsed)}</T> : null}
-      </Pressable>
+      <View style={style}>
+        {/* Next to a chat box there's no room for a line under the button: the message floats above it. */}
+        {message && phase === "idle" ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={`${message} Tap to close.`} onPress={() => setMessage(null)} style={{ position: "absolute", bottom: 58, right: 0, width: 240, backgroundColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, zIndex: 10 }}>
+            <T accessibilityLiveRegion="polite" style={{ color: "#FFFFFF", fontSize: 13.5, lineHeight: 18 }}>{message}</T>
+          </Pressable>
+        ) : null}
+        <Pressable
+          testID={testID}
+          accessibilityRole="button"
+          accessibilityLabel={listening ? `${label} ${voiceTimer(elapsed)}` : label}
+          accessibilityState={{ disabled: disabled || phase === "working", busy: phase === "working" }}
+          disabled={disabled || phase === "working"}
+          onPress={press}
+          style={({ pressed }) => ({ width: 50, height: 50, borderRadius: 25, backgroundColor: listening ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.85 : 1 })}
+        >
+          {/* Fixed size so the chat box never jumps: while listening the timer replaces the mic. */}
+          {phase === "working" ? <ActivityIndicator color={colors.ink} /> : listening ? <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14, fontVariant: ["tabular-nums"] }}>{voiceTimer(elapsed)}</T> : <AppIcon name="mic" size={20} color={colors.ink} />}
+        </Pressable>
+      </View>
     );
   }
 

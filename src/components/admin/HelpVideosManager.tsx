@@ -177,7 +177,7 @@ export function HelpVideosManager({ initial, storageBase, migrationNeeded }: { i
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
-      <Card>
+      <Card className="grid min-w-0 content-start gap-4 p-4 sm:p-5">
         <CardHead
           title="Videos by topic"
           sub={`${live} live · ${rows.length - live} draft${rows.length - live === 1 ? "" : "s"}. A topic shows in Help only once it has a published video.`}
@@ -221,7 +221,7 @@ export function HelpVideosManager({ initial, storageBase, migrationNeeded }: { i
         {draft ? (
           <Editor draft={draft} setDraft={setDraft} storageBase={storageBase} saving={saving} error={error} saved={saved} setError={setError} onSave={() => void save()} onDelete={() => void remove()} onClose={() => setDraft(null)} />
         ) : (
-          <Card>
+          <Card className="p-4 sm:p-5">
             <CardHead title="Pick a video to edit" sub="Every topic starts as a draft. Record a one-minute video, upload it (MP4 or WebM, up to 50 MB) or paste a YouTube or Vimeo link, then publish." />
           </Card>
         )}
@@ -292,7 +292,7 @@ function Editor({
   const topic = HELP_TOPICS.find((item) => item.key === draft.topic);
 
   return (
-    <Card>
+    <Card className="grid min-w-0 content-start gap-4 p-4 sm:p-5">
       <CardHead
         title={draft.id ? "Edit video" : "Add a video"}
         sub={topic ? `Shows in Help on: ${topic.paths.slice(0, 4).join(", ")}${topic.paths.length > 4 ? "…" : ""}` : undefined}
