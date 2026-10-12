@@ -84,11 +84,16 @@ export async function uploadFileServer(
   customPath?: string,
 ): Promise<UploadResult> {
   await assertUploadContent(file);
-  const supabase = await getSupabaseServiceClient();
-
   // The extension comes from the checked type, never the browser's file name (".html" on an "image/png").
-  const filename = customPath ?? uploadPath(folder, file);
+  return uploadPublicFileAt(customPath ?? uploadPath(folder, file), file);
+}
 
+/**
+ * Stores an already-checked file at an exact path in the public media bucket with the service role (storage
+ * policies only let browsers write under products/), and returns its public URL. Never overwrites.
+ */
+export async function uploadPublicFileAt(filename: string, file: File | Blob): Promise<UploadResult> {
+  const supabase = await getSupabaseServiceClient();
   const { error } = await supabase.storage.from(BUCKET).upload(filename, file, {
     cacheControl: "3600",
     upsert: false,
