@@ -6,7 +6,7 @@ import { Notice, PillButton, Segmented } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, textareaClass } from "@/components/growth/kit";
-import { BLOCK_LABELS, blocksToHtml, htmlFromBlocks, readBlocks, type EmailBlock, type EmailBlockType } from "@/lib/marketing/blocks";
+import { BLOCK_LABELS, EMAIL_THEMES, EMAIL_THEME_INFO, blocksToHtml, htmlFromBlocks, readBlocks, themeOf, type EmailBlock, type EmailBlockType, type EmailThemeName } from "@/lib/marketing/blocks";
 import type { EmailBrand } from "@/lib/marketing/email-layout";
 import { previewSubject, renderEmailPreview, type PreviewShop } from "@/lib/marketing/preview";
 import { BLOCK_ICONS, BlockSettings, blankBlock, blockSummary } from "./BlockSettings";
@@ -31,12 +31,14 @@ interface Snapshot {
 }
 
 const ADD: EmailBlockType[] = ["heading", "text", "button", "image", "products", "coupon", "columns", "divider", "spacer", "social", "footer"];
+/** Richer layouts: heroes, receipts, delivery steps, countdowns, loyalty and games. */
+const ADD_MORE: EmailBlockType[] = ["hero", "banner", "countdown", "review", "features", "receipt", "steps", "vip", "meter", "game", "theme"];
 const STARTER: EmailBlock[] = [
   { type: "heading", text: "Hello from {{store}}" },
   { type: "text", text: "Hi {{name}},\n\nWrite your message here." },
   { type: "button", label: "Visit the shop", url: "{{store_url}}" },
 ];
-const PEGGY_IDEAS = ["Write a Sallah sale email for my store", "Make it shorter", "Improve the subject line", "Feature my best sellers", "Make it warmer and more personal"];
+const PEGGY_IDEAS = ["Write a Sallah flash sale with a countdown", "Write the last email of my cart series", "Make it a spin-to-win email", "Switch to the luxury dark style", "Make it shorter", "Improve the subject line", "Feature my best sellers"];
 
 export function EmailBuilder({ content, onChange, brand, shop }: { content: EmailContent; onChange: (content: EmailContent) => void; brand: EmailBrand; shop: PreviewShop }) {
   const initial = readBlocks(content.bodyHtml);
@@ -112,12 +114,25 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
   }
 
   function add(type: EmailBlockType) {
-    const at = selected === null ? blocks.length : selected + 1;
+    const existing = type === "theme" ? blocks.findIndex((b) => b.type === "theme") : -1;
+    if (existing >= 0) {
+      setSelected(existing);
+      setAdding(false);
+      return;
+    }
+    const at = type === "theme" ? 0 : selected === null ? blocks.length : selected + 1;
     const next = [...blocks];
     next.splice(at, 0, blankBlock(type));
     commit(next);
     setSelected(at);
     setAdding(false);
+  }
+
+  /** The style family (a "theme" block kept at the top; Classic removes it). */
+  function setTheme(theme: EmailThemeName) {
+    const rest = blocks.filter((b) => b.type !== "theme");
+    commit(theme === "classic" ? rest : [{ type: "theme", theme }, ...rest]);
+    setSelected(null);
   }
 
   function insertVariable(token: string) {
@@ -254,6 +269,14 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
             <button type="button" onClick={redo} disabled={!future.length} className={cx(buttonClass("white", "sm"), "disabled:opacity-40")} aria-label="Redo"><Icon name="refresh" size={14} /> Redo</button>
           </div>
         ) : null}
+        {mode === "visual" ? (
+          <label className="ml-auto flex items-center gap-2 text-[13px] font-bold">
+            <Icon name="palette" size={14} /> Style
+            <select aria-label="Email style" value={themeOf(blocks)} onChange={(e) => setTheme(e.target.value as EmailThemeName)} className="h-[40px] rounded-full border border-app-line bg-white px-3 text-[13.5px] font-bold text-app-ink outline-none focus:border-app-ink">
+              {EMAIL_THEMES.map((name) => <option key={name} value={name}>{EMAIL_THEME_INFO[name].label}</option>)}
+            </select>
+          </label>
+        ) : null}
       </div>
 
       <div className="grid gap-1.5">
@@ -333,6 +356,12 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
               {adding ? (
                 <div className="grid grid-cols-2 gap-1.5 rounded-[14px] bg-app-canvas p-2">
                   {ADD.map((type) => (
+                    <button key={type} type="button" onClick={() => add(type)} className="flex min-h-[44px] items-center gap-2 rounded-[12px] bg-white px-2.5 text-left text-[13px] font-bold hover:ring-1 hover:ring-app-ink">
+                      <Icon name={BLOCK_ICONS[type]} size={14} className="shrink-0" /> {BLOCK_LABELS[type]}
+                    </button>
+                  ))}
+                  <span className="col-span-2 px-1 pt-1.5 text-[11.5px] font-bold uppercase tracking-[0.08em] text-app-ink-soft">Layouts and extras</span>
+                  {ADD_MORE.map((type) => (
                     <button key={type} type="button" onClick={() => add(type)} className="flex min-h-[44px] items-center gap-2 rounded-[12px] bg-white px-2.5 text-left text-[13px] font-bold hover:ring-1 hover:ring-app-ink">
                       <Icon name={BLOCK_ICONS[type]} size={14} className="shrink-0" /> {BLOCK_LABELS[type]}
                     </button>

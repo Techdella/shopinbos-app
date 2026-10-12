@@ -89,6 +89,14 @@ function PopupGame({ section, store, colors, mode, config, giftNames, game }: Ga
   const [open, setOpen] = useState(false);
   const [demo, setDemo] = useState(false);
 
+  // Email links (?play=spin, ?play=reveal or ?play=gift from the game templates) open this game straight away.
+  useEffect(() => {
+    if (!live || !settings.enabled) return;
+    const play = new URLSearchParams(window.location.search).get("play");
+    const wanted = play === "spin" ? "wheel" : play === "reveal" || play === "gift" ? "scratch" : null;
+    if (wanted === game) setOpen(true);
+  }, [live, settings.enabled, game]);
+
   // Live pop-up: wait for the trigger, at most once per session and once per frequency period, never after a play.
   useEffect(() => {
     if (!live || !settings.enabled || display.display !== "popup") return;

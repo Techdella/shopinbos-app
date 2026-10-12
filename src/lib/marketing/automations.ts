@@ -2,8 +2,9 @@ import "server-only";
 
 import type { AutomationTrigger, Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { FLOW_PRESETS, TRIGGER_INFO, countMessages, parseFlowConfig, parseStep, presetByKey, type FlowSettings, type FlowStep, type FlowTrigger } from "./flows";
+import { FLOW_PRESETS, TRIGGER_INFO, countMessages, parseFlowConfig, parseStep, presetByKey, type FlowPreset, type FlowSettings, type FlowStep, type FlowTrigger } from "./flows";
 import { MarketingError } from "./segments";
+import { seriesAutomation } from "./template-library";
 
 // Automation flows on AutomationRule: steps and settings in actionConfig, on/off in active.
 
@@ -22,9 +23,17 @@ function cleanSteps(raw: unknown[] | undefined): FlowStep[] {
   return (raw ?? []).map(parseStep).filter((step): step is FlowStep => Boolean(step)).slice(0, 20);
 }
 
-/** Creates a flow from a ready-made one (presetKey) or from scratch. Starts off unless `active` is true. */
+/** A starter-library series ("series:cart") as a ready-made flow: its emails, waits and conditions. */
+function seriesPreset(key: string): FlowPreset | null {
+  if (!key.startsWith("series:")) return null;
+  const series = seriesAutomation(key.slice("series:".length));
+  if (!series) return null;
+  return { key, name: series.name, description: series.description, trigger: series.trigger, ...(series.settings ? { settings: series.settings } : {}), steps: cleanSteps(series.steps) };
+}
+
+/** Creates a flow from a ready-made one (presetKey, or "series:<key>" for a template series) or from scratch. Starts off unless `active` is true. */
 export async function createAutomation(storeId: string, input: AutomationInput & { presetKey?: string }) {
-  const preset = input.presetKey ? presetByKey(input.presetKey) : null;
+  const preset = input.presetKey ? presetByKey(input.presetKey) ?? seriesPreset(input.presetKey) : null;
   if (input.presetKey && !preset) throw new MarketingError(`Unknown flow "${input.presetKey}". Pick one of: ${FLOW_PRESETS.map((p) => p.key).join(", ")}`);
   const trigger = input.trigger ?? preset?.trigger;
   if (!trigger || !TRIGGERS.includes(trigger)) throw new MarketingError("Pick what starts the flow");

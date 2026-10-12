@@ -16,7 +16,7 @@ export async function listTemplates(storeId: string) {
   const saved = await db.emailTemplate.findMany({ where: { storeId }, orderBy: { updatedAt: "desc" }, take: 200, select: { id: true, name: true, subject: true, category: true, bodyHtml: true, updatedAt: true } });
   return {
     saved: saved.map((template) => ({ ...template, preheader: readPreheader(template.bodyHtml) })),
-    library: TEMPLATE_LIBRARY.map((template) => ({ key: template.key, name: template.name, description: template.description, subject: template.subject, category: template.category, preheader: template.preheader, bodyHtml: template.bodyHtml })),
+    library: TEMPLATE_LIBRARY.map((template) => ({ key: template.key, name: template.name, description: template.description, subject: template.subject, category: template.category, flow: template.flow, style: template.style, series: template.series ?? null, preheader: template.preheader, bodyHtml: template.bodyHtml })),
   };
 }
 
