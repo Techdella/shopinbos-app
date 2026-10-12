@@ -8,6 +8,8 @@ import { expiryGuard, hoursInWords, reminderDue, type SupplierOrderKind } from "
 import { messageSupplierPhone } from "./deadline.server";
 import { EXPIRED_WHOLESALE_REASON, plainText, supplierOrderRef } from "./pure";
 import { releaseWholesaleStock, wholesaleRef } from "./wholesale.server";
+import { switchedMessage } from "@shared/order-parts";
+import type { SwitchDecision } from "./switch.server";
 
 // The time a supplier has to accept a new order (build spec 7.2): 4 hours for an order a shop sold, 24 hours for
 // a bulk order (env SUPPLIER_ACCEPT_HOURS_DROPSHIP / SUPPLIER_ACCEPT_HOURS_WHOLESALE, or the admin's setting for
@@ -46,10 +48,17 @@ export async function releaseSupplierOrderStock(tx: Prisma.TransactionClient, su
 export interface AcceptanceResult {
   reminded: number;
   expired: { dropship: number; wholesale: number };
+  /** Expired orders sent to another supplier automatically (this run, including the catch-up). */
+  switched: number;
 }
 
 /** Expires one dropship order if it is still new and past its deadline. True when this call expired it. */
 export async function expireSupplierOrder(id: string, now = new Date()) {
+  return (await expireAndDecide(id, now)) !== null;
+}
+
+/** Expires the order (if still due) and decides what happens next; null when this call didn't expire it. */
+async function expireAndDecide(id: string, now: Date): Promise<SwitchDecision | null> {
   const row = await db.supplierOrder.findUnique({
     where: { id },
     select: {
@@ -57,7 +66,7 @@ export async function expireSupplierOrder(id: string, now = new Date()) {
       supplier: { select: { userId: true, displayName: true } }, retailOrder: { select: { orderNumber: true } },
     },
   });
-  if (!row) return false;
+  if (!row) return null;
   const released = await db.$transaction(async (tx) => {
     // Only while it's still new and late: an accept that got there first leaves this matching nothing.
     const moved = await tx.supplierOrder.updateMany({ where: expiryGuard(row.id, now), data: { status: "expired", expiredAt: now } });
@@ -66,26 +75,13 @@ export async function expireSupplierOrder(id: string, now = new Date()) {
     await countMissed(tx, row.supplierId);
     return units;
   });
-  if (released === null) return false;
+  if (released === null) return null;
 
-  const supplierName = plainText(row.supplier.displayName) || "The supplier";
-  const lines = (Array.isArray(row.items) ? row.items : []) as Array<{ name?: unknown; quantity?: unknown }>;
-  const what = lines.map((line) => `${Number(line.quantity) || 1} × ${plainText(line.name, 60) || "item"}`).join(", ");
-  const hours = row.acceptBy ? hoursInWords((row.acceptBy.getTime() - row.createdAt.getTime()) / 3_600_000) : "the time they had";
-  const ref = row.retailOrder.orderNumber;
+  // Send it to another supplier with the same product if one qualifies (switch.server.ts); otherwise the seller
+  // chooses. Decided once per expired order, whatever happens to this call.
+  const decision = await decideAfterExpiry(row.id, now);
   await Promise.allSettled([
-    createNotification({
-      userId: row.sellerId,
-      type: "dropshipping",
-      priority: "critical",
-      title: `${supplierName} didn't accept order ${ref} in time`,
-      description: `They had ${hours} to say yes to ${what || "these items"} and didn't answer, so we took the order back from them. Your customer hasn't been told. Find another supplier, or cancel and refund the customer.`,
-      link: `/home/orders/${row.retailOrderId}`,
-      actionLabel: "Choose what to do",
-      actionUrl: `/home/orders/${row.retailOrderId}#supplier-orders`,
-      metadata: { supplierOrderId: row.id, retailOrderId: row.retailOrderId, reason: "supplier_no_answer" },
-      sendEmail: true,
-    }),
+    tellSellerAfterExpiry(row, decision),
     createNotification({
       userId: row.supplier.userId,
       type: "dropshipping",
@@ -96,7 +92,92 @@ export async function expireSupplierOrder(id: string, now = new Date()) {
       metadata: { supplierOrderId: row.id },
     }),
   ]);
-  return true;
+  return decision;
+}
+
+type ExpiredRow = { id: string; acceptBy: Date | null; createdAt: Date; items: unknown; retailOrderId: string; sellerId: string; supplier: { displayName: string }; retailOrder: { orderNumber: string } };
+
+/** switchAfterExpiry, never throwing: on a failure the seller gets their choices (recorded, so it isn't retried). */
+async function decideAfterExpiry(id: string, now: Date): Promise<SwitchDecision> {
+  const { switchAfterExpiry } = await import("./switch.server");
+  try {
+    return await switchAfterExpiry(id, now);
+  } catch (error) {
+    console.error(`[supplier acceptance] could not look for another supplier for ${id}`, error);
+    const row = await db.supplierOrder.findUnique({ where: { id }, select: { retailOrderId: true, storeId: true, supplierId: true, costTotal: true } });
+    if (row) {
+      await db.supplierSwitch
+        .create({ data: { retailOrderId: row.retailOrderId, storeId: row.storeId, fromSupplierOrderId: id, fromSupplierId: row.supplierId, outcome: "none", costBefore: row.costTotal, note: "Looking for another supplier failed." } })
+        .catch(() => null);
+    }
+    return { outcome: "none", note: null };
+  }
+}
+
+/** The seller hears what happened: switched (with Undo), or their two choices. */
+async function tellSellerAfterExpiry(row: ExpiredRow, decision: SwitchDecision) {
+  if (decision.outcome === "already") return;
+  const supplierName = plainText(row.supplier.displayName) || "The supplier";
+  const ref = row.retailOrder.orderNumber;
+  if (decision.outcome === "switched") {
+    const { notifyNewSupplier } = await import("./switch.server");
+    await Promise.allSettled([
+      notifyNewSupplier(decision.toSupplierOrderId, decision.acceptWords),
+      createNotification({
+        userId: row.sellerId,
+        type: "dropshipping",
+        priority: "warning",
+        title: `We sent order ${ref} to ${plainText(decision.toName) || "another supplier"}`,
+        description: `${switchedMessage({ fromName: supplierName, toName: plainText(decision.toName) || "another supplier", costBefore: decision.costBefore, costAfter: decision.costAfter })} Your customer hasn't been told. Press Undo before they accept if you'd rather choose yourself.`,
+        link: `/home/orders/${row.retailOrderId}`,
+        actionLabel: "See the order",
+        actionUrl: `/home/orders/${row.retailOrderId}#supplier-orders`,
+        metadata: { supplierOrderId: row.id, retailOrderId: row.retailOrderId, replacementId: decision.toSupplierOrderId, reason: "supplier_switched" },
+        sendEmail: true,
+      }),
+    ]);
+    return;
+  }
+  const lines = (Array.isArray(row.items) ? row.items : []) as Array<{ name?: unknown; quantity?: unknown }>;
+  const what = lines.map((line) => `${Number(line.quantity) || 1} × ${plainText(line.name, 60) || "item"}`).join(", ");
+  const hours = row.acceptBy ? hoursInWords((row.acceptBy.getTime() - row.createdAt.getTime()) / 3_600_000) : "the time they had";
+  const why = decision.outcome === "limit" ? " We already tried other suppliers for this order." : decision.outcome === "none" ? " No other supplier has the same product within your price limit right now." : "";
+  await createNotification({
+    userId: row.sellerId,
+    type: "dropshipping",
+    priority: "critical",
+    title: `${supplierName} didn't accept order ${ref} in time`,
+    description: `They had ${hours} to say yes to ${what || "these items"} and didn't answer, so we took the order back from them.${why} Your customer hasn't been told. Find another supplier, or cancel and refund the customer.`,
+    link: `/home/orders/${row.retailOrderId}`,
+    actionLabel: "Choose what to do",
+    actionUrl: `/home/orders/${row.retailOrderId}#supplier-orders`,
+    metadata: { supplierOrderId: row.id, retailOrderId: row.retailOrderId, reason: "supplier_no_answer" },
+    sendEmail: true,
+  });
+}
+
+/**
+ * Catch-up: an expired order with no decision (the process stopped between expiring it and looking for another
+ * supplier). Only recent ones, so orders that expired before switching existed keep the seller's choices.
+ */
+async function sweepUndecided(now: Date, limit: number) {
+  const since = new Date(now.getTime() - 2 * 60 * 60_000);
+  const rows = await db.supplierOrder.findMany({
+    where: { status: "expired", expiredAt: { gte: since } },
+    orderBy: { expiredAt: "asc" },
+    take: limit,
+    select: { id: true, acceptBy: true, createdAt: true, items: true, retailOrderId: true, sellerId: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
+  });
+  if (!rows.length) return 0;
+  const decided = new Set((await db.supplierSwitch.findMany({ where: { fromSupplierOrderId: { in: rows.map((row) => row.id) } }, select: { fromSupplierOrderId: true } })).map((row) => row.fromSupplierOrderId));
+  let switched = 0;
+  for (const row of rows) {
+    if (decided.has(row.id)) continue;
+    const decision = await decideAfterExpiry(row.id, now);
+    if (decision.outcome === "switched") switched += 1;
+    await tellSellerAfterExpiry(row, decision).catch(() => null);
+  }
+  return switched;
 }
 
 /** Expires one bulk order if it is still new and past its deadline (it becomes cancelled, with expiredAt set). */
@@ -202,9 +283,12 @@ export async function runSupplierAcceptance(now = new Date(), limit = 200): Prom
     db.wholesaleOrder.findMany({ where: { status: "pending", acceptBy: { lte: now } }, orderBy: { acceptBy: "asc" }, take: limit, select: { id: true } }),
   ]);
   const expired = { dropship: 0, wholesale: 0 };
+  let switched = 0;
   for (const row of dropshipLate) {
     try {
-      if (await expireSupplierOrder(row.id, now)) expired.dropship += 1;
+      const decision = await expireAndDecide(row.id, now);
+      if (decision) expired.dropship += 1;
+      if (decision?.outcome === "switched") switched += 1;
     } catch (error) {
       console.error(`[supplier acceptance] could not expire supplier order ${row.id}`, error);
     }
@@ -216,5 +300,11 @@ export async function runSupplierAcceptance(now = new Date(), limit = 200): Prom
       console.error(`[supplier acceptance] could not expire bulk order ${row.id}`, error);
     }
   }
-  return { reminded, expired };
+  // Expired orders this run (and any a stopped run left undecided) that went to another supplier.
+  try {
+    switched += await sweepUndecided(now, limit);
+  } catch (error) {
+    console.error("[supplier acceptance] catch-up sweep failed", error);
+  }
+  return { reminded, expired, switched };
 }

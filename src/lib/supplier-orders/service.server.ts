@@ -7,7 +7,6 @@ import {
   groupDropshipLines,
   plainText,
   readyForSuppliers,
-  retailStatusAfterSupplierUpdate,
   supplierOrderKey,
   supplierOrderRef,
   supplierOrderStatusAfter,
@@ -191,7 +190,7 @@ export interface MoveInput {
 export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult<{ id: string; status: string }>> {
   const order = await db.supplierOrder.findFirst({
     where: { id: input.orderId, supplierId: input.supplierId },
-    select: { id: true, status: true, retailOrderId: true, sellerId: true, trackingCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
+    select: { id: true, status: true, retailOrderId: true, storeId: true, sellerId: true, trackingCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (order.status === "expired") return { ok: false, code: "CONFLICT", message: TIME_RAN_OUT };
@@ -238,6 +237,12 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     cancelled: null,
     expired: null,
   }[next];
+  if (note && (next === "shipped" || next === "delivered")) {
+    // "2 of 3 parcels sent": the seller sees where the whole order is.
+    const { sellerPartsView } = await import("./parts.server");
+    const parts = await sellerPartsView(order.retailOrderId, order.storeId).catch(() => null);
+    if (parts?.line) note.description = `${note.description} ${parts.line}.`;
+  }
   if (note) {
     await createNotification({
       userId: order.sellerId,
@@ -252,19 +257,12 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
   return { ok: true, data: { id: order.id, status: next } };
 }
 
-/** Moves the seller's store order along with its suppliers (only forward; see retailStatusAfterSupplierUpdate). */
-export async function syncRetailOrder(retailOrderId: string, trackingCode: string | null) {
-  const order = await db.retailOrder.findUnique({ where: { id: retailOrderId } });
-  if (!order) return;
-  const supplierOrders = await db.supplierOrder.findMany({ where: { retailOrderId }, select: { status: true, items: true, trackingCode: true } });
-  const covered = new Set(supplierOrders.flatMap((row) => (Array.isArray(row.items) ? row.items : []).map((item) => String((item as { storeProductId?: unknown })?.storeProductId ?? ""))));
-  const sellerLines = (Array.isArray(order.items) ? order.items : []).filter((item) => !covered.has(String((item as { productId?: unknown })?.productId ?? ""))).length;
-  const target = retailStatusAfterSupplierUpdate({ retailStatus: order.status, supplierStatuses: supplierOrders.map((row) => row.status), sellerLines });
-  if (!target) return;
-  const store = await db.store.findUnique({ where: { id: order.storeId }, select: { id: true, name: true } });
-  if (!store) return;
-  const codes = [...new Set(supplierOrders.map((row) => row.trackingCode).filter((code): code is string => Boolean(code)))];
-  const tracking = target === "shipped" ? (codes.length ? codes.join(", ") : trackingCode) : null;
-  const { updateOrderStatus } = await import("@/lib/orders/update-status");
-  await updateOrderStatus(store, order, { status: target, ...(tracking && !order.trackingCode ? { trackingCode: tracking.slice(0, 200) } : {}) });
+/**
+ * Moves the seller's store order along with its parcels (only forward; shared/order-parts.ts has the rules): shipped
+ * once every parcel has left, delivered once every parcel arrived. Locked and idempotent (parts.server.ts).
+ */
+export async function syncRetailOrder(retailOrderId: string, _trackingCode?: string | null) {
+  void _trackingCode;
+  const { recomputeOrderStatus } = await import("./parts.server");
+  return recomputeOrderStatus(retailOrderId);
 }

@@ -123,7 +123,7 @@ export function PartnerPayInsPanel({
               {remittances.map((row) => (
                 <li key={row.id} className="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-5">
                   <span className="min-w-0 flex-1 truncate text-[14.5px]">
-                    <b>{formatMoney(row.amount)}</b> · {formatDate(row.createdAt)} · {row.method === "api" ? "their software" : row.method === "cash" ? "cash (told us)" : "transfer (told us)"} · {row.jobs} {row.jobs === 1 ? "job" : "jobs"}
+                    <b>{formatMoney(row.amount)}</b> · {formatDate(row.createdAt)} · {row.method === "api" ? "their software" : row.method === "settled" ? "marked as settled by the team" : row.method === "cash" ? "cash (told us)" : "transfer (told us)"} · {row.jobs} {row.jobs === 1 ? "job" : "jobs"}
                   </span>
                   <Pill tone="muted" dot>{row.outcome === "over" ? "Paid extra" : row.outcome === "under" ? "Part paid" : "Saved"}</Pill>
                 </li>

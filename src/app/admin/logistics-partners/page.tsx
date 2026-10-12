@@ -19,6 +19,8 @@ import {
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { UnmatchedPayIns } from "./PayInsPanels";
+import { LatePayIns } from "./LatePayInsPanels";
+import { latePayInRows } from "@/lib/logistics/payin-standing.server";
 
 const verificationStatuses: readonly string[] = VERIFICATION_STATUSES;
 
@@ -41,7 +43,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     ];
   }
 
-  const [partners, byStatus, total, submitted, suspended, unmatchedPayIns, partnerChoices] = await Promise.all([
+  const [partners, byStatus, total, submitted, suspended, unmatchedPayIns, partnerChoices, latePayIns] = await Promise.all([
     db.logisticsPartner.findMany({
       where,
       orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
@@ -76,6 +78,8 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
       select: { id: true, amount: true, currency: true, accountNumber: true, senderName: true, senderBank: true, reference: true, paidAt: true },
     }),
     db.logisticsPartner.findMany({ orderBy: { displayName: "asc" }, take: 500, select: { id: true, displayName: true } }),
+    // Partners late paying in customers' cash (lib/logistics/payin-deadline.ts).
+    latePayInRows(),
   ]);
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
@@ -109,6 +113,8 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
           {searchParams.error ?? searchParams.saved}
         </p>
       )}
+
+      <LatePayIns rows={latePayIns} now={new Date()} returnTo={backTo} />
 
       <UnmatchedPayIns payIns={unmatchedPayIns} partners={partnerChoices} returnTo={backTo} />
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { paystackSecretReady } from "@shared/checkout-payments";
-import { readDedicatedAccount } from "./payin-rules";
+import { isDedicatedCharge, readDedicatedAccount } from "./payin-rules";
 
 // Each delivery partner's own pay-in account: a Paystack Dedicated Virtual Account (a real bank account number in
 // the partner company's name). Transfers into it arrive as charge.success with channel "dedicated_nuban" and are
@@ -59,6 +59,28 @@ async function paystack(path: string, body: Record<string, unknown>): Promise<{ 
     return { ok: true, data: json.data };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message.slice(0, 300) : "network error", status: 0 };
+  }
+}
+
+/**
+ * Recent successful transfers into a partner's pay-in account (GET /transaction?customer=…&status=success), as the
+ * raw transaction objects charge.success carries, for "I've paid. Check again". Only dedicated-account transfers
+ * are returned. Null when Paystack can't be reached or isn't set up.
+ */
+export async function fetchRecentDedicatedCharges(input: { customerId: string | null; since: Date }): Promise<unknown[] | null> {
+  if (!payInAccountsConfigured() || !input.customerId) return null;
+  const query = new URLSearchParams({ customer: input.customerId, status: "success", from: input.since.toISOString(), perPage: "50" });
+  try {
+    const response = await fetch(`${paystackBase()}/transaction?${query}`, {
+      headers: { Authorization: `Bearer ${secret()}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    const json = (await response.json().catch(() => null)) as PaystackJson | null;
+    if (!response.ok || !json?.status || !Array.isArray(json.data)) return null;
+    return json.data.filter((row) => isDedicatedCharge(row));
+  } catch {
+    return null;
   }
 }
 

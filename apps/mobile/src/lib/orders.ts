@@ -32,9 +32,54 @@ export interface OrderDetail {
   trackingCode: string | null;
   createdAt: string;
   row: OrderRow;
+  /** Parcels and anything to decide (src/lib/supplier-orders/parts.server.ts); null when no supplier sends any of it. */
+  parts?: OrderParts | null;
+}
+
+/** One parcel: a supplier's, or the seller's own ("You"). */
+export interface OrderPart {
+  key: string;
+  kind: "supplier" | "own";
+  name: string;
+  label: string;
+  state: "waiting" | "preparing" | "sent" | "delivered" | "problem";
+  items: string;
+  trackingCode: string | null;
+  supplierOrderId: string | null;
+}
+
+/** A supplier who didn't accept in time (or declined): switched automatically, or the seller chooses. */
+export interface OrderProblem {
+  supplierOrderId: string;
+  supplierName: string;
+  status: string;
+  items: string;
+  productName: string;
+  /** What "Find another supplier" searches for. */
+  searchQuery: string;
+  switched: { toSupplierOrderId: string; toName: string; message: string; costWords: string; canUndo: boolean; accepted: boolean } | null;
+  undone: boolean;
+  needsChoice: boolean;
+}
+
+export interface OrderParts {
+  /** "2 of 3 parcels sent" (null for one parcel). */
+  line: string | null;
+  total: number;
+  sent: number;
+  parts: OrderPart[];
+  problems: OrderProblem[];
+  canCancelAndRefund: boolean;
 }
 
 export const fetchOrder = (id: string) => api<OrderDetail>(`/api/app/orders/${id}`);
+
+/** Undo an automatic switch to another supplier (until they accept). */
+export const undoSupplierSwitch = (id: string, supplierOrderId: string) =>
+  api<OrderDetail>(`/api/app/orders/${id}/supplier-switch/undo`, { method: "POST", json: { supplierOrderId } });
+
+/** Cancel the order and give the customer their money back (a supplier didn't accept in time). */
+export const cancelAndRefund = (id: string) => api<OrderDetail & { message: string }>(`/api/app/orders/${id}/cancel-refund`, { method: "POST", json: {} });
 
 export const updateOrder = (id: string, body: { status: string; paymentMethod?: string; logisticsType?: "personal" | "pickup" }) =>
   api<OrderDetail>(`/api/app/orders/${id}`, { method: "PATCH", json: body });

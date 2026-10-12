@@ -8,6 +8,9 @@ import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/payin-rules";
 import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
 import { PayInAccountCard } from "@/components/logistics/PayInAccountCard";
+import { PayInOverdueCard } from "@/components/logistics/PayInOverdueCard";
+import { payInConfig } from "@/lib/logistics/payin-deadline";
+import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import {
   ACTIVE_STATUSES,
   ActionNotice,
@@ -63,7 +66,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
     seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
-  const [openJobs, heldCash, transfers, collectedRecent, remittances, payInAccount] = await Promise.all([
+  const [openJobs, heldCash, transfers, collectedRecent, remittances, payInAccount, overdue] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: { in: ["pending", ...ACTIVE_STATUSES] }, OR: [{ codAmount: { gt: 0 } }, { codAmount: null, orderId: { not: null } }] },
       orderBy: { createdAt: "asc" },
@@ -93,6 +96,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       select: { id: true, amount: true, method: true, reference: true, note: true, createdAt: true, outcome: true, covered: true, creditAfter: true, _count: { select: { bookings: true } } },
     }),
     ensurePayInAccountSafely(partner.id),
+    payInOverdueView(partner.id),
   ]);
   const account = payInAccountView(payInAccount);
 
@@ -110,7 +114,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
   const credit = partner.payInCredit;
   const owed = owedAfterCredit(held, credit);
   const oldest = heldCash[0];
-  const due = payInDue(oldest ? oldest.codCollectedAt ?? oldest.createdAt : null);
+  const due = payInDue(oldest ? oldest.codCollectedAt ?? oldest.createdAt : null, new Date(), payInConfig().cutoffHour);
   const late = due.late && owed > 0;
   const byRider = new Map<string, { name: string; amount: number; jobs: number }>();
   for (const job of heldCash) {
@@ -214,13 +218,16 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
         </div>
         <div className="order-first grid min-w-0 content-start gap-5 xl:order-none">
           <>
+            {overdue && <PayInOverdueCard title={overdue.title} body={overdue.body} account={overdue.account} />}
             <Card className="grid gap-4 p-5">
               <div>
                 <h2 className="m-0 text-[22px] font-extrabold leading-tight">{owed > 0 ? `Pay in ${naira(owed)} ${due.words}` : "Nothing to pay in"}</h2>
-                <p className={`m-0 mt-1 text-[15px] leading-[1.5] ${late ? "font-bold text-app-danger" : "text-app-ink-soft"}`}>
+                <p className={`m-0 mt-1 text-[15px] leading-[1.5] ${late && !overdue ? "font-bold text-app-danger" : "text-app-ink-soft"}`}>
                   {owed > 0
                     ? late
-                      ? "This was due by 6pm. Pay it in now so you keep getting jobs where customers pay when it arrives."
+                      ? overdue
+                        ? "Cash your riders collected from customers who paid when it arrived."
+                        : "This was due earlier today. Pay it in now so you keep getting jobs where customers pay when it arrives."
                       : "Cash your riders collected from customers who paid when it arrived."
                     : credit > 0
                     ? `You paid ${naira(credit)} extra. We'll use it for your next cash jobs.`
@@ -228,7 +235,8 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                 </p>
               </div>
               {account.state === "ready" ? (
-                <PayInAccountCard accountNumber={account.accountNumber} bankName={account.bankName} accountName={account.accountName} />
+                // The late card above already shows the account with Copy.
+                overdue?.account ? null : <PayInAccountCard accountNumber={account.accountNumber} bankName={account.bankName} accountName={account.accountName} />
               ) : (
                 <>
                   <p className="m-0 rounded-[14px] bg-app-canvas p-3 text-[15px] leading-[1.5] text-app-ink-soft">
@@ -284,7 +292,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
                         <div className="truncate text-[15px] text-app-ink-soft">
-                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "account" ? "To your pay-in account" : row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
+                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "account" ? "To your pay-in account" : row.method === "settled" ? "Settled with the Shopinbos team" : row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
                           {row.reference && row.method !== "account" ? ` · ${row.reference}` : ""}
                         </div>
                         <div className="truncate text-[14px] font-bold text-app-forest">

@@ -12,18 +12,18 @@ import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { naira } from "@shared/onboarding";
 import { messagesHref } from "@/lib/conversations/pure";
 import { Notice } from "@/components/app-ui";
-import { cancelAndRefundExpiredOrder } from "./supplier-actions";
+import { cancelAndRefundExpiredOrder, undoSupplierSwitchAction } from "./supplier-actions";
+import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 
 type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
 
-const SUPPLIER_STAGE: Record<string, { label: string; tone: "accent" | "info" | "warning" | "success" | "muted" | "danger" }> = {
-  pending: { label: "Sent to supplier", tone: "accent" },
-  accepted: { label: "Supplier is preparing it", tone: "warning" },
-  shipped: { label: "Shipped by supplier", tone: "info" },
-  delivered: { label: "Delivered", tone: "success" },
-  rejected: { label: "Supplier declined", tone: "danger" },
-  cancelled: { label: "Cancelled", tone: "muted" },
-  expired: { label: "Supplier didn't answer in time", tone: "danger" },
+/** Each parcel's state (shared/order-parts.ts). */
+const PART_TONE: Record<string, "accent" | "info" | "warning" | "success" | "muted" | "danger"> = {
+  waiting: "accent",
+  preparing: "warning",
+  sent: "info",
+  delivered: "success",
+  problem: "danger",
 };
 
 function formatDate(date: Date) {
@@ -78,6 +78,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
       select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, supplier: { select: { id: true, displayName: true } } },
     })
     .catch(() => []);
+  // Parcels: "2 of 3 parcels sent", each part's state, and anything to decide (a supplier didn't accept in time).
+  const parts = supplierOrders.length ? await sellerPartsView(order.id, store.id).catch(() => null) : null;
   const address = addressLines(order.deliveryAddress);
   const logistics = order.logisticsDetails && typeof order.logisticsDetails === "object" && !Array.isArray(order.logisticsDetails)
     ? (order.logisticsDetails as Record<string, unknown>)
@@ -110,6 +112,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
       )}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <StageDot tone={row.stage.tone}>{row.stage.label}</StageDot>
+        {parts?.line && <Pill tone={parts.sent === parts.total ? "success" : "info"}>{parts.line}</Pill>}
         <Pill tone={row.payment.tone}>{row.payment.label}</Pill>
         {channel && <span className="text-[13.5px] text-app-ink-soft">From {channel}</span>}
       </div>
@@ -146,43 +149,69 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               )}
             </Card>
 
-            {supplierOrders.length > 0 && (
+            {parts && (
               <div id="supplier-orders" className="scroll-mt-24"><Card className="p-5">
                 {(flash.saved || flash.error) && (
                   <div className="mb-3">
                     <Notice tone={flash.error ? "error" : "success"}>{flash.error ?? flash.saved}</Notice>
                   </div>
                 )}
-                <CardHead title="Sent by the supplier" sub="Products you sell without stock go straight from the supplier to your customer, in your shop's name." />
-                <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
-                  {supplierOrders.map((supplierOrder) => {
-                    const stage = SUPPLIER_STAGE[supplierOrder.status] ?? { label: supplierOrder.status, tone: "muted" as const };
-                    const lines = (Array.isArray(supplierOrder.items) ? supplierOrder.items : []) as Array<{ name?: string; quantity?: number }>;
-                    return (
-                      <li key={supplierOrder.id} className="grid gap-1.5 py-3 text-[14px]">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-bold">{supplierOrder.supplier.displayName}</span>
-                          <Pill tone={stage.tone} dot>{stage.label}</Pill>
+                <CardHead
+                  title={parts.total > 1 ? "Parcels" : "Sent by the supplier"}
+                  sub={parts.line ?? "Products you sell without stock go straight from the supplier to your customer, in your shop's name."}
+                />
+                {parts.problems.map((problem) => (
+                  <div key={problem.supplierOrderId} className="mt-3 grid gap-2 rounded-[14px] bg-app-canvas p-3 text-[13.5px]">
+                    {problem.switched ? (
+                      <>
+                        <div className="font-bold">{problem.switched.message}</div>
+                        <div className="text-app-ink-soft">{problem.items}</div>
+                        {problem.switched.canUndo ? (
+                          <form action={undoSupplierSwitchAction} className="flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="orderId" value={order.id} />
+                            <input type="hidden" name="supplierOrderId" value={problem.switched.toSupplierOrderId} />
+                            <span className="text-app-ink-soft">Waiting for {problem.switched.toName} to accept. Rather choose yourself?</span>
+                            <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">Undo</button>
+                          </form>
+                        ) : problem.switched.accepted ? (
+                          <div className="text-app-ink-soft">{problem.switched.toName} accepted it.</div>
+                        ) : null}
+                      </>
+                    ) : problem.status === "expired" ? (
+                      <>
+                        <div className="font-bold">
+                          {problem.supplierName} didn&apos;t accept this in time{problem.undone ? ", and you undid the switch" : ", so we took it back from them"}. Your customer hasn&apos;t been told. What do you want to do?
                         </div>
-                        <div className="text-[13px] text-app-ink-soft">{lines.map((line) => `${line.name ?? "Item"} × ${line.quantity ?? 1}`).join(", ")}</div>
-                        {supplierOrder.trackingCode && (
-                          <div className="text-[13px]">Tracking <span className="font-bold">{supplierOrder.trackingCode}</span>{supplierOrder.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder.shippedAt ? ` · shipped ${formatDate(supplierOrder.shippedAt)}` : ""}</div>
+                        <div className="text-app-ink-soft">{problem.items}</div>
+                        <div className="flex flex-wrap gap-2">
+                          <PillLink href={`/marketplace?q=${encodeURIComponent(problem.searchQuery)}`} size="sm" icon="search">Find another supplier</PillLink>
+                          {parts.canCancelAndRefund && (
+                            <form action={cancelAndRefundExpiredOrder}>
+                              <input type="hidden" name="orderId" value={order.id} />
+                              <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">Cancel and refund the customer</button>
+                            </form>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="font-bold text-app-danger">{problem.supplierName} can&apos;t send {problem.items}. Contact your buyer, then refund or replace these items.</div>
+                    )}
+                  </div>
+                ))}
+                <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
+                  {parts.parts.map((part) => {
+                    const supplierOrder = part.supplierOrderId ? supplierOrders.find((row) => row.id === part.supplierOrderId) : null;
+                    return (
+                      <li key={part.key} className="grid gap-1.5 py-3 text-[14px]">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-bold">{part.kind === "own" ? "Your part" : part.name}</span>
+                          <Pill tone={PART_TONE[part.state] ?? "muted"} dot>{part.label}</Pill>
+                        </div>
+                        <div className="text-[13px] text-app-ink-soft">{part.items}</div>
+                        {part.trackingCode && (
+                          <div className="text-[13px]">Tracking <span className="font-bold">{part.trackingCode}</span>{supplierOrder?.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder?.shippedAt ? ` · sent ${formatDate(supplierOrder.shippedAt)}` : ""}</div>
                         )}
-                        {supplierOrder.rejectReason && <div className="text-[13px] font-bold text-app-danger">Declined: {supplierOrder.rejectReason}. Contact your buyer, then refund or replace these items.</div>}
-                        {supplierOrder.status === "expired" && (
-                          <div className="grid gap-2 rounded-[14px] bg-app-canvas p-3 text-[13.5px]">
-                            <div className="font-bold">{supplierOrder.supplier.displayName} didn&apos;t accept this in time, so we took it back from them. Your customer hasn&apos;t been told. What do you want to do?</div>
-                            <div className="flex flex-wrap gap-2">
-                              <PillLink href={`/marketplace?q=${encodeURIComponent(String(lines[0]?.name ?? "").slice(0, 60))}`} size="sm" icon="search">Find another supplier</PillLink>
-                              {!["shipped", "delivered", "cancelled", "refunded", "returned"].includes(order.status) && (
-                                <form action={cancelAndRefundExpiredOrder}>
-                                  <input type="hidden" name="orderId" value={order.id} />
-                                  <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">Cancel and refund the customer</button>
-                                </form>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        {supplierOrder?.rejectReason && <div className="text-[13px] font-bold text-app-danger">Declined: {supplierOrder.rejectReason}.</div>}
                       </li>
                     );
                   })}

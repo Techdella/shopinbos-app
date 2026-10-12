@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { createNotification } from "@/lib/notifications/create";
 import { cancelUnassignedDeliveryJob, createDeliveryJob, moveDeliveryJobWindow } from "@/lib/logistics/booking.server";
+import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 import {
   buildPickupJob,
   choosePickupPartner,
@@ -215,7 +216,8 @@ async function pickPartner(order: PickupOrder) {
   const [store, partners] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
-      where: { status: "active", verificationStatus: "verified" },
+      // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
+      where: { status: "active", verificationStatus: "verified", ...payWhenItArrivesWhere(order.collect > 0) },
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
@@ -432,10 +434,11 @@ export async function assignPickupPartner(pickupId: string, partnerId: string): 
   const kind = pickup.orderKind === "wholesale" ? "wholesale" : "dropship";
   const [order, partner] = await Promise.all([
     loadOrder(pickup.supplierId, kind, pickup.orderId),
-    db.logisticsPartner.findFirst({ where: { id: partnerId, status: "active", verificationStatus: "verified" }, select: { id: true, basePrice: true, displayName: true } }),
+    db.logisticsPartner.findFirst({ where: { id: partnerId, status: "active", verificationStatus: "verified" }, select: { id: true, basePrice: true, displayName: true, codPaused: true } }),
   ]);
   if (!order) return { ok: false, message: "The order for this pickup is gone." };
   if (!partner) return { ok: false, message: "That delivery company isn't verified or isn't taking jobs." };
+  if (order.collect > 0 && partner.codPaused) return { ok: false, message: "That delivery company is late paying in customers' cash, so it can't take pay-when-it-arrives parcels now. Pick another." };
   const claimed = await db.supplierPickup.updateMany({ where: { id: pickup.id, status: "finding_rider" }, data: { status: "booked", needsAdmin: false, logisticsPartnerId: partner.id } });
   if (claimed.count !== 1) return { ok: false, message: "Someone else just booked this pickup. Refresh the page." };
   const payload = buildPickupJob({

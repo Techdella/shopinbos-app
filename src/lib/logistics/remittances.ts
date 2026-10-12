@@ -2,13 +2,16 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { applyPayIn, type PayInApplication } from "./payin-rules";
+import { refreshPayInStandingSafely } from "./payin-standing.server";
 
 // Cash pay-ins: a partner pays Shopinbos the cash their riders collected. Every way in (the manual form, the
 // partner API, and transfers to the partner's own pay-in account, matched in payins.server.ts) goes through
 // applyRemittanceTx: the pay-in plus any credit settles the oldest unremitted cash jobs it fully covers
-// (payin-rules applyPayIn), and what's left is kept as the partner's credit for next time.
+// (payin-rules applyPayIn), and what's left is kept as the partner's credit for next time. After each pay-in the
+// partner's late standing is refreshed (payin-standing.server.ts), so paying in lifts a late pause at once.
 
-export type RemittanceMethod = "transfer" | "cash" | "api" | "account";
+/** "settled": the team marked late cash as settled (with a reason) without a transfer. */
+export type RemittanceMethod = "transfer" | "cash" | "api" | "account" | "settled";
 
 type Tx = Prisma.TransactionClient;
 
@@ -66,7 +69,7 @@ export async function recordRemittance(input: { partnerId: string; amount: numbe
   const reference = input.reference?.trim().slice(0, 120) || null;
   const note = input.note?.trim().slice(0, 500) || null;
 
-  return db.$transaction(async (tx) => {
+  const result: RemittanceResult = await db.$transaction(async (tx) => {
     if (reference) {
       const duplicate = await tx.codRemittance.findFirst({ where: { logisticsPartnerId: input.partnerId, reference }, select: { id: true } });
       if (duplicate) return { ok: false as const, error: "You've already saved a pay-in with that transfer reference. Check it, or leave it empty." };
@@ -74,4 +77,6 @@ export async function recordRemittance(input: { partnerId: string; amount: numbe
     const { remittance, application } = await applyRemittanceTx(tx, { partnerId: input.partnerId, amount, method: input.method, reference, note });
     return { ok: true as const, remittance, jobIds: application.ids, covered: application.covered, unallocated: application.creditAfter, application };
   });
+  if (result.ok) await refreshPayInStandingSafely(input.partnerId);
+  return result;
 }

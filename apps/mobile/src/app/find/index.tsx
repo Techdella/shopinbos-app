@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
@@ -67,8 +67,10 @@ export default function FindProducts() {
     const products = await fetchFindProducts(context?.country ?? "Nigeria");
     return { context, products };
   });
+  // "Find another supplier" on an order opens this filtered to that product (?q=classic dashiki shirt).
+  const params = useLocalSearchParams<{ q?: string }>();
   const [tab, setTab] = useState<Tab>("nigeria");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(typeof params.q === "string" ? params.q.slice(0, 60) : "");
   const [category, setCategory] = useState("");
   const products = useMemo(() => loaded.data?.products ?? [], [loaded.data]);
   const added = useMemo(() => new Set(loaded.data?.context?.addedIds ?? []), [loaded.data]);

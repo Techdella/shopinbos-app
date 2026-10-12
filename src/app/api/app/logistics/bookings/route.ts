@@ -6,6 +6,7 @@ import { DeliveryBookingCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
+import { canOfferJob } from "@/lib/logistics/payin-deadline";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -53,6 +54,10 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     ? await db.retailOrder.findFirst({ where: { id: parsed.data.orderId, store: { userId: user.id } }, select: { total: true, status: true } })
     : null;
   const codAmount = order && (order.status === "pending" || order.status === "awaiting_payment") && order.total > 0 ? order.total : undefined;
+  // A partner who is late paying in customers' cash gets no new pay-when-it-arrives jobs (prepaid ones still go).
+  if (!canOfferJob({ ...partner, verificationStatus: String(partner.verificationStatus) }, { cod: Boolean(codAmount) })) {
+    return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);
+  }
 
   const booking = await db.deliveryBooking.create({
     data: { sellerId: user.id, ...parsed.data, codAmount },

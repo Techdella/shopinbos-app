@@ -20,7 +20,7 @@ export default async function AdminSupplierPickupsPage({ searchParams }: { searc
   const pickups = await pickupsNeedingAdmin(100);
   const [suppliers, partners] = await Promise.all([
     db.supplier.findMany({ where: { id: { in: [...new Set(pickups.map((row) => row.supplierId))] } }, select: { id: true, displayName: true, city: true, whatsappNumber: true } }),
-    db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: [{ reliabilityScore: "desc" }, { displayName: "asc" }], select: { id: true, displayName: true, city: true }, take: 200 }),
+    db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: [{ reliabilityScore: "desc" }, { displayName: "asc" }], select: { id: true, displayName: true, city: true, codPaused: true }, take: 200 }),
   ]);
   const supplierById = new Map(suppliers.map((row) => [row.id, row]));
   const now = new Date();
@@ -53,7 +53,7 @@ export default async function AdminSupplierPickupsPage({ searchParams }: { searc
                     <label htmlFor={`partner-${pickup.id}`} className="sr-only">Delivery company</label>
                     <select id={`partner-${pickup.id}`} name="partnerId" required className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[14px]">
                       <option value="">Pick a delivery company</option>
-                      {partners.map((partner) => <option key={partner.id} value={partner.id}>{partner.displayName} ({partner.city})</option>)}
+                      {partners.map((partner) => <option key={partner.id} value={partner.id}>{partner.displayName} ({partner.city}){partner.codPaused ? " · late pay-in: prepaid only" : ""}</option>)}
                     </select>
                     <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white">Book this company</button>
                   </form>

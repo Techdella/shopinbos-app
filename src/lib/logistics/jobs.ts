@@ -55,8 +55,12 @@ export async function transitionJob(input: {
   await db.deliveryBooking.update({ where: { id: job.id }, data });
 
   // Keep the seller's order in step (shipped when picked up, delivered — and paid, for pay on delivery — when dropped off).
+  // A supplier's pickup is one parcel of the order: its supplier order moves (onDeliveryJobMoved below) and the
+  // order follows all its parcels. The seller's own job on an order that also has supplier parcels is the seller's
+  // part (markOwnPart, through updateOrderStatus).
   const orderStatus = ORDER_STATUS_FOR_JOB[input.to];
-  if (job.orderId && orderStatus) {
+  const supplierPickup = job.orderId && orderStatus ? await db.supplierPickup.findUnique({ where: { deliveryBookingId: job.id }, select: { id: true } }) : null;
+  if (job.orderId && orderStatus && !supplierPickup) {
     const order = await db.retailOrder.findUnique({ where: { id: job.orderId } });
     const store = order ? await db.store.findUnique({ where: { id: order.storeId }, select: { id: true, name: true } }) : null;
     if (order && store && order.status !== orderStatus && order.status !== "delivered" && order.status !== "cancelled") {

@@ -3,6 +3,8 @@ import { withLogistics } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { cashToPayIn } from "@/lib/logistics/job-rules";
+import { payInConfig } from "@/lib/logistics/payin-deadline";
+import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/payin-rules";
 import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
 import { naira } from "@shared/onboarding";
@@ -26,7 +28,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
   const today = lagosStartOfToday(now);
   const monthAgo = new Date(today.getTime() - 29 * DAY_MS);
   const weekAgo = new Date(today.getTime() - 6 * DAY_MS);
-  const [delivered, unremitted, remittances, bank, payInAccount] = await Promise.all([
+  const [delivered, unremitted, remittances, bank, payInAccount, overdue] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: "delivered", deliveredAt: { gte: monthAgo } },
       orderBy: { deliveredAt: "desc" },
@@ -45,8 +47,9 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     }),
     db.logisticsPayoutAccount.findUnique({ where: { logisticsPartnerId: partner.id }, select: { bankName: true, accountNumberMask: true, accountName: true, verificationStatus: true } }),
     ensurePayInAccountSafely(partner.id),
+    payInOverdueView(partner.id, now),
   ]);
-  const due = payInDue(unremitted[0] ? unremitted[0].codCollectedAt ?? unremitted[0].createdAt : null, now);
+  const due = payInDue(unremitted[0] ? unremitted[0].codCollectedAt ?? unremitted[0].createdAt : null, now, payInConfig().cutoffHour);
 
   const sum = (from: Date) => delivered.filter((job) => job.deliveredAt && job.deliveredAt >= from).reduce((total, job) => total + bookingNet(job), 0);
   const count = (from: Date) => delivered.filter((job) => job.deliveredAt && job.deliveredAt >= from).length;
@@ -59,6 +62,8 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     credit: partner.payInCredit,
     payInBy: due.words,
     late: due.late && unremitted.length > 0,
+    // Late pay-in (lib/logistics/payin-deadline.ts): the calm amber card, or null.
+    overdue,
     payIn: payInAccountView(payInAccount),
     remittances: remittances.map(({ _count, ...row }) => ({
       ...row,

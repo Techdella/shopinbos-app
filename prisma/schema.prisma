@@ -220,6 +220,13 @@ model Store {
   status                     String   @default("active")
   onboardingState            String?
   firstDashboardVisitComplete Boolean  @default(false)
+  /// When a supplier doesn't accept in time, send the order to another supplier with the same product (on by
+  /// default), as long as the cost stays within the limit: "cost" = at most switchMaxIncreasePct above the
+  /// original cost; "margin" = the seller keeps at least switchMinMarginPct of their price.
+  autoSwitchSupplier         Boolean  @default(true)
+  switchCostRule             String   @default("cost")
+  switchMaxIncreasePct       Int      @default(10)
+  switchMinMarginPct         Int      @default(20)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -538,6 +545,11 @@ model SupplierProduct {
   deliveryRegions       String[]
   processingTime        String?
   trendScore            Float         @default(0)
+  /// The same product from several suppliers shares a family key (or names another listing's id). Used to send an
+  /// order to another supplier when one doesn't answer (src/lib/supplier-orders/switch.server.ts).
+  familyKey             String?
+  /// Sizes and colours the supplier has: [{ size?, color? }]. Empty = one kind only.
+  variants              Json          @default("[]")
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -554,6 +566,7 @@ model SupplierProduct {
   @@index([slug])
   @@index([status])
   @@index([trendScore(sort: Desc)])
+  @@index([familyKey])
 }
 
 // ─── Store Product ────────────────────────────────────────────────────────────
@@ -798,6 +811,10 @@ model SupplierOrder {
   expiredAt       DateTime?
   packedAt        DateTime? // the supplier said "I've packed it"
   stockReleasedAt DateTime? // the supplier stock this order's lines held went back (expired), once
+  /// Automatic switch: the expired order this one took over (idempotencyKey "switch:<that id>").
+  replacesId      String?
+  /// The seller pressed Undo before this supplier accepted (status cancelled).
+  undoneAt        DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -808,6 +825,31 @@ model SupplierOrder {
   @@index([retailOrderId])
   @@index([storeId])
   @@index([status, acceptBy])
+  @@index([replacesId])
+}
+
+/// What happened when a supplier didn't accept a shop's order in time: switched to another supplier, nobody
+/// qualified, the shop turned switching off, or the limit was reached; later "undone" when the seller pressed
+/// Undo. One row per expired supplier order (unique), so a cron re-run never switches twice.
+model SupplierSwitch {
+  id                  String    @id @default(cuid())
+  retailOrderId       String
+  storeId             String
+  fromSupplierOrderId String    @unique
+  fromSupplierId      String
+  /// switched | undone | none | off | limit
+  outcome             String
+  toSupplierOrderId   String?   @unique
+  toSupplierId        String?
+  costBefore          Float     @default(0)
+  costAfter           Float?
+  note                String?
+  undoneAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([retailOrderId])
+  @@index([storeId, createdAt])
 }
 
 /// A rider booked to collect a supplier's packed order at a set time (dropship SupplierOrder or WholesaleOrder,
@@ -868,6 +910,21 @@ model LogisticsPartner {
   status             String             @default("active")
   /// Cash pay-ins: money paid in beyond the cash jobs it could settle, used first by the next pay-in.
   payInCredit        Float              @default(0)
+  /// Late pay-ins (lib/logistics/payin-deadline.ts): paused from new pay-when-it-arrives (COD) jobs only. Set and
+  /// cleared by the system (cron + pay-in matching) or the team, never by the partner's "Taking new jobs" switch.
+  codPaused          Boolean            @default(false)
+  /// The missed pay-in deadline (6pm Lagos) of the oldest cash still owed, while the partner is late.
+  payInOverdueSince  DateTime?
+  /// Cash past its deadline and grace, still owed after credit.
+  payInOverdueAmount Float              @default(0)
+  /// 24 hours late: told again, high priority for the team.
+  payInEscalatedAt   DateTime?
+  /// 72 hours late: flagged for the team to review (never suspended automatically).
+  payInReviewAt      DateTime?
+  /// The team unpaused the partner for this late period; the cron won't pause them again until it clears.
+  payInPauseWaived   Boolean            @default(false)
+  /// Late days counted against the partner (each also lowers reliabilityScore).
+  payInStrikes       Int                @default(0)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -882,6 +939,7 @@ model LogisticsPartner {
   reviews        LogisticsReview[]
   payInAccount   PartnerPayInAccount?
   payIns         PartnerPayIn[]
+  payInEvents    PartnerPayInEvent[]
 
   @@index([slug])
   @@index([country, city])
@@ -1717,6 +1775,12 @@ model RetailOrder {
   refundStatus       String? // pending (claimed) | processing | processed | failed | manual
   refundId           String? // Paystack refund id
   refundedAt         DateTime?
+  // Orders sent in more than one parcel (some lines from suppliers, maybe some from the seller's own stock):
+  // the seller's own part, and when the first parcel left (the customer is told "part of your order is on its
+  // way" once). The order's status is worked out from its parts (src/lib/supplier-orders/parts.server.ts).
+  ownShippedAt       DateTime?
+  ownDeliveredAt     DateTime?
+  partlySentAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -1980,6 +2044,27 @@ model CodRemittance {
 
 /// A delivery partner's own pay-in bank account (Paystack Dedicated Virtual Account). Money sent to it is
 /// matched to the partner automatically (charge.success, channel dedicated_nuban).
+/// Pay-in deadline history per partner: reminders, late flags, escalations, strikes, clears and the team's
+/// actions. dedupeKey is unique, so the cron (every 15 minutes) never sends the same message twice.
+model PartnerPayInEvent {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  /// reminder | overdue | escalated | review | strike | cleared | settled | unpaused | recheck
+  kind               String
+  dedupeKey          String   @unique
+  amount             Float?
+  /// The deadline this is about (6pm Lagos).
+  deadline           DateTime?
+  note               String?
+  adminUserId        String?
+  createdAt          DateTime @default(now())
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId, createdAt])
+  @@index([kind, createdAt])
+}
+
 model PartnerPayInAccount {
   id                 String   @id @default(cuid())
   logisticsPartnerId String   @unique

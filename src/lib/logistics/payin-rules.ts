@@ -111,25 +111,35 @@ export function readDedicatedAccount(data: unknown) {
   };
 }
 
-/**
- * The 6pm pay-in deadline (Lagos time, UTC+1, no daylight saving) for the day `now` falls on in Lagos. Cash
- * collected after 6pm is due by 6pm the next day.
- */
-export function payInDeadline(now: Date = new Date()) {
-  const LAGOS_OFFSET_MS = 60 * 60 * 1000;
-  const lagos = new Date(now.getTime() + LAGOS_OFFSET_MS);
-  const sixPm = Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate(), 18) - LAGOS_OFFSET_MS;
-  return new Date(now.getTime() < sixPm ? sixPm : sixPm + 24 * 60 * 60 * 1000);
+/** "6pm", "4pm", "12pm", "12am" for an hour of the day (0–23). */
+export function hourWords(hour: number) {
+  const h = ((Math.floor(hour) % 24) + 24) % 24;
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve}${h < 12 ? "am" : "pm"}`;
 }
 
 /**
- * When the cash still held is due: 6pm on the day the oldest unpaid cash was collected (6pm the next day when it
- * was collected after 6pm). words: "by 6pm today" / "by 6pm tomorrow", or "now" once the deadline has passed.
+ * The pay-in deadline (6pm Lagos time by default, UTC+1, no daylight saving) for the day `now` falls on in Lagos.
+ * Cash collected after the cut-off is due by the cut-off the next day. cutoffHour comes from
+ * PARTNER_PAYIN_CUTOFF_HOUR via payin-deadline.ts payInConfig.
  */
-export function payInDue(oldestCollectedAt: Date | null | undefined, now: Date = new Date()) {
-  const deadline = payInDeadline(oldestCollectedAt ?? now);
+export function payInDeadline(now: Date = new Date(), cutoffHour = 18) {
+  const LAGOS_OFFSET_MS = 60 * 60 * 1000;
+  const lagos = new Date(now.getTime() + LAGOS_OFFSET_MS);
+  const cutoff = Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate(), cutoffHour) - LAGOS_OFFSET_MS;
+  return new Date(now.getTime() < cutoff ? cutoff : cutoff + 24 * 60 * 60 * 1000);
+}
+
+/**
+ * When the cash still held is due: the cut-off on the day the oldest unpaid cash was collected (the next day when
+ * it was collected after the cut-off). words: "by 6pm today" / "by 6pm tomorrow", or "now" once it has passed.
+ */
+export function payInDue(oldestCollectedAt: Date | null | undefined, now: Date = new Date(), cutoffHour = 18) {
+  const deadline = payInDeadline(oldestCollectedAt ?? now, cutoffHour);
   const late = now.getTime() > deadline.getTime();
-  const words = late ? "now" : deadline.getTime() - now.getTime() > 18 * 60 * 60 * 1000 ? "by 6pm tomorrow" : "by 6pm today";
+  const at = hourWords(cutoffHour);
+  const lagosDay = (date: Date) => Math.floor((date.getTime() + 60 * 60 * 1000) / (24 * 60 * 60 * 1000));
+  const words = late ? "now" : lagosDay(deadline) > lagosDay(now) ? `by ${at} tomorrow` : `by ${at} today`;
   return { deadline, late, words };
 }
 

@@ -7,6 +7,7 @@ import { FIELD_SELECT } from "@/components/seller-settings/fields";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, safeQuery } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
+import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 import { redirect } from "next/navigation";
 import { MarketplaceChatWrapper } from "@/components/marketplace/MarketplaceChatWrapper";
 import { ChatButton } from "@/components/marketplace/ChatButton";
@@ -18,7 +19,7 @@ function fmtMoney(n: number) {
 }
 
 type PageProps = {
-  searchParams?: Promise<{ q?: string; country?: string; zone?: string; near?: string }>;
+  searchParams?: Promise<{ q?: string; country?: string; zone?: string; near?: string; cod?: string }>;
 };
 
 function norm(value?: string | null) {
@@ -49,6 +50,8 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
   }
   if (params?.country) where.country = params.country;
   if (params?.zone) where.coverageZones = { has: params.zone };
+  // ?cod=1 (booking a pay-when-it-arrives delivery): skip partners paused for a late cash pay-in.
+  Object.assign(where, payWhenItArrivesWhere(params?.cod === "1" || params?.cod === "true"));
 
   const allVerified = await safeQuery(() => db.logisticsPartner.findMany({
     where: { status: "active", verificationStatus: "verified" },

@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { JobCard } from "@/components/JobCard";
+import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { PartnerHeader, PartnerScroll } from "@/components/partner";
 import { Card, LinkButton, Notice, T, Toggle } from "@/components/ui";
@@ -105,6 +106,8 @@ export default function LogisticsToday() {
           )}
           {switchError ? <Notice>{switchError}</Notice> : null}
 
+          {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void overview.reload()} /> : null}
+
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Card style={{ flex: 1, gap: 4 }}>
               <T style={{ color: colors.inkSoft, fontSize: 15 }}>Delivered today</T>
@@ -155,7 +158,7 @@ export default function LogisticsToday() {
             </>
           ) : null}
 
-          {data.cashToPayIn > 0 ? (
+          {data.cashToPayIn > 0 && !data.overdue ? (
             <Pressable accessibilityRole="button" onPress={() => router.push("/logistics/earnings")} style={{ backgroundColor: "#FDF0D5", borderRadius: radii.card, padding: 16, gap: 6 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <T weight="extrabold" style={{ fontSize: 17, flex: 1 }}>Pay in {naira(data.cashToPayIn)} {data.payInBy ?? "by 6pm"}</T>

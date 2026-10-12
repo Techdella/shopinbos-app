@@ -53,6 +53,16 @@ export interface DispatchRider {
   out?: boolean;
 }
 
+/** Late pay-in card: "₦X overdue since yesterday 6pm." + "You're paused from pay-when-it-arrives jobs until you pay in." */
+export interface PayInOverdue {
+  amount: number;
+  since: string;
+  paused: boolean;
+  title: string;
+  body: string;
+  account: { accountNumber: string; bankName: string; accountName: string } | null;
+}
+
 export interface LogisticsOverview {
   partner: { name: string; city: string; areas: string; logoUrl: string | null; verificationStatus: string; onboarded: boolean; taking: boolean };
   firstName: string;
@@ -65,6 +75,8 @@ export interface LogisticsOverview {
   cashToPayIn: number;
   /** "by 6pm today", "by 6pm tomorrow", or "now" when it's late. */
   payInBy?: string;
+  /** Set while a pay-in is late (paused from pay-when-it-arrives jobs). */
+  overdue?: PayInOverdue | null;
   onTime: number | null;
   onTimeJobs: number;
 }
@@ -136,12 +148,18 @@ export interface Earnings {
   late?: boolean;
   /** The company's own pay-in account; "manual" when it isn't available (pay in the old way, tell us on the web). */
   payIn?: PayInAccount;
+  /** Set while a pay-in is late (paused from pay-when-it-arrives jobs). */
+  overdue?: PayInOverdue | null;
   remittances: Array<{ id: string; amount: number; method: string; reference: string | null; createdAt: string; status?: string }>;
   recent: Array<{ id: string; ref: string; from: string; to: string; rider: string | null; deliveredAt: string | null; amount: number }>;
   bank: { bankName: string; account: string; accountName: string; ready: boolean } | null;
 }
 
 export const fetchEarnings = () => api<Earnings>("/api/mobile/logistics/earnings");
+
+/** "I've paid. Check again": looks for the transfer now and lifts the pause when it's paid in. */
+export const checkPayInsAgain = () =>
+  api<{ cleared: boolean; matched: number; owed: number; overdue: number; paused: boolean; message: string }>("/api/mobile/logistics/payins/check", { method: "POST", json: {} });
 
 export interface LogisticsMe {
   partner: { displayName: string; companyName: string; verificationStatus: string; verificationDocuments: VerificationDoc[]; trustScore: number };

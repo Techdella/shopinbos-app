@@ -19,6 +19,8 @@ import { Icon } from "@/components/ui/Icon";
 import { CHECKBOX, FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK, SUBMIT_WHITE } from "@/components/seller-settings/fields";
 import { db } from "@/lib/db/client";
 import { aiAllowanceToday } from "@/lib/ai/usage";
+import { SupplierSwitchCard } from "@/components/settings/SupplierSwitchCard";
+import { switchSettings } from "@shared/order-parts";
 
 export const dynamic = "force-dynamic";
 
@@ -283,6 +285,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                   aiCredits={aiCredits}
                   productCount={productCount}
                 />
+                {store && <SupplierSwitchCard settings={switchSettings(await db.store.findUnique({ where: { id: store.id }, select: { autoSwitchSupplier: true, switchCostRule: true, switchMaxIncreasePct: true, switchMinMarginPct: true } }))} />}
               </>
             )}
 

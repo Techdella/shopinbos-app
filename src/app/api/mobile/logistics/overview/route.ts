@@ -4,6 +4,8 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { cashToPayIn, isRiderOut } from "@/lib/logistics/job-rules";
+import { payInConfig } from "@/lib/logistics/payin-deadline";
+import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
 import { ACTIVE_STATUSES, bookingNet, lagosStartOfToday } from "@/components/logistics/kit";
 import { JOB_SELECT, dispatchRiders, jobView, ordersFor, partnerForUser, pickupGeoFor } from "../_shared";
@@ -37,7 +39,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     }),
   ]);
 
-  const [orders, riderList, pickupGeo] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now), pickupGeoFor(newJobs, partner.country)]);
+  const [orders, riderList, pickupGeo, overdue] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now), pickupGeoFor(newJobs, partner.country), payInOverdueView(partner.id, now)]);
   const out = riders.filter((rider) => isRiderOut(rider, now)).length;
   const onTime = timed.length ? Math.round((timed.filter((job) => job.deliveredAt! <= job.estimatedDelivery!).length / timed.length) * 100) : null;
 
@@ -60,7 +62,9 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     riderList,
     // Cash still to pay in after any credit from an earlier pay-in, and when: "by 6pm today" / "now" when late.
     cashToPayIn: owedAfterCredit(cashToPayIn(unremitted), partner.payInCredit),
-    payInBy: payInDue(unremitted[0] ? unremitted[0].codCollectedAt ?? unremitted[0].createdAt : null, now).words,
+    payInBy: payInDue(unremitted[0] ? unremitted[0].codCollectedAt ?? unremitted[0].createdAt : null, now, payInConfig().cutoffHour).words,
+    // Late pay-in (lib/logistics/payin-deadline.ts): the calm amber card, or null.
+    overdue,
     onTime,
     onTimeJobs: timed.length,
   });

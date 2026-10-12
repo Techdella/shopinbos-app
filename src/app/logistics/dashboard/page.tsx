@@ -11,6 +11,9 @@ import { AcceptAssignForm, riderPresence, riderSelect } from "@/components/logis
 import { withOpenJobs } from "@/lib/logistics/dispatch-riders";
 import { ensurePickupCoords } from "@/lib/logistics/geocode";
 import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
+import { payInConfig } from "@/lib/logistics/payin-deadline";
+import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
+import { PayInOverdueCard } from "@/components/logistics/PayInOverdueCard";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { cashToPayIn, isRiderOut } from "@/lib/logistics/job-rules";
 import { pickupWindowText } from "@shared/supplier-pickup";
@@ -86,7 +89,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     }),
   ]);
   // Closest rider first in "Accept and pick a rider": riders' open jobs and the new jobs' pickup coordinates.
-  const [riders, pickupGeo] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country)]);
+  const [riders, pickupGeo, overdue] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now)]);
 
   const orderIds = [...newBookings, ...activeJobs, ...deliveredToday].map((booking) => booking.orderId).filter((id): id is string => Boolean(id));
   const orders: CodOrder[] = orderIds.length
@@ -100,7 +103,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
   const cashCollectedToday = deliveredToday.reduce((sum, booking) => sum + (booking.codCollected ?? (booking.codAmount === null ? collectFor(booking) : 0)), 0);
   const cashOnActiveJobs = activeJobs.reduce((sum, booking) => sum + collectFor(booking), 0);
   const cashOwed = owedAfterCredit(cashToPayIn(unremittedCash), partner.payInCredit);
-  const payIn = payInDue(unremittedCash[0] ? unremittedCash[0].codCollectedAt ?? unremittedCash[0].createdAt : null, now);
+  const payIn = payInDue(unremittedCash[0] ? unremittedCash[0].codCollectedAt ?? unremittedCash[0].createdAt : null, now, payInConfig().cutoffHour);
   // No map library in the app: a list of riders out now with where each was last seen.
   const outNow = riders.filter((rider) => rider.status === "active" && isRiderOut(rider, now)).sort((a, b) => a.openJobs - b.openJobs || a.name.localeCompare(b.name));
   const presence = riderPresence(riders, now);
@@ -190,6 +193,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
         </div>
 
         <div className="order-first grid min-w-0 content-start gap-4 xl:order-none">
+          {overdue && <PayInOverdueCard title={overdue.title} body={overdue.body} account={overdue.account} />}
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="m-0 text-[18px] font-extrabold">New requests</h2>
             {newCount > 0 && <TextLink href={pendingBookingCount ? "/logistics/bookings" : "/logistics/quotes"}>See all</TextLink>}
@@ -274,7 +278,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
             </Card>
           ))}
 
-          {(cashOwed > 0 || cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
+          {!overdue && (cashOwed > 0 || cashCollectedToday > 0 || cashOnActiveJobs > 0) && (
             <Card className="border-0 bg-[#FDF0D5] p-5">
               <CardHead
                 title={cashOwed > 0 ? (payIn.late ? "Pay in now" : `Pay in ${payIn.words}`) : "Cash to collect"}

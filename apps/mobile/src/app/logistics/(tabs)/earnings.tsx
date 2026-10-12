@@ -5,6 +5,7 @@ import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { RouteLine } from "@/components/partner";
+import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, PillButton, T } from "@/components/ui";
 import { fetchEarnings } from "@/lib/logistics";
@@ -36,15 +37,16 @@ export default function LogisticsEarnings() {
       {earnings.error && !data ? <ErrorState message={earnings.error} onRetry={() => void earnings.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/logistics/cash") }} /> : null}
       {data ? (
         <View style={{ gap: 12 }}>
-          <View style={{ backgroundColor: data.cashToPayIn > 0 ? "#FDF0D5" : colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
+          {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void earnings.reload()} /> : null}
+          <View style={{ backgroundColor: data.cashToPayIn > 0 && !data.overdue ? "#FDF0D5" : colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
             <T style={{ color: colors.inkSoft, fontSize: 15 }}>Cash to pay in</T>
             <T weight="extrabold" style={{ fontSize: 26, letterSpacing: -0.5 }} accessibilityRole="header">
               {data.cashToPayIn > 0 ? `Pay in ${naira(data.cashToPayIn)} ${data.payInBy ?? "by 6pm"}` : "Nothing to pay in"}
             </T>
-            <T style={{ color: data.late ? colors.danger : colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
+            <T style={{ color: data.late && !data.overdue ? colors.danger : colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
               {data.cashToPayIn > 0
-                ? data.late
-                  ? "This was due by 6pm. Pay it in now so you keep getting jobs where customers pay when it arrives."
+                ? data.late && !data.overdue
+                  ? "This was due earlier today. Pay it in now so you keep getting jobs where customers pay when it arrives."
                   : "Cash your riders collected from customers who paid when it arrived."
                 : (data.credit ?? 0) > 0
                 ? `You paid ${naira(data.credit ?? 0)} extra. We'll use it for your next cash jobs.`
@@ -53,6 +55,7 @@ export default function LogisticsEarnings() {
           </View>
 
           {data.payIn?.state === "ready" ? (
+            data.overdue?.account ? null : (
             <Card style={{ gap: 10, padding: 18 }}>
               <T weight="extrabold" style={{ fontSize: 17 }}>Your pay-in account</T>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -67,6 +70,7 @@ export default function LogisticsEarnings() {
               </View>
               <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>We match your payment automatically. It shows here within a few minutes.</T>
             </Card>
+            )
           ) : data.cashToPayIn > 0 ? (
             <Card style={{ gap: 8, padding: 18 }}>
               <T weight="extrabold" style={{ fontSize: 17 }}>How to pay in</T>
@@ -111,7 +115,7 @@ export default function LogisticsEarnings() {
                 {data.remittances.map((row, index) => (
                   <View key={row.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <T style={{ fontSize: 15 }}>{row.method === "account" ? "To your pay-in account" : row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"} · {dayWord(row.createdAt)}</T>
+                      <T style={{ fontSize: 15 }}>{row.method === "account" ? "To your pay-in account" : row.method === "settled" ? "Settled with the Shopinbos team" : row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"} · {dayWord(row.createdAt)}</T>
                       {row.status ? <T style={{ color: colors.success, fontSize: 14 }}>{row.status}</T> : null}
                     </View>
                     <T weight="extrabold">{naira(row.amount)}</T>

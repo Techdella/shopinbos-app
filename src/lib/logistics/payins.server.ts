@@ -5,6 +5,8 @@ import { createNotification } from "@/lib/notifications/create";
 import { naira } from "@shared/onboarding";
 import { owedAfterCredit, readDedicatedAccount, readDedicatedCharge, type PayInApplication } from "./payin-rules";
 import { applyRemittanceTx } from "./remittances";
+import { refreshPayInStandingSafely } from "./payin-standing.server";
+import { fetchRecentDedicatedCharges } from "./paystack-dva";
 
 // Transfers into delivery partners' pay-in accounts (Paystack Dedicated Virtual Accounts, see paystack-dva.ts):
 //   - charge.success with channel "dedicated_nuban" → find the partner by the receiving account number (or the
@@ -112,6 +114,8 @@ export async function handleDedicatedAccountCharge(data: unknown): Promise<PayIn
 
   if (result) {
     await notifyMatched(result.partnerId, charge.amount, result.application, "auto");
+    // Paid in: lift a late pause straight away (payin-standing.server.ts).
+    await refreshPayInStandingSafely(result.partnerId);
     return "matched";
   }
   await notifyAdmins(
@@ -179,7 +183,43 @@ export async function assignPayInToPartner(input: { payInId: string; partnerId: 
   });
   if (!result.ok) return result;
   await notifyMatched(input.partnerId, result.amount, result.application, "admin");
+  await refreshPayInStandingSafely(input.partnerId);
   return { ok: true, application: result.application };
+}
+
+export type RecheckResult =
+  | { ok: true; checked: boolean; matched: number; owed: number; overdue: number; paused: boolean }
+  | { ok: false; error: string };
+
+/**
+ * "I've paid. Check again": asks Paystack for the latest transfers into the partner's pay-in account (in case a
+ * webhook was slow or missed), matches any we haven't seen (same path as the webhook, so nothing counts twice), then
+ * refreshes the partner's late standing. At most once a minute per partner.
+ */
+export async function recheckPartnerPayIns(partnerId: string, now: Date = new Date()): Promise<RecheckResult> {
+  const minute = new Date(Math.floor(now.getTime() / 60_000) * 60_000);
+  let checked = false;
+  let matched = 0;
+  const fresh = await db.partnerPayInEvent
+    .createManyAndReturn({ data: [{ logisticsPartnerId: partnerId, kind: "recheck", dedupeKey: `recheck:${partnerId}:${minute.toISOString()}` }], skipDuplicates: true, select: { id: true } })
+    .catch(() => []);
+  if (fresh.length) {
+    const account = await db.partnerPayInAccount.findUnique({ where: { logisticsPartnerId: partnerId }, select: { status: true, customerId: true, customerCode: true } });
+    if (account?.status === "assigned" && (account.customerId || account.customerCode)) {
+      const charges = await fetchRecentDedicatedCharges({ customerId: account.customerId, since: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) });
+      checked = charges !== null;
+      for (const charge of charges ?? []) {
+        const outcome = await handleDedicatedAccountCharge(charge).catch((error) => {
+          console.error(`[pay-in recheck] partner ${partnerId}: could not match a transfer`, error);
+          return "ignored" as const;
+        });
+        if (outcome === "matched") matched += 1;
+      }
+    }
+  }
+  const refreshed = await refreshPayInStandingSafely(partnerId);
+  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, payInOverdueAmount: true } });
+  return { ok: true, checked, matched, owed: refreshed?.owed ?? 0, overdue: partner?.payInOverdueAmount ?? 0, paused: partner?.codPaused ?? false };
 }
 
 /** Cash still to pay in for a partner (unremitted cash jobs minus credit), and when the oldest was collected. */
