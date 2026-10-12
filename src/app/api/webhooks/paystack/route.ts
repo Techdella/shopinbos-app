@@ -6,6 +6,9 @@ import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
+import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
+import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -104,16 +107,31 @@ export async function POST(req: NextRequest) {
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
       // marking it paid. Only a pending order moves, so a retried or replayed event can't undo a later status.
-      const pending = await db.retailOrder.findUnique({ where: { id: ref }, select: { id: true, total: true, currency: true, status: true } });
+      const pending = await db.retailOrder.findUnique({ where: { id: ref }, select: { id: true, total: true, currency: true, status: true, expiredAt: true } });
       const problem = pending ? retailChargeProblem(pending, event.data ?? {}) : "not a retail order";
-      if (pending && problem) console.warn(`[paystack webhook] order ${ref} not marked paid: ${problem}`);
-      const moved = problem
+      // Paid after it expired unpaid (stock already given back): the same checks as an unpaid order, then take the
+      // stock again if it's still there, else flag it for a refund (recoverExpiredOrderPayment logs and tells the seller).
+      const expiredCharge = Boolean(pending && pending.status === "cancelled" && pending.expiredAt && !retailChargeProblem({ ...pending, status: "pending" }, event.data ?? {}));
+      const late = expiredCharge
+        ? await recoverExpiredOrderPayment(ref, { reference: ref }).catch((error) => {
+            console.error(`[paystack webhook] late payment for expired order ${ref} failed`, error);
+            return "not_expired" as const;
+          })
+        : null;
+      if (pending && problem && !expiredCharge) console.warn(`[paystack webhook] order ${ref} not marked paid: ${problem}`);
+      const moved = late === "reinstated"
+        ? { count: 1 }
+        : problem
         ? { count: 0 }
         : await db.retailOrder.updateMany({
             where: { id: ref, status: { in: [...PAYABLE_ORDER_STATUSES] } },
             data: { status: "paid", paystackStatus: "success", paystackRef: ref },
           });
       if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
+      // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
+      if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
+        await ensureSupplierOrdersSafely(ref);
+      }
 
       const resendKey = process.env.RESEND_API_KEY;
       // The order is already marked paid; a failure in the follow-up email must not 500 the webhook

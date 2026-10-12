@@ -12,8 +12,28 @@ import { messagesHref } from "@/lib/conversations/pure";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
+export interface MyWholesaleOrder {
+  id: string;
+  quantity: number;
+  totalPrice: number;
+  status: string;
+  trackingCode: string | null;
+  rejectReason: string | null;
+  createdAt: string;
+}
+
+const WHOLESALE_STAGE: Record<string, string> = {
+  pending: "Waiting for the supplier",
+  confirmed: "Confirmed: expect their invoice",
+  processing: "Being packed",
+  shipped: "On the way",
+  delivered: "Delivered",
+  cancelled: "Declined",
+  refunded: "Refunded",
+};
+
 /** Product page in Find products: price it, see the money on each sale, add it, or buy wholesale. */
-export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean }) {
+export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [] }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[] }) {
   const router = useRouter();
   const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price, product.cost));
@@ -22,6 +42,10 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const [added, setAdded] = useState(addedAtStart);
   const [saved, setSaved] = useState(savedAtStart);
   const [quoted, setQuoted] = useState(false);
+  const [address, setAddress] = useState(defaultAddress);
+  const [orderNote, setOrderNote] = useState("");
+  const [placed, setPlaced] = useState<MyWholesaleOrder[]>(wholesaleOrders);
+  const [justPlaced, setJustPlaced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleOpen, setSampleOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
@@ -73,6 +97,31 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         const result = await requestSupplierQuote({ supplierProductId: product.id, quantity });
         if (result.ok) setQuoted(true);
         else setError(result.error);
+      }),
+    );
+
+  const placeWholesale = () =>
+    guard(() =>
+      start(async () => {
+        if (address.trim().length < 5) {
+          setError("Enter the full delivery address for this order.");
+          return;
+        }
+        // The seller app's own API (cookie session); the supplier sees it in their Orders.
+        const response = await fetch("/api/app/wholesale/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ supplierProductId: product.id, quantity, deliveryAddress: address.trim(), notes: orderNote.trim() || undefined }),
+        }).catch(() => null);
+        const body = (await response?.json().catch(() => null)) as { data?: { id: string; quantity: number; totalPrice: number; status: string; createdAt: string }; error?: { message?: string } } | null;
+        if (!response?.ok || !body?.data) {
+          setError(body?.error?.message ?? "Couldn't place the order. Try again.");
+          return;
+        }
+        const order = body.data;
+        setPlaced((list) => [{ id: order.id, quantity: order.quantity, totalPrice: order.totalPrice, status: order.status, trackingCode: null, rejectReason: null, createdAt: order.createdAt }, ...list]);
+        setJustPlaced(true);
+        setOrderNote("");
       }),
     );
 
@@ -244,14 +293,68 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <span className="text-[17px] font-extrabold">{naira(unit * quantity)}</span>
                 </div>
               </section>
-              {quoted ? (
-                <p role="status" className="m-0 rounded-[16px] bg-app-success-tint px-4 py-3 text-[14px] font-extrabold text-app-success">
-                  Quote requested. {supplier.name} will send their price for {quantity.toLocaleString("en-NG")} units.
+              <section className={cx(CARD, "grid gap-3 p-4")}>
+                <h2 className="m-0 text-[14.5px] font-extrabold">Place the order</h2>
+                <div>
+                  <label htmlFor="wholesale-address" className="mb-1 block text-[13px] font-bold">Deliver to</label>
+                  <textarea
+                    id="wholesale-address"
+                    rows={2}
+                    maxLength={300}
+                    value={address}
+                    onChange={(event) => setAddress(event.target.value)}
+                    placeholder="Street, area, city"
+                    className="w-full resize-y rounded-[12px] border border-app-line px-3 py-2 text-[14px] outline-none focus:border-app-ink"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="wholesale-note" className="mb-1 block text-[13px] font-bold">Note for {supplier.name} <span className="font-normal text-app-ink-soft">(optional)</span></label>
+                  <input
+                    id="wholesale-note"
+                    maxLength={1000}
+                    value={orderNote}
+                    onChange={(event) => setOrderNote(event.target.value)}
+                    placeholder="Sizes, colours, delivery days"
+                    className="h-11 w-full rounded-[12px] border border-app-line px-3 text-[14px] outline-none focus:border-app-ink"
+                  />
+                </div>
+                <p className="m-0 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5] text-app-ink-soft">
+                  <strong className="text-app-ink">You don&apos;t pay on Shopinbos.</strong> {supplier.name} confirms the order and sends you an invoice; you pay them directly.
                 </p>
-              ) : (
-                <button type="button" onClick={quote} disabled={pending} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-extrabold text-white hover:bg-black disabled:opacity-60">
-                  {pending ? "Sending…" : "Request a quote"}
+                {justPlaced && (
+                  <p role="status" className="m-0 rounded-[14px] bg-app-success-tint px-3 py-2 text-[13.5px] font-extrabold text-app-success">
+                    Order sent. {supplier.name} will confirm it and send their invoice.
+                  </p>
+                )}
+                <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-extrabold text-white hover:bg-black disabled:opacity-60">
+                  {pending ? "Sending…" : <>Order {quantity.toLocaleString("en-NG")} for&nbsp;{naira(unit * quantity)}</>}
                 </button>
+                {quoted ? (
+                  <p role="status" className="m-0 text-[13px] font-bold text-app-success">
+                    Quote requested. {supplier.name} will send their price for {quantity.toLocaleString("en-NG")} units.
+                  </p>
+                ) : (
+                  <button type="button" onClick={quote} disabled={pending} className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold hover:border-app-line-strong disabled:opacity-60">
+                    Ask for a better price instead
+                  </button>
+                )}
+              </section>
+              {placed.length > 0 && (
+                <section className={cx(CARD, "p-4")}>
+                  <h2 className="m-0 text-[14.5px] font-extrabold">Your wholesale orders</h2>
+                  <ul className="m-0 mt-2 grid list-none gap-2 p-0 text-[13.5px]">
+                    {placed.map((order) => (
+                      <li key={order.id} className="grid gap-0.5">
+                        <div className="flex justify-between gap-3">
+                          <span>{order.quantity.toLocaleString("en-NG")} units · {naira(order.totalPrice)}</span>
+                          <span className="font-bold">{WHOLESALE_STAGE[order.status] ?? order.status}</span>
+                        </div>
+                        {order.trackingCode && <span className="text-app-ink-soft">Tracking {order.trackingCode}</span>}
+                        {order.rejectReason && <span className="text-app-danger">Declined: {order.rejectReason}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               )}
             </>
           )}

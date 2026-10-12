@@ -31,7 +31,7 @@ export function OrderRow({ order }: { order: DropshipOrder | WholesaleOrder }) {
         <T style={{ color: colors.inkSoft, fontSize: 12.5 }} numberOfLines={1}>
           {dropship ? `For ${order.shop} · to ${order.label.address[order.label.address.length - 1] ?? order.label.to}` : `Wholesale · ${order.shop}`} · {timeAgo(order.createdAt)}
         </T>
-        <TonePill tone={stage.tone} label={dropship && order.mixed ? "Shop is handling it" : stage.label} style={{ marginTop: 2 }} />
+        <TonePill tone={stage.tone} label={stage.label} style={{ marginTop: 2 }} />
       </View>
       <T weight="extrabold" style={{ fontSize: 14.5 }}>{naira(dropship ? order.yourTotal : order.total)}</T>
     </Pressable>

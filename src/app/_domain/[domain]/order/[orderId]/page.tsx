@@ -1,3 +1,4 @@
+import { shopperOrder } from "@/lib/commerce/stock-holds";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/client";
@@ -42,7 +43,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
 
   return (
     <OrderConfirmation
-      order={JSON.parse(JSON.stringify(order))}
+      order={JSON.parse(JSON.stringify(shopperOrder(order)))}
       store={publicStore}
       storeBasePath={storeBasePath}
       transfer={next.transfer}

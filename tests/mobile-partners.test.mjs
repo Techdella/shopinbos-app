@@ -73,37 +73,34 @@ test("job pipeline steps match the server's job rules", async () => {
   assert.equal(pure.jobStage("in_transit").label, "On the way");
 });
 
-test("supplier order actions: dropship accept → packed → handed over, never on a mixed order", () => {
-  assert.deepEqual(rules.nextActions("dropship", "paid"), ["accept"]);
-  assert.equal(rules.statusAfter("dropship", "paid", "accept"), "processing");
-  assert.equal(rules.statusAfter("dropship", "processing", "packed"), "packed");
-  assert.equal(rules.statusAfter("dropship", "packed", "handed_over"), "shipped");
-  assert.equal(rules.statusAfter("dropship", "paid", "handed_over"), null);
-  assert.equal(rules.statusAfter("dropship", "paid", "decline"), null);
-  assert.deepEqual(rules.nextActions("dropship", "paid", { mixed: true }), []);
-  assert.deepEqual(rules.nextActions("dropship", "shipped"), []);
+test("supplier order actions: dropship accept → handed over → delivered (or decline); wholesale adds packing", () => {
+  // Dropship orders are SupplierOrder rows: only the supplier's own lines, so another product on the shop's order
+  // no longer blocks them (src/lib/supplier-orders).
+  assert.deepEqual(rules.nextActions("dropship", "pending"), ["accept", "decline"]);
+  assert.equal(rules.statusAfter("dropship", "pending", "accept"), "accepted");
+  assert.equal(rules.statusAfter("dropship", "pending", "decline"), "rejected");
+  assert.equal(rules.statusAfter("dropship", "accepted", "handed_over"), "shipped");
+  assert.equal(rules.statusAfter("dropship", "shipped", "delivered"), "delivered");
+  assert.equal(rules.statusAfter("dropship", "pending", "handed_over"), null);
+  assert.equal(rules.statusAfter("dropship", "accepted", "packed"), null);
+  assert.deepEqual(rules.nextActions("dropship", "delivered"), []);
+  assert.deepEqual(rules.nextActions("dropship", "rejected"), []);
 
   assert.deepEqual(rules.nextActions("wholesale", "pending"), ["accept", "decline"]);
   assert.equal(rules.statusAfter("wholesale", "pending", "decline"), "cancelled");
   assert.equal(rules.statusAfter("wholesale", "pending", "accept"), "confirmed");
   assert.equal(rules.statusAfter("wholesale", "confirmed", "packed"), "processing");
   assert.equal(rules.statusAfter("wholesale", "processing", "handed_over"), "shipped");
+  assert.equal(rules.statusAfter("wholesale", "shipped", "delivered"), "delivered");
   assert.equal(rules.statusAfter("wholesale", "delivered", "accept"), null);
 });
 
-test("dropship orders: only paid (or pay on delivery) orders, only the supplier's lines", () => {
-  assert.ok(rules.dropshipVisible({ status: "paid", paymentMethod: null }));
-  assert.ok(rules.dropshipVisible({ status: "pending", paymentMethod: "pay_on_delivery" }));
-  assert.ok(!rules.dropshipVisible({ status: "pending", paymentMethod: null }));
-  assert.ok(!rules.dropshipVisible({ status: "cancelled", paymentMethod: null }));
-  const ids = new Set(["sp1", "sp2"]);
-  const all = rules.supplierLines([{ productId: "sp1", quantity: 2 }, { productId: "sp2" }], ids);
-  assert.equal(all.mine.length, 2);
-  assert.equal(all.mixed, false);
-  const mixed = rules.supplierLines([{ productId: "sp1" }, { productId: "own" }], ids);
-  assert.equal(mixed.mine.length, 1);
-  assert.equal(mixed.mixed, true);
-  assert.deepEqual(rules.supplierLines("not an array", ids), { mine: [], mixed: false });
+test("dropship order lists: open is to accept or send, done is sent, delivered or closed", () => {
+  assert.deepEqual([...rules.DROPSHIP_OPEN], ["pending", "accepted"]);
+  assert.deepEqual([...rules.DROPSHIP_DONE], ["shipped", "delivered", "rejected", "cancelled"]);
+  assert.ok(rules.needsSupplier("dropship", "pending"));
+  assert.ok(rules.needsSupplier("dropship", "accepted"));
+  assert.ok(!rules.needsSupplier("dropship", "shipped"), "marking delivered isn't urgent");
 });
 
 test("quote replies carry the minimum order; low stock and money parsing", () => {

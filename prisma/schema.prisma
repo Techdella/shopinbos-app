@@ -409,6 +409,7 @@ model Supplier {
   dropships        DropshipRelationship[] @relation("SupplierDropship")
   quoteRequests    SupplierQuoteRequest[] @relation("SupplierQuotes")
   wholesaleOrders  WholesaleOrder[]       @relation("SupplierWholesale")
+  supplierOrders   SupplierOrder[]
   payoutAccount    SupplierPayoutAccount?
   teamMembers      SupplierTeamMember[]
   reviews          SupplierReview[]
@@ -732,6 +733,9 @@ model WholesaleOrder {
   notes             String?
   status            OrderStatus @default(pending)
   trackingCode      String?
+  rejectReason      String?   // why the supplier declined (status cancelled)
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -742,6 +746,42 @@ model WholesaleOrder {
   @@index([sellerId])
   @@index([supplierId])
   @@index([status])
+}
+
+// ─── Supplier Order (dropship) ────────────────────────────────────────────────
+// What a supplier ships for a seller's store order: one per (store order, supplier), created when the order is
+// paid (or placed, for pay on delivery). Lines, cost and address are a snapshot taken then.
+
+model SupplierOrder {
+  id              String    @id @default(cuid())
+  idempotencyKey  String    @unique // "dropship:<retailOrderId>:<supplierId>" (src/lib/supplier-orders/pure.ts)
+  supplierId      String
+  retailOrderId   String
+  storeId         String
+  sellerId        String
+  status          String    @default("pending") // pending | accepted | shipped | delivered | rejected | cancelled
+  items           Json      @default("[]") // [{ storeProductId, supplierProductId, name, variant, quantity, unitCost, image }]
+  costTotal       Float     @default(0) // wholesale cost the supplier is owed
+  currency        String    @default("NGN")
+  shippingAddress Json      @default("{}")
+  recipientName   String
+  recipientPhone  String?
+  trackingCode    String?
+  carrier         String?
+  rejectReason    String?
+  acceptedAt      DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  rejectedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  supplier    Supplier    @relation(fields: [supplierId], references: [id])
+  retailOrder RetailOrder @relation(fields: [retailOrderId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId, status])
+  @@index([retailOrderId])
+  @@index([storeId])
 }
 
 // ─── Logistics Partner ────────────────────────────────────────────────────────
@@ -1591,16 +1631,24 @@ model RetailOrder {
   adCampaignId    String?
   shippedAt       DateTime?
   deliveredAt     DateTime?
+  // Stock checkout took while the order waits for payment: [{ source: "store" | "supplier", productId, supplierProductId?, quantity, name }].
+  // Unpaid card/transfer orders give it back when they expire (src/lib/commerce/order-expiry.server.ts).
+  stockHold       Json?
+  stockReleasedAt DateTime?
+  expiredAt       DateTime? // cancelled because it stayed unpaid too long
+  paymentIssue    String?   // e.g. paid after it expired and the stock was gone: refund the buyer
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  store      Store       @relation(fields: [storeId], references: [id])
-  affiliate  Affiliate?  @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
-  adCampaign AdCampaign? @relation(fields: [adCampaignId], references: [id], onDelete: SetNull)
+  store          Store           @relation(fields: [storeId], references: [id])
+  affiliate      Affiliate?      @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
+  adCampaign     AdCampaign?     @relation(fields: [adCampaignId], references: [id], onDelete: SetNull)
+  supplierOrders SupplierOrder[]
 
   @@index([storeId])
   @@index([buyerEmail])
   @@index([status])
+  @@index([status, createdAt])
   @@index([paystackRef])
   @@index([affiliateId])
   @@index([adCampaignId])

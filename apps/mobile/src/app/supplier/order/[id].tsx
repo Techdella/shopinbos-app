@@ -14,8 +14,8 @@ import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // One supplier order. Dropship: the packing slip (what goes in the parcel) and the shipping label (the shop's name
-// as sender, the buyer as recipient), then Accept → Mark packed → Handed to rider. Wholesale: the order, its
-// delivery address and Accept / Decline → packed → handed over.
+// as sender, the buyer as recipient), then Accept / Decline → Handed to rider → Mark delivered. Wholesale: the
+// order, its delivery address and Accept / Decline → packed → handed over → delivered.
 
 function labelText(order: DropshipOrder) {
   return [
@@ -99,6 +99,7 @@ export default function SupplierOrderScreen() {
       {order.loading && !data ? <LoadingBlock /> : null}
       {order.error && !data ? <ErrorState message={order.error} onRetry={() => void order.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/supplier/orders") }} /> : null}
       {error ? <Notice>{error}</Notice> : null}
+      {data?.rejectReason ? <Notice tone="info">{`You declined this order: ${data.rejectReason}`}</Notice> : null}
 
       {data && stage ? (
         <>
@@ -109,7 +110,7 @@ export default function SupplierOrderScreen() {
 
           {data.kind === "dropship" ? (
             <>
-              {data.mixed ? <Notice tone="info">This order has other products too, so {data.shop} moves it. Pack your items and message them when they&apos;re ready.</Notice> : null}
+              {data.mixed ? <Notice tone="info">{data.shop}&apos;s order has other products too. Pack and send only the items below.</Notice> : null}
               <SectionTitle>Packing slip</SectionTitle>
               <Card style={{ gap: 12 }}>
                 {data.items.map((item, index) => (

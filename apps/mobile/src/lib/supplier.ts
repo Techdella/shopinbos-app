@@ -17,7 +17,7 @@ export interface SupplierOverview {
   bank: { bankName: string; account: string; ready: boolean } | null;
 }
 
-export type OrderAction = "accept" | "decline" | "packed" | "handed_over";
+export type OrderAction = "accept" | "decline" | "packed" | "handed_over" | "delivered";
 
 export interface DropshipOrder {
   kind: "dropship";
@@ -33,6 +33,7 @@ export interface DropshipOrder {
   yourTotal: number;
   notes: string | null;
   trackingCode: string | null;
+  rejectReason?: string | null;
   createdAt: string;
 }
 
@@ -54,6 +55,7 @@ export interface WholesaleOrder {
   address: string;
   notes: string | null;
   trackingCode: string | null;
+  rejectReason?: string | null;
   createdAt: string;
 }
 
@@ -66,8 +68,8 @@ export const fetchSupplierOrders = (view: "open" | "done") =>
 
 export const fetchSupplierOrder = (kind: SupplierOrder["kind"], id: string) => api<SupplierOrder>(`/api/mobile/supplier/orders/${encodeURIComponent(id)}?kind=${kind}`);
 
-export const moveSupplierOrder = (kind: SupplierOrder["kind"], id: string, action: OrderAction, trackingCode?: string) =>
-  api<SupplierOrder>(`/api/mobile/supplier/orders/${encodeURIComponent(id)}`, { method: "PATCH", json: { kind, action, trackingCode: trackingCode?.trim() || undefined } });
+export const moveSupplierOrder = (kind: SupplierOrder["kind"], id: string, action: OrderAction, trackingCode?: string, reason?: string) =>
+  api<SupplierOrder>(`/api/mobile/supplier/orders/${encodeURIComponent(id)}`, { method: "PATCH", json: { kind, action, trackingCode: trackingCode?.trim() || undefined, reason: reason?.trim() || undefined } });
 
 export interface SupplierProduct {
   id: string;

@@ -459,11 +459,12 @@ export const QuoteResponseSchema = z.object({
 // ─── Wholesale Order ──────────────────────────────────────────────────────────
 
 export const WholesaleOrderCreateSchema = z.object({
-  supplierId: z.string(),
-  supplierProductId: z.string(),
-  quantity: z.number().int().min(1),
-  deliveryAddress: z.string().min(5).max(300),
-  notes: z.string().max(1000).optional(),
+  // Optional: the product names its supplier; when sent it must match.
+  supplierId: z.string().max(64).optional(),
+  supplierProductId: z.string().min(1).max(64),
+  quantity: z.number().int().min(1, "Enter how many you want.").max(1_000_000),
+  deliveryAddress: z.string().trim().min(5, "Enter the full delivery address.").max(300),
+  notes: z.string().trim().max(1000).optional(),
 });
 
 export const OrderStatusUpdateSchema = z.object({
