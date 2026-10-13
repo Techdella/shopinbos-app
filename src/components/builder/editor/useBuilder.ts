@@ -5,8 +5,8 @@ import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBilling
 import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { createBlankEditorSnapshot, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
-import {
 import { useEditorT } from "./i18n";
+import {
   canRedo,
   canUndo,
   createHistory,
