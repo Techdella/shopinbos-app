@@ -291,7 +291,8 @@ test("screens: countdown on new orders (web and mobile), the pickup question wit
   assert.match(list, /<AcceptCountdown acceptBy=\{order\.acceptBy\} \/>/);
   const page = read("src/app/supplier/orders/[id]/page.tsx");
   assert.match(page, /<AcceptCountdown acceptBy=\{view\.acceptBy\} big \/>/);
-  const booking = read("src/components/supplier/PickupBooking.tsx");
+  // Web words are in the supplier catalog (shared/i18n/messages/supplier/en.ts), shown through t().
+  const booking = read("src/components/supplier/PickupBooking.tsx") + read("shared/i18n/messages/supplier/en.ts");
   assert.match(booking, /When can a rider pick it up\?/);
   assert.match(booking, /Pick a time/);
   const mobile = read("apps/mobile/src/app/supplier/order/[id].tsx");

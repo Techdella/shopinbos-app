@@ -10,6 +10,8 @@ import { Field, buttonClass, checkClass, formatDate, inputClass, selectClass } f
 import { describeDiscount, type DiscountConfig } from "@/lib/discounts";
 import { naira } from "@shared/onboarding";
 import { api, errorText } from "../marketing/_kit/client";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 interface DiscountRow {
   id: string;
@@ -42,13 +44,13 @@ interface CouponRow {
   revenue: number;
 }
 
-const STATUS: Record<string, { tone: Tone; label: string }> = {
-  active: { tone: "success", label: "Live" },
-  scheduled: { tone: "info", label: "Scheduled" },
-  draft: { tone: "muted", label: "Draft" },
-  disabled: { tone: "muted", label: "Off" },
-  expired: { tone: "warning", label: "Ended" },
-  used: { tone: "muted", label: "Used" },
+const STATUS: Record<string, { tone: Tone; label: MessageKey<"discounts"> }> = {
+  active: { tone: "success", label: "status.active" },
+  scheduled: { tone: "info", label: "status.scheduled" },
+  draft: { tone: "muted", label: "status.draft" },
+  disabled: { tone: "muted", label: "status.disabled" },
+  expired: { tone: "warning", label: "status.expired" },
+  used: { tone: "muted", label: "status.used" },
 };
 
 /** What a discount is doing right now, from its status and dates. */
@@ -56,7 +58,7 @@ function liveState(d: { status: string; startsAt: string | null; expiresAt: stri
   const now = Date.now();
   if (d.status !== "active") return STATUS[d.status] ?? STATUS.draft;
   if (d.expiresAt && new Date(d.expiresAt).getTime() < now) return STATUS.expired;
-  if (d.maxUses && d.usedCount >= d.maxUses) return { tone: "warning" as Tone, label: "Used up" };
+  if (d.maxUses && d.usedCount >= d.maxUses) return { tone: "warning" as Tone, label: "status.usedUp" as MessageKey<"discounts"> };
   if (d.startsAt && new Date(d.startsAt).getTime() > now) return STATUS.scheduled;
   return STATUS.active;
 }
@@ -121,6 +123,7 @@ function DiscountEditor({
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
+  const t = useT("discounts", "common");
   const [d, setD] = useState<Draft>(() => toDraft(editing, automatic));
   const [scope, setScope] = useState(d.productIds.length ? "some" : "all");
   const [saving, setSaving] = useState(false);
@@ -152,7 +155,7 @@ function DiscountEditor({
         },
       };
       const saved = editing ? await api<{ code: string }>(`/api/app/marketing/discounts/${editing.id}`, "PATCH", body) : await api<{ code: string }>("/api/app/marketing/discounts", "POST", body);
-      onSaved(editing ? "Saved." : d.automatic ? `${d.name} is set up.` : `${saved.code} is ready.`);
+      onSaved(editing ? t("saved") : d.automatic ? t("isSetUp", { name: d.name }) : t("isReady", { code: saved.code }));
     } catch (saveError) {
       setError(errorText(saveError));
     } finally {
@@ -161,49 +164,49 @@ function DiscountEditor({
   }
 
   return (
-    <Modal title={editing ? `Edit ${editing.name}` : d.automatic ? "New automatic offer" : "New discount code"} onClose={onClose} wide>
+    <Modal title={editing ? t("editName", { name: editing.name }) : d.automatic ? t("newAutomatic") : t("newCodeTitle")} onClose={onClose} wide>
       <form onSubmit={(event) => void submit(event)} className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name" htmlFor="d-name"><input id="d-name" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} className={inputClass} required maxLength={120} placeholder={d.automatic ? "Weekend sale" : "Welcome code"} /></Field>
+          <Field label={t("name")} htmlFor="d-name"><input id="d-name" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} className={inputClass} required maxLength={120} placeholder={d.automatic ? t("namePlaceholderAuto") : t("namePlaceholderCode")} /></Field>
           {d.automatic ? (
-            <p className="m-0 self-end text-[13.5px] text-app-ink-soft">Applies at checkout without a code, when the order qualifies.</p>
+            <p className="m-0 self-end text-[13.5px] text-app-ink-soft">{t("appliesNoCode")}</p>
           ) : (
-            <Field label="Code shoppers type" htmlFor="d-code"><input id="d-code" value={d.code} onChange={(e) => setD({ ...d, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} className={`${inputClass} font-mono`} required maxLength={40} placeholder="WEEKEND20" /></Field>
+            <Field label={t("codeShoppersType")} htmlFor="d-code"><input id="d-code" value={d.code} onChange={(e) => setD({ ...d, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} className={`${inputClass} font-mono`} required maxLength={40} placeholder="WEEKEND20" /></Field>
           )}
-          <Field label="Kind" htmlFor="d-type">
+          <Field label={t("kind")} htmlFor="d-type">
             <select id="d-type" value={d.type} onChange={(e) => setD({ ...d, type: e.target.value as Draft["type"] })} className={selectClass}>
-              <option value="percentage">Percentage off</option>
-              <option value="fixed_amount">Amount off (₦)</option>
-              <option value="free_shipping">Free delivery</option>
-              <option value="bogo">Buy X get Y</option>
+              <option value="percentage">{t("percentageOff")}</option>
+              <option value="fixed_amount">{t("amountOff")}</option>
+              <option value="free_shipping">{t("freeDelivery")}</option>
+              <option value="bogo">{t("buyXgetY")}</option>
             </select>
           </Field>
           {d.type === "percentage" || d.type === "fixed_amount" ? (
-            <Field label={d.type === "percentage" ? "Percent off" : "Naira off"} htmlFor="d-value"><input id="d-value" value={d.value} onChange={(e) => setD({ ...d, value: e.target.value })} type="number" min="1" max={d.type === "percentage" ? 100 : undefined} className={inputClass} required /></Field>
+            <Field label={d.type === "percentage" ? t("percentOff") : t("nairaOff")} htmlFor="d-value"><input id="d-value" value={d.value} onChange={(e) => setD({ ...d, value: e.target.value })} type="number" min="1" max={d.type === "percentage" ? 100 : undefined} className={inputClass} required /></Field>
           ) : null}
         </div>
         {d.type === "bogo" ? (
           <div className="flex flex-wrap items-center gap-2 rounded-[16px] bg-app-canvas p-3 text-[14px]">
-            <span>Buy</span>
-            <input aria-label="Buy quantity" type="number" min={1} value={d.buyQuantity} onChange={(e) => setD({ ...d, buyQuantity: e.target.value })} className={`${inputClass} w-[80px]`} />
-            <span>get</span>
-            <input aria-label="Get quantity" type="number" min={1} value={d.getQuantity} onChange={(e) => setD({ ...d, getQuantity: e.target.value })} className={`${inputClass} w-[80px]`} />
-            <input aria-label="Percent off the extra items" type="number" min={1} max={100} value={d.getPercent} onChange={(e) => setD({ ...d, getPercent: e.target.value })} className={`${inputClass} w-[90px]`} />
-            <span>% off (100 = free). The cheapest items are the free ones.</span>
+            <span>{t("buy")}</span>
+            <input aria-label={t("buyQty")} type="number" min={1} value={d.buyQuantity} onChange={(e) => setD({ ...d, buyQuantity: e.target.value })} className={`${inputClass} w-[80px]`} />
+            <span>{t("get")}</span>
+            <input aria-label={t("getQty")} type="number" min={1} value={d.getQuantity} onChange={(e) => setD({ ...d, getQuantity: e.target.value })} className={`${inputClass} w-[80px]`} />
+            <input aria-label={t("percentExtra")} type="number" min={1} max={100} value={d.getPercent} onChange={(e) => setD({ ...d, getPercent: e.target.value })} className={`${inputClass} w-[90px]`} />
+            <span>{t("bogoNote")}</span>
           </div>
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Applies to" htmlFor="d-scope">
+          <Field label={t("appliesTo")} htmlFor="d-scope">
             <select id="d-scope" value={scope} onChange={(e) => setScope(e.target.value)} className={selectClass}>
-              <option value="all">Everything in the shop</option>
-              <option value="some">Only some products</option>
+              <option value="all">{t("everything")}</option>
+              <option value="some">{t("someProducts")}</option>
             </select>
           </Field>
-          <Field label="Who can use it" htmlFor="d-segment" hint={d.segmentId ? "Checked against the email at checkout." : undefined}>
+          <Field label={t("whoCan")} htmlFor="d-segment" hint={d.segmentId ? t("whoCanHint") : undefined}>
             <select id="d-segment" value={d.segmentId} onChange={(e) => setD({ ...d, segmentId: e.target.value })} className={selectClass}>
-              <option value="">Everyone</option>
-              {segments.map((s) => <option key={s.id} value={s.id}>Segment: {s.name}</option>)}
+              <option value="">{t("everyone")}</option>
+              {segments.map((s) => <option key={s.id} value={s.id}>{t("segmentName", { name: s.name })}</option>)}
             </select>
           </Field>
         </div>
@@ -214,22 +217,22 @@ function DiscountEditor({
                 <input type="checkbox" className={checkClass} checked={d.productIds.includes(p.id)} onChange={(e) => setD({ ...d, productIds: e.target.checked ? [...d.productIds, p.id] : d.productIds.filter((id) => id !== p.id) })} />
                 <span className="truncate">{p.name}</span>
               </label>
-            )) : <p className="m-0 text-[13px] text-app-ink-soft">No products yet.</p>}
+            )) : <p className="m-0 text-[13px] text-app-ink-soft">{t("noProducts")}</p>}
           </div>
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Field label="Smallest order (₦)" htmlFor="d-min"><input id="d-min" value={d.minOrder} onChange={(e) => setD({ ...d, minOrder: e.target.value })} type="number" min="0" className={inputClass} placeholder="None" /></Field>
-          <Field label="Total uses" htmlFor="d-max"><input id="d-max" value={d.maxUses} onChange={(e) => setD({ ...d, maxUses: e.target.value })} type="number" min="0" className={inputClass} placeholder="No limit" /></Field>
-          <Field label="Starts (Lagos time)" htmlFor="d-start"><input id="d-start" value={d.startsAt} onChange={(e) => setD({ ...d, startsAt: e.target.value })} type="datetime-local" className={inputClass} /></Field>
-          <Field label="Ends (Lagos time)" htmlFor="d-end"><input id="d-end" value={d.expiresAt} onChange={(e) => setD({ ...d, expiresAt: e.target.value })} type="datetime-local" className={inputClass} /></Field>
+          <Field label={t("smallestOrder")} htmlFor="d-min"><input id="d-min" value={d.minOrder} onChange={(e) => setD({ ...d, minOrder: e.target.value })} type="number" min="0" className={inputClass} placeholder={t("none")} /></Field>
+          <Field label={t("totalUses")} htmlFor="d-max"><input id="d-max" value={d.maxUses} onChange={(e) => setD({ ...d, maxUses: e.target.value })} type="number" min="0" className={inputClass} placeholder={t("noLimit")} /></Field>
+          <Field label={t("starts")} htmlFor="d-start"><input id="d-start" value={d.startsAt} onChange={(e) => setD({ ...d, startsAt: e.target.value })} type="datetime-local" className={inputClass} /></Field>
+          <Field label={t("ends")} htmlFor="d-end"><input id="d-end" value={d.expiresAt} onChange={(e) => setD({ ...d, expiresAt: e.target.value })} type="datetime-local" className={inputClass} /></Field>
         </div>
-        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={d.oncePerCustomer} onChange={(e) => setD({ ...d, oncePerCustomer: e.target.checked })} /> One use per customer (by email)</label>
-        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px] font-bold"><input type="checkbox" className={checkClass} checked={d.active} onChange={(e) => setD({ ...d, active: e.target.checked })} /> Live (from the start time, if set)</label>
+        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={d.oncePerCustomer} onChange={(e) => setD({ ...d, oncePerCustomer: e.target.checked })} /> {t("oncePerCustomer")}</label>
+        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px] font-bold"><input type="checkbox" className={checkClass} checked={d.active} onChange={(e) => setD({ ...d, active: e.target.checked })} /> {t("liveFromStart")}</label>
         {error ? <Notice>{error}</Notice> : null}
         <div className="flex flex-wrap justify-end gap-2">
-          <PillButton size="md" tone="white" onClick={onClose}>Cancel</PillButton>
-          <PillButton size="md" type="submit" busy={saving}>{editing ? "Save" : "Create"}</PillButton>
+          <PillButton size="md" tone="white" onClick={onClose}>{t("cancel")}</PillButton>
+          <PillButton size="md" type="submit" busy={saving}>{editing ? t("save") : t("create")}</PillButton>
         </div>
       </form>
     </Modal>
@@ -237,6 +240,7 @@ function DiscountEditor({
 }
 
 function NewCoupons({ onCreated }: { onCreated: (codes: string[]) => void }) {
+  const t = useT("discounts");
   const [type, setType] = useState("percentage");
   const [value, setValue] = useState("10");
   const [count, setCount] = useState("1");
@@ -255,7 +259,7 @@ function NewCoupons({ onCreated }: { onCreated: (codes: string[]) => void }) {
       }
       onCreated(codes);
     } catch (createError) {
-      setError(errorText(createError, "Couldn't make the codes."));
+      setError(errorText(createError, t("coupons.failed")));
     } finally {
       setBusy(false);
     }
@@ -263,17 +267,17 @@ function NewCoupons({ onCreated }: { onCreated: (codes: string[]) => void }) {
 
   return (
     <Card className="p-5">
-      <CardHead title="Make one-use codes" sub="Random codes that work once each: for thank-you notes, influencers or making things right." />
+      <CardHead title={t("coupons.title")} sub={t("coupons.sub")} />
       <form onSubmit={(event) => void submit(event)} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,120px)_auto] sm:items-end">
-        <Field label="Kind" htmlFor="c-type">
+        <Field label={t("kind")} htmlFor="c-type">
           <select id="c-type" value={type} onChange={(e) => setType(e.target.value)} className={selectClass}>
-            <option value="percentage">Percentage off</option>
-            <option value="fixed_amount">Amount off (₦)</option>
+            <option value="percentage">{t("percentageOff")}</option>
+            <option value="fixed_amount">{t("amountOff")}</option>
           </select>
         </Field>
-        <Field label={type === "percentage" ? "Percent off" : "Naira off"} htmlFor="c-value"><input id="c-value" value={value} onChange={(e) => setValue(e.target.value)} type="number" min="1" className={inputClass} required /></Field>
-        <Field label="How many" htmlFor="c-count"><input id="c-count" value={count} onChange={(e) => setCount(e.target.value)} type="number" min="1" max="50" className={inputClass} /></Field>
-        <PillButton size="md" type="submit" busy={busy}><Icon name="plus" size={16} /> Make</PillButton>
+        <Field label={type === "percentage" ? t("percentOff") : t("nairaOff")} htmlFor="c-value"><input id="c-value" value={value} onChange={(e) => setValue(e.target.value)} type="number" min="1" className={inputClass} required /></Field>
+        <Field label={t("coupons.howMany")} htmlFor="c-count"><input id="c-count" value={count} onChange={(e) => setCount(e.target.value)} type="number" min="1" max="50" className={inputClass} /></Field>
+        <PillButton size="md" type="submit" busy={busy}><Icon name="plus" size={16} /> {t("coupons.make")}</PillButton>
       </form>
       {error ? <div className="mt-3"><Notice>{error}</Notice></div> : null}
     </Card>
@@ -296,6 +300,8 @@ export function DiscountsManager({
   products: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
+  const t = useT("discounts", "common");
+  const locale = useLocale();
   const [editor, setEditor] = useState<{ editing: DiscountRow | null } | null>(startOpen && tab !== "coupons" ? { editing: null } : null);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
@@ -310,7 +316,7 @@ export function DiscountsManager({
   }
 
   async function remove(discount: DiscountRow) {
-    if (!window.confirm(`Delete ${discount.name}? Orders that used it keep their record.`)) return;
+    if (!window.confirm(t("confirmDelete", { name: discount.name }))) return;
     try {
       await api(`/api/app/marketing/discounts/${discount.id}`, "DELETE");
       router.refresh();
@@ -327,7 +333,7 @@ export function DiscountsManager({
         <>
           <div className="flex flex-wrap gap-2">
             <PillButton size="md" tone="accent" onClick={() => setEditor({ editing: null })}>
-              <Icon name="plus" size={16} /> {tab === "automatic" ? "New automatic offer" : "New code"}
+              <Icon name="plus" size={16} /> {tab === "automatic" ? t("newAutomatic") : t("newCode")}
             </PillButton>
           </div>
           {discounts.length ? (
@@ -339,33 +345,33 @@ export function DiscountsManager({
                     <div className="min-w-0 flex-1 basis-[200px]">
                       <div className="truncate text-[15px] font-extrabold">{discount.name}</div>
                       <div className="truncate text-[13px] text-app-ink-soft">
-                        {discount.config.automatic ? "Automatic" : <span className="font-mono">{discount.code}</span>}
-                        {discount.config.productIds.length ? ` · ${discount.config.productIds.length} products` : ""}
-                        {discount.config.segmentId ? ` · ${segments.find((s) => s.id === discount.config.segmentId)?.name ?? "a segment"}` : ""}
-                        {discount.config.oncePerCustomer ? " · once each" : ""}
+                        {discount.config.automatic ? t("tab.automatic") : <span className="font-mono">{discount.code}</span>}
+                        {discount.config.productIds.length ? ` · ${t("row.products", { count: discount.config.productIds.length })}` : ""}
+                        {discount.config.segmentId ? ` · ${segments.find((s) => s.id === discount.config.segmentId)?.name ?? t("row.aSegment")}` : ""}
+                        {discount.config.oncePerCustomer ? ` · ${t("row.onceEach")}` : ""}
                       </div>
                     </div>
                     <div className="text-[13px] sm:w-[200px]">
                       <div className="font-extrabold">{describeDiscount(discount, naira)}</div>
-                      <div className="text-app-ink-soft">{discount.minOrder ? `Orders over ${naira(discount.minOrder)}` : "Any order"} · {discount.usedCount}{discount.maxUses ? ` of ${discount.maxUses}` : ""} used</div>
+                      <div className="text-app-ink-soft">{discount.minOrder ? t("row.ordersOver", { amount: naira(discount.minOrder) }) : t("row.anyOrder")} · {discount.maxUses ? t("row.usedOf", { used: discount.usedCount, max: discount.maxUses }) : t("row.used", { used: discount.usedCount })}</div>
                     </div>
                     <div className="text-[13px] text-app-ink-soft sm:w-[170px]">
-                      <div><strong className="text-app-ink">{discount.orders}</strong> paid orders · {naira(discount.revenue)}</div>
-                      <div>{discount.startsAt && new Date(discount.startsAt) > new Date() ? `Starts ${formatDate(discount.startsAt)}` : discount.expiresAt ? `Ends ${formatDate(discount.expiresAt)}` : "No end date"}</div>
+                      <div><strong className="text-app-ink">{discount.orders}</strong> {t("row.paidOrders")} · {naira(discount.revenue)}</div>
+                      <div>{discount.startsAt && new Date(discount.startsAt) > new Date() ? t("row.starts", { date: formatDate(discount.startsAt, false, locale) }) : discount.expiresAt ? t("row.ends", { date: formatDate(discount.expiresAt, false, locale) }) : t("row.noEnd")}</div>
                     </div>
-                    <Pill tone={state.tone}>{state.label}</Pill>
-                    <Toggle on={discount.status === "active"} onChange={(on) => void toggle(discount, on)} label={`${discount.name} live`} />
+                    <Pill tone={state.tone}>{t(state.label)}</Pill>
+                    <Toggle on={discount.status === "active"} onChange={(on) => void toggle(discount, on)} label={t("row.liveLabel", { name: discount.name })} />
                     <div className="flex gap-2">
-                      <button type="button" className={buttonClass("white", "sm")} onClick={() => setEditor({ editing: discount })}>Edit</button>
-                      <button type="button" className={buttonClass("danger", "sm")} aria-label={`Delete ${discount.name}`} onClick={() => void remove(discount)}><Icon name="trash" size={14} /></button>
+                      <button type="button" className={buttonClass("white", "sm")} onClick={() => setEditor({ editing: discount })}>{t("edit")}</button>
+                      <button type="button" className={buttonClass("danger", "sm")} aria-label={t("row.delete", { name: discount.name })} onClick={() => void remove(discount)}><Icon name="trash" size={14} /></button>
                     </div>
                   </ListRow>
                 );
               })}
             </ListCard>
           ) : (
-            <EmptyState icon="percent" title={tab === "automatic" ? "No automatic offers yet" : "No codes yet"} action={<PillButton size="md" onClick={() => setEditor({ editing: null })}>{tab === "automatic" ? "New automatic offer" : "New code"}</PillButton>}>
-              {tab === "automatic" ? "A sale that applies on its own: 10% off this weekend, free delivery over ₦30,000, or buy 2 get 1 free." : "A code like WEEKEND20 that shoppers type at checkout. Share it on WhatsApp or Instagram."}
+            <EmptyState icon="percent" title={tab === "automatic" ? t("empty.automatic") : t("empty.codes")} action={<PillButton size="md" onClick={() => setEditor({ editing: null })}>{tab === "automatic" ? t("newAutomatic") : t("newCode")}</PillButton>}>
+              {tab === "automatic" ? t("empty.automaticBody") : t("empty.codesBody")}
             </EmptyState>
           )}
         </>
@@ -373,30 +379,30 @@ export function DiscountsManager({
         <>
           <NewCoupons
             onCreated={(codes) => {
-              setNotice({ tone: "success", text: `New code${codes.length === 1 ? "" : "s"}: ${codes.join(", ")}` });
+              setNotice({ tone: "success", text: t("coupons.newCodes", { count: codes.length, codes: codes.join(", ") }) });
               router.refresh();
             }}
           />
           {coupons.length ? (
             <ListCard>
               {coupons.map((coupon) => {
-                const state = coupon.status === "active" && coupon.maxUses && coupon.usedCount >= coupon.maxUses ? { tone: "muted" as Tone, label: "Used" } : liveState({ ...coupon, startsAt: null });
+                const state = coupon.status === "active" && coupon.maxUses && coupon.usedCount >= coupon.maxUses ? { tone: "muted" as Tone, label: "status.used" as MessageKey<"discounts"> } : liveState({ ...coupon, startsAt: null });
                 return (
                   <ListRow key={coupon.id}>
                     <div className="min-w-0 flex-1 basis-full truncate font-mono text-[15px] font-bold sm:basis-auto">{coupon.code}</div>
                     <div className="text-[13px] sm:w-[200px]">
                       <div className="font-extrabold">{describeDiscount(coupon, naira)}</div>
-                      <div className="text-app-ink-soft">{coupon.usedCount} of {coupon.maxUses || "unlimited"} used{coupon.revenue ? ` · ${naira(coupon.revenue)} sales` : ""}</div>
+                      <div className="text-app-ink-soft">{t("row.usedOf", { used: coupon.usedCount, max: coupon.maxUses || t("row.unlimited") })}{coupon.revenue ? ` · ${t("row.sales", { amount: naira(coupon.revenue) })}` : ""}</div>
                     </div>
-                    <div className="text-[13px] text-app-ink-soft sm:w-[120px]">{coupon.expiresAt ? `Ends ${formatDate(coupon.expiresAt)}` : "No end date"}</div>
-                    <Pill tone={state.tone}>{state.label}</Pill>
-                    <button type="button" onClick={() => void navigator.clipboard?.writeText(coupon.code).then(() => setNotice({ tone: "success", text: `${coupon.code} copied.` }), () => undefined)} className={buttonClass("white", "sm")}>Copy</button>
+                    <div className="text-[13px] text-app-ink-soft sm:w-[120px]">{coupon.expiresAt ? t("row.ends", { date: formatDate(coupon.expiresAt, false, locale) }) : t("row.noEnd")}</div>
+                    <Pill tone={state.tone}>{t(state.label)}</Pill>
+                    <button type="button" onClick={() => void navigator.clipboard?.writeText(coupon.code).then(() => setNotice({ tone: "success", text: t("coupons.copied", { code: coupon.code }) }), () => undefined)} className={buttonClass("white", "sm")}>{t("copy")}</button>
                   </ListRow>
                 );
               })}
             </ListCard>
           ) : (
-            <EmptyState icon="tag" title="No one-use codes yet">Codes made by pop-up rewards and automations (welcome, win-back, birthday) show up here too.</EmptyState>
+            <EmptyState icon="tag" title={t("empty.coupons")}>{t("empty.couponsBody")}</EmptyState>
           )}
         </>
       )}

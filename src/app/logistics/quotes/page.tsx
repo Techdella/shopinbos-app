@@ -93,7 +93,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
                   <div><dt className="text-app-ink-soft">{t("kit.package")}</dt><dd className="m-0 font-bold">{packageSummary(quote.packageDetails, t)}</dd></div>
                   <div><dt className="text-app-ink-soft">{t("quotes.wanted")}</dt><dd className="m-0 font-bold">{quote.preferredDate ? lagosDate(quote.preferredDate, { weekday: "short", day: "numeric", month: "short" }, now, t) : t("quotes.anyDay")}</dd></div>
                   {typeof pkg.declaredValue === "number" && (
-                    <div><dt className="text-app-ink-soft">{t("quotes.declaredValue")}</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
+                    <div><dt className="text-app-ink-soft">{t("quotes.valueDeclared")}</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
                   )}
                 </dl>
 

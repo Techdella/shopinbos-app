@@ -5,6 +5,7 @@ import { ProductForm } from "@/app/components/ProductForm";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function ProductEditPage({
 }) {
   const { id } = await params;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("products");
 
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
   if (!store) {
@@ -42,8 +44,8 @@ export default async function ProductEditPage({
     <AppPage
       frame={sellerFrame(user, store)}
       title={product.name}
-      sub="Edit details, visibility, stock and how the product page looks."
-      actions={<PillLink href="/products" icon="arrowLeft">All products</PillLink>}
+      sub={t("edit.sub")}
+      actions={<PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>}
     >
       <ProductForm
         product={product as any}

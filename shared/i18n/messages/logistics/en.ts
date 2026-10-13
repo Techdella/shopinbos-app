@@ -173,7 +173,7 @@ const en = {
   "quotes.tryFilter": "Try another filter.",
   "quotes.wanted": "Wanted",
   "quotes.anyDay": "Any day",
-  "quotes.declaredValue": "Declared value",
+  "quotes.valueDeclared": "Declared value",
   "quotes.yourPrice": "Your price (₦)",
   "quotes.noteToSeller": "Note to the seller",
   "quotes.notePlaceholder": "When you can pick up, how long it takes, anything they should know.",

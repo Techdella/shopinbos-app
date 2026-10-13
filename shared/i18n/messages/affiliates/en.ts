@@ -1,6 +1,42 @@
 // Seller affiliates.
 // English is the source of truth; every key must exist in pcm.ts, yo.ts, ha.ts and ig.ts.
 const en = {
+  // Creators and affiliates (/home/affiliates)
+  "metaTitle": "Affiliates",
+  "title": "Creators and affiliates",
+  "sub": "Give a creator their own link. When someone buys through it and the order is delivered, they earn a share. You pay them, we keep the count.",
+  "myShop": "my shop",
+  "err.add": "Couldn't add this creator.",
+  "err.update": "Couldn't update this creator.",
+  "err.copy": "Couldn't copy. Select the link and copy it.",
+  "add.title": "Add a creator",
+  "add.name": "Name",
+  "add.namePlaceholder": "e.g. Tolu Styles",
+  "add.whatsapp": "WhatsApp (optional)",
+  "add.rate": "They earn (%)",
+  "add.create": "Create link",
+  "invite": "Hi {name}! Here's your {store} link: {link}\nYou earn {rate}% on every order from it once it's delivered. Paid on Fridays.",
+  "rateCode": "{rate}% of each delivered order · code {code}",
+  "linkOn": "Link on",
+  "linkOff": "Link off",
+  "linkIsOn": "{name}'s link is on",
+  "linkIsOff": "{name}'s link is off",
+  "sendWhatsApp": "Send on WhatsApp",
+  "stat.orders": "Orders",
+  "stat.sales": "Delivered sales",
+  "stat.pending": "Waiting for delivery",
+  "stat.paid": "Paid so far",
+  "youOwe": "You owe {amount}",
+  "payBy": "Pay {name} by {date}, then mark it paid.",
+  "markPaid": "Mark as paid",
+  "order.paid": "paid",
+  "order.owed": "owed",
+  "order.none": "no commission",
+  "order.after": "after delivery",
+  "confirmRemove": "Remove {name}? Their link stops working. Orders they brought stay in your history.",
+  "removeCreator": "Remove creator",
+  "owedTotal": "You owe creators {amount} in total for delivered orders. Payday is {date}.",
+  "emptyBody": "Add a creator above to get their link. Anyone who buys through it within 30 days counts, and they earn once the order is delivered.",
 } satisfies Record<string, string>;
 
 export default en;

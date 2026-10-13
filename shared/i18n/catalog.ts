@@ -35,6 +35,7 @@ import discounts from "./messages/discounts/index.ts";
 import peggy from "./messages/peggy/index.ts";
 import rex from "./messages/rex/index.ts";
 import auth from "./messages/auth/index.ts";
+import products from "./messages/products/index.ts";
 import orders from "./messages/orders/index.ts";
 import home from "./messages/home/index.ts";
 import onboarding from "./messages/onboarding/index.ts";
@@ -74,6 +75,7 @@ export const CATALOGS = {
   peggy,
   rex,
   auth,
+  products,
   orders,
   home,
   onboarding,

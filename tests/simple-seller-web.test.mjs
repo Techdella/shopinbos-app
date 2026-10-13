@@ -108,14 +108,19 @@ test("the HTML email editor is an advanced option; the visual builder is the def
 
 test("supplier orders are grouped New, To pack and Sent, with 'You get ₦X' and one big Accept", () => {
   const orders = read("src/app/supplier/orders/page.tsx");
+  // The words are in the supplier catalog (shared/i18n/messages/supplier/en.ts), shown through t().
+  const words = read("shared/i18n/messages/supplier/en.ts");
   assert.match(orders, /\{ key: "new", label: "New", wholesale: \["pending"\], dropship: \["pending"\] \}/);
   assert.match(orders, /\{ key: "to-pack", label: "To pack"/);
   assert.match(orders, /\{ key: "sent", label: "Sent"/);
   assert.match(orders, /const LEGACY_FILTER[^\n]*"to-ship": "to-pack"/, "old ?status= links still work");
   assert.match(orders, /GROUPS\.map\(\(group\)/);
-  assert.equal((orders.match(/>You get</g) ?? []).length, 2, "both kinds of order show what the supplier gets");
-  assert.match(orders, /buttonClass\.ink\} min-h-\[52px\][^>]*><Icon name="check" size=\{16\} \/> Accept</);
-  assert.match(orders, /Pack it with \{order\.shop\}&apos;s label/);
+  assert.equal((orders.match(/>\{t\("orders\.youGet"\)\}</g) ?? []).length, 2, "both kinds of order show what the supplier gets");
+  assert.match(words, /"orders\.youGet": "You get"/);
+  assert.match(orders, /buttonClass\.ink\} min-h-\[52px\][^>]*><Icon name="check" size=\{16\} \/> \{t\("orders\.accept"\)\}</);
+  assert.match(words, /"orders\.accept": "Accept"/);
+  assert.match(orders, /t\("orders\.packWithLabel", \{ shop: order\.shop \}\)/);
+  assert.match(words, /"orders\.packWithLabel": "Pack it with \{shop\}'s label/);
 });
 
 test("seller and supplier nav entries use the standard commerce names; routes are unchanged", () => {
