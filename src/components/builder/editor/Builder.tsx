@@ -54,6 +54,7 @@ import { ThemeSettingsPanel, type ThemeView } from "./ThemeSettingsPanel";
 import { TopBar } from "./TopBar";
 import { IconButton, useMediaQuery } from "./ui";
 import { storefrontHost, useBuilder } from "./useBuilder";
+import { useEditorT } from "./i18n";
 
 type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
 
@@ -80,6 +81,7 @@ function isTyping(target: EventTarget | null) {
 
 export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }) {
   const router = useRouter();
+  const { t, tx } = useEditorT();
   const b = useBuilder();
   const { draft, commit } = b;
 
@@ -167,9 +169,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       editSections((list) => removeSection(list, id));
       setSelectedId(null);
       setSheet(null);
-      b.showToast(`${section.name} removed`, "ok", { label: "Undo", run: b.undo });
+      b.showToast(t("edk.removed", { name: tx(section.name) }), "ok", { label: tx("Undo"), run: b.undo });
     }
-  }, [b, editSections, sections]);
+  }, [b, editSections, sections, t, tx]);
 
   const openInsert = useCallback((group: SectionGroup, beforeId: string | null) => {
     setInsertTarget({ group, beforeId });
@@ -234,24 +236,24 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       body.append("folder", "store-banners");
       const response = await fetch("/api/upload", { method: "POST", body });
       const json = await response.json().catch(() => null) as { data?: { publicUrl?: string }; error?: { message?: string } } | null;
-      if (!response.ok || !json?.data?.publicUrl) throw new Error(json?.error?.message ?? "That upload didn't work. Try a smaller image.");
+      if (!response.ok || !json?.data?.publicUrl) throw new Error(json?.error?.message ?? tx("That upload didn't work. Try a smaller image."));
       return json.data.publicUrl;
     } catch (error) {
-      b.showToast(error instanceof Error ? error.message : "That upload didn't work.", "error");
+      b.showToast(error instanceof Error ? error.message : tx("That upload didn't work."), "error");
       return null;
     }
-  }, [b]);
+  }, [b, tx]);
 
   const updateStoreLogo = useCallback(async (url: string) => {
     b.setStore((current) => ({ ...current, logoUrl: url }));
     try {
       const response = await fetch("/api/app/store", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logoUrl: url }) });
       if (!response.ok) throw new Error();
-      b.showToast("Logo updated");
+      b.showToast(tx("Logo updated"));
     } catch {
-      b.showToast("The logo shows here but couldn't be saved. Try again.", "error");
+      b.showToast(tx("The logo shows here but couldn't be saved. Try again."), "error");
     }
-  }, [b]);
+  }, [b, tx]);
 
   const setTheme = useCallback((key: keyof ThemeTokenSet, value: string) => {
     commit((current) => ({ ...current, themeTokens: { ...current.themeTokens, [key]: value } }), `theme:${key}`);
@@ -267,8 +269,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const homeSections = draft?.pages.find((entry) => entry.pageType === "home")?.sections ?? null;
   const toggleApp = useCallback((app: EditorApp, on: boolean) => {
     commit((current) => updatePageSections(current, "home", (list) => setAppEnabled(list, app, on, newId(app.kind))));
-    b.showToast(on ? `${app.label} added to your home page` : `${app.label} hidden`);
-  }, [b, commit]);
+    b.showToast(on ? t("edk.appAdded", { name: tx(app.label) }) : t("edk.appHidden", { name: tx(app.label) }));
+  }, [b, commit, t, tx]);
 
   const addPage = useCallback((title: string) => {
     if (!draft) return;
@@ -287,8 +289,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     }));
     setEntryId(slug);
     setSelectedId(body.id);
-    b.showToast(`${title} page added`);
-  }, [b, commit, draft, renderer]);
+    b.showToast(t("edk.pageAdded", { name: title }));
+  }, [b, commit, draft, renderer, t]);
 
   // ── Leaving, keyboard ───────────────────────────────────────────────────
 
@@ -357,8 +359,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setEntryId("home");
     if (next && Array.isArray(next.pages)) b.resetDraft(next);
     else void b.reload();
-    b.showToast(result.draftOnly ? `${result.templateName} is ready. Publish when you're happy.` : `Your store now uses ${result.templateName}`);
-  }, [b]);
+    b.showToast(result.draftOnly ? t("edk.themeReady", { name: result.templateName }) : t("edk.themeUsed", { name: result.templateName }));
+  }, [b, t]);
 
   // ── Canvas data ─────────────────────────────────────────────────────────
 
@@ -416,7 +418,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   if (b.loading) {
     return (
       <div className="fixed inset-0 z-[500] grid place-items-center bg-app-canvas font-app text-app-ink-soft">
-        <div className="flex items-center gap-3 text-[14px] font-medium"><Spinner /> Opening the builder…</div>
+        <div className="flex items-center gap-3 text-[14px] font-medium"><Spinner /> {tx("Opening the builder…")}</div>
       </div>
     );
   }
@@ -425,11 +427,11 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     return (
       <div className="fixed inset-0 z-[500] grid place-items-center bg-app-canvas p-4 font-app">
         <div className="w-full max-w-[420px] rounded-[22px] border border-app-line bg-white p-6 text-center">
-          <h1 className="text-[20px] font-extrabold text-app-ink">The builder didn&apos;t open</h1>
+          <h1 className="text-[20px] font-extrabold text-app-ink">{tx("The builder didn't open")}</h1>
           <p className="mt-2 text-[14px] text-app-ink-soft">{b.loadError}</p>
           <div className="mt-5 flex justify-center gap-2">
-            <a href="/home/store" className="inline-flex min-h-11 items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink">Back</a>
-            <button type="button" onClick={() => void b.reload()} className="inline-flex min-h-11 items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white">Try again</button>
+            <a href="/home/store" className="inline-flex min-h-11 items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink">{tx("Back")}</a>
+            <button type="button" onClick={() => void b.reload()} className="inline-flex min-h-11 items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white">{tx("Try again")}</button>
           </div>
         </div>
       </div>
@@ -506,8 +508,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         target={insertTarget.group}
         existingKinds={sections.map((section) => section.kind)}
         placeLabel={insertTarget.beforeId
-          ? `Adds above ${sections.find((section) => section.id === insertTarget.beforeId)?.name ?? "the chosen section"}`
-          : insertTarget.group === "header" ? "Adds to the header" : selected && sectionGroup(selected.kind) === "template" ? `Adds below ${selected.name}` : `Adds to the end of ${currentLabel}`}
+          ? t("edk.addsAbove", { name: tx(sections.find((section) => section.id === insertTarget.beforeId)?.name ?? "the chosen section") })
+          : insertTarget.group === "header" ? tx("Adds to the header") : selected && sectionGroup(selected.kind) === "template" ? t("edk.addsBelow", { name: tx(selected.name) }) : t("edk.addsToEnd", { name: tx(currentLabel) })}
         onInsert={insert}
         selectedName={selected?.name ?? null}
         elements={selected ? addableFor(selected) : []}
@@ -527,7 +529,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         selectedSectionId={selectedId}
         selectedName={selected?.name ?? null}
         applyOps={b.applyOps}
-        onApplied={() => b.showToast("Rex's change is on the page", "ok", { label: "Undo", run: b.undo })}
+        onApplied={() => b.showToast(tx("Rex's change is on the page"), "ok", { label: tx("Undo"), run: b.undo })}
         onClose={() => setPanel("sections")}
       />
     ) : null;
@@ -535,12 +537,12 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const emptyState = (
     <div className="grid h-full place-items-center overflow-y-auto bg-[#ECEBF1] p-4">
       <div className="w-full max-w-[560px] rounded-[22px] border border-app-line bg-white p-6 text-center">
-        <h1 className="text-[22px] font-extrabold text-app-ink">Let&apos;s build your store</h1>
-        <p className="mt-2 text-[14px] text-app-ink-soft">Pick a theme, start from a blank page, or let Rex build a first version from your products.</p>
+        <h1 className="text-[22px] font-extrabold text-app-ink">{tx("Let's build your store")}</h1>
+        <p className="mt-2 text-[14px] text-app-ink-soft">{tx("Pick a theme, start from a blank page, or let Rex build a first version from your products.")}</p>
         <div className="mt-5 grid gap-2 sm:grid-cols-3">
-          <button type="button" onClick={() => void openThemes()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="palette" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">Pick a theme</span></button>
-          <button type="button" onClick={() => void b.startBlank()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="grid" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">Start blank</span></button>
-          <a href="/studio" className="rounded-[16px] bg-app-peach p-4 text-left"><Mascot name="rex" className="h-6 w-6" alt="" /><span className="mt-2 block text-[14px] font-bold text-app-ink">Build with Rex</span></a>
+          <button type="button" onClick={() => void openThemes()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="palette" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">{tx("Pick a theme")}</span></button>
+          <button type="button" onClick={() => void b.startBlank()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="grid" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">{tx("Start blank")}</span></button>
+          <a href="/studio" className="rounded-[16px] bg-app-peach p-4 text-left"><Mascot name="rex" className="h-6 w-6" alt="" /><span className="mt-2 block text-[14px] font-bold text-app-ink">{tx("Build with Rex")}</span></a>
         </div>
       </div>
     </div>
@@ -548,9 +550,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   const previewBar = preview ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-peach px-4 py-2 text-[13.5px] text-app-ink">
-      <span className="min-w-0 flex-1"><strong>Previewing {preview.name}.</strong> Your products show in it; nothing changes until you use it.</span>
-      <button type="button" onClick={() => setView("themes")} className="min-h-9 rounded-full border border-app-line bg-white px-3 font-semibold">Back to themes</button>
-      <button type="button" onClick={() => setPreview(null)} className="min-h-9 rounded-full bg-app-ink px-3 font-semibold text-white">Stop preview</button>
+      <span className="min-w-0 flex-1"><strong>{t("edk.previewing", { name: preview.name })}</strong> {tx("Your products show in it; nothing changes until you use it.")}</span>
+      <button type="button" onClick={() => setView("themes")} className="min-h-9 rounded-full border border-app-line bg-white px-3 font-semibold">{tx("Back to themes")}</button>
+      <button type="button" onClick={() => setPreview(null)} className="min-h-9 rounded-full bg-app-ink px-3 font-semibold text-white">{tx("Stop preview")}</button>
     </div>
   ) : null;
 
@@ -575,14 +577,14 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       <span className="min-w-0">{b.toast.message}</span>
       {b.toast.action?.href ? <a href={b.toast.action.href} target="_blank" rel="noopener noreferrer" className="shrink-0 font-bold underline">{b.toast.action.label}</a> : null}
       {b.toast.action?.run ? <button type="button" onClick={() => { b.toast?.action?.run?.(); b.dismissToast(); }} className="shrink-0 font-bold underline">{b.toast.action.label}</button> : null}
-      <button type="button" aria-label="Dismiss" onClick={b.dismissToast} className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-white/15"><Icon name="x" size={14} /></button>
+      <button type="button" aria-label={tx("Dismiss")} onClick={b.dismissToast} className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-white/15"><Icon name="x" size={14} /></button>
     </div>
   ) : null;
 
   return (
     <div className="fixed inset-0 z-[500] flex flex-col bg-white font-app text-app-ink">
       <TopBar
-        themeName={preview ? preview.name : draft?.templateName ?? "Your store"}
+        themeName={preview ? preview.name : draft?.templateName ?? tx("Your store")}
         status={b.status}
         view={view}
         onView={(next) => (next === "themes" ? void openThemes() : setView("editor"))}
@@ -622,21 +624,21 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
           {phoneNote ? (
             <div className="flex items-start gap-2 border-b border-app-line bg-app-mint px-3 py-2 text-[12.5px] leading-5 text-app-forest">
               <Icon name="monitor" size={15} className="mt-0.5 shrink-0" />
-              <p className="min-w-0 flex-1">The full builder works best on a computer. Here you can preview pages, tap a section to edit its words and photos, hide or reorder sections, and publish.</p>
-              <button type="button" aria-label="Dismiss" onClick={() => setPhoneNote(false)} className="grid h-7 w-7 shrink-0 place-items-center"><Icon name="x" size={14} /></button>
+              <p className="min-w-0 flex-1">{tx("The full builder works best on a computer. Here you can preview pages, tap a section to edit its words and photos, hide or reorder sections, and publish.")}</p>
+              <button type="button" aria-label={tx("Dismiss")} onClick={() => setPhoneNote(false)} className="grid h-7 w-7 shrink-0 place-items-center"><Icon name="x" size={14} /></button>
             </div>
           ) : null}
           <div className="min-h-0 flex-1">{canvas}</div>
           {draft && editing ? (
             <div className="flex shrink-0 items-center gap-2 border-t border-app-line bg-white p-2">
-              <button type="button" onClick={() => setSheet(sheet === "sections" ? null : "sections")} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-app-line text-[14px] font-bold"><Icon name="list" size={16} /> Sections</button>
-              <button type="button" disabled={!selected} onClick={() => setSheet("section")} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-app-ink text-[14px] font-bold text-white disabled:opacity-40"><Icon name="edit" size={16} /> {selected ? "Edit section" : "Tap a section"}</button>
+              <button type="button" onClick={() => setSheet(sheet === "sections" ? null : "sections")} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-app-line text-[14px] font-bold"><Icon name="list" size={16} /> {tx("Sections")}</button>
+              <button type="button" disabled={!selected} onClick={() => setSheet("section")} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-app-ink text-[14px] font-bold text-white disabled:opacity-40"><Icon name="edit" size={16} /> {selected ? tx("Edit section") : tx("Tap a section")}</button>
             </div>
           ) : null}
           {sheet ? (
             <>
-              <button type="button" aria-label="Close" onClick={() => setSheet(null)} className="fixed inset-0 z-[540] bg-black/25" />
-              <div role="dialog" aria-modal="true" aria-label={sheet === "sections" ? "Sections" : selected?.name ?? "Section"} className="fixed inset-x-0 bottom-0 z-[550] flex h-[65vh] flex-col rounded-t-[22px] bg-white shadow-[0_-18px_50px_rgba(22,20,31,.2)]">
+              <button type="button" aria-label={tx("Close")} onClick={() => setSheet(null)} className="fixed inset-0 z-[540] bg-black/25" />
+              <div role="dialog" aria-modal="true" aria-label={sheet === "sections" ? tx("Sections") : tx(selected?.name ?? "Section")} className="fixed inset-x-0 bottom-0 z-[550] flex h-[65vh] flex-col rounded-t-[22px] bg-white shadow-[0_-18px_50px_rgba(22,20,31,.2)]">
                 <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-app-line-strong" aria-hidden />
                 <div className="min-h-0 flex-1">
                   {sheet === "sections" ? (
@@ -653,7 +655,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       ) : (
         <div className="relative flex min-h-0 flex-1">
           {draft && editing ? (
-            <nav aria-label="Builder tools" className="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-app-line bg-white py-2">
+            <nav aria-label={tx("Builder tools")} className="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-app-line bg-white py-2">
               {RAIL.map((item) => (
                 <IconButton
                   key={item.id}
@@ -672,24 +674,24 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
                 type="button"
                 onClick={() => setPanel(panel === "rex" ? null : "rex")}
                 aria-pressed={panel === "rex"}
-                aria-label="Ask Rex"
-                title="Ask Rex"
+                aria-label={tx("Ask Rex")}
+                title={tx("Ask Rex")}
                 className={cx("mt-auto grid h-10 w-10 place-items-center rounded-[12px] bg-app-mint transition hover:brightness-95", panel === "rex" && "ring-2 ring-[#2F66F6]")}
               >
                 <Mascot name="rex" className="h-7 w-7" alt="" />
               </button>
             </nav>
           ) : null}
-          {leftPanel ? <aside aria-label="Builder panel" className="w-[264px] shrink-0 border-r border-app-line bg-white xl:w-[280px]">{leftPanel}</aside> : null}
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Page preview">
+          {leftPanel ? <aside aria-label={tx("Builder panel")} className="w-[264px] shrink-0 border-r border-app-line bg-white xl:w-[280px]">{leftPanel}</aside> : null}
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={tx("Page preview")}>
             {previewBar}
             <div className="min-h-0 flex-1">{canvas}</div>
           </main>
           {inspector && inspectorOpen ? (
             wide ? (
-              <aside aria-label="Section settings" className="w-[320px] shrink-0 border-l border-app-line bg-white">{inspector}</aside>
+              <aside aria-label={tx("Section settings")} className="w-[320px] shrink-0 border-l border-app-line bg-white">{inspector}</aside>
             ) : (
-              <aside aria-label="Section settings" className="absolute inset-y-0 right-0 z-30 w-[min(340px,90vw)] border-l border-app-line bg-white shadow-[-18px_0_50px_rgba(22,20,31,.14)]">{inspector}</aside>
+              <aside aria-label={tx("Section settings")} className="absolute inset-y-0 right-0 z-30 w-[min(340px,90vw)] border-l border-app-line bg-white shadow-[-18px_0_50px_rgba(22,20,31,.14)]">{inspector}</aside>
             )
           ) : null}
         </div>

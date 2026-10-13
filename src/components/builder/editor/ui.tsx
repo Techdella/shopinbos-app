@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { useEditorT } from "./i18n";
 
 /** Selection blue used for the outline, name tag and active tree rows (as in the prototype). */
 export const SELECT_BLUE = "#2F66F6";
@@ -15,11 +16,12 @@ export function IconButton({
   className,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: IconName; label: string; active?: boolean; size?: number }) {
+  const { tx } = useEditorT();
   return (
     <button
       type="button"
-      aria-label={label}
-      title={label}
+      aria-label={tx(label)}
+      title={tx(label)}
       className={cx(
         "inline-grid h-10 w-10 shrink-0 place-items-center rounded-[12px] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2F66F6] disabled:cursor-not-allowed disabled:opacity-35",
         active ? "bg-[#EAF0FF] text-[#2F66F6]" : "text-app-ink-soft hover:bg-app-canvas hover:text-app-ink",
@@ -45,8 +47,9 @@ export function PillGroup<T extends string>({
   label: string;
   className?: string;
 }) {
+  const { tx } = useEditorT();
   return (
-    <div role="radiogroup" aria-label={label} className={cx("flex rounded-[12px] bg-app-canvas p-1", className)}>
+    <div role="radiogroup" aria-label={tx(label)} className={cx("flex rounded-[12px] bg-app-canvas p-1", className)}>
       {options.map((option) => {
         const on = option.value === value;
         return (
@@ -61,7 +64,7 @@ export function PillGroup<T extends string>({
               on ? "bg-white text-app-ink shadow-[0_1px_3px_rgba(22,20,31,.12)]" : "text-app-ink-soft hover:text-app-ink",
             )}
           >
-            {option.label}
+            {tx(option.label)}
           </button>
         );
       })}
@@ -70,12 +73,13 @@ export function PillGroup<T extends string>({
 }
 
 export function PanelHeading({ title, sub, onClose, onBack }: { title: ReactNode; sub?: ReactNode; onClose?: () => void; onBack?: () => void }) {
+  const { tx } = useEditorT();
   return (
     <div className="flex items-start gap-2 px-4 pb-2 pt-4">
       {onBack ? <IconButton icon="arrowLeft" label="Back" onClick={onBack} className="-ml-2 h-9 w-9" size={16} /> : null}
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-[16px] font-bold text-app-ink">{title}</h2>
-        {sub ? <p className="mt-0.5 text-[12.5px] leading-5 text-app-ink-soft">{sub}</p> : null}
+        <h2 className="truncate text-[16px] font-bold text-app-ink">{typeof title === "string" ? tx(title) : title}</h2>
+        {sub ? <p className="mt-0.5 text-[12.5px] leading-5 text-app-ink-soft">{typeof sub === "string" ? tx(sub) : sub}</p> : null}
       </div>
       {onClose ? <IconButton icon="x" label="Close panel" onClick={onClose} className="-mr-2 h-9 w-9" size={16} /> : null}
     </div>
@@ -94,6 +98,7 @@ export function Menu({
   align?: "left" | "right";
   label: string;
 }) {
+  const { tx } = useEditorT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -111,7 +116,7 @@ export function Menu({
     <div ref={ref} className="relative">
       {trigger({ open, toggle: () => setOpen((value) => !value) })}
       {open ? (
-        <div role="menu" aria-label={label} className={cx("absolute top-full z-50 mt-1 min-w-[200px] rounded-[14px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,.16)]", align === "right" ? "right-0" : "left-0")}>
+        <div role="menu" aria-label={tx(label)} className={cx("absolute top-full z-50 mt-1 min-w-[200px] rounded-[14px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,.16)]", align === "right" ? "right-0" : "left-0")}>
           {children(() => setOpen(false))}
         </div>
       ) : null}
@@ -138,11 +143,12 @@ export function MenuItem({ icon, children, onClick, danger = false, disabled = f
 }
 
 export function NavRow({ label, sub, onClick, href }: { label: string; sub?: string; onClick?: () => void; href?: string }) {
+  const { tx } = useEditorT();
   const inner = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-semibold text-app-ink">{label}</span>
-        {sub ? <span className="mt-0.5 block text-[12.5px] leading-5 text-app-ink-soft">{sub}</span> : null}
+        <span className="block text-[14px] font-semibold text-app-ink">{tx(label)}</span>
+        {sub ? <span className="mt-0.5 block text-[12.5px] leading-5 text-app-ink-soft">{tx(sub)}</span> : null}
       </span>
       <Icon name="chevRight" size={15} className="shrink-0 text-app-ink-faint" />
     </>
@@ -156,11 +162,12 @@ export const inputClass = "h-10 w-full min-w-0 rounded-[10px] border border-app-
 export const textareaClass = "w-full min-w-0 rounded-[10px] border border-app-line bg-white px-3 py-2 text-[13.5px] leading-5 text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-[#2F66F6]";
 
 export function FieldShell({ id, label, help, children, inline = false }: { id?: string; label: string; help?: string; children: ReactNode; inline?: boolean }) {
+  const { tx } = useEditorT();
   return (
     <div className={cx("py-2", inline && "flex items-center justify-between gap-3")}>
-      <label htmlFor={id} className={cx("block text-[13px] font-semibold text-app-ink", !inline && "mb-1.5")}>{label}</label>
+      <label htmlFor={id} className={cx("block text-[13px] font-semibold text-app-ink", !inline && "mb-1.5")}>{tx(label)}</label>
       {children}
-      {help ? <p className="mt-1.5 text-[12px] leading-[18px] text-app-ink-soft">{help}</p> : null}
+      {help ? <p className="mt-1.5 text-[12px] leading-[18px] text-app-ink-soft">{tx(help)}</p> : null}
     </div>
   );
 }

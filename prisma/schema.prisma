@@ -2806,6 +2806,19 @@ model AuthThrottle {
 }
 // ---- end auth security ----
 
+// ---- sign-in codes on WhatsApp (docs/migrations/2026-10-21-auth-code-channel.sql) ----
+/// Per phone (hashed): the channel the send route wants for the next sign-in code, and the one the Supabase Send SMS
+/// hook actually used (WhatsApp or the SMS fallback). Short-lived; src/lib/auth/otp-delivery.server.ts.
+model AuthCodeChannel {
+  key       String   @id
+  wanted    String
+  used      String?
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+// ---- end sign-in codes on WhatsApp ----
+
 // ---- shared rate limits (docs/migrations/2026-10-17-followups.sql) ----
 /// One row per limiter key and fixed window: src/lib/rate-limit.ts counts requests here with an atomic upsert so
 /// limits hold across serverless instances. Keys hash the IP/identifier. Expired rows are swept opportunistically.
