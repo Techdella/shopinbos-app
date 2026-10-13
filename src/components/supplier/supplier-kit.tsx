@@ -1,9 +1,12 @@
 import type { ComponentProps } from "react";
 import type { AppPage, Tone } from "@/components/app-kit";
-import type { TFunction } from "@shared/i18n";
+import { intlLocale, type Locale, type TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
 
 /** Any translate function (pages pass `await getT("supplier", "common")`); keys built here use t.dynamic. */
 export type Translate = Pick<TFunction, "dynamic">;
+/** The supplier pages' translate function, for helper components that take it as a prop. */
+export type SupplierT = TFunction<KeysOf<["supplier", "common"]>>;
 
 // Shared bits for the supplier portal pages (2026 app look): frame props, status wording and form field classes.
 
@@ -39,9 +42,9 @@ export function money(amount: number | null | undefined, currency = "NGN") {
   return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
-export function shortDate(value: Date | string | null | undefined, locale = "en-GB") {
+export function shortDate(value: Date | string | null | undefined, locale: Locale = "en") {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : intlLocale(locale), { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
 /** "5 min ago", "Yesterday"… in English, or in the page's language when given its translate function. */

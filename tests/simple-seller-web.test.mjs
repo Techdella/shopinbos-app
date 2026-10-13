@@ -30,7 +30,8 @@ test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold
   // Records and Verify are inside the fold.
   const fold = ownership.slice(ownership.indexOf('<TechFold forWho="the person who set up your domain" className="mt-4">'));
   assert.match(fold.slice(0, fold.indexOf("</TechFold>")), /<RecordList records=\{records\} \/>[\s\S]*>Verify</);
-  assert.match(read("src/components/simple/Fold.tsx"), /Show the technical details \(for \$\{forWho\}\)/);
+  assert.match(read("src/components/simple/Fold.tsx"), /t\("techDetails", \{ forWho \}\)/);
+  assert.match(read("shared/i18n/messages/ui/en.ts"), /techDetails: "Show the technical details \(for \{forWho\}\)"/);
 
   const channels = read("src/app/channels/page.tsx");
   assert.match(channels, /<SetupHelpRequest/);
@@ -143,7 +144,7 @@ test("seller and supplier nav entries use the standard commerce names; routes ar
 
 test("every seller and supplier page header has a labelled Help button that opens the one help panel", () => {
   assert.match(read("src/components/seller/SellerPage.tsx"), /<HelpButton \/>/);
-  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? \(\s*<>\{actions\}<LearnPill role=\{frame\.role\} \/><HelpButton \/><\/>/);
+  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? <>\{actions\}<HelpButton \/><\/>/);
   const help = read("src/components/simple/HelpButton.tsx");
   // The label is "Help" in English, shown in the person's language (shared/i18n "common" catalog).
   assert.match(help, /<Icon name="chat" size=\{16\} \/> \{t\("help"\)\}/);

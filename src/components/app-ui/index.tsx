@@ -8,6 +8,7 @@ import { DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
 
 import { cx } from "./cx";
 import { Mascot as BrandMascot, type MascotProps, type MascotWho } from "@/components/brand/Mascot";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export { cx };
 
@@ -60,7 +61,9 @@ export function Spinner({ className = "" }: { className?: string }) {
   return <span aria-hidden className={cx("inline-block h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-r-transparent", className)} />;
 }
 
-export function BackButton({ onClick, label = "Back" }: { onClick: () => void; label?: string }) {
+export function BackButton({ onClick, label }: { onClick: () => void; label?: string }) {
+  const t = useT("ui");
+  label ??= t("back");
   return (
     <button type="button" onClick={onClick} aria-label={label} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-app-ink shadow-[0_1px_2px_rgba(22,20,31,0.06)] transition hover:bg-app-lilac">
       <Icon name="arrowLeft" size={18} strokeWidth={2.2} />
@@ -104,11 +107,12 @@ export function PhoneInput({
   id?: string;
   autoFocus?: boolean;
 }) {
+  const t = useT("ui");
   return (
     <div className="flex gap-2">
       <div className="relative">
         <select
-          aria-label="Country code"
+          aria-label={t("countryCode")}
           value={country.code}
           onChange={(event) => onCountry(DIAL_COUNTRIES.find((item) => item.code === event.target.value) ?? country)}
           className="absolute inset-0 cursor-pointer opacity-0"
@@ -161,11 +165,12 @@ export type PreviewDevice = "desktop" | "mobile";
 
 /** Computer / phone preview switch: two icon buttons (labelled for screen readers), used by every preview. */
 export function DeviceToggle({ value, onChange, className = "", size = "md" }: { value: PreviewDevice; onChange: (value: PreviewDevice) => void; className?: string; size?: "sm" | "md" }) {
+  const t = useT("ui");
   return (
-    <div role="group" aria-label="Preview size" className={cx("inline-flex shrink-0 gap-1 rounded-full bg-app-canvas p-1", className)}>
+    <div role="group" aria-label={t("previewSize")} className={cx("inline-flex shrink-0 gap-1 rounded-full bg-app-canvas p-1", className)}>
       {(["desktop", "mobile"] as const).map((option) => {
         const on = option === value;
-        const label = option === "desktop" ? "Computer view" : "Phone view";
+        const label = option === "desktop" ? t("computerView") : t("phoneView");
         return (
           <button
             key={option}
@@ -190,6 +195,7 @@ export function DeviceToggle({ value, onChange, className = "", size = "md" }: {
 
 export function CodeInput({ value, onChange, onComplete, disabled }: { value: string; onChange: (value: string) => void; onComplete?: (value: string) => void; disabled?: boolean }) {
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
+  const t = useT("ui");
   const digits = Array.from({ length: OTP_LENGTH }, (_, index) => value[index] ?? "");
 
   useEffect(() => {
@@ -211,7 +217,7 @@ export function CodeInput({ value, onChange, onComplete, disabled }: { value: st
   }
 
   return (
-    <div className="flex justify-between gap-2" role="group" aria-label="Verification code">
+    <div className="flex justify-between gap-2" role="group" aria-label={t("verificationCode")}>
       {digits.map((digit, index) => (
         <input
           key={index}
@@ -222,7 +228,7 @@ export function CodeInput({ value, onChange, onComplete, disabled }: { value: st
           disabled={disabled}
           inputMode="numeric"
           autoComplete={index === 0 ? "one-time-code" : "off"}
-          aria-label={`Digit ${index + 1}`}
+          aria-label={t("digit", { n: index + 1 })}
           maxLength={index === 0 ? OTP_LENGTH : 1}
           onChange={(event) => setAt(index, event.target.value)}
           onKeyDown={(event) => {
@@ -263,8 +269,9 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: bo
 }
 
 export function ProgressBars({ total, current }: { total: number; current: number }) {
+  const t = useT("ui");
   return (
-    <div className="flex flex-1 gap-1.5" aria-label={`Step ${current + 1} of ${total}`}>
+    <div className="flex flex-1 gap-1.5" aria-label={t("stepOf", { n: current + 1, total })}>
       {Array.from({ length: total }, (_, index) => (
         <span key={index} className={cx("h-[5px] flex-1 rounded-full transition", index <= current ? "bg-app-ink" : "bg-app-track")} />
       ))}

@@ -8,26 +8,30 @@ import { RexAICopywriter } from "@/components/marketing/RexAICopywriter";
 import { formatDate, humanize } from "@/components/growth/kit";
 import { naira } from "@shared/onboarding";
 import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Campaigns" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("campaigns.title") };
+}
 
-const FILTERS: Array<{ label: string; status?: CampaignStatus }> = [
-  { label: "All" },
-  { label: "Drafts", status: "draft" },
-  { label: "Scheduled", status: "scheduled" },
-  { label: "Sent", status: "sent" },
-  { label: "Cancelled", status: "cancelled" },
+const FILTERS: Array<{ label: MessageKey<"marketing">; empty: MessageKey<"marketing">; status?: CampaignStatus }> = [
+  { label: "campaigns.filter.all", empty: "campaigns.empty.title" },
+  { label: "campaigns.filter.drafts", empty: "campaigns.empty.drafts", status: "draft" },
+  { label: "campaigns.filter.scheduled", empty: "campaigns.empty.scheduled", status: "scheduled" },
+  { label: "campaigns.filter.sent", empty: "campaigns.empty.sent", status: "sent" },
+  { label: "campaigns.filter.cancelled", empty: "campaigns.empty.cancelled", status: "cancelled" },
 ];
 
-const CHANNEL: Record<string, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
-
-const STATUS: Record<CampaignStatus, { tone: Tone; label: string }> = {
-  draft: { tone: "muted", label: "Draft" },
-  scheduled: { tone: "info", label: "Scheduled" },
-  sending: { tone: "info", label: "Sending" },
-  sent: { tone: "success", label: "Sent" },
-  cancelled: { tone: "warning", label: "Cancelled" },
+const STATUS: Record<CampaignStatus, { tone: Tone; label: MessageKey<"marketing"> }> = {
+  draft: { tone: "muted", label: "campaignStatus.draft" },
+  scheduled: { tone: "info", label: "campaignStatus.scheduled" },
+  sending: { tone: "info", label: "campaignStatus.sending" },
+  sent: { tone: "success", label: "campaignStatus.sent" },
+  cancelled: { tone: "warning", label: "campaignStatus.cancelled" },
 };
 
 function pct(part: number, whole: number) {
@@ -37,6 +41,9 @@ function pct(part: number, whole: number) {
 export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<{ status?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing", "common");
+  const locale = await getLocale();
+  const n = (value: number) => formatNumber(value, locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
   const needsAddress = Boolean(store) && !hasPostalAddress(readBusinessAddress(store?.brandSettings));
   const active = FILTERS.find((filter) => filter.status === params?.status) ?? FILTERS[0];
@@ -66,33 +73,33 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Campaigns"
-      sub="Emails, SMS and WhatsApp messages to your subscribers, buyers or a segment."
+      title={t("campaigns.title")}
+      sub={t("campaigns.sub")}
       actions={
         <>
           <RexAICopywriter storeName={store?.name} />
-          <PillLink href="/home/marketing/templates" icon="mail">Templates</PillLink>
-          <PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp templates</PillLink>
-          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New campaign</PillLink>
+          <PillLink href="/home/marketing/templates" icon="mail">{t("campaigns.templates")}</PillLink>
+          <PillLink href="/home/marketing/whatsapp" icon="whatsapp">{t("hub.tool.whatsappTemplates")}</PillLink>
+          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">{t("hub.newCampaign")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         {needsAddress && (
-          <AssistantNote action={<PillLink href="/home/settings?tab=Store#business-address" size="sm" tone="ink">Add address</PillLink>}>
-            Add your business address before sending email campaigns. Every marketing email shows it in the footer, as anti-spam laws and Gmail and Yahoo require. Order emails still go out without it.
+          <AssistantNote action={<PillLink href="/home/settings?tab=Store#business-address" size="sm" tone="ink">{t("campaigns.addAddress")}</PillLink>}>
+            {t("campaigns.addressNote")}
           </AssistantNote>
         )}
         <StatGrid>
-          <StatTile tone="card" label="Messages sent" value={sent.toLocaleString("en-NG")} />
-          <StatTile tone="card" label="Opened" value={pct(opens, sent)} hint={`${opens.toLocaleString("en-NG")} opens`} />
-          <StatTile tone="card" label="Clicked" value={pct(clicks, opens)} hint="of people who opened" />
-          <StatTile tone="card" label="Sales from email" value={naira(totals?._sum.revenueGenerated ?? 0)} />
+          <StatTile tone="card" label={t("campaigns.stat.sent")} value={n(sent)} />
+          <StatTile tone="card" label={t("campaigns.stat.opened")} value={pct(opens, sent)} hint={t("campaigns.stat.opens", { count: opens })} />
+          <StatTile tone="card" label={t("campaigns.stat.clicked")} value={pct(clicks, opens)} hint={t("campaigns.stat.ofOpened")} />
+          <StatTile tone="card" label={t("campaigns.stat.sales")} value={naira(totals?._sum.revenueGenerated ?? 0)} />
         </StatGrid>
 
         <FilterChips
           items={FILTERS.map((filter) => ({
-            label: filter.label,
+            label: t(filter.label),
             href: filter.status ? `/home/marketing/campaigns?status=${filter.status}` : "/home/marketing/campaigns",
             count: countFor(filter.status),
             active: filter === active,
@@ -108,16 +115,16 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
                 <ListRow key={campaign.id} href={`/home/marketing/campaigns/${campaign.id}`}>
                   <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                     <span className="block truncate text-[15px] font-extrabold">{campaign.name}</span>
-                    <span className="block truncate text-[13px] text-app-ink-soft">{CHANNEL[campaign.channel] ?? "Email"} · {campaign.channel === "email" ? campaign.subject : humanize(campaign.campaignType || "broadcast")}</span>
+                    <span className="block truncate text-[13px] text-app-ink-soft">{campaign.channel === "sms" ? "SMS" : campaign.channel === "whatsapp" ? "WhatsApp" : t("channel.email")} · {campaign.channel === "email" ? campaign.subject : humanize(campaign.campaignType || "broadcast")}</span>
                   </span>
                   <span className="text-[13px] text-app-ink-soft sm:w-[210px]">
-                    {campaign.sentCount.toLocaleString("en-NG")} sent{campaign.channel === "email" ? ` · ${campaign.openCount.toLocaleString("en-NG")} opened · ${campaign.clickCount.toLocaleString("en-NG")} clicked` : ` · ${campaign.deliveredCount.toLocaleString("en-NG")} delivered${campaign.channel === "whatsapp" ? ` · ${campaign.openCount.toLocaleString("en-NG")} read` : ""}`}
+                    {t("hub.sentCount", { count: campaign.sentCount })}{campaign.channel === "email" ? ` · ${t("campaigns.row.opened", { count: campaign.openCount })} · ${t("campaigns.row.clicked", { count: campaign.clickCount })}` : ` · ${t("campaigns.row.delivered", { count: campaign.deliveredCount })}${campaign.channel === "whatsapp" ? ` · ${t("campaigns.row.read", { count: campaign.openCount })}` : ""}`}
                   </span>
                   <span className="text-[13px] text-app-ink-soft sm:w-[120px]">
-                    {campaign.scheduledAt ? formatDate(campaign.scheduledAt) : campaign.sentAt ? formatDate(campaign.sentAt) : `Made ${formatDate(campaign.createdAt)}`}
+                    {campaign.scheduledAt ? formatDate(campaign.scheduledAt, false, locale) : campaign.sentAt ? formatDate(campaign.sentAt, false, locale) : t("campaigns.row.made", { date: formatDate(campaign.createdAt, false, locale) })}
                   </span>
-                  <Pill tone={status.tone}>{status.label}</Pill>
-                  <span className="text-[13px] font-extrabold text-app-accent-ink">{editable ? "Edit" : "View"}</span>
+                  <Pill tone={status.tone}>{t(status.label)}</Pill>
+                  <span className="text-[13px] font-extrabold text-app-accent-ink">{editable ? t("edit") : t("view")}</span>
                 </ListRow>
               );
             })}
@@ -125,10 +132,10 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
         ) : (
           <EmptyState
             icon="send"
-            title={active.status ? `No ${active.label.toLowerCase()} campaigns` : "No campaigns yet"}
-            action={<PillLink href="/home/marketing/campaigns/new" tone="ink" icon="plus">New campaign</PillLink>}
+            title={t(active.empty)}
+            action={<PillLink href="/home/marketing/campaigns/new" tone="ink" icon="plus">{t("hub.newCampaign")}</PillLink>}
           >
-            Write one message and send it by email, SMS or WhatsApp to a segment, your subscribers or everyone who bought from you.
+            {t("campaigns.empty.body")}
           </EmptyState>
         )}
       </div>

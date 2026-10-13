@@ -299,9 +299,12 @@ test("help-video catalogue: model, idempotent migration with RLS and drafts, adm
 
 test("Help offers 'Watch a 1-minute video' on web and mobile, and hides it when there's none", () => {
   const web = read("src/components/help/HelpVideos.tsx");
-  assert.match(web, /Watch a 1-minute video/);
+  const helpEn = read("shared/i18n/messages/help/en.ts");
+  assert.match(web, /t\("watchVideo"\)/);
+  assert.match(helpEn, /watchVideo: "Watch a 1-minute video"/);
   assert.match(web, /if \(!current && all\.length === 0\) return null/);
-  assert.match(web, /All videos/);
+  assert.match(web, /t\("allVideos", \{ count: all\.length \}\)/);
+  assert.match(helpEn, /allVideos: "All videos \(\{count\}\)"/);
   assert.match(web, /<video /);
   assert.match(web, /<iframe/);
   assert.match(read("src/components/shell/SupportChatModal.tsx"), /<HelpVideosSection role=\{role\} \/>/);

@@ -6,24 +6,27 @@ import { Card, Field, Label, Mascot, Notice, PillButton, Segmented, T, Toggle } 
 import { fetchAutomation, saveAutomation, type ChatbotSettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
 // Peggy chatbot (web /home/inbox/chatbot): Peggy answers shoppers in the store's chat bubble. The app covers the
 // switch, her name, greeting, tone, when she answers and what she may use; FAQs and hand-off words are on the web.
 
-const SOURCES: Array<{ key: keyof ChatbotSettings["sources"]; label: string }> = [
-  { key: "products", label: "Products and prices" },
-  { key: "delivery", label: "Delivery areas and fees" },
-  { key: "policies", label: "Your policies" },
-  { key: "faqs", label: "Your FAQs" },
+// Labels are m_chats keys.
+const SOURCES: Array<{ key: keyof ChatbotSettings["sources"]; label: "bot.source.products" | "bot.source.delivery" | "bot.source.policies" | "bot.source.faqs" }> = [
+  { key: "products", label: "bot.source.products" },
+  { key: "delivery", label: "bot.source.delivery" },
+  { key: "policies", label: "bot.source.policies" },
+  { key: "faqs", label: "bot.source.faqs" },
 ];
 
 export default function Chatbot() {
+  const t = useT("m_chats");
   const loaded = useLoad(fetchAutomation);
   if (!loaded.data) {
     return (
-      <Screen title="Peggy chatbot" refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title={t("auto.chatbot")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
         {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
@@ -33,6 +36,7 @@ export default function Chatbot() {
 }
 
 function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomation; refreshing: boolean; onRefresh: () => void }) {
+  const t = useT("m_chats", "m_ui", "common");
   const [bot, setBot] = useState<ChatbotSettings>(initial.chatbot);
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -44,9 +48,9 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
     try {
       const saved = await saveAutomation({ chatbot: bot });
       setBot(saved.chatbot);
-      setNote({ tone: "success", text: bot.enabled ? `Saved. ${bot.name} is answering on your shop.` : "Saved. Peggy won't answer shoppers for now." });
+      setNote({ tone: "success", text: bot.enabled ? t("bot.savedOn", { name: bot.name }) : t("bot.savedOff") });
     } catch (saveError) {
-      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again." });
+      setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : t("saveFailed") });
     } finally {
       setSaving(false);
     }
@@ -54,47 +58,47 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
 
   return (
     <Screen
-      title="Peggy chatbot"
-      sub="Answers shoppers on your store's chat, day and night, and hands over to you when they ask for a person."
+      title={t("auto.chatbot")}
+      sub={t("bot.sub")}
       refreshing={refreshing}
       onRefresh={onRefresh}
-      footer={<PillButton title="Save" busy={saving} disabled={!ready} onPress={() => void save()} />}
+      footer={<PillButton title={t("save")} busy={saving} disabled={!ready} onPress={() => void save()} />}
     >
-      {!ready ? <Notice tone="info">Peggy can&apos;t answer shoppers on your shop yet. Tap Help and we&apos;ll switch it on for you.</Notice> : null}
+      {!ready ? <Notice tone="info">{t("bot.notReady")}</Notice> : null}
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Mascot name="peggy" size={48} />
         <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>{bot.enabled ? `${bot.name} is answering` : "Peggy isn't answering"}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14 }}>{bot.when === "always" ? "Answers every chat" : "Answers outside your opening hours"}</T>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{bot.enabled ? t("bot.answering", { name: bot.name }) : t("bot.notAnswering")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }}>{bot.when === "always" ? t("bot.always") : t("bot.outside")}</T>
         </View>
-        <Toggle on={bot.enabled} onChange={(on) => setBot({ ...bot, enabled: on })} label="Chatbot on" />
+        <Toggle on={bot.enabled} onChange={(on) => setBot({ ...bot, enabled: on })} label={t("bot.on")} />
       </Card>
 
       <Card style={{ gap: 8 }}>
-        <Label>Name</Label>
+        <Label>{t("bot.name")}</Label>
         <Field value={bot.name} onChangeText={(name) => setBot({ ...bot, name })} maxLength={40} />
-        <Label>Greeting</Label>
+        <Label>{t("bot.greeting")}</Label>
         <Field value={bot.greeting} onChangeText={(greeting) => setBot({ ...bot, greeting })} maxLength={300} multiline style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
         <VoiceInput value={bot.greeting} onChange={(greeting) => setBot({ ...bot, greeting })} maxLength={300} mode="replace" context="a greeting for customers" style={{ marginTop: 8 }} />
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <Label>Tone</Label>
+        <Label>{t("bot.tone")}</Label>
         <Segmented
           options={[
-            { value: "friendly", label: "Friendly" },
-            { value: "professional", label: "Formal" },
-            { value: "playful", label: "Playful" },
+            { value: "friendly", label: t("bot.tone.friendly") },
+            { value: "professional", label: t("bot.tone.professional") },
+            { value: "playful", label: t("bot.tone.playful") },
           ]}
           value={bot.tone}
           onChange={(tone) => setBot({ ...bot, tone })}
         />
-        <Label>When she answers</Label>
+        <Label>{t("bot.when")}</Label>
         <Segmented
           options={[
-            { value: "always", label: "Always" },
-            { value: "outside_hours", label: "When closed" },
+            { value: "always", label: t("bot.when.always") },
+            { value: "outside_hours", label: t("bot.when.closed") },
           ]}
           value={bot.when}
           onChange={(when) => setBot({ ...bot, when })}
@@ -102,17 +106,17 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
       </Card>
 
       <Card style={{ paddingVertical: 2 }}>
-        <T weight="bold" style={{ fontSize: 14, paddingTop: 14 }}>What she can use to answer</T>
+        <T weight="bold" style={{ fontSize: 14, paddingTop: 14 }}>{t("bot.sources")}</T>
         {SOURCES.map((source) => (
           <View key={source.key} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line, marginTop: source.key === "products" ? 10 : 0 }}>
-            <T weight="semibold" style={{ flex: 1, fontSize: 15 }}>{source.label}</T>
-            <Toggle on={bot.sources[source.key]} onChange={(on) => setBot({ ...bot, sources: { ...bot.sources, [source.key]: on } })} label={source.label} />
+            <T weight="semibold" style={{ flex: 1, fontSize: 15 }}>{t(source.label)}</T>
+            <Toggle on={bot.sources[source.key]} onChange={(on) => setBot({ ...bot, sources: { ...bot.sources, [source.key]: on } })} label={t(source.label)} />
           </View>
         ))}
       </Card>
 
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="doc" label={`Questions and answers${bot.faqs.length ? ` (${bot.faqs.length})` : ""}`} hint="Change them and try Peggy out in your browser" onPress={() => void openWeb("/home/inbox/chatbot")} />
+        <LinkRow first icon="doc" label={bot.faqs.length ? t("bot.faqsCount", { count: bot.faqs.length }) : t("bot.faqs")} hint={t("bot.faqsHint")} onPress={() => void openWeb("/home/inbox/chatbot")} />
       </Card>
     </Screen>
   );

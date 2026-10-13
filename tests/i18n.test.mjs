@@ -80,7 +80,9 @@ test("each translation file is marked for native-speaker review and the namespac
       assert.match(source, /Partial<Record<keyof typeof en, string>>/, `${namespace}/${locale} is typed from English`);
     }
   }
-  assert.deepEqual([...NAMESPACES].sort(), ["common", "glossary", "intros", "learn", "nav", "settings"]);
+  // The core namespaces, plus one folder per translated area (phase 2 adds more, e.g. the phone's partner apps).
+  for (const core of ["common", "glossary", "intros", "learn", "nav", "settings"]) assert.ok(NAMESPACES.includes(core), core);
+  for (const area of ["m_supplier", "m_partner", "m_rider"]) assert.ok(NAMESPACES.includes(area), area);
 });
 
 test("Yorùbá, Hausa and Igbo use their proper letters", () => {

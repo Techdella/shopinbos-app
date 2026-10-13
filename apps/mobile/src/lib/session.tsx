@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { signOutWasRequested } from "./auth";
 import { clearLaunchCache } from "./launch";
 import { supabase } from "./supabase";
+import { tNow } from "./app-locale";
 
 interface SessionState {
   session: Session | null;
@@ -39,7 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         hadSession.current = false;
         setState({ session: null, loading: false, expired });
         if (expired) {
-          Alert.alert("You've been logged out", "Your session has ended. Log in again to carry on.");
+          Alert.alert(tNow("m_auth")("session.endedTitle"), tNow("m_auth")("session.endedBody"));
           setTimeout(() => {
             try {
               router.replace("/login");

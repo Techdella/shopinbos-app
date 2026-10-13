@@ -7,9 +7,13 @@ import { slugify } from "@/lib/workspace";
 import intentRouting from "@/lib/intent-routing";
 import { getSellerOnboardingStatus } from "@/lib/onboarding-status";
 import { SellerOnboarding } from "@/components/onboarding/seller/SellerOnboarding";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Set up your shop" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("onboarding");
+  return { title: t("seller.metaTitle") };
+}
 
 // Seller onboarding (2026 redesign), two steps: what you sell, then name and look. The rest of setup lives on
 // Start here (/home/start).

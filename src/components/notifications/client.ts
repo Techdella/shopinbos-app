@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { NotifyCategory } from "@shared/notifications";
+import { formatDate, type Locale, type TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
 
 // The bell's data on the web: the feed (GET /api/notifications), marking read, and one shared unread count that
 // the bell, the drawer and the notifications page all keep in step. Live updates poll every 45 seconds while the
@@ -110,4 +112,28 @@ export function useLiveRefresh(tick: () => void, enabled = true) {
       navigator.serviceWorker?.removeEventListener("message", onMessage);
     };
   }, [enabled]);
+}
+
+// ─── In the person's language ("notifications" catalog) ──────────────────────
+
+export type NotificationsT = TFunction<KeysOf<["notifications", "common"]>>;
+
+/** shared/notifications categoryLabel, translated (delivery partners say "Jobs", admins "Needs review"). */
+export function categoryName(category: NotifyCategory, role: string | null | undefined, t: NotificationsT) {
+  if (category === "orders" && role === "logistics_partner") return t("category.orders.logistics");
+  if (category === "account" && role === "admin") return t("category.account.admin");
+  return t.dynamic(`category.${category}`, t("settings.updates"));
+}
+
+/** shared/notifications timeAgo, translated. */
+export function localTimeAgo(value: string | Date, locale: Locale, t: NotificationsT, now = new Date()) {
+  const minutes = Math.floor((now.getTime() - new Date(value).getTime()) / 60000);
+  if (minutes < 1) return t("time.justNow");
+  if (minutes < 60) return t("time.minutesAgo", { count: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t("time.hoursAgo", { count: hours });
+  const days = Math.floor(hours / 24);
+  if (days === 1) return t("time.yesterday");
+  if (days < 7) return t("time.daysAgo", { count: days });
+  return formatDate(value, locale, { day: "numeric", month: "short" });
 }

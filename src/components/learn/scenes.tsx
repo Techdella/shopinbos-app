@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { IntroScene, SceneArt } from "@shared/feature-intros";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The motion-graphics kit for the 60-second feature intros: one small inline-SVG illustration per scene art
 // (shared/feature-intros.ts SCENE_ARTS), animated with CSS keyframes (INTRO_CSS). Every element's resting style is
@@ -156,6 +157,7 @@ function rand(seed: number) {
 // ─── The scenes ───
 
 function PhoneStore({ scene, paused, still }: SceneProps) {
+  const t = useT("ui");
   const chips = scene.chips ?? [];
   return (
     <g>
@@ -184,7 +186,7 @@ function PhoneStore({ scene, paused, still }: SceneProps) {
       {scene.value && (
         <g {...a("pop", 2.6)}>
           <rect x={232} y={150} width={106} height={42} rx={14} fill={C.cream} />
-          <text x={246} y={166} fill={C.teal} fontSize={9} fontWeight={700} fontFamily={MONO}>PAID</text>
+          <text x={246} y={166} fill={C.teal} fontSize={9} fontWeight={700} fontFamily={MONO}>{t("scene.paid")}</text>
           <Counter value={scene.value} x={246} y={184} size={15} delayMs={2900} paused={paused} still={still} color={C.navy} />
         </g>
       )}
@@ -343,6 +345,7 @@ function MoneyFlow({ scene, paused, still }: SceneProps) {
 }
 
 function StoreCard({ scene }: SceneProps) {
+  const t = useT("ui");
   const name = scene.label ?? "Your shop";
   return (
     <g>
@@ -354,7 +357,7 @@ function StoreCard({ scene }: SceneProps) {
         <text x={76} y={37} fill={C.navy} fontSize={11.5} fontWeight={800} fontFamily={FONT}>{name.slice(0, 28)}</text>
       </g>
       <rect {...a("growx", 0.6)} x={56} y={58} width={248} height={40} rx={10} fill={C.teal} />
-      <text {...a("fade", 1)} x={70} y={83} fill={C.cream} fontSize={12} fontWeight={800} fontFamily={FONT}>New in · Shop now</text>
+      <text {...a("fade", 1)} x={70} y={83} fill={C.cream} fontSize={12} fontWeight={800} fontFamily={FONT}>{t("scene.newIn")}</text>
       {[0, 1, 2].map((i) => (
         <g key={i} {...a("pop", 1.2 + i * 0.3)}>
           <rect x={56 + i * 84} y={108} width={76} height={80} rx={10} fill="#FFFFFF" stroke="#E8E2D5" />
@@ -372,6 +375,7 @@ function StoreCard({ scene }: SceneProps) {
 }
 
 function ProductStock({ scene, paused, still }: SceneProps) {
+  const t = useT("ui");
   const chips = scene.chips ?? [];
   const value = scene.value ?? "12";
   const target = Number(value.replace(/\D/g, "")) || 12;
@@ -393,10 +397,10 @@ function ProductStock({ scene, paused, still }: SceneProps) {
       {!chips.length && <rect {...a("growx", 1)} x={74} y={152} width={110} height={8} rx={4} fill="#E8E2D5" />}
       <g {...a("pop", 1.4)}>
         <rect x={226} y={50} width={100} height={80} rx={16} fill={C.panel} stroke={C.line} />
-        <text x={276} y={74} fill={C.mintSoft} fontSize={9.5} fontFamily={MONO} textAnchor="middle">IN STOCK</text>
+        <text x={276} y={74} fill={C.mintSoft} fontSize={9.5} fontFamily={MONO} textAnchor="middle">{t("scene.inStock")}</text>
         <Counter value={String(target)} from={target + 9} x={276} y={114} size={34} delayMs={1800} paused={paused} still={still} anchor="middle" color={target <= 3 ? C.amber : C.cream} />
       </g>
-      {target <= 5 ? <Chip x={276} y={156} text="Low stock" fill={C.amber} color={C.navy} delay={3} kind="pop" /> : <Chip x={276} y={156} text="Updated" fill={C.mint} color={C.navy} delay={3} kind="pop" />}
+      {target <= 5 ? <Chip x={276} y={156} text={t("scene.lowStock")} fill={C.amber} color={C.navy} delay={3} kind="pop" /> : <Chip x={276} y={156} text={t("scene.updated")} fill={C.mint} color={C.navy} delay={3} kind="pop" />}
     </g>
   );
 }
@@ -432,6 +436,7 @@ function BikeRoute({ scene }: SceneProps) {
 }
 
 function DomainType({ scene, paused, still }: SceneProps) {
+  const t = useT("ui");
   const domain = scene.label ?? "yourshop.com";
   const typingDone = 1200 + domain.length * 85;
   return (
@@ -450,19 +455,20 @@ function DomainType({ scene, paused, still }: SceneProps) {
         <rect x={50} y={82} width={260} height={40} rx={10} fill={C.teal} />
         {[0, 1, 2, 3].map((i) => <rect key={i} x={50 + i * 67} y={132} width={58} height={52} rx={8} fill={[C.mintSoft, "#E8E2D5", C.mintSoft, "#E8E2D5"][i]} />)}
       </g>
-      <Chip x={268} y={102} text="Secure ✓" fill={C.mint} color={C.navy} delay={typingDone / 1000 + 0.8} kind="pop" />
+      <Chip x={268} y={102} text={t("scene.secure")} fill={C.mint} color={C.navy} delay={typingDone / 1000 + 0.8} kind="pop" />
     </g>
   );
 }
 
 function SupplierShip({ scene }: SceneProps) {
+  const t = useT("ui");
   return (
     <g>
       <g {...a("pop", 0.2)}>
         <path d="M30 100 L80 70 L130 100 V170 H30 Z" fill={C.panel} stroke={C.line} strokeWidth={2} />
         <rect x={60} y={124} width={40} height={46} rx={4} fill={C.deep} />
         {[0, 1, 2].map((i) => <line key={i} x1={62} y1={132 + i * 12} x2={98} y2={132 + i * 12} stroke={C.line} strokeWidth={2} />)}
-        <text x={80} y={192} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">SUPPLIER</text>
+        <text x={80} y={192} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">{t("scene.supplier")}</text>
       </g>
       <line {...a("draw", 0.6)} pathLength={1} x1={136} y1={150} x2={236} y2={150} stroke={C.mint} strokeWidth={3} strokeDasharray="1" strokeLinecap="round" />
       <g transform="translate(140 132)">
@@ -475,7 +481,7 @@ function SupplierShip({ scene }: SceneProps) {
         <path d="M250 112 L290 82 L330 112 V170 H250 Z" fill={C.cream} />
         <rect x={280} y={134} width={20} height={36} rx={3} fill={C.teal} />
         <circle cx={295} cy={152} r={2} fill={C.cream} />
-        <text x={290} y={192} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">CUSTOMER</text>
+        <text x={290} y={192} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">{t("scene.customer")}</text>
       </g>
       <g {...a("pop", 3)}>
         <circle cx={318} cy={88} r={12} fill={C.mint} />
@@ -487,6 +493,7 @@ function SupplierShip({ scene }: SceneProps) {
 }
 
 function FlowNodes({ scene }: SceneProps) {
+  const t = useT("ui");
   const steps = (scene.chips?.length ? scene.chips : ["When", "Wait", "Send"]).slice(0, 3);
   const x = (i: number) => 28 + i * 112;
   return (
@@ -507,12 +514,13 @@ function FlowNodes({ scene }: SceneProps) {
         </g>
       ))}
       <circle className="fi-ring" style={{ animationDelay: "3.6s" }} cx={x(steps.length - 1) + 48} cy={110} r={30} fill="none" stroke={C.mint} strokeWidth={2} />
-      <text {...a("fade", 4)} x={180} y={176} fill={C.mintSoft} fontSize={10.5} fontFamily={MONO} textAnchor="middle">RUNS BY ITSELF · 24/7</text>
+      <text {...a("fade", 4)} x={180} y={176} fill={C.mintSoft} fontSize={10.5} fontFamily={MONO} textAnchor="middle">{t("scene.runsItself")}</text>
     </g>
   );
 }
 
 function CartRemind({ scene }: SceneProps) {
+  const t = useT("ui");
   const paid = /paid/i.test(scene.label ?? "");
   return (
     <g>
@@ -531,8 +539,8 @@ function CartRemind({ scene }: SceneProps) {
       <g {...a("pop", 2.6)}>
         <rect x={196} y={104} width={142} height={44} rx={14} fill={C.cream} />
         <path d="M212 118 a8 8 0 0 1 16 0 v8 l3 4 h-22 l3 -4 Z" fill={C.amber} />
-        <text x={238} y={124} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT}>Still want it?</text>
-        <text x={238} y={138} fill={C.teal} fontSize={9.5} fontWeight={700} fontFamily={FONT}>Tap to finish</text>
+        <text x={238} y={124} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT}>{t("scene.stillWant")}</text>
+        <text x={238} y={138} fill={C.teal} fontSize={9.5} fontWeight={700} fontFamily={FONT}>{t("scene.tapToFinish")}</text>
       </g>
       <g {...a("pop", 4)}>
         <circle cx={300} cy={178} r={16} fill={C.mint} />
@@ -596,18 +604,19 @@ function LinkShare({ scene }: SceneProps) {
 }
 
 function QuoteTags({ scene }: SceneProps) {
+  const t = useT("ui");
   const prices = scene.chips?.length ? scene.chips.slice(0, 3) : ["₦1,100", "₦950", "₦900"];
   return (
     <g>
       <g {...a("pop", 0.1)}>
         <circle cx={56} cy={100} r={30} fill={C.panel} stroke={C.line} strokeWidth={2} />
         <path d="M40 92 h32 l-3 20 h-26 Z" fill={C.mint} />
-        <text x={56} y={152} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">SHOP</text>
+        <text x={56} y={152} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">{t("scene.shop")}</text>
       </g>
       <g {...a("pop", 0.3)}>
         <circle cx={304} cy={100} r={30} fill={C.panel} stroke={C.line} strokeWidth={2} />
         <rect x={290} y={88} width={28} height={24} rx={3} fill={C.amber} />
-        <text x={304} y={152} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">SUPPLIER</text>
+        <text x={304} y={152} fill={C.mintSoft} fontSize={10} fontFamily={MONO} textAnchor="middle">{t("scene.supplier")}</text>
       </g>
       {prices.map((price, i) => {
         const fromRight = i % 2 === 0;
@@ -622,12 +631,13 @@ function QuoteTags({ scene }: SceneProps) {
           </g>
         );
       })}
-      <Chip x={180} y={200} text="Deal ✓" fill={C.mint} color={C.navy} delay={0.9 + prices.length * 1.1} kind="pop" />
+      <Chip x={180} y={200} text={t("scene.deal")} fill={C.mint} color={C.navy} delay={0.9 + prices.length * 1.1} kind="pop" />
     </g>
   );
 }
 
 function CashCollect({ scene, paused, still }: SceneProps) {
+  const t = useT("ui");
   return (
     <g>
       <g {...a("pop", 0.1)}>
@@ -655,7 +665,7 @@ function CashCollect({ scene, paused, still }: SceneProps) {
       {scene.value && (
         <g {...a("rise", 1.4)}>
           <Counter value={scene.value} x={160} y={52} size={22} delayMs={1600} paused={paused} still={still} anchor="middle" />
-          <text x={160} y={70} fill={C.mintSoft} fontSize={9.5} fontFamily={MONO} textAnchor="middle">CASH AT THE DOOR</text>
+          <text x={160} y={70} fill={C.mintSoft} fontSize={9.5} fontFamily={MONO} textAnchor="middle">{t("scene.cashAtDoor")}</text>
         </g>
       )}
       {scene.label && <Chip x={252} y={196} text={scene.label} fill={C.cream} color={C.navy} delay={3} />}

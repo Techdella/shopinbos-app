@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Mascot, Notice, cx } from "@/components/app-ui";
-import { MAX_ATTACHMENTS, STATUS_LABEL, attachmentProblem, formatTicketNumber } from "@/lib/support/pure";
-import { formatBytes, supportFetch, timeLabel, type ChatMessage, type ChatTicket } from "./client";
+import { MAX_ATTACHMENTS, formatTicketNumber } from "@/lib/support/pure";
+import { attachmentProblemKey, formatBytes, localTimeLabel, supportErrorText, supportFetch, type ChatMessage, type ChatTicket, type SupportT } from "./client";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
 
 // One support conversation inside the in-app help panel: the thread (team replies polled while open),
 // the reply box with files, and the satisfaction rating once it's solved.
@@ -20,6 +21,8 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const count = ticket.messages.length;
+  const t = useT("support", "common");
+  const locale = useLocale();
 
   useEffect(() => setTicket(initial), [initial]);
 
@@ -52,9 +55,9 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
     setError(null);
     const next = [...files];
     for (const file of Array.from(picked ?? [])) {
-      const problem = attachmentProblem(file);
-      if (problem) return setError(problem);
-      if (next.length >= MAX_ATTACHMENTS) return setError(`Attach up to ${MAX_ATTACHMENTS} files.`);
+      const problem = attachmentProblemKey(file);
+      if (problem) return setError(t(problem));
+      if (next.length >= MAX_ATTACHMENTS) return setError(t("attachUpTo", { count: MAX_ATTACHMENTS }));
       next.push(file);
     }
     setFiles(next);
@@ -74,7 +77,7 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
       setText("");
       setFiles([]);
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "We couldn't send that. Try again.");
+      setError(supportErrorText(problem, t));
     } finally {
       setBusy(false);
     }
@@ -87,22 +90,22 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4" aria-live="polite" aria-relevant="additions">
         <p className="m-0 mb-4 text-center text-[12px] text-app-ink-faint">
-          {formatTicketNumber(ticket.number)} · started {timeLabel(ticket.createdAt)}
+          {t("thread.started", { ticket: formatTicketNumber(ticket.number), time: localTimeLabel(ticket.createdAt, locale, t) })}
         </p>
         {ticket.messages.map((message) => (
-          <Bubble key={message.id} message={message} />
+          <Bubble key={message.id} message={message} t={t} />
         ))}
         {!ticket.answered && !solved && (
           <div className="mx-auto mt-2 max-w-[300px] rounded-[14px] bg-app-mint px-3.5 py-2.5 text-center text-[12.5px] leading-[1.45] text-app-forest">
-            A person from the team usually replies within an hour. We&apos;ll email you too, so you can close this.
+            {t("thread.usuallyReplies")}
           </div>
         )}
-        {solved && <Rating ticket={ticket} onRated={(next) => { setTicket(next); onChange?.(next); }} />}
+        {solved && <Rating ticket={ticket} t={t} onRated={(next) => { setTicket(next); onChange?.(next); }} />}
         <div ref={endRef} />
       </div>
 
       {closed ? (
-        <div className="border-t border-app-line px-4 py-4 text-center text-[13px] text-app-ink-soft">This conversation is closed. Start a new one and we&apos;ll pick it up.</div>
+        <div className="border-t border-app-line px-4 py-4 text-center text-[13px] text-app-ink-soft">{t("thread.closed")}</div>
       ) : (
         <div className="border-t border-app-line px-3 pb-3 pt-2.5">
           {error && <div className="mb-2"><Notice>{error}</Notice></div>}
@@ -112,7 +115,7 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
                 <li key={`${file.name}-${index}`} className="flex max-w-full items-center gap-1.5 rounded-full bg-app-canvas py-1 pl-3 pr-1 text-[12px]">
                   <span className="truncate">{file.name}</span>
                   <span className="text-app-ink-faint">{formatBytes(file.size)}</span>
-                  <button type="button" aria-label={`Remove ${file.name}`} onClick={() => setFiles(files.filter((_, i) => i !== index))} className="grid h-6 w-6 place-items-center rounded-full hover:bg-white">
+                  <button type="button" aria-label={t("removeFile", { name: file.name })} onClick={() => setFiles(files.filter((_, i) => i !== index))} className="grid h-6 w-6 place-items-center rounded-full hover:bg-white">
                     <Icon name="x" size={11} />
                   </button>
                 </li>
@@ -120,12 +123,12 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
             </ul>
           )}
           <div className="flex items-end gap-2">
-            <label className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-ink focus-within:ring-2 focus-within:ring-app-ink/30" title="Attach a screenshot or PDF">
+            <label className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-ink focus-within:ring-2 focus-within:ring-app-ink/30" title={t("thread.attachTitle")}>
               <Icon name="paperclip" size={17} />
-              <span className="sr-only">Attach a file</span>
+              <span className="sr-only">{t("thread.attachFile")}</span>
               <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" className="sr-only" onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} />
             </label>
-            <label className="sr-only" htmlFor={`support-reply-${ticket.number}`}>Reply</label>
+            <label className="sr-only" htmlFor={`support-reply-${ticket.number}`}>{t("thread.reply")}</label>
             <textarea
               id={`support-reply-${ticket.number}`}
               value={text}
@@ -138,7 +141,7 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
               }}
               rows={1}
               maxLength={5000}
-              placeholder={solved ? "Reply to reopen this conversation" : "Write a reply…"}
+              placeholder={solved ? t("thread.replyToReopen") : t("thread.writeReply")}
               className="max-h-[140px] min-h-[44px] flex-1 resize-none rounded-[18px] border border-app-line bg-white px-3.5 py-2.5 text-[15px] leading-[1.4] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
             />
             <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={5000} context="a message to the support team" />
@@ -146,7 +149,7 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
               type="button"
               onClick={() => void send()}
               disabled={busy || (!text.trim() && !files.length)}
-              aria-label="Send"
+              aria-label={t("thread.send")}
               className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-ink text-white transition hover:bg-black disabled:opacity-40"
             >
               {busy ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" /> : <Icon name="send" size={16} />}
@@ -158,7 +161,8 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
   );
 }
 
-function Bubble({ message }: { message: ChatMessage }) {
+function Bubble({ message, t }: { message: ChatMessage; t: SupportT }) {
+  const locale = useLocale();
   if (message.authorType === "system") {
     return <p className="my-3 text-center text-[12px] text-app-ink-faint">{message.body}</p>;
   }
@@ -173,7 +177,7 @@ function Bubble({ message }: { message: ChatMessage }) {
       <div className={cx("flex max-w-[80%] flex-col", mine ? "items-end" : "items-start")}>
         {!mine && (
           <span className="mb-1 text-[11.5px] font-bold text-app-ink-soft">
-            {message.authorType === "ai" ? "Peggy" : `${(message.authorName ?? "Shopinbos").split(" ")[0]} · Shopinbos team`}
+            {message.authorType === "ai" ? "Peggy" : t("thread.teamMember", { name: (message.authorName ?? "Shopinbos").split(" ")[0] })}
           </span>
         )}
         {message.body && (
@@ -195,15 +199,15 @@ function Bubble({ message }: { message: ChatMessage }) {
           </a>
         ))}
         <span className="mt-1 text-[11px] text-app-ink-faint">
-          {timeLabel(message.createdAt)}
-          {message.channel === "email" ? " · by email" : ""}
+          {localTimeLabel(message.createdAt, locale, t)}
+          {message.channel === "email" ? t("thread.byEmail") : ""}
         </span>
       </div>
     </div>
   );
 }
 
-function Rating({ ticket, onRated }: { ticket: ChatTicket; onRated: (ticket: ChatTicket) => void }) {
+function Rating({ ticket, t, onRated }: { ticket: ChatTicket; t: SupportT; onRated: (ticket: ChatTicket) => void }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
@@ -212,7 +216,7 @@ function Rating({ ticket, onRated }: { ticket: ChatTicket; onRated: (ticket: Cha
   if (ticket.rating) {
     return (
       <div className="mx-auto mt-3 max-w-[300px] rounded-[14px] bg-app-canvas px-3.5 py-3 text-center text-[13px] text-app-ink-soft">
-        {STATUS_LABEL[ticket.status]}. You rated the help {ticket.rating}/5. Thank you.
+        {t("rating.done", { status: t(`status.${ticket.status}` as const), rating: ticket.rating })}
       </div>
     );
   }
@@ -224,7 +228,7 @@ function Rating({ ticket, onRated }: { ticket: ChatTicket; onRated: (ticket: Cha
     try {
       onRated(await supportFetch<ChatTicket>(`/api/support/tickets/${ticket.number}/rating`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating, comment: comment.trim() || undefined }) }));
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "We couldn't save that.");
+      setError(problem instanceof Error && problem.message ? supportErrorText(problem, t) : t("rating.couldntSave"));
     } finally {
       setBusy(false);
     }
@@ -232,15 +236,15 @@ function Rating({ ticket, onRated }: { ticket: ChatTicket; onRated: (ticket: Cha
 
   return (
     <div className="mt-3 rounded-[18px] border border-app-line bg-white p-4">
-      <p className="m-0 text-[14px] font-extrabold">Marked as solved. How did we do?</p>
-      <div role="radiogroup" aria-label="Rate the help you got" className="mt-2.5 flex gap-1">
+      <p className="m-0 text-[14px] font-extrabold">{t("rating.ask")}</p>
+      <div role="radiogroup" aria-label={t("rating.group")} className="mt-2.5 flex gap-1">
         {[1, 2, 3, 4, 5].map((value) => (
           <button
             key={value}
             type="button"
             role="radio"
             aria-checked={rating === value}
-            aria-label={`${value} out of 5`}
+            aria-label={t("rating.outOf", { value })}
             onClick={() => setRating(value)}
             className={cx("grid h-10 w-10 place-items-center rounded-full transition", value <= rating ? "text-[#F2A93B]" : "text-app-line-strong hover:text-app-ink-faint")}
           >
@@ -250,23 +254,23 @@ function Rating({ ticket, onRated }: { ticket: ChatTicket; onRated: (ticket: Cha
       </div>
       {rating > 0 && (
         <>
-          <label htmlFor={`support-rate-${ticket.number}`} className="sr-only">Anything to add?</label>
+          <label htmlFor={`support-rate-${ticket.number}`} className="sr-only">{t("rating.addLabel")}</label>
           <textarea
             id={`support-rate-${ticket.number}`}
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             rows={2}
             maxLength={1000}
-            placeholder={rating >= 4 ? "Anything we did especially well? (optional)" : "What could we have done better? (optional)"}
+            placeholder={rating >= 4 ? t("rating.wellPlaceholder") : t("rating.betterPlaceholder")}
             className="mt-2 w-full resize-none rounded-[14px] border border-app-line px-3 py-2 text-[14px] outline-none focus:border-app-ink"
           />
           {error && <div className="mt-2"><Notice>{error}</Notice></div>}
           <button type="button" onClick={() => void submit()} disabled={busy} className="mt-2 min-h-[38px] rounded-full bg-app-ink px-4 text-[13px] font-bold text-white disabled:opacity-50">
-            {busy ? "Sending…" : "Send rating"}
+            {busy ? t("rating.sending") : t("rating.send")}
           </button>
         </>
       )}
-      <p className="m-0 mt-2 text-[12px] text-app-ink-faint">Still stuck? Reply below and the conversation reopens.</p>
+      <p className="m-0 mt-2 text-[12px] text-app-ink-faint">{t("rating.stillStuck")}</p>
     </div>
   );
 }

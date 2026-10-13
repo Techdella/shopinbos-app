@@ -54,6 +54,21 @@ const en = {
   "create.noLinkBody": "Finish setting up your shop first. Start here shows what's left.",
   "create.notNow": "Not now",
   "create.startHere": "Start here",
+  // Home tab (app/(tabs)/home.tsx, lib/home-pure.ts)
+  "greeting.morning": "Good morning",
+  "greeting.afternoon": "Good afternoon",
+  "greeting.evening": "Good evening",
+  soldToday: "You sold today",
+  ordersToday: "{count, plural, one {# order today} other {# orders today}}",
+  trying: "Trying…",
+  doNext: "Do these next",
+  nothingNext: "Nothing needs you right now. Tap the orange + to add a product or record a sale.",
+  askPeggyShort: "Ask Peggy",
+  "peggy.watching": "Peggy is keeping an eye on your shop.",
+  "peggy.askAnything": "Peggy is keeping an eye on your shop. Ask her anything.",
+  "peggy.chats": "{chats, plural, one {Peggy kept an eye on # chat today.} other {Peggy kept an eye on # chats today.}}",
+  "peggy.orders": "{orders, plural, one {Peggy kept an eye on # order today.} other {Peggy kept an eye on # orders today.}}",
+  "peggy.chatsAndOrders": "Peggy kept an eye on {chats, plural, one {# chat} other {# chats}} and {orders, plural, one {# order} other {# orders}} today.",
 } satisfies Record<string, string>;
 
 export default en;

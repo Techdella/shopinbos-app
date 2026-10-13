@@ -16,24 +16,30 @@ import { naira } from "@shared/onboarding";
 import { CampaignEditor } from "./CampaignEditor";
 import { friendlyName } from "../../_kit/friendly";
 import { SentCampaignPreview } from "./SentCampaignPreview";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Campaign" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("campaign.metaTitle") };
+}
 
-const STATUS: Record<string, { tone: Tone; label: string }> = {
-  draft: { tone: "muted", label: "Draft" },
-  scheduled: { tone: "info", label: "Scheduled" },
-  sending: { tone: "info", label: "Sending" },
-  sent: { tone: "success", label: "Sent" },
-  cancelled: { tone: "warning", label: "Cancelled" },
+const STATUS: Record<string, { tone: Tone; label: MessageKey<"marketing"> }> = {
+  draft: { tone: "muted", label: "campaignStatus.draft" },
+  scheduled: { tone: "info", label: "campaignStatus.scheduled" },
+  sending: { tone: "info", label: "campaignStatus.sending" },
+  sent: { tone: "success", label: "campaignStatus.sent" },
+  cancelled: { tone: "warning", label: "campaignStatus.cancelled" },
 };
 
-const RECIPIENT: Record<string, { tone: Tone; label: string }> = {
-  queued: { tone: "muted", label: "Waiting" },
-  sent: { tone: "info", label: "Sent" },
-  delivered: { tone: "success", label: "Delivered" },
-  read: { tone: "success", label: "Read" },
-  failed: { tone: "danger", label: "Didn't send" },
+const RECIPIENT: Record<string, { tone: Tone; label: MessageKey<"marketing"> }> = {
+  queued: { tone: "muted", label: "campaign.recipient.queued" },
+  sent: { tone: "info", label: "campaign.recipient.sent" },
+  delivered: { tone: "success", label: "campaign.recipient.delivered" },
+  read: { tone: "success", label: "campaign.recipient.read" },
+  failed: { tone: "danger", label: "campaign.recipient.failed" },
 };
 
 function pct(part: number, whole: number) {
@@ -49,6 +55,9 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const { id } = await params;
   const query = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing", "common");
+  const locale = await getLocale();
+  const n = (value: number) => formatNumber(value, locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, currency: true } });
   if (!store) redirect("/onboarding");
 
@@ -74,33 +83,33 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     const accepted = count("sent") + count("delivered") + count("read");
     const delivered = count("delivered") + count("read");
     const config = readChannelConfig(campaign.channelConfig);
-    const waTemplate = isWhatsApp && config.templateId ? (await listWhatsAppTemplates(store.id)).find((t) => t.id === config.templateId) : null;
+    const waTemplate = isWhatsApp && config.templateId ? (await listWhatsAppTemplates(store.id)).find((row) => row.id === config.templateId) : null;
     return (
       <SellerPage
         user={user}
         store={storeSummary(store)}
         title={campaign.name}
-        sub={`${isEmail ? "Email" : campaign.channel === "sms" ? "SMS" : "WhatsApp"} · sent ${formatDate(campaign.sentAt, true)}`}
-        actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
+        sub={`${isEmail ? t("channel.email") : campaign.channel === "sms" ? "SMS" : "WhatsApp"} · ${t("campaign.sentOn", { date: formatDate(campaign.sentAt, true, locale, t("campaign.notSet")) })}`}
+        actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">{t("hub.allCampaigns")}</PillLink>}
       >
         <div className="grid gap-5">
-          {campaign.status === "sending" ? <Pill tone="info">Still sending: {count("queued").toLocaleString("en-NG")} waiting. It carries on by itself within 10 minutes.</Pill> : null}
+          {campaign.status === "sending" ? <Pill tone="info">{t("campaign.stillSending", { count: count("queued") })}</Pill> : null}
           <StatGrid className="xl:grid-cols-6">
-            <StatTile tone="card" label="Sent" value={(isEmail ? count("sent") : accepted).toLocaleString("en-NG")} hint={count("failed") ? `${count("failed")} didn't send` : undefined} />
-            {isEmail ? <StatTile tone="card" label="Opened" value={pct(opened, count("sent"))} hint={`${opened} people`} /> : null}
-            {isEmail ? <StatTile tone="card" label="Clicked" value={pct(clicked, count("sent"))} hint={`${clicked} people`} /> : null}
-            {!isEmail ? <StatTile tone="card" label="Delivered" value={pct(delivered, accepted)} hint={`${delivered.toLocaleString("en-NG")} ${delivered === 1 ? "person" : "people"}`} /> : null}
-            {isWhatsApp ? <StatTile tone="card" label="Read" value={pct(count("read"), accepted)} hint={`${count("read").toLocaleString("en-NG")} ${count("read") === 1 ? "person" : "people"}`} /> : null}
-            {!isEmail ? <StatTile tone="card" label="Didn't send" value={count("failed").toLocaleString("en-NG")} hint={count("queued") ? `${count("queued")} waiting` : undefined} /> : null}
-            <StatTile tone="card" label="Orders" value={campaign.conversionCount} />
-            <StatTile tone="card" label="Sales" value={naira(campaign.revenueGenerated)} />
-            {isEmail ? <StatTile tone="card" label="Unsubscribed" value={campaign.unsubscribeCount} /> : null}
+            <StatTile tone="card" label={t("campaign.recipient.sent")} value={n(isEmail ? count("sent") : accepted)} hint={count("failed") ? t("campaign.didntSendCount", { count: count("failed") }) : undefined} />
+            {isEmail ? <StatTile tone="card" label={t("campaigns.stat.opened")} value={pct(opened, count("sent"))} hint={t("campaign.people", { count: opened })} /> : null}
+            {isEmail ? <StatTile tone="card" label={t("campaigns.stat.clicked")} value={pct(clicked, count("sent"))} hint={t("campaign.people", { count: clicked })} /> : null}
+            {!isEmail ? <StatTile tone="card" label={t("campaign.recipient.delivered")} value={pct(delivered, accepted)} hint={t("campaign.people", { count: delivered })} /> : null}
+            {isWhatsApp ? <StatTile tone="card" label={t("campaign.recipient.read")} value={pct(count("read"), accepted)} hint={t("campaign.people", { count: count("read") })} /> : null}
+            {!isEmail ? <StatTile tone="card" label={t("campaign.recipient.failed")} value={n(count("failed"))} hint={count("queued") ? t("campaign.waitingCount", { count: count("queued") }) : undefined} /> : null}
+            <StatTile tone="card" label={t("campaign.orders")} value={campaign.conversionCount} />
+            <StatTile tone="card" label={t("campaign.sales")} value={naira(campaign.revenueGenerated)} />
+            {isEmail ? <StatTile tone="card" label={t("campaign.unsubscribed")} value={campaign.unsubscribeCount} /> : null}
           </StatGrid>
           <SplitLayout
             sideWidth="440px"
             main={
               <Card className="p-5">
-                <CardHead title="Who got it" sub={isEmail ? "Opens need images switched on, so the real number is usually higher. Clicks and orders are exact." : isWhatsApp ? "Sent means WhatsApp accepted it; delivered and read come from WhatsApp's receipts." : "Sent means the SMS provider accepted it; delivered comes from the provider's delivery reports (when your SMS account sends them to Shopinbos)."} />
+                <CardHead title={t("campaign.whoGotIt")} sub={isEmail ? t("campaign.whoEmail") : isWhatsApp ? t("campaign.whoWhatsApp") : t("campaign.whoSms")} />
                 {recipients.length ? (
                   <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                     {recipients.map((recipient) => {
@@ -111,30 +120,30 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                             <span className="block truncate font-bold">{recipient.name || recipient.email}</span>
                             <span className="block truncate text-[12.5px] text-app-ink-soft">{recipient.email}{recipient.error ? ` · ${recipient.error}` : ""}</span>
                           </span>
-                          {recipient.convertedAt ? <Pill tone="success">Ordered {naira(recipient.revenue)}</Pill> : !isEmail ? null : recipient.clickedAt ? <Pill tone="info">Clicked</Pill> : recipient.openedAt ? <Pill tone="info">Opened</Pill> : null}
-                          <Pill tone={status.tone}>{status.label}</Pill>
+                          {recipient.convertedAt ? <Pill tone="success">{t("campaign.ordered", { amount: naira(recipient.revenue) })}</Pill> : !isEmail ? null : recipient.clickedAt ? <Pill tone="info">{t("campaigns.stat.clicked")}</Pill> : recipient.openedAt ? <Pill tone="info">{t("campaigns.stat.opened")}</Pill> : null}
+                          <Pill tone={status.tone}>{t(status.label)}</Pill>
                         </li>
                       );
                     })}
                   </ul>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No recipients recorded.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("campaign.noRecipients")}</p>
                 )}
               </Card>
             }
             side={
               <>
                 <Card className="p-5">
-                  <CardHead title="Details" action={<Pill tone={STATUS[campaign.status]?.tone ?? "muted"}>{STATUS[campaign.status]?.label ?? campaign.status}</Pill>} />
+                  <CardHead title={t("campaign.details")} action={<Pill tone={STATUS[campaign.status]?.tone ?? "muted"}>{STATUS[campaign.status] ? t(STATUS[campaign.status].label) : campaign.status}</Pill>} />
                   <DetailList
                     className="mt-2"
                     rows={[
-                      ["Audience", segment ? `Segment: ${segment.name}` : parseRecipientFilter(campaign.recipientFilter).mode === "subscribers" ? "Subscribers" : "Subscribers and buyers"],
-                      ...(isEmail ? ([["Subject", campaign.subject]] as Array<[string, string]>) : []),
-                      ...(waTemplate ? ([["Template", friendlyName(waTemplate.name)]] as Array<[string, string]>) : []),
-                      ...(campaign.channel === "sms" && config.senderId ? ([["Sender ID", config.senderId]] as Array<[string, string]>) : []),
-                      ["Sent", formatDate(campaign.sentAt, true)],
-                      ["Made", formatDate(campaign.createdAt, true)],
+                      [t("campaign.audience"), segment ? t("campaign.segmentName", { name: segment.name }) : parseRecipientFilter(campaign.recipientFilter).mode === "subscribers" ? t("hub.stat.subscribers") : t("campaign.subscribersAndBuyers")],
+                      ...(isEmail ? ([[t("campaign.subject"), campaign.subject]] as Array<[string, string]>) : []),
+                      ...(waTemplate ? ([[t("campaign.template"), friendlyName(waTemplate.name)]] as Array<[string, string]>) : []),
+                      ...(campaign.channel === "sms" && config.senderId ? ([[t("campaign.senderId"), config.senderId]] as Array<[string, string]>) : []),
+                      [t("campaign.recipient.sent"), formatDate(campaign.sentAt, true, locale, t("campaign.notSet"))],
+                      [t("campaign.made"), formatDate(campaign.createdAt, true, locale)],
                     ]}
                   />
                 </Card>
@@ -153,7 +162,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     );
   }
 
-  const template = query.template ? templates.library.find((t) => t.key === query.template) ?? templates.saved.find((t) => t.id === query.template) : null;
+  const template = query.template ? templates.library.find((row) => row.key === query.template) ?? templates.saved.find((row) => row.id === query.template) : null;
   const filter = parseRecipientFilter(campaign?.recipientFilter ?? { mode: "all" });
   const [me, waTemplates, productRows, messaging] = await Promise.all([
     db.user.findUnique({ where: { id: user.id }, select: { email: true, phone: true } }),
@@ -167,9 +176,9 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={isNew ? "New campaign" : campaign!.name}
-      sub={isNew ? "Write it once, send it to a segment by email, SMS or WhatsApp." : campaign!.status === "scheduled" ? `Scheduled for ${formatDate(campaign!.scheduledAt, true)} (Lagos time)` : "Draft"}
-      actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
+      title={isNew ? t("hub.newCampaign") : campaign!.name}
+      sub={isNew ? t("campaign.newSub") : campaign!.status === "scheduled" ? t("campaign.scheduledFor", { date: formatDate(campaign!.scheduledAt, true, locale) }) : t("campaignStatus.draft")}
+      actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">{t("hub.allCampaigns")}</PillLink>}
     >
       <CampaignEditor
         initial={{

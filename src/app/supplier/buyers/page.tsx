@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { AppPage, EmptyState, FilterChips, ListCard, Pill, SearchForm, StatGrid, StatTile, Thumb, type Tone } from "@/components/app-kit";
 import { MessageBuyerButton } from "@/components/supplier/MessageBuyerButton";
 import { money, shortDate, supplierFrame } from "@/components/supplier/supplier-kit";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function SupplierBuyersPage({ searchParams }: PageProps) {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier", "common");
 
   const orders = await db.wholesaleOrder.findMany({
     where: { supplierId: supplier.id },
@@ -72,56 +74,57 @@ export default async function SupplierBuyersPage({ searchParams }: PageProps) {
 
   return (
     <AppPage
-      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search buyers…" })}
-      title="Buyers"
+      frame={supplierFrame(user, supplier, { searchPlaceholder: t("buyers.searchPlaceholder") })}
+      title={t("buyers.title")}
       sub={buyers.length
-        ? `${buyers.length} seller${buyers.length === 1 ? "" : "s"} stock your products. Top buyer: ${buyers[0].name}, ${money(buyers[0].total)} so far.`
-        : "The shops that buy from you show up here."}
+        ? t("buyers.sub", { count: buyers.length, name: buyers[0].name, amount: money(buyers[0].total) })
+        : t("buyers.subEmpty")}
       toolbar={
         buyers.length > 0 ? (
           <>
             <FilterChips
               items={[
-                { label: "All", href: href(undefined, params.q), count: buyers.length, active: !segment },
+                { label: t("products.filter.all"), href: href(undefined, params.q), count: buyers.length, active: !segment },
                 ...(Object.keys(SEGMENT) as Segment[]).map((key) => ({
-                  label: SEGMENT[key].label,
+                  label: t.dynamic(`buyers.segment.${key}`, SEGMENT[key].label),
                   href: href(key, params.q),
                   count: buyers.filter((b) => segmentOf(b) === key).length,
                   active: segment === key,
                 })),
               ]}
             />
-            <SearchForm action="/supplier/buyers" defaultValue={params.q} placeholder="Search name or city" keep={{ segment }} />
+            <SearchForm action="/supplier/buyers" defaultValue={params.q} placeholder={t("buyers.searchNameCity")} keep={{ segment }} />
           </>
         ) : undefined
       }
     >
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Buyers" value={buyers.length} hint={`${newThisMonth} new in the last 30 days`} />
-        <StatTile tone="card" label="VIPs (over ₦1M)" value={buyers.filter((b) => b.total > 1_000_000).length} />
-        <StatTile tone="card" label="Buy again" value={`${repeatShare}%`} hint="ordered more than once" />
-        <StatTile tone="card" label="Average order" value={money(avgOrder)} />
+        <StatTile tone="card" label={t("buyers.title")} value={buyers.length} hint={t("buyers.newIn30", { count: newThisMonth })} />
+        <StatTile tone="card" label={t("buyers.vips")} value={buyers.filter((b) => b.total > 1_000_000).length} />
+        <StatTile tone="card" label={t("buyers.buyAgain")} value={`${repeatShare}%`} hint={t("buyers.buyAgainHint")} />
+        <StatTile tone="card" label={t("buyers.averageOrder")} value={money(avgOrder)} />
       </StatGrid>
 
       {visible.length === 0 ? (
-        <EmptyState icon="users" title={buyers.length === 0 ? "No buyers yet" : "No buyers match"}>
+        <EmptyState icon="users" title={buyers.length === 0 ? t("buyers.emptyTitle") : t("buyers.noMatchTitle")}>
           {buyers.length === 0
-            ? "When sellers place wholesale or dropship orders with you, each shop shows up here with what they've spent."
-            : "Try another filter or clear the search."}
+            ? t("buyers.emptyBody")
+            : t("products.noMatchBody")}
         </EmptyState>
       ) : (
         <ListCard>
           {visible.slice(0, 50).map((b) => {
-            const seg = SEGMENT[segmentOf(b)];
+            const segKey = segmentOf(b);
+            const seg = { ...SEGMENT[segKey], label: t.dynamic(`buyers.segment.${segKey}`, SEGMENT[segKey].label) };
             return (
               <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:flex-nowrap sm:px-5">
                 <Thumb label={b.name} size={44} />
                 <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
                   <span className="block truncate text-[14.5px] font-extrabold">{b.name}</span>
-                  <span className="block truncate text-[13px] text-app-ink-soft">{b.place || "Location not set"} · last order {shortDate(b.last)}</span>
+                  <span className="block truncate text-[13px] text-app-ink-soft">{b.place || t("dashboard.noLocation")} · {t("buyers.lastOrder", { date: shortDate(b.last, t.locale) })}</span>
                 </span>
                 <Pill tone={seg.tone}>{seg.label}</Pill>
-                <span className="w-[80px] text-[13.5px] text-app-ink-soft">{b.orders} order{b.orders === 1 ? "" : "s"}</span>
+                <span className="w-[80px] text-[13.5px] text-app-ink-soft">{t("analytics.orderCount", { count: b.orders })}</span>
                 <span className="w-[110px] text-right text-[14.5px] font-extrabold">{money(b.total)}</span>
                 <MessageBuyerButton sellerUserId={b.id} sellerName={b.name} />
               </li>

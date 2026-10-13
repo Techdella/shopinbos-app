@@ -8,6 +8,7 @@ import { Field, Notice, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchChatContacts, ROLE_LABEL } from "@/lib/partner-chat";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
+import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
@@ -18,26 +19,27 @@ import { colors } from "@/theme";
 type Base = "/supplier" | "/logistics";
 
 export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) {
+  const t = useT("m_partner");
   const contacts = useLoad(fetchChatContacts);
   const [q, setQ] = useState("");
   const list = (contacts.data ?? []).filter((contact) => !q.trim() || `${contact.name} ${contact.lastMessage ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
-    <TabScreen title="Messages" refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
-      <Field value={q} onChangeText={setQ} placeholder="Search name or message" returnKeyType="search" accessibilityLabel="Search conversations" style={{ height: 48, marginBottom: 14 }} />
+    <TabScreen title={t("chat.title")} refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
+      <Field value={q} onChangeText={setQ} placeholder={t("chat.search")} returnKeyType="search" accessibilityLabel={t("chat.searchLabel")} style={{ height: 48, marginBottom: 14 }} />
       <View style={{ gap: 8 }}>
-        {contacts.loading && !contacts.data ? <LoadingBlock label="Loading your messages…" /> : null}
-        {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: "Open on web", onPress: () => void openWeb(webPath) }} /> : null}
+        {contacts.loading && !contacts.data ? <LoadingBlock label={t("chat.loading")} /> : null}
+        {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
         {contacts.data && !list.length ? (
-          <EmptyState icon="chat" title={contacts.data.length ? "No chats match" : "No messages yet"}>
-            {contacts.data.length ? "Try another name." : "When a shop messages you about an order, a quote or a delivery, it shows up here."}
+          <EmptyState icon="chat" title={contacts.data.length ? t("chat.noMatch") : t("chat.none")}>
+            {contacts.data.length ? t("chat.tryName") : t("chat.noneBody")}
           </EmptyState>
         ) : null}
         {list.map((contact) => (
           <Pressable
             key={contact.id}
             accessibilityRole="button"
-            accessibilityLabel={`${contact.name}${contact.unread ? `, ${contact.unread} unread` : ""}`}
+            accessibilityLabel={contact.unread ? t("chat.unread", { name: contact.name, count: contact.unread }) : contact.name}
             onPress={() => router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name } })}
             style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12, opacity: pressed ? 0.8 : 1 })}
           >
@@ -47,8 +49,8 @@ export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) 
                 <T weight={contact.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{contact.name}</T>
                 {contact.lastMessageAt ? <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(contact.lastMessageAt)}</T> : null}
               </View>
-              <T style={{ color: contact.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{contact.lastMessage || "No messages yet"}</T>
-              <T weight="semibold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{ROLE_LABEL[contact.role] ?? "Partner"}</T>
+              <T style={{ color: contact.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{contact.lastMessage || t("chat.none")}</T>
+              <T weight="semibold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{t.dynamic(`chat.role.${contact.role}`, ROLE_LABEL[contact.role] ?? t("chat.role.other"))}</T>
             </View>
             {contact.unread ? (
               <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
@@ -65,11 +67,12 @@ export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) 
 /** One conversation (?name= is shown while the messages load). */
 export function ConversationScreen({ webPath }: { webPath: string }) {
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const t = useT("m_partner");
   const messages = useLoad(() => fetchPartnerMessages(String(id)), String(id));
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const title = name || "Conversation";
+  const title = name || t("chat.conversation");
 
   async function send() {
     const text = draft.trim();
@@ -81,7 +84,7 @@ export function ConversationScreen({ webPath }: { webPath: string }) {
       setDraft("");
       messages.setData([...(messages.data ?? []), sent]);
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Couldn't send that. Try again.");
+      setError(sendError instanceof Error ? sendError.message : t("chat.sendFailed"));
     } finally {
       setSending(false);
     }
@@ -94,18 +97,18 @@ export function ConversationScreen({ webPath }: { webPath: string }) {
           <Initials name={title} size={40} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{title}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>Messages on Shopinbos</T>
+            <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>{t("chat.onShopinbos")}</T>
           </View>
         </>
       }
       refreshing={messages.refreshing}
       onRefresh={() => void messages.refresh()}
       scrollKey={messages.data?.length}
-      composer={<Composer value={draft} onChange={setDraft} onSend={() => void send()} busy={sending} placeholder={`Message ${title}`} above={error ? <Notice>{error}</Notice> : null} />}
+      composer={<Composer value={draft} onChange={setDraft} onSend={() => void send()} busy={sending} placeholder={t("chat.messageTo", { name: title })} above={error ? <Notice>{error}</Notice> : null} />}
     >
       {messages.loading && !messages.data ? <LoadingBlock /> : null}
-      {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} web={{ label: "Open on web", onPress: () => void openWeb(webPath) }} /> : null}
-      {messages.data && !messages.data.length ? <T style={{ color: colors.inkSoft, textAlign: "center" }}>No messages yet. Say hello, or ask about an order.</T> : null}
+      {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
+      {messages.data && !messages.data.length ? <T style={{ color: colors.inkSoft, textAlign: "center" }}>{t("chat.empty")}</T> : null}
       {messages.data?.map((message) => (
         <Bubble key={message.id} mine={message.mine} meta={shortTime(message.createdAt)}>{message.text}</Bubble>
       ))}

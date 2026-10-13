@@ -4,8 +4,9 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Mascot, PillButton, Spinner, cx } from "@/components/app-ui";
-import { categoriesFor, categoryLabel, groupByDay, timeAgo, type NotifyCategory } from "@shared/notifications";
-import { fetchFeed, markRead, useLiveRefresh, type NotificationItem } from "./client";
+import { categoriesFor, groupByDay, type NotifyCategory } from "@shared/notifications";
+import { categoryName, fetchFeed, localTimeAgo, markRead, useLiveRefresh, type NotificationItem } from "./client";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
 
 // The list of notifications, used by the bell's panel (compact) and the Notifications page: tabs by category,
 // Today / Yesterday / Earlier, an icon per kind, an unread dot, mark one or all read, and a tap opens the page.
@@ -27,10 +28,13 @@ const PRIORITY_TILE: Record<NotificationItem["priority"], string> = {
   success: "bg-app-success-tint text-app-success",
 };
 
-const EMPTY: Record<string, { title: string; text: string }> = {
-  all: { title: "No notifications yet", text: "New orders, payments and messages will show up here." },
-  unread: { title: "You're all caught up", text: "Nothing new since you last looked." },
-};
+const EMPTY = {
+  all: { title: "feed.emptyAll", text: "feed.emptyAllText" },
+  unread: { title: "feed.emptyUnread", text: "feed.emptyUnreadText" },
+} as const;
+
+// groupByDay's English labels → "common" time words.
+const DAY_KEY = { Today: "time.today", Yesterday: "time.yesterday", Earlier: "time.earlier" } as const;
 
 export function NotificationFeed({ role, compact = false, onNavigate }: { role: string; compact?: boolean; onNavigate?: () => void }) {
   const router = useRouter();
@@ -41,6 +45,8 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const limit = compact ? 25 : 40;
+  const t = useT("notifications", "common");
+  const locale = useLocale();
 
   const load = useCallback(async () => {
     try {
@@ -50,9 +56,9 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
       setPage(1);
       setError(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "We couldn't load your notifications.");
+      setError(loadError instanceof Error && loadError.message ? loadError.message : t("feed.loadFailed"));
     }
-  }, [tab, limit]);
+  }, [tab, limit, t]);
   useLiveRefresh(() => void load());
 
   const switchTab = (next: string) => {
@@ -91,15 +97,18 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
     await markRead({ all: true, tab: tab === "all" || tab === "unread" ? undefined : tab });
   };
 
-  const tabs = [{ key: "all", label: "All" }, { key: "unread", label: "Unread" }, ...categoriesFor(role).map((category) => ({ key: category.key, label: categoryLabel(category.key, role) }))];
+  const tabs = [{ key: "all", label: t("feed.all") }, { key: "unread", label: t("feed.unread") }, ...categoriesFor(role).map((category) => ({ key: category.key, label: categoryName(category.key, role, t) }))];
   const unreadHere = items?.filter((item) => !item.read).length ?? 0;
   const groups = items ? groupByDay(items) : [];
-  const empty = EMPTY[tab] ?? { title: `No ${categoryLabel(tab as NotifyCategory, role).toLowerCase()} notifications`, text: "When something happens here, you'll see it." };
+  const preset = tab === "all" || tab === "unread" ? EMPTY[tab] : null;
+  const empty = preset
+    ? { title: t(preset.title), text: t(preset.text) }
+    : { title: t("feed.emptyCategory", { category: categoryName(tab as NotifyCategory, role, t).toLowerCase() }), text: t("feed.emptyCategoryText") };
 
   return (
     <div className={cx("flex min-h-0 flex-col", compact ? "flex-1" : "gap-4")}>
       <div className={cx("flex items-center gap-2", compact ? "border-b border-app-line px-4 pb-2.5" : "flex-wrap justify-between")}>
-        <nav aria-label="Notification type" className={cx("-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 pb-1", !compact && "md:flex-wrap md:overflow-visible")}>
+        <nav aria-label={t("feed.type")} className={cx("-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 pb-1", !compact && "md:flex-wrap md:overflow-visible")}>
           {tabs.map((option) => (
             <button
               key={option.key}
@@ -118,14 +127,14 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
         </nav>
         {!compact && unreadHere > 0 && (
           <PillButton tone="ink" size="md" onClick={() => void readAll()}>
-            <Icon name="check" size={16} /> Mark all read
+            <Icon name="check" size={16} /> {t("feed.markAllRead")}
           </PillButton>
         )}
       </div>
       {compact && unreadHere > 0 && (
         <div className="flex justify-end px-4 pt-2">
           <button type="button" onClick={() => void readAll()} className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-2 text-[13px] font-bold text-app-ink hover:bg-app-canvas">
-            <Icon name="check" size={14} /> Mark all read
+            <Icon name="check" size={14} /> {t("feed.markAllRead")}
           </button>
         </div>
       )}
@@ -134,11 +143,11 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
         {error && !items ? (
           <div className="m-4 rounded-[16px] bg-app-danger-tint px-4 py-3 text-[14px] text-app-danger" role="alert">
             {error}{" "}
-            <button type="button" onClick={() => void load()} className="font-bold underline">Try again</button>
+            <button type="button" onClick={() => void load()} className="font-bold underline">{t("tryAgain")}</button>
           </div>
         ) : !items ? (
           <div role="status" className="flex items-center justify-center gap-3 py-14 text-[14px] text-app-ink-soft">
-            <Spinner /> Loading notifications
+            <Spinner /> {t("feed.loading")}
           </div>
         ) : items.length === 0 ? (
           <div className={cx("flex flex-col items-center px-6 py-12 text-center", !compact && "rounded-[22px] border border-app-line bg-white")}>
@@ -149,8 +158,8 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
         ) : (
           <div className={cx(!compact && "grid gap-4")}>
             {groups.map((group) => (
-              <section key={group.label} aria-label={group.label}>
-                <h3 className={cx("m-0 text-[12px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft", compact ? "px-4 pb-1.5 pt-3" : "mb-2")}>{group.label}</h3>
+              <section key={group.label} aria-label={t.dynamic(DAY_KEY[group.label as keyof typeof DAY_KEY] ?? "", group.label)}>
+                <h3 className={cx("m-0 text-[12px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft", compact ? "px-4 pb-1.5 pt-3" : "mb-2")}>{t.dynamic(DAY_KEY[group.label as keyof typeof DAY_KEY] ?? "", group.label)}</h3>
                 <ul className={cx("m-0 list-none p-0", !compact && "divide-y divide-app-line overflow-hidden rounded-[22px] border border-app-line bg-white")}>
                   {group.items.map((item) => (
                     <li key={item.id}>
@@ -165,10 +174,10 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start justify-between gap-3">
                             <span className={cx("min-w-0 text-[14px] leading-[1.35]", item.read ? "font-semibold" : "font-extrabold")}>
-                              {!item.read && <span className="sr-only">Unread: </span>}
+                              {!item.read && <span className="sr-only">{t("feed.unreadPrefix")}</span>}
                               {item.title}
                             </span>
-                            <span className="shrink-0 whitespace-nowrap text-[12px] text-app-ink-soft">{timeAgo(item.createdAt)}</span>
+                            <span className="shrink-0 whitespace-nowrap text-[12px] text-app-ink-soft">{localTimeAgo(item.createdAt, locale, t)}</span>
                           </span>
                           <span className={cx("mt-0.5 block text-[13.5px] leading-[1.45] text-app-ink-soft", compact && "line-clamp-2")}>{item.description}</span>
                           {!compact && item.actionLabel && (item.actionUrl || item.link) && (
@@ -184,7 +193,7 @@ export function NotificationFeed({ role, compact = false, onNavigate }: { role: 
             ))}
             {hasMore && (
               <div className="flex justify-center py-3">
-                <PillButton tone="white" size="sm" busy={loadingMore} onClick={() => void loadMore()}>Show older</PillButton>
+                <PillButton tone="white" size="sm" busy={loadingMore} onClick={() => void loadMore()}>{t("feed.showOlder")}</PillButton>
               </div>
             )}
           </div>

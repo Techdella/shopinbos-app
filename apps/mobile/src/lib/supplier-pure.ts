@@ -4,6 +4,15 @@
 
 export type SupplierOrderGroup = "new" | "pack" | "sent";
 
+/**
+ * The app-language translator (useT("m_supplier", …) on the phone). Optional: without it the words are English, so
+ * the root tests get the same text. Keys live in shared/i18n/messages/m_supplier.
+ */
+export type Say = { dynamic(key: string, fallback?: string, vars?: Record<string, string | number | null | undefined>): string };
+
+const say = (t: Say | undefined, key: string, english: string, vars?: Record<string, string | number>) =>
+  t ? t.dynamic(key, english, vars) : english;
+
 interface OrderLike {
   status: string;
   next: readonly string[];
@@ -18,6 +27,10 @@ export function supplierOrderGroup(order: OrderLike): SupplierOrderGroup {
 
 /** The two kinds of supplier order. */
 export const ORDER_KIND_LABEL = { dropship: "Dropship", wholesale: "Wholesale" } as const;
+
+export function orderKindLabel(kind: keyof typeof ORDER_KIND_LABEL, t?: Say) {
+  return say(t, `kind.${kind}`, ORDER_KIND_LABEL[kind]);
+}
 
 /** Where a single order is, in the supplier's words. */
 export const SUPPLIER_ORDER_STAGE: Record<string, string> = {
@@ -37,8 +50,9 @@ export const SUPPLIER_ORDER_STAGE: Record<string, string> = {
   returned: "Returned",
 };
 
-export function supplierOrderStage(status: string) {
-  return SUPPLIER_ORDER_STAGE[status] ?? status.replace(/_/g, " ");
+export function supplierOrderStage(status: string, t?: Say) {
+  const stage = SUPPLIER_ORDER_STAGE[status];
+  return stage ? say(t, `orderStage.${status}`, stage) : status.replace(/_/g, " ");
 }
 
 /** A quote request's status. */
@@ -50,8 +64,9 @@ export const QUOTE_REQUEST_STAGE: Record<string, string> = {
   expired: "Expired",
 };
 
-export function quoteRequestStage(status: string) {
-  return QUOTE_REQUEST_STAGE[status] ?? status;
+export function quoteRequestStage(status: string, t?: Say) {
+  const stage = QUOTE_REQUEST_STAGE[status];
+  return stage ? say(t, `requestStage.${status}`, stage) : status;
 }
 
 /** "When can it be ready?" choices. The answer goes to the shop with the quote. */
@@ -63,19 +78,19 @@ export const READY_CHOICES = [
 ] as const;
 
 /** "50 pairs", "1 piece", "12 pieces". */
-export function countWord(quantity: number) {
-  return `${quantity.toLocaleString("en-NG")} ${quantity === 1 ? "piece" : "pieces"}`;
+export function countWord(quantity: number, t?: Say) {
+  return say(t, "pieces", `${quantity.toLocaleString("en-NG")} ${quantity === 1 ? "piece" : "pieces"}`, { count: quantity });
 }
 
 /** How long the shop has been waiting for an answer: "Waiting 5 minutes", "Waiting 3 hours", "Waiting 2 days". */
-export function waitingLabel(iso: string | null | undefined, now = Date.now()) {
+export function waitingLabel(iso: string | null | undefined, now = Date.now(), t?: Say) {
   if (!iso) return "";
   const minutes = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));
   if (!Number.isFinite(minutes)) return "";
-  if (minutes < 2) return "Just came in";
-  if (minutes < 60) return `Waiting ${minutes} minutes`;
+  if (minutes < 2) return say(t, "waiting.justIn", "Just came in");
+  if (minutes < 60) return say(t, "waiting.minutes", `Waiting ${minutes} minutes`, { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `Waiting ${hours} hour${hours === 1 ? "" : "s"}`;
+  if (hours < 24) return say(t, "waiting.hours", `Waiting ${hours} hour${hours === 1 ? "" : "s"}`, { count: hours });
   const days = Math.round(hours / 24);
-  return `Waiting ${days} day${days === 1 ? "" : "s"}`;
+  return say(t, "waiting.days", `Waiting ${days} day${days === 1 ? "" : "s"}`, { count: days });
 }

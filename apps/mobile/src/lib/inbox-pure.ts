@@ -20,8 +20,10 @@ export const CHANNEL_LABELS: Record<InboxChannel, string> = {
 /** Channels where the seller can't reply from the inbox (the web says the same). */
 export const NO_REPLY_CHANNELS: InboxChannel[] = ["tiktok", "voice"];
 
-export function channelLabel(channel: string) {
-  return CHANNEL_LABELS[channel as InboxChannel] ?? "Message";
+/** Pass the screen's `t` (with "m_chats") for the label in the app language ("channel.<key>"). */
+export function channelLabel(channel: string, t?: { dynamic(key: string, fallback?: string): string }) {
+  const english = CHANNEL_LABELS[channel as InboxChannel] ?? "Message";
+  return t ? t.dynamic(`channel.${channel in CHANNEL_LABELS ? channel : "other"}`, english) : english;
 }
 
 export type InboxView = "open" | "unread" | "snoozed" | "closed";

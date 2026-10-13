@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Icon } from "./Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -17,10 +18,13 @@ export interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({
-  open, title, message, confirmLabel = "Confirm", cancelLabel = "Cancel",
+  open, title, message, confirmLabel: givenConfirm, cancelLabel: givenCancel,
   variant = "warning", icon, onConfirm, onCancel, loading,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const t = useT("ui", "common");
+  const confirmLabel = givenConfirm ?? t("confirm");
+  const cancelLabel = givenCancel ?? t("cancel");
 
   useEffect(() => {
     if (!open) return;

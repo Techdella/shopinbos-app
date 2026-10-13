@@ -13,9 +13,12 @@ import { LogoUploadForm } from "./LogoUploadForm";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { CoverImageUpload } from "./CoverImageUpload";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Company" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("company.title") };
+}
 
 type PageProps = {
   searchParams?: Promise<{ tab?: string; limit?: string; saved?: string; error?: string; verification?: string }>;
@@ -47,6 +50,8 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
   const workspace = await getLogisticsWorkspace(user.id);
   if (!workspace) return null;
   const { partner } = workspace;
+  const t = await getT("logistics", "common");
+  const dayLabel = (day: string) => t.dynamic(`company.day.${day}`, day);
 
   const hours = serviceHours(partner.onboardingState);
   const isVerified = partner.verificationStatus === "verified";
@@ -54,26 +59,26 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
     params.limit === "routes"
       ? logisticsRouteLimitMessage()
       : params.limit === "team"
-        ? "Starter includes a small team. Move to Pro to add more riders and dispatchers."
+        ? t("company.teamLimit")
         : null;
 
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Company"
-      sub="Your company details and the public page sellers see when they choose a delivery partner."
+      title={t("company.title")}
+      sub={t("company.sub")}
       actions={
         <>
-          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">Public page</PillLink>}
+          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">{t("company.publicPage")}</PillLink>}
         </>
       }
     >
       <div className="mb-4 grid gap-3 empty:hidden">
-        {params.saved && <Notice tone="success">Company details saved.</Notice>}
+        {params.saved && <Notice tone="success">{t("company.saved")}</Notice>}
         {params.error && <Notice tone="error">{params.error}</Notice>}
         {limitMessage && <Notice tone="info">{limitMessage}</Notice>}
         {params.verification === "pending" && !isVerified && (
-          <Notice tone="info">You can take jobs once your company is verified. <TextLink href="/logistics/verification">Finish verification</TextLink></Notice>
+          <Notice tone="info">{t("company.verifyFirst")} <TextLink href="/logistics/verification">{t("company.finishVerification")}</TextLink></Notice>
         )}
       </div>
 
@@ -85,39 +90,39 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
               <LogoUploadForm currentLogo={partner.logoUrl ?? null} displayName={partner.displayName} />
               <div className="min-w-0 pb-1">
                 <div className="truncate text-[17px] font-extrabold">{partner.displayName}</div>
-                <div className="text-[15px] text-app-ink-soft">Logo and cover save as soon as you pick a picture.</div>
+                <div className="text-[15px] text-app-ink-soft">{t("company.logoCoverHint")}</div>
               </div>
             </div>
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Your photo" sub="Shows in the top bar, the menu and your messages with sellers." />
+            <CardHead title={t("company.yourPhoto")} sub={t("company.yourPhotoSub")} />
             <div className="mt-4">
-              <IdentityImageUploader kind="avatar" initialUrl={user.avatarUrl ?? null} name={user.name} title="Your photo" hideTitle />
+              <IdentityImageUploader kind="avatar" initialUrl={user.avatarUrl ?? null} name={user.name} title={t("company.yourPhoto")} hideTitle />
             </div>
           </Card>
 
           <form id="profile-form" action={updateLogisticsProfile} className="grid gap-5">
             <Card className="p-5">
-              <CardHead title="About your company" />
+              <CardHead title={t("company.about")} />
               <div className="mt-4 grid gap-3">
                 <div>
-                  <label htmlFor="displayName" className={labelClass}>Company name</label>
+                  <label htmlFor="displayName" className={labelClass}>{t("company.name")}</label>
                   <input id="displayName" name="displayName" defaultValue={partner.displayName} required className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="description" className={labelClass}>About</label>
-                  <textarea id="description" name="description" rows={4} defaultValue={partner.description ?? ""} placeholder="Who you are, where you deliver and what you're good at." className={textareaClass} />
+                  <label htmlFor="description" className={labelClass}>{t("company.aboutLabel")}</label>
+                  <textarea id="description" name="description" rows={4} defaultValue={partner.description ?? ""} placeholder={t("company.aboutPlaceholder")} className={textareaClass} />
                   <VoiceInputButton targetId="description" context="a description of a delivery business" className="mt-2" />
                 </div>
               </div>
             </Card>
 
             <Card className="p-5">
-              <CardHead title="Contact and pricing" />
+              <CardHead title={t("company.contact")} />
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="name" className={labelClass}>Your name</label>
+                  <label htmlFor="name" className={labelClass}>{t("company.yourName")}</label>
                   <input id="name" name="name" defaultValue={user.name} className={inputClass} />
                 </div>
                 <div>
@@ -125,28 +130,28 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                   <input id="whatsappNumber" name="whatsappNumber" type="tel" defaultValue={partner.whatsappNumber ?? ""} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="city" className={labelClass}>City</label>
+                  <label htmlFor="city" className={labelClass}>{t("company.city")}</label>
                   <input id="city" name="city" defaultValue={partner.city} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="country" className={labelClass}>Country</label>
+                  <label htmlFor="country" className={labelClass}>{t("company.country")}</label>
                   <input id="country" name="country" defaultValue={partner.country} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="pricingModel" className={labelClass}>How you charge</label>
+                  <label htmlFor="pricingModel" className={labelClass}>{t("pricing.howCharge")}</label>
                   <select id="pricingModel" name="pricingModel" defaultValue={partner.pricingModel} className={inputClass}>
-                    <option value="fixed">Fixed price per delivery</option>
-                    <option value="weight_based">Based on weight</option>
-                    <option value="distance_based">Based on distance</option>
+                    <option value="fixed">{t("pricing.model.fixed")}</option>
+                    <option value="weight_based">{t("pricing.model.weight_based")}</option>
+                    <option value="distance_based">{t("pricing.model.distance_based")}</option>
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="basePrice" className={labelClass}>Starting price (₦)</label>
+                  <label htmlFor="basePrice" className={labelClass}>{t("pricing.startingPriceNaira")}</label>
                   <input id="basePrice" name="basePrice" type="number" min="0" inputMode="numeric" defaultValue={partner.basePrice} className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label htmlFor="estimatedSpeed" className={labelClass}>Delivery speed</label>
-                  <input id="estimatedSpeed" name="estimatedSpeed" defaultValue={partner.estimatedSpeed ?? ""} placeholder="Same day within Lagos" className={inputClass} />
+                  <label htmlFor="estimatedSpeed" className={labelClass}>{t("pricing.speed")}</label>
+                  <input id="estimatedSpeed" name="estimatedSpeed" defaultValue={partner.estimatedSpeed ?? ""} placeholder={t("company.speedPlaceholder")} className={inputClass} />
                 </div>
               </div>
             </Card>
@@ -154,32 +159,32 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
             <details className="group rounded-[22px] border border-app-line bg-white p-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
                 <span>
-                  <span className="block text-[17px] font-extrabold">Opening hours (optional)</span>
-                  <span className="block text-[15px] text-app-ink-soft">When you work. Cut-off is the latest time a seller can book a same-day pickup.</span>
+                  <span className="block text-[17px] font-extrabold">{t("company.hours")}</span>
+                  <span className="block text-[15px] text-app-ink-soft">{t("company.hoursHint")}</span>
                 </span>
                 <span aria-hidden className="text-[20px] text-app-ink-soft transition group-open:rotate-90">›</span>
               </summary>
               <div className="mt-4 grid gap-3">
                 {hours.map((row, index) => (
                   <fieldset key={index} className="m-0 grid min-w-0 grid-cols-3 items-end gap-3 rounded-[16px] border border-app-line p-3 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto]">
-                    <legend className="sr-only">{row.day}</legend>
+                    <legend className="sr-only">{dayLabel(row.day)}</legend>
                     <input type="hidden" name={`hours_${index}_day`} value={row.day} />
-                    <div className="col-span-3 self-center text-[15px] font-extrabold sm:col-span-1">{row.day}</div>
+                    <div className="col-span-3 self-center text-[15px] font-extrabold sm:col-span-1">{dayLabel(row.day)}</div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_open`} className="mb-1 block text-[15px] text-app-ink-soft">Opens</label>
+                      <label htmlFor={`hours_${index}_open`} className="mb-1 block text-[15px] text-app-ink-soft">{t("company.opens")}</label>
                       <input id={`hours_${index}_open`} name={`hours_${index}_open`} type="time" defaultValue={row.open} className={`${inputClass} px-2.5`} />
                     </div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_close`} className="mb-1 block text-[15px] text-app-ink-soft">Closes</label>
+                      <label htmlFor={`hours_${index}_close`} className="mb-1 block text-[15px] text-app-ink-soft">{t("company.closes")}</label>
                       <input id={`hours_${index}_close`} name={`hours_${index}_close`} type="time" defaultValue={row.close} className={`${inputClass} px-2.5`} />
                     </div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_cutoff`} className="mb-1 block text-[15px] text-app-ink-soft">Cut-off</label>
+                      <label htmlFor={`hours_${index}_cutoff`} className="mb-1 block text-[15px] text-app-ink-soft">{t("company.cutoff")}</label>
                       <input id={`hours_${index}_cutoff`} name={`hours_${index}_cutoff`} type="time" defaultValue={row.cutoff} className={`${inputClass} px-2.5`} />
                     </div>
                     <label className="col-span-3 flex min-h-[44px] items-center gap-2 text-[15px] font-bold sm:col-span-1">
                       <input type="checkbox" name={`hours_${index}_active`} defaultChecked={row.active} className="h-5 w-5 accent-[#16141F]" />
-                      Open
+                      {t("company.open")}
                     </label>
                   </fieldset>
                 ))}
@@ -187,7 +192,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
             </details>
 
             <div className="flex justify-end">
-              <SubmitButton>Save company details</SubmitButton>
+              <SubmitButton>{t("company.save")}</SubmitButton>
             </div>
           </form>
         </div>
@@ -200,7 +205,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
               aria-hidden
             />
             <div className="p-5">
-              <CardHead title="How sellers see you" />
+              <CardHead title={t("company.howSellersSee")} />
               <div className="mt-3 flex items-center gap-3">
                 <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[14px] bg-app-canvas text-[18px] font-extrabold">
                   {partner.logoUrl ? (
@@ -213,15 +218,15 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-[15px] font-extrabold">{partner.displayName}</span>
-                    {isVerified && <Pill tone="success">Verified</Pill>}
+                    {isVerified && <Pill tone="success">{t("company.verified")}</Pill>}
                   </div>
                   <div className="truncate text-[15px] text-app-ink-soft">{[partner.city, ...partner.vehicleTypes].filter(Boolean).join(" · ")}</div>
                 </div>
               </div>
               <div className="mt-3 divide-y divide-app-line">
-                <KeyValue label="Rating">{partner.ratingCount ? `${partner.rating.toFixed(1)} ★ (${partner.ratingCount})` : "No reviews yet"}</KeyValue>
-                <KeyValue label="Reliability">{partner.reliabilityScore ? `${partner.reliabilityScore} / 100` : "Builds up with deliveries"}</KeyValue>
-                <KeyValue label="From">{partner.basePrice > 0 ? naira(partner.basePrice) : "Price on request"}</KeyValue>
+                <KeyValue label={t("performance.rating")}>{partner.ratingCount ? `${partner.rating.toFixed(1)} ★ (${partner.ratingCount})` : t("reviews.emptyTitle")}</KeyValue>
+                <KeyValue label={t("company.reliability")}>{partner.reliabilityScore ? `${partner.reliabilityScore} / 100` : t("company.reliabilityBuilds")}</KeyValue>
+                <KeyValue label={t("company.from")}>{partner.basePrice > 0 ? naira(partner.basePrice) : t("coverage.onRequest")}</KeyValue>
               </div>
               {partner.deliveryTypes.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -232,18 +237,18 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Verification" action={<TextLink href="/logistics/verification">{isVerified ? "Details" : "Finish"}</TextLink>} />
+            <CardHead title={t("company.verification")} action={<TextLink href="/logistics/verification">{isVerified ? t("company.details") : t("company.finish")}</TextLink>} />
             <p className="m-0 mt-2 text-[15px] leading-[1.5] text-app-ink-soft">
               {isVerified
-                ? "Your company is verified. Sellers see the verified badge on your page."
-                : "Upload your business papers so Shopinbos can verify you. You can take jobs once you're verified."}
+                ? t("company.verifiedBody")
+                : t("company.unverifiedBody")}
             </p>
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Where you deliver" action={<TextLink href="/logistics/coverage">Edit</TextLink>} />
+            <CardHead title={t("company.whereDeliver")} action={<TextLink href="/logistics/coverage">{t("edit")}</TextLink>} />
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {partner.coverageZones.length ? partner.coverageZones.map((zone) => <Pill key={zone}>{zone}</Pill>) : <span className="text-[15px] text-app-ink-soft">No areas yet</span>}
+              {partner.coverageZones.length ? partner.coverageZones.map((zone) => <Pill key={zone}>{zone}</Pill>) : <span className="text-[15px] text-app-ink-soft">{t("coverage.emptyTitle")}</span>}
             </div>
           </Card>
         </div>
@@ -251,7 +256,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
 
       {emailPreferencesUrl && (
         <Card className="mt-5 p-5">
-          <CardHead title="Emails from Shopinbos" sub="Product news and tips, setup nudges and weekly summaries. Security, billing and booking emails always arrive." action={<PillLink href={emailPreferencesUrl} size="sm">Email preferences</PillLink>} />
+          <CardHead title={t("company.emails")} sub={t("company.emailsSub")} action={<PillLink href={emailPreferencesUrl} size="sm">{t("company.emailPrefs")}</PillLink>} />
         </Card>
       )}
       <LanguageSettingsCard className="mt-5" />

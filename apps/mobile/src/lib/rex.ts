@@ -19,7 +19,7 @@ export interface RexReply {
   cards: RexCard[];
 }
 
-/** The starter cards Rex Studio opens with (src/lib/ai/rex/starters.ts). */
+/** The starter cards Rex Studio opens with (src/lib/ai/rex/starters.ts). Translated as m_rex "starter.<n>.title|prompt", in this order. */
 export const REX_STARTERS = [
   { title: "Edit a product photo", prompt: "I want to edit one of my product photos." },
   { title: "Generate product images", prompt: "Make new pictures for one of my products." },

@@ -11,6 +11,7 @@ import { saleBreakdown, sortCategories } from "@/lib/find-pure";
 import { fetchFindContext, fetchFindProducts, type FindProduct } from "@/lib/marketplace";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Find products to sell (web /marketplace): Nigeria (local suppliers who dropship or sell wholesale),
@@ -26,18 +27,19 @@ function matches(product: FindProduct, q: string) {
 }
 
 function ProductCard({ product, added }: { product: FindProduct; added: boolean }) {
+  const t = useT("m_find");
   const sale = saleBreakdown(product.price, product.cost);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${product.name}, cost ${naira(product.cost)}, sell ${naira(product.price)}, you keep ${naira(sale.keep)}`}
+      accessibilityLabel={t("card.label", { name: product.name, cost: naira(product.cost), price: naira(product.price), keep: naira(sale.keep) })}
       onPress={() => router.push({ pathname: "/find/[slug]", params: { slug: product.slug } })}
       style={({ pressed }) => ({ width: "48.3%", backgroundColor: colors.surface, borderRadius: 18, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}
     >
       <View style={{ aspectRatio: 1, backgroundColor: colors.lilac }}>
         {product.images[0] ? <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} /> : null}
         <View style={{ position: "absolute", left: 8, top: 8, flexDirection: "row", gap: 4 }}>
-          {added ? <Badge label="In your store" bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label="Dropship" bg={colors.surface} /> : <Badge label="Wholesale" bg={colors.surface} />}
+          {added ? <Badge label={t("card.inStore")} bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label={t("card.dropship")} bg={colors.surface} /> : <Badge label={t("card.wholesale")} bg={colors.surface} />}
         </View>
       </View>
       <View style={{ padding: 10, gap: 6 }}>
@@ -45,16 +47,16 @@ function ProductCard({ product, added }: { product: FindProduct; added: boolean 
         <T style={{ color: colors.inkSoft, fontSize: 11.5 }} numberOfLines={1}>{[product.supplier.name, product.supplier.city].filter(Boolean).join(" · ")}</T>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View>
-            <T style={{ color: colors.inkSoft, fontSize: 10.5 }}>Cost</T>
+            <T style={{ color: colors.inkSoft, fontSize: 10.5 }}>{t("card.cost")}</T>
             <T weight="bold" style={{ fontSize: 12.5 }}>{naira(product.cost)}</T>
           </View>
           <View>
-            <T style={{ color: colors.inkSoft, fontSize: 10.5 }}>Sell</T>
+            <T style={{ color: colors.inkSoft, fontSize: 10.5 }}>{t("card.sell")}</T>
             <T weight="bold" style={{ fontSize: 12.5 }}>{naira(product.price)}</T>
           </View>
         </View>
         <View style={{ backgroundColor: sale.keep > 0 ? colors.successTint : colors.dangerTint, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5 }}>
-          <T weight="extrabold" style={{ fontSize: 12.5, color: sale.keep > 0 ? colors.success : colors.danger }}>You keep {naira(sale.keep)}</T>
+          <T weight="extrabold" style={{ fontSize: 12.5, color: sale.keep > 0 ? colors.success : colors.danger }}>{t("card.keep", { amount: naira(sale.keep) })}</T>
         </View>
       </View>
     </Pressable>
@@ -69,6 +71,7 @@ export default function FindProducts() {
   });
   // "Find another supplier" on an order opens this filtered to that product (?q=classic dashiki shirt).
   const params = useLocalSearchParams<{ q?: string }>();
+  const t = useT("m_find");
   const [tab, setTab] = useState<Tab>("nigeria");
   const [q, setQ] = useState(typeof params.q === "string" ? params.q.slice(0, 60) : "");
   const [category, setCategory] = useState("");
@@ -86,12 +89,12 @@ export default function FindProducts() {
   );
 
   return (
-    <Screen title="Find products to sell" sub="From suppliers near you. Dropship or buy wholesale, or import from China." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title={t("title")} sub={t("sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       <Segmented
         options={[
-          { value: "nigeria", label: country === "Nigeria" ? "Nigeria" : country },
+          { value: "nigeria", label: country },
           { value: "china", label: "China · 1688" },
-          { value: "trending", label: "Popular" },
+          { value: "trending", label: t("tab.popular") },
         ]}
         value={tab}
         onChange={setTab}
@@ -99,21 +102,21 @@ export default function FindProducts() {
 
       {tab === "nigeria" ? (
         <>
-          <Field value={q} onChangeText={setQ} placeholder="Search shoes, bags, beauty…" returnKeyType="search" accessibilityLabel="Search products" style={{ height: 48 }} />
+          <Field value={q} onChangeText={setQ} placeholder={t("search")} returnKeyType="search" accessibilityLabel={t("searchLabel")} style={{ height: 48 }} />
           {categories.length > 1 ? (
             <ChipRow>
-              <Chip label="All" on={!category} onPress={() => setCategory("")} />
-              {categories.map((name) => <Chip key={name} label={name} on={category === name} onPress={() => setCategory(category === name ? "" : name)} />)}
+              <Chip label={t("all")} on={!category} onPress={() => setCategory("")} />
+              {categories.map((name) => <Chip key={name} label={t.dynamic(`category.${name}`, name)} on={category === name} onPress={() => setCategory(category === name ? "" : name)} />)}
             </ChipRow>
           ) : null}
-          {loaded.loading && !loaded.data ? <LoadingBlock label="Finding products…" /> : null}
+          {loaded.loading && !loaded.data ? <LoadingBlock label={t("loading")} /> : null}
           {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
           {loaded.data && !products.length ? (
-            <EmptyState icon="search" title="Suppliers are joining now" action={<PillButton title="Ask Peggy what to sell" size="md" onPress={() => router.push({ pathname: "/peggy", params: { prompt: "What should I sell in my shop?" } })} />}>
-              Checked suppliers in {country} show up here as they join. Come back in a few days, or bring products from China.
+            <EmptyState icon="search" title={t("empty.title")} action={<PillButton title={t("empty.askPeggy")} size="md" onPress={() => router.push({ pathname: "/peggy", params: { prompt: t("empty.prompt") } })} />}>
+              {t("empty.body", { country })}
             </EmptyState>
           ) : null}
-          {products.length && !shown.length ? <EmptyState icon="search" title="Nothing matches">Try fewer words, or tap &quot;All&quot;.</EmptyState> : null}
+          {products.length && !shown.length ? <EmptyState icon="search" title={t("noMatch.title")}>{t("noMatch.body")}</EmptyState> : null}
           {grid(shown)}
         </>
       ) : null}
@@ -126,11 +129,11 @@ export default function FindProducts() {
                 <AppIcon name="truck" size={22} color={colors.accentInk} />
               </View>
               <View style={{ flex: 1 }}>
-                <T weight="extrabold" style={{ fontSize: 16 }}>Import from China</T>
-                <T style={{ color: colors.inkSoft, fontSize: 13 }}>Our sourcing partner buys on 1688, checks it and ships it to you.</T>
+                <T weight="extrabold" style={{ fontSize: 16 }}>{t("china.title")}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("china.sub")}</T>
               </View>
             </View>
-            {["Paste a 1688 link or a photo of what you want", "Get a landed price in naira, shipping and duty included", "Pay, then track it to your door"].map((line, index) => (
+            {[t("china.step1"), t("china.step2"), t("china.step3")].map((line, index) => (
               <View key={line} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
                 <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
                   <T weight="extrabold" style={{ fontSize: 12 }}>{String(index + 1)}</T>
@@ -138,10 +141,10 @@ export default function FindProducts() {
                 <T style={{ flex: 1, lineHeight: 20 }}>{line}</T>
               </View>
             ))}
-            <PillButton title="Request an import quote (opens in your browser)" size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
+            <PillButton title={t("china.quote")} size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
           </Card>
           <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="box" label="My imports" hint="Quotes and shipments on the way. Opens in your browser" onPress={() => void openWeb("/home/imports")} />
+            <LinkRow first icon="box" label={t("china.imports")} hint={t("china.importsHint")} onPress={() => void openWeb("/home/imports")} />
           </Card>
         </>
       ) : null}
@@ -150,10 +153,10 @@ export default function FindProducts() {
         <>
           <Card style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.mintTint }}>
             <Mascot name="peggy" size={44} />
-            <T style={{ flex: 1, lineHeight: 20 }}>What customers are buying right now. Add one and set a price that leaves you a good profit.</T>
+            <T style={{ flex: 1, lineHeight: 20 }}>{t("trending.intro")}</T>
           </Card>
           {loaded.loading && !loaded.data ? <LoadingBlock /> : null}
-          {loaded.data && !trending.length ? <EmptyState icon="sparkle" title="Nothing popular yet">Popular products show up once suppliers&apos; products start selling.</EmptyState> : null}
+          {loaded.data && !trending.length ? <EmptyState icon="sparkle" title={t("trending.emptyTitle")}>{t("trending.emptyBody")}</EmptyState> : null}
           {grid(trending)}
         </>
       ) : null}

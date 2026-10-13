@@ -1,4 +1,4 @@
-// Phone app (apps/mobile): m_products.
+// Phone app (apps/mobile): My products, Add a product (snap photos) and Dropship.
 const en = {
   // Snap photos (components/ProductDrafts.tsx)
   "drafts.allowCamera": "Allow the camera to snap your products.",
@@ -53,6 +53,12 @@ const en = {
   "dropship.attention": "{count} low or out of stock at the supplier. Pause them so customers don't order what can't be sent.",
   "dropship.nothing": "Nothing here right now. Tap \"All\" to see everything.",
   "dropship.findMore": "Find more products",
+  // My products (app/(tabs)/products.tsx)
+  "list.loadFailed": "Couldn't load products. Check your connection and try again.",
+  "list.title": "My products",
+  "list.empty": "No products yet. Tap \"Add a product\", take a photo, and Rex writes the rest.",
+  "list.soldOut": "Sold out",
+  "list.left": "{count} left",
 } satisfies Record<string, string>;
 
 export default en;

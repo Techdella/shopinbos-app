@@ -70,15 +70,20 @@ test("supplier app: tabs Home, Orders, Products, Money; orders New, To pack, Sen
   assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]), ["Home", "Orders", "Products", "Money"]);
   for (const hidden of ["quotes", "messages", "more"]) assert.match(layout, new RegExp(`name="${hidden}" options=\\{\\{ href: null \\}\\}`));
   const orders = read("app/supplier/(tabs)/orders.tsx");
-  for (const label of ['"New"', '"To pack"', '"Sent"', "You get", 'title="Accept"']) assert.ok(orders.includes(label), label);
+  // Supplier words are in the app-language catalog (shared/i18n/messages/m_supplier); the screens use the keys.
+  const words = readFileSync(new URL("../shared/i18n/messages/m_supplier/en.ts", import.meta.url), "utf8");
+  for (const key of ['t("orders.new")', 't("orders.pack")', 't("orders.sent")', 't("orders.youGet"', 'title={t("accept")}']) assert.ok(orders.includes(key), key);
+  for (const label of ['"orders.new": "New"', '"orders.pack": "To pack"', '"orders.sent": "Sent"', '"orders.youGet": "You get {amount}"', 'accept: "Accept"']) assert.ok(words.includes(label), label);
   assert.equal(supplier.supplierOrderGroup({ status: "pending", next: ["accept", "decline"] }), "new");
   assert.equal(supplier.supplierOrderGroup({ status: "accepted", next: ["handed_over"] }), "pack");
   assert.equal(supplier.supplierOrderGroup({ status: "confirmed", next: ["packed"] }), "pack");
   assert.equal(supplier.supplierOrderGroup({ status: "shipped", next: ["delivered"] }), "sent");
   const order = read("app/supplier/order/[id].tsx");
-  for (const words of ["Pack it with this label", "I've packed it", "Show it on my phone", "Write it by hand"]) assert.ok(order.includes(words), words);
+  for (const key of ['t("order.packWithLabel")', 't("order.packed")', "t(`order.way.${option.key}`)"]) assert.ok(order.includes(key), key);
+  for (const line of ["Pack it with this label", "I've packed it", "Show it on my phone", "Write it by hand"]) assert.ok(words.includes(`"${line}"`), line);
   const request = read("app/supplier/quote/[id].tsx");
-  for (const words of ["When can it be ready?", "Send my quote", "The shop pays first. We hold the money in escrow"]) assert.ok(request.includes(words), words);
+  for (const key of ['t("quote.whenReady")', 't("quote.send")', 't("quote.escrow")']) assert.ok(request.includes(key), key);
+  for (const line of ["When can it be ready?", "Send my quote", "The shop pays first. We hold the money in escrow"]) assert.ok(words.includes(line), line);
 });
 
 test("every screen frame has Help, and Help offers a person and Peggy", () => {

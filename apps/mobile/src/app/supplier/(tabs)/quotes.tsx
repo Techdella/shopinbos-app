@@ -7,8 +7,9 @@ import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Thumb, TonePill } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
 import { Segmented, T } from "@/components/ui";
-import { capitalise, friendlyDay } from "@/lib/friendly";
-import { quoteStage } from "@/lib/partner-pure";
+import { capitalise } from "@/lib/friendly";
+import { useT } from "@/lib/i18n";
+import { dayWord, quoteStage } from "@/lib/partner-pure";
 import { fetchQuoteRequests } from "@/lib/supplier";
 import { quoteRequestStage, countWord } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
@@ -18,6 +19,7 @@ import { colors } from "@/theme";
 // Orders → New, and Money → "Quote requests" opens this list. Tap one to send your quote.
 
 export default function QuoteRequests() {
+  const t = useT("m_supplier", "m_partner", "common");
   const quotes = useLoad(fetchQuoteRequests);
   const [view, setView] = useState<"waiting" | "answered">("waiting");
   const all = quotes.data ?? [];
@@ -25,14 +27,14 @@ export default function QuoteRequests() {
   const shown = view === "waiting" ? waiting : all.filter((quote) => quote.status !== "pending");
 
   return (
-    <TabScreen title="Quote requests" action={<HelpButton />} refreshing={quotes.refreshing} onRefresh={() => void quotes.refresh()}>
-      <Segmented value={view} onChange={setView} options={[{ value: "waiting", label: waiting.length ? `Waiting ${waiting.length}` : "Waiting" }, { value: "answered", label: "Answered" }]} />
+    <TabScreen title={t("quotes.title")} action={<HelpButton />} refreshing={quotes.refreshing} onRefresh={() => void quotes.refresh()}>
+      <Segmented value={view} onChange={setView} options={[{ value: "waiting", label: waiting.length ? t("quotes.waitingCount", { count: waiting.length }) : t("quotes.waiting") }, { value: "answered", label: t("quotes.answered") }]} />
       <View style={{ marginTop: 14, gap: 8 }}>
-        {quotes.loading && !quotes.data ? <LoadingBlock label="Loading…" /> : null}
+        {quotes.loading && !quotes.data ? <LoadingBlock label={t("loading")} /> : null}
         {quotes.error && !quotes.data ? <ErrorState message={quotes.error} onRetry={() => void quotes.reload()} /> : null}
         {quotes.data && !shown.length ? (
-          <EmptyState icon="tag" title={view === "waiting" ? "No quote requests waiting" : "Nothing answered yet"}>
-            When a shop wants a large order of one product, the quote request shows here. Send your price and when it can be ready.
+          <EmptyState icon="tag" title={view === "waiting" ? t("quotes.noneWaiting") : t("quotes.noneAnswered")}>
+            {t("quotes.noneBody")}
           </EmptyState>
         ) : null}
         {shown.map((quote) => (
@@ -44,11 +46,11 @@ export default function QuoteRequests() {
           >
             <Thumb uri={quote.supplierProduct.images[0]} />
             <View style={{ flex: 1, gap: 3 }}>
-              <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{quote.seller.name} wants {countWord(quote.quantity)}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{quote.supplierProduct.name} · {capitalise(friendlyDay(quote.createdAt))}</T>
+              <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{t("wants", { shop: quote.seller.name, pieces: countWord(quote.quantity, t) })}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{quote.supplierProduct.name} · {capitalise(dayWord(quote.createdAt, undefined, t))}</T>
               <View style={{ flexDirection: "row", gap: 6 }}>
-                <TonePill tone={quoteStage(quote.status).tone} label={quoteRequestStage(quote.status)} />
-                {quote.quotedPrice ? <TonePill tone="muted" label={`${naira(quote.quotedPrice)} each`} /> : null}
+                <TonePill tone={quoteStage(quote.status).tone} label={quoteRequestStage(quote.status, t)} />
+                {quote.quotedPrice ? <TonePill tone="muted" label={t("each", { price: naira(quote.quotedPrice) })} /> : null}
               </View>
             </View>
           </Pressable>

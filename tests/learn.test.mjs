@@ -158,7 +158,7 @@ test("the intro host waits for the server's preferences and the guided tour, and
   assert.match(host, /tour-title/);
   assert.match(host, /markRef\.current\(key\)/);
   assert.match(read("src/components/shell/AppFrame.tsx"), /<FeatureIntroHost role=\{role\} \/>/);
-  assert.match(read("src/components/seller/SellerPage.tsx"), /<LearnPill role="seller" \/>/);
+  assert.match(read("src/components/seller/SellerPage.tsx"), /<LearnPill role="seller" variant="inline" className="mt-3\.5" \/>/);
   assert.match(read("apps/mobile/src/app/_layout.tsx"), /<LearnHost \/>/);
   const intro = read("src/components/learn/FeatureIntro.tsx");
   assert.match(intro, /prefers-reduced-motion/);

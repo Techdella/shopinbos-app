@@ -49,10 +49,10 @@ export function SellerPage({
           <div className="min-w-0">
             <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px]"><TitleTerm title={title} /></h1>
             {sub && <p className="mb-0 mt-1.5 max-w-[640px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
+            <LearnPill role="seller" variant="inline" className="mt-3.5" />
           </div>
           <div className="flex flex-wrap gap-2">
             {actions}
-            <LearnPill role="seller" />
             <HelpButton />
           </div>
         </header>

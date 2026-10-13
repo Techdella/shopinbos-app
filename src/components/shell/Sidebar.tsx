@@ -398,7 +398,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
             const entry = flyoutHint && flyoutItem.children.some((child) => child.id === flyoutHint) ? termFor(flyoutHint) : null;
             return entry ? (
               <div className="mx-1.5 mb-1 mt-1.5 max-w-[248px] rounded-[12px] px-3 py-2.5 animate-slide-up" style={{ background: "#0E2A38" }} data-nav-hint={entry.key}>
-                <TermCard entry={entry} compact />
+                <TermCard entry={entry} compact hideWatch />
               </div>
             ) : null;
           })()}
@@ -414,7 +414,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
           style={{ top: Math.max(8, Math.min(tip.top - 6, window.innerHeight - 190)), background: "#0E2A38" }}
         >
           <span aria-hidden className="absolute -left-1.5 top-[18px] h-3 w-3 rotate-45" style={{ background: "#0E2A38" }} />
-          <TermCard entry={tip.entry} compact onWatch={() => setTip(null)} />
+          <TermCard entry={tip.entry} compact hideWatch />
         </div>
       )}
       {touchTip && (
@@ -424,7 +424,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
           className="fixed z-[60] w-[min(280px,calc(100vw-24px))] rounded-[16px] p-3.5 shadow-[0_18px_40px_-12px_rgba(6,18,26,0.45)] animate-slide-up"
           style={{ left: Math.min(touchTip.left, window.innerWidth - Math.min(280, window.innerWidth - 24) - 12), top: Math.min(touchTip.top, window.innerHeight - 200), background: "#0E2A38" }}
         >
-          <TermCard entry={touchTip.entry} onWatch={() => setTouchTip(null)} />
+          <TermCard entry={touchTip.entry} hideWatch />
         </div>
       )}
       {mobileOpen && (

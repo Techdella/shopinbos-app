@@ -6,7 +6,8 @@ import { db } from "@/lib/db/client";
 import { AppPage, Card, EmptyState, FilterChips, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
-import { ORDER_STATUS, buttonClass, money, orderRef, statusOf, supplierFrame, timeAgo } from "@/components/supplier/supplier-kit";
+import { ORDER_STATUS, buttonClass, money, orderRef, statusOf, supplierFrame, timeAgo, type SupplierT } from "@/components/supplier/supplier-kit";
+import { getT } from "@/lib/i18n/server";
 import { updateSupplierOrderStatus } from "@/app/actions/supplier";
 import { messagesHref } from "@/lib/conversations/pure";
 import { SELLER_CANCEL_PREFIX, wholesaleActions, type SupplierAction } from "@/lib/supplier-orders/pure";
@@ -65,37 +66,37 @@ function href(status?: string, q?: string, kind?: string) {
   return `/supplier/orders${query ? `?${query}` : ""}`;
 }
 
-function ShipForm({ hidden, orderId, defaultTracking }: { hidden: ReactNode; orderId: string; defaultTracking: string }) {
+function ShipForm({ hidden, orderId, defaultTracking, t }: { hidden: ReactNode; orderId: string; defaultTracking: string; t: SupplierT }) {
   return (
     <form action={updateSupplierOrderStatus} className="mt-1 flex flex-wrap items-center gap-2">
           {hidden}
           <input type="hidden" name="action" value="ship" />
-          <label htmlFor={`tracking-${orderId}`} className="sr-only">Tracking code</label>
+          <label htmlFor={`tracking-${orderId}`} className="sr-only">{t("orders.trackingCode")}</label>
           <input
             id={`tracking-${orderId}`}
             name="trackingCode"
             required
             maxLength={80}
             defaultValue={defaultTracking}
-            placeholder="Tracking code from the rider"
+            placeholder={t("orders.trackingPlaceholder")}
             className="min-h-[40px] w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[13.5px] outline-none focus:border-app-ink sm:w-[200px]"
           />
-          <label htmlFor={`carrier-${orderId}`} className="sr-only">Courier (optional)</label>
+          <label htmlFor={`carrier-${orderId}`} className="sr-only">{t("orders.courier")}</label>
           <input
             id={`carrier-${orderId}`}
             name="carrier"
             maxLength={60}
-            placeholder="Courier (optional)"
+            placeholder={t("orders.courier")}
             className="min-h-[40px] w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[13.5px] outline-none focus:border-app-ink sm:w-[170px]"
           />
           <button type="submit" className={buttonClass.smallInk}>
-            <Icon name="truck" size={14} /> Mark shipped (I&apos;ve sent it)
+            <Icon name="truck" size={14} /> {t("orders.markShipped")}
           </button>
     </form>
   );
 }
 
-function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind; orderId: string; actions: SupplierAction[]; defaultTracking: string }) {
+function OrderActions({ kind, orderId, actions, defaultTracking, t }: { kind: Kind; orderId: string; actions: SupplierAction[]; defaultTracking: string; t: SupplierT }) {
   if (!actions.length) return null;
   const isNew = actions.includes("accept");
   const hidden = (
@@ -110,33 +111,33 @@ function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind;
         <form action={updateSupplierOrderStatus}>
           {hidden}
           <input type="hidden" name="action" value="accept" />
-          <button type="submit" className={`${buttonClass.ink} min-h-[52px] w-full px-8 text-[16px] sm:w-auto`}><Icon name="check" size={16} /> Accept</button>
+          <button type="submit" className={`${buttonClass.ink} min-h-[52px] w-full px-8 text-[16px] sm:w-auto`}><Icon name="check" size={16} /> {t("orders.accept")}</button>
         </form>
       )}
       {actions.includes("ship") && isNew ? (
         <details className="group w-full">
-          <summary className="min-h-[40px] cursor-pointer list-none py-2 text-[13.5px] font-bold text-app-ink underline underline-offset-4">Already sent it? Add the tracking code</summary>
-          <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} />
+          <summary className="min-h-[40px] cursor-pointer list-none py-2 text-[13.5px] font-bold text-app-ink underline underline-offset-4">{t("orders.alreadySent")}</summary>
+          <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} t={t} />
         </details>
       ) : actions.includes("ship") ? (
-        <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} />
+        <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} t={t} />
       ) : null}
       {actions.includes("deliver") && (
         <form action={updateSupplierOrderStatus}>
           {hidden}
           <input type="hidden" name="action" value="deliver" />
-          <button type="submit" className={buttonClass.smallInk}><Icon name="checkCircle" size={14} /> Mark delivered</button>
+          <button type="submit" className={buttonClass.smallInk}><Icon name="checkCircle" size={14} /> {t("orders.markDelivered")}</button>
         </form>
       )}
       {actions.includes("reject") && (
         <details className="group">
           <summary className={`${buttonClass.smallWhite} cursor-pointer list-none`}>
-            <Icon name="x" size={14} /> I can&apos;t do this one
+            <Icon name="x" size={14} /> {t("orders.cantDo")}
           </summary>
           <form action={updateSupplierOrderStatus} className="mt-2 grid gap-2 sm:w-[360px]">
             {hidden}
             <input type="hidden" name="action" value="reject" />
-            <label htmlFor={`reason-${orderId}`} className="text-[13px] font-bold">Why can&apos;t you fill it? The shop sees this.</label>
+            <label htmlFor={`reason-${orderId}`} className="text-[13px] font-bold">{t("orders.whyCant")}</label>
             <textarea
               id={`reason-${orderId}`}
               name="reason"
@@ -144,10 +145,10 @@ function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind;
               minLength={3}
               maxLength={500}
               rows={2}
-              placeholder="Out of stock until next week"
+              placeholder={t("orders.reasonPlaceholder")}
               className="w-full rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[13.5px] outline-none focus:border-app-ink"
             />
-            <button type="submit" className={buttonClass.smallWhite}>Decline order</button>
+            <button type="submit" className={buttonClass.smallWhite}>{t("orders.decline")}</button>
           </form>
         </details>
       )}
@@ -155,18 +156,19 @@ function OrderActions({ kind, orderId, actions, defaultTracking }: { kind: Kind;
   );
 }
 
-function DropshipRow({ order }: { order: DropshipView }) {
-  const stage = statusOf(DROPSHIP_STATUS, order.status);
+function DropshipRow({ order, t }: { order: DropshipView; t: SupplierT }) {
+  const found = statusOf(DROPSHIP_STATUS, order.status);
+  const stage = DROPSHIP_STATUS[order.status] ? { ...found, label: t.dynamic(`orders.dropshipStatus.${order.status}`, found.label) } : found;
   const first = order.items[0];
   const units = order.items.reduce((sum, item) => sum + item.quantity, 0);
   return (
     <li className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-start">
       <div className="flex min-w-0 items-start gap-3">
-        <Thumb src={first?.image} label={first?.name ?? "Order"} size={48} />
+        <Thumb src={first?.image} label={first?.name ?? t("orders.order")} size={48} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Dropship</span>
-            <span className="truncate text-[14.5px] font-extrabold">{units} {units === 1 ? "unit" : "units"} for {order.shop}</span>
+            <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">{t("productForm.dropship")}</span>
+            <span className="truncate text-[14.5px] font-extrabold">{t("orders.unitsFor", { count: units, shop: order.shop })}</span>
           </div>
           <ul className="m-0 mt-1 list-none p-0 text-[13px]">
             {order.items.map((item, index) => (
@@ -177,39 +179,39 @@ function DropshipRow({ order }: { order: DropshipView }) {
             ))}
           </ul>
           <div className="mt-1 truncate text-[12.5px] text-app-ink-soft">
-            {order.ref} · shop order {order.orderNumber} · {timeAgo(order.createdAt)}
+            {order.ref} · {t("orders.shopOrder", { number: order.orderNumber })} · {timeAgo(order.createdAt, t)}
           </div>
-          {order.otherItemsInOrder && <div className="mt-1 text-[12.5px] text-app-ink-soft">The shop&apos;s order has other products too. Send only these.</div>}
+          {order.otherItemsInOrder && <div className="mt-1 text-[12.5px] text-app-ink-soft">{t("orders.otherItems")}</div>}
         </div>
       </div>
       <div className="min-w-0 text-[13px]">
-        <div className="font-bold">Ship to {order.recipient.name}</div>
+        <div className="font-bold">{t("orders.shipTo", { name: order.recipient.name })}</div>
         <div className="flex items-start gap-1.5 text-app-ink-soft">
           <Icon name="pin" size={14} className="mt-0.5 shrink-0" />
-          <span>{order.recipient.address.length ? order.recipient.address.join(", ") : "No delivery address. Message the shop."}</span>
+          <span>{order.recipient.address.length ? order.recipient.address.join(", ") : t("orders.noAddressMessage")}</span>
         </div>
         {order.recipient.phone && <div className="mt-0.5 text-app-ink-soft"><a href={`tel:${order.recipient.phone}`} className="text-app-ink no-underline hover:underline">{order.recipient.phone}</a></div>}
-        <div className="mt-1 text-app-ink-soft">Pack it with {order.shop}&apos;s label. Don&apos;t put your own name inside.</div>
-        {order.collectOnDelivery > 0 && <div className="mt-1 font-bold text-app-accent-ink">Pay when it arrives: the rider collects {money(order.collectOnDelivery, order.currency)} from the customer.</div>}
-        {order.notes && <div className="mt-1 text-app-ink-soft">Note: {order.notes}</div>}
-        {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">Tracking {order.trackingCode}{order.carrier ? ` · ${order.carrier}` : ""}</div>}
-        {order.rejectReason && <div className="mt-1 text-app-ink-soft">You declined: {order.rejectReason}</div>}
-        {order.status === "expired" && <div className="mt-1 font-bold text-app-danger">Time ran out, so the shop was told. Don&apos;t send it.</div>}
+        <div className="mt-1 text-app-ink-soft">{t("orders.packWithLabel", { shop: order.shop })}</div>
+        {order.collectOnDelivery > 0 && <div className="mt-1 font-bold text-app-accent-ink">{t("orders.payOnArrival", { amount: money(order.collectOnDelivery, order.currency) })}</div>}
+        {order.notes && <div className="mt-1 text-app-ink-soft">{t("orders.note", { note: order.notes })}</div>}
+        {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">{t("orders.tracking", { code: order.trackingCode })}{order.carrier ? ` · ${order.carrier}` : ""}</div>}
+        {order.rejectReason && <div className="mt-1 text-app-ink-soft">{t("orders.youDeclined", { reason: order.rejectReason })}</div>}
+        {order.status === "expired" && <div className="mt-1 font-bold text-app-danger">{t("orders.timeRanOut")}</div>}
       </div>
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
         {order.status === "pending" && <AcceptCountdown acceptBy={order.acceptBy} />}
         {order.status === "accepted" && (
-          <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="truck" tone="ink">{order.pickup?.text ? `Rider booked: ${order.pickup.text.replace(/^Pick up/, "pick up")}` : order.packedAt ? "Book a rider" : "Pack it and book a rider"}</PillLink>
+          <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="truck" tone="ink">{order.pickup?.text ? t("orders.riderBooked", { when: order.pickup.text.replace(/^Pick up/, "pick up") }) : order.packedAt ? t("orders.bookRider") : t("orders.packAndBook")}</PillLink>
         )}
-        <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="arrow">Open</PillLink>
+        <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="arrow">{t("open")}</PillLink>
         <Pill tone={stage.tone} dot>{stage.label}</Pill>
-        <PillLink href={messagesHref("supplier", { with: order.sellerUserId })} size="sm" icon="chat">Message shop</PillLink>
+        <PillLink href={messagesHref("supplier", { with: order.sellerUserId })} size="sm" icon="chat">{t("orders.messageShop")}</PillLink>
         <span className="min-w-[90px] text-right">
-          <span className="block text-[12px] text-app-ink-soft">You get</span>
+          <span className="block text-[12px] text-app-ink-soft">{t("orders.youGet")}</span>
           <span className="text-[18px] font-extrabold">{money(order.costTotal, order.currency)}</span>
         </span>
       </div>
-      <OrderActions kind="dropship" orderId={order.id} actions={order.next} defaultTracking={order.trackingCode ?? ""} />
+      <OrderActions kind="dropship" orderId={order.id} actions={order.next} defaultTracking={order.trackingCode ?? ""} t={t} />
     </li>
   );
 }
@@ -219,6 +221,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier", "common");
 
   const statusKey = params.status ? LEGACY_FILTER[params.status] ?? params.status : undefined;
   const filter = FILTERS.find((item) => item.key === statusKey);
@@ -280,9 +283,9 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
     row.kind === "dropship" ? (group.dropship as readonly string[]).includes(row.order.status) : (group.wholesale as readonly string[]).includes(row.order.status);
 
   const renderRow = (row: (typeof rows)[number]) => {
-              if (row.kind === "dropship") return <DropshipRow key={`d-${row.order.id}`} order={row.order} />;
+              if (row.kind === "dropship") return <DropshipRow key={`d-${row.order.id}`} order={row.order} t={t} />;
               const order = row.order;
-              const stage = statusOf(ORDER_STATUS, order.status);
+              const stage = statusOf(ORDER_STATUS, order.status, t);
               const canShip = (TO_SHIP as readonly string[]).includes(order.status);
               return (
                 <li key={`w-${order.id}`} className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-center">
@@ -290,71 +293,71 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     <Thumb src={order.supplierProduct.images[0]} label={order.supplierProduct.name} size={48} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Wholesale</span>
+                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">{t("productForm.wholesale")}</span>
                         <span className="truncate text-[14.5px] font-extrabold">{order.supplierProduct.name} × {order.quantity.toLocaleString("en-NG")}</span>
                       </div>
                       <div className="truncate text-[12.5px] text-app-ink-soft">
-                        {orderRef(order.id)} · {order.seller.name} · {money(order.unitPrice, order.currency)} each · {timeAgo(order.createdAt)}
+                        {orderRef(order.id)} · {order.seller.name} · {t("orders.each", { amount: money(order.unitPrice, order.currency) })} · {timeAgo(order.createdAt, t)}
                       </div>
                     </div>
                   </div>
                   <div className="min-w-0 text-[13px]">
                     <div className="flex items-start gap-1.5 text-app-ink-soft">
                       <Icon name="pin" size={14} className="mt-0.5 shrink-0" />
-                      <span className="line-clamp-2">{order.deliveryAddress || "No delivery address"}</span>
+                      <span className="line-clamp-2">{order.deliveryAddress || t("orders.noAddress")}</span>
                     </div>
-                    {order.notes && <div className="mt-1 text-app-ink-soft">Note: {order.notes}</div>}
-                    {canShip && <div className="mt-1 text-app-ink-soft">No payment is taken on Shopinbos: confirm it, send the seller your invoice, and they pay you directly.</div>}
-                    {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">Tracking {order.trackingCode}</div>}
-                    {order.rejectReason && <div className="mt-1 text-app-ink-soft">{order.expiredAt ? "Time ran out, so the shop was told. Don't send it." : order.rejectReason.startsWith(SELLER_CANCEL_PREFIX) ? order.rejectReason : `You declined: ${order.rejectReason}`}</div>}
+                    {order.notes && <div className="mt-1 text-app-ink-soft">{t("orders.note", { note: order.notes })}</div>}
+                    {canShip && <div className="mt-1 text-app-ink-soft">{t("orders.noPayment")}</div>}
+                    {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">{t("orders.tracking", { code: order.trackingCode })}</div>}
+                    {order.rejectReason && <div className="mt-1 text-app-ink-soft">{order.expiredAt ? t("orders.timeRanOut") : order.rejectReason.startsWith(SELLER_CANCEL_PREFIX) ? order.rejectReason : t("orders.youDeclined", { reason: order.rejectReason })}</div>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     {order.status === "pending" && <AcceptCountdown acceptBy={order.acceptBy?.toISOString() ?? null} />}
                     {(order.status === "confirmed" || order.status === "processing") && (
-                      <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="truck" tone="ink">{wholesalePickups.get(order.id)?.text ? `Rider booked: ${wholesalePickups.get(order.id)!.text!.replace(/^Pick up/, "pick up")}` : "Pack it and book a rider"}</PillLink>
+                      <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="truck" tone="ink">{wholesalePickups.get(order.id)?.text ? t("orders.riderBooked", { when: wholesalePickups.get(order.id)!.text!.replace(/^Pick up/, "pick up") }) : t("orders.packAndBook")}</PillLink>
                     )}
-                    <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="arrow">Open</PillLink>
+                    <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="arrow">{t("open")}</PillLink>
                     <Pill tone={stage.tone} dot>{stage.label}</Pill>
-                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">Message shop</PillLink>
+                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">{t("orders.messageShop")}</PillLink>
                     <span className="min-w-[90px] text-right">
-                      <span className="block text-[12px] text-app-ink-soft">You get</span>
+                      <span className="block text-[12px] text-app-ink-soft">{t("orders.youGet")}</span>
                       <span className="text-[18px] font-extrabold">{money(order.totalPrice, order.currency)}</span>
                     </span>
                   </div>
-                  <OrderActions kind="wholesale" orderId={order.id} actions={wholesaleActions(order.status)} defaultTracking={order.trackingCode ?? `SIB-${order.id.slice(0, 8).toUpperCase()}`} />
+                  <OrderActions kind="wholesale" orderId={order.id} actions={wholesaleActions(order.status)} defaultTracking={order.trackingCode ?? `SIB-${order.id.slice(0, 8).toUpperCase()}`} t={t} />
                 </li>
               );
   };
 
   return (
     <AppPage
-      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search by seller, product, address…" })}
-      title="Orders"
-      sub={`${fresh} new · ${toPack} to pack · ${sent} sent. When a shop sells your product, you pack it with the shop's label and a rider collects it.`}
+      frame={supplierFrame(user, supplier, { searchPlaceholder: t("orders.searchPlaceholder") })}
+      title={t("orders.title")}
+      sub={t("orders.sub", { fresh, toPack, sent })}
       toolbar={
         <>
-          <FilterChips items={KINDS.map((item) => ({ label: item.label, href: href(filter?.key, q, item.key), active: kind === item.key }))} />
+          <FilterChips items={KINDS.map((item) => ({ label: t.dynamic(`orders.kind.${item.key ?? "all"}`, item.label), href: href(filter?.key, q, item.key), active: kind === item.key }))} />
           <FilterChips
             items={[
-              { label: "All", href: href(undefined, q, kind), count: total, active: !filter },
-              ...FILTERS.map((item) => ({ label: item.label, href: href(item.key, q, kind), count: countOf(item), active: filter?.key === item.key })),
+              { label: t("products.filter.all"), href: href(undefined, q, kind), count: total, active: !filter },
+              ...FILTERS.map((item) => ({ label: t.dynamic(`orders.filter.${item.key}`, item.label), href: href(item.key, q, kind), count: countOf(item), active: filter?.key === item.key })),
             ]}
           />
-          <SearchForm action="/supplier/orders" defaultValue={q} placeholder="Search shop, product or address" keep={{ status: filter?.key, kind }} />
+          <SearchForm action="/supplier/orders" defaultValue={q} placeholder={t("orders.searchShort")} keep={{ status: filter?.key, kind }} />
         </>
       }
     >
       {(params.error || params.saved) && (
         <div className="mb-4">
-          <Notice tone={params.error ? "error" : "success"}>{params.error ?? "Order updated."}</Notice>
+          <Notice tone={params.error ? "error" : "success"}>{params.error ?? t("orders.updated")}</Notice>
         </div>
       )}
 
       {rows.length === 0 ? (
-        <EmptyState icon="package" title={total === 0 ? "No orders yet" : "No orders match"}>
+        <EmptyState icon="package" title={total === 0 ? t("orders.emptyTitle") : t("orders.noMatchTitle")}>
           {total === 0
-            ? "Orders show up here when a shop sells a product you dropship, or buys from you wholesale."
-            : "Try another filter or clear the search."}
+            ? t("orders.emptyBody")
+            : t("products.noMatchBody")}
         </EmptyState>
       ) : (
         filter ? (
@@ -368,21 +371,21 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
               return (
                 <section key={group.key} aria-labelledby={`group-${group.key}`} className="grid gap-2">
                   <h2 id={`group-${group.key}`} className="m-0 text-[18px] font-extrabold">
-                    {group.label} <span className="text-app-ink-soft">({countOf(group)})</span>
+                    {t.dynamic(`orders.filter.${group.key}`, group.label)} <span className="text-app-ink-soft">({countOf(group)})</span>
                   </h2>
                   {inGroup.length ? (
                     <Card className="overflow-hidden">
                       <ul className="m-0 list-none divide-y divide-app-line p-0">{inGroup.map(renderRow)}</ul>
                     </Card>
                   ) : (
-                    <p className="m-0 rounded-[18px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">{group.key === "new" ? "No new orders. We'll tell you the moment a shop sells one." : group.key === "to-pack" ? "Nothing to pack right now." : "Nothing sent yet."}</p>
+                    <p className="m-0 rounded-[18px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">{group.key === "new" ? t("orders.emptyNew") : group.key === "to-pack" ? t("orders.emptyToPack") : t("orders.emptySent")}</p>
                   )}
                 </section>
               );
             })}
             {rows.some((row) => statusIn(row, FILTERS[3])) && (
               <details className="rounded-[18px] border border-app-line bg-white px-4 py-3">
-                <summary className="cursor-pointer text-[14.5px] font-bold">Declined and cancelled ({countOf(FILTERS[3])})</summary>
+                <summary className="cursor-pointer text-[14.5px] font-bold">{t("orders.filter.closed")} ({countOf(FILTERS[3])})</summary>
                 <ul className="m-0 mt-2 list-none divide-y divide-app-line p-0">{rows.filter((row) => statusIn(row, FILTERS[3])).map(renderRow)}</ul>
               </details>
             )}

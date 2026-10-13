@@ -2,6 +2,13 @@
 // index.ts (copy any existing one), then add one import line and one entry below. See README.md.
 import { createT, LOCALES, type Catalog, type Locale, type TFunction } from "./index.ts";
 import common from "./messages/common/index.ts";
+import shell from "./messages/shell/index.ts";
+import tour from "./messages/tour/index.ts";
+import help from "./messages/help/index.ts";
+import support from "./messages/support/index.ts";
+import notifications from "./messages/notifications/index.ts";
+import errors from "./messages/errors/index.ts";
+import ui from "./messages/ui/index.ts";
 import nav from "./messages/nav/index.ts";
 import settings from "./messages/settings/index.ts";
 import learn from "./messages/learn/index.ts";
@@ -10,6 +17,9 @@ import intros from "./messages/intros/index.ts";
 import supplier from "./messages/supplier/index.ts";
 import logistics from "./messages/logistics/index.ts";
 import rider from "./messages/rider/index.ts";
+import m_supplier from "./messages/m_supplier/index.ts";
+import m_partner from "./messages/m_partner/index.ts";
+import m_rider from "./messages/m_rider/index.ts";
 import verification from "./messages/verification/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
@@ -25,9 +35,19 @@ import discounts from "./messages/discounts/index.ts";
 import peggy from "./messages/peggy/index.ts";
 import rex from "./messages/rex/index.ts";
 import auth from "./messages/auth/index.ts";
+import orders from "./messages/orders/index.ts";
+import home from "./messages/home/index.ts";
+import onboarding from "./messages/onboarding/index.ts";
 
 export const CATALOGS = {
   common,
+  shell,
+  tour,
+  help,
+  support,
+  notifications,
+  errors,
+  ui,
   nav,
   settings,
   learn,
@@ -36,6 +56,9 @@ export const CATALOGS = {
   supplier,
   logistics,
   rider,
+  m_supplier,
+  m_partner,
+  m_rider,
   verification,
   marketing,
   emailBuilder,
@@ -51,6 +74,9 @@ export const CATALOGS = {
   peggy,
   rex,
   auth,
+  orders,
+  home,
+  onboarding,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

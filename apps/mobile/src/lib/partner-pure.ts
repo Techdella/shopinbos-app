@@ -68,6 +68,15 @@ export function parseRiderToken(text: string | null | undefined): string | null 
 
 export type Tone = "accent" | "success" | "warning" | "muted" | "danger" | "info";
 
+/**
+ * The app-language translator (useT("m_partner", …) on the phone). Optional everywhere: without it the words are
+ * English, so the root tests and old callers get the same text. Keys live in shared/i18n/messages/m_partner.
+ */
+export type Say = { dynamic(key: string, fallback?: string, vars?: Record<string, string | number | null | undefined>): string };
+
+const say = (t: Say | undefined, key: string, english: string, vars?: Record<string, string | number>) =>
+  t ? t.dynamic(key, english, vars) : english;
+
 const JOB_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "New request", tone: "accent" },
   confirmed: { label: "Accepted, waiting for pickup", tone: "warning" },
@@ -78,16 +87,18 @@ const JOB_STAGE: Record<string, { label: string; tone: Tone }> = {
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
-export function jobStage(status: string) {
-  return JOB_STAGE[status] ?? { label: status.replace(/_/g, " "), tone: "muted" as Tone };
+export function jobStage(status: string, t?: Say) {
+  const stage = JOB_STAGE[status];
+  return stage ? { ...stage, label: say(t, `stage.job.${status}`, stage.label) } : { label: status.replace(/_/g, " "), tone: "muted" as Tone };
 }
 
 /** The next step button(s) on a job the partner has accepted, in pipeline order (same moves as job-rules.ts). */
-export function jobNextSteps(status: string): Array<{ to: "picked_up" | "in_transit" | "delivered" | "confirmed"; label: string }> {
-  if (status === "confirmed") return [{ to: "picked_up", label: "Picked up" }];
-  if (status === "picked_up") return [{ to: "in_transit", label: "On the way" }, { to: "delivered", label: "Delivered" }];
-  if (status === "in_transit") return [{ to: "delivered", label: "Delivered" }];
-  if (status === "failed") return [{ to: "confirmed", label: "Try again" }];
+export function jobNextSteps(status: string, t?: Say): Array<{ to: "picked_up" | "in_transit" | "delivered" | "confirmed"; label: string }> {
+  const step = (to: "picked_up" | "in_transit" | "delivered" | "confirmed", label: string) => ({ to, label: say(t, `step.${to}`, label) });
+  if (status === "confirmed") return [step("picked_up", "Picked up")];
+  if (status === "picked_up") return [step("in_transit", "On the way"), step("delivered", "Delivered")];
+  if (status === "in_transit") return [step("delivered", "Delivered")];
+  if (status === "failed") return [step("confirmed", "Try again")];
   return [];
 }
 
@@ -96,6 +107,11 @@ export function canFail(status: string) {
 }
 
 export const FAIL_REASONS = ["Customer didn't pick up calls", "Customer not at the address", "Customer refused the parcel", "Wrong or incomplete address", "Customer couldn't pay"];
+
+/** The reasons as choices: the value stays English (the shop and the company read it), the label is translated. */
+export function failReasonOptions(t?: Say) {
+  return FAIL_REASONS.map((reason, index) => ({ value: reason, label: say(t, `fail.${index}`, reason) }));
+}
 
 const ORDER_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "New", tone: "accent" },
@@ -127,8 +143,9 @@ const PRODUCT_STAGE: Record<string, { label: string; tone: Tone }> = {
   rejected: { label: "Needs changes", tone: "danger" },
 };
 
-export function productStage(status: string) {
-  return PRODUCT_STAGE[status] ?? { label: status, tone: "muted" as Tone };
+export function productStage(status: string, t?: Say) {
+  const stage = PRODUCT_STAGE[status];
+  return stage ? { ...stage, label: say(t, `stage.product.${status}`, stage.label) } : { label: status, tone: "muted" as Tone };
 }
 
 const QUOTE_STAGE: Record<string, { label: string; tone: Tone }> = {
@@ -139,8 +156,9 @@ const QUOTE_STAGE: Record<string, { label: string; tone: Tone }> = {
   expired: { label: "Expired", tone: "muted" },
 };
 
-export function quoteStage(status: string) {
-  return QUOTE_STAGE[status] ?? { label: status, tone: "muted" as Tone };
+export function quoteStage(status: string, t?: Say) {
+  const stage = QUOTE_STAGE[status];
+  return stage ? { ...stage, label: say(t, `stage.quote.${status}`, stage.label) } : { label: status, tone: "muted" as Tone };
 }
 
 const VERIFICATION: Record<string, { label: string; tone: Tone; hint: string }> = {
@@ -151,34 +169,47 @@ const VERIFICATION: Record<string, { label: string; tone: Tone; hint: string }> 
   suspended: { label: "Paused", tone: "danger", hint: "Your account is paused. Contact support." },
 };
 
-export function verificationStage(status: string) {
-  return VERIFICATION[status] ?? VERIFICATION.unverified;
+export function verificationStage(status: string, t?: Say) {
+  const key = VERIFICATION[status] ? status : "unverified";
+  const stage = VERIFICATION[key];
+  return { ...stage, label: say(t, `verify.${key}.label`, stage.label), hint: say(t, `verify.${key}.hint`, stage.hint) };
 }
 
 /** "just now", "5 min ago", "3 h ago", "2 d ago". */
-export function timeAgo(iso: string | null | undefined, now = Date.now()) {
+export function timeAgo(iso: string | null | undefined, now = Date.now(), t?: Say) {
   if (!iso) return "";
   const minutes = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));
   if (!Number.isFinite(minutes)) return "";
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return say(t, "ago.justNow", "just now");
+  if (minutes < 60) return say(t, "ago.minutes", `${minutes} min ago`, { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  return `${Math.round(hours / 24)} d ago`;
+  if (hours < 24) return say(t, "ago.hours", `${hours} h ago`, { count: hours });
+  const days = Math.round(hours / 24);
+  return say(t, "ago.days", `${days} d ago`, { count: days });
 }
 
-/** "today", "yesterday", "Friday" for the last week, else "12 Oct" (Lagos time). For older items in delivery screens. */
-export function dayWord(iso: string | null | undefined, now = Date.now()) {
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * "today", "yesterday", "tomorrow", "Friday" for the last week, else "12 Oct" (and the year when it isn't this one),
+ * in Lagos time. For dates in the supplier and delivery screens.
+ */
+export function dayWord(iso: string | null | undefined, now = Date.now(), t?: Say) {
   if (!iso) return "";
   const time = new Date(iso).getTime();
   if (!Number.isFinite(time)) return "";
   const lagos = (ms: number) => Math.floor((ms + 60 * 60 * 1000) / 86_400_000);
   const diff = lagos(now) - lagos(time);
-  if (diff === 0) return "today";
-  if (diff === 1) return "yesterday";
+  if (diff === 0) return say(t, "day.today", "today");
+  if (diff === 1) return say(t, "day.yesterday", "yesterday");
+  if (diff === -1) return say(t, "day.tomorrow", "tomorrow");
   const date = new Date(time + 60 * 60 * 1000);
-  if (diff > 1 && diff < 7) return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getUTCDay()];
-  return `${date.getUTCDate()} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.getUTCMonth()]}`;
+  const weekday = date.getUTCDay();
+  if (diff > 1 && diff < 7) return say(t, `weekday.${weekday}`, WEEKDAYS[weekday]);
+  const month = date.getUTCMonth();
+  const sameYear = new Date(now + 60 * 60 * 1000).getUTCFullYear() === date.getUTCFullYear();
+  return `${date.getUTCDate()} ${say(t, `month.${month}`, MONTHS[month])}${sameYear ? "" : ` ${date.getUTCFullYear()}`}`;
 }
 
 /** "Yaba" from "14 Herbert Macaulay Way, Yaba" for the short route line. */

@@ -1,4 +1,4 @@
-// Phone app (apps/mobile): m_auth.
+// Phone app (apps/mobile): welcome, sign up, log in, codes, password reset, log out (AuthForm, welcome, verify, forgot, lib/auth, lib/session).
 const en = {
   // Sign up and log in (components/AuthForm.tsx)
   "heading.seller": "Create your account",
@@ -79,6 +79,21 @@ const en = {
   "welcome.haveShop": "I already have a shop",
   "welcome.haveAccount": "I already have an account",
   "welcome.rider": "I'm a rider",
+  // Sign-in errors, log out and session (lib/auth.ts, lib/session.tsx)
+  "error.noAccount": "We couldn't find an account for that. Check it, or create a new shop.",
+  "error.noPhoneCodes": "Phone codes aren't switched on yet. Use email for now.",
+  "error.badCode": "That code is wrong or has expired. Check it, or ask for a new one.",
+  "error.badPassword": "That email and password don't match. Try again or use a code.",
+  "error.noGoogle": "Google sign-in isn't switched on yet. Use your phone or email.",
+  "error.googleOpen": "Couldn't open Google sign-in.",
+  "error.googleUnfinished": "Google sign-in didn't finish. Try again.",
+  "logout.title": "Log out of Shopinbos?",
+  "logout.body": "You'll need your code or password to get back in.",
+  "logout.everywhereTitle": "Log out of all devices?",
+  "logout.everywhereBody": "This logs you out on this phone and every other device. You'll need your code or password to get back in.",
+  "logout.everywhere": "Log out everywhere",
+  "session.endedTitle": "You've been logged out",
+  "session.endedBody": "Your session has ended. Log in again to carry on.",
 } satisfies Record<string, string>;
 
 export default en;

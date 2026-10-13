@@ -70,7 +70,9 @@ test("Connect your system is a request to the team, on the web and in the app", 
   const mobile = read("apps/mobile/src/app/logistics/connect.tsx");
   assert.match(mobile, /<SetupHelpRequest/);
   assert.match(mobile, /feature="logistics_api"/);
-  assert.match(read("apps/mobile/src/components/LogisticsMenu.tsx"), /Connect your system/);
+  // The phone menu reads its words from the app-language catalog (m_partner "menu.connect").
+  assert.match(read("apps/mobile/src/components/LogisticsMenu.tsx"), /key: "connect", icon: "send", path: "app:\/logistics\/connect"/);
+  assert.match(read("shared/i18n/messages/m_partner/en.ts"), /"menu\.connect": "Connect your system"/);
 
   const component = read("apps/mobile/src/components/SetupHelpRequest.tsx");
   for (const prop of ["title", "description", "feature", "softwareQuestion?", "softwarePlaceholder?"]) assert.ok(component.includes(`${prop}:`), `mobile prop ${prop}`);
@@ -97,14 +99,18 @@ test("only admins issue, rotate and revoke partner keys", () => {
   assert.ok(existsSync(join(root, "src/app/api/v1/partner/jobs/route.ts")));
 });
 
-test("partner app: four tabs, and the Riders app speaks English or Pidgin from one strings file", () => {
+test("partner app: four tabs, and the Riders app speaks English, Pidgin, Yorùbá, Hausa or Igbo from one catalog", () => {
   const tabs = read("apps/mobile/src/app/logistics/(tabs)/_layout.tsx");
   const items = tabs.slice(tabs.indexOf("const ITEMS"), tabs.indexOf("};", tabs.indexOf("const ITEMS")));
   assert.deepEqual([...items.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]), ["Today", "Jobs", "Riders", "Money"]);
 
   const strings = read("apps/mobile/src/lib/rider-strings.ts");
   assert.match(strings, /code: "pcm", label: "Pidgin"/);
-  for (const line of ["Take this delivery", "I have the parcel", "I'm with the customer", "I collected it", "Delivered", "Cash with you"]) assert.ok(strings.includes(`"${line}"`), line);
+  for (const code of ["en", "yo", "ha", "ig"]) assert.match(strings, new RegExp(`code: "${code}"`), code);
+  // The words live in the app-language catalog (shared/i18n/messages/m_rider), read through rider-strings.ts.
+  assert.match(strings, /tFor\(locale, "m_rider"\)/);
+  const words = read("shared/i18n/messages/m_rider/en.ts");
+  for (const line of ["Take this delivery", "I have the parcel", "I'm with the customer", "I collected it", "Delivered", "Cash with you"]) assert.ok(words.includes(`"${line}"`), line);
   const rider = read("apps/mobile/src/app/rider/index.tsx");
   assert.match(rider, /minHeight: 64/);
   assert.match(rider, /useRiderStrings/);

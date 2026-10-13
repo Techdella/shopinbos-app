@@ -591,9 +591,12 @@ test("portal namespaces have shared empty, loading, and error states", () => {
   ["home", "seller", "supplier", "logistics", "admin", "products", "peggy"].forEach((segment) => {
     assert.match(read(`src/app/${segment}/loading.tsx`), /<AppLoading role=/, `${segment} uses the shared loading screen`);
   });
-  assert.match(loading, /Opening \$\{name \|\| FALLBACK_NAME\[role\]\}/);
+  // Words live in the "shell" catalog (shown in the person's language).
+  const shellEn = read("shared/i18n/messages/shell/en.ts");
+  assert.match(loading, /t\("loading\.opening", \{ name: name \|\| t\(FALLBACK_NAME\[role\]\) \}\)/);
+  assert.match(shellEn, /"loading\.opening": "Opening \{name\}"/);
   assert.match(loading, /SLOW_AFTER_MS = 8000/);
-  assert.match(loading, /Your network is slow/);
+  assert.match(shellEn, /"loading\.slowTitle": "Your network is slow"/);
   assert.match(states, /export function PortalErrorState/);
   assert.match(states, /unstable_retry/);
   assert.match(rolePage, /We will surface the next item here when it arrives/);

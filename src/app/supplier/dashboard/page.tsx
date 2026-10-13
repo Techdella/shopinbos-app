@@ -8,7 +8,7 @@ import { AssistantNote, type Tone, Card, CardHead, ListCard, ListRow, Pill, Pill
 import { Icon } from "@/components/ui/Icon";
 import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
 import { SUPPLIER_DOC_TYPES } from "@shared/verification-docs";
-import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, money, statusOf, supplierFrame, timeAgo, verificationLabel } from "@/components/supplier/supplier-kit";
+import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, money, statusOf, supplierFrame, timeAgo, verificationLabel, type SupplierT } from "@/components/supplier/supplier-kit";
 import { DROPSHIP_TO_SHIP, WHOLESALE_TO_SHIP } from "@/lib/supplier-orders/pure";
 import { listDropshipOrders } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/money.server";
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT("supplier"))("dashboard.metaTitle") };
 }
 
-type T = Awaited<ReturnType<typeof getT<["supplier", "common"]>>>;
+type T = SupplierT;
 
 const DROPSHIP_STAGE: Record<string, { label: string; tone: "accent" | "warning" }> = {
   pending: { label: "New: accept it", tone: "accent" },

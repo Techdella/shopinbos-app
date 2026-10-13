@@ -5,12 +5,17 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, PillLink } from "@/components/app-kit";
 import { readDesign, readFields, readPopupConfig } from "@/lib/marketing/forms";
 import { FormsManager, type ManagedForm } from "./FormsManager";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Forms and pop-ups" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("reports.forms") };
+}
 
 export default async function FormsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const since = new Date(Date.now() - 30 * 86_400_000);
   const [rows, stats] = store
@@ -42,18 +47,18 @@ export default async function FormsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Forms and pop-ups"
-      sub="Grow your list: a pop-up on your store, or a sign-up page you can share anywhere."
+      title={t("reports.forms")}
+      sub={t("forms.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/subscribers" icon="users">Subscribers</PillLink>
-          <PillLink href="/home/forms" icon="message">Form messages</PillLink>
+          <PillLink href="/home/marketing/subscribers" icon="users">{t("hub.stat.subscribers")}</PillLink>
+          <PillLink href="/home/forms" icon="message">{t("forms.formMessages")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <FormsManager forms={forms} storeSlug={store?.slug ?? ""} />
-        <AssistantNote>Pop-ups that offer something (10% off, free delivery) usually get far more sign-ups. Each new subscriber gets their own one-use code.</AssistantNote>
+        <AssistantNote>{t("forms.note")}</AssistantNote>
       </div>
     </SellerPage>
   );

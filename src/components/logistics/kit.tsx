@@ -5,6 +5,7 @@ import { Notice } from "@/components/app-ui";
 import { amountToCollect } from "@/lib/labels";
 import { naira } from "@shared/onboarding";
 import { intlLocale, type TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
 import { getT } from "@/lib/i18n/server";
 
 // Shared pieces for the Shopinbos Partners (logistics) portal, following the
@@ -17,6 +18,8 @@ export { naira };
  * "logistics" namespace and are looked up with t.dynamic, so any page's t works. Without one, English.
  */
 export type Translate = Pick<TFunction, "dynamic" | "locale">;
+/** The partner pages' translate function, for helper components that take it as a prop. */
+export type LogisticsT = TFunction<KeysOf<["logistics", "common"]>>;
 
 /** The Intl tag for dates: en-GB for English (as before), else the language's own. */
 function dateTag(t?: Translate) {

@@ -246,10 +246,13 @@ test("the Paystack webhook handles pay-in account events in their own branch", (
 test("partner screens show the account with Copy and the automatic-matching line, without technical words", () => {
   const web = read("src/components/logistics/PayInAccountCard.tsx");
   const mobile = read("apps/mobile/src/app/logistics/(tabs)/earnings.tsx");
-  for (const source of [web, mobile]) {
-    assert.match(source, /We match your payment automatically\. It shows here within a few minutes\./);
-    assert.match(source, /"Copy"/);
-  }
+  assert.match(web, /We match your payment automatically\. It shows here within a few minutes\./);
+  assert.match(web, /"Copy"/);
+  // The phone screen reads its words from the app-language catalogs (m_partner, common).
+  assert.match(mobile, /t\("money\.autoMatch"\)/);
+  assert.match(mobile, /t\("copy"\)/);
+  assert.match(read("shared/i18n/messages/m_partner/en.ts"), /"money\.autoMatch": "We match your payment automatically\. It shows here within a few minutes\."/);
+  assert.match(read("shared/i18n/messages/common/en.ts"), /copy: "Copy"/);
   const cash = read("src/app/logistics/cash/page.tsx");
   assert.match(cash, /Record a pay-in/, "the manual form stays as the fallback");
   // What a partner can read: the source without imports and comments.
@@ -261,7 +264,7 @@ test("partner screens show the account with Copy and the automatic-matching line
 
 test("the Riders app asks for location in plain words and works without it", () => {
   const hook = read("apps/mobile/src/lib/rider-location.ts");
-  const strings = read("apps/mobile/src/lib/rider-strings.ts");
+  const strings = read("shared/i18n/messages/m_rider/en.ts");
   assert.match(strings, /Shopinbos uses your location only while you're online, so we can give you jobs near you\./);
   assert.match(hook, /requestForegroundPermissionsAsync/);
   assert.doesNotMatch(hook, /requestBackgroundPermissionsAsync|startLocationUpdatesAsync/, "foreground only");

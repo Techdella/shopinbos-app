@@ -3,13 +3,14 @@ import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { db } from "@/lib/db/client";
 import { AppPage, Card, CardHead, EmptyState, SplitLayout, StatGrid, StatTile } from "@/components/app-kit";
 import { cx } from "@/components/app-ui/cx";
-import { ORDER_STATUS, money, statusOf, supplierFrame } from "@/components/supplier/supplier-kit";
+import { ORDER_STATUS, money, statusOf, supplierFrame, type SupplierT } from "@/components/supplier/supplier-kit";
+import { getT } from "@/lib/i18n/server";
+import { intlLocale } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
 
 const DAY = 24 * 60 * 60 * 1000;
 const lagosDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit" });
-const lagosLabel = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short" });
 
 const BAR_TONE: Record<string, string> = {
   accent: "bg-app-accent",
@@ -21,16 +22,18 @@ const BAR_TONE: Record<string, string> = {
   ink: "bg-app-ink",
 };
 
-function change(current: number, previous: number) {
-  if (previous <= 0) return current > 0 ? "new this month" : "no orders yet";
+function change(current: number, previous: number, t: SupplierT) {
+  if (previous <= 0) return current > 0 ? t("analytics.newThisMonth") : t("analytics.noOrdersYet");
   const pct = Math.round(((current - previous) / previous) * 100);
-  return `${pct >= 0 ? "up" : "down"} ${Math.abs(pct)}% on the 30 days before`;
+  return pct >= 0 ? t("analytics.up", { pct: Math.abs(pct) }) : t("analytics.down", { pct: Math.abs(pct) });
 }
 
 export default async function SupplierAnalyticsPage() {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier", "common");
+  const lagosLabel = new Intl.DateTimeFormat(t.locale === "en" ? "en-GB" : intlLocale(t.locale), { timeZone: "Africa/Lagos", day: "numeric", month: "short" });
 
   const [orders, products, quoteCounts] = await Promise.all([
     db.wholesaleOrder.findMany({
@@ -66,7 +69,7 @@ export default async function SupplierAnalyticsPage() {
 
   const productAgg = new Map<string, { qty: number; rev: number }>();
   orders.forEach((o) => {
-    const name = o.supplierProduct?.name ?? "Unknown product";
+    const name = o.supplierProduct?.name ?? t("analytics.unknownProduct");
     const cur = productAgg.get(name) ?? { qty: 0, rev: 0 };
     cur.qty += o.quantity;
     cur.rev += Number(o.totalPrice);
@@ -79,7 +82,7 @@ export default async function SupplierAnalyticsPage() {
   orders.forEach((o) => { statusAgg[o.status] = (statusAgg[o.status] ?? 0) + 1; });
 
   const weekCounts = Array.from({ length: 4 }, (_, i) => inWindow(now - (4 - i) * 7 * DAY, now - (3 - i) * 7 * DAY).length);
-  const weekLabels = ["3 weeks ago", "2 weeks ago", "Last week", "This week"];
+  const weekLabels = [t("analytics.weeksAgo", { count: 3 }), t("analytics.weeksAgo", { count: 2 }), t("time.lastWeek"), t("time.thisWeek")];
   const weekMax = Math.max(1, ...weekCounts);
 
   const quoteCount = (status: string) => quoteCounts.find((row) => row.status === status)?._count._all ?? 0;
@@ -87,37 +90,37 @@ export default async function SupplierAnalyticsPage() {
   const winRate = decided > 0 ? `${Math.round((quoteCount("accepted") / decided) * 100)}%` : "—";
 
   const quality: Array<[string, string]> = [
-    ["Shipped or delivered", `${fulfillmentRate}%`],
-    ["Refunded", orders.length > 0 ? `${Math.round((refunded / orders.length) * 100)}%` : "—"],
-    ["Rating", supplier.ratingCount > 0 ? `${supplier.rating.toFixed(1)} from ${supplier.ratingCount}` : "No ratings yet"],
-    ["Response time", supplier.responseTimeLabel ?? supplier.responseTime ?? "Not set"],
-    ["Quotes accepted", winRate],
+    [t("analytics.shippedDelivered"), `${fulfillmentRate}%`],
+    [t("orderStatus.refunded"), orders.length > 0 ? `${Math.round((refunded / orders.length) * 100)}%` : "—"],
+    [t("analytics.rating"), supplier.ratingCount > 0 ? t("analytics.ratingFrom", { rating: supplier.rating.toFixed(1), count: supplier.ratingCount }) : t("analytics.noRatings")],
+    [t("analytics.responseTime"), supplier.responseTimeLabel ?? supplier.responseTime ?? t("payouts.notSet")],
+    [t("analytics.quotesAccepted"), winRate],
   ];
 
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Analytics"
-      sub={`${orders.length} order${orders.length === 1 ? "" : "s"} worth ${money(totalRevenue)}${orders.length === 200 ? " (latest 200)" : ""}.`}
+      title={t("analytics.title")}
+      sub={orders.length === 200 ? t("analytics.subLatest", { count: orders.length, amount: money(totalRevenue) }) : t("analytics.sub", { count: orders.length, amount: money(totalRevenue) })}
     >
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Order value, 30 days" value={money(sum(last30))} hint={change(sum(last30), sum(prev30))} />
-        <StatTile tone="card" label="Orders, 30 days" value={last30.length} hint={change(last30.length, prev30.length)} />
-        <StatTile tone="card" label="Products" value={products} hint="in your catalogue" />
-        <StatTile tone="card" label="Fulfilment rate" value={`${fulfillmentRate}%`} hint={`${fulfilled.length} of ${orders.length} orders`} />
+        <StatTile tone="card" label={t("analytics.value30")} value={money(sum(last30))} hint={change(sum(last30), sum(prev30), t)} />
+        <StatTile tone="card" label={t("analytics.orders30")} value={last30.length} hint={change(last30.length, prev30.length, t)} />
+        <StatTile tone="card" label={t("products.title")} value={products} hint={t("analytics.inCatalogue")} />
+        <StatTile tone="card" label={t("analytics.fulfilmentRate")} value={`${fulfillmentRate}%`} hint={t("analytics.ofOrders", { done: fulfilled.length, total: orders.length })} />
       </StatGrid>
 
       {orders.length === 0 ? (
-        <EmptyState icon="chart" title="No orders to chart yet">
-          Charts fill in as sellers order from you: daily order value, best sellers, and how fast you ship.
+        <EmptyState icon="chart" title={t("analytics.emptyTitle")}>
+          {t("analytics.emptyBody")}
         </EmptyState>
       ) : (
         <SplitLayout
           main={
             <>
               <Card className="p-5">
-                <CardHead title="Order value, last 14 days" sub={`${money(week)} in the last 7 days`} />
-                <div className="mt-5 flex h-[180px] items-end gap-1.5 sm:gap-2" role="img" aria-label={`Daily order value for the last 14 days. Last 7 days ${money(week)}.`}>
+                <CardHead title={t("analytics.value14")} sub={t("analytics.last7", { amount: money(week) })} />
+                <div className="mt-5 flex h-[180px] items-end gap-1.5 sm:gap-2" role="img" aria-label={t("analytics.chartAria", { amount: money(week) })}>
                   {daily.map((value, index) => (
                     <div
                       key={index}
@@ -129,19 +132,19 @@ export default async function SupplierAnalyticsPage() {
                 </div>
                 <div className="mt-2 flex justify-between text-[12px] text-app-ink-soft">
                   <span>{lagosLabel.format(days[0])}</span>
-                  <span>Today</span>
+                  <span>{t("time.today")}</span>
                 </div>
               </Card>
 
               <div className="grid gap-5 lg:grid-cols-2">
                 <Card className="p-5">
-                  <CardHead title="Orders by week" />
+                  <CardHead title={t("analytics.byWeek")} />
                   <div className="mt-4 grid gap-3">
                     {weekCounts.map((count, index) => (
                       <div key={weekLabels[index]}>
                         <div className="flex justify-between text-[13.5px]">
                           <span className="font-bold">{weekLabels[index]}</span>
-                          <span className="text-app-ink-soft">{count} order{count === 1 ? "" : "s"}</span>
+                          <span className="text-app-ink-soft">{t("analytics.orderCount", { count })}</span>
                         </div>
                         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-app-canvas">
                           <div className={cx("h-full rounded-full", index === 3 ? "bg-app-accent" : "bg-app-ink")} style={{ width: `${(count / weekMax) * 100}%` }} />
@@ -150,15 +153,15 @@ export default async function SupplierAnalyticsPage() {
                     ))}
                   </div>
                   <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
-                    {weekCounts[3] > weekCounts[2] ? "More orders than last week." : weekCounts[3] < weekCounts[2] ? "Fewer orders than last week." : "Same as last week."}
+                    {weekCounts[3] > weekCounts[2] ? t("analytics.more") : weekCounts[3] < weekCounts[2] ? t("analytics.fewer") : t("analytics.same")}
                   </p>
                 </Card>
 
                 <Card className="p-5">
-                  <CardHead title="Orders by stage" />
+                  <CardHead title={t("analytics.byStage")} />
                   <div className="mt-4 grid gap-3">
                     {Object.entries(statusAgg).map(([status, count]) => {
-                      const stage = statusOf(ORDER_STATUS, status);
+                      const stage = statusOf(ORDER_STATUS, status, t);
                       return (
                         <div key={status}>
                           <div className="flex justify-between text-[13.5px]">
@@ -179,7 +182,7 @@ export default async function SupplierAnalyticsPage() {
           side={
             <>
               <Card className="p-5">
-                <CardHead title="Best sellers" sub="By order value" />
+                <CardHead title={t("analytics.bestSellers")} sub={t("analytics.byValue")} />
                 <div className="mt-4 grid gap-3.5">
                   {topProducts.map((product) => (
                     <div key={product.name}>
@@ -196,7 +199,7 @@ export default async function SupplierAnalyticsPage() {
               </Card>
 
               <Card className="p-5">
-                <CardHead title="Quality" />
+                <CardHead title={t("analytics.quality")} />
                 <dl className="m-0 mt-2 divide-y divide-app-line text-[14px]">
                   {quality.map(([label, value]) => (
                     <div key={label} className="flex justify-between gap-3 py-2.5">

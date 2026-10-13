@@ -6,14 +6,17 @@ import { db } from "@/lib/db/client";
 import { LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser, isProPlan } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
-import { ActionNotice, PartnerPage, SubmitButton, bookingNet, inputClass, labelClass, lagosDate, lagosStartOfToday, naira, timeAgo } from "@/components/logistics/kit";
+import { ActionNotice, PartnerPage, SubmitButton, bookingNet, inputClass, labelClass, lagosDate, lagosStartOfToday, naira, timeAgo, type LogisticsT } from "@/components/logistics/kit";
+import { getT } from "@/lib/i18n/server";
 import { RiderLinkButton } from "@/components/logistics/RiderLinkButton";
 import { riderPresence } from "@/components/logistics/dispatch";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { isRiderOut } from "@/lib/logistics/job-rules";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Riders" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("riders.title") };
+}
 
 const ROLES = [
   { value: "rider", label: "Rider" },
@@ -31,6 +34,11 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const { role, saved, error } = await searchParams;
+  const t = await getT("logistics", "common");
+  const roleLabel = (value: string) => {
+    const found = ROLES.find((item) => item.value === value);
+    return found ? t.dynamic(`riders.role.${found.value}`, found.label) : value;
+  };
 
   const now = new Date();
   const startOfToday = lagosStartOfToday(now);
@@ -76,17 +84,17 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Riders"
-      sub="The riders and dispatch staff who carry your jobs. Riders use the Shopinbos Riders app."
-      actions={<PillLink href="#add-rider" icon="plus">Add a rider</PillLink>}
+      title={t("riders.title")}
+      sub={t("riders.sub")}
+      actions={<PillLink href="#add-rider" icon="plus">{t("today.addRider")}</PillLink>}
     >
-      <ActionNotice saved={saved} error={error} savedText="Team updated." />
+      <ActionNotice saved={saved} error={error} savedText={t("riders.updated")} />
 
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Riders out now" value={presence.out} hint={`${presence.offline} offline · ${presence.total} active`} />
-        <StatTile tone="card" label="Whole team" value={teamMembers.length} hint={`${active.length} active`} />
-        <StatTile tone="card" label="Vehicles you run" value={partner.vehicleTypes.length} hint={partner.vehicleTypes.join(", ") || "Set them in Coverage and rates"} />
-        <StatTile tone="card" label="Plan" value={proPlan ? "Pro" : "Starter"} hint={proPlan ? "No team limit" : `${Math.min(active.length, LOGISTICS_FREE_TEAM_MEMBER_LIMIT)} of ${LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active people`} />
+        <StatTile tone="card" label={t("today.ridersOutNow")} value={presence.out} hint={t("riders.offlineActive", { offline: presence.offline, total: presence.total })} />
+        <StatTile tone="card" label={t("riders.wholeTeam")} value={teamMembers.length} hint={t("riders.activeCount", { count: active.length })} />
+        <StatTile tone="card" label={t("riders.vehicles")} value={partner.vehicleTypes.length} hint={partner.vehicleTypes.join(", ") || t("riders.vehiclesHint")} />
+        <StatTile tone="card" label={t("riders.plan")} value={proPlan ? "Pro" : "Starter"} hint={proPlan ? t("riders.noLimit") : t("riders.activePeople", { count: Math.min(active.length, LOGISTICS_FREE_TEAM_MEMBER_LIMIT), limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT })} />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
@@ -94,14 +102,14 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
           <FilterChips
             className="mb-4"
             items={[
-              { label: "Everyone", href: "/logistics/couriers", count: teamMembers.length, active: filterKey === "all" },
-              { label: "Riders", href: "/logistics/couriers?role=rider", count: riders.length, active: filterKey === "rider" },
-              { label: "Dispatch and staff", href: "/logistics/couriers?role=staff", count: teamMembers.length - riders.length, active: filterKey === "staff" },
+              { label: t("riders.everyone"), href: "/logistics/couriers", count: teamMembers.length, active: filterKey === "all" },
+              { label: t("riders.title"), href: "/logistics/couriers?role=rider", count: riders.length, active: filterKey === "rider" },
+              { label: t("riders.staff"), href: "/logistics/couriers?role=staff", count: teamMembers.length - riders.length, active: filterKey === "staff" },
             ]}
           />
           {shown.length === 0 ? (
-            <EmptyState icon="truck" title={teamMembers.length ? "No one in this group" : "No riders yet"}>
-              {teamMembers.length ? "Try another filter." : "Add your first rider so you can see who is carrying each job."}
+            <EmptyState icon="truck" title={teamMembers.length ? t("riders.noOne") : t("riders.emptyTitle")}>
+              {teamMembers.length ? t("quotes.tryFilter") : t("riders.emptyBody")}
             </EmptyState>
           ) : (
             <ListCard>
@@ -116,26 +124,26 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                         <div className="truncate text-[15px] text-app-ink-soft">{riderWhereWords({ lat: member.lastLat, lng: member.lastLng, locationAt: member.lastLocationAt }, now)}</div>
                       )}
                   </div>
-                  <span className="text-[15px] capitalize text-app-ink-soft">{member.role}</span>
+                  <span className="text-[15px] capitalize text-app-ink-soft">{roleLabel(member.role)}</span>
                   {member.status !== "active" ? (
-                    <Pill tone="muted" dot>Inactive</Pill>
+                    <Pill tone="muted" dot>{t("riders.inactive")}</Pill>
                   ) : member.role === "rider" ? (
                     <Pill tone={isRiderOut(member, now) ? "success" : "muted"} dot>
-                      {isRiderOut(member, now) ? "Online" : member.lastSeenAt ? `Offline · seen ${timeAgo(member.lastSeenAt, now)}` : "Offline"}
+                      {isRiderOut(member, now) ? t("riders.online") : member.lastSeenAt ? t("riders.offlineSeen", { when: timeAgo(member.lastSeenAt, now, t) }) : t("riders.offline")}
                     </Pill>
                   ) : (
-                    <Pill tone="success" dot>Active</Pill>
+                    <Pill tone="success" dot>{t("riders.active")}</Pill>
                   )}
-                  <span className="hidden text-[15px] text-app-ink-soft lg:inline">Added {lagosDate(member.invitedAt)}</span>
+                  <span className="hidden text-[15px] text-app-ink-soft lg:inline">{t("riders.added", { date: lagosDate(member.invitedAt, undefined, now, t) })}</span>
                   <form action={updateLogisticsTeamMemberStatus} className="ml-auto">
                     <input type="hidden" name="teamMemberId" value={member.id} />
                     <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
-                    <SubmitButton tone="white" size="sm" aria-label={`${member.status === "active" ? "Deactivate" : "Reactivate"} ${member.name}`}>
-                      {member.status === "active" ? "Deactivate" : "Reactivate"}
+                    <SubmitButton tone="white" size="sm" aria-label={member.status === "active" ? t("riders.deactivateAria", { name: member.name }) : t("riders.reactivateAria", { name: member.name })}>
+                      {member.status === "active" ? t("riders.deactivate") : t("riders.reactivate")}
                     </SubmitButton>
                   </form>
                   </div>
-                  {member.role === "rider" && member.status === "active" && <RiderWork work={workByRider.get(member.id)} />}
+                  {member.role === "rider" && member.status === "active" && <RiderWork work={workByRider.get(member.id)} t={t} />}
                   {member.role === "rider" && member.status === "active" && (
                     <div className="mt-2 flex w-full min-w-0 flex-wrap items-start gap-2 sm:pl-[60px]">
                       <div className="min-w-0 flex-1">
@@ -144,7 +152,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                       {member.riderTokenHash && (
                         <form action={revokeRiderLink}>
                           <input type="hidden" name="teamMemberId" value={member.id} />
-                          <SubmitButton tone="white" size="sm" aria-label={`Switch off ${member.name}'s Riders app link`}>Switch off link</SubmitButton>
+                          <SubmitButton tone="white" size="sm" aria-label={t("riders.switchOffAria", { name: member.name })}>{t("riders.switchOff")}</SubmitButton>
                         </form>
                       )}
                     </div>
@@ -157,34 +165,34 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
 
         <Card className="h-fit p-5">
           <div id="add-rider" className="scroll-mt-24" />
-          <CardHead title="Add someone" sub="Office staff get an email invite. Riders get a private Riders app link from their row." />
+          <CardHead title={t("riders.addSomeone")} sub={t("riders.addSub")} />
           <form action={addLogisticsTeamMember} className="mt-4 grid gap-3">
             <div>
-              <label htmlFor="member-name" className={labelClass}>Name</label>
+              <label htmlFor="member-name" className={labelClass}>{t("riders.name")}</label>
               <input id="member-name" name="name" required autoComplete="off" placeholder="Musa Bello" disabled={atStarterLimit} className={inputClass} />
             </div>
             <div>
-              <label htmlFor="member-email" className={labelClass}>Email</label>
+              <label htmlFor="member-email" className={labelClass}>{t("riders.email")}</label>
               <input id="member-email" name="email" type="email" required placeholder="musa@example.com" disabled={atStarterLimit} className={inputClass} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               <div>
-                <label htmlFor="member-phone" className={labelClass}>Phone</label>
+                <label htmlFor="member-phone" className={labelClass}>{t("riders.phone")}</label>
                 <input id="member-phone" name="phone" type="tel" placeholder="+234…" disabled={atStarterLimit} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="member-role" className={labelClass}>Role</label>
+                <label htmlFor="member-role" className={labelClass}>{t("riders.roleLabel")}</label>
                 <select id="member-role" name="role" defaultValue="rider" disabled={atStarterLimit} className={inputClass}>
-                  {ROLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  {ROLES.map((item) => <option key={item.value} value={item.value}>{roleLabel(item.value)}</option>)}
                 </select>
               </div>
             </div>
             {atStarterLimit && (
               <Notice tone="info">
-                Starter logistics includes {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Deactivate someone or move to Pro to add more.
+                {t("riders.starterLimit", { limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT })}
               </Notice>
             )}
-            <SubmitButton disabled={atStarterLimit}>Send invite</SubmitButton>
+            <SubmitButton disabled={atStarterLimit}>{t("riders.sendInvite")}</SubmitButton>
           </form>
         </Card>
       </div>
@@ -192,12 +200,12 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   );
 }
 
-function RiderWork({ work }: { work?: { open: number; delivered: number; fees: number; cash: number } }) {
+function RiderWork({ work, t }: { work?: { open: number; delivered: number; fees: number; cash: number }; t: LogisticsT }) {
   const items = [
-    `${work?.open ?? 0} open ${work?.open === 1 ? "job" : "jobs"}`,
-    `${work?.delivered ?? 0} delivered today`,
-    `${naira(work?.fees ?? 0)} fees today`,
-    ...(work?.cash ? [`${naira(work.cash)} cash in hand`] : []),
+    t("riders.openJobs", { count: work?.open ?? 0 }),
+    t("riders.deliveredToday", { count: work?.delivered ?? 0 }),
+    t("riders.feesToday", { amount: naira(work?.fees ?? 0) }),
+    ...(work?.cash ? [t("riders.cashInHand", { amount: naira(work.cash) })] : []),
   ];
   return <p className="m-0 mt-2 text-[15px] text-app-ink-soft sm:pl-[60px]">{items.join(" · ")}</p>;
 }

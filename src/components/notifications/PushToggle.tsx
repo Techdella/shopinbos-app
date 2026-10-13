@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { PillButton, Toggle, cx } from "@/components/app-ui";
 import { disableWebPush, enableWebPush, refreshWebPush, webPushState, type WebPushState } from "@/lib/notifications/web-push-client";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // "Turn on notifications" for this browser: a friendly card in the bell's panel (until turned on or dismissed for
 // two weeks) and a switch in settings. Hidden when the browser can't do push or web push isn't set up.
@@ -24,6 +25,7 @@ function useWebPush() {
   const [state, setState] = useState<WebPushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT("notifications");
   useEffect(() => {
     let live = true;
     void webPushState().then((next) => {
@@ -41,7 +43,7 @@ function useWebPush() {
     try {
       setState(await action());
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That didn't work. Try again.");
+      setError(caught instanceof Error && caught.message ? caught.message : t("push.failed"));
     } finally {
       setBusy(false);
     }
@@ -51,6 +53,7 @@ function useWebPush() {
 
 export function PushPromptCard({ className }: { className?: string }) {
   const push = useWebPush();
+  const t = useT("notifications");
   const [hidden, setHidden] = useState(true);
   useEffect(() => setHidden(dismissedRecently()), []);
   if (hidden || push.state !== "off") return null;
@@ -66,12 +69,12 @@ export function PushPromptCard({ className }: { className?: string }) {
     <div className={cx("flex items-start gap-3 rounded-[18px] bg-app-mint p-3.5 text-app-forest", className)}>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white"><Icon name="bell" size={16} /></span>
       <div className="min-w-0 flex-1">
-        <p className="m-0 text-[14px] font-extrabold">Get alerts even when Shopinbos is closed</p>
-        <p className="m-0 mt-0.5 text-[13px] leading-[1.45]">New orders, payments and messages pop up on this computer.</p>
+        <p className="m-0 text-[14px] font-extrabold">{t("push.promptTitle")}</p>
+        <p className="m-0 mt-0.5 text-[13px] leading-[1.45]">{t("push.promptText")}</p>
         {push.error && <p className="m-0 mt-1 text-[13px] font-bold text-app-danger">{push.error}</p>}
         <div className="mt-2.5 flex flex-wrap gap-2">
-          <PillButton tone="ink" size="sm" busy={push.busy} onClick={() => void push.turnOn()}>Turn on</PillButton>
-          <PillButton tone="white" size="sm" onClick={dismiss}>Not now</PillButton>
+          <PillButton tone="ink" size="sm" busy={push.busy} onClick={() => void push.turnOn()}>{t("push.turnOn")}</PillButton>
+          <PillButton tone="white" size="sm" onClick={dismiss}>{t("push.notNow")}</PillButton>
         </div>
       </div>
     </div>
@@ -81,27 +84,28 @@ export function PushPromptCard({ className }: { className?: string }) {
 /** Settings row: this browser's push switch, with plain help when the browser blocked it. */
 export function BrowserPushSwitch() {
   const push = useWebPush();
+  const t = useT("notifications");
   if (push.state === null) return null;
   const text =
     push.state === "unsupported"
-      ? "This browser can't show notifications. Try Chrome, Edge or Firefox, or use the Shopinbos phone app."
+      ? t("push.unsupported")
       : push.state === "unavailable"
-      ? "Browser notifications aren't switched on for Shopinbos yet. Use the phone app for now."
+      ? t("push.unavailable")
       : push.state === "denied"
-      ? "Your browser blocked notifications for Shopinbos. Click the lock next to the web address, allow notifications, then reload."
+      ? t("push.denied")
       : push.state === "on"
-      ? "On. Alerts pop up on this computer even when the tab is closed."
-      : "Off. Turn on to get alerts on this computer.";
+      ? t("push.on")
+      : t("push.off");
   const canSwitch = push.state === "on" || push.state === "off";
   return (
     <div className="flex items-center gap-3 py-3">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-app-canvas"><Icon name="bell" size={17} /></span>
       <div className="min-w-0 flex-1">
-        <p className="m-0 text-[14.5px] font-bold">Notifications on this computer</p>
+        <p className="m-0 text-[14.5px] font-bold">{t("push.thisComputer")}</p>
         <p className="m-0 text-[13px] leading-[1.45] text-app-ink-soft">{text}</p>
         {push.error && <p className="m-0 mt-1 text-[13px] font-bold text-app-danger">{push.error}</p>}
       </div>
-      {canSwitch && <Toggle on={push.state === "on"} label="Notifications on this computer" onChange={(on) => void (on ? push.turnOn() : push.turnOff())} />}
+      {canSwitch && <Toggle on={push.state === "on"} label={t("push.thisComputer")} onChange={(on) => void (on ? push.turnOn() : push.turnOff())} />}
     </div>
   );
 }

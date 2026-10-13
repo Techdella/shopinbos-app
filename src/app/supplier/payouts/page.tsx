@@ -8,6 +8,7 @@ import { markSupplierPayout } from "@/app/actions/supplier";
 import { DROPSHIP_TO_SHIP, SUPPLIER_EARNED_STATUSES, WHOLESALE_TO_SHIP, supplierOrderRef } from "@/lib/supplier-orders/pure";
 import { orderLines } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings } from "@/lib/supplier-orders/money.server";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier", "common");
 
   const payoutAccount = await db.supplierPayoutAccount.findUnique({
     where: { supplierId: supplier.id },
@@ -95,7 +97,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
       who: o.seller.name,
       createdAt: o.createdAt,
       status: o.status,
-      stage: statusOf(ORDER_STATUS, o.status),
+      stage: statusOf(ORDER_STATUS, o.status, t),
       amount: Number(o.totalPrice),
       currency: o.currency,
       paidOutAt: o.paidOutAt,
@@ -106,12 +108,12 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
         kind: "dropship",
         id: o.id,
         ref: supplierOrderRef(o.id),
-        title: lines.length > 1 ? `${lines[0].name} and ${lines.length - 1} more` : lines[0]?.name ?? "Dropship order",
+        title: lines.length > 1 ? t("payouts.andMore", { name: lines[0].name, more: lines.length - 1 }) : lines[0]?.name ?? t("order.dropshipOrder"),
         image: lines[0]?.image,
-        who: `Dropship for ${shops.get(o.storeId) ?? "a shop"}`,
+        who: t("payouts.dropshipFor", { shop: shops.get(o.storeId) ?? t("payouts.aShop") }),
         createdAt: o.createdAt,
         status: o.status,
-        stage: statusOf(DROPSHIP_STAGE, o.status),
+        stage: DROPSHIP_STAGE[o.status] ? { ...DROPSHIP_STAGE[o.status], label: t.dynamic(`payouts.dropshipStage.${o.status}`, DROPSHIP_STAGE[o.status].label) } : statusOf(DROPSHIP_STAGE, o.status),
         amount: Number(o.costTotal),
         currency: o.currency,
         paidOutAt: o.paidOutAt,
@@ -126,27 +128,27 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Payouts"
+      title={t("payouts.title")}
       sub={payoutAccount && verifiedBank
-        ? `${payoutAccount.bankName} ${payoutAccount.accountNumberMask} · Paystack recipient ready`
-        : `${totals.earnedCount} order${totals.earnedCount === 1 ? "" : "s"} shipped or delivered, worth ${money(totals.earned)}. Add your bank account so we can send you your money.`}
+        ? t("payouts.subReady", { bank: payoutAccount.bankName, mask: payoutAccount.accountNumberMask })
+        : t("payouts.subSetup", { count: totals.earnedCount, amount: money(totals.earned) })}
     >
       {notice.error ? <div role="alert" className="mb-4 rounded-[16px] bg-app-danger-tint px-4 py-3 text-[14px] font-bold text-app-danger">{notice.error}</div> : null}
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Earned" value={money(totals.earned)} hint={`${totals.earnedCount} shipped or delivered, wholesale and dropship`} />
-        <StatTile tone="card" label="Owed to you" value={money(totals.owed)} hint={`${totals.owedCount} order${totals.owedCount === 1 ? "" : "s"} not marked paid`} />
-        <StatTile tone="card" label="Paid" value={money(totals.paid)} hint={`${totals.paidCount} order${totals.paidCount === 1 ? "" : "s"} you marked paid`} />
-        <StatTile tone="card" label="Still to send" value={money(openValue)} hint={`${openCount} open order${openCount === 1 ? "" : "s"}`} />
-        <StatTile tone="card" label="Bank account" value={verifiedBank ? "Ready" : payoutAccount ? "Checking" : "Not set"} hint={payoutAccount ? payoutAccount.bankName : "Add one below"} />
+        <StatTile tone="card" label={t("payouts.earned")} value={money(totals.earned)} hint={t("payouts.earnedHint", { count: totals.earnedCount })} />
+        <StatTile tone="card" label={t("payouts.owed")} value={money(totals.owed)} hint={t("payouts.owedHint", { count: totals.owedCount })} />
+        <StatTile tone="card" label={t("payouts.paid")} value={money(totals.paid)} hint={t("payouts.paidHint", { count: totals.paidCount })} />
+        <StatTile tone="card" label={t("payouts.stillToSend")} value={money(openValue)} hint={t("payouts.openHint", { count: openCount })} />
+        <StatTile tone="card" label={t("payouts.bankAccount")} value={verifiedBank ? t("payouts.ready") : payoutAccount ? t("payouts.checking") : t("payouts.notSet")} hint={payoutAccount ? payoutAccount.bankName : t("payouts.addBelow")} />
       </StatGrid>
 
       <SplitLayout
         main={
           <section className="min-w-0">
-            <h2 className="mb-3 mt-0 text-[17px] font-extrabold">Orders and what they&apos;re worth</h2>
+            <h2 className="mb-3 mt-0 text-[17px] font-extrabold">{t("payouts.ordersWorth")}</h2>
             {orders.length === 0 ? (
-              <EmptyState icon="coin" title="No money coming yet">
-                Wholesale and dropship orders count toward your payout once you ship them.
+              <EmptyState icon="coin" title={t("payouts.emptyTitle")}>
+                {t("payouts.emptyBody")}
               </EmptyState>
             ) : (
               <ListCard>
@@ -157,9 +159,9 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
                       <Thumb src={o.image ?? undefined} label={o.title} size={44} />
                       <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
                         <span className="block truncate text-[14px] font-extrabold">{o.title}</span>
-                        <span className="block truncate text-[12.5px] text-app-ink-soft">{o.ref} · {o.who} · {shortDate(o.createdAt)}</span>
+                        <span className="block truncate text-[12.5px] text-app-ink-soft">{o.ref} · {o.who} · {shortDate(o.createdAt, t.locale)}</span>
                       </span>
-                      <Pill tone={earned ? (o.paidOutAt ? "success" : "warning") : o.stage.tone}>{earned ? (o.paidOutAt ? "Paid" : "Owed") : o.stage.label}</Pill>
+                      <Pill tone={earned ? (o.paidOutAt ? "success" : "warning") : o.stage.tone}>{earned ? (o.paidOutAt ? t("payouts.paidPill") : t("payouts.owedPill")) : o.stage.label}</Pill>
                       <span className="w-[110px] text-right text-[14px] font-extrabold">{money(o.amount, o.currency)}</span>
                       {earned ? (
                         <form action={markSupplierPayout} className="w-full sm:w-auto">
@@ -167,7 +169,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
                           <input type="hidden" name="orderId" value={o.id} />
                           <input type="hidden" name="paid" value={o.paidOutAt ? "0" : "1"} />
                           <button type="submit" className="min-h-[40px] rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink">
-                            {o.paidOutAt ? "Not paid" : "Mark paid"}
+                            {o.paidOutAt ? t("payouts.notPaid") : t("payouts.markPaid")}
                           </button>
                         </form>
                       ) : null}
@@ -182,12 +184,12 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
           <>
             <PayoutBankSection role="supplier" payoutBank={payoutBank} displayName={supplier.displayName} />
             <Card className="p-5">
-              <CardHead title="Payout account" />
+              <CardHead title={t("payouts.payoutAccount")} />
               <dl className="m-0 mt-3 divide-y divide-app-line text-[14px]">
                 {[
-                  ["Bank", payoutBank ? `${payoutBank.bankName} ··${payoutBank.accountNumber.slice(-4)}` : "Not connected"],
-                  ["Paystack check", payoutAccount?.verificationStatus ?? "Not set up"],
-                  ["Transfer recipient", payoutAccount?.paystackRecipientCode ? "Connected" : "Not created"],
+                  [t("payouts.bank"), payoutBank ? `${payoutBank.bankName} ··${payoutBank.accountNumber.slice(-4)}` : t("payouts.notConnected")],
+                  [t("payouts.paystackCheck"), payoutAccount?.verificationStatus ?? t("payouts.notSetUp")],
+                  [t("payouts.transferRecipient"), payoutAccount?.paystackRecipientCode ? t("payouts.connected") : t("payouts.notCreated")],
                 ].map(([label, value]) => (
                   <div key={label} className="flex justify-between gap-3 py-2.5">
                     <dt className="text-app-ink-soft">{label}</dt>

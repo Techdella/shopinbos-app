@@ -91,6 +91,9 @@ const en = {
   "day.short.4": "Thu",
   "day.short.5": "Fri",
   "day.short.6": "Sat",
+  saveFailed: "That didn't save. Check your connection and try again.",
+  loadFailed: "Couldn't load this. Pull down to try again.",
+  shopLoadFailed: "Couldn't load your shop.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -7,7 +7,9 @@ import { confirmSignOut, Thumb } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, PillButton, T } from "@/components/ui";
 import { router } from "expo-router";
-import { capitalise, friendlyDay } from "@/lib/friendly";
+import { capitalise } from "@/lib/friendly";
+import { useT } from "@/lib/i18n";
+import { dayWord } from "@/lib/partner-pure";
 import { fetchSupplierOrders, fetchSupplierOverview, type SupplierOrder } from "@/lib/supplier";
 import { supplierOrderStage } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
@@ -22,6 +24,7 @@ function orderTitle(order: SupplierOrder) {
 }
 
 export default function SupplierMoney() {
+  const t = useT("m_supplier", "m_partner", "common");
   const loaded = useLoad(async () => {
     const [overview, done] = await Promise.all([fetchSupplierOverview(), fetchSupplierOrders("done").catch(() => null)]);
     return { overview, recent: done ? [...done.dropship, ...done.wholesale].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8) : [] };
@@ -29,25 +32,25 @@ export default function SupplierMoney() {
   const data = loaded.data;
 
   return (
-    <TabScreen title="Money" action={<HelpButton />} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
-      {loaded.loading && !data ? <LoadingBlock label="Loading your money…" /> : null}
+    <TabScreen title={t("money.title")} action={<HelpButton />} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      {loaded.loading && !data ? <LoadingBlock label={t("money.loading")} /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? (
         <View style={{ gap: 14 }}>
           <Card style={{ gap: 8 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>Money you&apos;ve earned</T>
+            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("earned")}</T>
             <T weight="extrabold" style={{ fontSize: 34, letterSpacing: -0.8 }}>{naira(data.overview.earned)}</T>
             <T style={{ fontSize: 15, lineHeight: 21, color: colors.inkSoft }}>
               {data.overview.bank
-                ? `Payouts go to ${data.overview.bank.bankName} ${data.overview.bank.account}.${data.overview.bank.ready ? "" : " We're checking this account."}`
-                : "Add your bank account to get payouts."}
+                ? t(data.overview.bank.ready ? "money.payoutsTo" : "money.payoutsToChecking", { bank: data.overview.bank.bankName, account: data.overview.bank.account })
+                : t("money.addBankFirst")}
             </T>
-            <T style={{ fontSize: 15, lineHeight: 21 }}>The shop pays first. We hold the money in escrow and pay you out after delivery.</T>
-            <PillButton title={data.overview.bank ? "See my payouts" : "Add my bank"} tone={data.overview.bank ? "white" : "ink"} style={{ marginTop: 6 }} onPress={() => void openWeb("/supplier/payouts")} />
-            <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>Opens in your browser</T>
+            <T style={{ fontSize: 15, lineHeight: 21 }}>{t("escrow")}</T>
+            <PillButton title={data.overview.bank ? t("money.seePayouts") : t("money.addBank")} tone={data.overview.bank ? "white" : "ink"} style={{ marginTop: 6 }} onPress={() => void openWeb("/supplier/payouts")} />
+            <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>{t("opensInBrowser")}</T>
           </Card>
 
-          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">Recent</T>
+          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.recent")}</T>
           {data.recent.length ? (
             <Card style={{ paddingVertical: 4 }}>
               {data.recent.map((order, index) => (
@@ -55,29 +58,29 @@ export default function SupplierMoney() {
                   <Thumb uri={order.kind === "dropship" ? order.items[0]?.image : order.product.image} size={40} />
                   <View style={{ flex: 1 }}>
                     <T weight="bold" style={{ fontSize: 15 }} numberOfLines={1}>{orderTitle(order)}</T>
-                    <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{order.shop} · {supplierOrderStage(order.status).toLowerCase()} · {capitalise(friendlyDay(order.createdAt))}</T>
+                    <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{order.shop} · {supplierOrderStage(order.status, t).toLowerCase()} · {capitalise(dayWord(order.createdAt, undefined, t))}</T>
                   </View>
                   <T weight="extrabold" style={{ fontSize: 15 }}>{naira(order.kind === "dropship" ? order.yourTotal : order.total)}</T>
                 </View>
               ))}
             </Card>
           ) : (
-            <EmptyState icon="coin" title="No money yet">When you send an order and it&apos;s delivered, the money shows here.</EmptyState>
+            <EmptyState icon="coin" title={t("money.none")}>{t("money.noneBody")}</EmptyState>
           )}
 
-          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">Your business</T>
+          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.business")}</T>
           <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="shield" label="Verification" hint="Your documents and review status" onPress={() => router.push("/supplier/verification")} />
-            <LinkRow icon="chat" label="Messages with shops" onPress={() => router.push("/supplier/messages")} />
-            <LinkRow icon="tag" label="Quote requests" hint="Shops asking for a price on a large order" onPress={() => router.push("/supplier/quotes")} />
-            <LinkRow icon="coin" label="Wholesale price tiers" hint="Opens in your browser" onPress={() => void openWeb("/supplier/wholesale")} />
-            <LinkRow icon="store" label="Business profile" hint="Logo and what you sell. Opens in your browser" onPress={() => void openWeb("/supplier/profile")} />
-            <LinkRow icon="users" label="Team" hint="Who can manage orders. Opens in your browser" onPress={() => void openWeb("/supplier/team")} />
-            <LinkRow icon="settings" label="Settings" hint="Notifications and account. Opens in your browser" onPress={() => void openWeb("/supplier/settings")} />
+            <LinkRow first icon="shield" label={t("money.verification")} hint={t("money.verificationHint")} onPress={() => router.push("/supplier/verification")} />
+            <LinkRow icon="chat" label={t("messagesWithShops")} onPress={() => router.push("/supplier/messages")} />
+            <LinkRow icon="tag" label={t("money.quotes")} hint={t("money.quotesHint")} onPress={() => router.push("/supplier/quotes")} />
+            <LinkRow icon="coin" label={t("money.tiers")} hint={t("opensInBrowser")} onPress={() => void openWeb("/supplier/wholesale")} />
+            <LinkRow icon="store" label={t("money.profile")} hint={t("money.profileHint")} onPress={() => void openWeb("/supplier/profile")} />
+            <LinkRow icon="users" label={t("money.team")} hint={t("money.teamHint")} onPress={() => void openWeb("/supplier/team")} />
+            <LinkRow icon="settings" label={t("settings")} hint={t("money.settingsHint")} onPress={() => void openWeb("/supplier/settings")} />
             <LanguageRow />
-            <LinkRow icon="help" label="Help" hint="Chat with a person" onPress={() => router.push("/help")} />
+            <LinkRow icon="help" label={t("help")} hint={t("money.helpHint")} onPress={() => router.push("/help")} />
           </Card>
-          <LinkButton title="Log out" color={colors.danger} onPress={() => confirmSignOut()} />
+          <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
         </View>
       ) : null}
     </TabScreen>

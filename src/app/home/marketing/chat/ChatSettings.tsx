@@ -5,6 +5,8 @@ import { Card, CardHead } from "@/components/app-kit";
 import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Field, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
+import { useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 type ChatMode = "contact_form" | "whatsapp" | "messaging" | "multiple";
 
@@ -22,18 +24,19 @@ export interface ChatSettingsValue {
   greeting: string;
 }
 
-const MODES: { value: ChatMode; label: string; sub: string; icon: IconName }[] = [
-  { value: "contact_form", label: "Message form", sub: "Shoppers leave a message with their email or phone", icon: "mail" },
-  { value: "whatsapp", label: "WhatsApp", sub: "Shoppers chat with you on WhatsApp", icon: "whatsapp" },
-  { value: "messaging", label: "Live chat", sub: "A chat box on your store, answered from your inbox", icon: "chat" },
-  { value: "multiple", label: "WhatsApp and live chat", sub: "Both buttons, side by side", icon: "layers" },
+type Key = MessageKey<"marketing">;
+const MODES: { value: ChatMode; label: Key; sub: Key; icon: IconName }[] = [
+  { value: "contact_form", label: "chat.mode.form", sub: "chat.mode.formSub", icon: "mail" },
+  { value: "whatsapp", label: "chat.mode.whatsapp", sub: "chat.mode.whatsappSub", icon: "whatsapp" },
+  { value: "messaging", label: "chat.mode.live", sub: "chat.mode.liveSub", icon: "chat" },
+  { value: "multiple", label: "chat.mode.both", sub: "chat.mode.bothSub", icon: "layers" },
 ];
 
-const WIDGET_STYLES = [
-  { value: "bubble", label: "Floating bubble" },
-  { value: "bar", label: "Floating bar" },
-  { value: "drawer", label: "Contact drawer" },
-] as const;
+const WIDGET_STYLES: ReadonlyArray<{ value: string; label: Key }> = [
+  { value: "bubble", label: "chat.style.bubble" },
+  { value: "bar", label: "chat.style.bar" },
+  { value: "drawer", label: "chat.style.drawer" },
+];
 
 const WHATSAPP_PATH =
   "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z";
@@ -89,6 +92,7 @@ function Preview({ config }: { config: ChatSettingsValue }) {
 }
 
 export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
+  const t = useT("marketing");
   const [config, setConfig] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -120,10 +124,10 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
         }),
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error?.message ?? "Couldn't save your chat settings.");
-      setResult({ tone: "success", text: "Chat settings saved." });
+      if (!res.ok) throw new Error(json?.error?.message ?? t("chat.saveFailed"));
+      setResult({ tone: "success", text: t("chat.saved") });
     } catch (saveError) {
-      setResult({ tone: "error", text: saveError instanceof Error ? saveError.message : "Couldn't save your chat settings." });
+      setResult({ tone: "error", text: saveError instanceof Error ? saveError.message : t("chat.saveFailed") });
     } finally {
       setSaving(false);
     }
@@ -136,7 +140,7 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="grid min-w-0 content-start gap-5">
         <fieldset className="m-0 min-w-0 border-0 p-0">
-          <legend className="mb-3 p-0 text-[17px] font-extrabold">How shoppers reach you</legend>
+          <legend className="mb-3 p-0 text-[17px] font-extrabold">{t("chat.howReach")}</legend>
           <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
             {MODES.map((mode) => {
               const on = config.mode === mode.value;
@@ -150,8 +154,8 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
                 >
                   <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-[12px]", on ? "bg-app-ink text-white" : "bg-app-canvas")}><Icon name={mode.icon} size={18} /></span>
                   <span className="min-w-0">
-                    <span className="block text-[14.5px] font-extrabold">{mode.label}</span>
-                    <span className="block text-[12.5px] text-app-ink-soft">{mode.sub}</span>
+                    <span className="block text-[14.5px] font-extrabold">{t(mode.label)}</span>
+                    <span className="block text-[12.5px] text-app-ink-soft">{t(mode.sub)}</span>
                   </span>
                 </button>
               );
@@ -164,32 +168,32 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
             <CardHead title="WhatsApp" />
             <div className="mt-4 grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="WhatsApp number" htmlFor="wa-number" hint="Include the country code, like +234 for Nigeria.">
+                <Field label={t("chat.waNumber")} htmlFor="wa-number" hint={t("chat.waNumberHint")}>
                   <input id="wa-number" type="tel" value={config.whatsappNumber} onChange={(e) => set({ whatsappNumber: e.target.value })} className={inputClass} placeholder="+2348012345678" />
                 </Field>
-                <Field label="Button colour" htmlFor="wa-color-text">
+                <Field label={t("chat.buttonColour")} htmlFor="wa-color-text">
                   <div className="flex gap-2">
-                    <input type="color" aria-label="Pick button colour" value={config.whatsappColor} onChange={(e) => set({ whatsappColor: e.target.value })} className="h-[48px] w-[56px] shrink-0 cursor-pointer rounded-[14px] border border-app-line bg-white p-1" />
+                    <input type="color" aria-label={t("chat.pickColour")} value={config.whatsappColor} onChange={(e) => set({ whatsappColor: e.target.value })} className="h-[48px] w-[56px] shrink-0 cursor-pointer rounded-[14px] border border-app-line bg-white p-1" />
                     <input id="wa-color-text" value={config.whatsappColor} onChange={(e) => set({ whatsappColor: e.target.value })} className={`${inputClass} font-mono text-[14px]`} />
                   </div>
                 </Field>
               </div>
-              <Field label="Message we fill in for the shopper" htmlFor="wa-greeting" hint="Shoppers see this typed in WhatsApp when they tap the button.">
+              <Field label={t("chat.prefill")} htmlFor="wa-greeting" hint={t("chat.prefillHint")}>
                 <textarea id="wa-greeting" value={config.whatsappGreeting} onChange={(e) => set({ whatsappGreeting: e.target.value })} className={textareaClass} rows={2} maxLength={200} />
               </Field>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Button style" htmlFor="wa-style">
+                <Field label={t("chat.buttonStyle")} htmlFor="wa-style">
                   <select id="wa-style" value={config.widgetStyle} onChange={(e) => set({ widgetStyle: e.target.value as ChatSettingsValue["widgetStyle"] })} className={selectClass}>
-                    {WIDGET_STYLES.map((style) => <option key={style.value} value={style.value}>{style.label}</option>)}
+                    {WIDGET_STYLES.map((style) => <option key={style.value} value={style.value}>{t(style.label)}</option>)}
                   </select>
                 </Field>
                 <fieldset className="m-0 min-w-0 border-0 p-0">
-                  <legend className="mb-1.5 p-0 text-[13.5px] font-bold">Side of the screen</legend>
+                  <legend className="mb-1.5 p-0 text-[13.5px] font-bold">{t("chat.side")}</legend>
                   <div className="flex gap-2">
                     {(["left", "right"] as const).map((position) => (
                       <label key={position} className="flex min-h-[48px] flex-1 cursor-pointer items-center gap-2.5 rounded-[14px] border border-app-line px-3.5 text-[14px] has-[:checked]:border-app-ink">
                         <input type="radio" name="position" value={position} checked={config.whatsappPosition === position} onChange={() => set({ whatsappPosition: position })} className={checkClass} />
-                        {position === "left" ? "Left" : "Right"}
+                        {position === "left" ? t("chat.left") : t("chat.right")}
                       </label>
                     ))}
                   </div>
@@ -197,8 +201,8 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {([
-                  { key: "showOnMobile", label: "Show on phones" },
-                  { key: "showOnDesktop", label: "Show on computers" },
+                  { key: "showOnMobile", label: t("chat.showPhones") },
+                  { key: "showOnDesktop", label: t("chat.showComputers") },
                 ] as const).map(({ key, label }) => (
                   <div key={key} className="flex min-h-[52px] items-center justify-between gap-3 rounded-[14px] bg-app-canvas px-4">
                     <span className="text-[14px] font-semibold">{label}</span>
@@ -212,17 +216,17 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
 
         {showContact && (
           <Card className="p-5">
-            <CardHead title="Contact form" />
+            <CardHead title={t("chat.contactForm")} />
             <div className="mt-4 grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Contact email" htmlFor="cf-email" hint="Messages from the form are sent here.">
+                <Field label={t("chat.contactEmail")} htmlFor="cf-email" hint={t("chat.contactEmailHint")}>
                   <input id="cf-email" type="email" value={config.contactEmail} onChange={(e) => set({ contactEmail: e.target.value })} className={inputClass} placeholder="hello@yourbrand.com" />
                 </Field>
-                <Field label="Contact phone" htmlFor="cf-phone">
+                <Field label={t("chat.contactPhone")} htmlFor="cf-phone">
                   <input id="cf-phone" type="tel" value={config.contactPhone} onChange={(e) => set({ contactPhone: e.target.value })} className={inputClass} placeholder="+2348012345678" />
                 </Field>
               </div>
-              <Field label="Greeting" htmlFor="cf-greeting">
+              <Field label={t("chat.greeting")} htmlFor="cf-greeting">
                 <textarea id="cf-greeting" value={config.greeting} onChange={(e) => set({ greeting: e.target.value })} className={textareaClass} rows={2} maxLength={200} />
               </Field>
             </div>
@@ -230,17 +234,17 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <PillButton size="md" busy={saving} onClick={() => void save()}>Save chat settings</PillButton>
+          <PillButton size="md" busy={saving} onClick={() => void save()}>{t("chat.save")}</PillButton>
         </div>
         {result && <Notice tone={result.tone}>{result.text}</Notice>}
       </div>
 
       <aside className="min-w-0">
         <div className="xl:sticky xl:top-4">
-          <h2 className="m-0 mb-3 text-[17px] font-extrabold">Preview</h2>
+          <h2 className="m-0 mb-3 text-[17px] font-extrabold">{t("chat.preview")}</h2>
           <Card className="p-5">
             <Preview config={config} />
-            <p className="mb-0 mt-3 text-center text-[13px] text-app-ink-soft">How it looks on your store</p>
+            <p className="mb-0 mt-3 text-center text-[13px] text-app-ink-soft">{t("chat.howLooks")}</p>
           </Card>
         </div>
       </aside>

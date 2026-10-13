@@ -1,4 +1,4 @@
-// Phone app (apps/mobile): m_help.
+// Phone app (apps/mobile): the Help sheet, Help screen, chats with the team, Ask us and the setup request form.
 const en = {
   // Help sheet (components/Help.tsx)
   "sheet.title": "How can we help?",

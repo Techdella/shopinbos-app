@@ -62,11 +62,13 @@ export interface TemplateRow {
 
 export const fetchTemplates = () => api<{ saved: TemplateRow[]; library: TemplateRow[] }>("/api/app/marketing/templates");
 
-export function discountLabel(discount: Pick<DiscountRow, "type" | "value">, money: (n: number) => string) {
-  if (discount.type === "percentage") return `${discount.value}% off`;
-  if (discount.type === "fixed_amount") return `${money(discount.value)} off`;
-  if (discount.type === "free_shipping") return "Free delivery";
-  return "Buy X get Y";
+/** Pass the screen's `t` (with "m_marketing") for the words in the app language ("discount.*"). */
+export function discountLabel(discount: Pick<DiscountRow, "type" | "value">, money: (n: number) => string, t?: { dynamic(key: string, fallback?: string, vars?: Record<string, string | number>): string }) {
+  const say = (key: string, english: string, vars?: Record<string, string | number>) => (t ? t.dynamic(key, english, vars) : english);
+  if (discount.type === "percentage") return say("discount.percent", `${discount.value}% off`, { value: discount.value });
+  if (discount.type === "fixed_amount") return say("discount.amount", `${money(discount.value)} off`, { amount: money(discount.value) });
+  if (discount.type === "free_shipping") return say("discount.freeDelivery", "Free delivery");
+  return say("discount.bxgy", "Buy X get Y");
 }
 
 /** A code from the name and amount ("Weekend sale", 20 → "WEEKENDS20"): letters and digits, at most 12. */

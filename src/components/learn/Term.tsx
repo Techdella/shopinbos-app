@@ -23,7 +23,7 @@ const NAVY = "#0E2A38";
 const MINT = "#73D8C8";
 
 /** The tooltip body, shared with the sidebar's hover tips. */
-export function TermCard({ entry: source, onWatch, compact = false }: { entry: GlossaryEntry; onWatch?: () => void; compact?: boolean }) {
+export function TermCard({ entry: source, onWatch, compact = false, hideWatch = false }: { entry: GlossaryEntry; onWatch?: () => void; compact?: boolean; hideWatch?: boolean }) {
   // The meaning and example in the person's language (the word itself stays the standard one).
   const t = useT("learn");
   const entry = translateTerm(source, useT("glossary"));
@@ -36,7 +36,7 @@ export function TermCard({ entry: source, onWatch, compact = false }: { entry: G
       </div>
       <p className="m-0 mt-1 text-[13.5px] leading-[1.45]">{entry.short}</p>
       {!compact && <p className="m-0 mt-1.5 text-[12.5px] leading-[1.45] text-[rgba(244,241,234,0.7)]">{t("eg", { example: entry.example })}</p>}
-      {intro && (
+      {intro && !hideWatch && (
         <button
           type="button"
           onClick={() => {
