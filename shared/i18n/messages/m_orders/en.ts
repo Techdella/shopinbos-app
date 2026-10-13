@@ -114,6 +114,7 @@ const en = {
   "list.emptyTitle": "No orders yet",
   "list.recordSale": "Record a sale",
   "list.emptyBody": "When someone buys from your shop, the order shows here. Sold on WhatsApp or in person? Record the sale.",
+  "sale.note": "Note (optional)",
 } satisfies Record<string, string>;
 
 export default en;

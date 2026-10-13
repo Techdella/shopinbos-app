@@ -113,6 +113,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.emptyTitle": "Kò sí order síbẹ̀",
   "list.recordSale": "Kọ títà sílẹ̀",
   "list.emptyBody": "Nígbà tí ẹnìkan bá rà láti ṣọ́ọ̀bù rẹ, order náà yóò hàn níbí. Ṣé o tà lórí WhatsApp tàbí lójúkojú? Kọ títà náà sílẹ̀.",
+  "sale.note": "Àkọsílẹ̀ (bí o bá fẹ́)",
 };
 
 export default yo;

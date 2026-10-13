@@ -113,6 +113,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.emptyTitle": "No order yet",
   "list.recordSale": "Record sale",
   "list.emptyBody": "When person buy from your shop, the order go show here. You sell for WhatsApp or for hand? Record the sale.",
+  "sale.note": "Note (if you like)",
 };
 
 export default pcm;

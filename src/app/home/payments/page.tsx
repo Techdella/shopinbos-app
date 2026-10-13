@@ -4,7 +4,9 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Bars, ShareBar, formatDate } from "@/components/growth/kit";
-import { DEFAULT_PAYMENT_METHODS, naira, type PaymentMethodKey } from "@shared/onboarding";
+import { DEFAULT_PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
+import { formatDate as formatLocaleDate, formatMoney } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { readSavedPaymentMethods, readTransferWindowHours } from "@shared/checkout-payments";
 import { unpaidTransferTtlHours } from "@/lib/commerce/stock-holds";
@@ -12,7 +14,10 @@ import { BankCard, type PayoutBankSummary } from "./BankCard";
 import { PaymentMethods } from "./PaymentMethods";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Money" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("payments");
+  return { title: t("money.title") };
+}
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 const WAITING = ["pending", "awaiting_payment"] as const;
@@ -56,6 +61,9 @@ function readMethods(settings: Record<string, unknown>): Record<PaymentMethodKey
 
 export default async function SellerPaymentsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("payments", "orders", "common");
+  const locale = await getLocale();
+  const naira = (amount: number) => formatMoney(Math.round(amount), locale);
   const store = await db.store.findUnique({
     where: { userId: user.id },
     select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true },
@@ -95,13 +103,14 @@ export default async function SellerPaymentsPage() {
     if (byDay.has(key)) byDay.set(key, (byDay.get(key) ?? 0) + order.total);
   }
   const daily = days.map((key) => byDay.get(key) ?? 0);
-  const dayLabel = (key: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${key}T00:00:00Z`));
+  const dayLabel = (key: string) => formatLocaleDate(new Date(`${key}T12:00:00Z`), locale, { day: "numeric", month: "short" });
+  const methodLabel = (method: string | null) => (isOnline(method) ? t("money.online") : t.dynamic(`method.${method}`, PAYMENT_METHOD_LABEL[method!] ?? method!));
   const fortnight = daily.reduce((sum, value) => sum + value, 0);
 
   // How customers paid, last 30 days.
   const methodTotals = new Map<string, number>();
   for (const order of paid) {
-    const label = isOnline(order.paymentMethod) ? "Online checkout" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod!;
+    const label = methodLabel(order.paymentMethod);
     methodTotals.set(label, (methodTotals.get(label) ?? 0) + order.total);
   }
   const methods = [...methodTotals.entries()].sort((a, b) => b[1] - a[1]);
@@ -112,13 +121,13 @@ export default async function SellerPaymentsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Money"
-      sub="Shopinbos handles checkout. Here's what came in, what's still owed, and where your money goes."
+      title={t("money.title")}
+      sub={t("money.sub")}
       actions={
         <>
-          <PillLink href="/home/invoices" icon="document">Invoices</PillLink>
-          <PillLink href="/home/payouts" icon="bank">Payouts</PillLink>
-          <PillLink href="/home/orders/new" tone="accent" icon="plus">Record a sale</PillLink>
+          <PillLink href="/home/invoices" icon="document">{t("invoices")}</PillLink>
+          <PillLink href="/home/payouts" icon="bank">{t("payouts")}</PillLink>
+          <PillLink href="/home/orders/new" tone="accent" icon="plus">{t("recordSale")}</PillLink>
         </>
       }
     >
@@ -126,56 +135,56 @@ export default async function SellerPaymentsPage() {
         main={
           <>
             <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
-              <div className="text-[14px] text-app-ink-soft">Money in, last 30 days</div>
+              <div className="text-[14px] text-app-ink-soft">{t("money.in30")}</div>
               <div className="mt-2 break-words text-[40px] font-extrabold leading-none tracking-[-1px] sm:text-[48px]">{naira(moneyIn)}</div>
               <p className="mb-0 mt-3 max-w-[560px] text-[14.5px] leading-[1.5] text-app-ink-soft">
                 {paid.length
-                  ? `From ${paid.length} paid order${paid.length === 1 ? "" : "s"}. ${naira(online)} came through online checkout and ${naira(offline)} you collected yourself.`
-                  : "No paid orders in the last 30 days. Share your shop link to get the next one."}
+                  ? t("money.from", { count: paid.length, online: naira(online), offline: naira(offline) })
+                  : t("money.none")}
               </p>
             </Card>
 
             <StatGrid>
-              <StatTile tone="card" label="Online checkout" value={naira(online)} hint="Last 30 days" />
-              <StatTile tone="card" label="Collected yourself" value={naira(offline)} hint="Cash, transfer, POS" />
-              <StatTile tone="card" label="Waiting for payment" value={naira(waiting?._sum.total ?? 0)} hint={`${waiting?._count ?? 0} order${waiting?._count === 1 ? "" : "s"}`} />
-              <StatTile tone="card" label="Refunded" value={naira(refunded)} hint="Last 30 days" />
+              <StatTile tone="card" label={t("money.online")} value={naira(online)} hint={t("money.last30")} />
+              <StatTile tone="card" label={t("money.collected")} value={naira(offline)} hint={t("money.collectedHint")} />
+              <StatTile tone="card" label={t("money.waiting")} value={naira(waiting?._sum.total ?? 0)} hint={t("count.orders", { count: waiting?._count ?? 0 })} />
+              <StatTile tone="card" label={t("money.refunded")} value={naira(refunded)} hint={t("money.last30")} />
             </StatGrid>
 
             <Card className="p-5">
-              <CardHead title="Money in, last 14 days" sub={`${naira(fortnight)} in total`} />
+              <CardHead title={t("money.in14")} sub={t("money.inTotal", { amount: naira(fortnight) })} />
               <div className="mt-5">
                 <Bars
                   values={daily}
-                  labels={days.map((key, index) => (index === days.length - 1 ? "Today" : index % 7 === 0 ? dayLabel(key) : ""))}
+                  labels={days.map((key, index) => (index === days.length - 1 ? t("time.today") : index % 7 === 0 ? dayLabel(key) : ""))}
                   format={naira}
                   recent={7}
-                  summary={`Money from paid orders for each of the last 14 days. ${naira(fortnight)} in total.`}
+                  summary={t("money.chartSummary", { amount: naira(fortnight) })}
                 />
               </div>
             </Card>
 
             <section>
               <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h2 className="m-0 text-[17px] font-extrabold">Latest payments</h2>
-                <TextLink href="/home/orders">All orders</TextLink>
+                <h2 className="m-0 text-[17px] font-extrabold">{t("money.latest")}</h2>
+                <TextLink href="/home/orders">{t("money.allOrders")}</TextLink>
               </div>
               {latestPaid.length ? (
                 <ListCard>
                   {latestPaid.map((order) => (
                     <ListRow key={order.id} href={`/home/orders/${order.id}`}>
                       <span className="min-w-0 flex-1 basis-full sm:basis-auto">
-                        <span className="block truncate text-[14.5px] font-extrabold">{order.buyerName || "Customer"}</span>
-                        <span className="block truncate text-[13px] text-app-ink-soft">{order.orderNumber} · {formatDate(order.createdAt)}</span>
+                        <span className="block truncate text-[14.5px] font-extrabold">{order.buyerName || t("money.customer")}</span>
+                        <span className="block truncate text-[13px] text-app-ink-soft">{order.orderNumber} · {formatDate(order.createdAt, false, locale)}</span>
                       </span>
-                      <span className="text-[13px] text-app-ink-soft sm:w-[140px]">{isOnline(order.paymentMethod) ? "Online checkout" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod}</span>
-                      <Pill tone="success">Paid</Pill>
+                      <span className="text-[13px] text-app-ink-soft sm:w-[140px]">{methodLabel(order.paymentMethod)}</span>
+                      <Pill tone="success">{t("money.paid")}</Pill>
                       <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{naira(order.total)}</span>
                     </ListRow>
                   ))}
                 </ListCard>
               ) : (
-                <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">Paid orders show up here.</Card>
+                <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">{t("money.latestEmpty")}</Card>
               )}
             </section>
           </>
@@ -184,7 +193,7 @@ export default async function SellerPaymentsPage() {
           <>
             <BankCard bank={bank} />
             <Card className="p-5">
-              <CardHead title="How customers paid" sub="Last 30 days" />
+              <CardHead title={t("money.how")} sub={t("money.last30")} />
               {methods.length ? (
                 <div className="mt-4 grid gap-3.5">
                   {methods.map(([label, total], index) => (
@@ -192,12 +201,12 @@ export default async function SellerPaymentsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Shows up after your first paid order.</p>
+                <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{t("money.howEmpty")}</p>
               )}
             </Card>
             <PaymentMethods initial={readMethods(settings)} transferWindow={{ hours: readTransferWindowHours(settings), defaultHours: unpaidTransferTtlHours(process.env.UNPAID_TRANSFER_TTL_HOURS) }} />
             <AssistantNote>
-              Online payments go through Paystack checkout and are paid out to your payout bank. Cash, transfers and POS you record yourself never pass through Shopinbos.
+              {t("money.note")}
             </AssistantNote>
           </>
         }

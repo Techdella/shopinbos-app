@@ -33,8 +33,11 @@ test("seller tab bar: exactly Home, Orders, Chats, My shop, with the + in the mi
 
 test("the + sheet: Add a product, Record a sale, Get more customers, Share my shop", () => {
   const sheet = read("components/CreateSheet.tsx");
-  assert.match(sheet, /CREATE_ACTIONS = \["Add a product", "Record a sale", "Get more customers", "Share my shop"\] as const/);
-  for (const index of [0, 1, 2, 3]) assert.match(sheet, new RegExp(`title=\\{CREATE_ACTIONS\\[${index}\\]\\}`));
+  // The four titles are m_home catalog keys, shown in the app language.
+  assert.match(sheet, /CREATE_ACTIONS = \["create\.addProduct", "create\.recordSale", "create\.customers", "create\.share"\] as const/);
+  const words = readFileSync(join(root, "../../../shared/i18n/messages/m_home/en.ts"), "utf8");
+  for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["customers", "Get more customers"], ["share", "Share my shop"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
+  for (const index of [0, 1, 2, 3]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
   for (const path of ["/add-products", "/record-sale", "/marketing"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
   assert.match(sheet, /shareShop\(\)/);
 });
@@ -89,8 +92,11 @@ test("supplier app: tabs Home, Orders, Products, Money; orders New, To pack, Sen
 test("every screen frame has Help, and Help offers a person and Peggy", () => {
   for (const frame of ["components/Screen.tsx", "components/TabScreen.tsx", "components/ChatScreen.tsx", "components/OnboardingFrame.tsx"]) assert.match(read(frame), /<HelpButton \/>/, frame);
   const help = read("components/Help.tsx");
-  assert.match(help, /Chat with a person on WhatsApp/);
-  assert.match(help, /title="Ask Peggy"/);
+  assert.match(help, /t\("sheet\.personWhatsApp"\)/);
+  assert.match(help, /title=\{t\("sheet\.askPeggy"\)\}/);
+  const helpWords = readFileSync(join(root, "../../../shared/i18n/messages/m_help/en.ts"), "utf8");
+  assert.match(helpWords, /"sheet\.personWhatsApp": "Chat with a person on WhatsApp"/);
+  assert.match(helpWords, /"sheet\.askPeggy": "Ask Peggy"/);
   assert.match(read("lib/support.ts"), /TODO: set EXPO_PUBLIC_SUPPORT_WHATSAPP/);
   for (const screen of ["app/(tabs)/home.tsx", "app/(tabs)/shop.tsx", "app/add-products.tsx", "app/peggy.tsx", "app/supplier/(tabs)/home.tsx", "app/supplier/(tabs)/money.tsx"]) {
     assert.match(read(screen), /HelpButton|<Screen\b|<TabScreen\b/, screen);

@@ -59,6 +59,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   share: "Pín ṣọ́ọ̀bù mi",
   see: "Wo ṣọ́ọ̀bù mi",
   finish: "Parí ìṣètò",
+  shareMessage: "Ra ọjà lọ́dọ̀ {name}: {url}",
 };
 
 export default yo;

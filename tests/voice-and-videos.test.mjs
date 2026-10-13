@@ -310,8 +310,11 @@ test("Help offers 'Watch a 1-minute video' on web and mobile, and hides it when 
   assert.match(read("src/components/shell/SupportChatModal.tsx"), /<HelpVideosSection role=\{role\} \/>/);
   const mobile = read("apps/mobile/src/components/Help.tsx");
   assert.match(mobile, /videos\?\.current \?/);
-  assert.match(mobile, /Watch a 1-minute video/);
-  assert.match(mobile, /All videos/);
+  assert.match(mobile, /t\("sheet\.watchVideo"\)/);
+  assert.match(mobile, /t\("sheet\.allVideos"/);
+  const mobileWords = read("shared/i18n/messages/m_help/en.ts");
+  assert.match(mobileWords, /Watch a 1-minute video/);
+  assert.match(mobileWords, /All videos/);
   assert.match(mobile, /WebBrowser\.openBrowserAsync\(video\.source\.watchUrl\)/);
   assert.match(read("apps/mobile/src/components/HelpVideoPlayer.tsx"), /useVideoPlayer\(/);
   const config = read("next.config.ts");

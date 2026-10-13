@@ -59,6 +59,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   share: "Raba shagona",
   see: "Duba shagona",
   finish: "Gama saitawa",
+  shareMessage: "Yi siyayya a {name}: {url}",
 };
 
 export default ha;

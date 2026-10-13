@@ -7,11 +7,13 @@ import { CopyField } from "../_components/CopyField";
 import { ShareReview } from "../_components/ShareReview";
 import { WidgetPreview } from "../_components/WidgetPreview";
 import { ReviewTabs, SourcePill, Stars, reviewsContext } from "../_components/shared";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShareReviewsPage() {
   const { user, store } = await reviewsContext();
+  const t = await getT("reviews");
   const published = publicReviews(await loadReviews(store.id, { approvedOnly: true, take: 500 }));
   const summary = summarizeReviews(published);
   const urls = reviewUrls(store.slug);
@@ -23,9 +25,9 @@ export default async function ShareReviewsPage() {
   return (
     <AppPage
       frame={sellerFrame(user, store)}
-      title="Share reviews"
-      sub="Show what customers say on your store, your social pages and any other website."
-      actions={<PillLink href={urls.wall} icon="globe">Open reviews wall</PillLink>}
+      title={t("shareP.title")}
+      sub={t("shareP.sub")}
+      actions={<PillLink href={urls.wall} icon="globe">{t("shareP.openWall")}</PillLink>}
     >
       <ReviewTabs active="/home/reviews/share" />
       <SplitLayout
@@ -33,24 +35,24 @@ export default async function ShareReviewsPage() {
         main={
           <>
             <Card className="p-5 sm:p-6">
-              <CardHead title="Your reviews wall" sub={`${summary.count} published reviews · featured ones first`} />
+              <CardHead title={t("shareP.wall")} sub={t("shareP.wallSub", { count: summary.count })} />
               <div className="mt-4 grid gap-4">
-                <CopyField label="Reviews wall link" value={urls.wall} />
+                <CopyField label={t("shareP.wallLink")} value={urls.wall} />
                 <div id="wall-card" className="rounded-[18px] border border-app-line bg-white p-5">
-                  <div className="text-[13px] text-app-ink-soft">What customers say about</div>
+                  <div className="text-[13px] text-app-ink-soft">{t("shareP.whatSay")}</div>
                   <div className="text-[20px] font-extrabold">{store.name}</div>
                   <div className="mt-2 flex items-baseline gap-2">
                     <span className="text-[40px] font-extrabold leading-none">{summary.rated ? summary.average.toFixed(1) : "–"}</span>
                     <Stars rating={summary.rated ? Math.round(summary.average) : null} size={18} />
                   </div>
-                  <div className="mt-1 text-[13px] text-app-ink-soft">{summary.count} {summary.count === 1 ? "review" : "reviews"}</div>
+                  <div className="mt-1 text-[13px] text-app-ink-soft">{t("shareP.reviews", { count: summary.count })}</div>
                 </div>
                 <ShareReview cardId="wall-card" text={wallText} url={urls.wall} links={shareLinks(urls.wall, wallText)} />
               </div>
             </Card>
 
             <Card className="p-5 sm:p-6">
-              <CardHead title={showcase.length ? "Featured reviews" : "Good reviews to share"} sub={showcase.length ? "Share each one as an image card." : "Feature reviews from a review's page to choose what shows first."} />
+              <CardHead title={showcase.length ? t("shareP.featured") : t("shareP.good")} sub={showcase.length ? t("shareP.featuredSub") : t("shareP.goodSub")} />
               {picks.length ? (
                 <ul className="m-0 mt-4 grid list-none gap-4 p-0 2xl:grid-cols-2">
                   {picks.map((item) => {
@@ -71,7 +73,7 @@ export default async function ShareReviewsPage() {
                   })}
                 </ul>
               ) : (
-                <div className="mt-4"><EmptyState icon="star" title="Nothing to share yet" action={<PillLink href="/home/reviews/request" tone="accent">Ask for reviews</PillLink>}>Published reviews show up here once customers leave them.</EmptyState></div>
+                <div className="mt-4"><EmptyState icon="star" title={t("shareP.nothing")} action={<PillLink href="/home/reviews/request" tone="accent">{t("tabs.ask")}</PillLink>}>{t("shareP.nothingBody")}</EmptyState></div>
               )}
             </Card>
           </>
@@ -79,19 +81,19 @@ export default async function ShareReviewsPage() {
         side={
           <>
             <Card className="p-5">
-              <CardHead title="Reviews widget" sub="Paste this on any website (Wix, WordPress, Shopify, your blog) where the reviews should appear." />
+              <CardHead title={t("shareP.widget")} sub={t("shareP.widgetSub")} />
               <div className="mt-3 grid gap-3">
-                <CopyField label="Embed code" value={snippet} multiline />
-                <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">Shows your average and up to 6 reviews (add ?limit=12 to the link for more). It updates on its own when you publish or hide reviews.</p>
+                <CopyField label={t("shareP.embed")} value={snippet} multiline />
+                <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">{t("shareP.widgetNote")}</p>
                 <div className="rounded-[18px] bg-app-canvas p-3">
-                  <div className="mb-2 text-[12.5px] font-bold text-app-ink-soft">Preview</div>
+                  <div className="mb-2 text-[12.5px] font-bold text-app-ink-soft">{t("shareP.preview")}</div>
                   <WidgetPreview src={urls.widget} />
                 </div>
               </div>
             </Card>
             <Card className="p-5">
-              <CardHead title="Product pages" />
-              <p className="m-0 mt-2 text-[13.5px] leading-[1.55]">Each product page shows its published store reviews with a form for buyers to write one (they confirm their order number and email). Pages also carry review stars for Google search results.</p>
+              <CardHead title={t("shareP.productPages")} />
+              <p className="m-0 mt-2 text-[13.5px] leading-[1.55]">{t("shareP.productPagesBody")}</p>
             </Card>
           </>
         }

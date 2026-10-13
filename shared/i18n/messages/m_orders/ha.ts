@@ -113,6 +113,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.emptyTitle": "Babu order tukuna",
   "list.recordSale": "Rubuta ciniki",
   "list.emptyBody": "Idan wani ya saya daga shagonka, order zai bayyana a nan. Ka sayar a WhatsApp ko ido da ido? Rubuta cinikin.",
+  "sale.note": "Bayani (ba dole ba)",
 };
 
 export default ha;

@@ -59,6 +59,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   share: "Share my shop",
   see: "See my shop",
   finish: "Finish to set up",
+  shareMessage: "Buy from {name}: {url}",
 };
 
 export default pcm;

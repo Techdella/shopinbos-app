@@ -20,6 +20,20 @@ import rider from "./messages/rider/index.ts";
 import m_supplier from "./messages/m_supplier/index.ts";
 import m_partner from "./messages/m_partner/index.ts";
 import m_rider from "./messages/m_rider/index.ts";
+import m_ui from "./messages/m_ui/index.ts";
+import m_home from "./messages/m_home/index.ts";
+import m_orders from "./messages/m_orders/index.ts";
+import m_products from "./messages/m_products/index.ts";
+import m_find from "./messages/m_find/index.ts";
+import m_shop from "./messages/m_shop/index.ts";
+import m_marketing from "./messages/m_marketing/index.ts";
+import m_chats from "./messages/m_chats/index.ts";
+import m_onboarding from "./messages/m_onboarding/index.ts";
+import m_auth from "./messages/m_auth/index.ts";
+import m_notifications from "./messages/m_notifications/index.ts";
+import m_help from "./messages/m_help/index.ts";
+import m_reviews from "./messages/m_reviews/index.ts";
+import m_rex from "./messages/m_rex/index.ts";
 import verification from "./messages/verification/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
@@ -35,6 +49,8 @@ import discounts from "./messages/discounts/index.ts";
 import peggy from "./messages/peggy/index.ts";
 import rex from "./messages/rex/index.ts";
 import auth from "./messages/auth/index.ts";
+import payments from "./messages/payments/index.ts";
+import customers from "./messages/customers/index.ts";
 import products from "./messages/products/index.ts";
 import orders from "./messages/orders/index.ts";
 import home from "./messages/home/index.ts";
@@ -60,6 +76,20 @@ export const CATALOGS = {
   m_supplier,
   m_partner,
   m_rider,
+  m_ui,
+  m_home,
+  m_orders,
+  m_products,
+  m_find,
+  m_shop,
+  m_marketing,
+  m_chats,
+  m_onboarding,
+  m_auth,
+  m_notifications,
+  m_help,
+  m_reviews,
+  m_rex,
   verification,
   marketing,
   emailBuilder,
@@ -75,6 +105,8 @@ export const CATALOGS = {
   peggy,
   rex,
   auth,
+  payments,
+  customers,
   products,
   orders,
   home,

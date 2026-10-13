@@ -113,6 +113,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.emptyTitle": "Enweghị order ka ugbu a",
   "list.recordSale": "Dekọọ ahịa",
   "list.emptyBody": "Mgbe mmadụ zụtara n'ụlọ ahịa gị, order ahụ ga-apụta ebe a. I rere na WhatsApp ma ọ bụ ihu na ihu? Dekọọ ahịa ahụ.",
+  "sale.note": "Ndetu (ọ bụrụ na ịchọrọ)",
 };
 
 export default ig;

@@ -59,6 +59,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   share: "Kesaa ụlọ ahịa m",
   see: "Hụ ụlọ ahịa m",
   finish: "Mechaa ịhazi",
+  shareMessage: "Zụta ahịa n'aka {name}: {url}",
 };
 
 export default ig;

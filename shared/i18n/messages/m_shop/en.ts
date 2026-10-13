@@ -60,6 +60,7 @@ const en = {
   share: "Share my shop",
   see: "See my shop",
   finish: "Finish setting up",
+  shareMessage: "Shop with {name}: {url}",
 } satisfies Record<string, string>;
 
 export default en;

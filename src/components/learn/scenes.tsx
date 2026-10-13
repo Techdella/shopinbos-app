@@ -40,6 +40,7 @@ export const INTRO_CSS = `
 .fi-stage .fi-fly { transform: translate(var(--dx), var(--dy)); animation-name: fi-fly; animation-duration: 1s; }
 .fi-stage .fi-lit { animation-name: fi-lit; animation-duration: .5s; }
 .fi-stage .fi-float, .fi-stage .fi-pulse, .fi-stage .fi-ring { transform-box: fill-box; transform-origin: center; }
+.fi-stage .fi-swing { transform-box: fill-box; transform-origin: 50% 0; animation: fi-swing 2.6s ease-in-out infinite; }
 .fi-stage .fi-float { animation: fi-float 3s ease-in-out infinite; }
 .fi-stage .fi-pulse { animation: fi-pulse 1.8s ease-in-out infinite; }
 .fi-stage .fi-ring { opacity: 0; animation: fi-ring 2s ease-out infinite; }
@@ -62,6 +63,7 @@ export const INTRO_CSS = `
 @keyframes fi-loop { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
 @keyframes fi-ride { 0% { offset-distance: 0%; } 80%, 100% { offset-distance: 100%; } }
 @keyframes fi-blink { 50% { opacity: 0; } }
+@keyframes fi-swing { 0%, 55%, 100% { transform: rotate(0); } 8% { transform: rotate(14deg); } 18% { transform: rotate(-11deg); } 28% { transform: rotate(7deg); } 38% { transform: rotate(-4deg); } }
 @keyframes fi-cycle { 0%, 28% { opacity: 1; } 33%, 95% { opacity: 0; } 100% { opacity: 1; } }
 .fi-stage[data-paused="true"] *, .fi-stage[data-paused="true"] *::before { animation-play-state: paused !important; }
 .fi-stage[data-still="true"] * { animation: none !important; }
@@ -700,6 +702,706 @@ function ThemeSwap({ scene }: SceneProps) {
   );
 }
 
+// ─── Scenes for orders, money, customers, brand and partners ───
+
+/** Wraps an element whose own transform is animated, so a positioning transform isn't overwritten. */
+function At({ x = 0, y = 0, rotate, children }: { x?: number; y?: number; rotate?: number; children: ReactNode }) {
+  return <g transform={`translate(${x} ${y})${rotate ? ` rotate(${rotate})` : ""}`}>{children}</g>;
+}
+
+/** Slides in from (dx, dy) while fading in. */
+function slide(delay: number, dx: number, dy: number, extra?: CSSProperties) {
+  return a("move", delay, { ...v(dx, dy), animationName: "fi-move, fi-fade", ...extra });
+}
+
+function starPath(cx: number, cy: number, r: number) {
+  const points = Array.from({ length: 10 }, (_, i) => {
+    const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+    const radius = i % 2 ? r * 0.45 : r;
+    return `${(cx + Math.cos(angle) * radius).toFixed(1)} ${(cy + Math.sin(angle) * radius).toFixed(1)}`;
+  });
+  return `M${points.join(" L")} Z`;
+}
+
+function Check({ x, y, size = 1, color = C.navy }: { x: number; y: number; size?: number; color?: string }) {
+  return <path d={`M${x - 6 * size} ${y} l${4 * size} ${4 * size} l${8 * size} ${-9 * size}`} fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />;
+}
+
+/** Chip width, the same sum <Chip> uses. */
+const chipWidth = (text: string, size = 11) => Math.max(34, text.length * size * 0.58 + 20);
+
+/** Channel or tag colour for a chip: WhatsApp green, Instagram plum, and so on. */
+function chipColor(text: string, i: number) {
+  if (/whatsapp/i.test(text)) return C.whatsapp;
+  if (/insta|reels/i.test(text)) return C.plum;
+  if (/live/i.test(text)) return C.mint;
+  if (/form/i.test(text)) return C.amber;
+  if (/tiktok/i.test(text)) return C.coral;
+  return [C.mint, C.amber, C.coral, C.plum, C.mintSoft][i % 5]!;
+}
+
+const STATUSES = ["New", "Paid", "Packed", "On the way", "Delivered"];
+
+function OrderPipeline({ scene }: SceneProps) {
+  const steps = (scene.chips?.length ? scene.chips : STATUSES).slice(0, 5);
+  const n = steps.length;
+  const x = (i: number) => (n === 1 ? 180 : 44 + (272 / (n - 1)) * i);
+  const y = 122;
+  const gap = 0.75;
+  const run = Math.max(0.1, (n - 1) * gap);
+  return (
+    <g>
+      <line x1={x(0)} y1={y} x2={x(n - 1)} y2={y} stroke={C.panel} strokeWidth={8} strokeLinecap="round" />
+      <line {...a("draw", 0.6, { animationDuration: `${run}s`, animationTimingFunction: "linear" })} pathLength={1} x1={x(0)} y1={y} x2={x(n - 1)} y2={y} stroke={C.mint} strokeWidth={4} strokeDasharray="1" strokeLinecap="round" />
+      {steps.map((step, i) => {
+        const delay = 0.6 + i * gap;
+        const last = i === n - 1;
+        return (
+          <g key={`${step}-${i}`}>
+            <circle cx={x(i)} cy={y} r={15} fill={C.panel} stroke={C.line} strokeWidth={2} />
+            <circle {...a("pop", delay)} cx={x(i)} cy={y} r={15} fill={last ? C.mint : C.teal} stroke={C.mint} strokeWidth={2} />
+            <g {...a("fade", delay + 0.2)}>
+              <Check x={x(i)} y={y} color={last ? C.navy : C.cream} />
+            </g>
+            <text x={x(i)} y={y + 36} fill={C.mintSoft} opacity={0.45} fontSize={10.5} fontWeight={800} fontFamily={FONT} textAnchor="middle">{step}</text>
+            <text {...a("fade", delay)} x={x(i)} y={y + 36} fill={last ? C.mint : C.cream} fontSize={10.5} fontWeight={800} fontFamily={FONT} textAnchor="middle">{step}</text>
+          </g>
+        );
+      })}
+      <circle className="fi-ring" style={{ animationDelay: `${0.6 + run}s` }} cx={x(n - 1)} cy={y} r={18} fill="none" stroke={C.mint} strokeWidth={2} />
+      <At x={x(n - 1)} y={y - 44}>
+        <g {...a("move", 0.6, { ...v(x(0) - x(n - 1), 0), animationDuration: `${run}s`, animationTimingFunction: "linear" })}>
+          <rect x={-14} y={-12} width={28} height={24} rx={4} fill={C.amber} />
+          <path d="M-14 -4 H14 M0 -12 V-4" stroke={C.navy} strokeWidth={2} />
+          <path d="M-5 16 L0 22 L5 16 Z" fill={C.amber} />
+        </g>
+      </At>
+      {scene.label && <Chip x={180} y={28} text={scene.label} fill={C.cream} color={C.navy} delay={0.2} kind="pop" />}
+    </g>
+  );
+}
+
+function Receipt({ scene, paused, still }: SceneProps) {
+  const t = useT("ui");
+  const lines = (scene.chips ?? []).slice(0, 3);
+  const left = 112;
+  const w = 136;
+  const top = 18;
+  const bottom = 206;
+  const teeth = 10;
+  const zig = Array.from({ length: teeth + 1 }, (_, i) => `L${(left + w - (i * w) / teeth).toFixed(1)} ${i % 2 ? bottom - 6 : bottom}`).join(" ");
+  const rows = Math.max(2, lines.length);
+  const rule = top + 70 + rows * 20;
+  return (
+    <g>
+      <rect x={left - 12} y={top - 8} width={w + 24} height={10} rx={5} fill={C.line} />
+      <g {...a("rise", 0.1)}>
+        <path d={`M${left} ${top} H${left + w} V${bottom} ${zig} Z`} fill={C.cream} />
+        <circle cx={left + w / 2} cy={top + 22} r={10} fill={C.teal} />
+        <text x={left + w / 2} y={top + 48} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT} textAnchor="middle">{(scene.label ?? "Receipt").slice(0, 20)}</text>
+        <line x1={left + 10} y1={top + 58} x2={left + w - 10} y2={top + 58} stroke={C.navy} strokeOpacity={0.3} strokeDasharray="3 4" />
+      </g>
+      {Array.from({ length: rows }, (_, i) => (
+        <g key={i} {...a("rise", 0.7 + i * 0.4)}>
+          {lines[i] ? (
+            <text x={left + 12} y={top + 78 + i * 20} fill={C.navy} fontSize={9.5} fontWeight={600} fontFamily={MONO}>{lines[i]!.slice(0, 21)}</text>
+          ) : (
+            <>
+              <rect x={left + 12} y={top + 72 + i * 20} width={70} height={5} rx={2.5} fill="#C9C6D3" />
+              <rect x={left + w - 44} y={top + 72 + i * 20} width={32} height={5} rx={2.5} fill="#C9C6D3" />
+            </>
+          )}
+        </g>
+      ))}
+      <line {...a("fade", 0.8 + rows * 0.4)} x1={left + 10} y1={rule} x2={left + w - 10} y2={rule} stroke={C.navy} strokeOpacity={0.3} strokeDasharray="3 4" />
+      {scene.value && (
+        <g {...a("rise", 1 + rows * 0.4)}>
+          <rect x={left + 12} y={rule + 12} width={26} height={6} rx={3} fill={C.navy} opacity={0.5} />
+          <Counter value={scene.value} x={left + w - 12} y={rule + 22} size={16} delayMs={1200 + rows * 400} paused={paused} still={still} anchor="end" color={C.navy} />
+        </g>
+      )}
+      <At x={left + w / 2 + 6} y={bottom - 34} rotate={-12}>
+        <g {...a("pop", 2.4 + rows * 0.2)}>
+          <rect x={-40} y={-14} width={80} height={28} rx={6} fill="rgba(46,126,120,0.08)" stroke={C.teal} strokeWidth={2.5} />
+          <text y={5} fill={C.teal} fontSize={13} fontWeight={800} fontFamily={MONO} textAnchor="middle" letterSpacing={2}>{t("scene.paid")}</text>
+        </g>
+      </At>
+      <g className="fi-float">
+        <rect {...a("pop", 1)} x={34} y={70} width={48} height={28} rx={4} fill={C.whatsapp} />
+        <circle {...a("pop", 1.1)} cx={58} cy={84} r={7} fill={C.deep} opacity={0.35} />
+      </g>
+      <g className="fi-float" style={{ animationDelay: "0.8s" }}>
+        <rect {...a("pop", 1.3)} x={34} y={122} width={48} height={32} rx={6} fill={C.plum} />
+        <rect {...a("pop", 1.4)} x={34} y={130} width={48} height={6} fill={C.navy} opacity={0.5} />
+      </g>
+      <g {...a("pop", 2)}>
+        <circle cx={300} cy={72} r={16} fill={C.mint} />
+        <Check x={301} y={72} />
+      </g>
+      <circle className="fi-ring" style={{ animationDelay: "2.2s" }} cx={300} cy={72} r={16} fill="none" stroke={C.mint} strokeWidth={2} />
+      {[0, 1, 2].map((i) => <circle key={i} {...a("pop", 2.4 + i * 0.15)} cx={292 + i * 10} cy={150 - i * 8} r={9} fill={C.amber} stroke={C.navy} strokeWidth={2} />)}
+    </g>
+  );
+}
+
+function InvoicePaper({ scene, paused, still }: SceneProps) {
+  const chips = scene.chips ?? [];
+  const stamp = chips.find((chip) => /✓|paid/i.test(chip));
+  const pills = chips.filter((chip) => chip !== stamp).slice(0, 2);
+  const left = 92;
+  const top = 12;
+  const w = 168;
+  const h = 196;
+  const rows = scene.value ? 4 : 6;
+  return (
+    <g>
+      <g {...a("rise", 0.1)}>
+        <rect x={left + 6} y={top + 6} width={w} height={h} rx={10} fill={C.panel} />
+        <rect x={left} y={top} width={w} height={h} rx={10} fill={C.cream} />
+        <rect x={left} y={top} width={w} height={6} rx={3} fill={C.teal} />
+        <circle cx={left + 24} cy={top + 30} r={10} fill={C.teal} />
+        <text x={left + 40} y={top + 34} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={MONO}>{(scene.label ?? "INVOICE").slice(0, 16)}</text>
+        <rect x={left + 16} y={top + 50} width={w - 32} height={2} fill="#E8E2D5" />
+      </g>
+      {Array.from({ length: rows }, (_, i) => (
+        <g key={i}>
+          <rect {...a("growx", 0.5 + i * 0.2)} x={left + 16} y={top + 64 + i * 16} width={[86, 64, 78, 52, 90, 70][i]} height={6} rx={3} fill="#D9D3C4" />
+          {scene.value && <rect {...a("fade", 0.7 + i * 0.2)} x={left + w - 52} y={top + 64 + i * 16} width={36} height={6} rx={3} fill="#C9C6D3" />}
+        </g>
+      ))}
+      {scene.value && (
+        <g {...a("rise", 1.6)}>
+          <rect x={left + 16} y={top + 140} width={w - 32} height={2} fill={C.navy} opacity={0.2} />
+          <rect x={left + 16} y={top + 160} width={30} height={7} rx={3.5} fill={C.teal} />
+          <Counter value={scene.value} x={left + w - 16} y={top + 170} size={17} delayMs={1800} paused={paused} still={still} anchor="end" color={C.navy} />
+        </g>
+      )}
+      {pills.map((pill, i) => (
+        <Chip key={pill} x={Math.max(left + w + 8 + chipWidth(pill) / 2, 312)} y={64 + i * 32} text={pill} fill={C.amber} color={C.navy} delay={1.4 + i * 0.3} kind="pop" />
+      ))}
+      {stamp && (
+        <At x={left + w / 2} y={top + 108} rotate={-12}>
+          <g {...a("pop", 2.6)}>
+            <rect x={-54} y={-18} width={108} height={36} rx={8} fill="rgba(46,126,120,0.1)" stroke={C.teal} strokeWidth={3} />
+            <text y={6} fill={C.teal} fontSize={15} fontWeight={800} fontFamily={MONO} textAnchor="middle" letterSpacing={1.5}>{stamp.toUpperCase().slice(0, 10)}</text>
+          </g>
+        </At>
+      )}
+      <g className="fi-float">
+        <path {...a("pop", 1)} d="M34 112 L74 94 L62 132 L54 118 Z" fill={C.mint} />
+        <path {...a("fade", 1.2)} d="M54 118 L74 94" stroke={C.navy} strokeWidth={1.5} />
+      </g>
+    </g>
+  );
+}
+
+function StarReviews({ scene }: SceneProps) {
+  const value = scene.value ?? "4.8";
+  const rating = Math.min(5, Math.max(0, Number.parseFloat(value) || 5));
+  const full = Math.round(rating);
+  return (
+    <g>
+      <g {...a("pop", 0.1)}>
+        <rect x={20} y={38} width={124} height={144} rx={20} fill={C.panel} stroke={C.line} strokeWidth={2} />
+        <text x={82} y={102} fill={C.cream} fontSize={40} fontWeight={800} fontFamily={FONT} textAnchor="middle">{value}</text>
+      </g>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <g key={i}>
+          <path d={starPath(42 + i * 20, 128, 8.5)} fill={C.line} />
+          {i < full && <path {...a("pop", 0.6 + i * 0.18)} d={starPath(42 + i * 20, 128, 8.5)} fill={C.amber} />}
+        </g>
+      ))}
+      <rect {...a("growx", 1.6)} x={42} y={152} width={80} height={6} rx={3} fill={C.line} />
+      {[0, 1, 2].map((i) => {
+        const top = 22 + i * 62;
+        return (
+          <g key={i} {...slide(1 + i * 0.55, 60, 0)}>
+            <rect x={160} y={top} width={184} height={52} rx={14} fill={i === 0 ? C.cream : C.panel} />
+            <circle cx={180} cy={top + 18} r={9} fill={[C.mint, C.amber, C.plum][i]} />
+            {[0, 1, 2, 3, 4].map((k) => <path key={k} d={starPath(198 + k * 12, top + 18, 5)} fill={i === 2 && k === 4 ? C.line : C.amber} />)}
+            {i === 0 && scene.label ? (
+              <text x={174} y={top + 40} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT}>“{scene.label.slice(0, 24)}”</text>
+            ) : (
+              <rect x={174} y={top + 34} width={[120, 96, 110][i]} height={5} rx={2.5} fill={i === 0 ? "#C9C6D3" : C.line} />
+            )}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function CustomerCards({ scene, paused, still }: SceneProps) {
+  const name = scene.label ?? "Customer";
+  const initials = name.split(/\s+/).map((word) => word[0] ?? "").join("").slice(0, 2).toUpperCase();
+  const chips = (scene.chips ?? []).slice(0, 3);
+  let cursor = 88;
+  const tags = chips.map((chip) => {
+    const x = cursor;
+    cursor += chipWidth(chip, 10) + 6;
+    return { chip, x };
+  });
+  return (
+    <g>
+      <rect {...a("fade", 0.1)} x={96} y={20} width={190} height={150} rx={18} fill={C.line} />
+      <rect {...a("fade", 0.2)} x={84} y={32} width={190} height={150} rx={18} fill={C.panel} />
+      <g {...a("rise", 0.3)}>
+        <rect x={70} y={46} width={196} height={158} rx={18} fill={C.cream} />
+        <circle cx={104} cy={82} r={20} fill={C.mint} />
+        <text x={104} y={87} fill={C.navy} fontSize={13} fontWeight={800} fontFamily={FONT} textAnchor="middle">{initials}</text>
+        <text x={134} y={80} fill={C.navy} fontSize={12.5} fontWeight={800} fontFamily={FONT}>{name.slice(0, 17)}</text>
+        <rect x={134} y={88} width={70} height={5} rx={2.5} fill="#C9C6D3" />
+      </g>
+      {tags.map(({ chip, x }, i) => (
+        <Chip key={chip} x={x} y={124} text={chip} anchor="start" size={10} fill={[C.amber, C.mintSoft, C.plum][i]} color={C.navy} delay={0.9 + i * 0.25} kind="pop" />
+      ))}
+      <line {...a("growx", 1.6)} x1={92} y1={172} x2={248} y2={172} stroke="#E8E2D5" strokeWidth={3} strokeLinecap="round" />
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i} {...a("pop", 1.8 + i * 0.25)}>
+          <circle cx={100 + i * 46} cy={172} r={8} fill={i === 3 ? C.mint : C.teal} />
+          <rect x={96 + i * 46} y={168} width={8} height={7} rx={1.5} fill={C.cream} opacity={0.9} />
+        </g>
+      ))}
+      <circle className="fi-ring" style={{ animationDelay: "2.8s" }} cx={238} cy={172} r={8} fill="none" stroke={C.mint} strokeWidth={2} />
+      {scene.value && (
+        <g {...a("pop", 2.4)}>
+          <rect x={276} y={56} width={78} height={50} rx={16} fill={C.mint} />
+          <path d={starPath(315, 72, 7)} fill={C.navy} />
+          <Counter value={scene.value} x={315} y={96} size={13} delayMs={2600} paused={paused} still={still} anchor="middle" color={C.navy} />
+        </g>
+      )}
+    </g>
+  );
+}
+
+function DiscountTicket({ scene, paused, still }: SceneProps) {
+  const code = scene.label ?? "SALE10";
+  const value = scene.value ?? "10%";
+  return (
+    <g>
+      <g transform="rotate(-5 180 110)">
+        <g {...a("pop", 0.1)}>
+          <rect x={48} y={58} width={264} height={104} rx={14} fill={C.amber} />
+          <circle cx={48} cy={110} r={13} fill={C.deep} />
+          <circle cx={312} cy={110} r={13} fill={C.deep} />
+          <line x1={134} y1={66} x2={134} y2={154} stroke={C.navy} strokeOpacity={0.4} strokeWidth={2} strokeDasharray="4 5" />
+          <Counter value={value} x={92} y={120} size={value.length > 4 ? 17 : 26} delayMs={700} paused={paused} still={still} anchor="middle" color={C.navy} />
+        </g>
+        <Typed text={code.slice(0, 14)} x={150} y={116} delayMs={900} paused={paused} still={still} size={code.length > 10 ? 13 : 16} color={C.navy} cursor={C.teal} />
+        <rect {...a("growx", 1 + code.length * 0.085)} x={150} y={128} width={140} height={4} rx={2} fill={C.navy} opacity={0.25} />
+      </g>
+      <g className="fi-pulse" style={{ animationDelay: "2s" }}>
+        <circle {...a("pop", 1.6)} cx={300} cy={44} r={20} fill={C.coral} />
+        <text {...a("fade", 1.7)} x={300} y={51} fill={C.cream} fontSize={20} fontWeight={800} fontFamily={FONT} textAnchor="middle">%</text>
+      </g>
+      {[[70, 36, C.mint], [40, 186, C.plum], [250, 192, C.mint], [330, 172, C.amber]].map(([x, y, color], i) => (
+        <circle key={i} {...a("pop", 2 + i * 0.2)} cx={x as number} cy={y as number} r={5} fill={color as string} />
+      ))}
+    </g>
+  );
+}
+
+function swatchColor(name: string, i: number) {
+  if (/mint|green/i.test(name)) return C.mint;
+  if (/gold|amber|yellow/i.test(name)) return C.amber;
+  if (/coral|red|orange/i.test(name)) return C.coral;
+  if (/plum|purple/i.test(name)) return C.plum;
+  if (/navy|blue|dark/i.test(name)) return C.deep;
+  return [C.mint, C.amber, C.coral, C.deep][i % 4]!;
+}
+
+function BrandPalette({ scene }: SceneProps) {
+  const name = scene.label ?? "Your brand";
+  const chips = (scene.chips ?? []).slice(0, 4);
+  const swatches = chips.length ? chips.map(swatchColor) : [C.mint, C.amber, C.coral, C.deep];
+  return (
+    <g>
+      <g {...a("pop", 0.1)}>
+        <circle cx={82} cy={84} r={42} fill={C.mint} />
+        <circle cx={82} cy={84} r={33} fill="none" stroke={C.navy} strokeWidth={2.5} />
+        <text x={82} y={96} fill={C.navy} fontSize={32} fontWeight={800} fontFamily={FONT} textAnchor="middle">{name.trim()[0]?.toUpperCase() ?? "B"}</text>
+      </g>
+      <text {...a("fade", 0.5)} x={82} y={150} fill={C.cream} fontSize={12} fontWeight={800} fontFamily={FONT} textAnchor="middle">{name.slice(0, 18)}</text>
+      {swatches.map((color, i) => (
+        <g key={i} {...a("pop", 0.8 + i * 0.2)}>
+          <rect x={164 + i * 44} y={30} width={36} height={36} rx={10} fill={color} stroke={color === C.deep ? C.cream : "none"} strokeOpacity={0.5} strokeWidth={1.5} />
+          {chips[i] && <text x={182 + i * 44} y={82} fill={C.mintSoft} fontSize={9} fontFamily={MONO} textAnchor="middle">{chips[i]!.slice(0, 7)}</text>}
+        </g>
+      ))}
+      <text {...a("pop", 1.7)} x={166} y={142} fill={C.cream} fontSize={34} fontWeight={800} fontFamily={FONT}>Aa</text>
+      <text {...a("pop", 1.9)} x={214} y={142} fill={C.mint} fontSize={32} fontStyle="italic" fontFamily="var(--font-fraunces), Fraunces, Georgia, serif">Aa</text>
+      <g {...a("rise", 2.3)}>
+        <rect x={270} y={104} width={44} height={60} rx={6} fill={C.cream} />
+        <rect x={270} y={104} width={44} height={16} rx={6} fill={swatches[0]} />
+        <circle cx={292} cy={136} r={8} fill={swatches[1] ?? C.amber} />
+        <rect x={278} y={150} width={28} height={4} rx={2} fill="#C9C6D3" />
+      </g>
+      <g {...a("rise", 2.6)}>
+        <path d="M322 120 H350 V160 H322 L314 140 Z" fill={swatches[1] ?? C.amber} />
+        <circle cx={322} cy={140} r={3} fill={C.deep} />
+        <circle cx={337} cy={140} r={7} fill={C.cream} />
+      </g>
+      <line {...a("draw", 2.2)} pathLength={1} x1={126} y1={84} x2={160} y2={50} stroke={C.line} strokeWidth={2} strokeDasharray="1" />
+      <rect {...a("growx", 2.8)} x={166} y={176} width={180} height={6} rx={3} fill={swatches[0]} opacity={0.6} />
+      <text {...a("fade", 3)} x={166} y={200} fill={C.mintSoft} fontSize={10} fontFamily={MONO}>✓ ✓ ✓</text>
+    </g>
+  );
+}
+
+function ImportShip({ scene }: SceneProps) {
+  const chips = (scene.chips ?? []).slice(0, 2);
+  const containers = [C.amber, C.mint, C.plum, C.coral, C.teal, C.amber, C.mintSoft, C.plum];
+  return (
+    <g>
+      <path {...a("draw", 0.3)} pathLength={1} d="M24 150 H300" stroke={C.mint} strokeWidth={2} strokeDasharray="1" opacity={0.5} />
+      {[0, 1, 2].map((row) => (
+        <path key={row} className="fi-float" style={{ animationDelay: `${row * 0.6}s` }} d={`M${10 + row * 14} ${170 + row * 12} q 12 -8 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0`} fill="none" stroke={C.line} strokeWidth={2.5} strokeLinecap="round" />
+      ))}
+      <g {...a("pop", 0.2)}>
+        <rect x={292} y={148} width={60} height={12} rx={3} fill={C.panel} />
+        <path d="M330 148 V58 M330 64 H296 M300 64 V86" fill="none" stroke={C.cream} strokeWidth={3} strokeLinecap="round" />
+        <rect x={293} y={86} width={14} height={10} rx={2} fill={C.amber} />
+      </g>
+      <g {...a("pop", 0.4)}>
+        <path d="M330 32 c-10 -12 -10 -26 0 -26 s10 14 0 26 Z" fill={C.coral} />
+        <circle cx={330} cy={14} r={3.5} fill={C.navy} />
+      </g>
+      <At x={92} y={0}>
+        <g {...a("move", 0.5, { ...v(-80, 0), animationDuration: "3.2s", animationTimingFunction: "cubic-bezier(.4,0,.2,1)" })}>
+          <g className="fi-float" style={{ animationDuration: "2.4s" }}>
+            {containers.map((color, i) => (
+              <rect key={i} {...a("pop", 0.2 + i * 0.08)} x={24 + (i % 4) * 22} y={116 - Math.floor(i / 4) * 15} width={20} height={13} rx={2} fill={color} />
+            ))}
+            <rect x={120} y={98} width={22} height={34} rx={3} fill={C.cream} />
+            <rect x={124} y={104} width={14} height={6} rx={2} fill={C.navy} opacity={0.6} />
+            <path d="M10 132 H170 L156 160 H26 Z" fill={C.coral} />
+            <path d="M18 142 H164" stroke={C.cream} strokeWidth={2} opacity={0.7} />
+          </g>
+        </g>
+      </At>
+      <At x={40} y={58}>
+        <g className="fi-loop" style={{ ...v(220, -14), animationDuration: "4s", animationDelay: "1s" }}>
+          <path d="M0 0 L26 0 L34 -4 L36 0 L34 4 L26 0 Z M10 0 L4 -10 L10 -10 L18 0 L10 10 L4 10 Z" fill={C.mint} />
+        </g>
+      </At>
+      {scene.label && <Chip x={150} y={24} text={scene.label} fill={C.cream} color={C.navy} delay={0.6} />}
+      {chips.map((chip, i) => <Chip key={chip} x={i ? 250 : 110} y={202} text={chip} fill={i ? C.amber : C.mint} color={C.navy} delay={1.8 + i * 0.3} kind="pop" />)}
+    </g>
+  );
+}
+
+function VideoReel({ scene }: SceneProps) {
+  const frames = [C.amber, C.coral, C.plum];
+  return (
+    <g>
+      {[0, 1, 2].map((i) => (
+        <g key={i} {...a("pop", 0.2 + i * 0.2)}>
+          <rect x={30 + (i % 2) * 18} y={34 + i * 46} width={60} height={42} rx={6} fill={C.cream} />
+          <rect x={35 + (i % 2) * 18} y={39 + i * 46} width={50} height={32} rx={4} fill={frames[i]} />
+          <path d={`M${44 + (i % 2) * 18} ${64 + i * 46} q 8 -12 18 -6 l 14 6 Z`} fill={C.cream} opacity={0.85} />
+        </g>
+      ))}
+      <path {...a("draw", 0.9)} pathLength={1} d="M104 110 C 116 110, 118 110, 128 110" stroke={C.mint} strokeWidth={3} strokeDasharray="1" strokeLinecap="round" />
+      <path {...a("pop", 1.1)} d="M124 104 L132 110 L124 116" fill="none" stroke={C.mint} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      <g {...a("rise", 0.1)}>
+        <rect x={136} y={12} width={92} height={196} rx={16} fill={C.deep} stroke={C.line} strokeWidth={2} />
+        <rect x={168} y={18} width={28} height={4} rx={2} fill={C.line} />
+      </g>
+      {frames.map((color, i) => (
+        <g key={i} className={i === 0 ? undefined : "fi-cycle"} style={i === 0 ? undefined : { animationDelay: `${i * 2.5}s`, opacity: 0 }}>
+          <rect x={144} y={28} width={76} height={150} rx={8} fill={color} />
+          <path d="M156 128 q 12 -22 30 -12 l 26 12 v 8 h -56 Z" fill={C.cream} opacity={0.9} />
+          <circle cx={170} cy={124} r={3} fill={color} />
+        </g>
+      ))}
+      <g className="fi-pulse">
+        <circle {...a("pop", 1.4)} cx={182} cy={84} r={16} fill={C.cream} opacity={0.92} />
+        <path {...a("fade", 1.5)} d="M177 76 L190 84 L177 92 Z" fill={C.navy} />
+      </g>
+      <rect x={144} y={182} width={76} height={4} rx={2} fill={C.line} />
+      <rect {...a("growx", 1.6, { animationDuration: "3.5s", animationTimingFunction: "linear" })} x={144} y={182} width={76} height={4} rx={2} fill={C.mint} />
+      {scene.label && (
+        <g {...a("rise", 2)}>
+          <rect x={146} y={152} width={72} height={20} rx={6} fill={C.navy} opacity={0.82} />
+          <text x={182} y={166} fill={C.cream} fontSize={8} fontWeight={800} fontFamily={FONT} textAnchor="middle">{scene.label.slice(0, 18)}</text>
+        </g>
+      )}
+      {scene.value && <Chip x={268} y={34} text={scene.value} fill={C.mint} color={C.navy} delay={1.2} kind="pop" />}
+      {[[262, 84, 0], [296, 120, 0.7], [262, 160, 1.4]].map(([x, y, delay], i) => (
+        <g key={i} className="fi-float" style={{ animationDelay: `${delay}s` }}>
+          <text {...a("pop", 1.6 + i * 0.3)} x={x} y={y} fill={[C.mint, C.amber, C.plum][i]} fontSize={24} fontWeight={800} fontFamily={FONT}>♪</text>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function DashboardTiles({ scene, paused, still }: SceneProps) {
+  const tasks = (scene.chips ?? []).slice(0, 3);
+  return (
+    <g>
+      <rect {...a("fade", 0)} x={20} y={12} width={320} height={196} rx={18} fill={C.deep} stroke={C.line} strokeWidth={2} />
+      <text {...a("fade", 0.3)} x={38} y={40} fill={C.cream} fontSize={13} fontWeight={800} fontFamily={FONT}>{(scene.label ?? "Good morning").slice(0, 26)}</text>
+      <circle className="fi-pulse" cx={318} cy={35} r={7} fill={C.mint} />
+      <g {...a("rise", 0.5)}>
+        <rect x={36} y={54} width={150} height={78} rx={14} fill={C.cream} />
+        <rect x={50} y={66} width={40} height={5} rx={2.5} fill="#C9C6D3" />
+      </g>
+      {scene.value && <g {...a("fade", 0.7)}><Counter value={scene.value} x={50} y={100} size={21} delayMs={900} paused={paused} still={still} color={C.navy} /></g>}
+      <path {...a("draw", 1.2)} pathLength={1} d="M50 120 L76 114 L100 118 L126 106 L150 110 L172 96" fill="none" stroke={C.teal} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      {(tasks.length ? tasks : ["", "", ""]).map((task, i) => (
+        <g key={i} {...slide(0.9 + i * 0.35, 24, 0)}>
+          <rect x={198} y={54 + i * 27} width={128} height={22} rx={11} fill={C.panel} />
+          <circle cx={211} cy={65 + i * 27} r={5} fill={[C.amber, C.mint, C.coral][i]} />
+          {task ? (
+            <text x={222} y={69 + i * 27} fill={C.cream} fontSize={10} fontWeight={800} fontFamily={FONT}>{task.slice(0, 17)}</text>
+          ) : (
+            <rect x={222} y={63 + i * 27} width={70} height={5} rx={2.5} fill={C.line} />
+          )}
+        </g>
+      ))}
+      <line x1={36} y1={196} x2={324} y2={196} stroke={C.line} strokeWidth={2} />
+      {[22, 30, 26, 38, 34, 44, 52].map((height, i) => (
+        <rect key={i} {...a("grow", 1.6 + i * 0.12)} x={44 + i * 28} y={196 - height} width={18} height={height} rx={4} fill={i === 6 ? C.mint : C.teal} />
+      ))}
+      <g {...a("pop", 2.6)}>
+        <rect x={250} y={150} width={74} height={36} rx={12} fill={C.mint} />
+        <path d="M266 168 l4 -10 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 Z" transform="translate(0 -4) scale(1)" fill={C.navy} />
+        <rect x={286} y={162} width={28} height={5} rx={2.5} fill={C.navy} opacity={0.5} />
+        <rect x={286} y={172} width={20} height={5} rx={2.5} fill={C.navy} opacity={0.3} />
+      </g>
+    </g>
+  );
+}
+
+const ZONES = [
+  { x: 104, y: 86, r: 54 },
+  { x: 208, y: 120, r: 46 },
+  { x: 282, y: 66, r: 40 },
+];
+
+function MapZones({ scene, paused, still }: SceneProps) {
+  const zones = (scene.chips?.length ? scene.chips : ["Zone A", "Zone B", "Zone C"]).slice(0, 3);
+  return (
+    <g>
+      <rect x={16} y={12} width={328} height={196} rx={18} fill={C.deep} />
+      <path d="M16 162 C 90 142, 150 192, 230 170 S 330 152, 344 162 V 196 a12 12 0 0 1 -12 12 H 28 a12 12 0 0 1 -12 -12 Z" fill={C.teal} opacity={0.35} />
+      {["M16 60 H344", "M16 128 H344", "M70 12 V208", "M160 12 V208", "M250 12 V208"].map((d) => <path key={d} d={d} stroke={C.panel} strokeWidth={7} />)}
+      {zones.map((zone, i) => {
+        const off = /✕|×|off/i.test(zone);
+        const color = off ? C.coral : [C.mint, C.amber, C.plum][i]!;
+        const spot = ZONES[i]!;
+        return (
+          <g key={zone}>
+            <circle {...a("pop", 0.5 + i * 0.45)} cx={spot.x} cy={spot.y} r={spot.r} fill={off ? "none" : color} fillOpacity={0.22} stroke={color} strokeWidth={2} strokeDasharray="5 5" />
+            {off && <line {...a("draw", 0.9 + i * 0.45)} pathLength={1} x1={spot.x - spot.r * 0.6} y1={spot.y - spot.r * 0.6} x2={spot.x + spot.r * 0.6} y2={spot.y + spot.r * 0.6} stroke={C.coral} strokeWidth={2.5} strokeDasharray="1" />}
+            <Chip x={Math.min(spot.x, 340 - chipWidth(zone, 10.5) / 2)} y={spot.y} text={zone} size={10.5} fill={off ? C.panel : color} color={off ? C.cream : C.navy} delay={0.8 + i * 0.45} kind="pop" />
+          </g>
+        );
+      })}
+      <g {...a("pop", 1.8)}>
+        <path d="M104 52 c-10 -12 -10 -26 0 -26 s10 14 0 26 Z" fill={C.coral} />
+        <circle cx={104} cy={34} r={3.5} fill={C.navy} />
+      </g>
+      <circle className="fi-ring" style={{ animationDelay: "2s" }} cx={104} cy={86} r={20} fill="none" stroke={C.mint} strokeWidth={2} />
+      {scene.value && (
+        <At x={300} y={180}>
+          <g {...a("pop", 2.4)}>
+            <path d="M-40 -15 H26 L38 0 L26 15 H-40 Z" fill={C.cream} />
+            <circle cx={26} cy={0} r={3} fill={C.navy} />
+            <Counter value={scene.value} x={-8} y={5} size={14} delayMs={2600} paused={paused} still={still} anchor="middle" color={C.navy} />
+          </g>
+        </At>
+      )}
+    </g>
+  );
+}
+
+function BadgeVerify({ scene }: SceneProps) {
+  const chips = (scene.chips ?? []).slice(0, 3);
+  let cursor = 30;
+  const pills = chips.map((chip) => {
+    const text = `✓ ${chip}`;
+    const x = cursor;
+    cursor += chipWidth(text, 10) + 6;
+    return { text, x };
+  });
+  return (
+    <g>
+      <g {...a("rise", 0.1)}>
+        <rect x={30} y={34} width={172} height={120} rx={14} fill={C.cream} />
+        <rect x={44} y={50} width={46} height={56} rx={8} fill={C.mintSoft} />
+        <circle cx={67} cy={70} r={9} fill={C.navy} />
+        <path d="M53 104 a14 12 0 0 1 28 0 Z" fill={C.navy} />
+        {[84, 60, 72].map((width, i) => <rect key={i} x={102} y={56 + i * 16} width={width} height={6} rx={3} fill="#C9C6D3" />)}
+        <rect x={44} y={120} width={144} height={20} rx={4} fill="#E8E2D5" />
+        {Array.from({ length: 22 }, (_, i) => <rect key={i} x={50 + i * 6} y={124} width={i % 3 ? 2 : 3.5} height={12} fill={C.navy} opacity={0.55} />)}
+      </g>
+      <At x={30} y={38}>
+        <g className="fi-loop" style={{ ...v(0, 110), animationDuration: "2.2s", animationDelay: "0.6s" }}>
+          <rect x={-4} y={-8} width={180} height={16} fill={C.mint} opacity={0.18} />
+          <rect x={-4} y={-1.5} width={180} height={3} rx={1.5} fill={C.mint} />
+        </g>
+      </At>
+      <path {...a("draw", 1.6)} pathLength={1} d="M208 96 H232" stroke={C.mint} strokeWidth={3} strokeDasharray="1" strokeLinecap="round" />
+      <g {...a("pop", 2.1)}>
+        <path d="M282 30 L324 46 V82 C324 112 304 130 282 138 C260 130 240 112 240 82 V46 Z" fill={C.mint} />
+        <path d="M282 44 L312 56 V82 C312 104 298 118 282 124 C266 118 252 104 252 82 V56 Z" fill="none" stroke={C.navy} strokeOpacity={0.25} strokeWidth={2} />
+        <Check x={283} y={84} size={1.6} />
+      </g>
+      <circle className="fi-ring" style={{ animationDelay: "2.5s" }} cx={282} cy={84} r={46} fill="none" stroke={C.mint} strokeWidth={2} />
+      {scene.label && <Chip x={282} y={164} text={scene.label} fill={C.cream} color={C.navy} delay={2.6} kind="pop" />}
+      {pills.map(({ text, x }, i) => <Chip key={text} x={x} y={180} text={text} anchor="start" size={10} fill={C.panel} color={C.mintSoft} delay={1 + i * 0.35} />)}
+    </g>
+  );
+}
+
+function RiderTeam({ scene }: SceneProps) {
+  const names = (scene.chips?.length ? scene.chips : ["Rider 1", "Rider 2", "Rider 3"]).slice(0, 3);
+  const busy = (i: number) => i === 1;
+  return (
+    <g>
+      {names.map((name, i) => {
+        const x = 24 + i * 108;
+        const y = 34;
+        return (
+          <g key={name}>
+            <g {...a("rise", 0.2 + i * 0.25)}>
+              <rect x={x} y={y} width={96} height={150} rx={16} fill={C.panel} stroke={i === 0 ? C.mint : C.line} strokeWidth={2} />
+              <circle cx={x + 48} cy={y + 42} r={24} fill={[C.mint, C.amber, C.plum][i]} />
+              <path d={`M${x + 28} ${y + 42} a20 20 0 0 1 40 0 Z`} fill={C.navy} />
+              <rect x={x + 32} y={y + 38} width={32} height={9} rx={4.5} fill={C.cream} opacity={0.85} />
+              <text x={x + 48} y={y + 88} fill={C.cream} fontSize={12} fontWeight={800} fontFamily={FONT} textAnchor="middle">{name.slice(0, 12)}</text>
+              <rect x={x + 18} y={y + 128} width={60} height={6} rx={3} fill={C.line} />
+            </g>
+            <circle className={busy(i) ? "fi-pulse" : undefined} cx={x + 48} cy={y + 108} r={6} fill={busy(i) ? C.amber : C.mint} />
+            <rect {...a("growx", 1.2 + i * 0.3)} x={x + 18} y={y + 128} width={[52, 34, 46][i]} height={6} rx={3} fill={busy(i) ? C.amber : C.mint} />
+            {busy(i) && (
+              <g {...a("pop", 1.6)}>
+                <rect x={x + 64} y={y + 10} width={22} height={18} rx={3} fill={C.amber} stroke={C.navy} strokeWidth={2} />
+                <path d={`M${x + 64} ${y + 16} H${x + 86}`} stroke={C.navy} strokeWidth={2} />
+              </g>
+            )}
+          </g>
+        );
+      })}
+      <rect className="fi-ring" style={{ animationDelay: "2.2s" }} x={24} y={34} width={96} height={150} rx={16} fill="none" stroke={C.mint} strokeWidth={2} />
+      <g {...a("pop", 2.6)}>
+        <circle cx={180} cy={204} r={11} fill={C.mint} />
+        <path d="M174 204 h12 M180 198 v12" stroke={C.navy} strokeWidth={2.5} strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}
+
+function InboxList({ scene }: SceneProps) {
+  const chips = scene.chips ?? [];
+  const rows = Math.max(3, Math.min(4, chips.length || 4));
+  return (
+    <g>
+      <rect {...a("fade", 0)} x={36} y={12} width={288} height={196} rx={18} fill={C.deep} stroke={C.line} strokeWidth={2} />
+      <rect x={54} y={26} width={72} height={8} rx={4} fill={C.cream} opacity={0.75} />
+      {scene.value && (
+        <g {...a("pop", 1.8)}>
+          <circle cx={300} cy={30} r={11} fill={C.coral} />
+          <text x={300} y={34} fill={C.cream} fontSize={11} fontWeight={800} fontFamily={FONT} textAnchor="middle">{scene.value.slice(0, 3)}</text>
+        </g>
+      )}
+      {Array.from({ length: rows }, (_, i) => {
+        const top = 48 + i * 39;
+        const chip = chips[i];
+        return (
+          <g key={i} {...slide(0.3 + i * 0.3, 0, 12)}>
+            <rect x={48} y={top} width={264} height={32} rx={12} fill={C.panel} stroke={i === 0 ? C.mint : "none"} strokeWidth={1.5} />
+            <circle cx={66} cy={top + 16} r={10} fill={chipColor(chip ?? "", i)} />
+            {chip ? (
+              <text x={84} y={top + 14} fill={C.cream} fontSize={10.5} fontWeight={800} fontFamily={FONT}>{chip.slice(0, 18)}</text>
+            ) : (
+              <rect x={84} y={top + 8} width={60} height={6} rx={3} fill={C.cream} opacity={0.6} />
+            )}
+            {i === 0 && scene.label ? (
+              <text x={84} y={top + 26} fill={C.mintSoft} fontSize={9} fontFamily={MONO}>{scene.label.slice(0, 30)}</text>
+            ) : (
+              <rect x={84} y={top + 20} width={130 - i * 16} height={4} rx={2} fill={C.line} />
+            )}
+            {i < 2 && <circle className={i === 0 ? "fi-pulse" : undefined} cx={296} cy={top + 16} r={4.5} fill={C.mint} />}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function BellAlerts({ scene }: SceneProps) {
+  const alerts = (scene.chips?.length ? scene.chips : ["", "", ""]).slice(0, 3);
+  return (
+    <g>
+      <g className="fi-swing">
+        <g {...a("pop", 0.1)}>
+          <circle cx={70} cy={70} r={5} fill={C.amber} />
+          <path d="M50 124 C50 88 58 74 70 74 C82 74 90 88 90 124 L98 132 H42 Z" fill={C.amber} />
+          <circle cx={70} cy={140} r={6} fill={C.amber} />
+        </g>
+      </g>
+      <circle className="fi-ring" style={{ animationDelay: "0.4s" }} cx={70} cy={106} r={34} fill="none" stroke={C.amber} strokeWidth={2} />
+      <g {...a("pop", 0.6)}>
+        <circle cx={92} cy={78} r={10} fill={C.coral} />
+        <text x={92} y={82} fill={C.cream} fontSize={11} fontWeight={800} fontFamily={FONT} textAnchor="middle">{alerts.length}</text>
+      </g>
+      {alerts.map((alert, i) => {
+        const top = 30 + i * 56;
+        return (
+          <g key={i} {...slide(0.8 + i * 0.6, 40, 0)}>
+            <rect x={128} y={top} width={212} height={46} rx={14} fill={i === 0 ? C.cream : C.panel} />
+            <circle cx={150} cy={top + 23} r={11} fill={[C.mint, C.amber, C.coral][i]} />
+            {alert ? (
+              <text x={170} y={top + 21} fill={i === 0 ? C.navy : C.cream} fontSize={10.5} fontWeight={800} fontFamily={FONT}>{alert.slice(0, 24)}</text>
+            ) : (
+              <rect x={170} y={top + 15} width={110} height={6} rx={3} fill={i === 0 ? "#C9C6D3" : C.line} />
+            )}
+            <rect x={170} y={top + 29} width={[70, 54, 62][i]} height={4} rx={2} fill={i === 0 ? "#C9C6D3" : C.line} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function SearchRank({ scene, paused, still }: SceneProps) {
+  const query = (scene.label ?? "your shop").slice(0, 24);
+  const typed = 1 + query.length * 0.085;
+  return (
+    <g>
+      <g {...a("rise", 0.1)}>
+        <rect x={30} y={16} width={300} height={38} rx={19} fill={C.cream} />
+        <circle cx={52} cy={34} r={6.5} fill="none" stroke={C.navy} strokeWidth={2.5} />
+        <path d="M57 39 l6 6" stroke={C.navy} strokeWidth={2.5} strokeLinecap="round" />
+        {[C.mint, C.amber, C.coral, C.plum].map((color, i) => <circle key={color} cx={290 + i * 9} cy={35} r={3.5} fill={color} />)}
+      </g>
+      <Typed text={query} x={70} y={40} delayMs={1000} paused={paused} still={still} size={12} color={C.navy} cursor={C.teal} />
+      {[1, 2].map((slot) => (
+        <g key={slot} {...a("rise", typed + 0.2 + slot * 0.2)}>
+          <rect x={30} y={70 + slot * 46} width={300} height={38} rx={12} fill={C.panel} />
+          <circle cx={50} cy={89 + slot * 46} r={8} fill={C.line} />
+          <rect x={66} y={80 + slot * 46} width={130 - slot * 20} height={6} rx={3} fill={C.line} />
+          <rect x={66} y={92 + slot * 46} width={180} height={4} rx={2} fill={C.line} opacity={0.6} />
+        </g>
+      ))}
+      <g {...slide(typed + 0.9, 0, 92, { animationDuration: "1s" })}>
+        <rect x={30} y={70} width={300} height={38} rx={12} fill={C.cream} stroke={C.mint} strokeWidth={2.5} />
+        <circle cx={50} cy={89} r={8} fill={C.teal} />
+        <rect x={66} y={80} width={150} height={6} rx={3} fill={C.navy} />
+        <rect x={66} y={92} width={92} height={4} rx={2} fill={C.teal} />
+        <circle cx={310} cy={89} r={11} fill={C.amber} />
+        <text x={310} y={93} fill={C.navy} fontSize={11} fontWeight={800} fontFamily={FONT} textAnchor="middle">1</text>
+      </g>
+      <g {...a("pop", typed + 2)}>
+        <path d="M344 100 V76 M336 84 L344 76 L352 84" fill="none" stroke={C.mint} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    </g>
+  );
+}
+
 /** Scene art id → illustration. tests/learn.test.mjs checks every SCENE_ARTS id has an entry here. */
 export const SCENE_KIT: Record<SceneArt, (props: SceneProps) => ReactNode> = {
   "phone-store": PhoneStore,
@@ -720,6 +1422,22 @@ export const SCENE_KIT: Record<SceneArt, (props: SceneProps) => ReactNode> = {
   "quote-tags": QuoteTags,
   "cash-collect": CashCollect,
   "theme-swap": ThemeSwap,
+  "order-pipeline": OrderPipeline,
+  "receipt": Receipt,
+  "invoice-paper": InvoicePaper,
+  "star-reviews": StarReviews,
+  "customer-cards": CustomerCards,
+  "discount-ticket": DiscountTicket,
+  "brand-palette": BrandPalette,
+  "import-ship": ImportShip,
+  "video-reel": VideoReel,
+  "dashboard-tiles": DashboardTiles,
+  "map-zones": MapZones,
+  "badge-verify": BadgeVerify,
+  "rider-team": RiderTeam,
+  "inbox-list": InboxList,
+  "bell-alerts": BellAlerts,
+  "search-rank": SearchRank,
 };
 
 /** One scene's illustration, restarted whenever `restartKey` changes. */
