@@ -1,9 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, use, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createT, isLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, type Locale, type TFunction } from "@shared/i18n";
-import { catalogsFromMerged, type KeysOf, type MergedMessages, type Namespace } from "@shared/i18n/catalog";
+import type { KeysOf, Namespace } from "@shared/i18n/catalog";
+import { catalogsFromMerged, mergeLocale, type MergedMessages } from "@shared/i18n/merged";
+import { MESSAGE_LOADERS } from "./loaders.generated";
 
 // App-wide language on the web. Mounted once in the root layout with the locale the server picked (cookie, else
 // Accept-Language) and that language's messages (English filling gaps), so the first paint is already translated.
@@ -126,6 +128,47 @@ export function useLocaleChanging() {
   return useI18n()?.changing ?? false;
 }
 
+// ── Words a page needs that the server didn't send ─────────────────────────────
+// The root layout sends only the namespaces the first page uses (src/lib/i18n/routes.ts). After a client-side
+// navigation a component may need another one: it is fetched as its own small chunk (English + the language) and
+// the component suspends until it arrives. Navigations are transitions, so the old page stays on screen meanwhile.
+
+type Loaded = Record<string, string>;
+type Tracked = Promise<Loaded> & { status?: "pending" | "fulfilled" | "rejected"; value?: Loaded };
+const LOADS = new Map<string, Tracked>();
+
+function loadNamespace(locale: Locale, namespace: string): Tracked {
+  const key = `${locale}:${namespace}`;
+  const existing = LOADS.get(key);
+  if (existing) return existing;
+  const loaders = MESSAGE_LOADERS[namespace];
+  const load = async (): Promise<Loaded> => {
+    if (!loaders?.en) return {};
+    const [en, own] = await Promise.all([loaders.en(), locale === "en" || !loaders[locale] ? null : loaders[locale]!()]);
+    return mergeLocale(en.default, own?.default);
+  };
+  const promise = load() as Tracked;
+  promise.status = "pending";
+  promise.then(
+    (value) => {
+      promise.status = "fulfilled";
+      promise.value = value;
+    },
+    () => {
+      promise.status = "rejected";
+      // Let a later render try again (e.g. after a dropped connection).
+      LOADS.delete(key);
+    },
+  );
+  LOADS.set(key, promise);
+  return promise;
+}
+
+function loadedSync(locale: Locale, namespace: string): Loaded | undefined {
+  const tracked = LOADS.get(`${locale}:${namespace}`);
+  return tracked?.status === "fulfilled" ? tracked.value : undefined;
+}
+
 /**
  * A translate function for one or more namespaces. Outside the provider (tests, isolated renders) it shows the
  * fallback text given to t.dynamic, else the key.
@@ -136,6 +179,19 @@ export function useT<const NS extends readonly Namespace[]>(...namespaces: NS): 
   const messages = state?.messages;
   // The server's messages are for the server's locale; while a change is in flight keep using them.
   const locale = state?.locale ?? "en";
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => createT<KeysOf<NS>>(locale, catalogsFromMerged(messages ?? {}, namespaces)), [locale, messages, key]);
+  let extra: MergedMessages | null = null;
+  if (state) {
+    for (const namespace of namespaces) {
+      if (messages?.[namespace]) continue;
+      const ready = loadedSync(locale, namespace);
+      // Suspends until the chunk is in (rejected loads throw to the nearest error boundary, which can retry).
+      (extra ??= {})[namespace] = ready ?? use(loadNamespace(locale, namespace) as Promise<Loaded>);
+    }
+  }
+  const extraKey = extra ? Object.keys(extra).join("|") : "";
+  return useMemo(
+    () => createT<KeysOf<NS>>(locale, catalogsFromMerged({ ...(messages ?? {}), ...(extra ?? {}) }, namespaces)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale, messages, key, extraKey],
+  );
 }

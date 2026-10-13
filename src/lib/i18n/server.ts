@@ -3,7 +3,9 @@ import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, negotiateLocale, type Locale } from "@shared/i18n";
-import { mergedMessages, tFor, type KeysOf, type MergedMessages, type Namespace } from "@shared/i18n/catalog";
+import { mergedMessages, NAMESPACES, tFor, type KeysOf, type MergedMessages, type Namespace } from "@shared/i18n/catalog";
+import { REQUEST_PATH_HEADER } from "@/lib/server-auth";
+import { namespacesForPath } from "./routes";
 import { parsePreferences } from "@shared/preferences";
 import type { TFunction } from "@shared/i18n";
 
@@ -37,9 +39,19 @@ export async function getT<const NS extends readonly Namespace[]>(...namespaces:
   return tFor(await getLocale(), ...namespaces);
 }
 
-/** The current language's messages (English filling gaps) for the client provider. */
+/**
+ * The current language's messages (English filling gaps) for the client provider: only the namespaces the
+ * requested page uses (plus the shell's), not the whole app's. The proxy forwards the path in a request header.
+ */
 export async function getClientMessages(): Promise<MergedMessages> {
-  return mergedMessages(await getLocale());
+  let path: string | null = null;
+  try {
+    path = (await headers()).get(REQUEST_PATH_HEADER);
+  } catch {
+    // Outside a request: shell words only.
+  }
+  const known = new Set<string>(NAMESPACES);
+  return mergedMessages(await getLocale(), namespacesForPath(path).filter((ns): ns is Namespace => known.has(ns)));
 }
 
 // ── Emails and other messages sent to one person ──────────────────────────────

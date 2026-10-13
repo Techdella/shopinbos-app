@@ -1,6 +1,7 @@
 // Every message namespace, registered once. To add one: create messages/<area>/{en,pcm,yo,ha,ig}.ts plus an
 // index.ts (copy any existing one), then add one import line and one entry below. See README.md.
 import { createT, LOCALES, type Catalog, type Locale, type TFunction } from "./index.ts";
+import { mergeLocale, type MergedMessages } from "./merged.ts";
 import common from "./messages/common/index.ts";
 import shell from "./messages/shell/index.ts";
 import tour from "./messages/tour/index.ts";
@@ -143,24 +144,16 @@ export function tFor<const NS extends readonly Namespace[]>(locale: Locale, ...n
   return createT<KeysOf<NS>>(locale, namespaces.map((namespace) => CATALOGS[namespace] as Catalog));
 }
 
-/** One language's messages per namespace, with English filling the gaps: what the web server hands the browser. */
-export type MergedMessages = Partial<Record<Namespace, Record<string, string>>>;
+export type { MergedMessages } from "./merged.ts";
+export { catalogsFromMerged } from "./merged.ts";
 
 export function mergedMessages(locale: Locale, namespaces: readonly Namespace[] = NAMESPACES): MergedMessages {
   const out: MergedMessages = {};
   for (const namespace of namespaces) {
     const catalog = CATALOGS[namespace] as Catalog;
-    const own = locale === "en" ? {} : (catalog[locale] ?? {});
-    const merged: Record<string, string> = { ...catalog.en };
-    for (const [key, text] of Object.entries(own)) if (typeof text === "string" && text) merged[key] = text;
-    out[namespace] = merged;
+    out[namespace] = mergeLocale(catalog.en as Record<string, string>, locale === "en" ? null : (catalog[locale] as Record<string, string> | undefined));
   }
   return out;
-}
-
-/** Turns merged messages back into catalogs createT understands (English slot holds the merged text). */
-export function catalogsFromMerged(messages: MergedMessages, namespaces: readonly Namespace[]): Catalog[] {
-  return namespaces.map((namespace) => ({ en: messages[namespace] ?? {} }));
 }
 
 export { LOCALES };

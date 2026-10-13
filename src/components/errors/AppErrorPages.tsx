@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { APP_ERROR_LINES, APP_GLOBAL_ERROR_LINES, APP_NOT_FOUND_LINES, APP_UPDATE_LINES } from "./copy";
 import { APP_PALETTE, ErrorScene, type SceneAction, type SceneLabels } from "./ErrorScene";
 import { useT } from "@/components/i18n/I18nProvider";
-import { isLocale, LOCALE_COOKIE, type Locale } from "@shared/i18n";
-import { tFor } from "@shared/i18n/catalog";
+import { createT, isLocale, LOCALE_COOKIE, type Catalog, type Locale } from "@shared/i18n";
+// Only these two catalogs: importing shared/i18n/catalog here would put every namespace in the error pages' bundle.
+import errorsCatalog from "@shared/i18n/messages/errors/index";
+import commonCatalog from "@shared/i18n/messages/common/index";
 import { PeggySearchingScene, RexAndPeggyScene, RexFixingScene } from "./MascotScenes";
 import { reloadPage, useDeployRecovery } from "./useDeployRecovery";
 
@@ -46,7 +48,7 @@ function useErrorsT() {
   useEffect(() => {
     if (missing) setFallbackLocale(cookieLocale());
   }, [missing]);
-  return useMemo(() => (missing ? tFor(fallbackLocale, "errors", "common") : provided), [missing, fallbackLocale, provided]);
+  return useMemo(() => (missing ? (createT(fallbackLocale, [errorsCatalog, commonCatalog] as Catalog[]) as unknown as typeof provided) : provided), [missing, fallbackLocale, provided]);
 }
 
 type ErrorsT = ReturnType<typeof useErrorsT>;

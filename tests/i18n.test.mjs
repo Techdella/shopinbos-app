@@ -236,3 +236,34 @@ test("web and phone runtimes are mounted and the pickers are reachable", () => {
   // The Riders app follows the app language.
   assert.match(read("apps/mobile/src/lib/rider-strings.ts"), /useLocale\(\)/);
 });
+
+// ─── Pages ship only their own words ───────────────────────────────────────────
+
+test("the per-page namespace map and the lazy loaders are up to date (run node scripts/i18n-route-namespaces.mjs)", async () => {
+  const { generate } = await import("../scripts/i18n-route-namespaces.mjs");
+  const { routeFile, loaderFile } = generate();
+  const { readFileSync } = await import("node:fs");
+  assert.equal(readFileSync(new URL("../src/lib/i18n/route-namespaces.generated.ts", import.meta.url), "utf8"), routeFile);
+  assert.equal(readFileSync(new URL("../src/components/i18n/loaders.generated.ts", import.meta.url), "utf8"), loaderFile);
+  // A page that shows the error copy only when it fails must not carry it in every page.
+  assert.doesNotMatch(routeFile, /\["\/home", \[[^\]]*"errors"/);
+});
+
+test("browser code never imports the full catalog (it holds every namespace in every language)", async () => {
+  const { readFileSync, readdirSync, statSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const offenders = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.(tsx?|mjs)$/.test(name)) {
+        const src = readFileSync(full, "utf8");
+        if (!/^["']use client["']/m.test(src)) continue;
+        for (const line of src.split("\n")) if (/from "@shared\/i18n\/catalog"/.test(line) && !/^import type /.test(line.trim())) offenders.push(`${full}: ${line.trim()}`);
+      }
+    }
+  };
+  walk("src");
+  assert.deepEqual(offenders, []);
+});
