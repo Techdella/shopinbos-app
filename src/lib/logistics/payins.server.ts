@@ -27,7 +27,7 @@ async function adminIds() {
 
 async function notifyAdmins(title: string, description: string, link: string, priority: "info" | "warning") {
   for (const userId of await adminIds()) {
-    await createNotification({ userId, type: "logistics", priority, title, description, link }).catch(() => null);
+    await createNotification({ userId, type: "logistics", priority, title, description, link, event: "admin.alert" }).catch(() => null);
   }
 }
 
@@ -50,6 +50,7 @@ async function notifyMatched(partnerId: string, amount: number, application: Pay
     description,
     link: "/logistics/cash",
     sendEmail: true,
+    event: "payin.received",
   }).catch(() => null);
   await notifyAdmins(
     `${partner.displayName} paid in ${naira(amount)}`,

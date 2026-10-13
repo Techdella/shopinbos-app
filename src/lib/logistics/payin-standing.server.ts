@@ -107,7 +107,7 @@ async function adminIds() {
 
 async function notifyAdmins(input: { title: string; description: string; link: string; priority: "info" | "warning" | "critical"; metadata?: Record<string, unknown> }) {
   for (const userId of await adminIds()) {
-    await createNotification({ userId, type: "logistics", ...input, sendEmail: input.priority === "critical" }).catch(() => null);
+    await createNotification({ userId, type: "logistics", ...input, sendEmail: input.priority === "critical", event: "admin.alert" }).catch(() => null);
   }
 }
 
@@ -164,6 +164,9 @@ async function sendSteps(partner: { id: string; userId: string; displayName: str
           actionUrl: step.kind === "cleared" ? "/logistics/dashboard" : "/logistics/cash",
           metadata: { payInStep: step.kind, key: step.key },
           sendEmail: true,
+          event: step.kind === "reminder" ? "payin.reminder" : step.kind === "cleared" ? "payin.received" : "payin.overdue",
+          dedupeKey: `payin.${step.kind}:${step.key}`,
+          phoneHandled: true,
         }).catch(() => null);
         await messagePartnerPhone(partner, `Shopinbos: ${message.title.replace(/\.$/, "")}. ${message.body}`);
       }

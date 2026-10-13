@@ -242,7 +242,7 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
         </div>
 
         {/* Stage */}
-        <div className="relative min-h-0 flex-1 overflow-y-auto px-4 pb-2 pt-4 sm:flex-none sm:px-7">
+        <div className="relative flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pb-2 pt-4 sm:block sm:flex-none sm:px-7">
           {tab === "video" && video ? (
             <div className="overflow-hidden rounded-[22px] bg-black">
               <div className="aspect-video w-full">

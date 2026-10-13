@@ -11,6 +11,8 @@ import { useRole } from "@/lib/role";
 import { durationLabel, normaliseHelpPath, type HelpVideoRole } from "@shared/help-videos";
 import { openSupportWhatsApp, SUPPORT_EMAIL, SUPPORT_WHATSAPP } from "@/lib/support";
 import { colors } from "@/theme";
+import { openFeatureIntro } from "@/components/learn/events";
+import { introForPath } from "@shared/feature-intros";
 
 // "Help" on every screen (build spec 8A): chat with a person on WhatsApp, ask Peggy, or watch a one-minute video
 // for this screen. Without a support WhatsApp number set (see SUPPORT_WHATSAPP), "Chat with a person" opens the
@@ -24,6 +26,7 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
   const [videos, setVideos] = useState<HelpVideos | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [playing, setPlaying] = useState<HelpVideoItem | null>(null);
+  const intro = introForPath(pathname, role);
   const videoRole: HelpVideoRole | null = normaliseHelpPath(pathname).startsWith("/rider") ? "rider" : role === "admin" ? null : role ?? null;
 
   useEffect(() => {
@@ -84,6 +87,9 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
       />
       {peggy && signedIn ? <ChoiceRow testID="help-peggy" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title="Ask Peggy" sub="Say what you need. She'll do it or show you how." onPress={() => go("/peggy")} /> : null}
       {signedIn ? <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title="Ask us to set something up" sub="We do the hard parts for you." onPress={() => go("/ask-us")} /> : null}
+      {intro ? (
+        <ChoiceRow testID="help-learn" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title="Learn in 60 seconds" sub={intro.title} onPress={() => { onClose(); openFeatureIntro(intro.key); }} />
+      ) : null}
       {videos?.current ? (
         <ChoiceRow testID="help-video" icon="play" tint={colors.peach} iconColor={colors.accentInk} title="Watch a 1-minute video" sub={videos.current.title} onPress={() => watch(videos.current!)} />
       ) : null}

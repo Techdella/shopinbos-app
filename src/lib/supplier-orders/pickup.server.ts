@@ -209,6 +209,7 @@ async function tellAdmins(order: PickupOrder, window: { start: Date; end: Date }
         actionUrl: "/admin/supplier-pickups",
         metadata: { orderKind: order.kind, orderId: order.id },
         sendEmail: true,
+        event: "admin.review",
       }),
     ),
   );
@@ -331,6 +332,7 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
     title: `Rider booked for ${order.kind === "dropship" ? "order " : "your wholesale order "}${order.ref}`,
     description: `The supplier has packed it. ${pickupWindowText(window.start, window.end, now)}.`,
     link: order.retailOrderId ? `/home/orders/${order.retailOrderId}` : "/home/logistics",
+    event: "delivery.update",
   }).catch(() => null);
   return { ok: true, data: (await pickupState(input.supplierId, input.kind, input.orderId, now))! };
 }
@@ -390,6 +392,7 @@ export async function onDeliveryJobMoved(bookingId: string, to: string) {
           title: `We're finding another rider for ${ref}`,
           description: "The delivery company can't make it. We'll find a rider and message you. Keep the parcel ready.",
           link: kind === "dropship" ? `/supplier/orders/${pickup.orderId}` : `/supplier/orders/${pickup.orderId}?kind=wholesale`,
+          event: "pickup.update",
         }).catch(() => null);
       }
       const order = await loadOrder(pickup.supplierId, kind, pickup.orderId);
@@ -422,6 +425,8 @@ export async function onDeliveryRiderAssigned(bookingId: string, riderId: string
       title: `${name} is coming for ${ref}`,
       description: `${name} will ${when}. Have the parcel ready with the shop's label on it.`,
       link: kind === "dropship" ? `/supplier/orders/${pickup.orderId}` : `/supplier/orders/${pickup.orderId}?kind=wholesale`,
+      event: "pickup.update",
+      phoneHandled: true,
     }).catch(() => null);
     await messageSupplierPhone(pickup.supplierId, `Shopinbos: ${name} will ${when} for order ${ref}. Have the parcel ready.`);
   } catch (error) {
@@ -471,6 +476,8 @@ export async function assignPickupPartner(pickupId: string, partnerId: string): 
     title: `Rider booked for ${order.ref}`,
     description: `Rider booked: ${when}. We'll message you when they're on the way.`,
     link: kind === "dropship" ? `/supplier/orders/${order.id}` : `/supplier/orders/${order.id}?kind=wholesale`,
+    event: "pickup.update",
+    phoneHandled: true,
   }).catch(() => null);
   await messageSupplierPhone(order.supplier.id, `Shopinbos: rider booked for order ${order.ref}: ${when}. We'll message you when they're on the way.`);
   return { ok: true };

@@ -38,6 +38,7 @@ export const INTRO_CSS = `
 .fi-stage .fi-move { animation-name: fi-move; animation-duration: 1.1s; animation-timing-function: cubic-bezier(.5,0,.2,1); }
 .fi-stage .fi-fly { transform: translate(var(--dx), var(--dy)); animation-name: fi-fly; animation-duration: 1s; }
 .fi-stage .fi-lit { animation-name: fi-lit; animation-duration: .5s; }
+.fi-stage .fi-float, .fi-stage .fi-pulse, .fi-stage .fi-ring { transform-box: fill-box; transform-origin: center; }
 .fi-stage .fi-float { animation: fi-float 3s ease-in-out infinite; }
 .fi-stage .fi-pulse { animation: fi-pulse 1.8s ease-in-out infinite; }
 .fi-stage .fi-ring { opacity: 0; animation: fi-ring 2s ease-out infinite; }
@@ -56,7 +57,7 @@ export const INTRO_CSS = `
 @keyframes fi-lit { from { fill: ${C.panel}; stroke: ${C.line}; color: ${C.cream}; } }
 @keyframes fi-float { 50% { transform: translateY(-5px); } }
 @keyframes fi-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-@keyframes fi-ring { from { transform: scale(.7); opacity: .7; } to { transform: scale(2.1); opacity: 0; } }
+@keyframes fi-ring { from { transform: scale(.8); opacity: .7; } to { transform: scale(1.6); opacity: 0; } }
 @keyframes fi-loop { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
 @keyframes fi-ride { 0% { offset-distance: 0%; } 80%, 100% { offset-distance: 100%; } }
 @keyframes fi-blink { 50% { opacity: 0; } }
@@ -189,7 +190,7 @@ function PhoneStore({ scene, paused, still }: SceneProps) {
       )}
       {chips.map((chip, i) => (
         <g key={chip} className="fi-float" style={{ animationDelay: `${i * 0.5}s` }}>
-          <Chip x={i % 2 ? 290 : 70} y={50 + i * 46} text={chip} fill={i === 0 ? C.whatsapp : i === 1 ? C.plum : C.coral} color={C.navy} delay={1.2 + i * 0.4} kind="pop" />
+          <Chip x={i % 2 ? 290 : 70} y={50 + i * 46} text={chip} fill={/whatsapp/i.test(chip) ? C.whatsapp : [C.coral, C.plum, C.amber][i % 3]} color={C.navy} delay={1.2 + i * 0.4} kind="pop" />
         </g>
       ))}
     </g>
@@ -276,13 +277,13 @@ function SendBurst({ scene }: SceneProps) {
           <g key={target.label}>
             <line {...a("draw", 1 + i * 0.2)} pathLength={1} x1={0} y1={0} x2={target.dx} y2={target.dy} stroke={target.color} strokeWidth={2} strokeDasharray="1" opacity={0.6} />
             <g {...a("fly", 1.1 + i * 0.25, v(target.dx, target.dy))}>
-              <circle r={20} fill={target.color} />
-              <text y={4} fill={C.navy} fontSize={9} fontWeight={800} fontFamily={FONT} textAnchor="middle">{target.label}</text>
+              <rect x={-34} y={-14} width={68} height={28} rx={14} fill={target.color} />
+              <text y={4} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT} textAnchor="middle">{target.label}</text>
             </g>
           </g>
         ))}
       </g>
-      {[[40, 30], [60, 70], [300, 30], [320, 70], [150, 200], [210, 200]].map(([x, y], i) => (
+      {[[28, 96], [52, 132], [332, 96], [308, 132], [128, 196], [232, 196]].map(([x, y], i) => (
         <circle key={i} {...a("pop", 2.4 + i * 0.15)} cx={x} cy={y} r={6} fill={DOT_COLORS[i % 4]} />
       ))}
       {scene.label && <Chip x={180} y={20} text={scene.label} fill={C.mint} color={C.navy} delay={0.6} />}
@@ -487,25 +488,25 @@ function SupplierShip({ scene }: SceneProps) {
 
 function FlowNodes({ scene }: SceneProps) {
   const steps = (scene.chips?.length ? scene.chips : ["When", "Wait", "Send"]).slice(0, 3);
-  const x = (i: number) => 22 + i * 116;
+  const x = (i: number) => 28 + i * 112;
   return (
     <g>
       {steps.slice(1).map((_, i) => (
-        <line key={i} {...a("draw", 0.8 + i * 1.3)} pathLength={1} x1={x(i) + 100} y1={110} x2={x(i + 1)} y2={110} stroke={C.mint} strokeWidth={3} strokeDasharray="1" />
+        <line key={i} {...a("draw", 0.8 + i * 1.3)} pathLength={1} x1={x(i) + 96} y1={110} x2={x(i + 1)} y2={110} stroke={C.mint} strokeWidth={3} strokeDasharray="1" />
       ))}
       {steps.map((step, i) => (
         <g key={step}>
           <g {...a("rise", 0.1 + i * 0.15)}>
-            <rect className="fi fi-lit" style={{ animationDelay: `${0.5 + i * 1.3}s` }} x={x(i)} y={84} width={100} height={52} rx={14} fill={i === steps.length - 1 ? C.mint : C.teal} stroke={C.mint} strokeWidth={2} />
+            <rect className="fi fi-lit" style={{ animationDelay: `${0.5 + i * 1.3}s` }} x={x(i)} y={84} width={96} height={52} rx={14} fill={i === steps.length - 1 ? C.mint : C.teal} stroke={C.mint} strokeWidth={2} />
           </g>
-          <text {...a("fade", 0.5 + i * 1.3)} x={x(i) + 50} y={115} fill={i === steps.length - 1 ? C.navy : C.cream} fontSize={11} fontWeight={800} fontFamily={FONT} textAnchor="middle">{step}</text>
+          <text {...a("fade", 0.5 + i * 1.3)} x={x(i) + 48} y={115} fill={i === steps.length - 1 ? C.navy : C.cream} fontSize={11} fontWeight={800} fontFamily={FONT} textAnchor="middle">{step}</text>
           <g {...a("pop", 0.7 + i * 1.3)}>
-            <circle cx={x(i) + 50} cy={64} r={11} fill={C.amber} />
-            <text x={x(i) + 50} y={68} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT} textAnchor="middle">{i + 1}</text>
+            <circle cx={x(i) + 48} cy={64} r={11} fill={C.amber} />
+            <text x={x(i) + 48} y={68} fill={C.navy} fontSize={10.5} fontWeight={800} fontFamily={FONT} textAnchor="middle">{i + 1}</text>
           </g>
         </g>
       ))}
-      <circle className="fi-ring" style={{ animationDelay: "3.6s" }} cx={x(steps.length - 1) + 50} cy={110} r={30} fill="none" stroke={C.mint} strokeWidth={2} />
+      <circle className="fi-ring" style={{ animationDelay: "3.6s" }} cx={x(steps.length - 1) + 48} cy={110} r={30} fill="none" stroke={C.mint} strokeWidth={2} />
       <text {...a("fade", 4)} x={180} y={176} fill={C.mintSoft} fontSize={10.5} fontFamily={MONO} textAnchor="middle">RUNS BY ITSELF · 24/7</text>
     </g>
   );
@@ -557,11 +558,7 @@ function AdFunnel({ scene, paused, still }: SceneProps) {
           </g>
         );
       })}
-      {[0, 1, 2, 3, 4].map((i) => (
-        <g key={i} transform={`translate(${110 + i * 10} 20)`}>
-          <circle className="fi-loop" style={{ ...v(0, 150 - (i % 3) * 40), animationDelay: `${1.6 + i * 0.4}s` }} r={4} fill={C.cream} />
-        </g>
-      ))}
+      <rect className="fi-ring" style={{ animationDelay: "2s" }} x={84} y={146} width={92} height={46} rx={14} fill="none" stroke={C.amber} strokeWidth={2} />
       {scene.value && (
         <g {...a("pop", 2.4)}>
           <rect x={250} y={74} width={88} height={72} rx={18} fill={C.cream} />
@@ -661,7 +658,7 @@ function CashCollect({ scene, paused, still }: SceneProps) {
           <text x={160} y={70} fill={C.mintSoft} fontSize={9.5} fontFamily={MONO} textAnchor="middle">CASH AT THE DOOR</text>
         </g>
       )}
-      {scene.label && <Chip x={300} y={196} text={scene.label} fill={C.cream} color={C.navy} delay={3} />}
+      {scene.label && <Chip x={252} y={196} text={scene.label} fill={C.cream} color={C.navy} delay={3} />}
     </g>
   );
 }

@@ -97,6 +97,8 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     actionUrl: `/supplier/orders/${order.id}?kind=wholesale`,
     metadata: { wholesaleOrderId: order.id },
     sendEmail: true,
+    event: "supplier_order.new",
+    dedupeKey: `supplier_order.new:wholesale:${order.id}`,
   }).catch(() => null);
 
   void messageSupplierPhone(product.supplierId, `Shopinbos: a shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name, 60)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} in the app.`);
@@ -157,6 +159,8 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
     description: note.description,
     link: `/marketplace/product/${order.supplierProductId}`,
     sendEmail: next !== "delivered",
+    event: next === "accepted" ? "supplier.accepted" : next === "rejected" ? "supplier.declined" : "supplier.update",
+    dedupeKey: `supplier.${next}:wholesale:${order.id}`,
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: next } };
 }
@@ -204,6 +208,8 @@ export async function cancelWholesaleOrder(input: { sellerId: string; orderId: s
     description: `The seller cancelled ${order.quantity.toLocaleString("en-NG")} × ${plainText(order.supplierProduct.name)}. Don't send it.${reason ? ` "${plainText(reason, 300)}"` : ""}`,
     link: "/supplier/orders?kind=wholesale",
     sendEmail: true,
+    event: "supplier_order.cancelled",
+    dedupeKey: `supplier_order.cancelled:wholesale:${order.id}`,
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: "cancelled" } };
 }

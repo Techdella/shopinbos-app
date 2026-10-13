@@ -143,7 +143,7 @@ test("seller and supplier nav entries use the standard commerce names; routes ar
 
 test("every seller and supplier page header has a labelled Help button that opens the one help panel", () => {
   assert.match(read("src/components/seller/SellerPage.tsx"), /<HelpButton \/>/);
-  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? <>\{actions\}<HelpButton \/><\/>/);
+  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? \(\s*<>\{actions\}<LearnPill role=\{frame\.role\} \/><HelpButton \/><\/>/);
   const help = read("src/components/simple/HelpButton.tsx");
   assert.match(help, /<Icon name="chat" size=\{16\} \/> Help/);
   assert.match(read("src/components/shell/Sidebar.tsx"), /window\.addEventListener\(OPEN_HELP_EVENT, open\)/);

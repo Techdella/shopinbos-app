@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from "@expo-google-fonts/plus-jakarta-sans";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RoleGuard } from "@/components/RoleGuard";
+import { LearnHost } from "@/components/learn/LearnHost";
 import { SessionProvider, useSession } from "@/lib/session";
 import { colors } from "@/theme";
 
@@ -38,6 +39,8 @@ export default function RootLayout() {
         <RoleGuard />
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
+        {/* 60-second feature intros: once per person on the first visit to a feature's screen. */}
+        <LearnHost />
       </SessionProvider>
     </SafeAreaProvider>
   );

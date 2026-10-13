@@ -136,6 +136,9 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
           actionUrl: `/supplier/orders/${row.id}`,
           metadata: { supplierOrderId: row.id, retailOrderId: order.id },
           sendEmail: true,
+          event: "supplier_order.new",
+          dedupeKey: `supplier_order.new:${row.id}`,
+          phoneHandled: true,
         });
       }),
     );
@@ -170,6 +173,8 @@ export async function cancelSupplierOrdersFor(retailOrderId: string) {
         description: "The shop cancelled this order. Don't ship it.",
         link: "/supplier/orders?kind=dropship",
         sendEmail: true,
+        event: "supplier_order.cancelled",
+        dedupeKey: `supplier_order.cancelled:${row.id}`,
       }).catch(() => null);
     }
   }
@@ -251,6 +256,8 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
       description: note.description,
       link: `/home/orders/${order.retailOrderId}`,
       sendEmail: next === "rejected" || next === "shipped",
+      event: next === "accepted" ? "supplier.accepted" : next === "rejected" ? "supplier.declined" : "supplier.update",
+      dedupeKey: `supplier.${next}:${order.id}`,
     }).catch(() => null);
   }
   return { ok: true, data: { id: order.id, status: next } };

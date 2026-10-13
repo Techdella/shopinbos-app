@@ -183,6 +183,8 @@ model User {
   logisticsReviews   LogisticsReview[]
   notifications      Notification[]
   notificationPreferences NotificationPreference[]
+  pushDevices        PushDevice[]
+  notificationSetting NotificationSetting?
   onboardingResponses OnboardingResponse[]
   storeLaunchPayments StoreLaunchPayment[]
 
@@ -987,6 +989,7 @@ model LogisticsTeamMember {
   logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
   jobs             DeliveryBooking[]
   trail            RiderLocationPoint[]
+  pushDevices      PushDevice[]
 
   @@unique([logisticsPartnerId, email])
   @@index([logisticsPartnerId])
@@ -1255,15 +1258,102 @@ model Notification {
   readAt      DateTime?
   scheduledFor DateTime?
   channel     NotificationChannel @default(in_app)
+  /// notify(): the event (e.g. "order.new"), its settings category (shared/notifications.ts) and a key that stops
+  /// the same thing being sent twice (unique per person).
+  event       String?
+  category    String?
+  dedupeKey   String?
   createdAt   DateTime            @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user       User                   @relation(fields: [userId], references: [id])
+  deliveries NotificationDelivery[]
 
+  @@unique([userId, dedupeKey])
   @@index([userId])
   @@index([userId, type])
   @@index([userId, priority])
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, category, createdAt(sort: Desc)])
+}
+
+/// A phone (Expo push token) or browser (Web Push subscription) that gets push notifications. Belongs to an
+/// account (userId) or to a rider (riderId: riders have no account, they use their private link).
+model PushDevice {
+  id           String    @id @default(cuid())
+  userId       String?
+  riderId      String?
+  /// ios | android | web
+  platform     String
+  /// expo | webpush
+  provider     String
+  /// The Expo push token, or the Web Push endpoint URL.
+  token        String    @unique
+  /// Web Push subscription keys.
+  p256dh       String?
+  auth         String?
+  appVersion   String?
+  deviceName   String?
+  lastSeenAt   DateTime  @default(now())
+  /// Set when the person turns push off here, or the token stops working (uninstalled, expired).
+  disabledAt   DateTime?
+  failureCount Int       @default(0)
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rider      LogisticsTeamMember?   @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, disabledAt])
+  @@index([riderId, disabledAt])
+}
+
+/// Each message sent (or held back) for a notification on push, email, SMS or WhatsApp. Expo push tickets are
+/// checked later by /api/cron/push-receipts; "held" rows (quiet hours, a burst) are sent there as one summary.
+model NotificationDelivery {
+  id             String    @id @default(cuid())
+  notificationId String?
+  userId         String?
+  riderId        String?
+  deviceId       String?
+  /// push | email | sms | whatsapp
+  channel        String
+  /// expo | webpush | resend | sms | whatsapp
+  provider       String?
+  /// sent | ok | error | expired (no receipt) | held_quiet | held_burst | flushed | skipped
+  status         String
+  ticketId       String?
+  collapseKey    String?
+  category       String?
+  title          String?
+  body           String?
+  error          String?
+  createdAt      DateTime  @default(now())
+  checkedAt      DateTime?
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  device       PushDevice?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([ticketId])
+  @@index([userId, collapseKey, createdAt])
+  @@index([notificationId])
+}
+
+/// Per-person notification settings that aren't a category × channel switch (those are NotificationPreference
+/// rows with eventKey "notify.<category>"): quiet hours.
+model NotificationSetting {
+  userId            String   @id
+  quietHoursEnabled Boolean  @default(true)
+  /// "HH:MM" in timezone. Default 22:00 to 07:00 Lagos time.
+  quietStart        String   @default("22:00")
+  quietEnd          String   @default("07:00")
+  timezone          String   @default("Africa/Lagos")
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {
