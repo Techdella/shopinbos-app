@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { MascotAvatar } from "@/components/ui";
 import type { Role } from "@/lib/nav";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface BlogPost {
   id?: string;
@@ -51,11 +52,12 @@ export function PortalBlogCmsClient({
 }: PortalBlogCmsClientProps) {
   const writerName = assistantName ?? assistantNames[role] ?? "Rex";
 
-  const [prompt, setPrompt] = useState("Write a complete buying guide that helps customers choose the right product and leads them naturally toward checkout.");
-  const [audience, setAudience] = useState("Customers comparing options before they buy");
+  const t = useT("cms");
+  const [prompt, setPrompt] = useState(() => t("blog.defaultPrompt"));
+  const [audience, setAudience] = useState(() => t("blog.defaultAudience"));
   const [keywords, setKeywords] = useState("");
   const [targetWords, setTargetWords] = useState("2500");
-  const [conversionGoal, setConversionGoal] = useState("Drive readers to product pages and checkout");
+  const [conversionGoal, setConversionGoal] = useState(() => t("blog.defaultGoal"));
   const [article, setArticle] = useState<BlogPost | null>(null);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -94,11 +96,11 @@ export function PortalBlogCmsClient({
         }),
       });
       const data = (await res.json()) as { data?: BlogPost; error?: { message?: string }; demo?: boolean };
-      if (!res.ok || !data.data) throw new Error(data.error?.message ?? "Article generation failed");
+      if (!res.ok || !data.data) throw new Error(data.error?.message ?? t("blog.generateFailed"));
       setArticle(data.data);
-      setNotice(data.demo ? "Demo draft created. Connect the AI key for full long-form generation." : `${writerName} finished the article draft.`);
+      setNotice(data.demo ? t("blog.demo") : t("blog.finished", { name: writerName }));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : `${writerName} could not write the article yet.`);
+      setNotice(error instanceof Error ? error.message : t("blog.couldNot", { name: writerName }));
     } finally {
       setIsGenerating(false);
     }
@@ -115,12 +117,12 @@ export function PortalBlogCmsClient({
         body: JSON.stringify({ ...article, publish, status: publish ? "published" : "draft" }),
       });
       const data = (await res.json()) as { data?: BlogPost; error?: { message?: string } };
-      if (!res.ok || !data.data) throw new Error(data.error?.message ?? "Could not save article");
+      if (!res.ok || !data.data) throw new Error(data.error?.message ?? t("blog.saveFailed"));
       setPosts((prev) => [data.data!, ...prev.filter((post) => post.id !== data.data!.id)]);
       setArticle(data.data);
-      setNotice(publish ? "Article published to your blog." : "Article saved as a draft.");
+      setNotice(publish ? t("blog.published") : t("blog.savedDraft"));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not save article");
+      setNotice(error instanceof Error ? error.message : t("blog.saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -136,7 +138,7 @@ export function PortalBlogCmsClient({
               <div>
                 <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-mint-soft)]">{writerName}</div>
                 <p className="mt-2 text-[14px] leading-6 text-[var(--color-cream)]">
-                  Your blog is set up. You can write and publish articles on your profile from this CMS. {writerName} handles the writing and editing.
+                  {t("blog.intro", { name: writerName })}
                 </p>
               </div>
             </div>
@@ -146,14 +148,14 @@ export function PortalBlogCmsClient({
             <div className="flex items-start gap-3">
               <MascotAvatar role={role} size={34} />
               <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-teal-deep)]">{writerName} writer</div>
-                <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.02em] text-[var(--color-navy)]">Article brief</h2>
+                <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-teal-deep)]">{t("blog.writer", { name: writerName })}</div>
+                <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.02em] text-[var(--color-navy)]">{t("blog.brief")}</h2>
               </div>
             </div>
 
             <div className="mt-5 grid gap-4">
               <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                What should {writerName} write?
+                {t("blog.whatWrite", { name: writerName })}
                 <textarea
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
@@ -164,7 +166,7 @@ export function PortalBlogCmsClient({
               </label>
 
               <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                Audience
+                {t("blog.audience")}
                 <input
                   value={audience}
                   onChange={(event) => setAudience(event.target.value)}
@@ -174,11 +176,11 @@ export function PortalBlogCmsClient({
               </label>
 
               <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                SEO keywords
+                {t("blog.keywords")}
                 <input
                   value={keywords}
                   onChange={(event) => setKeywords(event.target.value)}
-                  placeholder="keyword one, keyword two, keyword three"
+                  placeholder={t("blog.keywordsPh")}
                   className="rounded-[12px] border px-4 py-3 text-[14px] outline-none"
                   style={inputStyle}
                 />
@@ -186,7 +188,7 @@ export function PortalBlogCmsClient({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                  Target words
+                  {t("blog.targetWords")}
                   <input
                     value={targetWords}
                     onChange={(event) => setTargetWords(event.target.value.replace(/\D/g, "").slice(0, 4))}
@@ -195,7 +197,7 @@ export function PortalBlogCmsClient({
                   />
                 </label>
                 <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                  Conversion goal
+                  {t("blog.goal")}
                   <input
                     value={conversionGoal}
                     onChange={(event) => setConversionGoal(event.target.value)}
@@ -206,7 +208,7 @@ export function PortalBlogCmsClient({
               </div>
 
               <Btn variant="mint" icon="edit" onClick={generateArticle} disabled={isGenerating}>
-                {isGenerating ? `${writerName} is writing...` : `Ask ${writerName} to write`}
+                {isGenerating ? t("blog.writing", { name: writerName }) : t("blog.ask", { name: writerName })}
               </Btn>
 
               {notice && (
@@ -220,15 +222,15 @@ export function PortalBlogCmsClient({
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-teal-deep)]">Published content</div>
-                <div className="mt-1 text-[18px] font-semibold text-[var(--color-navy)]">Articles</div>
+                <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-teal-deep)]">{t("blog.publishedContent")}</div>
+                <div className="mt-1 text-[18px] font-semibold text-[var(--color-navy)]">{t("blog.articles")}</div>
               </div>
-              <Pill>{posts.length} total</Pill>
+              <Pill>{t("blog.total", { count: posts.length })}</Pill>
             </div>
             <div className="mt-4 grid gap-3">
               {posts.length === 0 ? (
                 <div className="rounded-[14px] border p-4 text-[13px] text-[var(--color-muted)]" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
-                  No articles yet. Generate one and publish it here.
+                  {t("blog.none")}
                 </div>
               ) : posts.slice(0, 6).map((post) => (
                 <button
@@ -240,9 +242,9 @@ export function PortalBlogCmsClient({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="font-semibold text-[var(--color-navy)]">{post.title}</div>
-                    <Pill>{post.status ?? "draft"}</Pill>
+                    <Pill>{t.dynamic(`status.${post.status ?? "draft"}`, post.status ?? "draft")}</Pill>
                   </div>
-                  <div className="mt-2 text-[12px] leading-5 text-[var(--color-muted)]">{post.excerpt || `${post.wordCount} words`}</div>
+                  <div className="mt-2 text-[12px] leading-5 text-[var(--color-muted)]">{post.excerpt || t("blog.words", { count: post.wordCount })}</div>
                 </button>
               ))}
             </div>
@@ -254,24 +256,24 @@ export function PortalBlogCmsClient({
             <div className="flex h-full flex-col">
               <div className="flex items-start justify-between gap-4 border-b pb-5" style={{ borderColor: "rgb(14 42 56 / 0.08)" }}>
                 <div>
-                  <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-teal-deep)]">Article draft</div>
+                  <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-teal-deep)]">{t("blog.draft")}</div>
                   <h1 className="mt-2 max-w-3xl text-[30px] font-display font-semibold leading-tight tracking-[-0.03em] text-[var(--color-navy)]">
                     {article.title}
                   </h1>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Pill>{article.wordCount.toLocaleString()} words</Pill>
+                    <Pill>{t("blog.words", { count: article.wordCount })}</Pill>
                     {(article.keywords ?? []).slice(0, 5).map((keyword) => <Pill key={keyword}>{keyword}</Pill>)}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Btn variant="outline" size="sm" onClick={() => saveArticle(false)} disabled={isSaving}>Save draft</Btn>
-                  <Btn variant="mint" size="sm" onClick={() => saveArticle(true)} disabled={isSaving}>Publish</Btn>
+                  <Btn variant="outline" size="sm" onClick={() => saveArticle(false)} disabled={isSaving}>{t("blog.saveDraft")}</Btn>
+                  <Btn variant="mint" size="sm" onClick={() => saveArticle(true)} disabled={isSaving}>{t("blog.publish")}</Btn>
                 </div>
               </div>
 
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                  Meta title
+                  {t("blog.metaTitle")}
                   <input
                     value={article.metaTitle}
                     onChange={(event) => setArticle({ ...article, metaTitle: event.target.value })}
@@ -280,7 +282,7 @@ export function PortalBlogCmsClient({
                   />
                 </label>
                 <label className="grid gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                  Meta description
+                  {t("blog.metaDesc")}
                   <input
                     value={article.metaDescription}
                     onChange={(event) => setArticle({ ...article, metaDescription: event.target.value })}
@@ -291,7 +293,7 @@ export function PortalBlogCmsClient({
               </div>
 
               <label className="mt-5 grid flex-1 gap-1.5 text-[12px] font-semibold text-[var(--color-muted)]">
-                Article body
+                {t("blog.body")}
                 <textarea
                   value={article.bodyMarkdown}
                   onChange={(event) => {
@@ -311,10 +313,10 @@ export function PortalBlogCmsClient({
             <div className="flex h-full min-h-[640px] flex-col items-center justify-center text-center">
               <MascotAvatar role={role} size={72} />
               <h2 className="mt-5 text-[28px] font-display font-semibold tracking-[-0.03em] text-[var(--color-navy)]">
-                {writerName} is ready to write.
+                {t("blog.ready", { name: writerName })}
               </h2>
               <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--color-muted)]">
-                Give {writerName} a prompt, target audience, keywords, and word count. Produce full SEO articles and publish them to your blog.
+                {t("blog.readyBody", { name: writerName })}
               </p>
             </div>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { TrustScoreBreakdownItem } from "@/lib/verification-utils";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface TrustScoreBreakdownProps {
   items: TrustScoreBreakdownItem[];
@@ -18,6 +19,8 @@ const levelColors: Record<string, string> = {
 };
 
 export function TrustScoreBreakdown({ items, total, level, nextLevel, nextLevelAt }: TrustScoreBreakdownProps) {
+  const t = useT("verification");
+  const levelName = (name: string) => t.dynamic(`level.${name.split(" ")[0].toLowerCase()}`, name);
   const levelColor = levelColors[level] ?? "#9CA3AF";
   const nextColor = levelColors[nextLevel] ?? "#9CA3AF";
 
@@ -34,10 +37,10 @@ export function TrustScoreBreakdown({ items, total, level, nextLevel, nextLevelA
         }}
       >
         <div style={{ fontSize: 36, fontWeight: 700, color: levelColor }}>{total}</div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: levelColor }}>/ 100 — {level}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: levelColor }}>/ 100 — {levelName(level)}</div>
         {nextLevelAt && total < nextLevelAt && (
           <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 4 }}>
-            {nextLevelAt - total} more points to reach {nextLevel}
+            {t("trust.morePoints", { count: nextLevelAt - total, level: levelName(nextLevel) })}
           </div>
         )}
         <div style={{ height: 6, background: "#E5E7EB", borderRadius: 999, marginTop: 10, overflow: "hidden" }}>

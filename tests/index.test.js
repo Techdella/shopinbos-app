@@ -5,6 +5,9 @@ const path = require("node:path");
 
 const workspaceRoot = path.resolve(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8");
+// Supplier and partner screen words live in the app-language catalogs (shared/i18n/messages/<ns>/en.ts) and are
+// shown through t(): a screen's copy is its source plus its namespace's English catalog.
+const withWords = (relativePath, ...namespaces) => [read(relativePath), ...namespaces.map((ns) => read(`shared/i18n/messages/${ns}/en.ts`))].join("\n");
 const exists = (relativePath) => fs.existsSync(path.join(workspaceRoot, relativePath));
 
 test("public marketplace contract constants stay locked for WordPress consumers", () => {
@@ -209,11 +212,11 @@ test("legacy pages redirect to canonical namespaces", () => {
 
 test("supplier portal has payout recipients, public profiles, and message preferences", () => {
   const schema = read("prisma/schema.prisma");
-  const supplierSettings = read("src/app/supplier/settings/page.tsx");
+  const supplierSettings = withWords("src/app/supplier/settings/page.tsx", "supplier");
   const payments = read("src/app/actions/payments.ts");
   const supplierActions = read("src/app/actions/supplier.ts");
   const messages = read("src/app/api/conversations/[id]/messages/route.ts");
-  const suppliersPage = read("src/app/suppliers/[slug]/page.tsx");
+  const suppliersPage = withWords("src/app/suppliers/[slug]/page.tsx", "marketplace");
   const marketplaceSuppliers = read("src/app/marketplace/suppliers/page.tsx");
 
   assert.match(schema, /model SupplierPayoutAccount/);
@@ -267,11 +270,11 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const supplierOnboardingRoute = read("src/app/api/supplier/onboarding/route.ts");
   const logisticsOnboardingRoute = read("src/app/api/logistics/onboarding/route.ts");
   const storeRouteApp = read("src/app/api/app/store/route.ts");
-  const supplierOnboardingComponent = read("src/components/onboarding/SupplierOnboarding.tsx");
+  const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "onboarding");
   const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
   const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
   const logisticsOnboardingComponent = read("src/components/onboarding/LogisticsOnboarding.tsx");
-  const builder = read("src/components/builder/ChipBuilder.tsx");
+  const builder = withWords("src/components/builder/ChipBuilder.tsx", "builder");
   const builderPage = read("src/app/builder/page.tsx");
   const templatesPage = read("src/app/builder/templates/page.tsx");
   const templateGallery = read("src/components/builder/TemplateGallery.tsx");
@@ -353,7 +356,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
 });
 
 test("auth experience keeps each portal focused and conversational", () => {
-  const auth = read("src/components/auth/app/AppAuth.tsx");
+  const auth = withWords("src/components/auth/app/AppAuth.tsx", "auth");
   const authApi = read("src/components/auth/app/auth-api.ts");
   const otpRoute = read("src/app/api/auth/otp/route.ts");
   const serverAuth = read("src/lib/server-auth.ts");
@@ -396,8 +399,8 @@ test("auth experience keeps each portal focused and conversational", () => {
 
 test("inner portal pages use the mockup-style operational shell", () => {
   const rolePage = read("src/components/role/RolePage.tsx");
-  const payments = read("src/app/home/payments/page.tsx");
-  const logistics = read("src/app/home/logistics/page.tsx");
+  const payments = withWords("src/app/home/payments/page.tsx", "payments");
+  const logistics = withWords("src/app/home/logistics/page.tsx", "shipping");
 
   assert.match(rolePage, /Shop focus/);
   assert.match(rolePage, /Factory focus/);
@@ -406,7 +409,7 @@ test("inner portal pages use the mockup-style operational shell", () => {
   assert.match(rolePage, /Search this list/);
   assert.match(rolePage, /dBtn-mint/);
 
-  assert.match(payments, /Shopinbos takes the payments for you/);
+  assert.match(payments, /Shopinbos handles checkout/);
   assert.match(payments, /Money in, last 30 days/);
   assert.match(payments, /Latest payments/);
   assert.match(payments, /How customers paid/);
@@ -418,10 +421,10 @@ test("inner portal pages use the mockup-style operational shell", () => {
 });
 
 test("supplier product pages provide a full submit and edit workflow", () => {
-  const products = read("src/app/supplier/products/page.tsx");
+  const products = withWords("src/app/supplier/products/page.tsx", "supplier");
   const newProduct = read("src/app/supplier/products/new/page.tsx");
   const editProduct = read("src/app/supplier/products/[id]/edit/page.tsx");
-  const form = read("src/components/supplier/SupplierProductForm.tsx");
+  const form = withWords("src/components/supplier/SupplierProductForm.tsx", "supplier");
   const actions = read("src/app/actions/supplier.ts");
   const prismaConfig = read("prisma.config.ts");
   const sync = read("SHOPINBOS_APP_SYNC.md");
@@ -476,10 +479,10 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   const supplierProductsRoute = read("src/app/api/supplier/products/route.ts");
   const logisticsRoute = read("src/app/api/logistics/onboarding/route.ts");
   const logisticsProfileRoute = read("src/app/api/logistics/profile/route.ts");
-  const supplierNew = read("src/app/supplier/products/new/page.tsx");
+  const supplierNew = withWords("src/app/supplier/products/new/page.tsx", "supplier");
   const supplierProfile = read("src/app/supplier/profile/page.tsx");
   const logisticsProfile = read("src/app/logistics/profile/page.tsx");
-  const logisticsCouriers = read("src/app/logistics/couriers/page.tsx");
+  const logisticsCouriers = withWords("src/app/logistics/couriers/page.tsx", "logistics");
   const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
 
   assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 50/);
@@ -501,22 +504,23 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(logisticsRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsProfileRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
   assert.match(logisticsCouriers, /addLogisticsTeamMember/);
-  assert.match(logisticsCouriers, /Your free plan has room for \{LOGISTICS_FREE_TEAM_MEMBER_LIMIT\} people/);
+  assert.match(logisticsCouriers, /t\("riders\.starterLimit", \{ limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT \}\)/);
+  assert.match(logisticsCouriers, /"riders\.starterLimit": "Starter logistics includes \{limit\} active team members/);
   assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
   assert.match(supplierNew, /Free product limit reached/);
   assert.match(onboarding, /completed: payload\.completed \?\? true/);
 });
 
 test("supplier quote and order pages support response and fulfilment workflows", () => {
-  const quotes = read("src/app/supplier/quote-requests/page.tsx");
-  const orders = read("src/app/supplier/orders/page.tsx");
+  const quotes = withWords("src/app/supplier/quote-requests/page.tsx", "supplier");
+  const orders = withWords("src/app/supplier/orders/page.tsx", "supplier");
   const actions = read("src/app/actions/supplier.ts");
   const sync = read("SHOPINBOS_APP_SYNC.md");
 
   assert.match(quotes, /respondToSupplierQuote/);
   assert.match(quotes, /name="quotedPrice"/);
-  assert.match(quotes, /Send my price/);
-  assert.match(quotes, /Your price requests/);
+  assert.match(quotes, /Send quote/);
+  assert.match(quotes, /Quote health/);
   assert.match(quotes, /name="intent" value="reject"/);
 
   assert.match(orders, /updateSupplierOrderStatus/);
@@ -534,29 +538,29 @@ test("supplier quote and order pages support response and fulfilment workflows",
 });
 
 test("logistics pages support quote, booking, coverage, and pricing workflows", () => {
-  const quotes = read("src/app/logistics/quotes/page.tsx");
-  const bookings = read("src/app/logistics/bookings/page.tsx");
-  const coverage = read("src/app/logistics/coverage/page.tsx");
-  const pricing = read("src/app/logistics/pricing/page.tsx");
+  const quotes = withWords("src/app/logistics/quotes/page.tsx", "logistics");
+  const bookings = withWords("src/app/logistics/bookings/page.tsx", "logistics");
+  const coverage = withWords("src/app/logistics/coverage/page.tsx", "logistics");
+  const pricing = withWords("src/app/logistics/pricing/page.tsx", "logistics");
   const actions = read("src/app/actions/logistics.ts");
   const schemas = read("src/lib/schemas/index.ts");
   const sync = read("SHOPINBOS_APP_SYNC.md");
 
   assert.match(quotes, /respondToDeliveryQuote/);
   assert.match(quotes, /Price good until/);
-  assert.match(quotes, /Send price/);
+  assert.match(quotes, /Send quote/);
   assert.match(quotes, /name="intent" value="reject"/);
 
   assert.match(bookings, /updateDeliveryBookingStatus/);
-  assert.match(bookings, /Where is this job now\?/);
-  assert.match(bookings, /Your own tracking number/);
-  assert.match(bookings, /When will it arrive\?/);
+  assert.match(bookings, /Update job/);
+  assert.match(bookings, /Tracking code/);
+  assert.match(bookings, /Estimated delivery/);
 
   assert.match(coverage, /updateLogisticsCoverage/);
-  assert.match(coverage, /Change your areas/);
+  assert.match(coverage, /Edit coverage/);
   assert.match(coverage, /name="coverageRows"/);
   assert.match(pricing, /updateLogisticsPricing/);
-  assert.match(pricing, /Change your prices/);
+  assert.match(pricing, /Edit pricing/);
   assert.match(pricing, /What sellers see/);
 
   assert.match(actions, /export async function updateLogisticsCoverage/);
@@ -591,9 +595,12 @@ test("portal namespaces have shared empty, loading, and error states", () => {
   ["home", "seller", "supplier", "logistics", "admin", "products", "peggy"].forEach((segment) => {
     assert.match(read(`src/app/${segment}/loading.tsx`), /<AppLoading role=/, `${segment} uses the shared loading screen`);
   });
-  assert.match(loading, /Opening \$\{name \|\| FALLBACK_NAME\[role\]\}/);
+  // Words live in the "shell" catalog (shown in the person's language).
+  const shellEn = read("shared/i18n/messages/shell/en.ts");
+  assert.match(loading, /t\("loading\.opening", \{ name: name \|\| t\(FALLBACK_NAME\[role\]\) \}\)/);
+  assert.match(shellEn, /"loading\.opening": "Opening \{name\}"/);
   assert.match(loading, /SLOW_AFTER_MS = 8000/);
-  assert.match(loading, /Your network is slow/);
+  assert.match(shellEn, /"loading\.slowTitle": "Your network is slow"/);
   assert.match(states, /export function PortalErrorState/);
   assert.match(states, /unstable_retry/);
   assert.match(rolePage, /We will surface the next item here when it arrives/);
@@ -899,7 +906,8 @@ test("Your store hub links to Rex Studio, the builder, brand kit, templates and 
 
   assert.match(nav, /id: "your-store", label: "Your store", icon: "shop", href: "\/home\/store"/);
   assert.ok(exists("src/app/home/store/page.tsx"));
-  assert.match(hub, /title="Your store"/);
+  assert.match(hub, /title=\{t\("hub\.title"\)\}/);
+  assert.match(read("shared/i18n/messages/store/en.ts"), /"hub\.title": "Your store"/);
   assert.match(hub, /href="\/studio"/);
   assert.match(hub, /`\/studio\?prompt=\$\{encodeURIComponent\(REBRAND_PROMPT\)\}`/);
   assert.match(look, /export const REBRAND_PROMPT = /);

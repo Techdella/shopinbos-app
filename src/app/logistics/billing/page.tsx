@@ -5,20 +5,26 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { updateFeeBearer } from "@/app/actions/billing";
 import { Card, CardHead, EmptyState, ListCard, ListRow, StatGrid, StatTile } from "@/components/app-kit";
 import { KeyValue, PartnerPage, StatusPill, SubmitButton, inputClass, labelClass, lagosDate, naira } from "@/components/logistics/kit";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Fees" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("fees.title") };
+}
 
 const BEARERS: Record<string, string> = {
   seller: "The seller (added to their delivery cost)",
   supplier: "The supplier on the order",
-  logistics_partner: "You (taken from the money we send to your bank)",
+  logistics_partner: "You (taken from your payout)",
 };
 
 export default async function LogisticsBillingPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const t = await getT("logistics", "common");
+  const bearerLabel = (value: string) => (BEARERS[value] ? t.dynamic(`fees.bearer.${value}`, BEARERS[value]) : value);
+  const bearerShort = (value: string) => (BEARERS[value] ? t.dynamic(`fees.bearerShort.${value}`, value.replace(/_/g, " ")) : value.replace(/_/g, " "));
 
   const [feeConfig, bookings] = await Promise.all([
     db.platformFeeConfig.findFirst({ where: { active: true } }),
@@ -45,20 +51,20 @@ export default async function LogisticsBillingPage() {
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Fees"
-      sub={`Shopinbos takes ${rate}% of each delivery. Right now it's paid by ${(BEARERS[bearer] ?? bearer).split(" (")[0].toLowerCase()}.`}
+      title={t("fees.title")}
+      sub={t("fees.sub", { rate, who: t.dynamic(`fees.bearerWho.${bearer}`, (BEARERS[bearer] ?? bearer).split(" (")[0].toLowerCase()) })}
     >
       <StatGrid className="mb-5 md:grid-cols-3">
-        <StatTile tone="card" label="Delivery fees earned" value={naira(totalGross)} hint={`${delivered.length} delivered jobs`} />
-        <StatTile tone="card" label={`Shopinbos fees (${rate}%)`} value={naira(totalFees)} />
-        <StatTile tone="card" label="Yours after fees" value={naira(totalNet)} className="col-span-2 md:col-span-1" />
+        <StatTile tone="card" label={t("fees.earned")} value={naira(totalGross)} hint={t("fees.deliveredJobsCount", { count: delivered.length })} />
+        <StatTile tone="card" label={t("fees.shopinbosFees", { rate })} value={naira(totalFees)} />
+        <StatTile tone="card" label={t("fees.yours")} value={naira(totalNet)} className="col-span-2 md:col-span-1" />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
         <section aria-labelledby="fee-history" className="min-w-0">
-          <h2 id="fee-history" className="m-0 mb-3 text-[18px] font-extrabold">Fee on each job</h2>
+          <h2 id="fee-history" className="m-0 mb-3 text-[18px] font-extrabold">{t("fees.eachJob")}</h2>
           {bookings.length === 0 ? (
-            <EmptyState icon="document" title="No jobs yet">Fees show here once sellers book you.</EmptyState>
+            <EmptyState icon="document" title={t("jobs.emptyTitle")}>{t("fees.emptyBody")}</EmptyState>
           ) : (
             <ListCard>
               {bookings.slice(0, 50).map((booking) => {
@@ -68,7 +74,7 @@ export default async function LogisticsBillingPage() {
                     <div className="min-w-0 flex-1 basis-[160px]">
                       <div className="truncate text-[15px] font-extrabold">{booking.seller.name}</div>
                       <div className="truncate text-[15px] text-app-ink-soft">
-                        {lagosDate(booking.createdAt)} · fee paid by {(booking.feeBearer || bearer).replace(/_/g, " ")}
+                        {lagosDate(booking.createdAt, undefined, new Date(), t)} · {t("fees.paidByWho", { who: bearerShort(booking.feeBearer || bearer) })}
                       </div>
                     </div>
                     <StatusPill status={booking.status} />
@@ -83,24 +89,24 @@ export default async function LogisticsBillingPage() {
 
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">
-            <CardHead title="Who pays the fee" />
+            <CardHead title={t("fees.whoPays")} />
             <form action={updateFeeBearer} className="mt-4 grid gap-3">
               <div>
-                <label htmlFor="feeBearer" className={labelClass}>The {rate}% fee is paid by</label>
+                <label htmlFor="feeBearer" className={labelClass}>{t("fees.ratePaidBy", { rate })}</label>
                 <select id="feeBearer" name="feeBearer" defaultValue={bearer} className={inputClass}>
-                  {Object.entries(BEARERS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  {Object.keys(BEARERS).map((value) => <option key={value} value={value}>{bearerLabel(value)}</option>)}
                 </select>
               </div>
-              <SubmitButton>Save</SubmitButton>
+              <SubmitButton>{t("save")}</SubmitButton>
             </form>
           </Card>
           <Card className="p-5">
-            <CardHead title="Summary" />
+            <CardHead title={t("fees.summary")} />
             <div className="mt-2 divide-y divide-app-line">
-              <KeyValue label="Fee rate">{rate}%</KeyValue>
-              <KeyValue label="Paid by">{bearer.replace(/_/g, " ")}</KeyValue>
-              <KeyValue label="Delivered jobs">{delivered.length}</KeyValue>
-              <KeyValue label="Fees so far">{naira(totalFees)}</KeyValue>
+              <KeyValue label={t("fees.rate")}>{rate}%</KeyValue>
+              <KeyValue label={t("jobs.paidBy")}>{bearerShort(bearer)}</KeyValue>
+              <KeyValue label={t("earnings.deliveredJobs")}>{delivered.length}</KeyValue>
+              <KeyValue label={t("fees.soFar")}>{naira(totalFees)}</KeyValue>
             </div>
           </Card>
         </div>

@@ -9,7 +9,8 @@ import { addressLines } from "@/lib/labels";
 import { FulfillmentPanel } from "./FulfillmentPanel";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
-import { naira } from "@shared/onboarding";
+import { formatDate as formatLocaleDate, formatMoney, formatNumber, type Locale } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { messagesHref } from "@/lib/conversations/pure";
 import { Notice } from "@/components/app-ui";
 import { cancelAndRefundExpiredOrder, undoSupplierSwitchAction } from "./supplier-actions";
@@ -26,8 +27,8 @@ const PART_TONE: Record<string, "accent" | "info" | "warning" | "success" | "mut
   problem: "danger",
 };
 
-function formatDate(date: Date) {
-  return date.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
+function formatDate(date: Date, locale: Locale) {
+  return formatLocaleDate(date, locale, { day: "numeric", month: "long", year: "numeric" });
 }
 
 function Line({ label, children, strong = false }: { label: string; children: React.ReactNode; strong?: boolean }) {
@@ -43,6 +44,9 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const { id } = await params;
   const flash = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("orders", "common");
+  const locale = await getLocale();
+  const naira = (amount: number) => formatMoney(Math.round(amount), locale);
 
   const store = await db.store.findUnique({
     where: { userId: user.id },
@@ -87,8 +91,11 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const baseRow = orderRow({ ...order, total: Number(order.total) });
   // Suppliers send it: "Waiting for the supplier" / "1 of 2 parcels sent" / "Needs you", not "Needs a rider".
   const row = parts?.stage ? { ...baseRow, stage: parts.stage } : baseRow;
-  const money = (amount: number) => (store.currency === "NGN" ? naira(amount) : `${store.currency} ${Math.round(amount).toLocaleString("en-NG")}`);
-  const channel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
+  const money = (amount: number) => (store.currency === "NGN" ? naira(amount) : `${store.currency} ${formatNumber(Math.round(amount), locale)}`);
+  const channelLabel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
+  const channel = channelLabel ? t.dynamic(`channel.${channelLabel}`, channelLabel) : null;
+  const stageLabel = t.dynamic(`stage.${row.stage.label}`, row.stage.label);
+  const paymentLabel = t.dynamic(`pay.${row.payment.label}`, row.payment.label);
   const discount = Number(order.discountAmount ?? 0);
   const needsRider = row.stage.label === "Needs a rider";
 
@@ -96,11 +103,11 @@ export default async function OrderDetailPage({ params, searchParams }: { params
     <AppPage
       frame={sellerFrame(user, store)}
       title={order.orderNumber}
-      sub={`Placed by ${order.buyerName} · ${formatDate(order.createdAt)}`}
+      sub={t("detail.placedBy", { name: order.buyerName, date: formatDate(order.createdAt, locale) })}
       actions={
         <>
-          <PillLink href="/home/orders" icon="arrowLeft">All orders</PillLink>
-          <PillLink href={`/home/labels?orders=${order.id}`} tone="ink" icon="document">Print label</PillLink>
+          <PillLink href="/home/orders" icon="arrowLeft">{t("allOrders")}</PillLink>
+          <PillLink href={`/home/labels?orders=${order.id}`} tone="ink" icon="document">{t("detail.printLabel")}</PillLink>
         </>
       }
     >
@@ -108,15 +115,15 @@ export default async function OrderDetailPage({ params, searchParams }: { params
         <div role={order.paymentIssue ? "alert" : undefined} className={`mb-4 rounded-[16px] px-4 py-3 text-[14px] ${order.paymentIssue ? "bg-app-danger-tint font-bold text-app-danger" : "bg-app-canvas text-app-ink-soft"}`}>
           {order.paymentIssue ??
             (order.refundStatus && order.refundStatus !== "manual"
-              ? `The payment came in after this order expired and its stock had sold, so it was refunded through Paystack${order.refundStatus === "processed" ? "" : " (Paystack is still processing it)"}.`
-              : `This order expired unpaid on ${formatDate(order.expiredAt!)} and its stock went back on sale. If the buyer pays now it's taken again, if there's still stock.`)}
+              ? order.refundStatus === "processed" ? t("detail.refundedAfterExpiry") : t("detail.refundingAfterExpiry")
+              : t("detail.expiredUnpaid", { date: formatDate(order.expiredAt!, locale) }))}
         </div>
       )}
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <StageDot tone={row.stage.tone}>{row.stage.label}</StageDot>
+        <StageDot tone={row.stage.tone}>{stageLabel}</StageDot>
         {parts?.line && parts.line !== row.stage.label && <Pill tone={parts.sent === parts.total ? "success" : "info"}>{parts.line}</Pill>}
-        <Pill tone={row.payment.tone}>{row.payment.label}</Pill>
-        {channel && <span className="text-[13.5px] text-app-ink-soft">From {channel}</span>}
+        <Pill tone={row.payment.tone}>{paymentLabel}</Pill>
+        {channel && <span className="text-[13.5px] text-app-ink-soft">{t("detail.from", { channel })}</span>}
       </div>
 
       <SplitLayout
@@ -124,13 +131,13 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <>
             {/* Items */}
             <Card className="p-5">
-              <CardHead title="Items" sub={`${items.length} ${items.length === 1 ? "item" : "items"}`} />
+              <CardHead title={t("detail.items")} sub={t("detail.itemCount", { count: items.length })} />
               {items.length === 0 ? (
-                <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No items were saved on this order.</p>
+                <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("detail.noItems")}</p>
               ) : (
                 <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                   {items.map((item, index) => {
-                    const name = String(item.name ?? item.title ?? "Item");
+                    const name = String(item.name ?? item.title ?? t("detail.item"));
                     const quantity = Number(item.quantity ?? 1) || 1;
                     const price = Number(item.price ?? 0) || 0;
                     return (
@@ -159,8 +166,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                   </div>
                 )}
                 <CardHead
-                  title={parts.total > 1 ? "Parcels" : "Sent by the supplier"}
-                  sub={parts.line ?? "Products you sell without stock go straight from the supplier to your customer, in your shop's name."}
+                  title={parts.total > 1 ? t("detail.parcels") : t("detail.sentBySupplier")}
+                  sub={parts.line ?? t("detail.dropshipSub")}
                 />
                 {parts.problems.map((problem) => (
                   <div key={problem.supplierOrderId} className="mt-3 grid gap-2 rounded-[14px] bg-app-canvas p-3 text-[13.5px]">
@@ -172,31 +179,31 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                           <form action={undoSupplierSwitchAction} className="flex flex-wrap items-center gap-2">
                             <input type="hidden" name="orderId" value={order.id} />
                             <input type="hidden" name="supplierOrderId" value={problem.switched.toSupplierOrderId} />
-                            <span className="text-app-ink-soft">Waiting for {problem.switched.toName} to accept. Rather choose yourself?</span>
-                            <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">Undo</button>
+                            <span className="text-app-ink-soft">{t("detail.waitingFor", { name: problem.switched.toName })}</span>
+                            <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">{t("detail.undo")}</button>
                           </form>
                         ) : problem.switched.accepted ? (
-                          <div className="text-app-ink-soft">{problem.switched.toName} accepted it.</div>
+                          <div className="text-app-ink-soft">{t("detail.accepted", { name: problem.switched.toName })}</div>
                         ) : null}
                       </>
                     ) : problem.status === "expired" ? (
                       <>
                         <div className="font-bold">
-                          {problem.supplierName} didn&apos;t accept this in time{problem.undone ? ", and you undid the switch" : ", so we took it back from them"}. Your customer hasn&apos;t been told. What do you want to do?
+                          {problem.undone ? t("detail.didntAcceptUndone", { supplier: problem.supplierName }) : t("detail.didntAccept", { supplier: problem.supplierName })}
                         </div>
                         <div className="text-app-ink-soft">{problem.items}</div>
                         <div className="flex flex-wrap gap-2">
-                          <PillLink href={`/marketplace?q=${encodeURIComponent(problem.searchQuery)}`} size="sm" icon="search">Find another supplier</PillLink>
+                          <PillLink href={`/marketplace?q=${encodeURIComponent(problem.searchQuery)}`} size="sm" icon="search">{t("detail.findAnother")}</PillLink>
                           {parts.canCancelAndRefund && (
                             <form action={cancelAndRefundExpiredOrder}>
                               <input type="hidden" name="orderId" value={order.id} />
-                              <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">Cancel and refund the customer</button>
+                              <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">{t("detail.cancelRefund")}</button>
                             </form>
                           )}
                         </div>
                       </>
                     ) : (
-                      <div className="font-bold text-app-danger">{problem.supplierName} can&apos;t send {problem.items}. Contact your buyer, then refund or replace these items.</div>
+                      <div className="font-bold text-app-danger">{t("detail.cantSend", { supplier: problem.supplierName, items: problem.items })}</div>
                     )}
                   </div>
                 ))}
@@ -206,14 +213,14 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                     return (
                       <li key={part.key} className="grid gap-1.5 py-3 text-[14px]">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-bold">{part.kind === "own" ? "Your part" : part.name}</span>
+                          <span className="font-bold">{part.kind === "own" ? t("detail.yourPart") : part.name}</span>
                           <Pill tone={PART_TONE[part.state] ?? "muted"} dot>{part.label}</Pill>
                         </div>
                         <div className="text-[13px] text-app-ink-soft">{part.items}</div>
                         {part.trackingCode && (
-                          <div className="text-[13px]">Tracking <span className="font-bold">{part.trackingCode}</span>{supplierOrder?.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder?.shippedAt ? ` · sent ${formatDate(supplierOrder.shippedAt)}` : ""}</div>
+                          <div className="text-[13px]">{t("detail.tracking")} <span className="font-bold">{part.trackingCode}</span>{supplierOrder?.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder?.shippedAt ? ` · ${t("detail.sentOn", { date: formatDate(supplierOrder.shippedAt, locale) })}` : ""}</div>
                         )}
-                        {supplierOrder?.rejectReason && <div className="text-[13px] font-bold text-app-danger">Declined: {supplierOrder.rejectReason}.</div>}
+                        {supplierOrder?.rejectReason && <div className="text-[13px] font-bold text-app-danger">{t("detail.declined", { reason: supplierOrder.rejectReason })}</div>}
                       </li>
                     );
                   })}
@@ -224,15 +231,15 @@ export default async function OrderDetailPage({ params, searchParams }: { params
             <div className="grid gap-5 lg:grid-cols-2">
               {/* Customer */}
               <Card className="p-5">
-                <CardHead title="Customer" />
+                <CardHead title={t("detail.customer")} />
                 <dl className="m-0 mt-3 grid gap-2.5 text-[14px]">
                   <div>
-                    <dt className="text-[12.5px] text-app-ink-soft">Name</dt>
+                    <dt className="text-[12.5px] text-app-ink-soft">{t("detail.name")}</dt>
                     <dd className="m-0 font-bold">{order.buyerName}</dd>
                   </div>
                   {order.buyerEmail && (
                     <div className="min-w-0">
-                      <dt className="text-[12.5px] text-app-ink-soft">Email</dt>
+                      <dt className="text-[12.5px] text-app-ink-soft">{t("detail.email")}</dt>
                       <dd className="m-0 break-all">
                         <a href={`mailto:${order.buyerEmail}`} className="font-bold text-app-accent-ink no-underline hover:underline">{order.buyerEmail}</a>
                       </dd>
@@ -240,7 +247,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                   )}
                   {order.buyerPhone && (
                     <div>
-                      <dt className="text-[12.5px] text-app-ink-soft">Phone</dt>
+                      <dt className="text-[12.5px] text-app-ink-soft">{t("detail.phone")}</dt>
                       <dd className="m-0">
                         <a href={`tel:${order.buyerPhone}`} className="font-bold text-app-ink no-underline hover:underline">{order.buyerPhone}</a>
                       </dd>
@@ -249,7 +256,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                 </dl>
                 {order.notes && (
                   <div className="mt-4 rounded-[14px] bg-app-canvas px-4 py-3">
-                    <div className="text-[12.5px] text-app-ink-soft">Note</div>
+                    <div className="text-[12.5px] text-app-ink-soft">{t("detail.note")}</div>
                     <p className="m-0 mt-0.5 whitespace-pre-line text-[14px]">{order.notes}</p>
                   </div>
                 )}
@@ -257,62 +264,62 @@ export default async function OrderDetailPage({ params, searchParams }: { params
 
               {/* Delivery */}
               <Card className="p-5">
-                <CardHead title="Delivery" />
+                <CardHead title={t("detail.delivery")} />
                 <div className="mt-3 grid gap-3 text-[14px]">
                   {address.length > 0 ? (
                     <address className="not-italic leading-[1.5]">
                       {address.map((lineText) => <div key={lineText}>{lineText}</div>)}
                     </address>
                   ) : (
-                    <p className="m-0 text-app-ink-soft">No delivery address on this order.</p>
+                    <p className="m-0 text-app-ink-soft">{t("detail.noAddress")}</p>
                   )}
                   {logistics?.type ? (
                     <div className="text-app-ink-soft">
-                      {logistics.type === "pickup" ? "Buyer pickup" : logistics.type === "network" ? "Delivery partner" : "Personal logistics"}
+                      {logistics.type === "pickup" ? t("detail.pickup") : logistics.type === "network" ? t("detail.network") : t("detail.personal")}
                     </div>
                   ) : null}
                   {booking && (
                     <div className="grid gap-1">
                       <div className="text-[12.5px] text-app-ink-soft">{booking.logisticsPartner.displayName}</div>
                       <div className="font-bold">
-                        {booking.rider ? `${booking.rider.name} · ` : ""}{booking.status === "pending" ? "Waiting for the partner to accept" : booking.status.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
+                        {booking.rider ? `${booking.rider.name} · ` : ""}{booking.status === "pending" ? t("detail.waitingPartner") : t.dynamic(`booking.${booking.status}`, booking.status.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()))}
                       </div>
                       {booking.deliveryCode && !["delivered", "failed"].includes(booking.status) && (
                         <div className="mt-1 rounded-[14px] bg-app-mint px-3.5 py-2.5">
-                          <div className="text-[12.5px] text-app-forest">Share this code with your buyer</div>
+                          <div className="text-[12.5px] text-app-forest">{t("detail.shareCode")}</div>
                           <div className="font-mono text-[22px] font-extrabold tracking-[0.2em]">{booking.deliveryCode}</div>
-                          <div className="text-[12.5px] text-app-forest">The rider asks for it at the door before handing over the parcel.</div>
+                          <div className="text-[12.5px] text-app-forest">{t("detail.codeNote")}</div>
                         </div>
                       )}
                     </div>
                   )}
                   {order.trackingCode && (
                     <div>
-                      <div className="text-[12.5px] text-app-ink-soft">Tracking code</div>
+                      <div className="text-[12.5px] text-app-ink-soft">{t("detail.trackingCode")}</div>
                       <div className="break-all font-bold">{order.trackingCode}</div>
                     </div>
                   )}
                   {(order.shippedAt || order.deliveredAt) && (
                     <div className="text-[13px] text-app-ink-soft">
-                      {order.shippedAt && <div>Shipped {formatDate(order.shippedAt)}</div>}
-                      {order.deliveredAt && <div>Delivered {formatDate(order.deliveredAt)}</div>}
+                      {order.shippedAt && <div>{t("detail.shipped", { date: formatDate(order.shippedAt, locale) })}</div>}
+                      {order.deliveredAt && <div>{t("detail.deliveredOn", { date: formatDate(order.deliveredAt, locale) })}</div>}
                     </div>
                   )}
                   {needsRider && (
                     <div>
-                      <PillLink href="/home/logistics" size="sm" icon="truck">Find a delivery partner</PillLink>
+                      <PillLink href="/home/logistics" size="sm" icon="truck">{t("detail.findPartner")}</PillLink>
                     </div>
                   )}
                   {(booking || orderSuppliers.length > 0) && (
                     <div className="flex flex-wrap gap-2">
                       {booking && (
                         <PillLink href={messagesHref("seller", { with: booking.logisticsPartner.id, context: { kind: "booking", id: booking.id } })} size="sm" icon="chat">
-                          Message delivery partner
+                          {t("detail.messagePartner")}
                         </PillLink>
                       )}
                       {orderSuppliers.map((supplier) => (
                         <PillLink key={supplier.id} href={messagesHref("seller", { with: supplier.id, context: { kind: "order", id: order.id } })} size="sm" icon="chat">
-                          Message {orderSuppliers.length > 1 ? supplier.displayName : "supplier"}
+                          {orderSuppliers.length > 1 ? t("detail.messageName", { name: supplier.displayName }) : t("detail.messageSupplier")}
                         </PillLink>
                       ))}
                     </div>
@@ -326,25 +333,28 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <>
             {/* Payment */}
             <Card className="p-5">
-              <CardHead title="Payment" action={<Pill tone={row.payment.tone}>{row.payment.label}</Pill>} />
+              <CardHead title={t("detail.payment")} action={<Pill tone={row.payment.tone}>{paymentLabel}</Pill>} />
               <div className="mt-4 grid gap-2.5">
-                <Line label="Subtotal">{money(Number(order.subtotal))}</Line>
-                <Line label="Delivery">{Number(order.shippingFee) === 0 ? "Free" : money(Number(order.shippingFee))}</Line>
-                {discount > 0 && <Line label={order.discountCode ? `Discount (${order.discountCode})` : "Discount"}>−{money(discount)}</Line>}
-                <Line label="Total" strong>{money(Number(order.total))}</Line>
+                <Line label={t("detail.subtotal")}>{money(Number(order.subtotal))}</Line>
+                <Line label={t("detail.delivery")}>{Number(order.shippingFee) === 0 ? t("detail.free") : money(Number(order.shippingFee))}</Line>
+                {discount > 0 && <Line label={order.discountCode ? t("detail.discountCode", { code: order.discountCode }) : t("detail.discount")}>−{money(discount)}</Line>}
+                <Line label={t("detail.total")} strong>{money(Number(order.total))}</Line>
               </div>
               {(order.paymentMethod || channel || order.paystackRef) && (
                 <div className="mt-4 grid gap-1 text-[13px] text-app-ink-soft">
-                  {order.paymentMethod && <div>{row.payment.label === "Paid" ? "Paid by" : "Paying by"} {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</div>}
-                  {channel && <div>Sold on {channel}</div>}
-                  {order.paystackRef && <div className="break-all">Ref: {order.paystackRef}</div>}
+                  {order.paymentMethod && (() => {
+                    const method = t.dynamic(`method.${order.paymentMethod}`, PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod);
+                    return <div>{row.payment.label === "Paid" ? t("detail.paidBy", { method }) : t("detail.payingBy", { method })}</div>;
+                  })()}
+                  {channel && <div>{t("detail.soldOn", { channel })}</div>}
+                  {order.paystackRef && <div className="break-all">{t("detail.ref", { ref: order.paystackRef })}</div>}
                 </div>
               )}
             </Card>
 
             {/* Status and actions */}
             <Card className="p-5">
-              <CardHead title="Status" />
+              <CardHead title={t("detail.status")} />
               <div className="mt-3">
                 <FulfillmentPanel
                   orderId={order.id}

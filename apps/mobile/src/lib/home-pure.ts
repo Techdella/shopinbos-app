@@ -1,5 +1,6 @@
 // What Home shows (section 8A of the build spec): today's sales, at most three "Do these next" items and one
 // line about Peggy. Pure, so the root tests can check the limit.
+import type { TFunction } from "@shared/i18n";
 
 export const MAX_DO_NEXT = 3;
 
@@ -48,8 +49,16 @@ export function doNextItems(tasks: readonly Task[] | null | undefined, setupNext
   return items.slice(0, MAX_DO_NEXT);
 }
 
-/** The one line about Peggy under "Do these next". */
-export function peggyLine(counts: { chatsToday: number; ordersToday: number } | null | undefined) {
+/** The one line about Peggy under "Do these next" (m_home "peggy.*" in the app language when `t` is given). */
+export function peggyLine(counts: { chatsToday: number; ordersToday: number } | null | undefined, t?: Pick<TFunction, "dynamic">) {
+  if (t) {
+    if (!counts) return t.dynamic("peggy.watching", "Peggy is keeping an eye on your shop.");
+    const vars = { chats: counts.chatsToday, orders: counts.ordersToday };
+    if (counts.chatsToday && counts.ordersToday) return t.dynamic("peggy.chatsAndOrders", "", vars);
+    if (counts.chatsToday) return t.dynamic("peggy.chats", "", vars);
+    if (counts.ordersToday) return t.dynamic("peggy.orders", "", vars);
+    return t.dynamic("peggy.askAnything", "Peggy is keeping an eye on your shop. Ask her anything.");
+  }
   if (!counts) return "Peggy is keeping an eye on your shop.";
   const parts = [
     counts.chatsToday ? `${counts.chatsToday} chat${counts.chatsToday === 1 ? "" : "s"}` : null,

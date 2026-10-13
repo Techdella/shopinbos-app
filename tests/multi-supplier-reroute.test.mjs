@@ -345,12 +345,17 @@ test("wiring: pickups move the parcel, not the whole order; customers hear 'ship
 });
 
 test("screens: the seller sees parcels, the switch with Undo, or two choices (web and app)", () => {
-  const web = read("src/app/home/orders/[id]/page.tsx");
-  for (const words of ["Find another supplier", "Cancel and refund the customer", "Undo", "parts.line", "Your part"]) assert.ok(web.includes(words), words);
+  // Web copy lives in the orders catalog (shared/i18n/messages/orders/en.ts); the page shows it through t().
+  const web = read("src/app/home/orders/[id]/page.tsx") + read("shared/i18n/messages/orders/en.ts");
+  for (const words of ["Find another supplier", "Cancel and refund the customer", "Undo", "parts.line", "Your part", 't("detail.findAnother")', 't("detail.cancelRefund")', 't("detail.undo")']) assert.ok(web.includes(words), words);
   const app = read("apps/mobile/src/app/order/[id].tsx");
-  for (const words of ["didn&apos;t accept in time.", "We sent it to", "Undo", "Find another supplier", "Cancel and refund the customer", "Cancel and refund the customer?", "parts.line", "pathname: \"/find\""]) assert.ok(app.includes(words), words);
+  for (const words of ['t("order.notAccepted"', 't("order.sentTo"', 't("order.undo")', 't("order.findAnother")', 't("order.refund")', 't("order.refundTitle")', "parts.line", "pathname: \"/find\""]) assert.ok(app.includes(words), words);
+  // The phone's words live in the m_orders catalog (translated into the app languages).
+  const appWords = read("shared/i18n/messages/m_orders/en.ts");
+  for (const words of ["didn't accept in time.", "We sent it to", '"Undo"', "Find another supplier", '"Cancel and refund the customer"', "Cancel and refund the customer?"]) assert.ok(appWords.includes(words), words);
   assert.match(app, /footer = deciding \? null/, "the two choices are the screen's main buttons");
   assert.doesNotMatch(app, /help=\{false\}/, "Help stays");
   assert.match(read("apps/mobile/src/app/find/index.tsx"), /useLocalSearchParams<\{ q\?: string \}>/);
-  assert.match(read("src/components/settings/SupplierSwitchCard.tsx"), /Send it to another supplier for me/);
+  assert.match(read("src/components/settings/SupplierSwitchCard.tsx"), /t\("switch\.auto"\)/);
+  assert.match(read("shared/i18n/messages/account/en.ts"), /"switch\.auto": "Send it to another supplier for me"/);
 });

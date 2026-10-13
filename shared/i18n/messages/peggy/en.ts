@@ -1,0 +1,43 @@
+// Peggy (the seller assistant) chat, Chip assistant pieces and the notifications pages.
+// English is the source of truth; every key must exist in pcm.ts, yo.ts, ha.ts and ig.ts.
+const en = {
+  // Ask Peggy (/home/peggy)
+  "metaTitle": "Ask Peggy",
+  "suggest.toSend": "Which orders do I need to send?",
+  "suggest.unpaid": "Which orders haven't been paid yet?",
+  "suggest.restock": "What should I restock?",
+  "suggest.week": "How did I do this week?",
+  "suggest.drafts": "Which products are still drafts?",
+  "suggest.discount": "Make a 10% discount code for this weekend",
+  "suggest.caption": "Write an Instagram caption for {product}",
+  "suggest.blog": "Draft a blog post about {product}",
+  "suggest.bestCustomers": "Who are my best customers?",
+  "suggest.email": "Draft an email to my repeat buyers",
+  "can.data": "Sales, orders, stock and customers, from your live shop",
+  "can.orders": "Mark orders paid, sent or delivered",
+  "can.products": "Change prices and stock, publish or hide products",
+  "can.discounts": "Make discount codes",
+  "can.setup": "Set up payment methods and delivery fees",
+  "can.drafts": "Draft blog posts, email campaigns and ads for you to check",
+  "can.write": "Write WhatsApp statuses, captions and descriptions",
+  "err.answer": "Peggy couldn't answer just now. Try again in a moment.",
+  "err.short": "Peggy couldn't answer just now.",
+  "sub": "Checks your shop and gets things done",
+  "newChat": "New chat",
+  "working": "Peggy is working on it…",
+  "ask": "Ask Peggy",
+  "placeholder": "Ask Peggy, or tell her what to do",
+  "send": "Send",
+  "today": "Your shop today",
+  "stat.today": "Sold today",
+  "stat.week": "Last 7 days",
+  "stat.toSend": "To send",
+  "stat.unpaid": "Not paid yet",
+  "stat.lowStock": "Low on stock",
+  "stat.unread": "Unread messages",
+  "canTitle": "What Peggy can do",
+  "neverAlone": "She never sends messages, publishes posts or starts ads on her own; those are saved as drafts for you.",
+  "didThis": "Peggy did this",
+} satisfies Record<string, string>;
+
+export default en;

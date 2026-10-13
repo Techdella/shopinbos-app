@@ -254,6 +254,8 @@ export async function notifyNewSupplier(supplierOrderId: string, acceptWords: st
     actionUrl: `/supplier/orders/${row.id}`,
     metadata: { supplierOrderId: row.id, retailOrderId: row.retailOrderId },
     sendEmail: true,
+    event: "supplier_order.new",
+    dedupeKey: `supplier_order.new:${row.id}`,
   }).catch(() => null);
 }
 
@@ -297,6 +299,9 @@ export async function undoSupplierSwitch(storeId: string, replacementId: string,
       description: "The shop took this order back before you accepted it. Don't send it.",
       link: "/supplier/orders",
       metadata: { supplierOrderId: replacement.id },
+      event: "supplier_order.cancelled",
+      dedupeKey: `supplier_order.cancelled:${replacement.id}`,
+      phoneHandled: true,
     }),
     messageSupplierPhone(replacement.supplierId, `Shopinbos: the shop took order ${ref} back. Don't send it.`),
   ]);

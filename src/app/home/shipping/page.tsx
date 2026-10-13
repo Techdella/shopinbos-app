@@ -4,21 +4,29 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { CardHead, EmptyState, ListCard, ListRow, Pill, PillLink, TextLink, Thumb } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-type RateTier = { name?: string; label?: string; price?: number | string; minOrder?: number; freeOver?: number };
+export async function generateMetadata() {
+  const t = await getT("shipping");
+  return { title: t("zones.title") };
+}
 
-function formatRate(rate: RateTier, currency = "NGN") {
+type RateTier = { name?: string; label?: string; price?: number | string; minOrder?: number; freeOver?: number };
+type ShippingT = Awaited<ReturnType<typeof getT<["shipping", "common"]>>>;
+
+function formatRate(rate: RateTier, t: ShippingT, currency = "NGN") {
   const symbol = currency === "GHS" ? "GH₵" : currency === "KES" ? "KSh" : "₦";
-  if (rate.freeOver != null) return `Free over ${symbol}${Number(rate.freeOver).toLocaleString()}`;
-  if (rate.price === 0 || rate.price === "0") return "Free";
-  if (rate.price == null) return "Quote";
+  if (rate.freeOver != null) return t("rate.freeOver", { amount: `${symbol}${Number(rate.freeOver).toLocaleString()}` });
+  if (rate.price === 0 || rate.price === "0") return t("rate.free");
+  if (rate.price == null) return t("rate.quote");
   return `${symbol}${Number(rate.price).toLocaleString()}`;
 }
 
 export default async function ShippingPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("shipping", "common");
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store;
   const currency = store?.currency ?? "NGN";
@@ -52,16 +60,16 @@ export default async function ShippingPage() {
     <SellerPage
       user={user}
       store={storeSummary(store ?? null)}
-      title="Delivery fees"
-      sub="The delivery zones and fees customers pay, and delivery companies you can book."
-      actions={<PillLink href="/home/shipping/new" tone="accent" icon="plus">Add zone</PillLink>}
+      title={t("zones.title")}
+      sub={t("zones.sub")}
+      actions={<PillLink href="/home/shipping/new" tone="accent" icon="plus">{t("zones.add")}</PillLink>}
     >
       <div className="grid gap-6">
         <section className="grid gap-3">
-          <h2 className="m-0 text-[17px] font-extrabold">Your delivery zones</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("zones.yours")}</h2>
           {shippingZones.length === 0 ? (
-            <EmptyState icon="pin" title="No delivery zones yet" action={<PillLink href="/home/shipping/new" tone="ink" icon="plus">Create a zone</PillLink>}>
-              Add zones to set the delivery fees customers pay: a flat fee, free delivery, or different fees by area.
+            <EmptyState icon="pin" title={t("zones.empty")} action={<PillLink href="/home/shipping/new" tone="ink" icon="plus">{t("zones.create")}</PillLink>}>
+              {t("zones.emptySub")}
             </EmptyState>
           ) : (
             <ListCard>
@@ -73,11 +81,11 @@ export default async function ShippingPage() {
                     <div className="min-w-0 flex-1 basis-[200px]">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-[14.5px] font-extrabold">{zone.name}</span>
-                        <Pill tone={zone.active ? "success" : "muted"} dot>{zone.active ? "On" : "Off"}</Pill>
+                        <Pill tone={zone.active ? "success" : "muted"} dot>{zone.active ? t("on") : t("off")}</Pill>
                       </div>
                       {zone.regions.length > 0 && (
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {zone.regions.slice(0, 4).join(" · ")}{zone.regions.length > 4 ? ` +${zone.regions.length - 4} more` : ""}
+                          {zone.regions.slice(0, 4).join(" · ")}{zone.regions.length > 4 ? ` ${t("zones.more", { count: zone.regions.length - 4 })}` : ""}
                         </div>
                       )}
                     </div>
@@ -85,13 +93,13 @@ export default async function ShippingPage() {
                       <div className="flex min-w-0 flex-wrap gap-2">
                         {rates.map((rate, j) => (
                           <span key={j} className="rounded-[12px] bg-app-canvas px-3 py-1.5">
-                            <span className="block text-[12px] text-app-ink-soft">{rate.label ?? rate.name ?? `Fee ${j + 1}`}</span>
-                            <span className={`block text-[13.5px] font-extrabold ${rate.price === 0 || rate.freeOver != null ? "text-app-success" : ""}`}>{formatRate(rate, currency)}</span>
+                            <span className="block text-[12px] text-app-ink-soft">{rate.label ?? rate.name ?? t("rate.fee", { n: j + 1 })}</span>
+                            <span className={`block text-[13.5px] font-extrabold ${rate.price === 0 || rate.freeOver != null ? "text-app-success" : ""}`}>{formatRate(rate, t, currency)}</span>
                           </span>
                         ))}
                       </div>
                     )}
-                    <PillLink href={`/home/shipping/${zone.id}`} size="sm" icon="edit">Edit</PillLink>
+                    <PillLink href={`/home/shipping/${zone.id}`} size="sm" icon="edit">{t("edit")}</PillLink>
                   </ListRow>
                 );
               })}
@@ -101,7 +109,7 @@ export default async function ShippingPage() {
 
         {logisticsPartners.length > 0 && (
           <section className="grid gap-3">
-            <CardHead title="Delivery partners on Shopinbos" action={<TextLink href="/home/logistics">See all</TextLink>} />
+            <CardHead title={t("partners.title")} action={<TextLink href="/home/logistics">{t("partners.seeAll")}</TextLink>} />
             <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               {logisticsPartners.map((partner) => {
                 const zones = (partner.coverageZones ?? []) as string[];
@@ -119,10 +127,10 @@ export default async function ShippingPage() {
                     </div>
                     {zones.length > 0 && (
                       <div className="text-[13px] text-app-ink-soft">
-                        Covers {zones.slice(0, 3).join(", ")}{zones.length > 3 ? ` +${zones.length - 3}` : ""}
+                        {t("partners.covers", { zones: zones.slice(0, 3).join(", ") })}{zones.length > 3 ? ` +${zones.length - 3}` : ""}
                       </div>
                     )}
-                    <PillLink href={`/home/logistics?partner=${partner.id}`} size="sm" className="mt-auto">Get a quote</PillLink>
+                    <PillLink href={`/home/logistics?partner=${partner.id}`} size="sm" className="mt-auto">{t("getQuote")}</PillLink>
                   </li>
                 );
               })}

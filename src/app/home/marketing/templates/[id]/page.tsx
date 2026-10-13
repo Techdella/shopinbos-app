@@ -9,29 +9,34 @@ import { MARKETING_STORE_SELECT, emailBrand } from "@/lib/marketing/brand";
 import { previewShopFor } from "@/lib/email/compliance.server";
 import { TEMPLATE_LIBRARY } from "@/lib/marketing/template-library";
 import { TemplateEditor } from "./TemplateEditor";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Email design" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("emailBuilder");
+  return { title: t("tpl.metaOne") };
+}
 
 // /home/marketing/templates/new (blank, or ?from=<starter key> to start from a starter without saving a copy
 // first) and /home/marketing/templates/<id>.
 export default async function TemplatePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("emailBuilder");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: MARKETING_STORE_SELECT });
   if (!store) redirect("/onboarding");
   const template = id === "new" ? null : await db.emailTemplate.findFirst({ where: { id, storeId: store.id } });
   if (id !== "new" && !template) notFound();
-  const starter = !template && query.from ? TEMPLATE_LIBRARY.find((t) => t.key === query.from) : undefined;
+  const starter = !template && query.from ? TEMPLATE_LIBRARY.find((row) => row.key === query.from) : undefined;
   const bodyHtml = template?.bodyHtml ?? (starter ? withPreheader(starter.bodyHtml, starter.preheader) : "");
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={template ? template.name : starter ? `New: ${starter.name}` : "New email design"}
-      sub="Build it once, then use it again in messages to customers and automations."
-      actions={<PillLink href="/home/marketing/templates" icon="arrowLeft">All email designs</PillLink>}
+      title={template ? template.name : starter ? t("tpl.newFrom", { name: starter.name }) : t("tpl.new")}
+      sub={t("tpl.editorSub")}
+      actions={<PillLink href="/home/marketing/templates" icon="arrowLeft">{t("tpl.all")}</PillLink>}
     >
       <TemplateEditor
         initial={{

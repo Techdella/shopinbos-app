@@ -1,17 +1,19 @@
 import { PillLink } from "@/components/app-kit";
+import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
 import { NotificationsShell } from "../NotificationsShell";
-import { NotificationPreferences } from "./NotificationPreferences";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function NotificationPreferencesPage() {
+  const t = await getT("inbox");
   return (
     <NotificationsShell
-      title="Notification preferences"
-      sub="Choose how and when we tell you about each kind of update."
-      actions={<PillLink href="/home/notifications" icon="arrowLeft">Notifications</PillLink>}
+      title={t("notifPage.settingsTitle")}
+      sub={t("notifPage.settingsSub")}
+      actions={<PillLink href="/home/notifications" icon="arrowLeft">{t("notifPage.title")}</PillLink>}
     >
-      <NotificationPreferences />
+      <NotificationSettingsPanel />
     </NotificationsShell>
   );
 }

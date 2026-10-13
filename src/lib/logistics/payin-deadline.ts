@@ -2,11 +2,11 @@
 // new COD jobs paused, admin alerted"). Pure (only payin-rules), unit-tested in tests/payin-deadline.test.mjs.
 //
 // The rule:
-//   - Cash a rider collects on a pay-when-it-arrives job is due by the cut-off (6pm Lagos) that day; cash collected
+//   - Cash a rider collects on a cash-on-delivery job is due by the cut-off (6pm Lagos) that day; cash collected
 //     after the cut-off is due by the cut-off the next day (payin-rules payInDeadline).
 //   - Two hours before a deadline, a partner who still owes cash due by then gets one reminder.
 //   - Once a deadline plus the grace (60 minutes) has passed with cash still owed after credit, the partner is
-//     flagged: payInOverdueSince = that deadline, and paused from new pay-when-it-arrives jobs only (codPaused).
+//     flagged: payInOverdueSince = that deadline, and paused from new cash-on-delivery jobs only (codPaused).
 //     Prepaid jobs and jobs they already have carry on. This is not the "Taking new jobs" switch, so the partner
 //     can't switch it off; paying in does.
 //   - 24 hours late: told again, high priority for the team. 72 hours late: flagged for the team to review (the
@@ -17,6 +17,10 @@
 // 15 minutes) and the pay-in hooks can run any number of times without repeating anything.
 
 import { hourWords, owedAfterCredit, payInDeadline } from "./payin-rules.ts";
+import type { TFunction } from "@shared/i18n";
+
+/** Optional translate function from a partner page ("logistics" namespace, payinWords.* keys). Without it, English. */
+type Translate = Pick<TFunction, "dynamic">;
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -203,10 +207,10 @@ export function planPayInStanding(input: { partnerId: string; standing: PayInSta
   return { standing: next, steps, changed };
 }
 
-// ─── Who gets pay-when-it-arrives jobs ────────────────────────────────────────
+// ─── Who gets cash-on-delivery jobs ────────────────────────────────────────
 
 /**
- * Can this partner be offered a new job? Active ("Taking new jobs") and verified, and for pay-when-it-arrives
+ * Can this partner be offered a new job? Active ("Taking new jobs") and verified, and for cash-on-delivery
  * jobs, not paused for a late pay-in. Prepaid jobs ignore the late pause.
  */
 export function canOfferJob(partner: { status: string; verificationStatus: string; codPaused?: boolean | null }, job: { cod: boolean }) {
@@ -214,7 +218,7 @@ export function canOfferJob(partner: { status: string; verificationStatus: strin
   return job.cod ? !partner.codPaused : true;
 }
 
-/** Prisma where-fragment for partner lists: skip partners paused for a late pay-in when the job is pay-when-it-arrives. */
+/** Prisma where-fragment for partner lists: skip partners paused for a late pay-in when the job is cash-on-delivery. */
 export function payWhenItArrivesWhere(cod: boolean): { codPaused?: false } {
   return cod ? { codPaused: false } : {};
 }
@@ -227,12 +231,20 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "today 6pm", "yesterday 6pm", "Friday 6pm", "3 Oct 6pm" (Lagos time). */
-export function lagosWhenWords(at: Date, now: Date) {
+export function lagosWhenWords(at: Date, now: Date, t?: Translate) {
   const lagos = new Date(at.getTime() + LAGOS_OFFSET_MS);
   const dayOf = (date: Date) => Math.floor((date.getTime() + LAGOS_OFFSET_MS) / DAY_MS);
   const diff = dayOf(now) - dayOf(at);
   const minutes = lagos.getUTCMinutes();
   const time = minutes ? `${hourWords(lagos.getUTCHours()).replace(/(am|pm)$/, `:${String(minutes).padStart(2, "0")}$1`)}` : hourWords(lagos.getUTCHours());
+  if (t) {
+    const day =
+      diff === 0 ? t.dynamic("kit.today", "today")
+      : diff === 1 ? t.dynamic("kit.yesterday", "yesterday")
+      : diff > 1 && diff < 7 ? t.dynamic(`payinWords.weekday.${lagos.getUTCDay()}`, WEEKDAYS[lagos.getUTCDay()])
+      : `${lagos.getUTCDate()} ${t.dynamic(`payinWords.month.${lagos.getUTCMonth()}`, MONTHS[lagos.getUTCMonth()])}`;
+    return t.dynamic("payinWords.dayTime", "{day} {time}", { day, time });
+  }
   const day = diff === 0 ? "today" : diff === 1 ? "yesterday" : diff > 1 && diff < 7 ? WEEKDAYS[lagos.getUTCDay()] : `${lagos.getUTCDate()} ${MONTHS[lagos.getUTCMonth()]}`;
   return `${day} ${time}`;
 }
@@ -246,10 +258,18 @@ const accountLine = (account: PayInAccountWords | null) =>
   account ? `Pay into your account: ${account.accountNumber} ${account.bankName}.` : "Pay in from the Cash page in the Shopinbos Partners app.";
 
 /** The calm card on Today and Money: "₦X overdue since yesterday 6pm. You're paused from … until you pay in." */
-export function overdueCardWords(input: { amount: number; since: Date; paused: boolean; now: Date }) {
+export function overdueCardWords(input: { amount: number; since: Date; paused: boolean; now: Date }, t?: Translate) {
+  if (t) {
+    return {
+      title: t.dynamic("payinWords.overdueTitle", "{amount} overdue since {when}.", { amount: nairaWords(input.amount), when: lagosWhenWords(input.since, input.now, t) }),
+      body: input.paused
+        ? t.dynamic("payinWords.paused", "You're paused from cash-on-delivery jobs until you pay in.")
+        : t.dynamic("payinWords.notPaused", "Please pay it in now. You still get all jobs for now."),
+    };
+  }
   const title = `${nairaWords(input.amount)} overdue since ${lagosWhenWords(input.since, input.now)}.`;
   const body = input.paused
-    ? "You're paused from pay-when-it-arrives jobs until you pay in."
+    ? "You're paused from cash-on-delivery jobs until you pay in."
     : "Please pay it in now. You still get all jobs for now.";
   return { title, body };
 }
@@ -266,9 +286,9 @@ export function payInMessage(kind: "reminder" | "overdue" | "escalated" | "clear
     };
   }
   if (kind === "cleared") {
-    return { title: "Thanks, you're back to getting all jobs.", body: "Your cash is paid in. Shops can book you for pay-when-it-arrives jobs again." };
+    return { title: "Thanks, you're back to getting all jobs.", body: "Your cash is paid in. Shops can book you for cash-on-delivery jobs again." };
   }
-  const body = `You have ${amount} from customers to pay in. Until you pay, you won't get new pay-when-it-arrives jobs. ${accountLine(input.account)}`;
+  const body = `You have ${amount} from customers to pay in. Until you pay, you won't get new cash-on-delivery jobs. ${accountLine(input.account)}`;
   return kind === "escalated"
     ? { title: `Still to pay in: ${amount}`, body: `It was due ${lagosWhenWords(input.deadline, input.now)}. ${body}` }
     : { title: `Pay in ${amount} now`, body };

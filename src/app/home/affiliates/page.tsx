@@ -5,25 +5,32 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { getSellerAffiliates } from "@/lib/affiliates";
 import { nextPayday } from "@shared/affiliates";
 import { AffiliatesManager } from "./AffiliatesManager";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatDate } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Affiliates" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("affiliates");
+  return { title: t("metaTitle") };
+}
 
 export default async function AffiliatesPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("affiliates");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true } });
   const affiliates = store ? await getSellerAffiliates(store) : [];
-  const payday = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "long", day: "numeric", month: "short" }).format(nextPayday());
+  const payday = locale === "en" ? new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "long", day: "numeric", month: "short" }).format(nextPayday()) : formatDate(nextPayday(), locale, { weekday: "long", day: "numeric", month: "short" });
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Creators and affiliates"
-      sub="Give a creator their own link. When someone buys through it and the order is delivered, they earn a share. You pay them, we keep the count."
+      title={t("title")}
+      sub={t("sub")}
     >
       <AffiliatesManager
-        storeName={store?.name ?? "my shop"}
+        storeName={store?.name ?? t("myShop")}
         payday={payday}
         affiliates={affiliates.map((affiliate) => ({
           id: affiliate.id,

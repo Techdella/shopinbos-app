@@ -124,19 +124,21 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
         const units = row.items.reduce((sum, item) => sum + item.quantity, 0);
         const within = deadlines.get(row.supplierId)?.words ?? "4 hours";
         const ref = supplierOrderRef(row.id);
-        // Suppliers' words (spec 8A): "a shop sold it for you", never "dropship".
         void messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, order.currency)}. Accept it within ${within} in the app.`);
         return createNotification({
           userId: supplier.userId,
           type: "dropshipping",
           priority: "warning",
-          title: `New order ${ref} from ${shop}: accept within ${within}`,
+          title: `New dropship order ${ref} from ${shop}: accept within ${within}`,
           description: `${shop} sold ${units} ${units === 1 ? "piece" : "pieces"} for you${place ? `, going to ${place}` : ""}. You get ${money(row.costTotal, order.currency)}.${pod ? " The customer pays the rider when it arrives." : ""} Accept it within ${within}, or the shop will be told you didn't answer.`,
           link: `/supplier/orders/${row.id}`,
           actionLabel: "Accept order",
           actionUrl: `/supplier/orders/${row.id}`,
           metadata: { supplierOrderId: row.id, retailOrderId: order.id },
           sendEmail: true,
+          event: "supplier_order.new",
+          dedupeKey: `supplier_order.new:${row.id}`,
+          phoneHandled: true,
         });
       }),
     );
@@ -171,6 +173,8 @@ export async function cancelSupplierOrdersFor(retailOrderId: string) {
         description: "The shop cancelled this order. Don't ship it.",
         link: "/supplier/orders?kind=dropship",
         sendEmail: true,
+        event: "supplier_order.cancelled",
+        dedupeKey: `supplier_order.cancelled:${row.id}`,
       }).catch(() => null);
     }
   }
@@ -252,6 +256,8 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
       description: note.description,
       link: `/home/orders/${order.retailOrderId}`,
       sendEmail: next === "rejected" || next === "shipped",
+      event: next === "accepted" ? "supplier.accepted" : next === "rejected" ? "supplier.declined" : "supplier.update",
+      dedupeKey: `supplier.${next}:${order.id}`,
     }).catch(() => null);
   }
   return { ok: true, data: { id: order.id, status: next } };

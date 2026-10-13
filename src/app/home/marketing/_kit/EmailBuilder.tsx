@@ -14,6 +14,7 @@ import { BLOCK_ICONS, BlockSettings, blankBlock, blockSummary } from "./BlockSet
 import { DeviceSwitch, EmailFrame } from "./EmailFrame";
 import { VariableChips, api, errorText, insertAtCursor } from "./client";
 import { Mascot } from "@/components/brand/Mascot";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The template builder: blocks on the left (add, drag or move, duplicate, delete), the email as it will look in
 // the middle (computer or phone), the chosen block's settings on the right, plus Undo/Redo and "Ask Peggy",
@@ -40,9 +41,11 @@ const STARTER: EmailBlock[] = [
   { type: "text", text: "Hi {{name}},\n\nWrite your message here." },
   { type: "button", label: "Visit the shop", url: "{{store_url}}" },
 ];
-const PEGGY_IDEAS = ["Write a Sallah flash sale with a countdown", "Write the last email of my cart series", "Make it a spin-to-win email", "Switch to the luxury dark style", "Make it shorter", "Improve the subject line", "Feature my best sellers"];
+const PEGGY_IDEAS = ["builder.idea.sallah", "builder.idea.cartLast", "builder.idea.spin", "builder.idea.luxe", "builder.idea.shorter", "builder.idea.subject", "builder.idea.bestSellers"] as const;
 
 export function EmailBuilder({ content, onChange, brand, shop }: { content: EmailContent; onChange: (content: EmailContent) => void; brand: EmailBrand; shop: PreviewShop }) {
+  const t = useT("emailBuilder", "common");
+  const blockLabel = (type: EmailBlockType) => t.dynamic(`block.${type}`, BLOCK_LABELS[type]);
   const initial = readBlocks(content.bodyHtml);
   const [mode, setMode] = useState<"visual" | "html">(initial || !content.bodyHtml.trim() ? "visual" : "html");
   const [blocks, setBlocks] = useState<EmailBlock[]>(initial ?? (content.bodyHtml.trim() ? [] : STARTER));
@@ -169,7 +172,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
       setMode("visual");
       return;
     }
-    if (content.bodyHtml.trim() && !window.confirm("The visual builder can't open hand-written HTML. Start over with a fresh layout? (Your HTML is replaced.)")) return;
+    if (content.bodyHtml.trim() && !window.confirm(t("builder.confirmFresh"))) return;
     setPast([]);
     setFuture([]);
     setBlocks(STARTER);
@@ -213,10 +216,10 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
     <Card className="grid min-w-0 content-start gap-3 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DeviceSwitch value={device} onChange={setDevice} />
-        <span className="text-[12.5px] text-app-ink-soft">Sample customer: Ada</span>
+        <span className="text-[12.5px] text-app-ink-soft">{t("builder.sampleCustomer")}</span>
       </div>
       <div className="rounded-[14px] bg-app-canvas px-4 py-2.5 text-[13.5px]">
-        <div className="truncate"><span className="text-app-ink-soft">Subject: </span><strong>{previewSubject(content.subject || "(no subject yet)", shop)}</strong></div>
+        <div className="truncate"><span className="text-app-ink-soft">{t("preview.subject")} </span><strong>{previewSubject(content.subject || t("builder.noSubject"), shop)}</strong></div>
         {content.preheader ? <div className="truncate text-[12.5px] text-app-ink-soft">{previewSubject(content.preheader, shop)}</div> : null}
       </div>
       <EmailFrame html={previewHtml} device={device} />
@@ -228,8 +231,8 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
       <div className="flex items-center gap-2.5">
         <Mascot who="peggy" mood={asking ? "thinking" : peggy?.tone === "error" ? "oops" : "idle"} size={36} decorative />
         <div className="min-w-0">
-          <h3 className="m-0 text-[15px] font-extrabold">Ask Peggy</h3>
-          <p className="m-0 text-[12.5px] text-app-ink-soft">She writes or rewrites the blocks. You can undo it.</p>
+          <h3 className="m-0 text-[15px] font-extrabold">{t("builder.askPeggy")}</h3>
+          <p className="m-0 text-[12.5px] text-app-ink-soft">{t("builder.askPeggySub")}</p>
         </div>
       </div>
       <form
@@ -239,21 +242,21 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
         }}
         className="grid gap-2"
       >
-        <textarea aria-label="What should Peggy write?" value={ask} onChange={(e) => setAsk(e.target.value)} rows={2} maxLength={1000} className={textareaClass} placeholder="Write a Detty December email with my best sellers" />
+        <textarea aria-label={t("builder.askLabel")} value={ask} onChange={(e) => setAsk(e.target.value)} rows={2} maxLength={1000} className={textareaClass} placeholder={t("builder.askPlaceholder")} />
         <div className="flex flex-wrap gap-1.5">
           {PEGGY_IDEAS.map((idea) => (
-            <button key={idea} type="button" disabled={asking} onClick={() => void askPeggy(idea)} className="min-h-[32px] rounded-full border border-app-line bg-white px-3 text-[12.5px] font-semibold hover:border-app-ink disabled:opacity-50">
-              {idea}
+            <button key={idea} type="button" disabled={asking} onClick={() => void askPeggy(t(idea))} className="min-h-[32px] rounded-full border border-app-line bg-white px-3 text-[12.5px] font-semibold hover:border-app-ink disabled:opacity-50">
+              {t(idea)}
             </button>
           ))}
         </div>
-        <PillButton type="submit" size="sm" busy={asking} disabled={!ask.trim()}><Icon name="sparkle" size={14} /> Ask Peggy</PillButton>
+        <PillButton type="submit" size="sm" busy={asking} disabled={!ask.trim()}><Icon name="sparkle" size={14} /> {t("builder.askPeggy")}</PillButton>
       </form>
       {peggy ? (
         <div className="grid gap-2">
           <Notice tone={peggy.tone}>{peggy.text}</Notice>
           {peggy.undo && past.length ? (
-            <button type="button" onClick={() => { undo(); setPeggy(null); }} className={buttonClass("white", "sm")}><Icon name="undo" size={14} /> Undo Peggy&apos;s change</button>
+            <button type="button" onClick={() => { undo(); setPeggy(null); }} className={buttonClass("white", "sm")}><Icon name="undo" size={14} /> {t("builder.undoPeggy")}</button>
           ) : null}
         </div>
       ) : null}
@@ -265,51 +268,51 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
       <div className="flex flex-wrap items-center gap-2">
         {mode === "html" ? (
           <>
-            <span className="rounded-full bg-[#FDF0D5] px-3 py-1.5 text-[12.5px] font-bold text-[#5C3D00]">Advanced: HTML code</span>
-            <button type="button" onClick={() => switchMode("visual")} className={buttonClass("white", "sm")}>Back to the easy editor</button>
+            <span className="rounded-full bg-[#FDF0D5] px-3 py-1.5 text-[12.5px] font-bold text-[#5C3D00]">{t("composer.advancedBadge")}</span>
+            <button type="button" onClick={() => switchMode("visual")} className={buttonClass("white", "sm")}>{t("composer.backToEasy")}</button>
           </>
         ) : null}
         {mode === "visual" ? (
           <div className="flex items-center gap-1">
-            <button type="button" onClick={undo} disabled={!past.length} className={cx(buttonClass("white", "sm"), "disabled:opacity-40")} aria-label="Undo"><Icon name="undo" size={14} /> Undo</button>
-            <button type="button" onClick={redo} disabled={!future.length} className={cx(buttonClass("white", "sm"), "disabled:opacity-40")} aria-label="Redo"><Icon name="refresh" size={14} /> Redo</button>
+            <button type="button" onClick={undo} disabled={!past.length} className={cx(buttonClass("white", "sm"), "disabled:opacity-40")} aria-label={t("builder.undo")}><Icon name="undo" size={14} /> {t("builder.undo")}</button>
+            <button type="button" onClick={redo} disabled={!future.length} className={cx(buttonClass("white", "sm"), "disabled:opacity-40")} aria-label={t("builder.redo")}><Icon name="refresh" size={14} /> {t("builder.redo")}</button>
           </div>
         ) : null}
         {mode === "visual" ? (
           <label className="ml-auto flex items-center gap-2 text-[13px] font-bold">
-            <Icon name="palette" size={14} /> Style
-            <select aria-label="Email style" value={themeOf(blocks)} onChange={(e) => setTheme(e.target.value as EmailThemeName)} className="h-[40px] rounded-full border border-app-line bg-white px-3 text-[13.5px] font-bold text-app-ink outline-none focus:border-app-ink">
-              {EMAIL_THEMES.map((name) => <option key={name} value={name}>{EMAIL_THEME_INFO[name].label}</option>)}
+            <Icon name="palette" size={14} /> {t("builder.style")}
+            <select aria-label={t("block.theme")} value={themeOf(blocks)} onChange={(e) => setTheme(e.target.value as EmailThemeName)} className="h-[40px] rounded-full border border-app-line bg-white px-3 text-[13.5px] font-bold text-app-ink outline-none focus:border-app-ink">
+              {EMAIL_THEMES.map((name) => <option key={name} value={name}>{t.dynamic(`theme.${name}`, EMAIL_THEME_INFO[name].label)}</option>)}
             </select>
           </label>
         ) : null}
       </div>
 
       <div className="grid gap-1.5">
-        <span className="text-[12.5px] font-bold text-app-ink-soft">Personal details: tap one to add it where you&apos;re typing</span>
+        <span className="text-[12.5px] font-bold text-app-ink-soft">{t("builder.personalDetails")}</span>
         <VariableChips onInsert={insertVariable} only={["name", "full_name", "store", "store_url", "cart_url", "cart_items", "cart_total", "order_number", "order_total", "product_name", "discount_code"]} />
       </div>
 
       {mode === "html" ? (
         <div className="grid gap-4 xl:grid-cols-2">
           <Card className="grid min-w-0 content-start gap-3 p-4">
-            <CardHead title="HTML" sub="Paste or write your own. Scripts, forms and on-click code are removed when you save." />
+            <CardHead title="HTML" sub={t("builder.htmlSub")} />
             {isFullDocument(content.bodyHtml) ? (
               <div className="flex items-center justify-between gap-3 rounded-[14px] border border-app-line px-3 py-2.5">
                 <span className="grid gap-0.5">
-                  <span className="text-[14px] font-semibold">Add my logo header</span>
-                  <span className="text-[12.5px] text-app-ink-soft">Your logo (or shop name) at the top, unless your HTML already shows it.</span>
+                  <span className="text-[14px] font-semibold">{t("builder.logoHeader")}</span>
+                  <span className="text-[12.5px] text-app-ink-soft">{t("builder.logoHeaderSub")}</span>
                 </span>
-                <Toggle on={logoHeaderOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setLogoHeader(content.bodyHtml, on) })} label="Add my logo header" />
+                <Toggle on={logoHeaderOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setLogoHeader(content.bodyHtml, on) })} label={t("builder.logoHeader")} />
               </div>
             ) : null}
             {isFullDocument(content.bodyHtml) ? (
               <div className="flex items-center justify-between gap-3 rounded-[14px] border border-app-line px-3 py-2.5">
                 <span className="grid gap-0.5">
-                  <span className="text-[14px] font-semibold">Optimise for dark mode</span>
-                  <span className="text-[12.5px] text-app-ink-soft">Lets mail apps show it in dark mode and keeps your logo and footer readable. Your own colours aren&apos;t changed.</span>
+                  <span className="text-[14px] font-semibold">{t("builder.darkMode")}</span>
+                  <span className="text-[12.5px] text-app-ink-soft">{t("builder.darkModeSub")}</span>
                 </span>
-                <Toggle on={darkModeOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setDarkMode(content.bodyHtml, on) })} label="Optimise for dark mode" />
+                <Toggle on={darkModeOn(content.bodyHtml)} onChange={(on) => onChange({ ...content, bodyHtml: setDarkMode(content.bodyHtml, on) })} label={t("builder.darkMode")} />
               </div>
             ) : null}
             <div className="flex overflow-hidden rounded-[14px] border border-app-line bg-white focus-within:border-app-ink">
@@ -318,7 +321,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
               </div>
               <textarea
                 ref={htmlRef}
-                aria-label="Email HTML"
+                aria-label={t("composer.htmlLabel")}
                 value={content.bodyHtml}
                 onChange={(e) => onChange({ ...content, bodyHtml: e.target.value })}
                 onScroll={(e) => {
@@ -338,8 +341,8 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
           <div className="grid min-w-0 content-start gap-3">
             <Card className="grid gap-2 p-3">
               <div className="flex items-center justify-between px-1">
-                <h3 className="m-0 text-[15px] font-extrabold">Blocks</h3>
-                <span className="text-[12px] text-app-ink-soft">Drag to reorder</span>
+                <h3 className="m-0 text-[15px] font-extrabold">{t("builder.blocks")}</h3>
+                <span className="text-[12px] text-app-ink-soft">{t("builder.dragToReorder")}</span>
               </div>
               {blocks.length ? (
                 <ol className="m-0 grid list-none gap-1.5 p-0">
@@ -361,39 +364,39 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
                       <button type="button" onClick={() => setSelected(index)} aria-pressed={selected === index} className="flex min-h-[44px] w-full min-w-0 items-center gap-2 px-3 pt-1.5 text-left">
                         <Icon name={BLOCK_ICONS[b.type]} size={15} className="shrink-0 text-app-ink-soft" />
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[13px] font-extrabold">{BLOCK_LABELS[b.type]}</span>
-                          <span className="block truncate text-[12.5px] text-app-ink-soft">{blockSummary(b)}</span>
+                          <span className="block text-[13px] font-extrabold">{blockLabel(b.type)}</span>
+                          <span className="block truncate text-[12.5px] text-app-ink-soft">{blockSummary(b, t)}</span>
                         </span>
                       </button>
                       <div className="flex items-center justify-end gap-0.5 px-1.5 pb-1">
-                        <button type="button" aria-label="Move up" onClick={() => move(index, index - 1)} disabled={index === 0} className={iconButton}><Icon name="arrowUp" size={14} /></button>
-                        <button type="button" aria-label="Move down" onClick={() => move(index, index + 1)} disabled={index === blocks.length - 1} className={iconButton}><Icon name="arrowDown" size={14} /></button>
-                        <button type="button" aria-label="Duplicate" onClick={() => { const next = [...blocks]; next.splice(index + 1, 0, structuredClone(b)); commit(next); setSelected(index + 1); }} className={iconButton}><Icon name="copy" size={14} /></button>
-                        <button type="button" aria-label="Delete block" onClick={() => { commit(blocks.filter((_, i) => i !== index)); setSelected(blocks.length > 1 ? Math.max(0, index - 1) : null); }} className={cx(iconButton, "text-app-danger hover:bg-app-danger-tint")}><Icon name="trash" size={14} /></button>
+                        <button type="button" aria-label={t("composer.moveUp")} onClick={() => move(index, index - 1)} disabled={index === 0} className={iconButton}><Icon name="arrowUp" size={14} /></button>
+                        <button type="button" aria-label={t("composer.moveDown")} onClick={() => move(index, index + 1)} disabled={index === blocks.length - 1} className={iconButton}><Icon name="arrowDown" size={14} /></button>
+                        <button type="button" aria-label={t("builder.duplicate")} onClick={() => { const next = [...blocks]; next.splice(index + 1, 0, structuredClone(b)); commit(next); setSelected(index + 1); }} className={iconButton}><Icon name="copy" size={14} /></button>
+                        <button type="button" aria-label={t("builder.deleteBlock")} onClick={() => { commit(blocks.filter((_, i) => i !== index)); setSelected(blocks.length > 1 ? Math.max(0, index - 1) : null); }} className={cx(iconButton, "text-app-danger hover:bg-app-danger-tint")}><Icon name="trash" size={14} /></button>
                       </div>
                     </li>
                   ))}
                 </ol>
               ) : (
-                <p className="m-0 px-1 text-[13.5px] text-app-ink-soft">No blocks yet. Add one below or ask Peggy to write it.</p>
+                <p className="m-0 px-1 text-[13.5px] text-app-ink-soft">{t("builder.noBlocks")}</p>
               )}
               {adding ? (
                 <div className="grid grid-cols-2 gap-1.5 rounded-[14px] bg-app-canvas p-2">
                   {ADD.map((type) => (
                     <button key={type} type="button" onClick={() => add(type)} className="flex min-h-[44px] items-center gap-2 rounded-[12px] bg-white px-2.5 text-left text-[13px] font-bold hover:ring-1 hover:ring-app-ink">
-                      <Icon name={BLOCK_ICONS[type]} size={14} className="shrink-0" /> {BLOCK_LABELS[type]}
+                      <Icon name={BLOCK_ICONS[type]} size={14} className="shrink-0" /> {blockLabel(type)}
                     </button>
                   ))}
-                  <span className="col-span-2 px-1 pt-1.5 text-[11.5px] font-bold uppercase tracking-[0.08em] text-app-ink-soft">Layouts and extras</span>
+                  <span className="col-span-2 px-1 pt-1.5 text-[11.5px] font-bold uppercase tracking-[0.08em] text-app-ink-soft">{t("builder.layoutsExtras")}</span>
                   {ADD_MORE.map((type) => (
                     <button key={type} type="button" onClick={() => add(type)} className="flex min-h-[44px] items-center gap-2 rounded-[12px] bg-white px-2.5 text-left text-[13px] font-bold hover:ring-1 hover:ring-app-ink">
-                      <Icon name={BLOCK_ICONS[type]} size={14} className="shrink-0" /> {BLOCK_LABELS[type]}
+                      <Icon name={BLOCK_ICONS[type]} size={14} className="shrink-0" /> {blockLabel(type)}
                     </button>
                   ))}
-                  <button type="button" onClick={() => setAdding(false)} className="col-span-2 min-h-[36px] text-[13px] font-bold text-app-ink-soft">Cancel</button>
+                  <button type="button" onClick={() => setAdding(false)} className="col-span-2 min-h-[36px] text-[13px] font-bold text-app-ink-soft">{t("cancel")}</button>
                 </div>
               ) : (
-                <button type="button" onClick={() => setAdding(true)} className={buttonClass("ink", "sm")}><Icon name="plus" size={14} /> Add a block{selected !== null ? " below" : ""}</button>
+                <button type="button" onClick={() => setAdding(true)} className={buttonClass("ink", "sm")}><Icon name="plus" size={14} /> {selected !== null ? t("builder.addBlockBelow") : t("builder.addBlock")}</button>
               )}
             </Card>
           </div>
@@ -406,7 +409,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
                 <>
                   <div className="flex items-center gap-2">
                     <Icon name={BLOCK_ICONS[block.type]} size={16} />
-                    <h3 className="m-0 text-[15px] font-extrabold">{BLOCK_LABELS[block.type]}</h3>
+                    <h3 className="m-0 text-[15px] font-extrabold">{blockLabel(block.type)}</h3>
                   </div>
                   <BlockSettings
                     key={selected}
@@ -418,7 +421,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
                   />
                 </>
               ) : (
-                <p className="m-0 text-[13.5px] text-app-ink-soft">Pick a block on the left to change its words, colours and spacing.</p>
+                <p className="m-0 text-[13.5px] text-app-ink-soft">{t("builder.pickBlock")}</p>
               )}
             </Card>
             {peggyPanel}
@@ -427,8 +430,8 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
       )}
 
       {mode === "html" ? peggyPanel : (
-        <AdvancedFold label="Advanced (optional): write the email in HTML code" hint="Only if you or a designer already have the code. Most people never need this.">
-          <button type="button" onClick={() => switchMode("html")} className={buttonClass("white", "sm")}>Switch to HTML code</button>
+        <AdvancedFold label={t("composer.advancedFold")} hint={t("builder.advancedFoldHint")}>
+          <button type="button" onClick={() => switchMode("html")} className={buttonClass("white", "sm")}>{t("composer.switchToHtml")}</button>
         </AdvancedFold>
       )}
     </div>

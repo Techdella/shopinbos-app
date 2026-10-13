@@ -8,6 +8,7 @@ import { shortTime } from "@/lib/inbox-pure";
 import { fetchPartnerContacts, PARTNER_LABEL, type PartnerKind } from "@/lib/partners";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Messages with suppliers and delivery partners (the web inbox's partner chats). All / Suppliers / Logistics.
@@ -15,17 +16,18 @@ import { colors } from "@/theme";
 type Tab = "all" | PartnerKind;
 
 export default function Partners() {
+  const t = useT("m_chats", "m_ui");
   const contacts = useLoad(fetchPartnerContacts);
   const [tab, setTab] = useState<Tab>("all");
   const list = useMemo(() => (contacts.data ?? []).filter((contact) => tab === "all" || contact.kind === tab), [contacts.data, tab]);
 
   return (
-    <Screen title="Partner messages" sub="Suppliers you buy from and delivery partners you ship with." refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
+    <Screen title={t("partners.title")} sub={t("partners.sub")} refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
       <Segmented
         options={[
-          { value: "all", label: "All" },
-          { value: "supplier", label: "Suppliers" },
-          { value: "logistics_partner", label: "Logistics" },
+          { value: "all", label: t("partners.all") },
+          { value: "supplier", label: t("partners.suppliers") },
+          { value: "logistics_partner", label: t("partners.logistics") },
         ]}
         value={tab}
         onChange={setTab}
@@ -33,8 +35,8 @@ export default function Partners() {
       {contacts.loading && !contacts.data ? <LoadingBlock /> : null}
       {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/messages") }} /> : null}
       {contacts.data && !list.length ? (
-        <EmptyState icon="truck" title="No conversations yet" action={<PillButton title="Find products" size="sm" onPress={() => router.push("/find")} />}>
-          {tab === "logistics_partner" ? "Book a delivery partner on the web and their messages show up here." : "Message a supplier from any product in Find products."}
+        <EmptyState icon="truck" title={t("partners.emptyTitle")} action={<PillButton title={t("partners.findProducts")} size="sm" onPress={() => router.push("/find")} />}>
+          {tab === "logistics_partner" ? t("partners.emptyLogistics") : t("partners.emptySuppliers")}
         </EmptyState>
       ) : null}
       <View style={{ gap: 8 }}>
@@ -49,10 +51,10 @@ export default function Partners() {
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                 <T weight={contact.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{contact.name}</T>
-                {contact.lastMessageAt ? <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(contact.lastMessageAt)}</T> : null}
+                {contact.lastMessageAt ? <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(contact.lastMessageAt, new Date(), t)}</T> : null}
               </View>
-              <T style={{ color: contact.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{contact.lastMessage ?? "Say hello"}</T>
-              <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 11.5 }}>{PARTNER_LABEL[contact.kind]}</T>
+              <T style={{ color: contact.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{contact.lastMessage ?? t("partners.sayHello")}</T>
+              <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 11.5 }}>{t.dynamic(`partners.kind.${contact.kind}`, PARTNER_LABEL[contact.kind])}</T>
             </View>
             {contact.unread ? (
               <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>

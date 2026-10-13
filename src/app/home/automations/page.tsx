@@ -9,15 +9,23 @@ import { channelStatus } from "@/lib/marketing/channels";
 import { listAutomations } from "@/lib/marketing/automations";
 import { FLOW_PRESETS, STEP_LABEL, TRIGGER_INFO, describeStep, type FlowStepType } from "@/lib/marketing/flows";
 import { AddPresetButton, FlowToggle } from "./AutomationControls";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Automations" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("automations");
+  return { title: t("title") };
+}
 
 const LOG_TONE: Record<string, Tone> = { ok: "success", skipped: "muted", failed: "danger", exited: "warning" };
 const LOG_LABEL: Record<string, string> = { ok: "Done", skipped: "Skipped", failed: "Failed", exited: "Stopped" };
 
 export default async function AutomationsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("automations", "common");
+  const locale = await getLocale();
+  const n = (value: number) => formatNumber(value, locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const since = new Date(Date.now() - 30 * 86_400_000);
   const [flows, logs, channels, enrolled30] = store
@@ -36,29 +44,29 @@ export default async function AutomationsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Automations"
-      sub="Messages that go out on their own when something happens: a sign-up, a left cart, a delivery, a birthday."
-      actions={<PillLink href="/home/automations/new" tone="accent" icon="plus">New automation</PillLink>}
+      title={t("title")}
+      sub={t("sub")}
+      actions={<PillLink href="/home/automations/new" tone="accent" icon="plus">{t("new")}</PillLink>}
     >
       <div className="grid gap-5">
-        {channels && !channels.email.ready ? <Notice tone="info">Automation emails can't go out yet. {channels.email.howTo}</Notice> : null}
+        {channels && !channels.email.ready ? <Notice tone="info">{t("emailNotReady")} {channels.email.howTo}</Notice> : null}
         {channels && flows.some((f) => f.active && f.steps.some((step) => step.type === "send_whatsapp")) && !channels.whatsapp.templates ? (
           <Notice tone="info">
-            WhatsApp steps in your automations are being skipped. {channels.whatsapp.howTo}{" "}
+            {t("waSkipped")} {channels.whatsapp.howTo}{" "}
             {channels.whatsapp.connectHref ? <a href={channels.whatsapp.connectHref} className="font-bold underline">{channels.whatsapp.connectLabel}</a> : null}
           </Notice>
         ) : null}
         {channels && flows.some((f) => f.active && f.steps.some((step) => step.type === "send_sms")) && !channels.sms.ready ? (
           <Notice tone="info">
-            SMS steps in your automations are being skipped. {channels.sms.howTo}{" "}
+            {t("smsSkipped")} {channels.sms.howTo}{" "}
             {channels.sms.connectHref ? <a href={channels.sms.connectHref} className="font-bold underline">{channels.sms.connectLabel}</a> : null}
           </Notice>
         ) : null}
         <StatGrid>
-          <StatTile tone="card" label="Automations on" value={flows.filter((f) => f.active).length} hint={`of ${flows.length}`} />
-          <StatTile tone="card" label="People started a flow" value={enrolled30.toLocaleString("en-NG")} hint="last 30 days" />
-          <StatTile tone="card" label="Messages sent" value={sent30.toLocaleString("en-NG")} hint="last 30 days" />
-          <StatTile tone="card" label="In a flow now" value={flows.reduce((sum, f) => sum + f.inFlow, 0).toLocaleString("en-NG")} hint="waiting for their next step" />
+          <StatTile tone="card" label={t("stat.on")} value={flows.filter((f) => f.active).length} hint={t("stat.of", { count: flows.length })} />
+          <StatTile tone="card" label={t("stat.started")} value={n(enrolled30)} hint={t("stat.last30")} />
+          <StatTile tone="card" label={t("stat.sent")} value={n(sent30)} hint={t("stat.last30")} />
+          <StatTile tone="card" label={t("stat.inFlow")} value={n(flows.reduce((sum, f) => sum + f.inFlow, 0))} hint={t("stat.waiting")} />
         </StatGrid>
 
         <SplitLayout
@@ -66,7 +74,7 @@ export default async function AutomationsPage() {
           main={
             <>
               <section className="grid gap-3">
-                <h2 className="m-0 text-[17px] font-extrabold">Your automations</h2>
+                <h2 className="m-0 text-[17px] font-extrabold">{t("yours")}</h2>
                 {flows.length ? (
                   <div className="grid gap-3">
                     {flows.map((flow) => (
@@ -74,65 +82,65 @@ export default async function AutomationsPage() {
                         <div className="min-w-0 flex-1 basis-[240px]">
                           <div className="flex flex-wrap items-center gap-2">
                             <a href={`/home/automations/${flow.id}`} className="truncate text-[16px] font-extrabold text-app-ink no-underline hover:underline">{flow.name}</a>
-                            <Pill tone={flow.active ? "success" : "muted"} dot>{flow.active ? "On" : "Off"}</Pill>
+                            <Pill tone={flow.active ? "success" : "muted"} dot>{flow.active ? t("status.active") : t("status.inactive")}</Pill>
                           </div>
-                          <p className="mb-2 mt-1 text-[13.5px] text-app-ink-soft">When: {TRIGGER_INFO[flow.trigger]?.label ?? flow.trigger}{flow.trigger === "win_back" ? ` (${flow.settings.days ?? 90} days)` : ""}</p>
+                          <p className="mb-2 mt-1 text-[13.5px] text-app-ink-soft">{t("when", { trigger: t.dynamic(`trigger.${flow.trigger}`, TRIGGER_INFO[flow.trigger]?.label ?? flow.trigger) })}{flow.trigger === "win_back" ? ` (${t("days", { count: flow.settings.days ?? 90 })})` : ""}</p>
                           <ol className="m-0 flex list-none flex-wrap gap-1.5 p-0">
                             {flow.steps.slice(0, 6).map((step, index) => (
-                              <li key={index} className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-semibold" title={describeStep(step)}>{STEP_LABEL[step.type as FlowStepType]}</li>
+                              <li key={index} className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-semibold" title={describeStep(step)}>{t.dynamic(`step.${step.type}`, STEP_LABEL[step.type as FlowStepType])}</li>
                             ))}
                             {flow.steps.length > 6 ? <li className="px-1 text-[12px] text-app-ink-soft">+{flow.steps.length - 6}</li> : null}
                           </ol>
                         </div>
                         <div className="text-[13px] text-app-ink-soft sm:w-[170px]">
-                          <strong className="text-app-ink">{flow.sent30d}</strong> sent in 30 days
-                          <div>{flow.inFlow} in the flow now</div>
-                          <div>{flow.lastTriggeredAt ? `Last started ${formatDate(flow.lastTriggeredAt)}` : "Not started yet"}</div>
+                          <strong className="text-app-ink">{flow.sent30d}</strong> {t("sent30")}
+                          <div>{t("inFlowNow", { count: flow.inFlow })}</div>
+                          <div>{flow.lastTriggeredAt ? t("lastStarted", { date: formatDate(flow.lastTriggeredAt, false, locale) }) : t("notStarted")}</div>
                         </div>
                         <div className="flex items-center gap-2">
                           <FlowToggle id={flow.id} name={flow.name} active={flow.active} messages={flow.messages} />
-                          <PillLink href={`/home/automations/${flow.id}`} size="sm">Edit</PillLink>
+                          <PillLink href={`/home/automations/${flow.id}`} size="sm">{t("edit")}</PillLink>
                         </div>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <EmptyState icon="automation" title="No automations yet">Add a ready-made one on the right. Each starts switched off so you can read it first.</EmptyState>
+                  <EmptyState icon="automation" title={t("empty.title")}>{t("empty.body")}</EmptyState>
                 )}
               </section>
 
               <Card className="p-5">
-                <CardHead title="Run log" sub="Every step every automation took, newest first" />
+                <CardHead title={t("log.title")} sub={t("log.sub")} />
                 {logs.length ? (
                   <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                     {logs.map((log) => (
                       <li key={log.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
                         <span className="min-w-0 flex-1 basis-[220px]">
                           <span className="block truncate font-bold">{log.message}</span>
-                          <span className="block truncate text-[12.5px] text-app-ink-soft">{names.get(log.automationId) ?? "Deleted automation"}{log.recipient ? ` · ${log.recipient}` : ""}</span>
+                          <span className="block truncate text-[12.5px] text-app-ink-soft">{names.get(log.automationId) ?? t("log.deleted")}{log.recipient ? ` · ${log.recipient}` : ""}</span>
                         </span>
-                        <span className="text-[12.5px] text-app-ink-soft">{formatDate(log.createdAt, true)}</span>
-                        <Pill tone={LOG_TONE[log.status] ?? "muted"}>{log.stepType === "enrolled" ? "Started" : LOG_LABEL[log.status] ?? log.status}</Pill>
+                        <span className="text-[12.5px] text-app-ink-soft">{formatDate(log.createdAt, true, locale)}</span>
+                        <Pill tone={LOG_TONE[log.status] ?? "muted"}>{log.stepType === "enrolled" ? t("log.started") : LOG_LABEL[log.status] ? t.dynamic(`log.${log.status}`, LOG_LABEL[log.status]) : log.status}</Pill>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">Nothing has run yet. Once an automation is on, each message, skip and stop shows here.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("log.empty")}</p>
                 )}
               </Card>
             </>
           }
           side={
             <Card className="p-5">
-              <CardHead title="Ready-made automations" sub="Added switched off. Read them, then switch on." />
+              <CardHead title={t("presets.title")} sub={t("presets.sub")} />
               <ul className="m-0 mt-3 grid list-none gap-3 p-0">
                 {FLOW_PRESETS.map((preset) => (
                   <li key={preset.key} className="rounded-[16px] border border-app-line p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <strong className="text-[15px]">{preset.name}</strong>
-                      {usedPresets.has(preset.key) ? <Pill tone="success">Added</Pill> : null}
+                      <strong className="text-[15px]">{t.dynamic(`preset.${preset.key}.name`, preset.name)}</strong>
+                      {usedPresets.has(preset.key) ? <Pill tone="success">{t("presets.added")}</Pill> : null}
                     </div>
-                    <p className="mb-2.5 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">{preset.description}</p>
+                    <p className="mb-2.5 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">{t.dynamic(`preset.${preset.key}.description`, preset.description)}</p>
                     <AddPresetButton presetKey={preset.key} added={usedPresets.has(preset.key)} />
                   </li>
                 ))}
@@ -140,7 +148,7 @@ export default async function AutomationsPage() {
             </Card>
           }
         />
-        <AssistantNote>Order confirmation emails go out on their own when customers pay. Automations here are for everything after: thank-yous, reviews, reminders and win-backs. Ask Peggy to set one up for you.</AssistantNote>
+        <AssistantNote>{t("peggyNote")}</AssistantNote>
       </div>
     </SellerPage>
   );

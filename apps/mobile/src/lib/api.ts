@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { tNow } from "./app-locale";
 
 // Calls the Shopinbos Next.js API (the same backend as the web app) with the Supabase access token.
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.shopinbos.com").replace(/\/$/, "");
@@ -17,15 +18,16 @@ export function plainMessage(message: string | null | undefined, status: number)
   const text = (message ?? "").trim();
   const technical = !text || /\b(error|errors|failed|failure|invalid|exception|internal|unauthori[sz]ed|forbidden|null|undefined|prisma|stack|ECONN\w*|timeout|fetch)\b/i.test(text) || /[A-Z]{3,}_[A-Z_]+|\{|\}|<\/?\w+>/.test(text);
   if (!technical) return text;
-  if (status === 0) return "We couldn't reach Shopinbos. Check your connection and try again.";
-  if (status === 401) return "You've been logged out. Log in again to carry on.";
-  if (status === 403) return "This account can't do that. Ask the shop owner, or tap Help.";
-  if (status === 404) return "We couldn't find that. It may have been removed. Go back and try again.";
-  if (status === 409) return "Someone changed this at the same time. Pull down to see the latest, then try again.";
-  if (status === 413) return "That file is too big. Try a smaller photo.";
-  if (status === 429) return "That's a lot of tries in a short time. Wait a minute, then try again.";
-  if (status >= 400 && status < 500) return "Something in the form needs another look. Check it and try again.";
-  return "Shopinbos is having a problem right now. Wait a minute and try again, or tap Help.";
+  const t = tNow("m_ui");
+  if (status === 0) return t("error.offline");
+  if (status === 401) return t("error.loggedOut");
+  if (status === 403) return t("error.notAllowed");
+  if (status === 404) return t("error.notFound");
+  if (status === 409) return t("error.conflict");
+  if (status === 413) return t("error.tooBig");
+  if (status === 429) return t("error.tooMany");
+  if (status >= 400 && status < 500) return t("error.form");
+  return t("error.server");
 }
 
 async function authHeader(): Promise<Record<string, string>> {
@@ -48,7 +50,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
       body: json !== undefined ? JSON.stringify(json) : rest.body,
     });
   } catch {
-    throw new ApiError("We couldn't reach Shopinbos. Check your connection and try again.", 0);
+    throw new ApiError(tNow("m_ui")("error.offline"), 0);
   }
   const body = (await response.json().catch(() => null)) as { data?: T; error?: { message?: string; code?: string } } | T | null;
   if (!response.ok) {
@@ -77,10 +79,10 @@ export async function apiBody<T>(path: string, init: RequestInit & { json?: unkn
       body: json !== undefined ? JSON.stringify(json) : rest.body,
     });
   } catch {
-    throw new ApiError("We couldn't reach Shopinbos. Check your connection and try again.", 0);
+    throw new ApiError(tNow("m_ui")("error.offline"), 0);
   }
   const body = (await response.json().catch(() => null)) as (T & { error?: unknown }) | null;
-  if (response.ok && (body === null || typeof body !== "object")) throw new ApiError("This part of Shopinbos isn't ready in the app yet. Tap Help and we'll sort it out.", 200, "NOT_JSON");
+  if (response.ok && (body === null || typeof body !== "object")) throw new ApiError(tNow("m_ui")("error.notReady"), 200, "NOT_JSON");
   if (!response.ok) {
     const raw = body?.error;
     const error = raw && typeof raw === "object" ? (raw as { message?: string; code?: string }) : { message: typeof raw === "string" ? raw : undefined, code: undefined };

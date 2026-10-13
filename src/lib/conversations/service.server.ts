@@ -456,6 +456,9 @@ async function notifyRecipient(viewer: Viewer, access: { id: string; otherId: st
     actionLabel: "Reply",
     actionUrl: link,
     metadata: { conversationId: access.id, kind: "partner_message", senderId: viewer.id },
+    event: "message.new",
+    dedupeKey: false,
+    phoneHandled: true,
   });
 }
 

@@ -7,6 +7,7 @@ import { cx } from "@/components/app-ui/cx";
 import { naira } from "@shared/onboarding";
 import { AD_BUDGETS, AD_DESTINATIONS, AD_PLATFORMS, STOP_RULE_DAYS, type AdAdvice, type AdDestination, type AdPlatform } from "@shared/ads";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface Product {
   id: string;
@@ -51,8 +52,10 @@ const PLATFORM_HELP: Record<string, string> = {
   tiktok: "In TikTok, open the video → Promote → More website visits → paste the link.",
   whatsapp_status: "Post the photo on your WhatsApp status with the text and the link. No spend needed.",
 };
+const DESTINATION_KEYS = { whatsapp: "dest.whatsapp", store: "dest.store" } as const;
 
 function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasWhatsapp: boolean; onCreated: () => void }) {
+  const t = useT("ads");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [platform, setPlatform] = useState<AdPlatform>("instagram");
   const [destination, setDestination] = useState<AdDestination>(hasWhatsapp ? "whatsapp" : "store");
@@ -69,45 +72,45 @@ function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasW
       await send("/api/app/ads", "POST", { productId, platform, destination, dailyBudget: free ? 500 : budget, days });
       onCreated();
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Couldn't write the ad.");
+      setError(createError instanceof Error ? createError.message : t("err.write"));
     } finally {
       setBusy(false);
     }
   }
 
   if (!products.length) {
-    return <section className={card}><p className="m-0 text-[14.5px] text-app-ink-soft">Add a product with a photo and publish it first; ads need something to show.</p></section>;
+    return <section className={card}><p className="m-0 text-[14.5px] text-app-ink-soft">{t("noProducts")}</p></section>;
   }
 
   return (
     <section className={card}>
-      <h2 className="m-0 text-[17px] font-extrabold">Make an ad</h2>
+      <h2 className="m-0 text-[17px] font-extrabold">{t("make")}</h2>
       <div className="mt-3 grid gap-4">
         <div>
-          <FieldLabel htmlFor="ad-product">Product</FieldLabel>
+          <FieldLabel htmlFor="ad-product">{t("product")}</FieldLabel>
           <select id="ad-product" value={productId} onChange={(event) => setProductId(event.target.value)} className="h-[52px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[15px]">
             {products.map((product) => <option key={product.id} value={product.id}>{product.name} · {naira(product.price)}</option>)}
           </select>
         </div>
         <div>
-          <div className="mb-2 text-[14px] font-bold">Where</div>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Where the ad runs">
+          <div className="mb-2 text-[14px] font-bold">{t("where")}</div>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("whereRuns")}>
             {AD_PLATFORMS.map((option) => (
               <button key={option.key} type="button" role="radio" aria-checked={platform === option.key} onClick={() => setPlatform(option.key)} className={cx("min-h-[40px] rounded-full border px-4 text-[14px] font-bold", platform === option.key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}>
-                {option.label}
+                {option.key === "whatsapp_status" ? t("platform.whatsappStatus") : option.label}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <div className="mb-2 text-[14px] font-bold">Buyers go to</div>
-          <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Where buyers go">
+          <div className="mb-2 text-[14px] font-bold">{t("buyersGo")}</div>
+          <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={t("whereBuyersGo")}>
             {AD_DESTINATIONS.map((option) => {
               const disabled = option.key === "whatsapp" && !hasWhatsapp;
               return (
                 <button key={option.key} type="button" role="radio" aria-checked={destination === option.key} disabled={disabled} onClick={() => setDestination(option.key)} className={cx("rounded-[16px] border-2 p-3 text-left disabled:opacity-50", destination === option.key ? "border-app-ink" : "border-app-line")}>
-                  <span className="block text-[14px] font-extrabold">{option.label}</span>
-                  <span className="block text-[12.5px] text-app-ink-soft">{disabled ? "Add your WhatsApp number in Live chat settings first." : option.hint}</span>
+                  <span className="block text-[14px] font-extrabold">{t(DESTINATION_KEYS[option.key])}</span>
+                  <span className="block text-[12.5px] text-app-ink-soft">{disabled ? t("dest.addWhatsApp") : t.dynamic(`${DESTINATION_KEYS[option.key]}.hint`, option.hint)}</span>
                 </button>
               );
             })}
@@ -116,28 +119,28 @@ function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasW
         {!free && (
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div>
-              <div className="mb-2 text-[14px] font-bold">How much each day</div>
-              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="How much each day">
+              <div className="mb-2 text-[14px] font-bold">{t("budget")}</div>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("dailyBudget")}>
                 {AD_BUDGETS.map((value) => (
                   <button key={value} type="button" role="radio" aria-checked={budget === value} onClick={() => setBudget(value)} className={cx("min-h-[40px] rounded-full border px-4 text-[14px] font-bold", budget === value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}>
-                    {naira(value)} a day
+                    {t("perDay", { amount: naira(value) })}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <div className="mb-2 text-[14px] font-bold">For</div>
-              <div className="flex items-center gap-2" role="group" aria-label="Days">
-                <button type="button" aria-label="One day fewer" onClick={() => setDays((value) => Math.max(1, value - 1))} className="grid h-10 w-10 place-items-center rounded-full border border-app-line text-[18px] font-bold">−</button>
-                <span className="min-w-[64px] text-center text-[15px] font-extrabold" aria-live="polite">{days} day{days === 1 ? "" : "s"}</span>
-                <button type="button" aria-label="One more day" onClick={() => setDays((value) => Math.min(30, value + 1))} className="grid h-10 w-10 place-items-center rounded-full border border-app-line text-[18px] font-bold">+</button>
+              <div className="mb-2 text-[14px] font-bold">{t("for")}</div>
+              <div className="flex items-center gap-2" role="group" aria-label={t("daysLabel")}>
+                <button type="button" aria-label={t("dayFewer")} onClick={() => setDays((value) => Math.max(1, value - 1))} className="grid h-10 w-10 place-items-center rounded-full border border-app-line text-[18px] font-bold">−</button>
+                <span className="min-w-[64px] text-center text-[15px] font-extrabold" aria-live="polite">{t("days", { count: days })}</span>
+                <button type="button" aria-label={t("dayMore")} onClick={() => setDays((value) => Math.min(30, value + 1))} className="grid h-10 w-10 place-items-center rounded-full border border-app-line text-[18px] font-bold">+</button>
               </div>
             </div>
           </div>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-app-canvas px-4 py-3">
-          <span className="text-[14px]">{free ? "WhatsApp status is free." : <>= <strong>{naira(budget * days)}</strong>, paid to {AD_PLATFORMS.find((option) => option.key === platform)?.label} with your card</>}</span>
-          <PillButton type="button" busy={busy} onClick={() => void create()}>Write my ad</PillButton>
+          <span className="text-[14px]">{free ? t("statusFree") : <>= <strong>{naira(budget * days)}</strong>, {t("paidTo", { platform: AD_PLATFORMS.find((option) => option.key === platform)?.label ?? "" })}</>}</span>
+          <PillButton type="button" busy={busy} onClick={() => void create()}>{t("writeMy")}</PillButton>
         </div>
         {error && <Notice>{error}</Notice>}
       </div>
@@ -146,6 +149,7 @@ function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasW
 }
 
 function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
+  const t = useT("ads", "common");
   const [headline, setHeadline] = useState(ad.headline);
   const [text, setText] = useState(ad.primaryText);
   const [spend, setSpend] = useState(ad.stats.spend ? String(ad.stats.spend) : "");
@@ -162,7 +166,7 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
       await send(`/api/app/ads/${ad.id}`, "PATCH", body);
       onChange();
     } catch (patchError) {
-      setError(patchError instanceof Error ? patchError.message : "Couldn't update the ad.");
+      setError(patchError instanceof Error ? patchError.message : t("err.update"));
     } finally {
       setBusy(null);
     }
@@ -174,7 +178,7 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
       setCopied(label);
       window.setTimeout(() => setCopied(null), 1600);
     } catch {
-      setError("Couldn't copy. Select the text and copy it.");
+      setError(t("err.copy"));
     }
   }
 
@@ -201,31 +205,31 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
           <div>
             <h3 className="m-0 text-[17px] font-extrabold">{ad.productName ?? ad.headline}</h3>
             <div className="text-[13px] text-app-ink-soft">
-              {STATUS_LABEL[ad.status] ?? ad.status}
-              {ad.status === "running" && ` · day ${ad.day + 1} of ${ad.days}`}
-              {ad.platform !== "whatsapp_status" && ` · ${naira(ad.dailyBudget)} a day`}
+              {STATUS_LABEL[ad.status] ? t.dynamic(`status.${ad.status}`, STATUS_LABEL[ad.status]) : ad.status}
+              {ad.status === "running" && ` · ${t("dayOf", { day: ad.day + 1, days: ad.days })}`}
+              {ad.platform !== "whatsapp_status" && ` · ${t("perDay", { amount: naira(ad.dailyBudget) })}`}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {ad.status === "draft" && <PillButton size="sm" busy={busy === "start"} onClick={() => void patch("start", { status: "running" })}>I&apos;ve started it</PillButton>}
-            {ad.status === "running" && <PillButton size="sm" tone="white" busy={busy === "pause"} onClick={() => void patch("pause", { status: "paused" })}>Paused it</PillButton>}
-            {ad.status === "paused" && <PillButton size="sm" busy={busy === "start"} onClick={() => void patch("start", { status: "running" })}>Running again</PillButton>}
-            {(ad.status === "running" || ad.status === "paused") && <PillButton size="sm" tone="white" busy={busy === "end"} onClick={() => void patch("end", { status: "ended" })}>End</PillButton>}
+            {ad.status === "draft" && <PillButton size="sm" busy={busy === "start"} onClick={() => void patch("start", { status: "running" })}>{t("started")}</PillButton>}
+            {ad.status === "running" && <PillButton size="sm" tone="white" busy={busy === "pause"} onClick={() => void patch("pause", { status: "paused" })}>{t("pausedIt")}</PillButton>}
+            {ad.status === "paused" && <PillButton size="sm" busy={busy === "start"} onClick={() => void patch("start", { status: "running" })}>{t("runningAgain")}</PillButton>}
+            {(ad.status === "running" || ad.status === "paused") && <PillButton size="sm" tone="white" busy={busy === "end"} onClick={() => void patch("end", { status: "ended" })}>{t("end")}</PillButton>}
           </div>
         </div>
 
         {ad.advice && (
           <div className={cx("rounded-[16px] px-4 py-3 text-[14px] font-semibold", ad.advice.tone === "warning" ? "bg-[#FDF0D5] text-[#8A5A00]" : ad.advice.tone === "success" ? "bg-app-success-tint text-app-success" : "bg-app-canvas text-app-ink-soft")}>
-            Peggy: {ad.advice.text}
+            {t("peggy")} {ad.advice.text}
           </div>
         )}
 
         <dl className="m-0 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            [ad.destination === "whatsapp" ? "Taps to WhatsApp" : "Taps", String(ad.stats.clicks)],
-            ["Orders", String(ad.stats.orders)],
-            ["Spent", naira(ad.stats.spend)],
-            ["Per order", ad.costPerOrder ? naira(ad.costPerOrder) : "–"],
+            [ad.destination === "whatsapp" ? t("stat.tapsWhatsApp") : t("stat.taps"), String(ad.stats.clicks)],
+            [t("stat.orders"), String(ad.stats.orders)],
+            [t("stat.spent"), naira(ad.stats.spend)],
+            [t("stat.perOrder"), ad.costPerOrder ? naira(ad.costPerOrder) : "–"],
           ].map(([label, value]) => (
             <div key={label} className="rounded-[14px] bg-app-canvas px-3 py-2">
               <dt className="text-[12px] text-app-ink-soft">{label}</dt>
@@ -237,41 +241,41 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
         {ad.status === "draft" ? (
           <>
             <div>
-              <FieldLabel htmlFor={`headline-${ad.id}`}>Headline</FieldLabel>
+              <FieldLabel htmlFor={`headline-${ad.id}`}>{t("headline")}</FieldLabel>
               <TextInput id={`headline-${ad.id}`} value={headline} maxLength={80} onChange={(event) => setHeadline(event.target.value)} />
             </div>
             <div>
-              <FieldLabel htmlFor={`text-${ad.id}`}>Ad text</FieldLabel>
+              <FieldLabel htmlFor={`text-${ad.id}`}>{t("adText")}</FieldLabel>
               <textarea id={`text-${ad.id}`} rows={3} maxLength={500} value={text} onChange={(event) => setText(event.target.value)} className="w-full rounded-[16px] border border-app-line px-4 py-3 text-[15px]" />
               <VoiceInputButton value={text} onChange={setText} maxLength={500} context="the text of an advert" className="mt-2" />
             </div>
-            {edited && <PillButton size="sm" tone="white" busy={busy === "copy"} onClick={() => void patch("copy", { headline, primaryText: text })}>Save changes</PillButton>}
+            {edited && <PillButton size="sm" tone="white" busy={busy === "copy"} onClick={() => void patch("copy", { headline, primaryText: text })}>{t("saveChanges")}</PillButton>}
           </>
         ) : null}
 
         <div className="rounded-[16px] border border-app-line p-3">
-          <div className="text-[13px] font-bold">Ad link (use this, so we can count taps and orders)</div>
+          <div className="text-[13px] font-bold">{t("adLink")}</div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <code className="min-w-0 flex-1 truncate text-[13px]">{ad.link}</code>
-            <button type="button" onClick={() => void copy("link", ad.link)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold">{copied === "link" ? "Copied" : "Copy link"}</button>
-            <button type="button" onClick={() => void copy("text", `${text}\n${ad.link}`)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold">{copied === "text" ? "Copied" : "Copy text"}</button>
+            <button type="button" onClick={() => void copy("link", ad.link)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold">{copied === "link" ? t("copied") : t("copyLink")}</button>
+            <button type="button" onClick={() => void copy("text", `${text}\n${ad.link}`)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold">{copied === "text" ? t("copied") : t("copyText")}</button>
           </div>
-          <p className="mb-0 mt-2 text-[12.5px] leading-[1.5] text-app-ink-soft">{PLATFORM_HELP[ad.platform]}</p>
+          <p className="mb-0 mt-2 text-[12.5px] leading-[1.5] text-app-ink-soft">{PLATFORM_HELP[ad.platform] ? t.dynamic(`help.${ad.platform}`, PLATFORM_HELP[ad.platform]) : null}</p>
         </div>
 
         {ad.platform !== "whatsapp_status" && ad.status !== "draft" && (
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-[160px] flex-1">
-              <FieldLabel htmlFor={`spend-${ad.id}`}>Spent so far (₦, from {platform?.label})</FieldLabel>
+              <FieldLabel htmlFor={`spend-${ad.id}`}>{t("spentSoFar", { platform: platform?.label ?? "" })}</FieldLabel>
               <TextInput id={`spend-${ad.id}`} inputMode="numeric" value={spend} onChange={(event) => setSpend(event.target.value.replace(/[^\d]/g, ""))} />
             </div>
-            <PillButton size="md" tone="white" busy={busy === "spend"} onClick={() => void patch("spend", { spend: Number(spend) || 0 })}>Update</PillButton>
+            <PillButton size="md" tone="white" busy={busy === "spend"} onClick={() => void patch("spend", { spend: Number(spend) || 0 })}>{t("update")}</PillButton>
           </div>
         )}
 
         <div className="flex justify-end">
-          <button type="button" className="text-[13px] font-bold text-app-danger" onClick={() => { if (window.confirm("Delete this ad? Its link stops counting.")) { setBusy("delete"); send(`/api/app/ads/${ad.id}`, "DELETE").then(onChange, (deleteError) => { setError(deleteError.message); setBusy(null); }); } }}>
-            Delete ad
+          <button type="button" className="text-[13px] font-bold text-app-danger" onClick={() => { if (window.confirm(t("confirmDelete"))) { setBusy("delete"); send(`/api/app/ads/${ad.id}`, "DELETE").then(onChange, (deleteError) => { setError(deleteError.message); setBusy(null); }); } }}>
+            {t("deleteAd")}
           </button>
         </div>
         {error && <Notice>{error}</Notice>}
@@ -282,11 +286,12 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
 
 export function AdsManager({ ads, products, hasWhatsapp }: { ads: Ad[]; products: Product[]; hasWhatsapp: boolean; storeName: string }) {
   const router = useRouter();
+  const t = useT("ads");
   const refresh = () => router.refresh();
   return (
     <div className="grid gap-4">
       <Notice tone="info">
-        You pay Instagram, Facebook or TikTok directly with your own account. Shopinbos doesn&apos;t spend money for you yet. Peggy flags any ad with no orders by day {STOP_RULE_DAYS} so you can pause it.
+        {t("payNote", { days: STOP_RULE_DAYS })}
       </Notice>
       <NewAd products={products} hasWhatsapp={hasWhatsapp} onCreated={refresh} />
       {ads.map((ad) => <AdCard key={ad.id} ad={ad} onChange={refresh} />)}

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui";
-import { durationLabel, helpLanguage, type HelpVideoRole, type VideoSource } from "@shared/help-videos";
+import { helpLanguage, type HelpVideoRole, type VideoSource } from "@shared/help-videos";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // "Watch a 1-minute video" in the Help panel (build spec 8A). Shows the video for the current screen, in the
 // person's language when there is one (else English), plus "All videos" for their role. With nothing published
@@ -27,6 +28,10 @@ export function HelpVideosSection({ role }: { role: string | null }) {
   const [all, setAll] = useState<HelpVideoItem[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [playing, setPlaying] = useState<HelpVideoItem | null>(null);
+  const t = useT("help");
+  // shared/help-videos durationLabel, in the person's language.
+  const duration = (seconds: number | null) =>
+    !seconds || seconds <= 0 ? t("duration.min", { count: 1 }) : seconds < 60 ? t("duration.sec", { count: Math.round(seconds) }) : t("duration.min", { count: Math.round(seconds / 60) });
 
   useEffect(() => {
     let stopped = false;
@@ -61,7 +66,7 @@ export function HelpVideosSection({ role }: { role: string | null }) {
             <Icon name="play" size={16} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-extrabold">Watch a 1-minute video</span>
+            <span className="block text-[14.5px] font-extrabold">{t("watchVideo")}</span>
             <span className="block truncate text-[12.5px] text-app-ink-soft">{current.title}</span>
           </span>
           <Icon name="chevron" size={14} />
@@ -70,7 +75,7 @@ export function HelpVideosSection({ role }: { role: string | null }) {
       {all.length > 0 && (
         <div>
           <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll} className="flex min-h-[40px] items-center gap-1.5 px-1 text-[13.5px] font-bold text-app-ink underline-offset-2 hover:underline">
-            <Icon name="play" size={12} /> All videos ({all.length})
+            <Icon name="play" size={12} /> {t("allVideos", { count: all.length })}
           </button>
           {showAll && (
             <ul className="m-0 mt-1 grid list-none gap-1.5 p-0">
@@ -86,7 +91,7 @@ export function HelpVideosSection({ role }: { role: string | null }) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13.5px] font-bold">{video.title}</span>
-                      <span className="block text-[12px] text-app-ink-soft">{durationLabel(video.durationSeconds)}</span>
+                      <span className="block text-[12px] text-app-ink-soft">{duration(video.durationSeconds)}</span>
                     </span>
                   </button>
                 </li>
@@ -103,6 +108,7 @@ export function HelpVideosSection({ role }: { role: string | null }) {
 /** The player, in a dialog over the Help panel. Files play in <video>; YouTube and Vimeo in their embeds. */
 export function HelpVideoDialog({ video, onClose }: { video: Pick<HelpVideoItem, "title" | "posterUrl" | "source">; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const t = useT("help");
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
@@ -122,7 +128,7 @@ export function HelpVideoDialog({ video, onClose }: { video: Pick<HelpVideoItem,
       <div className="relative w-full max-w-[720px] overflow-hidden rounded-[22px] bg-white shadow-2xl">
         <div className="flex items-center gap-3 px-4 py-3">
           <h2 className="m-0 min-w-0 flex-1 truncate text-[15px] font-extrabold text-app-ink">{video.title}</h2>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close video" className="grid h-9 w-9 place-items-center rounded-full bg-app-canvas text-app-ink-soft hover:text-app-ink">
+          <button ref={closeRef} type="button" onClick={onClose} aria-label={t("closeVideo")} className="grid h-9 w-9 place-items-center rounded-full bg-app-canvas text-app-ink-soft hover:text-app-ink">
             <Icon name="x" size={14} />
           </button>
         </div>

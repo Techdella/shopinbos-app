@@ -10,9 +10,15 @@ import { RexAICopywriter } from "@/components/marketing/RexAICopywriter";
 import { channelStatus } from "@/lib/marketing/channels";
 import { listAutomations } from "@/lib/marketing/automations";
 import { naira } from "@shared/onboarding";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Marketing" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("hub.title") };
+}
 
 // Old ?tab= links (emails, bookmarks) go to the page that now owns each tab.
 const LEGACY_TABS: Record<string, string> = {
@@ -23,12 +29,12 @@ const LEGACY_TABS: Record<string, string> = {
   "Social Selling": "/channels",
 };
 
-const STATUS: Record<string, { tone: Tone; label: string }> = {
-  draft: { tone: "muted", label: "Draft" },
-  scheduled: { tone: "info", label: "Scheduled" },
-  sending: { tone: "info", label: "Sending" },
-  sent: { tone: "success", label: "Sent" },
-  cancelled: { tone: "warning", label: "Cancelled" },
+const STATUS: Record<string, { tone: Tone; label: MessageKey<"marketing"> }> = {
+  draft: { tone: "muted", label: "campaignStatus.draft" },
+  scheduled: { tone: "info", label: "campaignStatus.scheduled" },
+  sending: { tone: "info", label: "campaignStatus.sending" },
+  sent: { tone: "success", label: "campaignStatus.sent" },
+  cancelled: { tone: "warning", label: "campaignStatus.cancelled" },
 };
 
 const pct = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : "–");
@@ -38,6 +44,8 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
   if (params?.tab && LEGACY_TABS[params.tab]) redirect(LEGACY_TABS[params.tab]);
 
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing", "common");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/onboarding");
   const since = new Date(Date.now() - 30 * 86_400_000);
@@ -59,32 +67,33 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
   const flowSends = flows.reduce((sum, f) => sum + f.sent30d, 0);
 
   const steps: Array<{ done: boolean; title: string; sub: string; href: string; icon: IconName }> = [
-    { done: livePopups > 0, title: "Turn on a sign-up pop-up", sub: "Collect emails from store visitors, with a small reward", href: "/home/marketing/forms", icon: "mail" },
-    { done: flows.some((f) => f.trigger === "abandoned_checkout" && f.active), title: "Remind customers who didn't finish paying", sub: "A reminder that goes out by itself", href: "/home/automations", icon: "cart" },
-    { done: flows.some((f) => f.trigger === "welcome_email" && f.active), title: "Welcome new subscribers", sub: "A hello email the moment they join", href: "/home/automations", icon: "sparkle" },
-    { done: segments > 0, title: "Save a group of customers", sub: "Repeat buyers, big spenders, people in Lagos…", href: "/home/marketing/segments", icon: "layers" },
-    { done: campaigns.some((c) => c.status === "sent"), title: "Send your first message to customers", sub: "Email, SMS or WhatsApp", href: "/home/marketing/campaigns/new", icon: "send" },
+    { done: livePopups > 0, title: t("hub.step.popup"), sub: t("hub.step.popupSub"), href: "/home/marketing/forms", icon: "mail" },
+    { done: flows.some((f) => f.trigger === "abandoned_checkout" && f.active), title: t("hub.step.cart"), sub: t("hub.step.cartSub"), href: "/home/automations", icon: "cart" },
+    { done: flows.some((f) => f.trigger === "welcome_email" && f.active), title: t("hub.step.welcome"), sub: t("hub.step.welcomeSub"), href: "/home/automations", icon: "sparkle" },
+    { done: segments > 0, title: t("hub.step.segment"), sub: t("hub.step.segmentSub"), href: "/home/marketing/segments", icon: "layers" },
+    { done: campaigns.some((c) => c.status === "sent"), title: t("hub.step.campaign"), sub: t("hub.step.campaignSub"), href: "/home/marketing/campaigns/new", icon: "send" },
   ];
+  const ready = (key: "email" | "sms" | "whatsapp") => channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates);
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Marketing"
-      sub="Grow your list, send messages to customers and let automations follow up for you."
+      title={t("hub.title")}
+      sub={t("hub.sub")}
       actions={
         <>
           <RexAICopywriter storeName={store.name} />
-          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New message</PillLink>
+          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">{t("hub.newCampaign")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <StatGrid className="xl:grid-cols-4">
-          <StatTile tone="card" label="Subscribers" value={subscribers.toLocaleString("en-NG")} hint={`+${newSubs} in 30 days`} />
-          <StatTile tone="card" label="Messages sent (30 days)" value={sent.toLocaleString("en-NG")} hint={sent ? `${pct(sentTotals._sum.openCount ?? 0, sent)} opened · ${pct(sentTotals._sum.clickCount ?? 0, sent)} clicked` : "None sent yet"} />
-          <StatTile tone="card" label="Sales from your messages (30 days)" value={naira(sentTotals._sum.revenueGenerated ?? 0)} hint={`${sentTotals._sum.conversionCount ?? 0} orders`} />
-          <StatTile tone="card" label="Automation messages (30 days)" value={flowSends.toLocaleString("en-NG")} hint={`${flowsOn.length} automation${flowsOn.length === 1 ? "" : "s"} on`} />
+          <StatTile tone="card" label={t("hub.stat.subscribers")} value={formatNumber(subscribers, locale)} hint={t("hub.stat.subscribersHint", { count: newSubs })} />
+          <StatTile tone="card" label={t("hub.stat.campaignMessages")} value={formatNumber(sent, locale)} hint={sent ? t("hub.stat.openedClicked", { opened: pct(sentTotals._sum.openCount ?? 0, sent), clicked: pct(sentTotals._sum.clickCount ?? 0, sent) }) : t("hub.stat.noneSent")} />
+          <StatTile tone="card" label={t("hub.stat.campaignSales")} value={naira(sentTotals._sum.revenueGenerated ?? 0)} hint={t("count.orders", { count: sentTotals._sum.conversionCount ?? 0 })} />
+          <StatTile tone="card" label={t("hub.stat.automationMessages")} value={formatNumber(flowSends, locale)} hint={t("hub.stat.automationsOn", { count: flowsOn.length })} />
         </StatGrid>
 
         <SplitLayout
@@ -92,7 +101,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
           main={
             <>
               <Card className="p-5">
-                <CardHead title="Recent messages" action={<TextLink href="/home/marketing/campaigns">All messages</TextLink>} />
+                <CardHead title={t("hub.recentCampaigns")} action={<TextLink href="/home/marketing/campaigns">{t("hub.allCampaigns")}</TextLink>} />
                 {campaigns.length ? (
                   <ListCard className="mt-3 border-0">
                     {campaigns.map((c) => (
@@ -100,35 +109,35 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
                         <span className="min-w-0 flex-1 basis-[200px]">
                           <span className="block truncate text-[15px] font-extrabold">{c.name}</span>
                           <span className="block truncate text-[13px] text-app-ink-soft">
-                            {c.channel === "sms" ? "SMS" : c.channel === "whatsapp" ? "WhatsApp" : "Email"} · {c.status === "sent" ? `${c.sentCount} sent${c.channel === "email" ? ` · ${pct(c.openCount, c.sentCount)} opened` : ""}` : c.scheduledAt ? `For ${formatDate(c.scheduledAt, true)}` : "Not sent"}
+                            {c.channel === "sms" ? "SMS" : c.channel === "whatsapp" ? "WhatsApp" : t("channel.email")} · {c.status === "sent" ? `${t("hub.sentCount", { count: c.sentCount })}${c.channel === "email" ? ` · ${t("hub.openedPct", { pct: pct(c.openCount, c.sentCount) })}` : ""}` : c.scheduledAt ? t("hub.scheduledFor", { date: formatDate(c.scheduledAt, true, locale) }) : t("hub.notSent")}
                           </span>
                         </span>
                         {c.revenueGenerated ? <span className="text-[13px] font-bold">{naira(c.revenueGenerated)}</span> : null}
-                        <Pill tone={STATUS[c.status]?.tone ?? "muted"}>{STATUS[c.status]?.label ?? c.status}</Pill>
+                        <Pill tone={STATUS[c.status]?.tone ?? "muted"}>{STATUS[c.status] ? t(STATUS[c.status].label) : c.status}</Pill>
                       </ListRow>
                     ))}
                   </ListCard>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No messages yet. Write one and send it to a group of customers by email, SMS or WhatsApp.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("hub.noCampaigns")}</p>
                 )}
               </Card>
 
               <Card className="p-5">
-                <CardHead title="Automations" action={<TextLink href="/home/automations">Manage</TextLink>} />
+                <CardHead title={t("hub.automations")} action={<TextLink href="/home/automations">{t("hub.manage")}</TextLink>} />
                 {flows.length ? (
                   <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                     {flows.map((flow) => (
                       <li key={flow.id}>
                         <a href={`/home/automations/${flow.id}`} className="flex min-h-[52px] items-center gap-3 py-2 text-app-ink no-underline">
                           <span className="min-w-0 flex-1 truncate text-[14.5px] font-bold">{flow.name}</span>
-                          <span className="text-[13px] text-app-ink-soft">{flow.sent30d} sent</span>
-                          <Pill tone={flow.active ? "success" : "muted"} dot>{flow.active ? "On" : "Off"}</Pill>
+                          <span className="text-[13px] text-app-ink-soft">{t("hub.sentCount", { count: flow.sent30d })}</span>
+                          <Pill tone={flow.active ? "success" : "muted"} dot>{flow.active ? t("status.active") : t("status.inactive")}</Pill>
                         </a>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">None yet. Add welcome, "didn't finish paying", review request or win-back in one tap.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("hub.noAutomations")}</p>
                 )}
               </Card>
             </>
@@ -136,7 +145,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
           side={
             <>
               <Card className="p-5">
-                <CardHead title="Get set up" sub={`${steps.filter((s) => s.done).length} of ${steps.length} done`} />
+                <CardHead title={t("hub.getSetUp")} sub={t("hub.stepsDone", { done: steps.filter((s) => s.done).length, total: steps.length })} />
                 <ul className="m-0 mt-3 grid list-none gap-1 p-0">
                   {steps.map((step) => (
                     <li key={step.title}>
@@ -155,26 +164,26 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
               </Card>
 
               <Card className="p-5">
-                <CardHead title="Growing your list" action={<TextLink href="/home/marketing/forms">Forms</TextLink>} />
+                <CardHead title={t("hub.growingList")} action={<TextLink href="/home/marketing/forms">{t("hub.forms")}</TextLink>} />
                 <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">
-                  {livePopups ? `${livePopups} pop-up${livePopups === 1 ? "" : "s"} live.` : "No pop-up live."} {signups._sum.submissions ?? 0} sign-ups from {signups._sum.views ?? 0} views in 30 days. {discountsLive} discount{discountsLive === 1 ? "" : "s"} live.
+                  {t("hub.popupsLive", { count: livePopups })} {t("hub.signupsFromViews", { signups: signups._sum.submissions ?? 0, views: signups._sum.views ?? 0 })} {t("hub.discountsLive", { count: discountsLive })}
                 </p>
               </Card>
 
               <Card className="p-5">
-                <CardHead title="Sending channels" />
+                <CardHead title={t("hub.sendingChannels")} />
                 <ul className="m-0 mt-3 grid list-none gap-2 p-0">
                   {(["email", "sms", "whatsapp"] as const).map((key) => (
                     <li key={key} className="flex items-start gap-3 text-[14px]">
                       <Icon name={key === "email" ? "mail" : key === "sms" ? "message" : "whatsapp"} size={18} className="mt-0.5 shrink-0" />
                       <span className="min-w-0 flex-1">
-                        <strong>{key === "email" ? "Email" : key === "sms" ? "SMS" : "WhatsApp"}</strong>
+                        <strong>{key === "email" ? t("channel.email") : key === "sms" ? "SMS" : "WhatsApp"}</strong>
                         <span className="block text-[12.5px] text-app-ink-soft">
-                          {channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? `Ready via ${channels[key].via}` : "Not connected yet. Tap Help and we'll set it up for you."}{" "}
-                          {channels[key].connectHref && !(channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates)) ? <a href={channels[key].connectHref!} className="font-bold text-app-accent-ink underline">{channels[key].connectLabel}</a> : null}
+                          {ready(key) ? t("hub.readyVia", { via: channels[key].via }) : t("hub.notConnected")}{" "}
+                          {channels[key].connectHref && !ready(key) ? <a href={channels[key].connectHref!} className="font-bold text-app-accent-ink underline">{channels[key].connectLabel}</a> : null}
                         </span>
                       </span>
-                      <Pill tone={channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? "success" : "warning"}>{channels[key].ready && (key !== "whatsapp" || channels.whatsapp.templates) ? "Ready" : "Not set up"}</Pill>
+                      <Pill tone={ready(key) ? "success" : "warning"}>{ready(key) ? t("hub.ready") : t("hub.notSetUp")}</Pill>
                     </li>
                   ))}
                 </ul>
@@ -183,17 +192,17 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
           }
         />
 
-        <nav aria-label="Marketing tools" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <nav aria-label={t("hub.tools")} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {([
-            ["/home/marketing/subscribers", "Subscribers", "users", "Your list, consent, tags, import and export"],
-            ["/home/marketing/segments", "Groups of customers", "layers", "By spend, orders, place, products"],
-            ["/home/marketing/templates", "Email designs", "mail", "Ready-made emails you can change"],
-            ["/home/marketing/whatsapp", "WhatsApp messages", "whatsapp", "Messages WhatsApp has approved, for offers and orders"],
-            ["/home/marketing/messages", "Order messages", "bell", "WhatsApp and SMS updates: confirmed, shipped, delivered"],
-            ["/home/inbox/auto-replies", "Auto-replies", "clock", "Away message, opening hours, quick replies"],
-            ["/home/inbox/chatbot", "Peggy chatbot", "sparkle", "Peggy answers shoppers on your live chat"],
-            ["/home/marketing/analytics", "Reports", "chart", "What each message and automation brought in"],
-            ["/home/marketing/rewards", "Rewards and games", "sparkle", "Spin the wheel, scratch cards, loyalty points"],
+            ["/home/marketing/subscribers", t("hub.tool.subscribers"), "users", t("hub.tool.subscribersSub")],
+            ["/home/marketing/segments", t("hub.tool.segments"), "layers", t("hub.tool.segmentsSub")],
+            ["/home/marketing/templates", t("hub.tool.emailTemplates"), "mail", t("hub.tool.emailTemplatesSub")],
+            ["/home/marketing/whatsapp", t("hub.tool.whatsappTemplates"), "whatsapp", t("hub.tool.whatsappTemplatesSub")],
+            ["/home/marketing/messages", t("hub.tool.orderMessages"), "bell", t("hub.tool.orderMessagesSub")],
+            ["/home/inbox/auto-replies", t("hub.tool.autoReplies"), "clock", t("hub.tool.autoRepliesSub")],
+            ["/home/inbox/chatbot", t("hub.tool.chatbot"), "sparkle", t("hub.tool.chatbotSub")],
+            ["/home/marketing/analytics", t("hub.tool.reports"), "chart", t("hub.tool.reportsSub")],
+            ["/home/marketing/rewards", t("hub.tool.rewards"), "sparkle", t("hub.tool.rewardsSub")],
           ] as Array<[string, string, IconName, string]>).map(([href, label, icon, sub]) => (
             <a key={href} href={href} className="flex items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 text-app-ink no-underline hover:border-app-line-strong">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-canvas"><Icon name={icon} size={18} /></span>
@@ -206,11 +215,11 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
         </nav>
 
         {subscribers === 0 && !campaigns.length ? (
-          <EmptyState icon="megaphone" title="Start by collecting emails" action={<PillLink href="/home/marketing/forms" tone="ink">Make a pop-up</PillLink>}>
-            Every message and automation needs people to send to. A welcome pop-up with a small discount is the quickest start.
+          <EmptyState icon="megaphone" title={t("hub.empty.title")} action={<PillLink href="/home/marketing/forms" tone="ink">{t("hub.empty.action")}</PillLink>}>
+            {t("hub.empty.body")}
           </EmptyState>
         ) : null}
-        <AssistantNote>Ask Peggy to “write a message for repeat buyers about the new arrivals” or “turn on the reminder for customers who didn't finish paying”. She shows you who gets it before anything is sent.</AssistantNote>
+        <AssistantNote>{t("hub.peggyNote")}</AssistantNote>
       </div>
     </SellerPage>
   );

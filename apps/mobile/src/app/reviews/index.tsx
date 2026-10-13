@@ -8,6 +8,7 @@ import { Card, Chip, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchReviews, SOURCE_LABELS, stars } from "@/lib/reviews";
 import { useLoad } from "@/lib/useLoad";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Reviews (web /home/reviews): the overview numbers, every review with a filter for the ones that still need a
@@ -15,9 +16,10 @@ import { colors } from "@/theme";
 
 type Filter = "all" | "needed" | "5" | "4" | "3" | "2" | "1";
 
+// "all" and "needed" are m_reviews keys; star counts stay as they are.
 const FILTERS: Array<{ value: Filter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "needed", label: "Needs reply" },
+  { value: "all", label: "filter.all" },
+  { value: "needed", label: "filter.needed" },
   { value: "5", label: "5★" },
   { value: "4", label: "4★" },
   { value: "3", label: "3★" },
@@ -26,26 +28,27 @@ const FILTERS: Array<{ value: Filter; label: string }> = [
 ];
 
 export default function Reviews() {
+  const t = useT("m_reviews", "m_ui");
   const [filter, setFilter] = useState<Filter>("all");
   const reviews = useLoad(() => fetchReviews({ reply: filter === "needed" ? "needed" : null, rating: /^\d$/.test(filter) ? Number(filter) : null }), filter);
   const summary = reviews.data?.summary;
 
   return (
     <Screen
-      title="Reviews"
-      sub="What customers say about your shop."
+      title={t("title")}
+      sub={t("sub")}
       refreshing={reviews.refreshing}
       onRefresh={() => void reviews.refresh()}
     >
-      <PillButton title="Ask for reviews" onPress={() => router.push("/reviews/ask")} />
+      <PillButton title={t("ask")} onPress={() => router.push("/reviews/ask")} />
 
       {summary ? (
         <Card style={{ flexDirection: "row", gap: 10 }}>
           {[
-            [summary.rated ? summary.average.toFixed(1) : "–", "Average"],
-            [String(summary.count), "Reviews"],
-            [`${summary.responseRate}%`, "Replied"],
-            [String(summary.needsReply), "Need reply"],
+            [summary.rated ? summary.average.toFixed(1) : "–", t("summary.average")],
+            [String(summary.count), t("summary.count")],
+            [`${summary.responseRate}%`, t("summary.replied")],
+            [String(summary.needsReply), t("summary.needReply")],
           ].map(([value, label]) => (
             <View key={label} style={{ flex: 1, alignItems: "center" }}>
               <T weight="extrabold" style={{ fontSize: 20 }}>{value}</T>
@@ -56,14 +59,14 @@ export default function Reviews() {
       ) : null}
 
       <ChipRow>
-        {FILTERS.map((option) => <Chip key={option.value} label={option.value === "needed" && summary?.needsReply ? `Needs reply ${summary.needsReply}` : option.label} on={filter === option.value} onPress={() => setFilter(option.value)} />)}
+        {FILTERS.map((option) => <Chip key={option.value} label={option.value === "needed" && summary?.needsReply ? t("filter.neededCount", { count: summary.needsReply }) : t.dynamic(option.label, option.label)} on={filter === option.value} onPress={() => setFilter(option.value)} />)}
       </ChipRow>
 
       {reviews.loading && !reviews.data ? <LoadingBlock /> : null}
       {reviews.error && !reviews.data ? <ErrorState message={reviews.error} onRetry={() => void reviews.reload()} /> : null}
       {reviews.data && !reviews.data.items.length ? (
-        <EmptyState icon="star" title={filter === "all" ? "No reviews yet" : "Nothing here"} >
-          {filter === "all" ? "Send buyers a link to rate what they bought. Reviews help new shoppers trust you." : filter === "needed" ? "You've replied to everything. Nice." : "No reviews with that many stars. Tap All to see the rest."}
+        <EmptyState icon="star" title={filter === "all" ? t("empty.title") : t("empty.nothing")} >
+          {filter === "all" ? t("empty.body") : filter === "needed" ? t("empty.allReplied") : t("empty.noStars")}
         </EmptyState>
       ) : null}
 
@@ -72,9 +75,9 @@ export default function Reviews() {
           <Card style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <T weight="extrabold" style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{item.authorName}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.createdAt)}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.createdAt, new Date(), t)}</T>
             </View>
-            {item.rating ? <T style={{ color: "#C98A00", fontSize: 15, letterSpacing: 1 }} accessibilityLabel={`${item.rating} out of 5`}>{stars(item.rating)}</T> : null}
+            {item.rating ? <T style={{ color: "#C98A00", fontSize: 15, letterSpacing: 1 }} accessibilityLabel={t("outOf5", { rating: item.rating })}>{stars(item.rating)}</T> : null}
             {item.title ? <T weight="bold">{item.title}</T> : null}
             {item.body ? <T style={{ color: colors.inkSoft, lineHeight: 20 }} numberOfLines={3}>{item.body}</T> : null}
             {item.images.length ? (
@@ -83,11 +86,11 @@ export default function Reviews() {
               </View>
             ) : null}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
-              <Badge label={SOURCE_LABELS[item.source] ?? item.source} />
-              {item.verifiedBuyer ? <Badge label="Verified buyer" bg={colors.successTint} fg={colors.success} /> : null}
-              {item.status === "pending" ? <Badge label="Waiting for approval" bg="#FDF0D5" fg="#8A5A00" /> : null}
-              {item.status === "rejected" ? <Badge label="Hidden" /> : null}
-              {item.reply ? <Badge label="Replied" bg={colors.mintTint} fg={colors.forest} /> : <Badge label="Reply" bg={colors.peach} fg={colors.accentInk} />}
+              <Badge label={t.dynamic(`source.${item.source}`, SOURCE_LABELS[item.source] ?? item.source)} />
+              {item.verifiedBuyer ? <Badge label={t("badge.verified")} bg={colors.successTint} fg={colors.success} /> : null}
+              {item.status === "pending" ? <Badge label={t("badge.pending")} bg="#FDF0D5" fg="#8A5A00" /> : null}
+              {item.status === "rejected" ? <Badge label={t("badge.hidden")} /> : null}
+              {item.reply ? <Badge label={t("badge.replied")} bg={colors.mintTint} fg={colors.forest} /> : <Badge label={t("badge.reply")} bg={colors.peach} fg={colors.accentInk} />}
             </View>
           </Card>
         </Pressable>

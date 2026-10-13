@@ -90,6 +90,8 @@ async function expireAndDecide(id: string, now: Date): Promise<SwitchDecision | 
       description: "You didn't accept it in time, so the shop has been told. Don't send it. Accept new orders quickly so shops keep sending you work.",
       link: "/supplier/orders",
       metadata: { supplierOrderId: row.id },
+      event: "supplier_order.expired",
+      dedupeKey: `supplier_order.expired:${row.id}`,
     }),
   ]);
   return decision;
@@ -134,6 +136,8 @@ async function tellSellerAfterExpiry(row: ExpiredRow, decision: SwitchDecision) 
         actionUrl: `/home/orders/${row.retailOrderId}#supplier-orders`,
         metadata: { supplierOrderId: row.id, retailOrderId: row.retailOrderId, replacementId: decision.toSupplierOrderId, reason: "supplier_switched" },
         sendEmail: true,
+        event: "supplier.switched",
+        dedupeKey: `supplier.switched:${row.id}`,
       }),
     ]);
     return;
@@ -153,6 +157,8 @@ async function tellSellerAfterExpiry(row: ExpiredRow, decision: SwitchDecision) 
     actionUrl: `/home/orders/${row.retailOrderId}#supplier-orders`,
     metadata: { supplierOrderId: row.id, retailOrderId: row.retailOrderId, reason: "supplier_no_answer" },
     sendEmail: true,
+    event: "supplier.expired",
+    dedupeKey: `supplier.expired:${row.id}`,
   });
 }
 
@@ -202,22 +208,26 @@ export async function expireWholesaleOrder(id: string, now = new Date()) {
       userId: row.sellerId,
       type: "suppliers",
       priority: "warning",
-      title: `${supplierName} didn't answer your bulk order in time`,
+      title: `${supplierName} didn't answer your wholesale order in time`,
       description: `${what}: they didn't accept it in time, so we cancelled it. You haven't paid anything. Find another supplier for it.`,
       link: `/marketplace?q=${encodeURIComponent(row.supplierProduct.name.slice(0, 60))}`,
       actionLabel: "Find another supplier",
       actionUrl: `/marketplace?q=${encodeURIComponent(row.supplierProduct.name.slice(0, 60))}`,
       metadata: { wholesaleOrderId: row.id, reason: "supplier_no_answer" },
       sendEmail: true,
+      event: "supplier.expired",
+      dedupeKey: `supplier.expired:wholesale:${row.id}`,
     }),
     createNotification({
       userId: row.supplier.userId,
       type: "suppliers",
       priority: "warning",
-      title: `Time ran out on bulk order ${wholesaleRef(row.id)}`,
+      title: `Time ran out on wholesale order ${wholesaleRef(row.id)}`,
       description: "You didn't accept it in time, so it was cancelled and the shop was told. Accept new orders quickly so shops keep buying from you.",
       link: "/supplier/orders?kind=wholesale",
       metadata: { wholesaleOrderId: row.id },
+      event: "supplier_order.expired",
+      dedupeKey: `supplier_order.expired:wholesale:${row.id}`,
     }),
   ]);
   return true;
@@ -245,6 +255,9 @@ async function remind(kind: SupplierOrderKind, row: { id: string; supplierId: st
     actionUrl: link,
     metadata: kind === "dropship" ? { supplierOrderId: row.id } : { wholesaleOrderId: row.id },
     sendEmail: true,
+    event: "supplier_order.reminder",
+    dedupeKey: `supplier_order.reminder:${kind}:${row.id}`,
+    phoneHandled: true,
   }).catch(() => null);
   await messageSupplierPhone(row.supplierId, `Shopinbos: ${left} left to accept order ${ref} from ${shop}. Open the app to accept it.`);
   return true;

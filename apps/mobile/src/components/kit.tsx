@@ -2,11 +2,14 @@ import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Card, Notice, PillButton, T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Small pieces the list and settings screens share: loading, empty and error states, rows, badges.
 
-export function LoadingBlock({ label = "Loading…" }: { label?: string }) {
+export function LoadingBlock({ label: given }: { label?: string }) {
+  const t = useT("common");
+  const label = given ?? t("loading");
   return (
     <View style={{ paddingVertical: 40, alignItems: "center", gap: 10 }} accessibilityLabel={label}>
       <ActivityIndicator color={colors.ink} />
@@ -30,12 +33,13 @@ export function EmptyState({ icon = "sparkle", title, children, action }: { icon
 
 /** An error with a retry button; shown in place of a list that couldn't load. */
 export function ErrorState({ message, onRetry, web }: { message: string; onRetry?: () => void; web?: { label: string; onPress: () => void } }) {
+  const t = useT("m_ui", "common");
   return (
     <View style={{ gap: 10 }}>
       <Notice>{message}</Notice>
       <View style={{ flexDirection: "row", gap: 8 }}>
-        {onRetry ? <PillButton title="Try again" size="sm" tone="white" onPress={onRetry} /> : null}
-        {web ? <PillButton title={web.label === "Open on web" ? "Open it in my browser" : web.label} size="sm" tone="white" onPress={web.onPress} /> : null}
+        {onRetry ? <PillButton title={t("tryAgain")} size="sm" tone="white" onPress={onRetry} /> : null}
+        {web ? <PillButton title={web.label === "Open on web" ? t("openInBrowser") : web.label} size="sm" tone="white" onPress={web.onPress} /> : null}
       </View>
     </View>
   );

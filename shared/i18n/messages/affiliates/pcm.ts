@@ -1,0 +1,42 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const pcm: Partial<Record<keyof typeof en, string>> = {
+  "metaTitle": "Affiliates",
+  "title": "Creators and affiliates",
+  "sub": "Give creator their own link. When person buy through am and the order don deliver, dem go get their share. You go pay dem, we go keep the count.",
+  "myShop": "my shop",
+  "err.add": "We no fit add this creator.",
+  "err.update": "We no fit update this creator.",
+  "err.copy": "E no copy. Select the link and copy am.",
+  "add.title": "Add creator",
+  "add.name": "Name",
+  "add.namePlaceholder": "e.g. Tolu Styles",
+  "add.whatsapp": "WhatsApp (if you like)",
+  "add.rate": "Wetin dem go earn (%)",
+  "add.create": "Create link",
+  "invite": "Hi {name}! See your {store} link: {link}\nYou go earn {rate}% for every order wey come from am once e don deliver. We dey pay on Friday.",
+  "rateCode": "{rate}% of every order wey don deliver · code {code}",
+  "linkOn": "Link dey on",
+  "linkOff": "Link dey off",
+  "linkIsOn": "{name} link dey on",
+  "linkIsOff": "{name} link dey off",
+  "sendWhatsApp": "Send for WhatsApp",
+  "stat.orders": "Orders",
+  "stat.sales": "Sales wey don deliver",
+  "stat.pending": "Dey wait for delivery",
+  "stat.paid": "Wetin you don pay so far",
+  "youOwe": "You owe {amount}",
+  "payBy": "Pay {name} before {date}, then mark am as paid.",
+  "markPaid": "Mark as paid",
+  "order.paid": "don pay",
+  "order.owed": "you owe",
+  "order.none": "no commission",
+  "order.after": "after delivery",
+  "confirmRemove": "Remove {name}? Their link go stop to work. Orders wey dem bring go still dey your history.",
+  "removeCreator": "Remove creator",
+  "owedTotal": "You owe creators {amount} for all the orders wey don deliver. Payday na {date}.",
+  "emptyBody": "Add creator for up to get their link. Anybody wey buy through am inside 30 days go count, and dem go earn once the order don deliver.",
+};
+
+export default pcm;

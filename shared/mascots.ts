@@ -59,12 +59,14 @@ export function playsOnce(mood: MascotMood) {
   return ONE_SHOT_MOODS.has(mood);
 }
 
-/** The manifest of animation files that actually exist (file names only, e.g. "rex.riv", "peggy-celebrate.json"). */
+/** The manifest of animation files that actually exist (file names only, e.g. "rex.riv", "peggy-celebrate.json",
+ * "peggy-wave.webp"). */
 export interface MascotManifest {
   files: string[];
 }
 
-export type MascotRendererKind = "rive" | "lottie";
+/** rive: one `<who>.riv`; lottie: `<who>-<mood>.json`; image: an animated WebP sticker `<who>-<mood>.webp`. */
+export type MascotRendererKind = "rive" | "lottie" | "image";
 export type MascotRenderers = Partial<Record<MascotRendererKind, boolean>>;
 
 export interface MascotAnimationSource {
@@ -78,24 +80,41 @@ export const RIVE_STATE_MACHINE = "mood";
 
 /**
  * The animation file for this mascot and mood, or null when there is none (or no renderer for it is installed).
- * Rive is preferred: one `<who>.riv` covers every mood. Otherwise a Lottie `<who>-<mood>.json`.
+ * Rive is preferred: one `<who>.riv` covers every mood. Then a Lottie `<who>-<mood>.json`, then an animated WebP
+ * sticker `<who>-<mood>.webp` (240x240, transparent with a white sticker outline, loops).
  */
 export function mascotAnimation(who: MascotWho, mood: MascotMood, manifest: MascotManifest | null | undefined, renderers: MascotRenderers): MascotAnimationSource | null {
   const files = new Set(manifest?.files ?? []);
   if (renderers.rive && files.has(`${who}.riv`)) return { kind: "rive", file: `${who}.riv`, stateMachine: RIVE_STATE_MACHINE };
   if (renderers.lottie && files.has(`${who}-${mood}.json`)) return { kind: "lottie", file: `${who}-${mood}.json` };
+  if (renderers.image && files.has(`${who}-${mood}.webp`)) return { kind: "image", file: `${who}-${mood}.webp` };
   return null;
+}
+
+/**
+ * Animated WebP stickers are big (hundreds of KB) and drawn for 240 px, so they only play when the mascot is shown
+ * at least this large. Smaller avatars keep the still PNG with the CSS / Animated fallback motion.
+ */
+export const MASCOT_IMAGE_MIN_SIZE = 96;
+
+/** Stickers loop for as long as they are shown: a one-shot mood (wave, celebrate) does not settle back to idle. */
+export function loopsForever(source: MascotAnimationSource | null) {
+  return source?.kind === "image";
 }
 
 export interface MascotMotionContext {
   reducedMotion: boolean;
   /** Android phones under 3 GB of RAM (native only; the web skips this check). */
   lowEndDevice?: boolean;
+  /** The rendered size in px, when known. An unknown size never plays an animated sticker (see MASCOT_IMAGE_MIN_SIZE). */
+  size?: number;
 }
 
 /** Whether to load the real animation. When false the still shows (with the fallback motion unless reduced motion). */
 export function shouldAnimate(source: MascotAnimationSource | null, ctx: MascotMotionContext) {
-  return Boolean(source) && !ctx.reducedMotion && !ctx.lowEndDevice;
+  if (!source || ctx.reducedMotion || ctx.lowEndDevice) return false;
+  if (source.kind === "image") return typeof ctx.size === "number" && ctx.size >= MASCOT_IMAGE_MIN_SIZE;
+  return true;
 }
 
 /** Whether the still may move with the gentle fallback motion (breathing, bounce, shake). */
@@ -117,4 +136,21 @@ export function lagosHour(now: Date = new Date()) {
 export function isPeggyNight(now: Date = new Date()) {
   const hour = lagosHour(now);
   return hour >= 22 || hour < 6;
+}
+
+// Studio clips (square 640x640, 24 fps, about 10 s, no sound) on a light grey studio background. They are not
+// transparent, so <MascotVideo> shows them in a soft round "spotlight" whose edge fades into the page.
+// Web: public/brand/mascots/video/<clip>.{webm,mp4} + <clip>-poster.jpg. Mobile: assets/mascots/video/<clip>.mp4 + -poster.jpg.
+export const MASCOT_CLIPS = ["peggy-hello", "rex-hello", "rex-thumbs"] as const;
+export type MascotClip = (typeof MASCOT_CLIPS)[number];
+
+/** Who is in each clip (for the default label) and the grey of its studio background (sampled from the poster edge). */
+export const MASCOT_CLIP_INFO: Record<MascotClip, { who: MascotWho; backdrop: string }> = {
+  "peggy-hello": { who: "peggy", backdrop: "#E7E7E7" },
+  "rex-hello": { who: "rex", backdrop: "#EEEEEE" },
+  "rex-thumbs": { who: "rex", backdrop: "#E9E9E9" },
+};
+
+export function mascotClipLabel(clip: MascotClip) {
+  return mascotLabel(MASCOT_CLIP_INFO[clip]?.who ?? "rex");
 }

@@ -8,6 +8,7 @@ import { VerificationDocUploader } from "@/components/verification/VerificationD
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
 import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
 import intentRouting from "@/lib/intent-routing";
+import { useT } from "@/components/i18n/I18nProvider";
 import {
   SUPPLIER_DOC_TYPES,
   docDisplayState,
@@ -53,6 +54,8 @@ const categoryOptions = [
 ];
 
 export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnboardingProps) {
+  const t = useT("onboarding", "common");
+  const tDocs = useT("verification");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { extractIntentParams, getContinuationPath } = intentRouting;
@@ -68,7 +71,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
   const [documents, setDocuments] = useState<VerificationDoc[]>(() => normalizeVerificationDocs(initialSupplier?.verificationDocuments));
   const [uploadsInFlight, setUploadsInFlight] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(initialSupplier?.onboardingState?.completed ? "Submitted for admin review." : "");
+  const [saved, setSaved] = useState(initialSupplier?.onboardingState?.completed ? t("supplier.submitted") : "");
   const [error, setError] = useState("");
 
   function toggleCategory(cat: string) {
@@ -112,16 +115,16 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
       const missingDocs = missingRequiredDocs(SUPPLIER_DOC_TYPES, documents);
 
       if (completed && !textOrUndefined(businessName)) {
-        setError("Add your business name before submitting.");
+        setError(t("supplier.needName"));
         setStep(1);
         return;
       }
       if (completed && uploadsInFlight > 0) {
-        setError("Wait for your files to finish uploading, then submit.");
+        setError(t("supplier.waitUploads"));
         return;
       }
       if (completed && missingDocs.length > 0) {
-        setError(`Please upload ${missingDocs.map((doc) => doc.label).join(", ")} before submitting.`);
+        setError(t("supplier.uploadMissing", { docs: missingDocs.map((doc) => tDocs.dynamic(`doc.${doc.type}.label`, doc.label)).join(", ") }));
         return;
       }
 
@@ -148,7 +151,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
 
       if (!response?.ok) {
         const body = await response?.json().catch(() => null);
-        setError(body?.error?.message ?? "We couldn't save that. Check your connection and try again.");
+        setError(body?.error?.message ?? t("saveFailed"));
         return;
       }
 
@@ -164,7 +167,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
         });
         router.push(destination || "/supplier/dashboard");
       } else {
-        setSaved("Progress saved. You can come back and finish later.");
+        setSaved(t("supplier.progressSaved"));
       }
     } finally {
       setSaving(false);
@@ -179,7 +182,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-4 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 xl:px-8">
         <Wordmark />
         <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1"><ProgressBars total={2} current={step - 1} /></div>
-        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">Step {step} of 2</span>
+        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">{t("stepOf", { step, total: 2 })}</span>
       </header>
 
       <main className="w-full px-4 pb-10 pt-4 sm:px-6 xl:px-8">
@@ -191,42 +194,42 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
         {step === 1 && (
           <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
             <section className="min-w-0">
-              <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Tell us about your business.</h1>
+              <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("supplier.aboutTitle")}</h1>
               <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                Save any time. Your supplier tools open after manual admin verification by the Shopinbos team.
+                {t("supplier.aboutSub")}
               </p>
 
               <div className="mt-6 grid gap-5 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <FieldLabel htmlFor="onb-business">Business name</FieldLabel>
-                    <TextInput id="onb-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your registered business name" />
+                    <FieldLabel htmlFor="onb-business">{t("supplier.businessName")}</FieldLabel>
+                    <TextInput id="onb-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder={t("supplier.businessNamePlaceholder")} />
                   </div>
                   <div>
-                    <FieldLabel htmlFor="onb-display">Name sellers see</FieldLabel>
-                    <TextInput id="onb-display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Same as above, or a shorter name" />
+                    <FieldLabel htmlFor="onb-display">{t("supplier.displayName")}</FieldLabel>
+                    <TextInput id="onb-display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={t("supplier.displayNamePlaceholder")} />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <FieldLabel htmlFor="onb-country">Country</FieldLabel>
+                    <FieldLabel htmlFor="onb-country">{t("country")}</FieldLabel>
                     <TextInput id="onb-country" value={country} onChange={(e) => setCountry(e.target.value)} />
                   </div>
                   <div>
-                    <FieldLabel htmlFor="onb-city">City</FieldLabel>
+                    <FieldLabel htmlFor="onb-city">{t("city")}</FieldLabel>
                     <TextInput id="onb-city" value={city} onChange={(e) => setCity(e.target.value)} />
                   </div>
                 </div>
                 <div>
-                  <FieldLabel htmlFor="onb-address">Business address</FieldLabel>
-                  <TextInput id="onb-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, city, state" />
+                  <FieldLabel htmlFor="onb-address">{t("supplier.address")}</FieldLabel>
+                  <TextInput id="onb-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t("supplier.addressPlaceholder")} />
                 </div>
                 <div>
-                  <FieldLabel htmlFor="onb-description">What you make or sell</FieldLabel>
-                  <textarea id="onb-description" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Materials, how much you can make, how long orders take…" />
+                  <FieldLabel htmlFor="onb-description">{t("supplier.makeSell")}</FieldLabel>
+                  <textarea id="onb-description" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("supplier.makeSellPlaceholder")} />
                 </div>
                 <fieldset className="m-0 border-0 p-0">
-                  <legend className="mb-2 text-[14px] font-bold">Product categories</legend>
+                  <legend className="mb-2 text-[14px] font-bold">{t("supplier.categories")}</legend>
                   <div className="flex flex-wrap gap-2">
                     {categoryOptions.map((cat) => {
                       const on = categories.includes(cat);
@@ -241,7 +244,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                             on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
                           )}
                         >
-                          {cat}
+                          {t.dynamic(`cat.${cat}`, cat)}
                         </button>
                       );
                     })}
@@ -250,9 +253,9 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
               </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <PillButton tone="white" size="md" onClick={() => void save(false)} busy={saving}>Save progress</PillButton>
+                <PillButton tone="white" size="md" onClick={() => void save(false)} busy={saving}>{t("saveProgress")}</PillButton>
                 <PillButton tone="ink" size="md" onClick={() => setStep(2)}>
-                  Continue to documents <Icon name="arrow" size={15} />
+                  {t("supplier.toDocs")} <Icon name="arrow" size={15} />
                 </PillButton>
               </div>
             </section>
@@ -260,7 +263,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
             <aside className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5 xl:mt-[92px] xl:self-start">
               <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
               <p className="m-0 text-[14.5px] leading-[1.55]">
-                Once you&apos;re approved, I&apos;ll look out for sellers in your categories and suggest you when there&apos;s a match.
+                {t("supplier.peggyNote")}
               </p>
             </aside>
           </div>
@@ -270,15 +273,15 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
           <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
             <section className="min-w-0">
               <div className="text-[14px] text-app-ink-soft">{[displayName || businessName, city, country].filter(Boolean).join(" · ")}</div>
-              <h1 className="mb-0 mt-1 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Verify your business.</h1>
+              <h1 className="mb-0 mt-1 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("supplier.verifyTitle")}</h1>
               <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                Add your documents, then send them for review. Your public page and supplier tools stay locked until you&apos;re approved.
+                {t("supplier.verifySub")}
               </p>
 
               {needsReupload > 0 && (
                 <div className="mt-6">
                   <Notice tone="error">
-                    {needsReupload === 1 ? "One document" : `${needsReupload} documents`} from an earlier visit never finished uploading. Please upload {needsReupload === 1 ? "it" : "them"} again.
+                    {t("supplier.reupload", { count: needsReupload })}
                   </Notice>
                 </div>
               )}
@@ -301,16 +304,16 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                   onDelete={handleDocumentRemove}
                 />
               </div>
-              <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">Files save as soon as they upload.</p>
+              <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{t("supplier.filesSave")}</p>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <PillButton tone="ghost" size="md" onClick={() => setStep(1)}>
-                  <Icon name="arrowLeft" size={15} /> Back
+                  <Icon name="arrowLeft" size={15} /> {t("back")}
                 </PillButton>
                 <div className="flex flex-wrap gap-2">
-                  <PillButton tone="white" size="md" onClick={() => void save(false)} disabled={saving}>Save progress</PillButton>
+                  <PillButton tone="white" size="md" onClick={() => void save(false)} disabled={saving}>{t("saveProgress")}</PillButton>
                   <PillButton tone="accent" size="md" onClick={() => void save(true)} busy={saving} disabled={uploadsInFlight > 0}>
-                    Submit for admin review <Icon name="arrow" size={15} />
+                    {t("supplier.submit")} <Icon name="arrow" size={15} />
                   </PillButton>
                 </div>
               </div>
@@ -319,25 +322,25 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
               <div className="mt-6 flex flex-wrap items-center gap-4 rounded-[22px] border border-dashed border-app-line-strong bg-white p-5">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-peach text-app-ink"><Icon name="clock" size={18} /></span>
                 <div className="min-w-0 flex-1 basis-[260px]">
-                  <h2 className="m-0 text-[16px] font-extrabold">Documents not ready yet?</h2>
+                  <h2 className="m-0 text-[16px] font-extrabold">{t("supplier.notReady")}</h2>
                   <p className="mb-0 mt-1 text-[14px] leading-[1.5] text-app-ink-soft">
-                    Go to your supplier portal now and set up your profile and draft products. We&apos;ll save what you&apos;ve added and remind you by email. Sellers see you once your documents are approved.
+                    {t("supplier.notReadySub")}
                   </p>
                 </div>
                 <PillButton tone="ink" size="md" onClick={() => void save(false, true)} disabled={saving || uploadsInFlight > 0}>
-                  Continue without documents <Icon name="arrow" size={15} />
+                  {t("supplier.withoutDocs")} <Icon name="arrow" size={15} />
                 </PillButton>
               </div>
             </section>
 
             <aside className="grid content-start gap-4 xl:mt-[118px]">
               <div className="rounded-[22px] border border-app-line bg-white p-5">
-                <h2 className="m-0 text-[17px] font-extrabold">What happens next</h2>
+                <h2 className="m-0 text-[17px] font-extrabold">{t("whatNext")}</h2>
                 <ol className="m-0 mt-3 grid list-none gap-3 p-0 text-[14px] leading-[1.5]">
                   {[
-                    "You send your documents for review.",
-                    "The Shopinbos team checks them, usually within 1-2 business days.",
-                    "Once approved, your public page goes live and sellers can order and ask for quotes.",
+                    t("supplier.next1"),
+                    t("supplier.next2"),
+                    t("supplier.next3"),
                   ].map((line, index) => (
                     <li key={line} className="flex gap-3">
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-[12px] font-extrabold text-white">{index + 1}</span>
@@ -349,7 +352,7 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
               <div className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5">
                 <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
                 <p className="m-0 text-[14.5px] leading-[1.55]">
-                  Once you&apos;re approved, I&apos;ll look out for sellers in your categories and suggest you when there&apos;s a match.
+                  {t("supplier.peggyNote")}
                 </p>
               </div>
             </aside>

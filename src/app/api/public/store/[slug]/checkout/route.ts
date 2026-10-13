@@ -28,6 +28,7 @@ import { overPublicLimit } from "@/lib/rate-limit";
 import { reserveStock } from "@/lib/commerce/stock.server";
 import { checkoutPaymentDueAt } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { notifyNewOrder, notifyStockAfterSale } from "@/lib/notifications/events.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -261,16 +262,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       link: `/home/orders/${order.id}`,
       actionLabel: "Open the order",
     }, { id: store.userId, role: "seller" }),
-    db.notification.create({
-      data: {
-        userId: store.userId,
-        title: `New order ${order.orderNumber}`,
-        description: sellerDescription,
-        type: "order",
-        link: `/home/orders/${order.id}`,
-        metadata: { orderId: order.id, paymentMethod },
-      },
-    }),
+    // The bell and a push to the seller's phone (the email just above is the order email).
+    notifyNewOrder({ sellerId: store.userId, orderId: order.id, orderNumber: order.orderNumber, description: sellerDescription, paymentMethod }),
+    notifyStockAfterSale(store.id, priced.stockHolds.filter((hold) => hold.source === "store").map((hold) => hold.productId)),
     notifyOrderCustomer(order.id, "order_confirmed"), // WhatsApp/SMS order confirmation, if switched on
     triggerAutomations("order_placed", {
       storeId: store.id,

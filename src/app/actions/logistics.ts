@@ -139,7 +139,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   });
 
   if (!parsed.success || !bookingStatuses.includes(status as never)) {
-    redirect(`${back}?error=${encodeURIComponent("Pick where the job is now from the list, then save again.")}`);
+    redirect(`${back}?error=${encodeURIComponent("Pick a status from the list, then update the job again.")}`);
   }
 
   const booking = bookingId
@@ -171,7 +171,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   if (parsed.data.estimatedDelivery) details.estimatedDelivery = parsed.data.estimatedDelivery;
   if (Object.keys(details).length > 0) {
     const saved = await db.deliveryBooking.update({ where: { id: booking.id }, data: details }).catch(() => null);
-    if (!saved) redirect(`${back}?error=${encodeURIComponent("That tracking number is already on another job. Check it and try again.")}`);
+    if (!saved) redirect(`${back}?error=${encodeURIComponent("That tracking code is already on another job. Check it and try again.")}`);
   }
 
   if (riderField !== null) {
@@ -250,7 +250,7 @@ export async function createRiderLink(teamMemberId: string): Promise<RiderLinkRe
   });
   if (!member) return { ok: false, error: "We couldn't find that rider. Refresh the page." };
   if (member.role !== "rider") return { ok: false, error: "Only riders get a Riders app link." };
-  if (member.status !== "active") return { ok: false, error: "This rider is paused. Turn them back on first." };
+  if (member.status !== "active") return { ok: false, error: "This rider is inactive. Reactivate them first." };
 
   const { token, hash } = newRiderToken();
   await db.logisticsTeamMember.update({ where: { id: member.id }, data: { riderTokenHash: hash } });
@@ -322,7 +322,7 @@ export async function updateLogisticsCoverage(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/logistics/coverage?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your areas and prices, then save again.")}`);
+    redirect(`/logistics/coverage?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your coverage areas and rates, then save again.")}`);
   }
   await assertLogisticsPlanAllowsRoutes(user.id, parsed.data.coverageZones.length);
 
@@ -348,7 +348,7 @@ export async function updateLogisticsPricing(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/logistics/pricing?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your prices, then save again.")}`);
+    redirect(`/logistics/pricing?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your pricing, then save again.")}`);
   }
 
   await db.logisticsPartner.update({

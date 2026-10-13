@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/growth/kit";
 import { api, errorText } from "../_kit/client";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export function TemplateCopyButton({ templateKey }: { templateKey: string }) {
   const router = useRouter();
+  const t = useT("emailBuilder");
   const [busy, setBusy] = useState(false);
   return (
     <button
@@ -24,7 +26,7 @@ export function TemplateCopyButton({ templateKey }: { templateKey: string }) {
         }
       }}
     >
-      {busy ? "Copying…" : "Copy and edit"}
+      {busy ? t("tpl.copying") : t("tpl.copyEdit")}
     </button>
   );
 }

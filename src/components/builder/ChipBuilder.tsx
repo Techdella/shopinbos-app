@@ -21,6 +21,9 @@ import {
   type StoreOnboardingMemory,
 } from "@/lib/onboarding-memory";
 import type { PreviewProduct } from "./ProductsSetup";
+import { useT } from "@/components/i18n/I18nProvider";
+
+type BuilderT = ReturnType<typeof useT<["builder"]>>;
 
 type BuilderPhase = "chat" | "products" | "pages" | "building" | "preview" | "domain" | "launch";
 
@@ -130,7 +133,7 @@ function mergeGeneratedStore(
 }
 
 const PHASE_STEPS: BuilderPhase[] = ["chat", "products", "pages", "building", "preview", "domain", "launch"];
-const STEP_LABELS = ["Tell Rex", "Products", "Pages", "Building", "Preview", "Domain", "Launch"];
+const STEP_COUNT = 7;
 const ONBOARDING_MEMORY_KEY = "shopinbos-onboarding-chat";
 const BUILDER_MEMORY_KEY = "shopinbos-builder-progress";
 
@@ -191,34 +194,34 @@ function buildBrandContext(memory: StoreOnboardingMemory | null): BrandContext |
   };
 }
 
-function buildInitialMessage(firstName: string, ctx: BrandContext | null, memory: StoreOnboardingMemory | null, existingStore?: ChipBuilderProps["existingStore"]): string {
-  const stepGuide = `Here's what we'll do together:\n1. Tell me about your business (this step)\n2. Add your products\n3. Choose your store pages\n4. Set up your domain\n5. Set up payments and go live\n\n`;
+function buildInitialMessage(t: BuilderT, firstName: string, ctx: BrandContext | null, memory: StoreOnboardingMemory | null, existingStore?: ChipBuilderProps["existingStore"]): string {
+  const stepGuide = t("chip.stepGuide");
 
   if (!ctx) {
     if (existingStore) {
-      return `${stepGuide}Welcome back ${firstName}! Let's continue building ${existingStore.name}. Tell me what you'd like to finish or update first.`;
+      return `${stepGuide}${t("chip.welcomeBackStore", { name: firstName, store: existingStore.name })}`;
     }
 
-    return `${stepGuide}Hi ${firstName}, I'm Rex — your store builder. Tell me about your business: what you sell, who your customers are, and where you're based.`;
+    return `${stepGuide}${t("chip.hi", { name: firstName })}`;
   }
 
   const brandParts: string[] = [];
-  if (ctx.paletteName) brandParts.push(`the ${ctx.paletteName} palette`);
-  else if (ctx.paletteColors) brandParts.push("your palette");
-  if (ctx.logoLabel) brandParts.push(`the ${ctx.logoLabel} logo`);
-  else if (ctx.logoUrl) brandParts.push("your logo");
+  if (ctx.paletteName) brandParts.push(t("chip.thePalette", { name: ctx.paletteName }));
+  else if (ctx.paletteColors) brandParts.push(t("chip.yourPalette"));
+  if (ctx.logoLabel) brandParts.push(t("chip.theLogo", { name: ctx.logoLabel }));
+  else if (ctx.logoUrl) brandParts.push(t("chip.yourLogo"));
 
   const brandLine =
     brandParts.length > 0
-      ? `I still have ${brandParts.join(" and ")} from your brand setup. `
-      : "I still remember your brand setup. ";
+      ? t("chip.stillHave", { items: brandParts.join(t("chip.and")) })
+      : t("chip.stillRemember");
 
-  const categoryLine = memory?.category ? `You said your store is in ${memory.category}. ` : "";
-  const businessLine = memory?.businessDescription ? `I have the business note: ${memory.businessDescription}. ` : "";
-  const customerLine = ctx.customerWho ? `You mentioned you're selling to ${ctx.customerWho}. ` : "";
-  const storeLine = existingStore ? `Welcome back to ${existingStore.name}! ` : `Welcome back ${firstName}! `;
+  const categoryLine = memory?.category ? t("chip.categoryLine", { category: memory.category }) : "";
+  const businessLine = memory?.businessDescription ? t("chip.businessLine", { note: memory.businessDescription }) : "";
+  const customerLine = ctx.customerWho ? t("chip.customerLine", { who: ctx.customerWho }) : "";
+  const storeLine = existingStore ? t("chip.welcomeBackTo", { store: existingStore.name }) : t("chip.welcomeBack", { name: firstName });
 
-  return `${stepGuide}${storeLine}Let's continue building your store. ${categoryLine}${businessLine}${brandLine}${customerLine}I'll use this memory for your template, palette, logo direction, products, and page copy. Tell me any missing product details, or say "continue" and I'll build from what I remember.`;
+  return `${stepGuide}${storeLine}${t("chip.continue", { details: `${categoryLine}${businessLine}${brandLine}${customerLine}` })}`;
 }
 
 function previewVariantFromLayout(layoutFamily?: string | null): PreviewVariant {
@@ -231,6 +234,7 @@ function previewVariantFromLayout(layoutFamily?: string | null): PreviewVariant 
 
 export function ChipBuilder({ userName, existingStore, selectedTemplate, onboardingMemory, initialPhase }: ChipBuilderProps) {
   const router = useRouter();
+  const t = useT("builder");
   const firstName = userName.split(" ")[0];
 
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
@@ -242,7 +246,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const initialMemory = onboardingMemory ?? null;
-    return [{ role: "assistant", content: buildInitialMessage(firstName, buildBrandContext(initialMemory), initialMemory, existingStore), chips: [] }];
+    return [{ role: "assistant", content: buildInitialMessage(t, firstName, buildBrandContext(initialMemory), initialMemory, existingStore), chips: [] }];
   });
 
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -334,7 +338,8 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
   useEffect(() => {
     if (!mounted || !brandContext) return;
-    setMessages([{ role: "assistant", content: buildInitialMessage(firstName, brandContext, resolvedOnboardingMemory, existingStore), chips: [] }]);
+    setMessages([{ role: "assistant", content: buildInitialMessage(t, firstName, brandContext, resolvedOnboardingMemory, existingStore), chips: [] }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, brandContext, resolvedOnboardingMemory, existingStore, firstName]);
 
   useEffect(() => {
@@ -386,8 +391,8 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
       const rexMsg: ChatMessage = {
         role: "assistant",
         content: imageCount === 1
-          ? "Got the image — nice. Tell me the product name and price and I'll add it to the preview right away."
-          : `Got ${imageCount} product images. Tell me the name and price for each one and I'll update the preview.`,
+          ? t("chip.gotImage")
+          : t("chip.gotImages", { count: imageCount }),
         chips: [],
       };
       setMessages((prev) => [...prev, rexMsg]);
@@ -441,7 +446,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
         if (!response.ok || !response.body) {
           const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-          throw new Error(json?.error?.message ?? "Rex couldn't start. Please try again.");
+          throw new Error(json?.error?.message ?? t("chip.cantStart"));
         }
 
         const reader = response.body.getReader();
@@ -469,7 +474,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
           } else if (event.type === "chips" && Array.isArray(event.data)) {
             setStreaming({ chips: event.data as string[] });
           } else if (event.type === "error") {
-            streamError = event.message ?? "Rex hit a problem.";
+            streamError = event.message ?? t("chip.problem");
           }
         };
 
@@ -494,23 +499,23 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
         const finalError = streamError as string | null;
         setStreaming({
-          content: finalError ? [accumulated, finalError].filter(Boolean).join("\n\n") : accumulated || "Done. Check the preview.",
+          content: finalError ? [accumulated, finalError].filter(Boolean).join("\n\n") : accumulated || t("chip.done"),
           isStreaming: false,
-          ...(finalError ? { chips: ["Try again"] } : {}),
+          ...(finalError ? { chips: [t("chip.tryAgain")] } : {}),
         });
       } catch (error) {
         setStreaming({
           role: "assistant",
-          content: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+          content: error instanceof Error ? error.message : t("chip.wrong"),
           isStreaming: false,
-          chips: ["Try again"],
+          chips: [t("chip.tryAgain")],
         });
       } finally {
         setIsLoading(false);
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    [messages, storeConfig, isLoading, pendingFiles, brandContext, selectedTemplate],
+    [messages, storeConfig, isLoading, pendingFiles, brandContext, selectedTemplate, t],
   );
 
   const handleProductsChange = useCallback((prods: PreviewProduct[]) => {
@@ -537,7 +542,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
   const previewTabs = Array.from(new Set([...selectedPages, "cart", "checkout"]));
 
   function formatPreviewLabel(page: string) {
-    if (page.startsWith("product:")) return "single product";
+    if (page.startsWith("product:")) return t("chip.singleProduct");
     return page
       .split("-")
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -566,9 +571,9 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
     const notes = [
       ...summary.notes,
-      summary.failedPages.length ? `I couldn't write ${summary.failedPages.join(", ")} yet; ask me to try again from the preview.` : "",
-      selectedPages.includes("blog") ? "Your blog page is ready. Write and publish articles from Workspace, then CMS, where Peggy can draft them for you." : "",
-      "This is a draft: nothing is live until you publish it at the launch step.",
+      summary.failedPages.length ? t("chip.couldntWrite", { pages: summary.failedPages.join(", ") }) : "",
+      selectedPages.includes("blog") ? t("chip.blogReady") : "",
+      t("chip.draftNote"),
     ].filter(Boolean);
     setMessages((prev) => [...prev, { role: "assistant", content: notes.join("\n\n"), chips: [] }]);
     setPreviewPage("home");
@@ -585,19 +590,20 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
   }
 
   const stepNumber = currentPhaseIdx + 1;
-  const stepEyebrow = `Step ${stepNumber} of ${STEP_LABELS.length} · ${STEP_LABELS[currentPhaseIdx] ?? ""}`;
+  const stepLabels = Array.from({ length: STEP_COUNT }, (_, i) => t.dynamic(`chip.stepLabel.${i}`));
+  const stepEyebrow = t("chip.step", { n: stepNumber, total: STEP_COUNT, label: stepLabels[currentPhaseIdx] ?? "" });
   const productCount = storeConfig.products.filter((p) => p.name && p.name !== "Product One" && p.name !== "Product Two" && p.name !== "Product Three").length || storeConfig.products.length;
 
   const previewPanel = (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <p className="m-0 min-w-0 truncate text-[13px] font-bold text-app-ink-soft">
-          Live preview · {storeConfig.slug}.shopinbos.com
+          {t("chip.livePreview", { address: `${storeConfig.slug}.shopinbos.com` })}
         </p>
         <DeviceToggle value={device} onChange={setDevice} size="sm" className="bg-white" />
       </div>
 
-      <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Layout">
+      <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label={t("chip.layout")}>
         {PREVIEW_VARIANTS.map((v) => (
           <button
             key={v.id}
@@ -609,7 +615,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               previewVariant === v.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
             )}
           >
-            {v.label}
+            {t.dynamic(`chip.variant.${v.id}`, v.label)}
           </button>
         ))}
       </div>
@@ -639,7 +645,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
       {liveChanges.length > 0 && (
         <p className="m-0 flex shrink-0 items-center gap-2 rounded-[14px] bg-app-success-tint px-3 py-2 text-[12.5px] font-semibold text-app-success" role="status">
           <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-app-success" />
-          <span className="truncate">Updated: {liveChanges.join(", ")}</span>
+          <span className="truncate">{t("chip.updated", { items: liveChanges.join(", ") })}</span>
         </p>
       )}
     </div>
@@ -651,12 +657,12 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
     <div className="flex h-dvh flex-col overflow-hidden bg-app-canvas font-app text-app-ink">
       <header className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-app-line bg-white px-4 py-2.5 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          {phase !== "chat" && <BackButton onClick={goBack} label="Previous step" />}
+          {phase !== "chat" && <BackButton onClick={goBack} label={t("chip.prevStep")} />}
           <Wordmark className="h-[18px]" />
         </div>
 
-        <ol className="m-0 hidden list-none items-center gap-1 p-0 xl:flex" aria-label="Store setup steps">
-          {STEP_LABELS.map((label, i) => {
+        <ol className="m-0 hidden list-none items-center gap-1 p-0 xl:flex" aria-label={t("chip.steps")}>
+          {stepLabels.map((label, i) => {
             const done = i < currentPhaseIdx;
             const active = i === currentPhaseIdx;
             return (
@@ -672,7 +678,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                   </span>
                   {label}
                 </span>
-                {i < STEP_LABELS.length - 1 && <span className="h-px w-2 bg-app-line" aria-hidden />}
+                {i < stepLabels.length - 1 && <span className="h-px w-2 bg-app-line" aria-hidden />}
               </li>
             );
           })}
@@ -681,14 +687,14 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
         <div className="flex flex-wrap items-center gap-1.5">
           <button type="button" onClick={() => router.push("/builder/templates")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
-            Shop looks
+            {t("chip.templates")}
           </button>
           <button type="button" onClick={() => router.push("/seller/store/builder")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
-            Edit your store
+            {t("chip.editStore")}
           </button>
-          <SignOutButton variant="link" label="Sign out" beforeSignOut={clearBuilderMemory} className="min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink" />
+          <SignOutButton variant="link" label={t("chip.signOut")} beforeSignOut={clearBuilderMemory} className="min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink" />
           <PillButton size="sm" tone={storeReady ? "ink" : "white"} onClick={() => router.push(storeReady ? "/home/store" : "/home")}>
-            {storeReady ? "Go to Your store" : "Skip setup"}
+            {storeReady ? t("chip.goStore") : t("chip.skip")}
           </PillButton>
         </div>
       </header>
@@ -702,7 +708,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                 <div className="mb-3 shrink-0">
                   <p className="m-0 text-[13px] font-bold text-app-ink-soft">{stepEyebrow}</p>
                   <h1 className="m-0 mt-1 text-[28px] font-extrabold leading-[1.08] tracking-[-0.8px] sm:text-[32px]">
-                    Tell Rex what you sell. <span className="text-app-accent-ink">He&apos;ll design the rest.</span>
+                    {t("chip.headline")} <span className="text-app-accent-ink">{t("chip.headline2")}</span>
                   </h1>
                 </div>
 
@@ -712,11 +718,11 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                       <div className="flex min-w-0 items-center gap-3">
                         {brandContext?.logoUrl && (
                           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px] border border-app-line">
-                            <Image src={brandContext.logoUrl} alt="Your logo" fill sizes="36px" className="object-contain" />
+                            <Image src={brandContext.logoUrl} alt={t("chip.yourLogoAlt")} fill sizes="36px" className="object-contain" />
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="m-0 text-[12.5px] text-app-ink-soft">Brand from your setup</p>
+                          <p className="m-0 text-[12.5px] text-app-ink-soft">{t("chip.brandFrom")}</p>
                           <div className="mt-0.5 flex min-w-0 items-center gap-2">
                             {brandContext?.paletteColors && (
                               <span className="flex shrink-0 gap-1" aria-hidden>
@@ -726,8 +732,8 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                               </span>
                             )}
                             <span className="truncate text-[13.5px] font-bold">
-                              {brandContext?.paletteName ?? "Your colours"}
-                              {brandContext?.logoLabel ? ` · ${brandContext.logoLabel} logo` : brandContext?.logoUrl ? " · logo ready" : ""}
+                              {brandContext?.paletteName ?? t("chip.yourColours")}
+                              {brandContext?.logoLabel ? t("chip.logoLabel", { name: brandContext.logoLabel }) : brandContext?.logoUrl ? t("chip.logoReady") : ""}
                             </span>
                           </div>
                         </div>
@@ -738,15 +744,15 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                         onClick={() => setShowBrandPanel(!showBrandPanel)}
                         className="min-h-[36px] shrink-0 rounded-full border border-app-line px-3 text-[13px] font-bold hover:border-app-line-strong"
                       >
-                        {showBrandPanel ? "Close" : "Change brand"}
+                        {showBrandPanel ? t("chip.close") : t("chip.changeBrand")}
                       </button>
                     </div>
 
                     {showBrandPanel && (
                       <div className="mt-3 border-t border-app-line pt-3">
-                        <p className="m-0 mb-2 text-[13px] text-app-ink-soft">Tell Rex what to change and he updates it live:</p>
+                        <p className="m-0 mb-2 text-[13px] text-app-ink-soft">{t("chip.tellChange")}</p>
                         <div className="flex flex-wrap gap-2">
-                          {["Change my palette", "Use a different logo", "I want darker colours", "Make it brighter"].map((opt) => (
+                          {[t("chip.opt.0"), t("chip.opt.1"), t("chip.opt.2"), t("chip.opt.3")].map((opt) => (
                             <button
                               key={opt}
                               type="button"
@@ -761,7 +767,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                             onClick={() => router.push("/home/brand-kit")}
                             className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px] font-bold hover:border-app-ink"
                           >
-                            Open brand kit
+                            {t("chip.openBrandKit")}
                           </button>
                         </div>
                       </div>
@@ -779,7 +785,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                           <div className="flex flex-wrap gap-1.5">
                             {msg.imagePreviewUrls.map((url, j) => (
                               <div key={j} className="relative h-20 w-20 overflow-hidden rounded-[14px]">
-                                <Image src={url} alt="Attached photo" fill sizes="80px" className="object-cover" />
+                                <Image src={url} alt={t("chip.attachedPhoto")} fill sizes="80px" className="object-cover" />
                               </div>
                             ))}
                           </div>
@@ -801,9 +807,9 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                             msg.role === "user" ? "rounded-br-[6px] bg-app-ink text-white" : "rounded-bl-[6px] bg-white text-app-ink",
                           )}
                         >
-                          <span className="sr-only">{msg.role === "user" ? "You: " : "Rex: "}</span>
+                          <span className="sr-only">{msg.role === "user" ? `${t("chip.you")} ` : `${t("chip.rex")} `}</span>
                           {msg.content || (msg.isStreaming ? (
-                            <span className="inline-flex gap-1 text-app-ink-soft" aria-label="Rex is writing">
+                            <span className="inline-flex gap-1 text-app-ink-soft" aria-label={t("chip.writing")}>
                               {[0, 150, 300].map((d) => (
                                 <span key={d} className="animate-bounce" style={{ animationDelay: `${d}ms` }}>·</span>
                               ))}
@@ -857,7 +863,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                           <button
                             type="button"
                             onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                            aria-label={`Remove ${f.name}`}
+                            aria-label={t("chip.remove", { name: f.name })}
                             className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-app-ink text-white shadow"
                           >
                             <Icon name="x" size={11} />
@@ -888,18 +894,18 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                       type="button"
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={isLoading}
-                      aria-label="Attach a photo or document"
+                      aria-label={t("chip.attach")}
                       className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-white text-app-ink transition hover:bg-app-lilac disabled:opacity-40"
                     >
                       <Icon name="paperclip" size={18} />
                     </button>
-                    <label htmlFor="rex-reply" className="sr-only">Reply to Rex</label>
+                    <label htmlFor="rex-reply" className="sr-only">{t("chip.reply")}</label>
                     <input
                       id="rex-reply"
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      placeholder={pendingFiles.length > 0 ? "Add a note about this file (optional)…" : "Reply to Rex…"}
+                      placeholder={pendingFiles.length > 0 ? t("chip.notePh") : t("chip.replyPh")}
                       disabled={isLoading}
                       className="h-[52px] min-w-0 flex-1 rounded-full bg-white px-5 text-[15.5px] text-app-ink outline-none placeholder:text-app-ink-faint focus:ring-2 focus:ring-app-ink/15"
                       suppressHydrationWarning
@@ -907,7 +913,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                     <button
                       type="submit"
                       disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
-                      aria-label="Send"
+                      aria-label={t("chip.send")}
                       className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-45"
                     >
                       <Icon name="send" size={18} />
@@ -916,7 +922,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
                   {chips.length === 0 && !isLoading && (
                     <div className="mt-2.5 flex flex-wrap gap-2">
-                      {["I sell fashion", "Beauty products", "Food and drinks", "Electronics"].map((s) => (
+                      {[t("chip.starter.0"), t("chip.starter.1"), t("chip.starter.2"), t("chip.starter.3")].map((s) => (
                         <button
                           key={s}
                           type="button"
@@ -932,7 +938,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                   {storeReady && (
                     <div className="mt-3 flex justify-end">
                       <PillButton size="md" tone="accent" onClick={() => setPhase("products")}>
-                        Looks good, add products <Icon name="arrow" size={16} />
+                        {t("chip.looksGood")} <Icon name="arrow" size={16} />
                       </PillButton>
                     </div>
                   )}
@@ -944,8 +950,8 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                 <PhaseHead
                   eyebrow={stepEyebrow}
-                  title="Add your products"
-                  sub="Add real products and product images. Rex uses these images in the store preview, and Peggy can help turn your notes into clean product copy."
+                  title={t("chip.addProducts")}
+                  sub={t("chip.addProductsSub")}
                 />
                 {storeReady && (
                   <StoreStrip>
@@ -968,13 +974,13 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                 <PhaseHead
                   eyebrow={stepEyebrow}
-                  title="Choose your pages"
-                  sub="Pick pages and give Rex your notes: tone, promises, questions buyers ask, delivery details. Rex writes the whole store from that."
+                  title={t("chip.choosePages")}
+                  sub={t("chip.choosePagesSub")}
                 />
                 <StoreStrip>
                   <span className="font-bold text-app-ink">{storeConfig.name}</span>
-                  <span>· {productCount} {productCount === 1 ? "product" : "products"}</span>
-                  <span className="capitalize">· {previewVariant} layout</span>
+                  <span>· {t("chip.productCount", { count: productCount })}</span>
+                  <span className="capitalize">· {t("chip.layoutName", { name: t.dynamic(`chip.variant.${previewVariant}`, previewVariant) })}</span>
                 </StoreStrip>
                 <div className="rounded-[22px] bg-white p-4 sm:p-5">
                   <PagesSetup
@@ -1004,12 +1010,12 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <PhaseHead
                   eyebrow={stepEyebrow}
-                  title="Review your store"
-                  sub={`Look through each page. Use “Change with Rex” to change any part.${selectedTemplate ? ` Template: ${selectedTemplate.templateName}.` : ""}`}
-                  action={<PillButton size="md" tone="accent" onClick={() => setPhase("domain")}>Set up your address <Icon name="arrow" size={16} /></PillButton>}
+                  title={t("chip.review")}
+                  sub={`${t("chip.reviewSub")}${selectedTemplate ? t("chip.templateName", { name: selectedTemplate.templateName }) : ""}`}
+                  action={<PillButton size="md" tone="accent" onClick={() => setPhase("domain")}>{t("chip.setAddress")} <Icon name="arrow" size={16} /></PillButton>}
                 />
 
-                <div className="mb-3 flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Page">
+                <div className="mb-3 flex shrink-0 flex-wrap gap-1.5" role="group" aria-label={t("chip.page")}>
                   {previewTabs.map((p) => (
                     <button
                       key={p}
@@ -1049,26 +1055,26 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                     >
                       <div className="flex items-center gap-2">
                         <Mascot name="rex" className="h-8 w-8" alt="" />
-                        <span className="text-[14px] font-extrabold">What should Rex change?</span>
+                        <span className="text-[14px] font-extrabold">{t("chip.whatChange")}</span>
                       </div>
-                      <label htmlFor="rex-edit" className="sr-only">Change on the {formatPreviewLabel(previewPage)} page</label>
+                      <label htmlFor="rex-edit" className="sr-only">{t("chip.changeOn", { page: formatPreviewLabel(previewPage) })}</label>
                       <textarea
                         id="rex-edit"
                         rows={3}
                         value={editInput}
                         onChange={(e) => setEditInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitRexPreviewEdit(); } }}
-                        placeholder={`e.g. Make the ${formatPreviewLabel(previewPage).toLowerCase()} headline warmer`}
+                        placeholder={t("chip.editPh", { page: formatPreviewLabel(previewPage).toLowerCase() })}
                         className="mt-3 w-full resize-none rounded-[14px] border border-transparent bg-white px-3 py-2.5 text-[14px] leading-[1.5] outline-none focus:border-app-ink"
                       />
-                      <PillButton type="submit" size="sm" className="mt-2 self-start" disabled={!editInput.trim()}>Send to Rex</PillButton>
+                      <PillButton type="submit" size="sm" className="mt-2 self-start" disabled={!editInput.trim()}>{t("chip.sendRex")}</PillButton>
                     </form>
                   )}
                 </div>
 
                 <div className="mt-3 flex shrink-0 flex-wrap items-center gap-2">
                   <PillButton size="sm" tone="white" aria-expanded={editSectionChat} onClick={() => setEditSectionChat(!editSectionChat)}>
-                    <Icon name="sparkle" size={14} /> {editSectionChat ? "Close" : "Change with Rex"}
+                    <Icon name="sparkle" size={14} /> {editSectionChat ? t("chip.close") : t("chip.changeWithRex")}
                   </PillButton>
                   <DeviceToggle value={device} onChange={setDevice} size="sm" className="bg-white" />
                 </div>
@@ -1077,11 +1083,11 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
             {phase === "domain" && (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <PhaseHead eyebrow={stepEyebrow} title="Choose your address" sub="Use your free Shopinbos address, use a web address you already have, or buy a new one." />
+                <PhaseHead eyebrow={stepEyebrow} title={t("chip.chooseAddress")} sub={t("chip.chooseAddressSub")} />
                 <StoreStrip>
-                  <span>Free address</span>
+                  <span>{t("chip.freeAddress")}</span>
                   <span className="font-bold text-app-ink">{storeConfig.slug}.shopinbos.com</span>
-                  <span>· {storeConfig.products.length} products · {selectedPages.length} pages</span>
+                  <span>{t("chip.counts", { products: storeConfig.products.length, pages: selectedPages.length })}</span>
                 </StoreStrip>
                 <DomainSetup
                   storeSlug={storeConfig.slug}
@@ -1093,7 +1099,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
             {phase === "launch" && (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <PhaseHead eyebrow={stepEyebrow} title="Payments and delivery" sub="Last step. Choose how customers pay and how you deliver, then your store goes live." />
+                <PhaseHead eyebrow={stepEyebrow} title={t("chip.payDelivery")} sub={t("chip.payDeliverySub")} />
                 <StoreStrip>
                   <span className="font-bold text-app-ink">{storeConfig.name}</span>
                   <span>· {customDomain ?? `${storeConfig.slug}.shopinbos.com`}</span>
@@ -1123,13 +1129,13 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
             onClick={() => setMobilePreview(true)}
             className="fixed bottom-4 right-4 z-20 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-4 text-[14px] font-extrabold text-white shadow-[0_12px_30px_-10px_rgba(22,20,31,0.5)] lg:hidden"
           >
-            <Icon name="eye" size={16} /> Preview
+            <Icon name="eye" size={16} /> {t("chip.preview")}
           </button>
           {mobilePreview && (
-            <div role="dialog" aria-modal="true" aria-label="Store preview" className="fixed inset-0 z-30 flex flex-col bg-app-canvas p-4 lg:hidden">
+            <div role="dialog" aria-modal="true" aria-label={t("chip.storePreview")} className="fixed inset-0 z-30 flex flex-col bg-app-canvas p-4 lg:hidden">
               <div className="mb-3 flex shrink-0 items-center justify-between">
-                <span className="text-[16px] font-extrabold">Preview</span>
-                <button type="button" onClick={() => setMobilePreview(false)} aria-label="Close preview" className="grid h-11 w-11 place-items-center rounded-full bg-white">
+                <span className="text-[16px] font-extrabold">{t("chip.preview")}</span>
+                <button type="button" onClick={() => setMobilePreview(false)} aria-label={t("chip.closePreview")} className="grid h-11 w-11 place-items-center rounded-full bg-white">
                   <Icon name="x" size={18} />
                 </button>
               </div>

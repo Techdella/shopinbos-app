@@ -7,9 +7,10 @@ import { Card, T } from "@/components/ui";
 import { fetchTemplates, type TemplateRow } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Ready-made emails (the web's email templates gallery) (web /home/marketing/templates), read-only: the shop's saved templates and the starter
+// Email templates gallery (web /home/marketing/templates), read-only: the shop's saved templates and the starter
 // library. Tapping one opens the template editor on the web.
 
 function TemplateCard({ template, onPress }: { template: TemplateRow; onPress: () => void }) {
@@ -31,26 +32,27 @@ function TemplateCard({ template, onPress }: { template: TemplateRow; onPress: (
 }
 
 export default function Templates() {
+  const t = useT("m_marketing");
   const templates = useLoad(fetchTemplates);
   const data = templates.data;
 
   return (
-    <Screen title="Ready-made emails" sub="Pick one to send to your customers. Changing it opens in your browser." refreshing={templates.refreshing} onRefresh={() => void templates.refresh()}>
+    <Screen title={t("link.templates")} sub={t("templates.sub")} refreshing={templates.refreshing} onRefresh={() => void templates.refresh()}>
       {templates.loading && !data ? <LoadingBlock /> : null}
       {templates.error && !data ? <ErrorState message={templates.error} onRetry={() => void templates.reload()} /> : null}
       {data ? (
         <>
-          {data.saved.length ? <SectionTitle>Yours</SectionTitle> : null}
+          {data.saved.length ? <SectionTitle>{t("templates.yours")}</SectionTitle> : null}
           {data.saved.map((template) => (
             <TemplateCard key={template.id} template={template} onPress={() => void openWeb(`/home/marketing/templates/${encodeURIComponent(template.id ?? "")}`)} />
           ))}
-          <SectionTitle>Ready-made</SectionTitle>
-          {!data.library.length ? <EmptyState icon="mail" title="None here yet">Ask Rex to write one for you.</EmptyState> : null}
+          <SectionTitle>{t("templates.readyMade")}</SectionTitle>
+          {!data.library.length ? <EmptyState icon="mail" title={t("templates.emptyTitle")}>{t("templates.emptyBody")}</EmptyState> : null}
           {data.library.map((template) => (
             <TemplateCard key={template.key} template={template} onPress={() => void openWeb("/home/marketing/templates")} />
           ))}
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/rex", params: { prompt: "Write me a ready-made email for my customers." } })} style={{ alignItems: "center", paddingVertical: 12 }}>
-            <T weight="bold" style={{ color: colors.accentInk }}>Ask Rex to make one</T>
+          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/rex", params: { prompt: t("templates.rexPrompt") } })} style={{ alignItems: "center", paddingVertical: 12 }}>
+            <T weight="bold" style={{ color: colors.accentInk }}>{t("templates.askRex")}</T>
           </Pressable>
         </>
       ) : null}

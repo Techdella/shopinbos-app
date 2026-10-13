@@ -3,12 +3,17 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { ChatSettings, type ChatSettingsValue } from "./ChatSettings";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Live chat" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("chat.metaTitle") };
+}
 
 export default async function ChatPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const saved = store ? await db.liveChatConfig.findUnique({ where: { storeId: store.id } }) : null;
 
@@ -27,7 +32,7 @@ export default async function ChatPage() {
   };
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Live chat and contact" sub="Choose how shoppers reach you from your store. Chats and messages arrive in your inbox, and your replies show up in the chat box.">
+    <SellerPage user={user} store={storeSummary(store)} title={t("chat.title")} sub={t("chat.sub")}>
       <ChatSettings initial={initial} />
     </SellerPage>
   );

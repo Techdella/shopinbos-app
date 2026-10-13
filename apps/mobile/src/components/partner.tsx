@@ -7,6 +7,7 @@ import { AppIcon, type AppIconName } from "@/components/icons";
 import { T } from "@/components/ui";
 import { signOut } from "@/lib/auth";
 import type { Tone } from "@/lib/partner-pure";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Pieces shared by the supplier, delivery partner and rider screens, following the "Shopinbos Partners · mobile"
@@ -34,6 +35,7 @@ type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>["tab
 /** The prototype's floating white bar: icon + label per tab, the active one in an ink circle. */
 export function PartnerTabBar({ state, navigation, descriptors, items }: TabBarProps & { items: Record<string, { icon: AppIconName; label: string; badge?: number }> }) {
   const insets = useSafeAreaInsets();
+  const t = useT("m_ui");
   const focusedOptions = descriptors[state.routes[state.index].key]?.options;
   if ((StyleSheet.flatten(focusedOptions?.tabBarStyle) as { display?: string } | undefined)?.display === "none") return null;
   return (
@@ -47,7 +49,7 @@ export function PartnerTabBar({ state, navigation, descriptors, items }: TabBarP
             <Pressable
               key={route.key}
               accessibilityRole="tab"
-              accessibilityLabel={meta.badge ? `${meta.label}, ${meta.badge} new` : meta.label}
+              accessibilityLabel={meta.badge ? t("partner.tabNew", { label: meta.label, count: meta.badge }) : meta.label}
               accessibilityState={{ selected: focused }}
               onPress={() => {
                 const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -83,11 +85,12 @@ export function PartnerScroll({ children, refreshing = false, onRefresh }: { chi
 
 /** Square logo (or initials) + "Shopinbos Partners" eyebrow + business name, as in the prototype header. */
 export function PartnerHeader({ eyebrow, name, logoUrl, right }: { eyebrow: string; name: string; logoUrl?: string | null; right?: ReactNode }) {
+  const t = useT("m_ui");
   const initials = name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "S";
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       {logoUrl ? (
-        <Image source={{ uri: logoUrl }} style={{ width: 46, height: 46, borderRadius: 14 }} contentFit="cover" accessibilityLabel={`${name} logo`} />
+        <Image source={{ uri: logoUrl }} style={{ width: 46, height: 46, borderRadius: 14 }} contentFit="cover" accessibilityLabel={t("partner.logo", { name })} />
       ) : (
         <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
           <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 15 }}>{initials}</T>
@@ -130,8 +133,9 @@ export function Thumb({ uri, size = 48, icon = "box" }: { uri?: string | null; s
 
 /** "Yaba → Lekki Phase 1" with bold place names. */
 export function RouteLine({ from, to, size = 15 }: { from: string; to: string; size?: number }) {
+  const t = useT("m_ui");
   return (
-    <T style={{ fontSize: size }} numberOfLines={2} accessibilityLabel={`${from} to ${to}`}>
+    <T style={{ fontSize: size }} numberOfLines={2} accessibilityLabel={t("partner.route", { from, to })}>
       <T weight="extrabold" style={{ fontSize: size }}>{from}</T>
       <T style={{ fontSize: size, color: colors.inkSoft }}>{"  →  "}</T>
       <T weight="extrabold" style={{ fontSize: size }}>{to}</T>
@@ -164,9 +168,10 @@ export function ChoiceSheet<V extends string>({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const t = useT("common");
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={onClose} accessibilityLabel="Close">
+      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={onClose} accessibilityLabel={t("close")}>
         <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, padding: 22, paddingBottom: Math.max(insets.bottom, 16) + 16 }}>
           <T weight="extrabold" style={{ fontSize: 18, marginBottom: 6 }} accessibilityRole="header">{title}</T>
           <ScrollView style={{ maxHeight: 440 }}>

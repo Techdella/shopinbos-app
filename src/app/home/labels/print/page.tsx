@@ -7,11 +7,15 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { addressLines, amountToCollect, itemCount, parseLabelFormat, parseOrderIds } from "@/lib/labels";
 import { naira } from "@shared/onboarding";
 import { PrintButton } from "./PrintButton";
+import { getT } from "@/lib/i18n/server";
 
 // Print view for /home/labels: no app shell, sized for a 4×6 label printer or A4 (4 labels a page).
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Print labels" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("orders");
+  return { title: t("lab.printTitle") };
+}
 
 interface Item {
   name?: string;
@@ -21,6 +25,7 @@ interface Item {
 
 export default async function PrintLabelsPage({ searchParams }: { searchParams: Promise<{ orders?: string; format?: string; slips?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("orders");
   const params = await searchParams;
   const format = parseLabelFormat(params.format);
   const withSlips = params.slips !== "0";
@@ -64,13 +69,13 @@ export default async function PrintLabelsPage({ searchParams }: { searchParams: 
       `}</style>
 
       <div className="no-print sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-app-line bg-white px-5 py-3">
-        <Link href="/home/labels" className="text-[14px] font-extrabold text-app-ink no-underline">← Back to labels</Link>
-        <span className="text-[14px] text-app-ink-soft">{labels.length} label{labels.length === 1 ? "" : "s"} · {format === "a4" ? "A4 paper" : "4 × 6 in"}</span>
-        <PrintButton disabled={!labels.length} />
+        <Link href="/home/labels" className="text-[14px] font-extrabold text-app-ink no-underline">{t("lab.back")}</Link>
+        <span className="text-[14px] text-app-ink-soft">{t("lab.count", { count: labels.length })} · {format === "a4" ? t("lab.a4") : "4 × 6 in"}</span>
+        <PrintButton disabled={!labels.length} label={t("lab.printButton")} />
       </div>
 
       {!labels.length ? (
-        <p className="p-10 text-center text-[15px] text-app-ink-soft">No orders to print. Go back and choose some orders.</p>
+        <p className="p-10 text-center text-[15px] text-app-ink-soft">{t("lab.nothingToPrint")}</p>
       ) : (
         <div className="mx-auto w-fit p-6 print:p-0">
           <div className={format === "a4" ? "sheet bg-white" : "one grid gap-6 print:gap-0"}>

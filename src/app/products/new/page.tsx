@@ -4,11 +4,13 @@ import { ProductForm } from "@/app/components/ProductForm";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("products");
 
   const [categories, store] = await Promise.all([
     db.category.findMany({
@@ -21,9 +23,9 @@ export default async function NewProductPage() {
   return (
     <AppPage
       frame={sellerFrame(user, store)}
-      title="New product"
-      sub="Add a product to your store. You can save it as a draft and finish later."
-      actions={<PillLink href="/products" icon="arrowLeft">All products</PillLink>}
+      title={t("new.title")}
+      sub={t("new.sub")}
+      actions={<PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>}
     >
       <ProductForm
         product={null}

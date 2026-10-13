@@ -9,22 +9,25 @@ import { ChoiceSheet } from "@/components/partner";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
 import { createSupplierProduct, fetchCategories, uploadSupplierPhoto } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
-// Add a supplier product from the phone, one question per screen: photos and what it is; your price to shops,
-// what shops sell it for and how many you have; then a description and the kind of product (the rest folded away). Saved through the portal's own
+// Add a supplier product from the phone, one question per screen: photos and what it is; wholesale price,
+// suggested retail price and stock; then a description and the kind of product (the rest folded away). Saved through the portal's own
 // POST /api/supplier/products as a draft or sent for review (admins publish it).
 
 type Photo = { uri: string; mimeType?: string | null; fileName?: string | null };
 
+// Saved as written (English); shown in the app language (m_supplier "new.ship.<index>").
 const SHIPS = ["Same day", "24 hours", "48 hours", "3 days"];
 const MAX_PHOTOS = 6;
 
 export default function NewSupplierProduct() {
+  const t = useT("m_supplier", "common");
   const categories = useLoad(fetchCategories);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [name, setName] = useState("");
@@ -50,7 +53,7 @@ export default function NewSupplierProduct() {
   async function addPhotos(source: "camera" | "library") {
     const permission = source === "camera" ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(source === "camera" ? "Camera is off" : "Photos are off", "Allow access in your phone's settings to add product photos.");
+      Alert.alert(source === "camera" ? t("new.cameraOff") : t("new.photosOff"), t("new.allowAccess"));
       return;
     }
     const result =
@@ -63,17 +66,17 @@ export default function NewSupplierProduct() {
 
   // One question per screen (build spec 8A): what it is, the price, then the details. Each step checks its own answers.
   function check(upTo: number) {
-    if (!photos.length) return { step: 0, text: "Add at least one photo, so shops can see it." };
-    if (name.trim().length < 2) return { step: 0, text: "Type what it is, like \"Leather slides\"." };
+    if (!photos.length) return { step: 0, text: t("new.needPhoto") };
+    if (name.trim().length < 2) return { step: 0, text: t("new.needName") };
     if (upTo < 1) return null;
-    if (!parseAmount(wholesale)) return { step: 1, text: "Type your price to shops for one, in naira, like 6000." };
-    if (!parseAmount(retail)) return { step: 1, text: "Type what shops sell it for, in naira, like 13000." };
-    if (parseCount(stock) === null) return { step: 1, text: "Type how many you have, like 50." };
+    if (!parseAmount(wholesale)) return { step: 1, text: t("new.needWholesale") };
+    if (!parseAmount(retail)) return { step: 1, text: t("new.needRetail") };
+    if (parseCount(stock) === null) return { step: 1, text: t("new.needStock") };
     if (upTo < 2) return null;
-    if (description.trim().length < 10) return { step: 2, text: "Describe it in a sentence: what it's made of, sizes or colours." };
-    if (!categoryId) return { step: 2, text: "Pick what kind of product it is." };
-    if (!parseCount(moq) || parseCount(moq)! < 1) return { step: 2, text: "The smallest order should be 1 or more." };
-    if (!dropship && !bulk) return { step: 2, text: "Pick at least one way shops can buy it." };
+    if (description.trim().length < 10) return { step: 2, text: t("new.needDescription") };
+    if (!categoryId) return { step: 2, text: t("new.needCategory") };
+    if (!parseCount(moq) || parseCount(moq)! < 1) return { step: 2, text: t("new.needMoq") };
+    if (!dropship && !bulk) return { step: 2, text: t("new.needKind") };
     return null;
   }
 
@@ -98,10 +101,10 @@ export default function NewSupplierProduct() {
     try {
       const images: string[] = [];
       for (const [index, photo] of photos.entries()) {
-        setProgress(`Uploading photo ${index + 1} of ${photos.length}…`);
+        setProgress(t("new.uploading", { index: index + 1, total: photos.length }));
         images.push((await uploadSupplierPhoto(photo)).url);
       }
-      setProgress("Saving…");
+      setProgress(t("saving"));
       await createSupplierProduct({
         name: name.trim(),
         description: description.trim(),
@@ -117,35 +120,35 @@ export default function NewSupplierProduct() {
         processingTime: ships,
         status,
       });
-      Alert.alert(status === "draft" ? "Saved for later" : "Shops can see it soon", status === "draft" ? "Open it from My products and tap \"Show it to shops\" when you're ready." : "We check it first, usually within a day. We'll tell you when a shop adds it.");
+      Alert.alert(status === "draft" ? t("new.draftSaved") : t("new.sentForReview"), status === "draft" ? t("new.draftBody") : t("new.reviewBody"));
       router.back();
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again.";
-      setError(saveError instanceof ApiError && (saveError.code === "VERIFICATION_REQUIRED" || saveError.code === "ONBOARDING_REQUIRED") ? "You can add products once we've checked your business. Open Money → Checks on your business." : message);
+      const message = saveError instanceof Error ? saveError.message : t("product.saveFailed");
+      setError(saveError instanceof ApiError && (saveError.code === "VERIFICATION_REQUIRED" || saveError.code === "ONBOARDING_REQUIRED") ? t("new.verifyFirst") : message);
     } finally {
       setBusy(null);
       setProgress(null);
     }
   }
 
-  const questions = ["What is it?", "Your price", "A few details"];
+  const questions = [t("new.q0"), t("new.q1"), t("new.q2")];
 
   return (
     <Screen
       title={questions[step]}
-      sub={`Step ${step + 1} of 3`}
+      sub={t("new.step", { step: step + 1 })}
       footer={
         <View style={{ gap: 6 }}>
           {progress ? <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 15 }}>{progress}</T> : null}
           {step < 2 ? (
-            <PillButton title="Next" onPress={nextStep} />
+            <PillButton title={t("next")} onPress={nextStep} />
           ) : (
             <>
-              <PillButton title="Show it to shops" busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void save("pending_review")} />
-              <LinkButton title={busy === "draft" ? "Saving…" : "Save for later"} color={colors.inkSoft} onPress={() => !busy && void save("draft")} />
+              <PillButton title={t("showToShops")} busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void save("pending_review")} />
+              <LinkButton title={busy === "draft" ? t("saving") : t("new.later")} color={colors.inkSoft} onPress={() => !busy && void save("draft")} />
             </>
           )}
-          {step > 0 ? <LinkButton title="Back" color={colors.inkSoft} onPress={() => { setError(null); setStep(step - 1); }} /> : null}
+          {step > 0 ? <LinkButton title={t("back")} color={colors.inkSoft} onPress={() => { setError(null); setStep(step - 1); }} /> : null}
         </View>
       }
     >
@@ -154,12 +157,12 @@ export default function NewSupplierProduct() {
       {step === 0 ? (
         <>
           <View>
-            <Label>Photos</Label>
+            <Label>{t("new.photos")}</Label>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {photos.map((photo, index) => (
                 <View key={photo.uri}>
-                  <Image source={{ uri: photo.uri }} style={{ width: 96, height: 96, borderRadius: 16 }} contentFit="cover" accessibilityLabel={`Photo ${index + 1}`} />
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Remove photo ${index + 1}`} onPress={() => setPhotos((current) => current.filter((item) => item.uri !== photo.uri))} hitSlop={6} style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
+                  <Image source={{ uri: photo.uri }} style={{ width: 96, height: 96, borderRadius: 16 }} contentFit="cover" accessibilityLabel={t("new.photoN", { n: index + 1 })} />
+                  <Pressable accessibilityRole="button" accessibilityLabel={t("new.removePhoto", { n: index + 1 })} onPress={() => setPhotos((current) => current.filter((item) => item.uri !== photo.uri))} hitSlop={6} style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
                     <AppIcon name="x" size={14} color="#FFFFFF" strokeWidth={2.4} />
                   </Pressable>
                 </View>
@@ -168,19 +171,19 @@ export default function NewSupplierProduct() {
                 <>
                   <Pressable accessibilityRole="button" onPress={() => void addPhotos("camera")} style={{ width: 104, height: 96, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", gap: 6 }}>
                     <AppIcon name="camera" />
-                    <T weight="bold" style={{ fontSize: 14 }}>Take a photo</T>
+                    <T weight="bold" style={{ fontSize: 14 }}>{t("new.takePhoto")}</T>
                   </Pressable>
                   <Pressable accessibilityRole="button" onPress={() => void addPhotos("library")} style={{ width: 104, height: 96, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", gap: 6 }}>
                     <AppIcon name="image" />
-                    <T weight="bold" style={{ fontSize: 14 }}>From photos</T>
+                    <T weight="bold" style={{ fontSize: 14 }}>{t("new.fromPhotos")}</T>
                   </Pressable>
                 </>
               ) : null}
             </ScrollView>
           </View>
           <View>
-            <Label>What is it?</Label>
-            <Field value={name} onChangeText={setName} placeholder="Leather slides, size 38 to 45" maxLength={200} accessibilityLabel="What is it?" />
+            <Label>{t("new.q0")}</Label>
+            <Field value={name} onChangeText={setName} placeholder={t("new.namePlaceholder")} maxLength={200} accessibilityLabel={t("new.q0")} />
           </View>
         </>
       ) : null}
@@ -188,17 +191,17 @@ export default function NewSupplierProduct() {
       {step === 1 ? (
         <>
           <View>
-            <Label>Your price to shops (for one) ₦</Label>
-            <Field value={wholesale} onChangeText={setWholesale} keyboardType="decimal-pad" placeholder="6,000" accessibilityLabel="Your price to shops, for one" />
+            <Label>{t("new.wholesale")}</Label>
+            <Field value={wholesale} onChangeText={setWholesale} keyboardType="decimal-pad" placeholder="6,000" accessibilityLabel={t("new.wholesaleLabel")} />
           </View>
           <View>
-            <Label>Shops sell it for about ₦</Label>
-            <Field value={retail} onChangeText={setRetail} keyboardType="decimal-pad" placeholder="13,000" accessibilityLabel="Shops sell it for about" />
-            <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Shops add their own profit on top of your price.</T>
+            <Label>{t("new.retail")}</Label>
+            <Field value={retail} onChangeText={setRetail} keyboardType="decimal-pad" placeholder="13,000" accessibilityLabel={t("suggestedRetail")} />
+            <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>{t("new.margin")}</T>
           </View>
           <View>
-            <Label>How many do you have?</Label>
-            <Field value={stock} onChangeText={setStock} keyboardType="number-pad" placeholder="50" accessibilityLabel="How many do you have?" />
+            <Label>{t("new.stock")}</Label>
+            <Field value={stock} onChangeText={setStock} keyboardType="number-pad" placeholder="50" accessibilityLabel={t("unitsInStock")} />
           </View>
         </>
       ) : null}
@@ -206,14 +209,14 @@ export default function NewSupplierProduct() {
       {step === 2 ? (
         <>
           <View>
-            <Label>Describe it</Label>
-            <Field value={description} onChangeText={setDescription} placeholder="What it's made of, sizes, colours, what's in the box" multiline maxLength={5000} accessibilityLabel="Describe it" style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }} />
+            <Label>{t("new.describe")}</Label>
+            <Field value={description} onChangeText={setDescription} placeholder={t("new.describePlaceholder")} multiline maxLength={5000} accessibilityLabel={t("new.describe")} style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }} />
             <VoiceInput value={description} onChange={setDescription} maxLength={5000} context="a product description" style={{ marginTop: 8 }} />
           </View>
           <View>
-            <Label>What kind of product?</Label>
+            <Label>{t("new.kind")}</Label>
             <Pressable accessibilityRole="button" onPress={() => setPicking(true)} disabled={!categories.data} style={{ height: 54, borderRadius: radii.field, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <T style={{ fontSize: 16, color: category ? colors.ink : colors.inkFaint }}>{category?.name ?? (categories.error ? "Couldn't load the list. Pull down to try again" : categories.data ? "Pick one" : "Loading…")}</T>
+              <T style={{ fontSize: 16, color: category ? colors.ink : colors.inkFaint }}>{category?.name ?? (categories.error ? t("new.listFailed") : categories.data ? t("new.pickOne") : t("loading"))}</T>
               <AppIcon name="chevron" size={18} color={colors.inkSoft} />
             </Pressable>
           </View>
@@ -221,41 +224,41 @@ export default function NewSupplierProduct() {
           {more ? (
             <Card style={{ gap: 14 }}>
               <View>
-                <Label>Smallest order</Label>
-                <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" accessibilityLabel="Smallest order" />
+                <Label>{t("new.moq")}</Label>
+                <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" accessibilityLabel={t("moqLabel")} />
               </View>
               <View>
-                <Label>Ready to send within</Label>
-                <ChipRow>{SHIPS.map((item) => <Chip key={item} label={item} on={ships === item} onPress={() => setShips(item)} />)}</ChipRow>
+                <Label>{t("new.shipsWithin")}</Label>
+                <ChipRow>{SHIPS.map((item, index) => <Chip key={item} label={t.dynamic(`new.ship.${index}`, item)} on={ships === item} onPress={() => setShips(item)} />)}</ChipRow>
               </View>
               <View>
-                <Label>Places you send to</Label>
-                <Field value={regions} onChangeText={setRegions} placeholder="Lagos, Abuja, Ibadan" accessibilityLabel="Places you send to" />
+                <Label>{t("new.regions")}</Label>
+                <Field value={regions} onChangeText={setRegions} placeholder="Lagos, Abuja, Ibadan" accessibilityLabel={t("new.regions")} />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <View style={{ flex: 1 }}>
-                  <T weight="bold" style={{ fontSize: 15 }}>Shops sell it for you</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>You send each order with the shop&apos;s label.</T>
+                  <T weight="bold" style={{ fontSize: 15 }}>{t("kind.dropship")}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t("new.dropshipHint")}</T>
                 </View>
-                <Toggle on={dropship} onChange={setDropship} label="Shops sell it for you" />
+                <Toggle on={dropship} onChange={setDropship} label={t("kind.dropship")} />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <View style={{ flex: 1 }}>
-                  <T weight="bold" style={{ fontSize: 15 }}>Shops can buy a lot at once</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>They ask, you tell them your price.</T>
+                  <T weight="bold" style={{ fontSize: 15 }}>{t("kind.wholesale")}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t("new.wholesaleHint")}</T>
                 </View>
-                <Toggle on={bulk} onChange={setBulk} label="Shops can buy a lot at once" />
+                <Toggle on={bulk} onChange={setBulk} label={t("kind.wholesale")} />
               </View>
             </Card>
           ) : (
-            <LinkButton title="Smallest order, sending and more (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />
+            <LinkButton title={t("new.more")} color={colors.inkSoft} onPress={() => setMore(true)} />
           )}
         </>
       ) : null}
 
       <ChoiceSheet
         visible={picking}
-        title="What kind of product?"
+        title={t("new.kind")}
         options={(categories.data ?? []).map((item) => ({ value: item.id, label: item.name }))}
         onPick={(value) => {
           setCategoryId(value);

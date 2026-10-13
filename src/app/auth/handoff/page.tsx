@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { handoffNextPath, readHandoffToken } from "@/lib/auth/handoff";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The mobile app opens web-only tools through here so the seller isn't asked to log in again.
 // The app puts its current access token in the URL fragment (never sent to a server or in Referer).
@@ -13,6 +14,7 @@ import { handoffNextPath, readHandoffToken } from "@/lib/auth/handoff";
 const BORROWED_REFRESH_TOKEN = "app-handoff";
 
 export default function HandoffPage() {
+  const t = useT("auth");
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function HandoffPage() {
     <main className="grid min-h-dvh place-items-center bg-app-canvas px-6 font-app text-app-ink">
       <div className="text-center">
         <div className="mx-auto h-9 w-9 animate-spin rounded-full border-[3px] border-app-line border-t-app-accent" aria-hidden />
-        <p className="mt-4 text-[15px] font-semibold" role="status">{failed ? "Opening Shopinbos. You may need to log in." : "Opening Shopinbos…"}</p>
+        <p className="mt-4 text-[15px] font-semibold" role="status">{failed ? t("handoff.failed") : t("handoff.opening")}</p>
       </div>
     </main>
   );

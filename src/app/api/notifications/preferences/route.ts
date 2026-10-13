@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { NotificationType, Role } from "@prisma/client";
-import { withSeller } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
@@ -19,7 +19,7 @@ const UpsertSchema = z.object({
   digestFrequency: z.enum(["immediate", "hourly", "daily", "weekly", "disabled"]).default("immediate"),
 });
 
-export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
+export const GET = withAuth(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const preferences = await db.notificationPreference.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
@@ -27,7 +27,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
   return ok(preferences);
 });
 
-export const PUT = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
+export const PUT = withAuth(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
   const parsed = UpsertSchema.safeParse(body);
   if (!parsed.success) {
@@ -70,7 +70,7 @@ export const PUT = withSeller(async (req: NextRequest, { user }: { user: AuthUse
   return ok(preference, 201);
 });
 
-export const DELETE = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
+export const DELETE = withAuth(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return apiError("BAD_REQUEST", "Preference id is required");
 

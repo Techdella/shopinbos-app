@@ -107,7 +107,7 @@ async function adminIds() {
 
 async function notifyAdmins(input: { title: string; description: string; link: string; priority: "info" | "warning" | "critical"; metadata?: Record<string, unknown> }) {
   for (const userId of await adminIds()) {
-    await createNotification({ userId, type: "logistics", ...input, sendEmail: input.priority === "critical" }).catch(() => null);
+    await createNotification({ userId, type: "logistics", ...input, sendEmail: input.priority === "critical", event: "admin.alert" }).catch(() => null);
   }
 }
 
@@ -164,6 +164,9 @@ async function sendSteps(partner: { id: string; userId: string; displayName: str
           actionUrl: step.kind === "cleared" ? "/logistics/dashboard" : "/logistics/cash",
           metadata: { payInStep: step.kind, key: step.key },
           sendEmail: true,
+          event: step.kind === "reminder" ? "payin.reminder" : step.kind === "cleared" ? "payin.received" : "payin.overdue",
+          dedupeKey: `payin.${step.kind}:${step.key}`,
+          phoneHandled: true,
         }).catch(() => null);
         await messagePartnerPhone(partner, `Shopinbos: ${message.title.replace(/\.$/, "")}. ${message.body}`);
       }
@@ -178,12 +181,12 @@ async function sendSteps(partner: { id: string; userId: string; displayName: str
             : `${partner.displayName} is late paying in ${nairaWords(step.amount)}`;
         const description =
           step.kind === "review"
-            ? `Still not paid in after 72 hours. They're ${standing.codPaused ? "paused from" : "still getting"} pay-when-it-arrives jobs. Decide what happens next: nothing is suspended automatically.${holding}`
-            : `${standing.codPaused ? "Paused from new pay-when-it-arrives jobs until they pay in." : "You unpaused them, so they still get pay-when-it-arrives jobs."}${holding}`;
+            ? `Still not paid in after 72 hours. They're ${standing.codPaused ? "paused from" : "still getting"} cash-on-delivery jobs. Decide what happens next: nothing is suspended automatically.${holding}`
+            : `${standing.codPaused ? "Paused from new cash-on-delivery jobs until they pay in." : "You unpaused them, so they still get cash-on-delivery jobs."}${holding}`;
         await notifyAdmins({ title, description, link: adminLink, priority: step.kind === "overdue" ? "warning" : "critical", metadata: { payInStep: step.kind, partnerId: partner.id, level: lateLevel(standing) } });
       }
       if (step.kind === "cleared") {
-        await notifyAdmins({ title: `${partner.displayName} is back to getting all jobs`, description: "Their late cash is paid in, so the pause on pay-when-it-arrives jobs is off.", link: adminLink, priority: "info" });
+        await notifyAdmins({ title: `${partner.displayName} is back to getting all jobs`, description: "Their late cash is paid in, so the pause on cash-on-delivery jobs is off.", link: adminLink, priority: "info" });
       }
     } catch (error) {
       console.error(`[pay-in deadline] could not send ${step.key}`, error);
@@ -241,7 +244,7 @@ export async function runPartnerPayInSweep(now: Date = new Date(), config: PayIn
 
 /**
  * The late pay-in card for the partner's screens (Today and Cash, web and app), or null when nothing is overdue:
- * "₦X overdue since yesterday 6pm. You're paused from pay-when-it-arrives jobs until you pay in." plus their account.
+ * "₦X overdue since yesterday 6pm. You're paused from cash-on-delivery jobs until you pay in." plus their account.
  */
 export async function payInOverdueView(partnerId: string, now: Date = new Date()) {
   const partner = await db.logisticsPartner.findUnique({

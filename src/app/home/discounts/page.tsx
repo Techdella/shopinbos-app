@@ -7,22 +7,29 @@ import { parseDiscountConfig } from "@/lib/discounts";
 import { discountUsage } from "@/lib/marketing/discounts";
 import { naira } from "@shared/onboarding";
 import { DiscountsManager } from "./DiscountsManager";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Discounts" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("discounts");
+  return { title: t("metaTitle") };
+}
 
 const TABS = [
-  { key: "codes", label: "Codes" },
-  { key: "automatic", label: "Automatic" },
-  { key: "coupons", label: "One-use coupons" },
+  { key: "codes", label: "tab.codes" },
+  { key: "automatic", label: "tab.automatic" },
+  { key: "coupons", label: "tab.coupons" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 const LEGACY: Record<string, TabKey> = { Discounts: "codes", "Coupon Codes": "coupons", "Sales Events": "automatic" };
 
 export default async function SellerDiscountsPage({ searchParams }: { searchParams?: Promise<{ tab?: string; action?: string }> }) {
   const params = await searchParams;
-  const tab: TabKey = TABS.find((t) => t.key === params?.tab)?.key ?? LEGACY[params?.tab ?? ""] ?? "codes";
+  const tab: TabKey = TABS.find((row) => row.key === params?.tab)?.key ?? LEGACY[params?.tab ?? ""] ?? "codes";
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("discounts");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const [discounts, coupons, usage, segments, products] = store
     ? await Promise.all([
@@ -60,20 +67,20 @@ export default async function SellerDiscountsPage({ searchParams }: { searchPara
   const codes = rows.filter((r) => !r.config.automatic);
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Discounts and coupons" sub="Codes, automatic offers and one-use coupons, with what each one brought in.">
+    <SellerPage user={user} store={storeSummary(store)} title={t("title")} sub={t("sub")}>
       <div className="grid gap-5">
         <StatGrid>
-          <StatTile tone="card" label="Live offers" value={rows.filter((r) => r.status === "active").length} hint={`${automatic.filter((r) => r.status === "active").length} automatic`} />
-          <StatTile tone="card" label="Paid orders with a code" value={totals.orders.toLocaleString("en-NG")} />
-          <StatTile tone="card" label="Sales with a code" value={naira(totals.revenue)} />
-          <StatTile tone="card" label="Given away" value={naira(totals.given)} />
+          <StatTile tone="card" label={t("stat.live")} value={rows.filter((r) => r.status === "active").length} hint={t("stat.automatic", { count: automatic.filter((r) => r.status === "active").length })} />
+          <StatTile tone="card" label={t("stat.orders")} value={formatNumber(totals.orders, locale)} />
+          <StatTile tone="card" label={t("stat.sales")} value={naira(totals.revenue)} />
+          <StatTile tone="card" label={t("stat.given")} value={naira(totals.given)} />
         </StatGrid>
         <FilterChips
-          items={TABS.map((t) => ({
-            label: t.label,
-            href: `/home/discounts?tab=${t.key}`,
-            count: t.key === "codes" ? codes.length : t.key === "automatic" ? automatic.length : coupons.length,
-            active: t.key === tab,
+          items={TABS.map((row) => ({
+            label: t(row.label),
+            href: `/home/discounts?tab=${row.key}`,
+            count: row.key === "codes" ? codes.length : row.key === "automatic" ? automatic.length : coupons.length,
+            active: row.key === tab,
           }))}
         />
         <DiscountsManager
@@ -89,8 +96,8 @@ export default async function SellerDiscountsPage({ searchParams }: { searchPara
         />
         <AssistantNote>
           {tab === "automatic"
-            ? "Automatic offers apply at checkout without a code, like a weekend sale or buy 2 get 1 free. Only the best one applies to an order."
-            : "Discounts with an end date make people decide faster. Try a 24-hour code and share it on WhatsApp."}
+            ? t("note.automatic")
+            : t("note.codes")}
         </AssistantNote>
       </div>
     </SellerPage>

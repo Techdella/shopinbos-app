@@ -291,12 +291,19 @@ test("screens: countdown on new orders (web and mobile), the pickup question wit
   assert.match(list, /<AcceptCountdown acceptBy=\{order\.acceptBy\} \/>/);
   const page = read("src/app/supplier/orders/[id]/page.tsx");
   assert.match(page, /<AcceptCountdown acceptBy=\{view\.acceptBy\} big \/>/);
-  const booking = read("src/components/supplier/PickupBooking.tsx");
+  // Web words are in the supplier catalog (shared/i18n/messages/supplier/en.ts), shown through t().
+  const booking = read("src/components/supplier/PickupBooking.tsx") + read("shared/i18n/messages/supplier/en.ts");
   assert.match(booking, /When can a rider pick it up\?/);
   assert.match(booking, /Pick a time/);
   const mobile = read("apps/mobile/src/app/supplier/order/[id].tsx");
-  for (const words of ["When can a rider pick it up?", "Book the rider", "Change the time", "Cancel pickup", "<AcceptCountdown acceptBy={data.acceptBy} big />", "I've packed it"]) assert.ok(mobile.includes(words), words);
+  assert.ok(mobile.includes("<AcceptCountdown acceptBy={data.acceptBy} big />"));
+  // The phone screen's words are in the app-language catalog (m_supplier "order.*").
+  const mobileWords = read("shared/i18n/messages/m_supplier/en.ts");
+  for (const [key, words] of [["order.whenPickup", "When can a rider pick it up?"], ["order.book", "Book the rider"], ["order.changeTime", "Change the time"], ["order.cancelPickup", "Cancel pickup"], ["order.packed", "I've packed it"]]) {
+    assert.ok(mobile.includes(`t("${key}")`), key);
+    assert.ok(mobileWords.includes(`"${key}": "${words}"`), words);
+  }
   assert.match(read("apps/mobile/src/app/supplier/(tabs)/orders.tsx"), /<AcceptCountdown acceptBy=\{order\.acceptBy\} \/>/);
-  // Suppliers never read "dropship" in their new-order message.
-  assert.match(read("src/lib/supplier-orders/service.server.ts"), /title: `New order \$\{ref\} from \$\{shop\}: accept within \$\{within\}`/);
+  // The new-order notification names the order type and the deadline.
+  assert.match(read("src/lib/supplier-orders/service.server.ts"), /title: `New dropship order \$\{ref\} from \$\{shop\}: accept within \$\{within\}`/);
 });

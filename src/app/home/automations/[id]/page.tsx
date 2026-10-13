@@ -11,15 +11,21 @@ import { listTemplates } from "@/lib/marketing/templates";
 import { channelStatus } from "@/lib/marketing/channels";
 import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { FlowEditor } from "./FlowEditor";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Automation" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("automations");
+  return { title: t("metaOne") };
+}
 
 const LOG_TONE: Record<string, Tone> = { ok: "success", skipped: "muted", failed: "danger", exited: "warning" };
 
 export default async function AutomationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("automations", "common");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/onboarding");
   const rule = id === "new" ? null : await db.automationRule.findFirst({ where: { id, storeId: store.id } });
@@ -40,9 +46,9 @@ export default async function AutomationPage({ params }: { params: Promise<{ id:
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={rule ? rule.name : "New automation"}
-      sub={rule ? `${count("active")} in the flow now · ${count("completed")} finished · ${count("exited")} stopped early` : "Pick what starts it, then add waits, checks and messages."}
-      actions={<PillLink href="/home/automations" icon="arrowLeft">All automations</PillLink>}
+      title={rule ? rule.name : t("new")}
+      sub={rule ? t("oneSub", { active: count("active"), completed: count("completed"), exited: count("exited") }) : t("newSub")}
+      actions={<PillLink href="/home/automations" icon="arrowLeft">{t("all")}</PillLink>}
     >
       <div className="grid gap-5">
         <FlowEditor
@@ -56,28 +62,28 @@ export default async function AutomationPage({ params }: { params: Promise<{ id:
             days: flow.settings.days ?? 90,
           }}
           segments={segments.map((s) => ({ id: s.id, name: s.name }))}
-          templates={templates.saved.map((t) => ({ id: t.id, name: t.name }))}
-          waTemplates={waTemplates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables, preset: t.preset }))}
+          templates={templates.saved.map((row) => ({ id: row.id, name: row.name }))}
+          waTemplates={waTemplates.map((row) => ({ id: row.id, name: row.name, language: row.language, category: row.category, status: row.status, rejectedReason: row.rejectedReason, content: row.content, variables: row.variables, preset: row.preset }))}
           channels={{ sms: textChannel(channels.sms), whatsapp: textChannel(channels.whatsapp) }}
         />
         {rule ? (
           <Card className="p-5">
-            <CardHead title="Run log" sub="What this automation did, newest first" />
+            <CardHead title={t("log.title")} sub={t("log.oneSub")} />
             {logs.length ? (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {logs.map((log) => (
                   <li key={log.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
                     <span className="min-w-0 flex-1 basis-[220px]">
-                      <span className="block truncate font-bold">{log.stepType === "enrolled" ? "Started" : `Step ${log.stepIndex + 1}`}: {log.message}</span>
+                      <span className="block truncate font-bold">{log.stepType === "enrolled" ? t("log.started") : t("log.stepN", { n: log.stepIndex + 1 })}: {log.message}</span>
                       {log.recipient ? <span className="block truncate text-[12.5px] text-app-ink-soft">{log.recipient}</span> : null}
                     </span>
-                    <span className="text-[12.5px] text-app-ink-soft">{formatDate(log.createdAt, true)}</span>
-                    <Pill tone={LOG_TONE[log.status] ?? "muted"}>{log.status === "ok" ? "Done" : log.status === "exited" ? "Stopped" : log.status === "failed" ? "Failed" : "Skipped"}</Pill>
+                    <span className="text-[12.5px] text-app-ink-soft">{formatDate(log.createdAt, true, locale)}</span>
+                    <Pill tone={LOG_TONE[log.status] ?? "muted"}>{log.status === "ok" ? t("log.ok") : log.status === "exited" ? t("log.exited") : log.status === "failed" ? t("log.failed") : t("log.skipped")}</Pill>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">Nothing yet.{rule.active ? " It runs the next time someone matches." : " Switch it on to start."}</p>
+              <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("log.nothingYet")} {rule.active ? t("log.runsNext") : t("log.switchOn")}</p>
             )}
           </Card>
         ) : null}

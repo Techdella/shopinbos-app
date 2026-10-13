@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export interface ShippingZoneFormValue {
   id: string;
@@ -48,6 +49,7 @@ function toRow(rate: Record<string, unknown>, index: number): RateRow {
 const blankRow = (key: string): RateRow => ({ key, name: "", min: "", max: "", price: "", extra: {} });
 
 export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormValue; currency: string }) {
+  const t = useT("shipping", "common");
   const router = useRouter();
   const symbol = currencySymbol(currency);
   const [name, setName] = useState(zone?.name ?? "");
@@ -81,16 +83,16 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!name.trim()) return setError("Give this zone a name.");
-    if (!rates.length) return setError("Add at least one delivery fee.");
+    if (!name.trim()) return setError(t("form.needName"));
+    if (!rates.length) return setError(t("form.needFee"));
     const payloadRates = [];
     for (const [index, rate] of rates.entries()) {
-      if (rate.price.trim() === "") return setError(`Fee ${index + 1} needs a price. Use 0 for free delivery.`);
+      if (rate.price.trim() === "") return setError(t("form.needPrice", { n: index + 1 }));
       const price = Number(rate.price);
       const minValue = rate.min ? Number(rate.min) : 0;
       const maxValue = rate.max ? Number(rate.max) : undefined;
-      if (![price, minValue, maxValue ?? 0].every(Number.isFinite)) return setError(`Fee ${index + 1} has a number that doesn't look right.`);
-      if (maxValue != null && maxValue < minValue) return setError(`Fee ${index + 1}: the max order must be more than the min order.`);
+      if (![price, minValue, maxValue ?? 0].every(Number.isFinite)) return setError(t("form.badNumber", { n: index + 1 }));
+      if (maxValue != null && maxValue < minValue) return setError(t("form.maxMin", { n: index + 1 }));
       payloadRates.push({
         minWeight: 0,
         ...rate.extra,
@@ -117,11 +119,11 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
         }),
       });
       const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(body?.error?.message ?? "Couldn't save this zone. Try again.");
+      if (!response.ok) throw new Error(body?.error?.message ?? t("form.saveFailed"));
       router.push("/home/shipping");
       router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Couldn't save this zone. Try again.");
+      setError(saveError instanceof Error ? saveError.message : t("form.saveFailed"));
       setBusy(false);
     }
   }
@@ -134,12 +136,12 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
       const response = await fetch(`/api/store/shipping-zones/${zone.id}`, { method: "DELETE" });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        throw new Error(body?.error?.message ?? "Couldn't delete this zone. Try again.");
+        throw new Error(body?.error?.message ?? t("form.deleteFailed"));
       }
       router.push("/home/shipping");
       router.refresh();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Couldn't delete this zone. Try again.");
+      setError(deleteError instanceof Error ? deleteError.message : t("form.deleteFailed"));
       setDeleting(false);
       setConfirmDelete(false);
     }
@@ -148,39 +150,39 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
   return (
     <form onSubmit={submit} className="grid gap-4">
       <section className={card}>
-        <h2 className="m-0 text-[17px] font-extrabold">Zone</h2>
+        <h2 className="m-0 text-[17px] font-extrabold">{t("form.zone")}</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
           <div className="min-w-0">
-            <FieldLabel htmlFor="zone-name">Zone name</FieldLabel>
-            <TextInput id="zone-name" required maxLength={120} placeholder="e.g. Lagos Mainland" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
+            <FieldLabel htmlFor="zone-name">{t("form.zoneName")}</FieldLabel>
+            <TextInput id="zone-name" required maxLength={120} placeholder={t("form.zoneNamePlaceholder")} value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
           </div>
           <div className="min-w-0">
-            <FieldLabel htmlFor="zone-order">Check order</FieldLabel>
+            <FieldLabel htmlFor="zone-order">{t("form.checkOrder")}</FieldLabel>
             <TextInput id="zone-order" inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value.replace(/[^\d-]/g, ""))} aria-describedby="zone-order-hint" />
           </div>
         </div>
         <p id="zone-order-hint" className="mb-0 mt-2 text-[13px] leading-5 text-app-ink-soft">
-          When a customer pays, zones are checked from the lowest number up and the first match is used. Give catch-all zones the highest number.
+          {t("form.checkOrderHint")}
         </p>
         <div className="mt-4 flex items-center justify-between gap-3 rounded-[16px] bg-app-canvas px-4 py-3">
           <div className="min-w-0">
-            <div className="text-[14.5px] font-bold">Use this zone when customers pay</div>
-            <div className="text-[13px] text-app-ink-soft">{active ? "On: shoppers in these areas see these fees." : "Off: this zone is skipped at checkout."}</div>
+            <div className="text-[14.5px] font-bold">{t("form.useAtCheckout")}</div>
+            <div className="text-[13px] text-app-ink-soft">{active ? t("form.onNote") : t("form.offNote")}</div>
           </div>
-          <Toggle on={active} onChange={setActive} label="Use this zone when customers pay" />
+          <Toggle on={active} onChange={setActive} label={t("form.useAtCheckout")} />
         </div>
       </section>
 
       <section className={card}>
-        <h2 className="m-0 text-[17px] font-extrabold">Areas</h2>
+        <h2 className="m-0 text-[17px] font-extrabold">{t("form.areas")}</h2>
         <p className="mb-0 mt-1 text-[13.5px] leading-5 text-app-ink-soft">
-          A shopper matches this zone when their city or state contains one of these words, e.g. &ldquo;Lekki&rdquo; or &ldquo;Lagos&rdquo;. Leave it empty to cover every other address.
+          {t("form.areasHint")}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <div className="min-w-0 flex-1 basis-[220px]">
             <TextInput
-              aria-label="Add an area"
-              placeholder="Type an area and press Enter"
+              aria-label={t("form.addArea")}
+              placeholder={t("form.addAreaPlaceholder")}
               value={areaInput}
               onChange={(event) => setAreaInput(event.target.value)}
               onKeyDown={(event) => {
@@ -194,17 +196,17 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
             />
           </div>
           <PillButton size="md" tone="white" onClick={() => addArea()} disabled={!areaInput.trim()}>
-            <Icon name="plus" size={16} /> Add
+            <Icon name="plus" size={16} /> {t("form.add")}
           </PillButton>
         </div>
         {regions.length > 0 ? (
-          <ul className="m-0 mt-3 flex list-none flex-wrap gap-2 p-0" aria-label="Areas in this zone">
+          <ul className="m-0 mt-3 flex list-none flex-wrap gap-2 p-0" aria-label={t("form.areasAria")}>
             {regions.map((region) => (
               <li key={region} className="inline-flex min-h-[40px] max-w-full items-center gap-1 rounded-full bg-app-canvas pl-4 pr-1 text-[14px] font-bold">
                 <span className="min-w-0 truncate">{region}</span>
                 <button
                   type="button"
-                  aria-label={`Remove ${region}`}
+                  aria-label={t("form.removeX", { name: region })}
                   onClick={() => setRegions((current) => current.filter((item) => item !== region))}
                   className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-black/[0.06]"
                 >
@@ -214,51 +216,51 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
             ))}
           </ul>
         ) : (
-          <p className="mb-0 mt-3 text-[13.5px] font-bold text-app-ink-soft">No areas: this zone covers every address not matched by an earlier zone.</p>
+          <p className="mb-0 mt-3 text-[13.5px] font-bold text-app-ink-soft">{t("form.noAreas")}</p>
         )}
       </section>
 
       <section className={card}>
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="m-0 text-[17px] font-extrabold">Delivery fees</h2>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("form.fees")}</h2>
             <p className="mb-0 mt-1 text-[13.5px] leading-5 text-app-ink-soft">
-              The first fee whose order range fits the cart total is charged. Leave min and max empty for one fee on every order; use 0 for free delivery.
+              {t("form.feesHint")}
             </p>
           </div>
           <PillButton size="sm" tone="white" onClick={() => setRates((current) => [...current, blankRow(`rate-${Date.now()}`)])}>
-            <Icon name="plus" size={14} /> Add fee
+            <Icon name="plus" size={14} /> {t("form.addFee")}
           </PillButton>
         </div>
         <ul className="m-0 mt-4 grid list-none gap-2 p-0">
           {rates.map((rate, index) => {
-            const label = rate.name || `Fee ${index + 1}`;
+            const label = rate.name || t("rate.fee", { n: index + 1 });
             return (
               <li key={rate.key} className="grid grid-cols-2 items-end gap-3 rounded-[16px] bg-app-canvas p-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div className="col-span-2 min-w-0 lg:col-span-1">
-                  <FieldLabel htmlFor={`${rate.key}-name`}>Label</FieldLabel>
-                  <TextInput id={`${rate.key}-name`} maxLength={80} placeholder={index === 0 ? "Standard delivery" : `Fee ${index + 1}`} value={rate.name} onChange={(event) => updateRate(rate.key, { name: event.target.value })} />
+                  <FieldLabel htmlFor={`${rate.key}-name`}>{t("form.label")}</FieldLabel>
+                  <TextInput id={`${rate.key}-name`} maxLength={80} placeholder={index === 0 ? t("form.standard") : t("rate.fee", { n: index + 1 })} value={rate.name} onChange={(event) => updateRate(rate.key, { name: event.target.value })} />
                 </div>
                 <div className="min-w-0">
-                  <FieldLabel htmlFor={`${rate.key}-min`}>Min order ({symbol.trim()})</FieldLabel>
+                  <FieldLabel htmlFor={`${rate.key}-min`}>{t("form.minOrder", { symbol: symbol.trim() })}</FieldLabel>
                   <TextInput id={`${rate.key}-min`} inputMode="decimal" placeholder="0" value={rate.min} onChange={(event) => updateRate(rate.key, { min: numeric(event.target.value) })} />
                 </div>
                 <div className="min-w-0">
-                  <FieldLabel htmlFor={`${rate.key}-max`}>Max order ({symbol.trim()})</FieldLabel>
-                  <TextInput id={`${rate.key}-max`} inputMode="decimal" placeholder="No limit" value={rate.max} onChange={(event) => updateRate(rate.key, { max: numeric(event.target.value) })} />
+                  <FieldLabel htmlFor={`${rate.key}-max`}>{t("form.maxOrder", { symbol: symbol.trim() })}</FieldLabel>
+                  <TextInput id={`${rate.key}-max`} inputMode="decimal" placeholder={t("form.noLimit")} value={rate.max} onChange={(event) => updateRate(rate.key, { max: numeric(event.target.value) })} />
                 </div>
                 <div className="col-span-2 min-w-0 sm:col-span-1">
-                  <FieldLabel htmlFor={`${rate.key}-price`}>Fee ({symbol.trim()})</FieldLabel>
-                  <TextInput id={`${rate.key}-price`} inputMode="decimal" required placeholder="e.g. 2000" value={rate.price} onChange={(event) => updateRate(rate.key, { price: numeric(event.target.value) })} />
+                  <FieldLabel htmlFor={`${rate.key}-price`}>{t("form.fee", { symbol: symbol.trim() })}</FieldLabel>
+                  <TextInput id={`${rate.key}-price`} inputMode="decimal" required placeholder={t("form.feePlaceholder")} value={rate.price} onChange={(event) => updateRate(rate.key, { price: numeric(event.target.value) })} />
                 </div>
                 <button
                   type="button"
-                  aria-label={`Remove ${label}`}
+                  aria-label={t("form.removeX", { name: label })}
                   disabled={rates.length === 1}
                   onClick={() => setRates((current) => current.filter((item) => item.key !== rate.key))}
                   className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full px-3 text-[13px] font-bold text-app-danger disabled:cursor-not-allowed disabled:opacity-40 max-sm:col-span-2 sm:justify-self-end"
                 >
-                  <Icon name="trash" size={15} /> Remove
+                  <Icon name="trash" size={15} /> {t("remove")}
                 </button>
               </li>
             );
@@ -271,22 +273,22 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <PillButton type="submit" tone="accent" size="md" busy={busy} disabled={deleting}>
-            {zone ? "Save zone" : "Create zone"}
+            {zone ? t("form.save") : t("form.create")}
           </PillButton>
           <PillButton tone="white" size="md" onClick={() => router.push("/home/shipping")} disabled={busy || deleting}>
-            Cancel
+            {t("cancel")}
           </PillButton>
         </div>
         {zone && (
           confirmDelete ? (
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm delete">
-              <span className="text-[14px] font-bold">Delete &ldquo;{zone.name}&rdquo;? Shoppers won&rsquo;t see these fees any more.</span>
-              <PillButton size="sm" tone="ink" className="!bg-app-danger" busy={deleting} onClick={remove}>Yes, delete</PillButton>
-              <PillButton size="sm" tone="white" disabled={deleting} onClick={() => setConfirmDelete(false)}>Keep it</PillButton>
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("form.confirmDelete")}>
+              <span className="text-[14px] font-bold">{t("form.deleteQuestion", { name: zone.name })}</span>
+              <PillButton size="sm" tone="ink" className="!bg-app-danger" busy={deleting} onClick={remove}>{t("form.yesDelete")}</PillButton>
+              <PillButton size="sm" tone="white" disabled={deleting} onClick={() => setConfirmDelete(false)}>{t("form.keep")}</PillButton>
             </div>
           ) : (
             <PillButton size="sm" tone="white" className="text-app-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" size={14} /> Delete zone
+              <Icon name="trash" size={14} /> {t("form.delete")}
             </PillButton>
           )
         )}

@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // "We'll set it up for you": instead of showing API keys, DNS records or feed links, technical jobs become a
 // short request to the Shopinbos team. It opens a support ticket (topic "setup") that lands in the admin
@@ -32,12 +33,13 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const t = useT("support", "common");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     if (whatsapp.trim() && !PHONE.test(whatsapp.trim())) {
-      setError("That WhatsApp number doesn't look right. Check it, or leave it empty and we'll reply here.");
+      setError(t("setup.badPhone"));
       return;
     }
     setBusy(true);
@@ -60,11 +62,11 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error?.message ?? "We couldn't send that. Check your connection and try again.");
+        throw new Error(body?.error?.message ?? t("couldntSendConnection"));
       }
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn't send that. Try again.");
+      setError(err instanceof Error && err.message ? err.message : t("couldntSend"));
     } finally {
       setBusy(false);
     }
@@ -75,10 +77,8 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
       <div className={cx("flex items-start gap-3 rounded-[22px] bg-app-success-tint p-5", className)} role="status">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-success text-white"><Icon name="check" size={20} /></span>
         <div className="min-w-0 text-[15px] leading-[1.5]">
-          <div className="text-[17px] font-extrabold">Thanks, we&apos;ve got it.</div>
-          <p className="mb-0 mt-1">
-            Someone from the Shopinbos team will {whatsapp.trim() ? "message you on WhatsApp" : "reply in Help"} within one working day and set it up with you. You don&apos;t need to do anything else.
-          </p>
+          <div className="text-[17px] font-extrabold">{t("setup.thanks")}</div>
+          <p className="mb-0 mt-1">{whatsapp.trim() ? t("setup.willWhatsapp") : t("setup.willReply")}</p>
         </div>
       </div>
     );
@@ -97,16 +97,16 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
       <div className="mt-5 grid gap-4">
         {softwareQuestion && (
           <div>
-            <FieldLabel htmlFor={`${id}-software`}>{softwareQuestion} <span className="font-normal text-app-ink-soft">(optional)</span></FieldLabel>
+            <FieldLabel htmlFor={`${id}-software`}>{softwareQuestion} <span className="font-normal text-app-ink-soft">{t("setup.optional")}</span></FieldLabel>
             <TextInput id={`${id}-software`} value={software} onChange={(e) => setSoftware(e.target.value)} placeholder={softwarePlaceholder} maxLength={120} />
           </div>
         )}
         <div>
-          <FieldLabel htmlFor={`${id}-whatsapp`}>Your WhatsApp number <span className="font-normal text-app-ink-soft">(optional)</span></FieldLabel>
+          <FieldLabel htmlFor={`${id}-whatsapp`}>{t("setup.whatsapp")} <span className="font-normal text-app-ink-soft">{t("setup.optional")}</span></FieldLabel>
           <TextInput id={`${id}-whatsapp`} value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="0803 123 4567" inputMode="tel" autoComplete="tel" maxLength={20} />
         </div>
         <div>
-          <FieldLabel htmlFor={`${id}-details`}>Anything we should know? <span className="font-normal text-app-ink-soft">(optional)</span></FieldLabel>
+          <FieldLabel htmlFor={`${id}-details`}>{t("setup.details")} <span className="font-normal text-app-ink-soft">{t("setup.optional")}</span></FieldLabel>
           <textarea
             id={`${id}-details`}
             value={details}
@@ -122,7 +122,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
       {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
 
       <PillButton type="submit" tone="ink" size="lg" busy={busy} className="mt-5 w-full">
-        Ask the team to set it up
+        {t("setup.submit")}
       </PillButton>
     </form>
   );

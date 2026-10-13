@@ -10,8 +10,14 @@ import { db } from "@/lib/db/client";
 import { redirect } from "next/navigation";
 import { MarketplaceChatWrapper } from "@/components/marketplace/MarketplaceChatWrapper";
 import { ChatButton } from "@/components/marketplace/ChatButton";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getT("marketplace");
+  return { title: t("sup.title") };
+}
 
 type PageProps = {
   searchParams?: Promise<{ q?: string; country?: string; category?: string; near?: string }>;
@@ -24,6 +30,7 @@ function norm(value?: string | null) {
 export default async function MarketplaceSuppliersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketplace");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   if (!workspace.store) redirect("/builder?firstRun=1");
@@ -86,48 +93,48 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
       <SellerPage
         user={user}
         store={storeSummary(store)}
-        title="Suppliers"
-        sub={`${suppliers.length} verified supplier${suppliers.length === 1 ? "" : "s"}. See their catalogue, chat, and buy wholesale.${nearbyCount > 0 ? ` ${nearbyCount} near your store.` : ""}`}
+        title={t("sup.title")}
+        sub={`${t("sup.sub", { count: suppliers.length })}${nearbyCount > 0 ? ` ${t("sup.near", { count: nearbyCount })}` : ""}`}
       >
         <div className="grid gap-5">
           <FilterChips
             items={[
-              { label: "Products", href: "/marketplace" },
-              { label: "Suppliers", href: "/marketplace/suppliers", active: true },
-              { label: "Delivery partners", href: "/marketplace/logistics" },
+              { label: t("sup.chip.products"), href: "/marketplace" },
+              { label: t("sup.chip.suppliers"), href: "/marketplace/suppliers", active: true },
+              { label: t("sup.chip.delivery"), href: "/marketplace/logistics" },
             ]}
           />
 
           <form method="GET" action="/marketplace/suppliers" role="search" className="flex flex-wrap items-center gap-2">
             <label className="flex min-h-[44px] w-full items-center gap-2 rounded-full border border-app-line bg-white px-4 sm:w-[300px]">
               <Icon name="search" size={16} className="shrink-0 text-app-ink-soft" />
-              <span className="sr-only">Search suppliers</span>
-              <input name="q" defaultValue={params?.q ?? ""} placeholder="Search suppliers" className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
+              <span className="sr-only">{t("sup.search")}</span>
+              <input name="q" defaultValue={params?.q ?? ""} placeholder={t("sup.search")} className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
             </label>
-            <select name="category" aria-label="Category" defaultValue={params?.category ?? ""} className={selectClass}>
-              <option value="">All categories</option>
+            <select name="category" aria-label={t("sup.category")} defaultValue={params?.category ?? ""} className={selectClass}>
+              <option value="">{t("sup.allCategories")}</option>
               {allCategories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
             </select>
-            <select name="country" aria-label="Country" defaultValue={params?.country ?? ""} className={selectClass}>
-              <option value="">All countries</option>
+            <select name="country" aria-label={t("sup.country")} defaultValue={params?.country ?? ""} className={selectClass}>
+              <option value="">{t("sup.allCountries")}</option>
               {allCountries.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select name="near" aria-label="Sort" defaultValue={params?.near ?? ""} className={selectClass}>
-              <option value="">Best match</option>
-              <option value="city">Same city first</option>
-              <option value="country">Same country first</option>
+            <select name="near" aria-label={t("sup.sort")} defaultValue={params?.near ?? ""} className={selectClass}>
+              <option value="">{t("sup.best")}</option>
+              <option value="city">{t("sup.sameCity")}</option>
+              <option value="country">{t("sup.sameCountry")}</option>
             </select>
-            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">Filter</button>
-            {filtered && <Link href="/marketplace/suppliers" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">Clear</Link>}
+            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">{t("sup.filter")}</button>
+            {filtered && <Link href="/marketplace/suppliers" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("sup.clear")}</Link>}
           </form>
 
           <AssistantNote who="peggy">
-            Trusted suppliers come first, then the ones closest to {store.city ? `${store.city}, ` : ""}{store.country}. Chat to confirm minimum order, samples and delivery times before you add products.
+            {t("sup.peggy", { place: `${store.city ? `${store.city}, ` : ""}${store.country ?? ""}` })}
           </AssistantNote>
 
           {suppliers.length === 0 ? (
-            <EmptyState icon="people" title={filtered ? "No suppliers match" : "No verified suppliers yet"} action={filtered ? <PillLink href="/marketplace/suppliers" tone="ink">Clear filters</PillLink> : undefined}>
-              {filtered ? "Try a different search or filter." : "Suppliers show up here once they finish signing up and we verify them."}
+            <EmptyState icon="people" title={filtered ? t("sup.noMatch") : t("sup.noneYet")} action={filtered ? <PillLink href="/marketplace/suppliers" tone="ink">{t("sup.clearFilters")}</PillLink> : undefined}>
+              {filtered ? t("sup.tryDifferent") : t("sup.showOnce")}
             </EmptyState>
           ) : (
             <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 2xl:grid-cols-3 min-[1900px]:grid-cols-4">
@@ -156,7 +163,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                       </div>
                       <div className="shrink-0 text-right">
                         <div className="text-[22px] font-extrabold leading-none">{s.trustScore}</div>
-                        <div className="text-[12px] text-app-ink-soft">Trust</div>
+                        <div className="text-[12px] text-app-ink-soft">{t("sup.trust")}</div>
                       </div>
                     </div>
                     {s.description && (
@@ -168,9 +175,9 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                       </div>
                     )}
                     <div className="mt-auto grid grid-cols-2 gap-2 pt-4 sm:grid-cols-3">
-                      <PillLink href={`/suppliers/${s.slug}`} size="sm" className="min-h-[40px]">Profile · {s._count.products}</PillLink>
+                      <PillLink href={`/suppliers/${s.slug}`} size="sm" className="min-h-[40px]">{t("sup.profile", { count: s._count.products })}</PillLink>
                       <ChatButton contactId={s.id} />
-                      <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="col-span-2 min-h-[40px] sm:col-span-1">Their products</PillLink>
+                      <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="col-span-2 min-h-[40px] sm:col-span-1">{t("sup.theirProducts")}</PillLink>
                     </div>
                   </div>
                 </li>

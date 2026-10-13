@@ -12,23 +12,28 @@ import { whatsappHealth } from "@/lib/inbox/whatsapp-bot.server";
 import { requireRole } from "@/lib/server-auth";
 import { ChatbotClient } from "./ChatbotClient";
 import { WhatsAppPeggyClient } from "./WhatsAppPeggyClient";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Peggy chatbot" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("inbox");
+  return { title: t("chatbot") };
+}
 
 const tabClass = (active: boolean) =>
   `inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[14px] font-bold no-underline ${active ? "bg-app-ink text-white" : "text-app-ink hover:bg-black/[0.04]"}`;
 
 export default async function ChatbotPage({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
   const tab = (await searchParams).tab === "whatsapp" ? "whatsapp" : "livechat";
   const [automation, liveChat] = await Promise.all([loadAutomation(store.id), db.liveChatConfig.findUnique({ where: { storeId: store.id }, select: { mode: true } }).catch(() => null)]);
 
   const tabs = (
-    <nav aria-label="Where Peggy answers" className="mb-5 inline-flex flex-wrap gap-1 rounded-full border border-app-line bg-white p-1">
-      <Link href="/home/inbox/chatbot" className={tabClass(tab === "livechat")} aria-current={tab === "livechat" ? "page" : undefined}>Store live chat</Link>
+    <nav aria-label={t("bot.where")} className="mb-5 inline-flex flex-wrap gap-1 rounded-full border border-app-line bg-white p-1">
+      <Link href="/home/inbox/chatbot" className={tabClass(tab === "livechat")} aria-current={tab === "livechat" ? "page" : undefined}>{t("bot.storeChat")}</Link>
       <Link href="/home/inbox/chatbot?tab=whatsapp" className={tabClass(tab === "whatsapp")} aria-current={tab === "whatsapp" ? "page" : undefined}>WhatsApp</Link>
     </nav>
   );
@@ -41,12 +46,12 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
       <SellerPage
         user={user}
         store={storeSummary(store)}
-        title="Peggy on WhatsApp"
-        sub="Put Peggy on your WhatsApp Business number. She answers customers from your products, prices and delivery settings, and hands over to you when they want a person."
+        title={t("bot.waTitle")}
+        sub={t("bot.waSub")}
         actions={
           <>
-            <PillLink href="/home/inbox/channels" icon="plug">Channels</PillLink>
-            <PillLink href="/home/messages" icon="chat" tone="ink">Open inbox</PillLink>
+            <PillLink href="/home/inbox/channels" icon="plug">{t("ar.channels")}</PillLink>
+            <PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>
           </>
         }
       >
@@ -72,12 +77,12 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Peggy chatbot"
-      sub="Let Peggy answer shoppers on your store's live chat, from your own products, prices and delivery settings."
+      title={t("chatbot")}
+      sub={t("bot.sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/auto-replies" icon="clock">Auto-replies</PillLink>
-          <PillLink href="/home/marketing/chat" icon="chat">Live chat widget</PillLink>
+          <PillLink href="/home/inbox/auto-replies" icon="clock">{t("autoReplies")}</PillLink>
+          <PillLink href="/home/marketing/chat" icon="chat">{t("bot.widget")}</PillLink>
         </>
       }
     >

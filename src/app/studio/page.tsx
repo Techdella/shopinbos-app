@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getT } from "@/lib/i18n/server";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
@@ -15,7 +16,10 @@ import { RexStudio } from "@/components/builder/rex/RexStudio";
 // the store preview opens beside it on demand. `?prompt=` prefills the composer, `?preview=1` opens the preview.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Rex Studio" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("rex");
+  return { title: t("studio.title") };
+}
 
 function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -51,7 +55,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
   const [facts, shopper] = await Promise.all([loadHealthFacts(store, draft), loadShopperInfo(store.id, store.brandSettings, products)]);
 
   const memory = (settings.onboardingMemory && typeof settings.onboardingMemory === "object" ? settings.onboardingMemory : {}) as Record<string, unknown>;
-  const firstName = text(memory.preferredName)?.split(/\s+/)[0] ?? user.name?.trim().split(/\s+/)[0] ?? "there";
+  const firstName = text(memory.preferredName)?.split(/\s+/)[0] ?? user.name?.trim().split(/\s+/)[0] ?? (await getT("rex"))("studio.there");
   const template = getCurrentTemplateMeta(settingsOf(store));
 
   return (

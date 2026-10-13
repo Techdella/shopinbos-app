@@ -86,7 +86,7 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
     db.logisticsTeamMember.findUnique({ where: { logisticsPartnerId_email: { logisticsPartnerId: partner.id, email } }, select: { status: true } }),
   ]);
   if (existing?.status !== "active" && !isProPlan(dbUser ?? {}) && activeCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT) {
-    return apiError("PLAN_LIMIT", `Your free plan has room for ${LOGISTICS_FREE_TEAM_MEMBER_LIMIT} people. Pause someone you don't need, or move to Pro.`, 403);
+    return apiError("PLAN_LIMIT", `Starter logistics includes ${LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Deactivate someone or move to Pro to add more.`, 403);
   }
 
   const { token, hash } = newRiderToken();

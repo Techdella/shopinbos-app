@@ -135,6 +135,8 @@ export async function requestSupplierQuote(input: { supplierProductId: string; q
     title: "New quote request",
     description: `A seller wants ${parsed.data.quantity} × ${product.name}.`,
     link: "/supplier/quotes",
+    event: "quote.request",
+    sendEmail: true,
   }).catch(() => null);
   return { ok: true };
 }
@@ -281,6 +283,7 @@ export async function requestChinaImport(formData: FormData) {
         description: `${store.name} wants ${quantity ? `${quantity} × ` : ""}${request.title} by ${shipping}.${request.link ? ` ${request.link}` : ""}`,
         link: request.link ?? undefined,
         metadata: { storeId: store.id, importId: request.id, photoUrl },
+        event: "admin.review",
       }).catch(() => null),
     ),
   );

@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
 import type { AppFrame } from "@/components/shell/AppFrame";
 import { cx } from "@/components/app-ui/cx";
+import { formatDate, formatRelative, type Locale } from "@shared/i18n";
 
 // Small helpers shared by the seller core pages (orders, products, customers, reviews, inventory,
 // categories, collections, dropship, messages). Server-safe: no server-only imports, so client
@@ -25,10 +26,17 @@ export function sellerFrame(
   };
 }
 
-/** "Just now", "12 min ago", "3 hr ago", "Yesterday", "4 days ago", then a short date. */
-export function timeAgo(date: Date | string, now = Date.now()) {
+/**
+ * "Just now", "12 min ago", "3 hr ago", "Yesterday", "4 days ago", then a short date. Other languages get the
+ * same steps from Intl (formatRelative / formatDate in the person's language).
+ */
+export function timeAgo(date: Date | string, now = Date.now(), locale: Locale = "en") {
   const then = new Date(date).getTime();
   const minutes = Math.max(0, Math.floor((now - then) / 60_000));
+  if (locale !== "en") {
+    if (minutes < 30 * 24 * 60) return formatRelative(then, locale, now);
+    return formatDate(then, locale, { day: "numeric", month: "short", year: minutes > 330 * 24 * 60 ? "numeric" : undefined });
+  }
   if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);

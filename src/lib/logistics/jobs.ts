@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { updateOrderStatus } from "@/lib/orders/update-status";
 import { checkTransition, makeDeliveryCode, type JobActor } from "./job-rules";
 import { emitPartnerEvent } from "./webhooks";
+import { notifyJobMoved, notifyRiderAssigned } from "@/lib/notifications/events.server";
 
 // Server side of delivery jobs: one place that moves a job, keeps the seller's order in step and tells the
 // partner's systems. Used by the partner portal, the Riders app and the partner API.
@@ -72,20 +73,24 @@ export async function transitionJob(input: {
   }
 
   void emitPartnerEvent(input.partnerId, input.to === "cancelled" ? "job.cancelled" : "job.updated", { id: job.id, status: input.to, actor: input.actor }).catch(() => undefined);
+  // The seller hears about pickups, deliveries, problems and cash collected; the rider about a cancelled job.
+  await notifyJobMoved({ bookingId: job.id, to: input.to, actor: input.actor, codCollected: input.codCollected });
   // Supplier pickups: the supplier's order follows the rider (sent when picked up, delivered when dropped off).
   await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryJobMoved(job.id, input.to)).catch(() => undefined);
   return { ok: true };
 }
 
 export async function assignRider(input: { bookingId: string; partnerId: string; riderId: string | null }): Promise<JobResult> {
-  const job = await db.deliveryBooking.findFirst({ where: { id: input.bookingId, logisticsPartnerId: input.partnerId }, select: { id: true, status: true } });
+  const job = await db.deliveryBooking.findFirst({ where: { id: input.bookingId, logisticsPartnerId: input.partnerId }, select: { id: true, status: true, riderId: true } });
   if (!job) return { ok: false, error: "We couldn't find that job. It may have been cancelled. Refresh to check." };
   if (["delivered", "cancelled"].includes(job.status)) return { ok: false, error: "This job is already finished, so it can't be changed." };
   if (input.riderId) {
     const rider = await db.logisticsTeamMember.findFirst({ where: { id: input.riderId, logisticsPartnerId: input.partnerId, status: "active" }, select: { id: true } });
-    if (!rider) return { ok: false, error: "That rider is paused. Pick another rider." };
+    if (!rider) return { ok: false, error: "That rider is inactive. Pick an active rider." };
   }
   await db.deliveryBooking.update({ where: { id: job.id }, data: { riderId: input.riderId } });
+  // Push to the rider's phone (and to the rider who had it before).
+  await notifyRiderAssigned({ bookingId: job.id, riderId: input.riderId, previousRiderId: job.riderId });
   // Supplier pickups: tell the supplier which rider is coming.
   await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryRiderAssigned(job.id, input.riderId)).catch(() => undefined);
   return { ok: true };

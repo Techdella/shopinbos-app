@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
+import { tNow } from "./app-locale";
 
 /**
  * Loads one screen's data: first load, pull to refresh (`refreshing`), reload when the screen comes back
@@ -29,7 +30,7 @@ export function useLoad<T>(load: () => Promise<T>, key = "") {
       setError(null);
     } catch (loadError) {
       if (run !== latest.current) return;
-      setError(loadError instanceof Error ? loadError.message : "Couldn't load this. Pull down to try again.");
+      setError(loadError instanceof Error ? loadError.message : tNow("m_ui")("loadFailed"));
     } finally {
       // `key` (a filter, an id) starts a fresh load when it changes; `load` itself is read from the ref.
       setLoadedKey(key);

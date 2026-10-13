@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { naira } from "@shared/onboarding";
 import { markDelivered, markFailed, setRiderOnline, startRun, type RiderActionResult } from "./actions";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export interface RiderDrop {
   id: string;
@@ -29,6 +30,7 @@ export interface RiderRun {
   drops: RiderDrop[];
 }
 
+// Sent in English (the partner and the seller read it); shown in the rider's language (rider fail.<n>).
 const FAIL_REASONS = ["Buyer didn't answer", "Buyer not at the address", "Buyer refused the parcel", "Wrong or incomplete address", "Buyer couldn't pay"];
 
 function initials(name: string) {
@@ -51,6 +53,7 @@ export function RiderApp({
   runs: RiderRun[];
 }) {
   const router = useRouter();
+  const t = useT("rider");
   const [online, setOnline] = useState(rider.online);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -98,37 +101,37 @@ export function RiderApp({
           )}
         >
           <span aria-hidden className={cx("h-2.5 w-2.5 rounded-full", online ? "bg-white" : "bg-app-ink-faint")} />
-          {online ? "Online" : "Offline"}
+          {online ? t("app.online") : t("app.offline")}
         </button>
       </header>
 
       {error && <div className="mt-2"><Notice>{error}</Notice></div>}
 
-      <section aria-label="Today" className="mt-3 grid grid-cols-[1fr_auto] gap-3 rounded-[22px] bg-app-ink p-4 text-white sm:p-5">
+      <section aria-label={t("app.today")} className="mt-3 grid grid-cols-[1fr_auto] gap-3 rounded-[22px] bg-app-ink p-4 text-white sm:p-5">
         <div className="min-w-0">
-          <p className="m-0 text-[13.5px] text-white/70">Delivery fees today</p>
+          <p className="m-0 text-[13.5px] text-white/70">{t("app.feesToday")}</p>
           <p className="m-0 mt-1 text-[32px] font-extrabold leading-none tracking-[-0.02em]">{naira(earnedToday)}</p>
-          <p className="m-0 mt-2 text-[13.5px] text-white/70">{dropsDone} {dropsDone === 1 ? "drop" : "drops"} done</p>
+          <p className="m-0 mt-2 text-[13.5px] text-white/70">{t("app.dropsDone", { count: dropsDone })}</p>
         </div>
         <div className="min-w-[132px] rounded-[16px] bg-white/10 p-3.5">
-          <p className="m-0 text-[13px] text-white/70">Cash in hand</p>
+          <p className="m-0 text-[13px] text-white/70">{t("app.cashInHand")}</p>
           <p className={cx("m-0 mt-1 text-[22px] font-extrabold leading-none", cashInHand > 0 ? "text-[#FFB38F]" : "text-white")}>{naira(cashInHand)}</p>
-          <p className="m-0 mt-1.5 text-[12.5px] text-white/70">{cashInHand > 0 ? `Hand in to ${rider.partnerName}` : "Nothing to hand in"}</p>
+          <p className="m-0 mt-1.5 text-[12.5px] text-white/70">{cashInHand > 0 ? t("app.handInTo", { name: rider.partnerName }) : t("app.nothingToHandIn")}</p>
         </div>
       </section>
 
       <div className="mt-6 flex items-baseline justify-between gap-3">
-        <h2 className="m-0 text-[19px] font-extrabold">{runs.length > 1 ? "Your runs" : "Your next run"}</h2>
+        <h2 className="m-0 text-[19px] font-extrabold">{runs.length > 1 ? t("app.yourRuns") : t("app.nextRun")}</h2>
         <button type="button" onClick={() => router.refresh()} className="min-h-[40px] rounded-full px-3 text-[14px] font-bold text-app-ink-soft hover:text-app-ink">
-          Refresh
+          {t("app.refresh")}
         </button>
       </div>
 
       {runs.length === 0 ? (
         <div className="mt-3 rounded-[22px] bg-white px-5 py-10 text-center">
-          <p className="m-0 text-[17px] font-extrabold">No jobs right now</p>
+          <p className="m-0 text-[17px] font-extrabold">{t("app.noJobs")}</p>
           <p className="m-0 mt-1.5 text-[15px] leading-[1.5] text-app-ink-soft">
-            {online ? `When ${rider.partnerName} gives you a job, it shows up here.` : "Go online so your dispatcher knows you're ready for jobs."}
+            {online ? t("app.whenJob", { name: rider.partnerName }) : t("app.goOnline")}
           </p>
         </div>
       ) : (
@@ -139,7 +142,7 @@ export function RiderApp({
 
       {drops > 0 && (
         <p className="m-0 mt-5 text-center text-[13px] text-app-ink-soft">
-          Ask each buyer for their 4-digit delivery code before you hand over the parcel.
+          {t("app.askCode")}
         </p>
       )}
     </div>
@@ -148,6 +151,7 @@ export function RiderApp({
 
 function RunCard({ token, run, onError }: { token: string; run: RiderRun; onError: (error: string | null) => void }) {
   const router = useRouter();
+  const t = useT("rider");
   const [pending, startTransition] = useTransition();
   const toPickUp = run.drops.filter((drop) => drop.status === "confirmed").map((drop) => drop.id);
   const cashCount = run.drops.filter((drop) => drop.collect > 0).length;
@@ -166,27 +170,27 @@ function RunCard({ token, run, onError }: { token: string; run: RiderRun; onErro
       <div className="flex items-start gap-3">
         <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-app-peach text-app-accent-ink"><Icon name="store" size={22} /></span>
         <div className="min-w-0 flex-1">
-          <h3 className="m-0 text-[17px] font-extrabold leading-tight">Pick up: {run.pickupName}</h3>
+          <h3 className="m-0 text-[17px] font-extrabold leading-tight">{t("run.pickUp", { name: run.pickupName })}</h3>
           <p className="m-0 mt-0.5 break-words text-[14px] text-app-ink-soft">{run.pickupAddress}</p>
           {run.pickupWindow && <p className="m-0 mt-0.5 text-[14.5px] font-extrabold text-app-accent-ink">{run.pickupWindow}</p>}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-full bg-app-canvas px-3 py-1.5 text-[13px] font-bold">{run.drops.length} {run.drops.length === 1 ? "drop" : "drops"}</span>
+        <span className="rounded-full bg-app-canvas px-3 py-1.5 text-[13px] font-bold">{t("run.drops", { count: run.drops.length })}</span>
         {cashCount > 0 && (
           <span className="rounded-full bg-app-peach px-3 py-1.5 text-[13px] font-bold text-app-accent-ink">
-            {cashCount} cash {cashCount === 1 ? "collection" : "collections"}
+            {t("run.cashCollections", { count: cashCount })}
           </span>
         )}
       </div>
-      <p className="m-0 mt-3 text-[22px] font-extrabold tracking-[-0.01em]">Delivery fees {naira(run.fees)}</p>
+      <p className="m-0 mt-3 text-[22px] font-extrabold tracking-[-0.01em]">{t("run.fees", { amount: naira(run.fees) })}</p>
 
       {toPickUp.length > 0 && (
         <div className="mt-3">
           <PillButton tone="accent" size="lg" className="w-full" busy={pending} onClick={accept}>
-            Accept run
+            {t("run.accept")}
           </PillButton>
-          <p className="m-0 mt-2 text-center text-[13px] text-app-ink-soft">Tap once you have the parcels from the pickup.</p>
+          <p className="m-0 mt-2 text-center text-[13px] text-app-ink-soft">{t("run.acceptHint")}</p>
         </div>
       )}
 
@@ -199,6 +203,7 @@ function RunCard({ token, run, onError }: { token: string; run: RiderRun; onErro
 
 function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index: number }) {
   const router = useRouter();
+  const t = useT("rider");
   const [mode, setMode] = useState<"idle" | "deliver" | "fail">("idle");
   const [code, setCode] = useState("");
   const [amount, setAmount] = useState(drop.collect > 0 ? String(drop.collect) : "");
@@ -237,7 +242,7 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
     event.preventDefault();
     const text = reason === "Other" ? other.trim() : reason;
     if (!text) {
-      setError("Say what happened.");
+      setError(t("drop.sayWhat"));
       return;
     }
     run(() => markFailed(token, { jobId: drop.id, reason: text }));
@@ -255,15 +260,15 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
             {[drop.buyerName, drop.item].filter(Boolean).join(" · ")}
           </p>
           {drop.collect > 0 && (
-            <p className="m-0 mt-1.5 inline-block rounded-full bg-app-peach px-3 py-1 text-[13px] font-extrabold text-app-accent-ink">Collect {naira(drop.collect)}</p>
+            <p className="m-0 mt-1.5 inline-block rounded-full bg-app-peach px-3 py-1 text-[13px] font-extrabold text-app-accent-ink">{t("drop.collect", { amount: naira(drop.collect) })}</p>
           )}
         </div>
         {drop.buyerPhone && (
           <div className="flex shrink-0 gap-1.5">
-            <a href={`tel:${drop.buyerPhone}`} aria-label={`Call ${drop.buyerName ?? "the buyer"}`} className="grid h-11 w-11 place-items-center rounded-full bg-app-canvas text-app-ink">
+            <a href={`tel:${drop.buyerPhone}`} aria-label={t("drop.call", { name: drop.buyerName ?? t("drop.theBuyer") })} className="grid h-11 w-11 place-items-center rounded-full bg-app-canvas text-app-ink">
               <Icon name="phone" size={18} />
             </a>
-            <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${drop.buyerName ?? "the buyer"}`} className="grid h-11 w-11 place-items-center rounded-full bg-app-canvas text-app-success">
+            <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" aria-label={t("drop.whatsapp", { name: drop.buyerName ?? t("drop.theBuyer") })} className="grid h-11 w-11 place-items-center rounded-full bg-app-canvas text-app-success">
               <Icon name="whatsapp" size={18} />
             </a>
           </div>
@@ -271,16 +276,16 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
       </div>
 
       {!onTheRoad ? (
-        <p className="m-0 mt-2.5 text-[13px] text-app-ink-soft">Accept the run once you have this parcel.</p>
+        <p className="m-0 mt-2.5 text-[13px] text-app-ink-soft">{t("drop.acceptFirst")}</p>
       ) : mode === "idle" ? (
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <PillButton tone="white" size="md" onClick={() => { setError(null); setMode("fail"); }}>Couldn&apos;t deliver</PillButton>
-          <PillButton tone="ink" size="md" onClick={() => { setError(null); setMode("deliver"); }}>Delivered</PillButton>
+          <PillButton tone="white" size="md" onClick={() => { setError(null); setMode("fail"); }}>{t("drop.couldnt")}</PillButton>
+          <PillButton tone="ink" size="md" onClick={() => { setError(null); setMode("deliver"); }}>{t("drop.delivered")}</PillButton>
         </div>
       ) : mode === "deliver" ? (
         <form onSubmit={submitDelivered} className="mt-3 grid gap-3">
           <div>
-            <label htmlFor={`code-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">Buyer&apos;s delivery code</label>
+            <label htmlFor={`code-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">{t("drop.code")}</label>
             <input
               id={`code-${drop.id}`}
               value={code}
@@ -289,49 +294,49 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
               autoComplete="off"
               pattern="\d{4}"
               required
-              placeholder="4 digits"
+              placeholder={t("drop.codePlaceholder")}
               className={cx(fieldClass, "text-center font-mono text-[24px] tracking-[0.4em]")}
             />
           </div>
           {drop.collect > 0 && (
             <>
               <div>
-                <label htmlFor={`amount-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">Amount the buyer paid (₦)</label>
+                <label htmlFor={`amount-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">{t("drop.amount")}</label>
                 <input id={`amount-${drop.id}`} value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" required className={fieldClass} />
               </div>
               <div>
-                <p className="m-0 mb-1.5 text-[14px] font-bold" id={`method-${drop.id}`}>How they paid</p>
+                <p className="m-0 mb-1.5 text-[14px] font-bold" id={`method-${drop.id}`}>{t("drop.howPaid")}</p>
                 <div aria-labelledby={`method-${drop.id}`}>
-                  <Segmented options={[{ value: "cash", label: "Cash" }, { value: "transfer", label: "Transfer" }]} value={method} onChange={setMethod} />
+                  <Segmented options={[{ value: "cash", label: t("drop.cash") }, { value: "transfer", label: t("drop.transfer") }]} value={method} onChange={setMethod} />
                 </div>
-                {method === "transfer" && <p className="m-0 mt-1.5 text-[13px] text-app-ink-soft">Only tick transfer once you've seen the money arrive.</p>}
+                {method === "transfer" && <p className="m-0 mt-1.5 text-[13px] text-app-ink-soft">{t("drop.transferNote")}</p>}
               </div>
             </>
           )}
           {error && <Notice>{error}</Notice>}
           <div className="grid grid-cols-2 gap-2">
-            <PillButton tone="white" size="md" onClick={() => setMode("idle")}>Back</PillButton>
-            <PillButton type="submit" tone="accent" size="md" busy={pending} disabled={code.length !== 4}>Confirm drop</PillButton>
+            <PillButton tone="white" size="md" onClick={() => setMode("idle")}>{t("drop.back")}</PillButton>
+            <PillButton type="submit" tone="accent" size="md" busy={pending} disabled={code.length !== 4}>{t("drop.confirm")}</PillButton>
           </div>
         </form>
       ) : (
         <form onSubmit={submitFailed} className="mt-3 grid gap-3">
           <div>
-            <label htmlFor={`reason-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">What happened?</label>
+            <label htmlFor={`reason-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">{t("drop.whatHappened")}</label>
             <select id={`reason-${drop.id}`} value={reason} onChange={(event) => setReason(event.target.value)} className={fieldClass}>
-              {[...FAIL_REASONS, "Other"].map((item) => <option key={item} value={item}>{item}</option>)}
+              {[...FAIL_REASONS, "Other"].map((item, index) => <option key={item} value={item}>{index < FAIL_REASONS.length ? t.dynamic(`fail.${index}`, item) : t("fail.other")}</option>)}
             </select>
           </div>
           {reason === "Other" && (
             <div>
-              <label htmlFor={`other-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">Tell your dispatcher</label>
+              <label htmlFor={`other-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">{t("drop.tellDispatcher")}</label>
               <input id={`other-${drop.id}`} value={other} onChange={(event) => setOther(event.target.value)} maxLength={300} required className={fieldClass} />
             </div>
           )}
           {error && <Notice>{error}</Notice>}
           <div className="grid grid-cols-2 gap-2">
-            <PillButton tone="white" size="md" onClick={() => setMode("idle")}>Back</PillButton>
-            <PillButton type="submit" tone="ink" size="md" busy={pending}>Report it</PillButton>
+            <PillButton tone="white" size="md" onClick={() => setMode("idle")}>{t("drop.back")}</PillButton>
+            <PillButton type="submit" tone="ink" size="md" busy={pending}>{t("drop.report")}</PillButton>
           </div>
         </form>
       )}

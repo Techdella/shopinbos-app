@@ -7,6 +7,9 @@ import { Mascot } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 interface PeggyAction {
   tool: string;
@@ -44,18 +47,19 @@ const ACTION_ICON: Record<string, IconName> = {
   write_copy: "sparkle",
 };
 
-const CAN_DO: { icon: IconName; text: string }[] = [
-  { icon: "chart", text: "Sales, orders, stock and customers, from your live shop" },
-  { icon: "package", text: "Mark orders paid, sent or delivered" },
-  { icon: "box", text: "Change prices and stock, publish or hide products" },
-  { icon: "tag", text: "Make discount codes" },
-  { icon: "truck", text: "Set up payment methods and delivery fees" },
-  { icon: "edit", text: "Draft blog posts, emails to customers and adverts for you to check" },
-  { icon: "sparkle", text: "Write WhatsApp statuses, captions and descriptions" },
+const CAN_DO: { icon: IconName; text: MessageKey<"peggy"> }[] = [
+  { icon: "chart", text: "can.data" },
+  { icon: "package", text: "can.orders" },
+  { icon: "box", text: "can.products" },
+  { icon: "tag", text: "can.discounts" },
+  { icon: "truck", text: "can.setup" },
+  { icon: "edit", text: "can.drafts" },
+  { icon: "sparkle", text: "can.write" },
 ];
 
 export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeting: string; initialAsk: string; suggestions: string[]; stats: Stats }) {
   const router = useRouter();
+  const t = useT("peggy");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState(initialAsk);
   const [busy, setBusy] = useState(false);
@@ -95,13 +99,13 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
         body: JSON.stringify({ messages }),
       });
       const body = (await response.json().catch(() => null)) as { data?: { text: string; actions?: PeggyAction[] }; error?: { message?: string } } | null;
-      if (!response.ok || !body?.data) throw new Error(body?.error?.message ?? "Peggy couldn't answer just now. Try again in a moment.");
+      if (!response.ok || !body?.data) throw new Error(body?.error?.message ?? t("err.answer"));
       const data = body.data;
       setTurns((current) => [...current, { role: "assistant", content: data.text, actions: data.actions ?? [] }]);
       // Her changes show up on the other pages straight away.
       if (data.actions?.length) router.refresh();
     } catch (error) {
-      setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? error.message : "Peggy couldn't answer just now." }]);
+      setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? error.message : t("err.short") }]);
     } finally {
       setBusy(false);
       inputRef.current?.focus();
@@ -116,7 +120,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
           <Mascot name="peggy" className="h-11 w-11" alt="Peggy" />
           <div className="min-w-0 flex-1">
             <h1 className="m-0 text-[17px] font-extrabold">Peggy</h1>
-            <div className="truncate text-[13px] text-app-ink-soft">Checks your shop and gets things done</div>
+            <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
           </div>
           {turns.length > 0 && (
             <button
@@ -125,7 +129,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
               disabled={busy}
               className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
             >
-              <Icon name="plus" size={13} /> New chat
+              <Icon name="plus" size={13} /> {t("newChat")}
             </button>
           )}
         </header>
@@ -161,7 +165,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft [animation-delay:150ms]" />
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft [animation-delay:300ms]" />
                 </span>
-                Peggy is working on it…
+                {t("working")}
               </div>
             )}
             <div ref={endRef} />
@@ -176,7 +180,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
           }}
         >
           <div className="mx-auto flex max-w-[760px] items-end gap-2">
-            <label htmlFor="peggy-input" className="sr-only">Ask Peggy</label>
+            <label htmlFor="peggy-input" className="sr-only">{t("metaTitle")}</label>
             <textarea
               id="peggy-input"
               ref={inputRef}
@@ -190,14 +194,14 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
                   void send(draft);
                 }
               }}
-              placeholder="Ask Peggy, or tell her what to do"
+              placeholder={t("placeholder")}
               className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-app-line bg-app-canvas px-5 py-3 text-[15px] leading-[1.4] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-line-strong field-sizing-content"
             />
             <VoiceInputButton variant="icon" value={draft} onChange={setDraft} maxLength={MAX_CHARS} context="a request for Peggy" disabled={busy} />
             <button
               type="submit"
               disabled={!draft.trim() || busy}
-              aria-label="Send"
+              aria-label={t("send")}
               className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-40"
             >
               <Icon name="arrowUp" size={18} />
@@ -209,29 +213,29 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
       {/* Today + what she can do (wide screens) */}
       <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
         <section className="rounded-[22px] bg-app-mint p-5">
-          <h2 className="m-0 text-[15px] font-extrabold">Your shop today</h2>
+          <h2 className="m-0 text-[15px] font-extrabold">{t("today")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Stat label="Sold today" value={stats.today} />
-            <Stat label="Last 7 days" value={stats.week} />
-            <Stat label="To send" value={stats.toSend} href="/home/orders" />
-            <Stat label="Not paid yet" value={stats.unpaid} href="/home/orders" />
-            <Stat label="Low on stock" value={stats.lowStock} href="/products" />
-            <Stat label="Unread messages" value={stats.unread} href="/home/messages" />
+            <Stat label={t("stat.today")} value={stats.today} />
+            <Stat label={t("stat.week")} value={stats.week} />
+            <Stat label={t("stat.toSend")} value={stats.toSend} href="/home/orders" />
+            <Stat label={t("stat.unpaid")} value={stats.unpaid} href="/home/orders" />
+            <Stat label={t("stat.lowStock")} value={stats.lowStock} href="/products" />
+            <Stat label={t("stat.unread")} value={stats.unread} href="/home/messages" />
           </div>
         </section>
         <section className="rounded-[22px] border border-app-line bg-white p-5">
-          <h2 className="m-0 text-[15px] font-extrabold">What Peggy can do</h2>
+          <h2 className="m-0 text-[15px] font-extrabold">{t("canTitle")}</h2>
           <ul className="m-0 mt-3 grid list-none gap-3 p-0">
             {CAN_DO.map((item) => (
               <li key={item.text} className="flex items-start gap-3 text-[13.5px] leading-[1.4]">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-app-canvas">
                   <Icon name={item.icon} size={15} />
                 </span>
-                <span className="pt-1.5">{item.text}</span>
+                <span className="pt-1.5">{t(item.text)}</span>
               </li>
             ))}
           </ul>
-          <p className="mb-0 mt-4 text-[12.5px] text-app-ink-soft">She never sends messages, publishes posts or starts ads on her own; those are saved as drafts for you.</p>
+          <p className="mb-0 mt-4 text-[12.5px] text-app-ink-soft">{t("neverAlone")}</p>
         </section>
       </aside>
     </div>
@@ -253,13 +257,14 @@ function Bubble({ role, content, failed }: { role: "user" | "assistant"; content
 }
 
 function ActionCard({ action }: { action: PeggyAction }) {
+  const t = useT("peggy");
   const body = (
     <>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-app-mint">
         <Icon name={ACTION_ICON[action.tool] ?? "check"} size={16} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">Peggy did this</span>
+        <span className="block text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">{t("didThis")}</span>
         <span className="block text-[13.5px] leading-[1.4]">{action.summary}</span>
       </span>
       {action.href && <Icon name="chevRight" size={16} className="shrink-0 text-app-ink-soft" />}
@@ -276,10 +281,11 @@ function ActionCard({ action }: { action: PeggyAction }) {
 }
 
 function Stat({ label, value, href }: { label: string; value: string | number; href?: string }) {
+  const locale = useLocale();
   const inner = (
     <>
       <div className="text-[12px] text-app-ink-soft">{label}</div>
-      <div className="mt-0.5 truncate text-[20px] font-extrabold leading-tight tracking-[-0.3px]">{typeof value === "number" ? value.toLocaleString("en-NG") : value}</div>
+      <div className="mt-0.5 truncate text-[20px] font-extrabold leading-tight tracking-[-0.3px]">{typeof value === "number" ? formatNumber(value, locale) : value}</div>
     </>
   );
   return href ? (

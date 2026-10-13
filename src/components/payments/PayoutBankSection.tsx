@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge, Icon } from "@/components/ui";
 import { BankLinkingModal } from "./BankLinkingModal";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface PayoutBank {
   bankName: string;
@@ -17,6 +18,7 @@ interface PayoutBankSectionProps {
 }
 
 export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankSectionProps) {
+  const t = useT("payments");
   const [modalOpen, setModalOpen] = useState(false);
 
   // Determine role-specific styling
@@ -27,7 +29,7 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
       ? "linear-gradient(135deg, #195754 0%, #0a3835 60%, #062622 100%)" // Dark Teal/Green for Supplier
       : "linear-gradient(135deg, #5b6ad0, #3a4ba6 60%, #1f2872)"; // Indigo for Logistics
 
-  const bankNameDisplay = payoutBank?.bankName || "NO BANK CONNECTED";
+  const bankNameDisplay = payoutBank?.bankName || t("pb.noBank");
   const accountNumberDisplay = 
     payoutBank?.accountNumber 
       ? `•••• •••• ${payoutBank.accountNumber.slice(-4)}` 
@@ -36,7 +38,7 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
 
   return (
     <div className="card" style={{ padding: 18 }}>
-      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Your bank account (where we send your money)</div>
+      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>{t("pb.title")}</div>
 
       {payoutBank ? (
         <div style={{
@@ -60,14 +62,14 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>
               <div style={{ fontSize: 9.5, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>
-                Account name
+                {t("pb.accountName")}
               </div>
               <div style={{ fontSize: 12, fontWeight: 600 }}>
                 {accountNameDisplay.toUpperCase()}
               </div>
             </div>
             <Badge variant="success" style={{ background: "rgba(255,255,255,0.2)", color: "white" }}>
-              <Icon name="check" size={9} /> Connected
+              <Icon name="check" size={9} /> {t("pb.connected")}
             </Badge>
           </div>
         </div>
@@ -85,9 +87,9 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
           background: "var(--ink-50)",
         }}>
           <span style={{ fontSize: 24 }}>🏦</span>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink-800)" }}>No bank account linked</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink-800)" }}>{t("pb.none")}</div>
           <p style={{ fontSize: 12, color: "var(--ink-500)", margin: "0 max(10px, 5%)", lineHeight: 1.4 }}>
-            Add your bank account and we send your money there through Paystack.
+            {t("pb.noneSub")}
           </p>
         </div>
       )}
@@ -99,7 +101,7 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
           style={{ flex: 1, justifyContent: "center" }}
         >
           <Icon name={payoutBank ? "edit" : "plus"} size={12} /> 
-          {payoutBank ? "Change account" : "Link bank account"}
+          {payoutBank ? t("pb.change") : t("pb.link")}
         </button>
       </div>
 

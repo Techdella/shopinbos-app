@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { partnerJob } from "./partner-api-core";
 import { emitPartnerEvent } from "./webhooks";
+import { notifyJobOffered } from "@/lib/notifications/events.server";
 
 // Creating a delivery job for a partner, the same way POST /api/app/logistics/bookings does (save it, then offer
 // it to the partner's systems as "job.offered"). Used for supplier pickups (src/lib/supplier-orders/pickup.server.ts),
@@ -41,6 +42,7 @@ export async function createDeliveryJob(input: DeliveryJobInput) {
     },
   });
   void emitPartnerEvent(booking.logisticsPartnerId, "job.offered", partnerJob(booking)).catch(() => undefined);
+  await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: booking.logisticsPartnerId });
   return booking;
 }
 

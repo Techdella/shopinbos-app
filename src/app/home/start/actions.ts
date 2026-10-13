@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import { deliveryAreasFromPicks, isSetupStepKey, type SetupChoicePatch } from "@/lib/setup/checklist";
 import { replaceSetupDeliveryAreas, saveSetupChoice, setPaymentMethods, SetupError } from "@/lib/setup/server";
 import type { PaymentMethodKey } from "@shared/onboarding";
+import { getT } from "@/lib/i18n/server";
 
 // Start here's inline steps. Each one writes the same data the full settings screens do, so the checklist ticks
 // itself from real state.
@@ -27,7 +28,7 @@ async function run(work: () => Promise<unknown>): Promise<Result> {
   } catch (error) {
     if (error instanceof SetupError) return { error: error.message };
     console.error("[start-here]", error);
-    return { error: "Couldn't save that. Try again." };
+    return { error: (await getT("home"))("start.saveFailed") };
   }
 }
 

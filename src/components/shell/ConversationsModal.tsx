@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Messenger } from "@/components/conversations/Messenger";
 import { OPEN_CONVERSATION_EVENT, type OpenConversationDetail } from "@/components/conversations/client";
 import type { PartnerRole } from "@/lib/conversations/pure";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The "Messages" drawer: chats with suppliers, sellers and delivery partners (tabs, search, the open chat).
 // The top bar mounts it with onOpenRequest, so openConversation({ with, context }) from any page opens it.
@@ -23,6 +24,7 @@ export function ConversationsModal({ open, onClose, preselectedContactId, role =
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [request, setRequest] = useState<(OpenConversationDetail & { at: number }) | null>(null);
+  const t = useT("shell");
 
   useEffect(() => {
     if (!onOpenRequest) return;
@@ -69,13 +71,13 @@ export function ConversationsModal({ open, onClose, preselectedContactId, role =
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Messages"
+        aria-label={t("messages.title")}
         className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-app-line bg-white shadow-[0_20px_60px_-20px_rgba(22,20,31,0.45)] transition-transform duration-200 ease-out sm:w-[480px]"
         style={{ transform: visible ? "translateX(0)" : "translateX(100%)" }}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-app-line px-4 py-3.5 sm:px-5">
-          <h2 className="m-0 text-[17px] font-extrabold">Messages</h2>
-          <button type="button" onClick={onClose} aria-label="Close messages" className="grid h-9 w-9 place-items-center rounded-full border border-app-line text-app-ink-soft hover:border-app-line-strong hover:text-app-ink">
+          <h2 className="m-0 text-[17px] font-extrabold">{t("messages.title")}</h2>
+          <button type="button" onClick={onClose} aria-label={t("messages.close")} className="grid h-9 w-9 place-items-center rounded-full border border-app-line text-app-ink-soft hover:border-app-line-strong hover:text-app-ink">
             <Icon name="x" size={14} />
           </button>
         </div>

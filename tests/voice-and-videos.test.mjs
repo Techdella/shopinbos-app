@@ -299,16 +299,22 @@ test("help-video catalogue: model, idempotent migration with RLS and drafts, adm
 
 test("Help offers 'Watch a 1-minute video' on web and mobile, and hides it when there's none", () => {
   const web = read("src/components/help/HelpVideos.tsx");
-  assert.match(web, /Watch a 1-minute video/);
+  const helpEn = read("shared/i18n/messages/help/en.ts");
+  assert.match(web, /t\("watchVideo"\)/);
+  assert.match(helpEn, /watchVideo: "Watch a 1-minute video"/);
   assert.match(web, /if \(!current && all\.length === 0\) return null/);
-  assert.match(web, /All videos/);
+  assert.match(web, /t\("allVideos", \{ count: all\.length \}\)/);
+  assert.match(helpEn, /allVideos: "All videos \(\{count\}\)"/);
   assert.match(web, /<video /);
   assert.match(web, /<iframe/);
   assert.match(read("src/components/shell/SupportChatModal.tsx"), /<HelpVideosSection role=\{role\} \/>/);
   const mobile = read("apps/mobile/src/components/Help.tsx");
   assert.match(mobile, /videos\?\.current \?/);
-  assert.match(mobile, /Watch a 1-minute video/);
-  assert.match(mobile, /All videos/);
+  assert.match(mobile, /t\("sheet\.watchVideo"\)/);
+  assert.match(mobile, /t\("sheet\.allVideos"/);
+  const mobileWords = read("shared/i18n/messages/m_help/en.ts");
+  assert.match(mobileWords, /Watch a 1-minute video/);
+  assert.match(mobileWords, /All videos/);
   assert.match(mobile, /WebBrowser\.openBrowserAsync\(video\.source\.watchUrl\)/);
   assert.match(read("apps/mobile/src/components/HelpVideoPlayer.tsx"), /useVideoPlayer\(/);
   const config = read("next.config.ts");
@@ -350,7 +356,7 @@ test("the mic sits next to every long text field in the seller, supplier and par
     "apps/mobile/src/app/onboarding/index.tsx": "what their shop sells",
     "apps/mobile/src/app/record-sale.tsx": "a note about a sale",
     "apps/mobile/src/app/supplier/product/new.tsx": "a product description",
-    "apps/mobile/src/app/supplier/quote/[id].tsx": "a note with a bulk price",
+    "apps/mobile/src/app/supplier/quote/[id].tsx": "a note with a quote",
     "apps/mobile/src/app/reviews/[key].tsx": "a reply to a customer review",
   };
   for (const [path, marker] of Object.entries(mobile)) {

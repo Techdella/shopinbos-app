@@ -3,19 +3,30 @@ import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { AppPage, EmptyState, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Avatar, sellerFrame, timeAgo } from "@/components/seller-core";
-import { naira } from "@shared/onboarding";
+import { formatMoney, formatNumber, type Locale } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 const SHOWN = 100;
 
-function lastOrder(date: Date) {
-  const text = timeAgo(date);
-  return text === "Just now" || text === "Yesterday" ? text.toLowerCase() : /ago$/.test(text) ? text : `on ${text}`;
+export async function generateMetadata() {
+  const t = await getT("customers");
+  return { title: t("title") };
+}
+
+function lastOrder(date: Date, locale: Locale, onDate: (date: string) => string) {
+  const text = timeAgo(date, Date.now(), locale);
+  if (locale !== "en") return text;
+  return text === "Just now" || text === "Yesterday" ? text.toLowerCase() : /ago$/.test(text) ? text : onDate(text);
 }
 
 export default async function SellerCustomersPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("customers", "orders", "common");
+  const locale = await getLocale();
+  const naira = (amount: number) => formatMoney(Math.round(amount), locale);
+  const num = (value: number) => formatNumber(value, locale);
   const workspace = await getSellerWorkspace(user.id);
 
   const store = workspace?.store;
@@ -39,19 +50,19 @@ export default async function SellerCustomersPage() {
   return (
     <AppPage
       frame={sellerFrame(user, store)}
-      title="Customers"
-      sub={customers.length > 0 ? `${customers.length} customers · ${repeat} came back to buy again` : "Everyone who has bought from you, from your store or recorded sales."}
+      title={t("title")}
+      sub={customers.length > 0 ? t("sub", { count: customers.length, repeat }) : t("subEmpty")}
     >
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Customers" value={customers.length.toLocaleString("en-NG")} hint="All time" />
-        <StatTile tone="card" label="Repeat buyers" value={repeat.toLocaleString("en-NG")} hint="Bought more than once" />
-        <StatTile tone="card" label="Orders" value={orders.length.toLocaleString("en-NG")} hint="All time" />
-        <StatTile tone="card" label="Delivered" value={delivered.toLocaleString("en-NG")} hint="Orders that arrived" />
+        <StatTile tone="card" label={t("stat.customers")} value={num(customers.length)} hint={t("stat.allTime")} />
+        <StatTile tone="card" label={t("stat.repeat")} value={num(repeat)} hint={t("stat.repeatHint")} />
+        <StatTile tone="card" label={t("stat.orders")} value={num(orders.length)} hint={t("stat.allTime")} />
+        <StatTile tone="card" label={t("stat.delivered")} value={num(delivered)} hint={t("stat.deliveredHint")} />
       </StatGrid>
 
       {customers.length === 0 ? (
-        <EmptyState icon="users" title="No customers yet" action={<PillLink href="/home/orders/new" tone="ink" icon="plus">Record a sale</PillLink>}>
-          When someone buys from your store, or you record a sale, they show up here.
+        <EmptyState icon="users" title={t("empty")} action={<PillLink href="/home/orders/new" tone="ink" icon="plus">{t("recordSale")}</PillLink>}>
+          {t("emptySub")}
         </EmptyState>
       ) : (
         <>
@@ -67,10 +78,10 @@ export default async function SellerCustomersPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] xl:contents">
                       <span>
-                        {c.orders > 5 ? <Pill tone="accent">VIP</Pill> : c.orders > 1 ? <Pill tone="success">Repeat</Pill> : <Pill tone="info">New</Pill>}
+                        {c.orders > 5 ? <Pill tone="accent">{t("badge.vip")}</Pill> : c.orders > 1 ? <Pill tone="success">{t("badge.repeat")}</Pill> : <Pill tone="info">{t("badge.new")}</Pill>}
                       </span>
-                      <span className="text-app-ink-soft">{c.orders} {c.orders === 1 ? "order" : "orders"}</span>
-                      <span className="text-app-ink-soft">Last order {lastOrder(c.last)}</span>
+                      <span className="text-app-ink-soft">{t("count.orders", { count: c.orders })}</span>
+                      <span className="text-app-ink-soft">{t("lastOrder", { when: lastOrder(c.last, locale, (date) => t("onDate", { date })) })}</span>
                     </div>
                     <div className="text-[15px] font-extrabold md:text-right">{naira(c.total)}</div>
                   </div>
@@ -79,7 +90,7 @@ export default async function SellerCustomersPage() {
             ))}
           </ListCard>
           {customers.length > SHOWN && (
-            <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">Showing the {SHOWN} most recent of {customers.length.toLocaleString("en-NG")} customers.</p>
+            <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{t("showing", { shown: SHOWN, total: num(customers.length) })}</p>
           )}
         </>
       )}

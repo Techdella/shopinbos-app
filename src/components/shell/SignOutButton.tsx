@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { SignOutDialog } from "@/components/auth/SignOutDialog";
 import { portalLoginPath, portalRoleFromPath } from "@/lib/portal-routes";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useT } from "@/components/i18n/I18nProvider";
 
 /**
  * If someone presses Back after logging out and the browser restores this page from its back/forward cache,
@@ -24,7 +25,7 @@ function useLeaveIfSignedOutOnRestore() {
 }
 
 /** Every "Log out" in the portals goes through here, so each one asks first. */
-export function SignOutButton({ label = "Sign out", iconSize = 14, variant = "full", className, beforeSignOut }: {
+export function SignOutButton({ label: givenLabel, iconSize = 14, variant = "full", className, beforeSignOut }: {
   label?: string;
   iconSize?: number;
   variant?: "full" | "icon" | "link";
@@ -32,6 +33,8 @@ export function SignOutButton({ label = "Sign out", iconSize = 14, variant = "fu
   /** Runs after the person confirms, before the session is cleared (e.g. forget local drafts). */
   beforeSignOut?: () => void;
 }) {
+  const t = useT("common");
+  const label = givenLabel ?? t("signOut");
   const [confirming, setConfirming] = useState(false);
   const close = useCallback(() => setConfirming(false), []);
   useLeaveIfSignedOutOnRestore();

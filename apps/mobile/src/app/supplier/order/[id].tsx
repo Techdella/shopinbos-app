@@ -8,7 +8,9 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { KeyValue, Thumb } from "@/components/partner";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
-import { capitalise, friendlyDay } from "@/lib/friendly";
+import { capitalise } from "@/lib/friendly";
+import { useT } from "@/lib/i18n";
+import { dayWord } from "@/lib/partner-pure";
 import {
   bookPickup,
   cancelPickup,
@@ -21,7 +23,7 @@ import {
   type PickupView,
   type SupplierOrder,
 } from "@/lib/supplier";
-import { ORDER_KIND_LABEL, supplierOrderGroup, supplierOrderStage } from "@/lib/supplier-pure";
+import { orderKindLabel, supplierOrderGroup, supplierOrderStage } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
@@ -31,13 +33,16 @@ import { colors, radii } from "@/theme";
 // booked: "Rider booked: pick up today 12–4pm. We'll message you when they're on the way." The time can change or
 // the pickup be cancelled until a rider has the job (/api/supplier/orders/[id]/pickup). A new order counts down
 // the time left to accept it.
+// Screen words are in the app language (m_supplier "order.*"). The parcel label itself (ShopLabel, labelLines) stays
+// in English: it goes on the parcel for the rider and the shop's customer, and is shared or printed as is.
 
 type LabelWay = "share" | "phone" | "hand";
 
-const LABEL_WAYS: { key: LabelWay; icon: AppIconName; label: string; hint: string }[] = [
-  { key: "phone", icon: "phone", label: "Show it on my phone", hint: "The rider reads it from your screen" },
-  { key: "share", icon: "printer", label: "Print it or send it", hint: "To a printer, or to someone on WhatsApp" },
-  { key: "hand", icon: "doc", label: "Write it by hand", hint: "Copy these words onto the parcel" },
+// Words in m_supplier "order.way.<key>" ("Show it on my phone", "Write it by hand", …) and "order.way.<key>Hint".
+const LABEL_WAYS: { key: LabelWay; icon: AppIconName }[] = [
+  { key: "phone", icon: "phone" },
+  { key: "share", icon: "printer" },
+  { key: "hand", icon: "doc" },
 ];
 
 function labelLines(order: DropshipOrder) {
@@ -92,6 +97,7 @@ function ShopLabel({ order, big }: { order: DropshipOrder; big?: boolean }) {
 
 export default function SupplierOrderScreen() {
   const { id, kind } = useLocalSearchParams<{ id: string; kind?: string }>();
+  const t = useT("m_supplier", "m_partner");
   const orderKind = kind === "wholesale" ? "wholesale" : "dropship";
   const order = useLoad(() => fetchSupplierOrder(orderKind, String(id)), `${orderKind}:${id}`);
   const [busy, setBusy] = useState<OrderAction | null>(null);
@@ -114,7 +120,7 @@ export default function SupplierOrderScreen() {
     try {
       order.setData(await moveSupplierOrder(current.kind, current.id, action, action === "handed_over" ? riderCode : undefined));
     } catch (moveError) {
-      setError(moveError instanceof Error ? moveError.message : "That didn't go through. Check your connection and try again.");
+      setError(moveError instanceof Error ? moveError.message : t("error.retry"));
     } finally {
       setBusy(null);
     }
@@ -127,7 +133,7 @@ export default function SupplierOrderScreen() {
       setPickup(await markPacked(current.kind, current.id));
       order.setData(await fetchSupplierOrder(current.kind, current.id));
     } catch (packError) {
-      setError(packError instanceof Error ? packError.message : "That didn't go through. Check your connection and try again.");
+      setError(packError instanceof Error ? packError.message : t("error.retry"));
     } finally {
       setBusy(null);
     }
@@ -146,17 +152,17 @@ export default function SupplierOrderScreen() {
       setPickup(next);
       setChanging(false);
     } catch (bookError) {
-      setError(bookError instanceof Error ? bookError.message : "That didn't go through. Check your connection and try again.");
+      setError(bookError instanceof Error ? bookError.message : t("error.retry"));
     } finally {
       setBusy(null);
     }
   }
 
   function cancelRider(current: SupplierOrder) {
-    Alert.alert("Cancel the rider?", "You can book again after.", [
-      { text: "Keep it", style: "cancel" },
+    Alert.alert(t("order.cancelRider"), t("order.cancelRiderBody"), [
+      { text: t("keepIt"), style: "cancel" },
       {
-        text: "Cancel pickup",
+        text: t("order.cancelPickup"),
         style: "destructive",
         onPress: () =>
           void cancelPickup(current.kind, current.id)
@@ -164,15 +170,15 @@ export default function SupplierOrderScreen() {
               setPickup(next);
               setChanging(false);
             })
-            .catch((cancelError) => setError(cancelError instanceof Error ? cancelError.message : "That didn't go through. Try again.")),
+            .catch((cancelError) => setError(cancelError instanceof Error ? cancelError.message : t("error.short"))),
       },
     ]);
   }
 
   function cant(current: SupplierOrder) {
-    Alert.alert("Can't do this one?", "We tell the shop, so they can get it from someone else.", [
-      { text: "Keep it", style: "cancel" },
-      { text: "I can't do it", style: "destructive", onPress: () => void run(current, "decline") },
+    Alert.alert(t("cant.title"), t("cant.body"), [
+      { text: t("keepIt"), style: "cancel" },
+      { text: t("cant.confirm"), style: "destructive", onPress: () => void run(current, "decline") },
     ]);
   }
 
@@ -197,7 +203,7 @@ export default function SupplierOrderScreen() {
 
   if (!data) {
     return (
-      <Screen title="Order" refreshing={order.refreshing} onRefresh={() => void order.refresh()}>
+      <Screen title={t("order.title")} refreshing={order.refreshing} onRefresh={() => void order.refresh()}>
         {order.loading ? <LoadingBlock /> : null}
         {order.error ? <ErrorState message={order.error} onRetry={() => void order.reload()} /> : null}
       </Screen>
@@ -206,7 +212,7 @@ export default function SupplierOrderScreen() {
 
   const group = supplierOrderGroup(data);
   const youGet = data.kind === "dropship" ? data.yourTotal : data.total;
-  const area = data.kind === "dropship" ? data.label.address[data.label.address.length - 1] ?? data.label.to : data.address || "the shop";
+  const area = data.kind === "dropship" ? data.label.address[data.label.address.length - 1] ?? data.label.to : data.address || t("theShop");
   // Where this order is in the flow.
   const stage: "new" | "label" | "rider" | "with-rider" | "finished" =
     group === "new" ? "new" : data.next.includes("packed") ? "label" : data.next.includes("handed_over") ? "rider" : data.next.includes("delivered") ? "with-rider" : "finished";
@@ -214,28 +220,28 @@ export default function SupplierOrderScreen() {
   const choosing = stage === "rider" && pickup && !booked;
   const chosen = slot ?? pickup?.preselected ?? null;
 
-  const title = stage === "new" ? itemsTitle(data) : stage === "label" ? "Pack it with this label" : stage === "rider" ? (booked ? "Rider booked" : "When can a rider pick it up?") : supplierOrderStage(data.status);
+  const title = stage === "new" ? itemsTitle(data) : stage === "label" ? t("order.packWithLabel") : stage === "rider" ? (booked ? t("order.riderBooked") : t("order.whenPickup")) : supplierOrderStage(data.status, t);
 
   let footer = null;
   if (stage === "new") {
     footer = (
       <View style={{ gap: 4 }}>
-        <PillButton title="Accept order" busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => void run(data, "accept")} />
-        <LinkButton title="I can't do this one" color={colors.inkSoft} onPress={() => cant(data)} />
+        <PillButton title={t("order.accept")} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => void run(data, "accept")} />
+        <LinkButton title={t("cantThisOne")} color={colors.inkSoft} onPress={() => cant(data)} />
       </View>
     );
   } else if (stage === "label") {
-    footer = <PillButton title="I've packed it" busy={busy === "packed"} disabled={Boolean(busy)} onPress={() => void packed(data)} />;
+    footer = <PillButton title={t("order.packed")} busy={busy === "packed"} disabled={Boolean(busy)} onPress={() => void packed(data)} />;
   } else if (stage === "rider" && choosing && pickup) {
-    footer = <PillButton title={changing ? "Save the new time" : "Book the rider"} busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void book(data, pickup)} />;
+    footer = <PillButton title={changing ? t("order.saveTime") : t("order.book")} busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void book(data, pickup)} />;
   } else if (stage === "with-rider") {
-    footer = <PillButton title="It was delivered" busy={busy === "delivered"} disabled={Boolean(busy)} onPress={() => void run(data, "delivered")} />;
+    footer = <PillButton title={t("order.delivered")} busy={busy === "delivered"} disabled={Boolean(busy)} onPress={() => void run(data, "delivered")} />;
   }
 
   return (
-    <Screen title={title} sub={`${data.kind === "dropship" ? ORDER_KIND_LABEL.dropship : ORDER_KIND_LABEL.wholesale} · ${data.shop} · ${capitalise(friendlyDay(data.createdAt))}`} refreshing={order.refreshing} onRefresh={() => void order.refresh()} footer={footer}>
+    <Screen title={title} sub={t("order.sub", { kind: orderKindLabel(data.kind, t), shop: data.shop, day: capitalise(dayWord(data.createdAt, undefined, t)) })} refreshing={order.refreshing} onRefresh={() => void order.refresh()} footer={footer}>
       {error ? <Notice>{error}</Notice> : null}
-      {data.rejectReason ? <Notice tone="info">{data.rejectReason.startsWith("Cancelled by the seller") ? data.rejectReason : `You said no to this order: ${data.rejectReason}`}</Notice> : null}
+      {data.rejectReason ? <Notice tone="info">{data.rejectReason.startsWith("Cancelled by the seller") ? data.rejectReason : t("order.saidNo", { reason: data.rejectReason })}</Notice> : null}
 
       {stage === "new" ? (
         <>
@@ -244,27 +250,27 @@ export default function SupplierOrderScreen() {
             <Thumb uri={data.kind === "dropship" ? data.items[0]?.image : data.product.image} size={64} />
             <View style={{ flex: 1 }}>
               <T weight="extrabold" style={{ fontSize: 17 }} numberOfLines={3}>{itemsTitle(data)}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>Going to {area}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.goingTo", { area })}</T>
             </View>
           </Card>
           <Card style={{ gap: 4 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>You get, after delivery</T>
+            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.youGetAfter")}</T>
             <T weight="extrabold" style={{ fontSize: 30, color: colors.success }}>{naira(youGet)}</T>
           </Card>
           <Card style={{ gap: 12 }}>
-            <Step n={1}>Accept the order</Step>
-            <Step n={2}>{data.kind === "dropship" ? `Pack it with ${data.shop}'s label. Don't put your own name inside.` : "Pack it and get it ready."}</Step>
-            <Step n={3}>A rider comes to collect it at a time you pick. You don&apos;t pay for delivery.</Step>
+            <Step n={1}>{t("order.step1")}</Step>
+            <Step n={2}>{data.kind === "dropship" ? t("order.step2Dropship", { shop: data.shop }) : t("order.step2Wholesale")}</Step>
+            <Step n={3}>{t("order.step3")}</Step>
           </Card>
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>The shop pays first. We keep the money safe and send it to you after delivery.</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("escrow")}</T>
         </>
       ) : null}
 
       {stage === "label" && data.kind === "dropship" ? (
         <>
           <ShopLabel order={data} big={way === "phone"} />
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>The customer thinks it came from {data.shop}. That&apos;s how the shop keeps buying from you.</T>
-          <T weight="extrabold" style={{ fontSize: 22, marginTop: 6 }}>How do you want the label?</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("order.whiteLabel", { shop: data.shop })}</T>
+          <T weight="extrabold" style={{ fontSize: 22, marginTop: 6 }}>{t("order.howLabel")}</T>
           {LABEL_WAYS.map((option) => {
             const on = way === option.key;
             return (
@@ -280,14 +286,14 @@ export default function SupplierOrderScreen() {
               >
                 <AppIcon name={option.icon} size={22} />
                 <View style={{ flex: 1 }}>
-                  <T weight="extrabold" style={{ fontSize: 16 }}>{option.label}</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{option.hint}</T>
+                  <T weight="extrabold" style={{ fontSize: 16 }}>{t(`order.way.${option.key}`)}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t(`order.way.${option.key}Hint`)}</T>
                 </View>
               </Pressable>
             );
           })}
           <Card style={{ gap: 6 }}>
-            <T weight="extrabold" style={{ fontSize: 16 }}>What goes inside</T>
+            <T weight="extrabold" style={{ fontSize: 16 }}>{t("order.slip")}</T>
             {data.items.map((item, index) => (
               <View key={`${item.name}-${index}`} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <Thumb uri={item.image} size={40} />
@@ -295,8 +301,8 @@ export default function SupplierOrderScreen() {
                 <T weight="extrabold" style={{ fontSize: 16 }}>×{item.quantity}</T>
               </View>
             ))}
-            {data.mixed ? <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>The shop&apos;s order has other things too. Send only these.</T> : null}
-            {data.notes ? <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>Note: {data.notes}</T> : null}
+            {data.mixed ? <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t("order.mixed")}</T> : null}
+            {data.notes ? <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t("order.note", { note: data.notes })}</T> : null}
           </Card>
         </>
       ) : null}
@@ -307,13 +313,13 @@ export default function SupplierOrderScreen() {
             <Thumb uri={data.product.image} size={56} />
             <View style={{ flex: 1 }}>
               <T weight="extrabold" style={{ fontSize: 16 }}>{itemsTitle(data)}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{naira(data.unitPrice)} each</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("each", { price: naira(data.unitPrice) })}</T>
             </View>
           </Card>
           <Card style={{ gap: 4 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>Send to</T>
-            <T weight="bold" style={{ fontSize: 16, lineHeight: 22 }} selectable>{data.address || "No address yet. Message the shop."}</T>
-            {data.notes ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>Note: {data.notes}</T> : null}
+            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.sendTo")}</T>
+            <T weight="bold" style={{ fontSize: 16, lineHeight: 22 }} selectable>{data.address || t("order.noAddress")}</T>
+            {data.notes ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.note", { note: data.notes })}</T> : null}
           </Card>
         </>
       ) : null}
@@ -323,7 +329,7 @@ export default function SupplierOrderScreen() {
       {choosing && pickup ? (
         <>
           <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
-            {[...pickup.slots.map((option) => ({ key: option.key, label: option.label })), { key: "custom", label: "Pick a time" }].map((option) => {
+            {[...pickup.slots.map((option) => ({ key: option.key, label: option.label })), { key: "custom", label: t("order.pickTime") }].map((option) => {
               const on = chosen === option.key;
               return (
                 <Pressable
@@ -343,13 +349,13 @@ export default function SupplierOrderScreen() {
           </View>
           {chosen === "custom" ? (
             <Card style={{ gap: 10 }}>
-              <T weight="bold" style={{ fontSize: 15 }}>Which day?</T>
+              <T weight="bold" style={{ fontSize: 15 }}>{t("order.whichDay")}</T>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {pickup.customDays.map((option) => (
                   <Chip key={option.day} label={option.label} on={(customDay ?? pickup.customDays[0]?.day) === option.day} onPress={() => setCustomDay(option.day)} />
                 ))}
               </View>
-              <T weight="bold" style={{ fontSize: 15 }}>What time? (2 hours)</T>
+              <T weight="bold" style={{ fontSize: 15 }}>{t("order.whatTime")}</T>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {pickup.customHours.map((hour) => (
                   <Chip key={hour} label={hourWindow(hour)} on={customHour === hour} onPress={() => setCustomHour(hour)} />
@@ -358,11 +364,11 @@ export default function SupplierOrderScreen() {
             </Card>
           ) : null}
           <View style={{ gap: 6 }}>
-            <T weight="bold" style={{ fontSize: 15 }}>Where does the rider collect it?</T>
-            <Field value={address ?? pickup.pickup?.address ?? pickup.address} onChangeText={setAddress} placeholder="Shop 12, Balogun Market, Lagos Island" accessibilityLabel="Pickup address" />
-            <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{pickup.address ? "Your saved address. Change it if the parcel is somewhere else today." : "We'll save it for next time."}</T>
+            <T weight="bold" style={{ fontSize: 15 }}>{t("order.where")}</T>
+            <Field value={address ?? pickup.pickup?.address ?? pickup.address} onChangeText={setAddress} placeholder="Shop 12, Balogun Market, Lagos Island" accessibilityLabel={t("order.pickupAddress")} />
+            <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{pickup.address ? t("order.savedAddress") : t("order.saveAddress")}</T>
           </View>
-          {changing ? <LinkButton title="Keep the old time" color={colors.inkSoft} onPress={() => setChanging(false)} /> : null}
+          {changing ? <LinkButton title={t("order.keepTime")} color={colors.inkSoft} onPress={() => setChanging(false)} /> : null}
         </>
       ) : null}
 
@@ -374,32 +380,32 @@ export default function SupplierOrderScreen() {
             </View>
             <T weight="extrabold" style={{ fontSize: 22, textAlign: "center" }}>{booked.title}</T>
             <T style={{ fontSize: 15, lineHeight: 22, textAlign: "center", color: colors.ink }}>{booked.body}</T>
-            <T style={{ fontSize: 14.5, textAlign: "center", color: colors.inkSoft }}>From: {booked.address}</T>
+            <T style={{ fontSize: 14.5, textAlign: "center", color: colors.inkSoft }}>{t("order.from", { address: booked.address })}</T>
           </Card>
           {data.kind === "dropship" ? <ShopLabel order={data} /> : null}
           {booked.changeable ? (
             <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
               <LinkButton
-                title="Change the time"
+                title={t("order.changeTime")}
                 onPress={() => {
                   setSlot(booked.slotKey === "custom" ? "custom" : null);
                   setAddress(booked.address);
                   setChanging(true);
                 }}
               />
-              <LinkButton title="Cancel pickup" color={colors.inkSoft} onPress={() => cancelRider(data)} />
+              <LinkButton title={t("order.cancelPickup")} color={colors.inkSoft} onPress={() => cancelRider(data)} />
             </View>
           ) : (
-            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, textAlign: "center" }}>The rider has this job, so the time can&apos;t change here. Message {data.shop} if something comes up.</T>
+            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, textAlign: "center" }}>{t("order.riderHasIt", { shop: data.shop })}</T>
           )}
           {moreOpen ? (
             <View style={{ gap: 6 }}>
-              <T weight="bold" style={{ fontSize: 15 }}>Rider&apos;s code (optional)</T>
-              <Field value={riderCode} onChangeText={setRiderCode} placeholder="If the rider gives you one" autoCapitalize="characters" accessibilityLabel="Rider's code" />
-              <PillButton title="I gave it to the rider" tone="white" busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void run(data, "handed_over")} />
+              <T weight="bold" style={{ fontSize: 15 }}>{t("order.riderCode")}</T>
+              <Field value={riderCode} onChangeText={setRiderCode} placeholder={t("order.riderCodeHint")} autoCapitalize="characters" accessibilityLabel={t("order.riderCodeLabel")} />
+              <PillButton title={t("order.gaveIt")} tone="white" busy={busy === "handed_over"} disabled={Boolean(busy)} onPress={() => void run(data, "handed_over")} />
             </View>
           ) : (
-            <LinkButton title="I already gave it to a rider" color={colors.inkSoft} onPress={() => setMoreOpen(true)} />
+            <LinkButton title={t("order.alreadyGave")} color={colors.inkSoft} onPress={() => setMoreOpen(true)} />
           )}
         </>
       ) : null}
@@ -407,13 +413,13 @@ export default function SupplierOrderScreen() {
       {stage === "with-rider" || stage === "finished" ? (
         <Card style={{ gap: 6 }}>
           <T weight="extrabold" style={{ fontSize: 17 }}>{itemsTitle(data)}</T>
-          <KeyValue first label="You get" value={naira(youGet)} />
-          <KeyValue label="Where it is" value={supplierOrderStage(data.status)} />
-          {data.trackingCode ? <KeyValue label="Rider's code" value={data.trackingCode} /> : null}
+          <KeyValue first label={t("youGet")} value={naira(youGet)} />
+          <KeyValue label={t("order.whereItIs")} value={supplierOrderStage(data.status, t)} />
+          {data.trackingCode ? <KeyValue label={t("order.tracking")} value={data.trackingCode} /> : null}
         </Card>
       ) : null}
 
-      {data.sellerUserId ? <LinkButton title={`Message ${data.shop}`} onPress={() => router.push({ pathname: "/supplier/chat/[id]", params: { id: data.sellerUserId!, name: data.shop } })} /> : null}
+      {data.sellerUserId ? <LinkButton title={t("messageShop", { shop: data.shop })} onPress={() => router.push({ pathname: "/supplier/chat/[id]", params: { id: data.sellerUserId!, name: data.shop } })} /> : null}
     </Screen>
   );
 }

@@ -9,18 +9,23 @@ import { MARKETING_STORE_SELECT, emailBrand } from "@/lib/marketing/brand";
 import { previewShopFor } from "@/lib/email/compliance.server";
 import { previewSubject, renderEmailPreview } from "@/lib/marketing/preview";
 import { EMAIL_THEMES, EMAIL_THEME_INFO } from "@/lib/marketing/blocks";
-import { formatMinutes } from "@/lib/marketing/flows";
 import { TEMPLATE_CATEGORIES, TEMPLATE_FLOWS, TEMPLATE_SERIES } from "@/lib/marketing/template-library";
 import { listTemplates } from "@/lib/marketing/templates";
 import { TemplateGallery, type GallerySeries, type GalleryTemplate } from "./TemplateGallery";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { durationText } from "../_kit/duration";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Email designs" };
-
-const label = (category: string) => TEMPLATE_CATEGORIES[category as keyof typeof TEMPLATE_CATEGORIES] ?? category.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("emailBuilder");
+  return { title: t("tpl.title") };
+}
 
 export default async function TemplatesPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("emailBuilder");
+  const locale = await getLocale();
+  const label = (category: string) => t.dynamic(`tplCat.${category}`, TEMPLATE_CATEGORIES[category as keyof typeof TEMPLATE_CATEGORIES] ?? category.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()));
   const store = await db.store.findUnique({ where: { userId: user.id }, select: MARKETING_STORE_SELECT });
   if (!store) redirect("/onboarding");
   const templates = await listTemplates(store.id);
@@ -29,28 +34,28 @@ export default async function TemplatesPage() {
   const shop = previewShopFor(store);
   const render = (bodyHtml: string, preheader: string) => renderEmailPreview({ bodyHtml, preheader, brand, shop });
 
-  const saved: GalleryTemplate[] = templates.saved.map((t) => ({
-    id: t.id,
+  const saved: GalleryTemplate[] = templates.saved.map((row) => ({
+    id: row.id,
     saved: true,
-    name: t.name,
-    category: t.category,
-    categoryLabel: label(t.category),
-    description: `Edited ${formatDate(t.updatedAt)}`,
-    subject: previewSubject(t.subject, shop),
-    html: render(t.bodyHtml, t.preheader),
+    name: row.name,
+    category: row.category,
+    categoryLabel: label(row.category),
+    description: t("tpl.edited", { date: formatDate(row.updatedAt, false, locale) }),
+    subject: previewSubject(row.subject, shop),
+    html: render(row.bodyHtml, row.preheader),
   }));
-  const library: GalleryTemplate[] = templates.library.map((t) => ({
-    id: t.key,
+  const library: GalleryTemplate[] = templates.library.map((row) => ({
+    id: row.key,
     saved: false,
-    name: t.name,
-    category: t.category,
-    categoryLabel: label(t.category),
-    flow: t.flow,
-    style: t.style,
-    styleLabel: EMAIL_THEME_INFO[t.style].label,
-    description: t.description,
-    subject: previewSubject(t.subject, shop),
-    html: render(t.bodyHtml, t.preheader),
+    name: row.name,
+    category: row.category,
+    categoryLabel: label(row.category),
+    flow: row.flow,
+    style: row.style,
+    styleLabel: t.dynamic(`theme.${row.style}`, EMAIL_THEME_INFO[row.style].label),
+    description: row.description,
+    subject: previewSubject(row.subject, shop),
+    html: render(row.bodyHtml, row.preheader),
   }));
   // Ready-made series: their emails (in order) and when each one goes out.
   const series: GallerySeries[] = TEMPLATE_SERIES.map((s) => {
@@ -59,10 +64,10 @@ export default async function TemplatesPage() {
       key: s.key,
       name: s.name,
       description: s.description,
-      flow: library.find((t) => t.id === s.steps[0].template)?.flow ?? "welcome",
-      steps: s.steps.map((step, i) => {
+      flow: library.find((row) => row.id === s.steps[0].template)?.flow ?? "welcome",
+      steps: s.steps.map((step) => {
         total += step.waitMinutes;
-        return { templateId: step.template, when: total === 0 ? "Right away" : `After ${formatMinutes(total)}`, code: Boolean(step.discount) };
+        return { templateId: step.template, when: total === 0 ? t("tpl.rightAway") : t("tpl.after", { time: durationText(total, t) }), code: Boolean(step.discount) };
       }),
     };
   });
@@ -71,25 +76,25 @@ export default async function TemplatesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Email designs"
-      sub="Over 60 ready-made emails in your logo and colours, for every step from welcome to win-back. Preview one, use it in a message to customers, make it your own, or switch on a whole series."
+      title={t("tpl.title")}
+      sub={t("tpl.sub")}
       actions={
         <>
-          <PillLink href="/home/brand-kit" icon="palette">Brand kit</PillLink>
-          <PillLink href="/home/marketing/templates/new" tone="accent" icon="plus">New design</PillLink>
+          <PillLink href="/home/brand-kit" icon="palette">{t("tpl.brandKit")}</PillLink>
+          <PillLink href="/home/marketing/templates/new" tone="accent" icon="plus">{t("tpl.new")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
-        <AssistantNote action={<PillLink href="/home/marketing/templates/new" size="sm" tone="ink">Write one with Peggy</PillLink>}>
-          Not sure where to start? Open a new design and tell Peggy what you need, like &ldquo;a Sallah flash sale with a countdown&rdquo; or &ldquo;the last email of my cart series&rdquo;. Rex can draft one for you in chat too.
+        <AssistantNote action={<PillLink href="/home/marketing/templates/new" size="sm" tone="ink">{t("tpl.writeWithPeggy")}</PillLink>}>
+          {t("tpl.peggyNote")}
         </AssistantNote>
         <TemplateGallery
           saved={saved}
           library={library}
           series={series}
-          flows={Object.entries(TEMPLATE_FLOWS).map(([value, text]) => ({ value, label: text }))}
-          styles={EMAIL_THEMES.map((value) => ({ value, label: EMAIL_THEME_INFO[value].label }))}
+          flows={Object.entries(TEMPLATE_FLOWS).map(([value, text]) => ({ value, label: t.dynamic(`tplFlow.${value}`, text) }))}
+          styles={EMAIL_THEMES.map((value) => ({ value, label: t.dynamic(`theme.${value}`, EMAIL_THEME_INFO[value].label) }))}
         />
       </div>
     </SellerPage>

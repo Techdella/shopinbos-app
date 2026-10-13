@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "@/components/app-ui/cx";
+import { intlLocale, type Locale } from "@shared/i18n";
 
 // Form and chart pieces shared by the seller marketing, money and reports pages (2026 app look).
 // Server-safe: plain elements and class strings, so server-action forms can use them without JavaScript.
@@ -143,9 +144,10 @@ export function ShareBar({ label, value, share, tone = "ink" }: { label: ReactNo
   );
 }
 
-export function formatDate(value: Date | string | null | undefined, withTime = false) {
-  if (!value) return "Not set";
-  return new Intl.DateTimeFormat("en-GB", {
+/** "13 Oct 2026" in Lagos time; pass the locale (and the translated "Not set") on translated screens. */
+export function formatDate(value: Date | string | null | undefined, withTime = false, locale: Locale = "en", notSet = "Not set") {
+  if (!value) return notSet;
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : intlLocale(locale), {
     timeZone: "Africa/Lagos",
     day: "numeric",
     month: "short",

@@ -3,6 +3,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { ok, apiError } from "@/lib/api/response";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
+import { notifyJobOffered } from "@/lib/notifications/events.server";
 
 // Seller accepts a partner's quoted price: the quote becomes a booking at that price, offered to the partner
 // like any other booking. Only the seller's own quote, only once a price is in and before it expires.
@@ -48,6 +49,7 @@ export const POST = withSeller(async (_req, { user, params }) => {
     },
   });
   void emitPartnerEvent(quote.logisticsPartnerId, "job.offered", partnerJob(booking)).catch(() => undefined);
+  await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: quote.logisticsPartnerId, fromQuote: true });
 
   return ok(booking, 201);
 });

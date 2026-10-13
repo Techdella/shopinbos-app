@@ -7,6 +7,7 @@ import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { createSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
 import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
+import { getT } from "@/lib/i18n/server";
 
 export default async function NewSupplierProductPage({
   searchParams,
@@ -17,6 +18,7 @@ export default async function NewSupplierProductPage({
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const params = searchParams ? await searchParams : {};
+  const t = await getT("supplier");
 
   const [categories, productCount, dbUser] = await Promise.all([
     db.category.findMany({
@@ -34,15 +36,15 @@ export default async function NewSupplierProductPage({
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Add a product"
-      sub="Your price to shops, photos, how many you have and delivery in one go. Save a draft any time, then send it to marketplace review."
+      title={t("newProduct.title")}
+      sub={t("newProduct.sub")}
     >
       {atStarterLimit ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <Card className="p-5">
-            <h2 className="m-0 text-[17px] font-extrabold">Free product limit reached</h2>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("newProduct.limitTitle")}</h2>
             <p className="mb-0 mt-2 text-[14.5px] leading-[1.55] text-app-ink-soft">
-              The free plan includes up to 50 products ({productCount} in your catalogue). Upgrade to Supplier Max (₦25,000/month) to add more.
+              {t("newProduct.limitBody", { count: productCount })}
             </p>
           </Card>
           <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} />
@@ -51,7 +53,7 @@ export default async function NewSupplierProductPage({
         <>
           {supplier.verificationStatus !== "verified" && (
             <div className="mb-5">
-              <AssistantNote who="rex">You can save drafts now. Products go live once your business is verified.</AssistantNote>
+              <AssistantNote who="rex">{t("newProduct.draftsNote")}</AssistantNote>
             </div>
           )}
           <SupplierProductForm
