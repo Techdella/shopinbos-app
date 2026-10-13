@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { checkMyPayInsAgain } from "@/app/actions/logistics-payins";
+import { useT } from "@/components/i18n/I18nProvider";
 
 /**
  * Calm amber card on Today and Cash when a pay-in is late (lib/logistics/payin-deadline.ts): how much and since
@@ -23,6 +24,7 @@ export function PayInOverdueCard({
   className?: string;
 }) {
   const router = useRouter();
+  const t = useT("logistics", "common");
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -41,7 +43,7 @@ export function PayInOverdueCard({
   function checkAgain() {
     setMessage(null);
     start(async () => {
-      const result = await checkMyPayInsAgain().catch(() => ({ ok: false as const, message: "That didn't go through. Check your connection and try again." }));
+      const result = await checkMyPayInsAgain().catch(() => ({ ok: false as const, message: t("payin.errorConnection") }));
       setMessage(result.message);
       if (result.ok) router.refresh();
     });
@@ -60,23 +62,23 @@ export function PayInOverdueCard({
       </div>
       {account ? (
         <div className="grid gap-2 rounded-[14px] bg-white/80 p-4">
-          <span className="text-[15px] font-bold text-[#5C4100]">Pay into your account</span>
+          <span className="text-[15px] font-bold text-[#5C4100]">{t("payin.payInto")}</span>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono text-[26px] font-extrabold tracking-[0.06em] text-app-ink" aria-label={`Account number ${account.accountNumber.split("").join(" ")}`}>
+            <span className="font-mono text-[26px] font-extrabold tracking-[0.06em] text-app-ink" aria-label={t("payin.accountNumberAria", { digits: account.accountNumber.split("").join(" ") })}>
               {account.accountNumber}
             </span>
             <PillButton tone={copied ? "white" : "ink"} size="sm" onClick={copy} className="min-h-[40px]" aria-live="polite">
               <Icon name="copy" size={15} />
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("copied") : t("copy")}
             </PillButton>
           </div>
           <span className="text-[15px] text-app-ink-soft">{account.bankName}{account.accountName ? ` · ${account.accountName}` : ""}</span>
         </div>
       ) : (
-        <p className="m-0 rounded-[14px] bg-white/80 p-4 text-[15px] leading-[1.5] text-[#5C4100]">Pay in the usual way, then tell us how much you paid on the Cash page.</p>
+        <p className="m-0 rounded-[14px] bg-white/80 p-4 text-[15px] leading-[1.5] text-[#5C4100]">{t("payin.usualWay")}</p>
       )}
       <PillButton tone="white" size="md" busy={pending} onClick={checkAgain} className="w-full">
-        I&apos;ve paid. Check again
+        {t("payin.checkAgain")}
       </PillButton>
       {message && (
         <p role="status" className="m-0 text-[15px] font-bold leading-[1.5] text-[#5C4100]">{message}</p>

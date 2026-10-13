@@ -9,6 +9,7 @@ import { fetchUnreadCount, markNotificationsRead, onUnreadCount, openNotificatio
 import { configurePush, pushSupported, registerPushDevice, setAppBadge } from "@/lib/push";
 import { riderToken } from "@/lib/rider";
 import { useSession } from "@/lib/session";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Mounted once in the root layout. Keeps this phone's push token saved for whoever is signed in (or the rider),
@@ -26,6 +27,7 @@ export function PushManager() {
   const uid = session?.user.id ?? null;
   const ready = Boolean(useRootNavigationState()?.key);
   const insets = useSafeAreaInsets();
+  const t = useT("m_notifications", "common");
   const [banner, setBanner] = useState<{ title: string; body: string; data: PushData } | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handledColdStart = useRef(false);
@@ -109,7 +111,7 @@ export function PushManager() {
     <View pointerEvents="box-none" style={{ position: "absolute", top: insets.top + 6, left: 12, right: 12, zIndex: 1000, elevation: 12 }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${banner.title}. ${banner.body}. Tap to open.`}
+        accessibilityLabel={t("push.bannerLabel", { title: banner.title, body: banner.body })}
         onPress={() => {
           const data = banner.data;
           setBanner(null);
@@ -137,7 +139,7 @@ export function PushManager() {
           <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 15 }} numberOfLines={1}>{banner.title}</T>
           {banner.body ? <T style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }} numberOfLines={2}>{banner.body}</T> : null}
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={10} onPress={() => setBanner(null)} style={{ minWidth: 32, minHeight: 32, alignItems: "center", justifyContent: "center" }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("close")} hitSlop={10} onPress={() => setBanner(null)} style={{ minWidth: 32, minHeight: 32, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="x" size={16} color="#FFFFFF" />
         </Pressable>
       </Pressable>

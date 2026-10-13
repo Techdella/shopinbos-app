@@ -8,10 +8,12 @@ import { finishOnboarding } from "@/lib/onboarding";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { useT } from "@/lib/i18n";
 
 /** Header with back, five progress bars and Skip; scrollable body; pinned footer. */
 export function OnboardingFrame({ step, children, footer, scroll = true }: { step: OnboardingStep; children: ReactNode; footer?: ReactNode; scroll?: boolean }) {
   const { status } = useOnboarding();
+  const t = useT("common");
   const index = PROGRESS_STEPS.indexOf(step);
 
   async function skip() {
@@ -27,7 +29,7 @@ export function OnboardingFrame({ step, children, footer, scroll = true }: { ste
           <ProgressBars total={PROGRESS_STEPS.length} current={index} />
           <HelpButton />
           <Pressable accessibilityRole="button" onPress={() => void skip()} hitSlop={10} style={{ minHeight: 44, justifyContent: "center" }}>
-            <T weight="bold" style={{ color: colors.inkSoft }}>Skip</T>
+            <T weight="bold" style={{ color: colors.inkSoft }}>{t("skip")}</T>
           </Pressable>
         </View>
         {scroll ? (

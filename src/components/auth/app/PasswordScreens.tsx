@@ -10,6 +10,7 @@ import { FieldLabel, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/c
 import { friendlyNetworkError, navigateAfterAuth, sendPasswordReset, syncSession, updatePassword } from "./auth-api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 import { StuckLink } from "./AppAuth";
 
 function roleParam(value: string | null): AuthRole {
@@ -17,12 +18,13 @@ function roleParam(value: string | null): AuthRole {
 }
 
 function Frame({ children, back }: { children: ReactNode; back?: string }) {
+  const t = useT("auth");
   return (
     <div className="min-h-dvh bg-app-canvas font-app text-app-ink">
       <div className="mx-auto flex min-h-dvh max-w-[480px] flex-col px-[22px] pb-8 pt-[22px] lg:justify-center">
         <div className="mb-8 flex items-center justify-between">
           {back ? (
-            <Link href={back} aria-label="Back" className="grid h-11 w-11 place-items-center rounded-full bg-white text-app-ink no-underline shadow-[0_1px_2px_rgba(22,20,31,0.06)] hover:bg-app-lilac">
+            <Link href={back} aria-label={t("back")} className="grid h-11 w-11 place-items-center rounded-full bg-white text-app-ink no-underline shadow-[0_1px_2px_rgba(22,20,31,0.06)] hover:bg-app-lilac">
               <Icon name="arrowLeft" size={18} strokeWidth={2.2} />
             </Link>
           ) : <span />}
@@ -35,6 +37,7 @@ function Frame({ children, back }: { children: ReactNode; back?: string }) {
 }
 
 export function ForgotPasswordScreen() {
+  const t = useT("auth", "common");
   const params = useSearchParams();
   const role = roleParam(params.get("role"));
   const [email, setEmail] = useState("");
@@ -46,7 +49,7 @@ export function ForgotPasswordScreen() {
     event.preventDefault();
     setError(null);
     if (!isValidEmail(email)) {
-      setError("Enter the email you use for Shopinbos.");
+      setError(t("forgot.needEmail"));
       return;
     }
     setBusy(true);
@@ -65,25 +68,25 @@ export function ForgotPasswordScreen() {
       {sent ? (
         <div>
           <Mascot name="peggy-wave" className="mb-4 h-24 w-24" />
-          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Check your email</h1>
+          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("forgot.checkEmail")}</h1>
           <p className="mt-2 leading-[1.55] text-app-ink-soft">
-            If {email.trim()} has a Shopinbos account, we&apos;ve sent a link to set a new password. It works once and expires in an hour.
+            {t("forgot.sent", { email: email.trim() })}
           </p>
-          <PillButton tone="white" size="md" className="mt-6 w-full" onClick={() => setSent(false)}>Use a different email</PillButton>
+          <PillButton tone="white" size="md" className="mt-6 w-full" onClick={() => setSent(false)}>{t("forgot.differentEmail")}</PillButton>
           <p className="mt-5 text-center text-[14px] text-app-ink-soft">
-            Remembered it? <Link href={portalLoginPath(role)} className="font-bold text-app-ink">Log in</Link>
+            {t("forgot.remembered")} <Link href={portalLoginPath(role)} className="font-bold text-app-ink">{t("logIn")}</Link>
           </p>
         </div>
       ) : (
         <form onSubmit={submit} noValidate>
-          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Reset your password</h1>
-          <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">We&apos;ll email you a link to choose a new one. You can also log in with a code instead.</p>
-          <FieldLabel htmlFor="reset-email">Email</FieldLabel>
+          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("forgot.title")}</h1>
+          <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">{t("forgot.sub")}</p>
+          <FieldLabel htmlFor="reset-email">{t("method.email")}</FieldLabel>
           <TextInput id="reset-email" type="email" autoComplete="email" autoFocus placeholder="you@yourshop.com" value={email} onChange={(event) => setEmail(event.target.value)} />
           {error && <div className="mt-5"><Notice>{error}</Notice></div>}
-          <PillButton type="submit" className="mt-6 w-full" busy={busy}>Send reset link</PillButton>
+          <PillButton type="submit" className="mt-6 w-full" busy={busy}>{t("forgot.send")}</PillButton>
           <p className="mt-5 text-center text-[14px] text-app-ink-soft">
-            <Link href={`${portalLoginPath(role)}?method=email`} className="font-bold text-app-ink">Log in with an email code instead</Link>
+            <Link href={`${portalLoginPath(role)}?method=email`} className="font-bold text-app-ink">{t("forgot.codeInstead")}</Link>
           </p>
         </form>
       )}
@@ -97,6 +100,7 @@ export function ForgotPasswordScreen() {
  * Anything else (expired, already used, opened in another browser) gets the "ask for a new link" screen.
  */
 export function ResetPasswordScreen({ ready }: { ready: boolean }) {
+  const t = useT("auth", "common");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -107,11 +111,11 @@ export function ResetPasswordScreen({ ready }: { ready: boolean }) {
     event.preventDefault();
     setError(null);
     if (password.length < 8) {
-      setError("Use at least 8 characters.");
+      setError(t("reset.tooShort"));
       return;
     }
     if (password !== confirm) {
-      setError("The two passwords don't match.");
+      setError(t("reset.mismatch"));
       return;
     }
     setBusy(true);
@@ -138,13 +142,13 @@ export function ResetPasswordScreen({ ready }: { ready: boolean }) {
       <Frame>
         <div role="status">
           <Mascot name="peggy-wave" className="mb-4 h-24 w-24" />
-          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Password saved</h1>
+          <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("reset.saved")}</h1>
           <p className="mt-2 leading-[1.55] text-app-ink-soft">
-            You&apos;ve been signed out on other devices. {done.signedIn ? "You're still logged in here." : "Log in with your new password to carry on."}
+            {t("reset.signedOut")} {done.signedIn ? t("reset.stillIn") : t("reset.loginAgain")}
           </p>
         </div>
         <PillButton className="mt-6 w-full" busy={busy} onClick={() => void continueToShop()}>
-          {done.signedIn ? "Continue" : "Log in"}
+          {done.signedIn ? t("continue") : t("logIn")}
         </PillButton>
       </Frame>
     );
@@ -153,9 +157,9 @@ export function ResetPasswordScreen({ ready }: { ready: boolean }) {
   if (!ready) {
     return (
       <Frame back="/forgot-password">
-        <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">This link has expired</h1>
-        <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">Reset links work once and expire after an hour. Ask for a new one.</p>
-        <Link href="/forgot-password" className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink text-[16px] font-extrabold text-white no-underline">Send a new link</Link>
+        <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("reset.expired")}</h1>
+        <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">{t("reset.expiredSub")}</p>
+        <Link href="/forgot-password" className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink text-[16px] font-extrabold text-white no-underline">{t("reset.newLink")}</Link>
       </Frame>
     );
   }
@@ -163,16 +167,16 @@ export function ResetPasswordScreen({ ready }: { ready: boolean }) {
   return (
     <Frame>
       <form onSubmit={submit} noValidate>
-        <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Choose a new password</h1>
-        <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">At least 8 characters. We&apos;ll sign you out everywhere else, and keep you logged in here.</p>
-        <FieldLabel htmlFor="new-password">New password</FieldLabel>
+        <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("reset.title")}</h1>
+        <p className="mb-6 mt-2 leading-[1.55] text-app-ink-soft">{t("reset.sub")}</p>
+        <FieldLabel htmlFor="new-password">{t("reset.new")}</FieldLabel>
         <TextInput id="new-password" type="password" autoComplete="new-password" autoFocus value={password} onChange={(event) => setPassword(event.target.value)} />
         <div className="mt-5">
-          <FieldLabel htmlFor="confirm-password">Type it again</FieldLabel>
+          <FieldLabel htmlFor="confirm-password">{t("reset.again")}</FieldLabel>
           <TextInput id="confirm-password" type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} />
         </div>
         {error && <div className="mt-5"><Notice>{error}</Notice></div>}
-        <PillButton type="submit" className="mt-6 w-full" busy={busy}>Save password</PillButton>
+        <PillButton type="submit" className="mt-6 w-full" busy={busy}>{t("reset.save")}</PillButton>
       </form>
     </Frame>
   );

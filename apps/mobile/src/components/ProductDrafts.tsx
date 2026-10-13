@@ -5,12 +5,14 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { Card, Field, Mascot, PillButton, T } from "@/components/ui";
 import { createProducts, draftProducts, type ProductDraft } from "@/lib/onboarding";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // "Snap photos": pick or take product photos, Rex names and prices them, the seller checks, then they're created.
 // Used by onboarding and by the app's "Add products" screen.
 
 export function useProductDrafts() {
+  const t = useT("m_products");
   const [drafts, setDrafts] = useState<ProductDraft[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [reading, setReading] = useState(false);
@@ -19,7 +21,7 @@ export function useProductDrafts() {
   async function pick(source: "camera" | "library") {
     setError(null);
     const permission = source === "camera" ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return setError(source === "camera" ? "Allow the camera to snap your products." : "Allow photo access to choose product photos.");
+    if (!permission.granted) return setError(source === "camera" ? t("drafts.allowCamera") : t("drafts.allowPhotos"));
     const result =
       source === "camera"
         ? await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7 })
@@ -29,9 +31,9 @@ export function useProductDrafts() {
     try {
       const { drafts: next, drafted } = await draftProducts(result.assets.slice(0, 6));
       setDrafts((current) => [...current, ...next].slice(0, 12));
-      if (!drafted) setError("Rex couldn't name these yet. Add a name and price for each one.");
+      if (!drafted) setError(t("drafts.notNamed"));
     } catch (photoError) {
-      setError(photoError instanceof Error ? photoError.message : "Rex couldn't read those photos. Check your connection and try again.");
+      setError(photoError instanceof Error ? photoError.message : t("drafts.readFailed"));
     } finally {
       setReading(false);
     }
@@ -51,7 +53,7 @@ export function useProductDrafts() {
     const incomplete = drafts.findIndex((item) => !item.name.trim() || !item.price || item.price <= 0);
     if (incomplete >= 0) {
       setEditing(incomplete);
-      setError("Add a name and price for every product, or remove it.");
+      setError(t("drafts.incomplete"));
       return false;
     }
     await createProducts(drafts);
@@ -64,12 +66,13 @@ export function useProductDrafts() {
 
 export function ProductDraftsCard({ state }: { state: ReturnType<typeof useProductDrafts> }) {
   const { drafts, editing, setEditing, reading, pick, update, remove } = state;
+  const t = useT("m_products", "common");
   return (
     <Card>
       {drafts.length > 0 && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <Mascot name="rex" size={28} />
-          <T weight="bold" style={{ color: colors.forest, flex: 1 }}>Rex named and priced these from your photos</T>
+          <T weight="bold" style={{ color: colors.forest, flex: 1 }}>{t("drafts.named")}</T>
         </View>
       )}
       {drafts.map((item, index) => {
@@ -79,27 +82,27 @@ export function ProductDraftsCard({ state }: { state: ReturnType<typeof useProdu
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <Image source={{ uri: item.imageUrl }} style={{ width: 58, height: 58, borderRadius: 12 }} contentFit="cover" />
               <View style={{ flex: 1 }}>
-                <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{item.name || "Name this product"}</T>
+                <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{item.name || t("drafts.nameThis")}</T>
                 {needsCheck ? (
-                  <T weight="semibold" style={{ color: colors.accentInk, fontSize: 14 }}>{item.price ? `Check the price: ${naira(item.price)}?` : "Add a price"}</T>
+                  <T weight="semibold" style={{ color: colors.accentInk, fontSize: 14 }}>{item.price ? t("drafts.checkPrice", { price: naira(item.price) }) : t("drafts.addPrice")}</T>
                 ) : (
-                  <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{[naira(item.price ?? 0), item.detail, `${item.stock} in stock`].filter(Boolean).join(" · ")}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{[naira(item.price ?? 0), item.detail, t("drafts.inStock", { count: item.stock })].filter(Boolean).join(" · ")}</T>
                 )}
               </View>
-              {editing !== index && <PillButton title={needsCheck ? "Edit" : "✓"} tone="white" size="sm" onPress={() => setEditing(index)} />}
+              {editing !== index && <PillButton title={needsCheck ? t("edit") : "✓"} tone="white" size="sm" onPress={() => setEditing(index)} />}
             </View>
             {editing === index && (
               <View style={{ gap: 8, marginTop: 10, backgroundColor: colors.canvas, borderRadius: 14, padding: 12 }}>
-                <Field accessibilityLabel="Product name" value={item.name} onChangeText={(value) => update(index, { name: value })} />
+                <Field accessibilityLabel={t("drafts.name")} value={item.name} onChangeText={(value) => update(index, { name: value })} />
                 <View style={{ flexDirection: "row", gap: 8 }}>
-                  <Field style={{ flex: 1 }} accessibilityLabel="Price in naira" keyboardType="number-pad" placeholder="Price (₦)" value={item.price ? String(item.price) : ""} onChangeText={(value) => update(index, { price: Number(value.replace(/\D/g, "")) || null })} />
-                  <Field style={{ flex: 1 }} accessibilityLabel="How many you have" keyboardType="number-pad" placeholder="In stock" value={String(item.stock)} onChangeText={(value) => update(index, { stock: Number(value.replace(/\D/g, "")) || 0 })} />
+                  <Field style={{ flex: 1 }} accessibilityLabel={t("drafts.priceLabel")} keyboardType="number-pad" placeholder={t("drafts.pricePlaceholder")} value={item.price ? String(item.price) : ""} onChangeText={(value) => update(index, { price: Number(value.replace(/\D/g, "")) || null })} />
+                  <Field style={{ flex: 1 }} accessibilityLabel={t("drafts.stockLabel")} keyboardType="number-pad" placeholder={t("drafts.stockPlaceholder")} value={String(item.stock)} onChangeText={(value) => update(index, { stock: Number(value.replace(/\D/g, "")) || 0 })} />
                 </View>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Pressable onPress={() => remove(index)} hitSlop={8}>
-                    <T weight="bold" style={{ color: colors.danger }}>Remove</T>
+                    <T weight="bold" style={{ color: colors.danger }}>{t("remove")}</T>
                   </Pressable>
-                  <PillButton title="Done" size="sm" onPress={() => { update(index, { confidence: "ok" }); setEditing(null); }} />
+                  <PillButton title={t("done")} size="sm" onPress={() => { update(index, { confidence: "ok" }); setEditing(null); }} />
                 </View>
               </View>
             )}
@@ -107,10 +110,10 @@ export function ProductDraftsCard({ state }: { state: ReturnType<typeof useProdu
         );
       })}
       <View style={{ flexDirection: "row", gap: 8, marginTop: drafts.length ? 8 : 0 }}>
-        <PillButton title="Take a photo" size="md" style={{ flex: 1 }} busy={reading} onPress={() => void pick("camera")} />
-        <PillButton title="Choose photos" tone="white" size="md" style={{ flex: 1 }} disabled={reading} onPress={() => void pick("library")} />
+        <PillButton title={t("drafts.takePhoto")} size="md" style={{ flex: 1 }} busy={reading} onPress={() => void pick("camera")} />
+        <PillButton title={t("drafts.choosePhotos")} tone="white" size="md" style={{ flex: 1 }} disabled={reading} onPress={() => void pick("library")} />
       </View>
-      {reading && <T style={{ color: colors.inkSoft, marginTop: 10, textAlign: "center" }}>Rex is looking at your photos…</T>}
+      {reading && <T style={{ color: colors.inkSoft, marginTop: 10, textAlign: "center" }}>{t("drafts.reading")}</T>}
     </Card>
   );
 }

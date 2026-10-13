@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { LanguagePicker } from "@/components/i18n/LanguagePicker";
+import { useT } from "@/components/i18n/I18nProvider";
 import { SupportRequestPanel } from "@/components/support/SupportRequestPanel";
-import { roleDestination, roleLabel, type AuthRole } from "@/lib/brand";
+import { roleDestination, type AuthRole } from "@/lib/brand";
 import { getPublicEnv } from "@/lib/env";
 import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
 import intentRouting from "@/lib/intent-routing";
@@ -51,31 +52,16 @@ interface RoleCopy {
   next: string[];
 }
 
-const ROLE_COPY: Record<SignupRole, RoleCopy> = {
-  seller: {
-    tab: "I sell",
-    title: "Start your shop",
-    sub: "Rex will have your store ready in a few minutes. You can go live before you add a bank account.",
-    next: [
-      "Rex asks what you sell and how it should feel",
-      "You pick a logo, colours and a template",
-      "Add your first products from photos",
-      "Share your link and take orders",
-    ],
-  },
-  supplier: {
-    tab: "I supply shops",
-    title: "Supply shops across Nigeria",
-    sub: "List your stock once. Sellers order wholesale or dropship, and you ship straight to their customers.",
-    next: ["Tell us what you supply and where", "Add products with photos and prices", "Get verified so shops trust you", "Take wholesale and dropship orders"],
-  },
-  logistics_partner: {
-    tab: "I deliver",
-    title: "Deliver for Shopinbos shops",
-    sub: "Get delivery jobs from shops near you. Set your areas and prices; we send you the bookings.",
-    next: ["Tell us where you deliver", "Set your prices and vehicles", "Get verified", "Accept bookings and get paid"],
-  },
-};
+type AuthT = ReturnType<typeof useT<["auth", "common"]>>;
+
+function roleCopy(t: AuthT, role: SignupRole): RoleCopy {
+  return {
+    tab: t(`role.${role}.tab`),
+    title: t(`role.${role}.title`),
+    sub: t(`role.${role}.sub`),
+    next: [t(`role.${role}.next1`), t(`role.${role}.next2`), t(`role.${role}.next3`), t(`role.${role}.next4`)],
+  };
+}
 
 const SIGNUP_ROLES: SignupRole[] = ["seller", "supplier", "logistics_partner"];
 
@@ -151,13 +137,14 @@ function useIntentProduct(productSlug: string | null) {
 }
 
 export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
+  const t = useT("auth", "common");
   const searchParams = useSearchParams();
   const desktop = useIsDesktop();
   const params = useMemo(() => new URLSearchParams(searchParams.toString()), [searchParams]);
   const nextUrl = useMemo(() => buildNextUrl(role, mode, params), [role, mode, params]);
   const isAdmin = role === "admin";
   const signupRole: SignupRole = isAdmin ? "seller" : role;
-  const copy = ROLE_COPY[signupRole];
+  const copy = roleCopy(t, signupRole);
   const productSlug = params.get("productSlug");
   const intentProduct = useIntentProduct(productSlug);
   const hasIntent = Boolean(params.get("intent") || productSlug || params.get("supplierSlug") || params.get("logisticsSlug"));
@@ -177,13 +164,13 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const [target, setTarget] = useState<CodeTarget | null>(null);
   const [busy, setBusy] = useState<null | "send" | "verify" | "password" | "google">(null);
   const [error, setError] = useState<string | null>(
-    callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code" ? "That sign-in link has expired. Please try again." : null,
+    callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code" ? t("error.linkExpired") : null,
   );
   const [info, setInfo] = useState<string | null>(
     params.get("reason") === "expired"
-      ? "For your security, you've been logged out after a while. Log in again to carry on."
+      ? t("info.expired")
       : params.get("signedOut") === "all"
-        ? "You've been logged out on all your devices."
+        ? t("info.signedOutAll")
         : null,
   );
   const countdown = useCountdown();
@@ -216,7 +203,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         })
       : null;
     if (mode === "signup" && syncedRole && syncedRole !== role && !isAdmin) {
-      setError(`This account already belongs to a ${roleLabel(syncedRole).toLowerCase()}. Log in to that portal instead.`);
+      setError(t(`error.otherRole.${syncedRole}`));
       setBusy(null);
       return;
     }
@@ -229,20 +216,20 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     event?.preventDefault();
     resetMessages();
     if (mode === "signup" && !fullName.trim()) {
-      setError("Tell us your name so Rex knows what to call you.");
+      setError(t("error.needName"));
       return;
     }
     let nextTarget: CodeTarget;
     if (method === "phone") {
       const e164 = toE164(phone, country);
       if (!e164) {
-        setError(`Enter your ${country.name} phone number, like ${country.example}.`);
+        setError(t("error.phone", { country: country.name, example: country.example }));
         return;
       }
       nextTarget = { kind: "phone", phone: e164, via };
     } else {
       if (!isValidEmail(email)) {
-        setError("Enter a valid email address.");
+        setError(t("error.email"));
         return;
       }
       nextTarget = { kind: "email", email: email.trim().toLowerCase() };
@@ -285,7 +272,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     event.preventDefault();
     resetMessages();
     if (!isValidEmail(email) || !password) {
-      setError("Enter your email and password.");
+      setError(t("error.emailPassword"));
       return;
     }
     setBusy("password");
@@ -326,17 +313,17 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       <div className="relative flex flex-1 items-center justify-center">
         <Mascot name="rex" mood="wave" className="h-[260px] w-[260px]" />
         <span className="absolute right-0 top-10 rounded-[20px_20px_4px_20px] bg-white px-3.5 py-2.5 text-[14px] font-bold shadow-[0_10px_30px_-12px_rgba(22,20,31,0.3)]">
-          Hi, I&apos;m Rex. I build shops.
+          {t("welcome.bubble")}
         </span>
       </div>
-      <h1 className="m-0 text-[38px] font-extrabold leading-[1.02] tracking-[-1px]">Your shop, live in 10 minutes</h1>
-      <p className="mb-[22px] mt-2.5 leading-[1.5] text-app-ink-soft">Tell Rex what you sell. Sell on your own link, WhatsApp and Instagram. Free to start.</p>
-      <PillButton onClick={() => { chooseMethod("phone"); goTo("details"); }}>Start with my phone number</PillButton>
+      <h1 className="m-0 text-[38px] font-extrabold leading-[1.02] tracking-[-1px]">{t("welcome.title")}</h1>
+      <p className="mb-[22px] mt-2.5 leading-[1.5] text-app-ink-soft">{t("welcome.sub")}</p>
+      <PillButton onClick={() => { chooseMethod("phone"); goTo("details"); }}>{t("welcome.startPhone")}</PillButton>
       <PillButton tone="white" size="md" className="mt-2.5" onClick={() => { chooseMethod("email"); goTo("details"); }}>
-        Use email instead
+        {t("useEmail")}
       </PillButton>
       <Link href={switchHref} className="mt-1.5 grid min-h-[44px] place-items-center text-[15px] font-bold text-app-ink no-underline">
-        I already have a shop
+        {t("welcome.haveShop")}
       </Link>
     </div>
   );
@@ -354,7 +341,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
             aria-current={on ? "page" : undefined}
             className={cx("rounded-full px-4 py-2.5 text-[14px] font-bold no-underline transition", on ? "bg-app-ink text-white" : "text-app-ink hover:bg-white")}
           >
-            {ROLE_COPY[item].tab}
+            {t(`role.${item}.tab`)}
           </Link>
         );
       })}
@@ -378,12 +365,12 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
               {intentProduct.name}
               {intentProduct.price ? ` · ₦${intentProduct.price.toLocaleString("en-NG")}` : ""}
             </div>
-            {mode === "signup" ? "After you sign up, Rex adds this to your store. You don't need to buy stock." : "After you log in, we'll take you straight back to this product."}
+            {mode === "signup" ? t("intent.signupProduct") : t("intent.loginProduct")}
           </>
         ) : (
           <>
-            <div className="text-[15px] font-bold text-app-ink">We saved where you were</div>
-            After you {mode === "signup" ? "sign up" : "log in"}, we&apos;ll take you right back to it.
+            <div className="text-[15px] font-bold text-app-ink">{t("intent.saved")}</div>
+            {mode === "signup" ? t("intent.backSignup") : t("intent.backLogin")}
           </>
         )}
       </div>
@@ -396,70 +383,70 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       value={method}
       onChange={chooseMethod}
       options={[
-        { value: "phone", label: "Phone" },
-        { value: "email", label: "Email" },
+        { value: "phone", label: t("method.phone") },
+        { value: "email", label: t("method.email") },
       ]}
     />
   );
 
   const nameField = mode === "signup" && (
     <div className="mb-5">
-      <FieldLabel htmlFor="auth-name">Your name</FieldLabel>
+      <FieldLabel htmlFor="auth-name">{t("field.name")}</FieldLabel>
       <TextInput id="auth-name" autoComplete="name" placeholder="Adaeze Okafor" value={fullName} onChange={(event) => setFullName(event.target.value)} />
     </div>
   );
 
   const phoneFields = (
     <>
-      <FieldLabel htmlFor="auth-phone">{mode === "signup" ? "Phone number" : "Your phone number"}</FieldLabel>
+      <FieldLabel htmlFor="auth-phone">{mode === "signup" ? t("field.phone") : t("field.yourPhone")}</FieldLabel>
       <PhoneInput id="auth-phone" country={country} onCountry={setCountry} value={phone} onChange={setPhone} autoFocus={desktop && mode === "login"} />
       <p className="mt-3 flex items-start gap-2 text-[13px] leading-[1.45] text-app-ink-soft">
         <span className="mt-0.5 text-app-success"><Icon name="message" size={15} /></span>
-        We&apos;ll send a 6-digit code by SMS.
+        {t("field.smsNote")}
       </p>
     </>
   );
 
   const emailFields = (
     <>
-      <FieldLabel htmlFor="auth-email">Email</FieldLabel>
+      <FieldLabel htmlFor="auth-email">{t("method.email")}</FieldLabel>
       <TextInput id="auth-email" type="email" autoComplete="email" placeholder="you@yourshop.com" value={email} onChange={(event) => setEmail(event.target.value)} />
       {mode === "login" && emailMode === "password" && (
         <div className="mt-5">
           <div className="flex items-center justify-between">
-            <FieldLabel htmlFor="auth-password">Password</FieldLabel>
+            <FieldLabel htmlFor="auth-password">{t("field.password")}</FieldLabel>
             <Link href={`/forgot-password?role=${role}`} className="mb-2 text-[13px] font-bold text-app-ink-soft no-underline hover:text-app-ink">
-              Forgot password?
+              {t("field.forgot")}
             </Link>
           </div>
-          <TextInput id="auth-password" type="password" autoComplete="current-password" placeholder="Your password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <TextInput id="auth-password" type="password" autoComplete="current-password" placeholder={t("field.passwordPlaceholder")} value={password} onChange={(event) => setPassword(event.target.value)} />
         </div>
       )}
-      {mode === "signup" && <p className="mt-3 text-[13px] leading-[1.45] text-app-ink-soft">We&apos;ll email you a 6-digit code. No password needed.</p>}
+      {mode === "signup" && <p className="mt-3 text-[13px] leading-[1.45] text-app-ink-soft">{t("field.emailNote")}</p>}
     </>
   );
 
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
   const primaryLabel = usingPassword
-    ? "Log in"
+    ? t("logIn")
     : method === "phone"
-      ? "Send me a code by SMS"
-      : "Email me a code";
+      ? t("sendSms")
+      : t("emailCode");
 
   const secondaryLinks = (
     <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[14px] font-bold text-app-ink-soft">
       {method === "phone" ? (
         <>
-          <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("email")}>Use email instead</button>
+          <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("email")}>{t("useEmail")}</button>
         </>
       ) : (
         <>
-          {!isAdmin && <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("phone")}>Use my phone instead</button>}
+          {!isAdmin && <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("phone")}>{t("usePhone")}</button>}
           {mode === "login" && (
             <>
               {!isAdmin && <span className="h-4 w-px bg-app-line" aria-hidden />}
               <button type="button" className="hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
-                {emailMode === "code" ? "Use my password" : "Email me a code instead"}
+                {emailMode === "code" ? t("usePassword") : t("emailCodeInstead")}
               </button>
             </>
           )}
@@ -471,26 +458,26 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const googleButton = !isAdmin && (
     <>
       <div className="my-5 flex items-center gap-3 text-[12px] font-bold uppercase tracking-[0.12em] text-app-ink-faint">
-        <span className="h-px flex-1 bg-app-line" /> or <span className="h-px flex-1 bg-app-line" />
+        <span className="h-px flex-1 bg-app-line" /> {t("or")} <span className="h-px flex-1 bg-app-line" />
       </div>
       <PillButton tone="white" size="md" className="w-full" onClick={() => void google()} busy={busy === "google"} disabled={Boolean(busy)}>
-        <GoogleMark /> Continue with Google
+        <GoogleMark /> {t("google")}
       </PillButton>
     </>
   );
 
   const terms = mode === "signup" && (
     <p className="mt-5 text-center text-[12px] leading-[1.5] text-app-ink-soft">
-      By continuing you agree to the Shopinbos{" "}
-      <a href="https://shopinbos.com/terms" className="text-app-ink-soft underline">terms</a> and{" "}
-      <a href="https://shopinbos.com/privacy" className="text-app-ink-soft underline">privacy policy</a>, including how we handle your data under the NDPA.
+      {t("terms.before")}{" "}
+      <a href="https://shopinbos.com/terms" className="text-app-ink-soft underline">{t("terms.terms")}</a> {t("terms.and")}{" "}
+      <a href="https://shopinbos.com/privacy" className="text-app-ink-soft underline">{t("terms.privacy")}</a>{t("terms.after")}
     </p>
   );
 
-  const heading = mode === "signup" ? (desktop ? copy.title : role === "seller" ? "Create your account" : `Create your ${roleLabel(role).toLowerCase()} account`) : isAdmin ? "Admin sign in" : "Welcome back";
+  const heading = mode === "signup" ? (desktop ? copy.title : role === "supplier" || role === "logistics_partner" ? t(`heading.signupRole.${role}`) : t("heading.signup")) : isAdmin ? t("heading.admin") : t("heading.welcomeBack");
   const subheading = mode === "signup"
     ? desktop ? copy.sub : null
-    : isAdmin ? "Use your approved admin account." : `Log in to your ${role === "seller" ? "shop" : `${roleLabel(role).toLowerCase()} portal`} with the phone or email you signed up with.`;
+    : role === "admin" ? t("sub.admin") : t(`sub.login.${role}`);
 
   const detailsForm = (
     <form onSubmit={usingPassword ? submitPassword : requestCode} noValidate>
@@ -503,7 +490,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         {nameField}
         {method === "phone" ? phoneFields : emailFields}
       </div>
-      {error && <div className="mt-5"><Notice>{error}{/couldn't find an account/i.test(error) && mode === "login" && <> <Link href={switchHref} className="font-bold text-app-danger underline">Create a shop</Link></>}</Notice></div>}
+      {error && <div className="mt-5"><Notice>{error}{/couldn't find an account/i.test(error) && mode === "login" && <> <Link href={switchHref} className="font-bold text-app-danger underline">{t("createShop")}</Link></>}</Notice></div>}
       {info && <div className="mt-5"><Notice tone="info">{info}</Notice></div>}
       {desktop && (
         <>
@@ -520,14 +507,14 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           <div className="h-28" aria-hidden />
           <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-app-canvas via-app-canvas to-transparent px-[22px] pb-[22px] pt-6">
             {terms && <div className="mb-3 [&>p]:mt-0 [&>p]:text-left">{terms}</div>}
-            <PillButton type="submit" className="w-full" busy={busy === "send" || busy === "password"}>{mode === "signup" ? "Send code" : primaryLabel}</PillButton>
+            <PillButton type="submit" className="w-full" busy={busy === "send" || busy === "password"}>{mode === "signup" ? t("sendCode") : primaryLabel}</PillButton>
           </div>
         </>
       )}
     </form>
   );
 
-  const destinationLabel = target?.kind === "phone" ? `SMS on ${formatE164(target.phone)}` : target?.email ?? "";
+  const destinationLabel = target?.kind === "phone" ? t("code.smsOn", { phone: formatE164(target.phone) }) : target?.email ?? "";
 
   const codeForm = (
     <form
@@ -536,26 +523,26 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         void submitCode();
       }}
     >
-      <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Enter the code</h1>
+      <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("code.title")}</h1>
       <p className="mb-6 mt-2 text-app-ink-soft">
-        We sent it to {destinationLabel}.{mode === "login" ? " No code? Check it's the one you signed up with." : ""}
+        {t("code.sentTo", { destination: destinationLabel })}{mode === "login" ? ` ${t("code.checkSame")}` : ""}
       </p>
       <CodeInput value={code} onChange={setCode} onComplete={(value) => void submitCode(value)} disabled={busy === "verify"} />
       <div className="mt-4 text-[14px] text-app-ink-soft">
         {countdown.seconds > 0 ? (
-          <>Didn&apos;t get it? Resend in 0:{String(countdown.seconds).padStart(2, "0")}</>
+          <>{t("code.resendIn", { seconds: String(countdown.seconds).padStart(2, "0") })}</>
         ) : (
           <div className="flex flex-wrap gap-x-4 gap-y-2 font-bold">
-            <button type="button" className="text-app-ink" onClick={() => target && void deliverCode(target)} disabled={Boolean(busy)}>Resend code</button>
+            <button type="button" className="text-app-ink" onClick={() => target && void deliverCode(target)} disabled={Boolean(busy)}>{t("code.resend")}</button>
           </div>
         )}
       </div>
       {error && <div className="mt-5"><Notice>{error}</Notice></div>}
       {desktop ? (
-        <PillButton type="submit" tone="accent" size="md" className="mt-8 w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH}>Verify</PillButton>
+        <PillButton type="submit" tone="accent" size="md" className="mt-8 w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH}>{t("code.verify")}</PillButton>
       ) : (
         <div className="fixed inset-x-0 bottom-0 px-[22px] pb-[22px]">
-          <PillButton type="submit" className="w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH}>Verify</PillButton>
+          <PillButton type="submit" className="w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH}>{t("code.verify")}</PillButton>
         </div>
       )}
     </form>
@@ -578,7 +565,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           <div className="flex items-center gap-3">
             {activeScreen === "details" && (
               <Link href={switchHref} className="text-[14px] font-bold text-app-ink no-underline">
-                {mode === "signup" ? "Log in" : "Create a shop"}
+                {mode === "signup" ? t("logIn") : t("createShop")}
               </Link>
             )}
             <LanguagePicker variant="globe" />
@@ -594,12 +581,12 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     <div className="min-h-dvh bg-app-canvas font-app text-app-ink">
       <header className="border-b border-app-line bg-white">
         <div className="mx-auto flex h-[72px] max-w-[1136px] items-center justify-between px-6">
-          <a href="https://shopinbos.com" aria-label="Shopinbos home"><Wordmark className="h-[20px]" /></a>
+          <a href="https://shopinbos.com" aria-label={t("homeAria")}><Wordmark className="h-[20px]" /></a>
           <div className="flex items-center gap-5">
             <LanguagePicker variant="globe" />
-            <span className="text-[14px] text-app-ink-soft">{mode === "signup" ? "Already have a shop?" : "New to Shopinbos?"}</span>
+            <span className="text-[14px] text-app-ink-soft">{mode === "signup" ? t("header.haveShop") : t("header.new")}</span>
             <Link href={switchHref} className="rounded-full bg-app-accent px-4 py-2.5 text-[14px] font-bold text-white no-underline hover:brightness-95">
-              {mode === "signup" ? "Log in" : isAdmin ? "Back to app" : "Start your shop"}
+              {mode === "signup" ? t("logIn") : isAdmin ? t("header.backToApp") : t("header.startShop")}
             </Link>
           </div>
         </div>
@@ -623,9 +610,10 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 }
 
 function WhatHappensNext({ steps }: { steps: string[] }) {
+  const t = useT("auth");
   return (
     <>
-      <div className="mb-6 text-[13px] font-extrabold uppercase tracking-[0.08em]">What happens next</div>
+      <div className="mb-6 text-[13px] font-extrabold uppercase tracking-[0.08em]">{t("next.title")}</div>
       <ol className="m-0 grid list-none gap-5 p-0">
         {steps.map((step, index) => (
           <li key={step} className="flex items-center gap-4 text-[17px] font-semibold">
@@ -639,17 +627,18 @@ function WhatHappensNext({ steps }: { steps: string[] }) {
 }
 
 function LoginAside({ role }: { role: AuthRole }) {
+  const t = useT("auth");
   const lines: Record<AuthRole, ReactNode> = {
-    seller: "Peggy kept an eye on your shop while you were away. Your orders, chats and payouts are waiting.",
-    supplier: "Your products, quote requests and wholesale orders are where you left them.",
-    logistics_partner: "Your bookings, coverage and payouts are where you left them.",
-    admin: "Approvals, reviews and marketplace operations.",
+    seller: t("aside.seller"),
+    supplier: t("aside.supplier"),
+    logistics_partner: t("aside.logistics_partner"),
+    admin: t("aside.admin"),
   };
   return (
     <div className="flex items-center gap-5">
       <Mascot name="peggy-wave" className="h-[120px] w-[120px]" />
       <div>
-        <div className="text-[22px] font-extrabold tracking-[-0.3px]">Good to see you again</div>
+        <div className="text-[22px] font-extrabold tracking-[-0.3px]">{t("aside.title")}</div>
         <p className="mb-0 mt-2 max-w-[400px] leading-[1.55] text-app-ink-soft">{lines[role]}</p>
       </div>
     </div>
@@ -660,6 +649,7 @@ const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replac
 
 /** Compact "Stuck? Talk to us" for phone layouts and the password screens; opens the same support panel. */
 export function StuckLink({ className = "" }: { className?: string }) {
+  const t = useT("auth");
   const [open, setOpen] = useState(false);
   return (
     <div className={className}>
@@ -670,7 +660,7 @@ export function StuckLink({ className = "" }: { className?: string }) {
         className="flex w-full items-center gap-3 rounded-[18px] border border-app-line bg-white px-4 py-3 text-left text-[14px] leading-[1.45] text-app-ink hover:border-app-line-strong"
       >
         <Mascot name="peggy" className="h-10 w-10 shrink-0" alt="" />
-        <span className="min-w-0 flex-1"><span className="font-extrabold">Stuck? Talk to us.</span> A real person replies, in English or Pidgin.</span>
+        <span className="min-w-0 flex-1"><span className="font-extrabold">{t("stuck.title")}</span> {t("stuck.sub")}</span>
         <Icon name="arrow" size={16} />
       </button>
       <SupportRequestPanel open={open} onClose={() => setOpen(false)} />
@@ -680,6 +670,7 @@ export function StuckLink({ className = "" }: { className?: string }) {
 
 // "Stuck?" opens the support panel (a real ticket with the team), with email/WhatsApp kept as a fallback link.
 function HelpCard() {
+  const t = useT("auth");
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-10">
@@ -691,13 +682,13 @@ function HelpCard() {
       >
         <Mascot name="peggy" className="h-14 w-14 shrink-0" alt="" />
         <span className="min-w-0 flex-1">
-          <span className="block font-extrabold">Stuck? Talk to us.</span>
-          A real person replies, in English or Pidgin.
+          <span className="block font-extrabold">{t("stuck.title")}</span>
+          {t("stuck.sub")}
         </span>
         <Icon name="arrow" size={18} />
       </button>
       <p className="m-0 mt-3 px-2 text-[13px] text-app-ink-soft">
-        or email{" "}
+        {t("stuck.orEmail")}{" "}
         <a href="mailto:support@shopinbos.com" className="font-semibold text-app-ink underline-offset-2 hover:underline">support@shopinbos.com</a>
         {SUPPORT_WHATSAPP ? (
           <>

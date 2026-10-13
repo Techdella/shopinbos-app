@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 /**
  * The delivery company's own pay-in account (spec 8A: "Paying in cash shows their own account number with a Copy
@@ -10,6 +11,7 @@ import { Icon } from "@/components/ui/Icon";
  */
 export function PayInAccountCard({ accountNumber, bankName, accountName }: { accountNumber: string; bankName: string; accountName: string }) {
   const [copied, setCopied] = useState(false);
+  const t = useT("logistics", "common");
 
   async function copy() {
     try {
@@ -23,21 +25,21 @@ export function PayInAccountCard({ accountNumber, bankName, accountName }: { acc
 
   return (
     <div className="grid gap-3 rounded-[18px] border border-app-line bg-white p-4">
-      <div className="text-[15px] font-bold text-app-ink-soft">Your pay-in account</div>
+      <div className="text-[15px] font-bold text-app-ink-soft">{t("payin.yourAccount")}</div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="font-mono text-[28px] font-extrabold tracking-[0.06em] text-app-ink" aria-label={`Account number ${accountNumber.split("").join(" ")}`}>
+        <span className="font-mono text-[28px] font-extrabold tracking-[0.06em] text-app-ink" aria-label={t("payin.accountNumberAria", { digits: accountNumber.split("").join(" ") })}>
           {accountNumber}
         </span>
         <PillButton tone={copied ? "white" : "ink"} size="sm" onClick={copy} className="min-h-[40px]" aria-live="polite">
           <Icon name="copy" size={15} />
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("copied") : t("copy")}
         </PillButton>
       </div>
       <div className="grid gap-0.5 text-[15px]">
         <span className="font-bold text-app-ink">{bankName}</span>
         <span className="text-app-ink-soft">{accountName}</span>
       </div>
-      <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">We match your payment automatically. It shows here within a few minutes.</p>
+      <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">{t("payin.matchAuto")}</p>
     </div>
   );
 }

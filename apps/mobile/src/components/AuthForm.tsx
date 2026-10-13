@@ -11,6 +11,7 @@ import { rememberSignedInRole } from "@/lib/role";
 import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
 import { LanguageButton } from "@/components/LanguagePicker";
+import { useT } from "@/lib/i18n";
 
 type Mode = "signup" | "login";
 type Method = "phone" | "email";
@@ -26,9 +27,11 @@ function GoogleMark() {
   );
 }
 
-const ROLE_HEADING: Record<SignupRole, string> = { seller: "Create your account", supplier: "Create your supplier account", logistics_partner: "Create your delivery partner account" };
+// m_auth keys; SIGNUP_ROLES (lib/partner-pure.ts) keeps the English words and is translated here as "role.<role>.*".
+const ROLE_HEADING = { seller: "heading.seller", supplier: "heading.supplier", logistics_partner: "heading.logistics" } as const satisfies Record<SignupRole, string>;
 
 export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller" }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole }) {
+  const t = useT("m_auth");
   const [method, setMethod] = useState<Method>(initialMethod);
   // Who is signing up: "I sell / I supply shops / I deliver" (like the web sign-up). Sets the account's role.
   const [role, setRole] = useState<SignupRole>(initialRole);
@@ -49,21 +52,21 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   async function finish(signedUp: boolean, phoneNumber?: string) {
     const actual = await syncAccount({ fullName: name.trim() || undefined, phone: phoneNumber, signup: signedUp, role });
     await rememberSignedInRole(actual);
-    if (signedUp && actual && actual !== role) Alert.alert("You already have an account", "We've opened the account you made before with this login.");
+    if (signedUp && actual && actual !== role) Alert.alert(t("form.existingTitle"), t("form.existingBody"));
     router.replace("/");
   }
 
   async function submit() {
     setError(null);
-    if (mode === "signup" && !name.trim()) return setError("Tell us your name so Rex knows what to call you.");
+    if (mode === "signup" && !name.trim()) return setError(t("form.needName"));
     if (usingPassword) {
-      if (!isValidEmail(email) || !password) return setError("Enter your email and password.");
+      if (!isValidEmail(email) || !password) return setError(t("form.needEmailPassword"));
       setBusy("send");
       try {
         await signInWithPassword(email.trim().toLowerCase(), password);
         await finish(false);
       } catch (signInError) {
-        setError(signInError instanceof Error ? signInError.message : "Couldn't log you in. Check your connection and try again.");
+        setError(signInError instanceof Error ? signInError.message : t("form.loginFailed"));
         setBusy(null);
       }
       return;
@@ -71,10 +74,10 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     let target: CodeTarget;
     if (method === "phone") {
       const e164 = toE164(phone, country);
-      if (!e164) return setError(`Enter your ${country.name} phone number, like ${country.example}.`);
+      if (!e164) return setError(t("form.badPhone", { country: country.name, example: country.example }));
       target = { kind: "phone", phone: e164, via };
     } else {
-      if (!isValidEmail(email)) return setError("Enter a valid email address.");
+      if (!isValidEmail(email)) return setError(t("form.badEmail"));
       target = { kind: "email", email: email.trim().toLowerCase() };
     }
     setBusy("send");
@@ -82,7 +85,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
       await sendCode(target, { create: mode === "signup", fullName: name, role });
       router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role } });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Couldn't send the code. Check your connection and try again.");
+      setError(sendError instanceof Error ? sendError.message : t("form.sendFailed"));
     } finally {
       setBusy(null);
     }
@@ -95,13 +98,13 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
       const session = await signInWithGoogle();
       if (session) await finish(mode === "signup");
     } catch (googleError) {
-      setError(googleError instanceof Error ? googleError.message : "Google sign-in didn't work.");
+      setError(googleError instanceof Error ? googleError.message : t("form.googleFailed"));
     } finally {
       setBusy(null);
     }
   }
 
-  const primary = usingPassword ? "Log in" : mode === "signup" ? "Send code" : method === "phone" ? "Send me a code by SMS" : "Email me a code";
+  const primary = usingPassword ? t("form.logIn") : mode === "signup" ? t("form.sendCode") : method === "phone" ? t("form.smsCode") : t("form.emailCode");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -110,55 +113,55 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <LinkButton title={mode === "signup" ? "Log in" : "Create a shop"} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
+              <LinkButton title={mode === "signup" ? t("form.logIn") : t("form.createShop")} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
               <LanguageButton />
               <HelpButton />
             </View>
           </View>
           <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
-            {mode === "signup" ? ROLE_HEADING[role] : "Welcome back"}
+            {mode === "signup" ? t(ROLE_HEADING[role]) : t("form.welcomeBack")}
           </T>
           {mode === "signup" && (
-            <View style={{ marginTop: 16, gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="What do you do?">
+            <View style={{ marginTop: 16, gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel={t("form.whatDoYouDo")}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {SIGNUP_ROLES.map((item) => <Chip key={item.role} label={item.tab} on={role === item.role} onPress={() => { setError(null); setRole(item.role); }} />)}
+                {SIGNUP_ROLES.map((item) => <Chip key={item.role} label={t.dynamic(`role.${item.role}.tab`, item.tab)} on={role === item.role} onPress={() => { setError(null); setRole(item.role); }} />)}
               </View>
               {role === "logistics_partner" && (
                 <Pressable accessibilityRole="link" onPress={() => router.push("/rider/link")} hitSlop={6}>
-                  <T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>Riding for a delivery company? Open your Riders app link instead.</T>
+                  <T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("form.riderHint")}</T>
                 </Pressable>
               )}
             </View>
           )}
-          {mode === "login" && <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>Log in with the phone or email you signed up with.</T>}
+          {mode === "login" && <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>{t("form.loginSub")}</T>}
           <View style={{ marginTop: 22, marginBottom: 22 }}>
-            <Segmented value={method} onChange={(value) => { setError(null); setMethod(value); }} options={[{ value: "phone", label: "Phone" }, { value: "email", label: "Email" }]} />
+            <Segmented value={method} onChange={(value) => { setError(null); setMethod(value); }} options={[{ value: "phone", label: t("form.phone") }, { value: "email", label: t("form.email") }]} />
           </View>
           {mode === "signup" && (
             <View style={{ marginBottom: 18 }}>
-              <Label>Your name</Label>
+              <Label>{t("form.name")}</Label>
               <Field placeholder="Adaeze Okafor" autoComplete="name" textContentType="name" value={name} onChangeText={setName} />
             </View>
           )}
           {method === "phone" ? (
             <>
-              <Label>Phone number</Label>
+              <Label>{t("form.phoneNumber")}</Label>
               <PhoneField country={country} onCountryPress={() => setPicking(true)} value={phone} onChangeText={setPhone} />
               <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 12, lineHeight: 19 }}>
-                We&apos;ll send a 6-digit code by SMS.
+                {t("form.smsHint")}
               </T>
             </>
           ) : (
             <>
-              <Label>Email</Label>
+              <Label>{t("form.email")}</Label>
               <Field placeholder="you@yourshop.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" value={email} onChangeText={setEmail} />
               {usingPassword && (
                 <View style={{ marginTop: 18 }}>
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Label>Password</Label>
-                    <Pressable onPress={() => router.push("/forgot")} hitSlop={8}><T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>Forgot password?</T></Pressable>
+                    <Label>{t("form.password")}</Label>
+                    <Pressable onPress={() => router.push("/forgot")} hitSlop={8}><T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("form.forgot")}</T></Pressable>
                   </View>
-                  <Field placeholder="Your password" secureTextEntry autoComplete="current-password" textContentType="password" value={password} onChangeText={setPassword} />
+                  <Field placeholder={t("form.passwordPlaceholder")} secureTextEntry autoComplete="current-password" textContentType="password" value={password} onChangeText={setPassword} />
                 </View>
               )}
             </>
@@ -167,29 +170,29 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
           <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 18, marginTop: 10 }}>
             {method === "phone" ? (
               <>
-                <LinkButton title="Use email instead" color={colors.inkSoft} onPress={() => setMethod("email")} />
+                <LinkButton title={t("form.useEmail")} color={colors.inkSoft} onPress={() => setMethod("email")} />
               </>
             ) : (
               <>
-                <LinkButton title="Use my phone instead" color={colors.inkSoft} onPress={() => setMethod("phone")} />
-                {mode === "login" && <LinkButton title={emailMode === "code" ? "Use my password" : "Email me a code instead"} color={colors.inkSoft} onPress={() => setEmailMode(emailMode === "code" ? "password" : "code")} />}
+                <LinkButton title={t("form.usePhone")} color={colors.inkSoft} onPress={() => setMethod("phone")} />
+                {mode === "login" && <LinkButton title={emailMode === "code" ? t("form.usePassword") : t("form.useCode")} color={colors.inkSoft} onPress={() => setEmailMode(emailMode === "code" ? "password" : "code")} />}
               </>
             )}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 14 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-            <T weight="bold" style={{ color: colors.inkFaint, fontSize: 12, letterSpacing: 1.4 }}>OR</T>
+            <T weight="bold" style={{ color: colors.inkFaint, fontSize: 12, letterSpacing: 1.4 }}>{t("form.or")}</T>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
           </View>
           <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => void google()}>
             <GoogleMark />
-            <T weight="bold" style={{ fontSize: 15 }}>Continue with Google</T>
+            <T weight="bold" style={{ fontSize: 15 }}>{t("form.google")}</T>
           </PillButton>
         </ScrollView>
         <View style={{ paddingHorizontal: 22, paddingBottom: 12, paddingTop: 8 }}>
           {mode === "signup" && (
             <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18, marginBottom: 12 }}>
-              By continuing you agree to the Shopinbos terms and privacy policy, including how we handle your data under the NDPA.
+              {t("form.terms")}
             </T>
           )}
           <PillButton title={primary} busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} />
@@ -198,7 +201,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
       <Modal visible={picking} transparent animationType="slide" onRequestClose={() => setPicking(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => setPicking(false)}>
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 36 }}>
-            <T weight="extrabold" style={{ fontSize: 18, marginBottom: 10 }}>Your country</T>
+            <T weight="extrabold" style={{ fontSize: 18, marginBottom: 10 }}>{t("form.country")}</T>
             {DIAL_COUNTRIES.map((item) => (
               <Pressable key={item.code} accessibilityRole="button" onPress={() => { setCountry(item); setPicking(false); }} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line }}>
                 <T weight={item.code === country.code ? "bold" : "regular"} style={{ fontSize: 16 }}>{item.name}</T>

@@ -4,11 +4,24 @@ import { AppPage, Pill, type Tone } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { amountToCollect } from "@/lib/labels";
 import { naira } from "@shared/onboarding";
+import { intlLocale, type TFunction } from "@shared/i18n";
+import { getT } from "@/lib/i18n/server";
 
 // Shared pieces for the Shopinbos Partners (logistics) portal, following the
 // "Partners · web dispatch console" and "Partners · mobile" prototypes.
 
 export { naira };
+
+/**
+ * Any translate function (pages pass `await getT("logistics", "common")`). The kit's words live in the
+ * "logistics" namespace and are looked up with t.dynamic, so any page's t works. Without one, English.
+ */
+export type Translate = Pick<TFunction, "dynamic" | "locale">;
+
+/** The Intl tag for dates: en-GB for English (as before), else the language's own. */
+function dateTag(t?: Translate) {
+  return !t || t.locale === "en" ? "en-GB" : intlLocale(t.locale);
+}
 
 type FrameProps = Omit<ComponentProps<typeof AppFrame>, "children">;
 
@@ -17,11 +30,13 @@ export interface PartnerFrameInput {
   partner: { displayName: string; city?: string | null; logoUrl?: string | null; verificationStatus?: string };
 }
 
-export function partnerFrame({ user, partner }: PartnerFrameInput): FrameProps {
+export function partnerFrame({ user, partner }: PartnerFrameInput, t?: Translate): FrameProps {
   return {
     role: "logistics_partner",
     storeName: partner.displayName,
-    storeSlug: partner.city ? `${partner.city} · Partner` : "Delivery partner",
+    storeSlug: partner.city
+      ? t ? t.dynamic("kit.cityPartner", "{city} · Partner", { city: partner.city }) : `${partner.city} · Partner`
+      : t ? t.dynamic("kit.deliveryPartner", "Delivery partner") : "Delivery partner",
     storeInitial: partner.displayName.charAt(0).toUpperCase(),
     storeLogoUrl: partner.logoUrl ?? null,
     userName: user.name,
@@ -33,14 +48,15 @@ export function partnerFrame({ user, partner }: PartnerFrameInput): FrameProps {
 }
 
 /** AppPage with the partner portal frame. */
-export function PartnerPage({ frame, ...props }: { frame: PartnerFrameInput } & Omit<ComponentProps<typeof AppPage>, "frame">) {
-  return <AppPage frame={partnerFrame(frame)} {...props} />;
+export async function PartnerPage({ frame, ...props }: { frame: PartnerFrameInput } & Omit<ComponentProps<typeof AppPage>, "frame">) {
+  const t = await getT("logistics");
+  return <AppPage frame={partnerFrame(frame, t)} {...props} />;
 }
 
 /** "Saved" / error banner driven by the ?saved= and ?error= params the server actions redirect with. */
-export function ActionNotice({ saved, error, savedText = "Saved." }: { saved?: string; error?: string; savedText?: string }) {
+export async function ActionNotice({ saved, error, savedText }: { saved?: string; error?: string; savedText?: string }) {
   if (error) return <div className="mb-4"><Notice tone="error">{error}</Notice></div>;
-  if (saved) return <div className="mb-4"><Notice tone="success">{savedText}</Notice></div>;
+  if (saved) return <div className="mb-4"><Notice tone="success">{savedText ?? (await getT("logistics"))("kit.saved")}</Notice></div>;
   return null;
 }
 
@@ -59,12 +75,14 @@ const STAGE: Record<string, { label: string; tone: Tone }> = {
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
-export function bookingStage(status: string) {
-  return STAGE[status] ?? { label: status.replace(/_/g, " "), tone: "muted" as Tone };
+export function bookingStage(status: string, t?: Translate) {
+  const stage = STAGE[status];
+  if (!stage) return { label: status.replace(/_/g, " "), tone: "muted" as Tone };
+  return t ? { label: t.dynamic(`stage.${status}`, stage.label), tone: stage.tone } : stage;
 }
 
-export function StatusPill({ status }: { status: string }) {
-  const stage = bookingStage(status);
+export async function StatusPill({ status }: { status: string }) {
+  const stage = bookingStage(status, await getT("logistics"));
   return <Pill tone={stage.tone} dot>{stage.label}</Pill>;
 }
 
@@ -76,8 +94,10 @@ const QUOTE_STAGE: Record<string, { label: string; tone: Tone }> = {
   expired: { label: "Expired", tone: "muted" },
 };
 
-export function quoteStage(status: string) {
-  return QUOTE_STAGE[status] ?? { label: status, tone: "muted" as Tone };
+export function quoteStage(status: string, t?: Translate) {
+  const stage = QUOTE_STAGE[status];
+  if (!stage) return { label: status, tone: "muted" as Tone };
+  return t ? { label: t.dynamic(`quoteStage.${status}`, stage.label), tone: stage.tone } : stage;
 }
 
 /** Short job id shown to people: "J-8836". */
@@ -97,17 +117,18 @@ export function packageInfo(value: unknown): PackageInfo {
 }
 
 /** "Small bag · 0.4 kg · Fragile" from whatever the seller filled in. */
-export function packageSummary(value: unknown) {
+export function packageSummary(value: unknown, t?: Translate) {
   const pkg = packageInfo(value);
-  return [pkg.description, typeof pkg.weight === "number" ? `${pkg.weight} kg` : null, pkg.fragile ? "Fragile" : null].filter(Boolean).join(" · ") || "Package";
+  const fragile = pkg.fragile ? (t ? t.dynamic("kit.fragile", "Fragile") : "Fragile") : null;
+  return [pkg.description, typeof pkg.weight === "number" ? `${pkg.weight} kg` : null, fragile].filter(Boolean).join(" · ") || (t ? t.dynamic("kit.package", "Package") : "Package");
 }
 
 /** The route "Yaba → Ajah", shown the way the prototype does. */
-export function Route({ from, to, className }: { from: string; to: string; className?: string }) {
+export function Route({ from, to, className, toLabel = " to " }: { from: string; to: string; className?: string; toLabel?: string }) {
   return (
     <span className={className}>
       <span className="font-extrabold">{from}</span>
-      <span aria-label=" to " className="px-1 text-app-ink-soft">→</span>
+      <span aria-label={toLabel} className="px-1 text-app-ink-soft">→</span>
       <span className="font-extrabold">{to}</span>
     </span>
   );
@@ -120,25 +141,25 @@ export function lagosDay(date: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: LAGOS, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
-export function lagosTime(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, hour: "numeric", minute: "2-digit", hour12: true }).format(date);
+export function lagosTime(date: Date, t?: Translate) {
+  return new Intl.DateTimeFormat(dateTag(t), { timeZone: LAGOS, hour: "numeric", minute: "2-digit", hour12: true }).format(date);
 }
 
 /**
  * A date the way people say it: "today", "yesterday", "Friday" for the last week, otherwise "12 Oct".
  * Pass `opts` to force an exact format.
  */
-export function lagosDate(date: Date, opts?: Intl.DateTimeFormatOptions, now = new Date()) {
+export function lagosDate(date: Date, opts?: Intl.DateTimeFormatOptions, now = new Date(), t?: Translate) {
   if (!opts) {
     const dayMs = 24 * 60 * 60 * 1000;
     const diff = Math.round((Date.parse(lagosDay(now)) - Date.parse(lagosDay(date))) / dayMs);
-    if (diff === 0) return "today";
-    if (diff === 1) return "yesterday";
-    if (diff === -1) return "tomorrow";
-    if (diff > 1 && diff < 7) return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, weekday: "long" }).format(date);
+    if (diff === 0) return t ? t.dynamic("kit.today", "today") : "today";
+    if (diff === 1) return t ? t.dynamic("kit.yesterday", "yesterday") : "yesterday";
+    if (diff === -1) return t ? t.dynamic("kit.tomorrow", "tomorrow") : "tomorrow";
+    if (diff > 1 && diff < 7) return new Intl.DateTimeFormat(dateTag(t), { timeZone: LAGOS, weekday: "long" }).format(date);
     opts = { day: "numeric", month: "short" };
   }
-  return new Intl.DateTimeFormat("en-GB", { timeZone: LAGOS, ...opts }).format(date);
+  return new Intl.DateTimeFormat(dateTag(t), { timeZone: LAGOS, ...opts }).format(date);
 }
 
 /** Start of today in Lagos (UTC+1, no daylight saving). */
@@ -147,13 +168,13 @@ export function lagosStartOfToday(now = new Date()) {
   return new Date(Date.UTC(y, m - 1, d) - 60 * 60 * 1000);
 }
 
-export function timeAgo(date: Date, now = new Date()) {
+export function timeAgo(date: Date, now = new Date(), t?: Translate) {
   const minutes = Math.max(0, Math.round((now.getTime() - date.getTime()) / 60000));
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return t ? t.dynamic("kit.justNow", "just now") : "just now";
+  if (minutes < 60) return t ? t.dynamic("kit.minAgo", "{count} min ago", { count: minutes }) : `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  return lagosDate(date);
+  if (hours < 24) return t ? t.dynamic("kit.hoursAgo", "{count} h ago", { count: hours }) : `${hours} h ago`;
+  return lagosDate(date, undefined, now, t);
 }
 
 /** What the partner keeps from a booking: the stored net amount, or the fee less the platform fee. */

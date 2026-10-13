@@ -8,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Mascot, T, Wash, Wordmark, images } from "@/components/ui";
 import { PEGGY_TIPS, timeAgo, type CachedDashboard } from "@/lib/launch";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Loading states from the "App loading" prototype boards:
@@ -55,8 +56,9 @@ function useLoop(active: boolean, duration: number, easing: (value: number) => n
 /** The JS twin of the native splash (same green, same mark, plus the wordmark), shown while the app decides where to go. */
 export function LaunchView() {
   const insets = useSafeAreaInsets();
+  const t = useT("m_home");
   return (
-    <View style={{ flex: 1, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center" }} accessible accessibilityLabel="Shopinbos is starting" accessibilityState={{ busy: true }}>
+    <View style={{ flex: 1, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center" }} accessible accessibilityLabel={t("loading.starting")} accessibilityState={{ busy: true }}>
       <StatusBar style="light" />
       <Image source={images.markWhite} style={{ width: 76, height: 76 * MARK_RATIO }} contentFit="contain" />
       <View style={{ position: "absolute", bottom: Math.max(64, insets.bottom + 32), opacity: 0.85 }}>
@@ -74,8 +76,10 @@ const LINE_EVERY = 2000;
 export function OpeningShop({ storeName }: { storeName?: string | null }) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
-  const [tip] = useState(() => PEGGY_TIPS[Math.floor(Math.random() * PEGGY_TIPS.length)]);
-  const lines = [storeName ? `Opening ${storeName}` : "Opening your shop", "Checking new orders", "Peggy is getting your brief ready", "Almost there"];
+  const t = useT("m_home");
+  const [tipIndex] = useState(() => Math.floor(Math.random() * PEGGY_TIPS.length));
+  const tip = t.dynamic(`tip.${tipIndex + 1}`, PEGGY_TIPS[tipIndex]);
+  const lines = [storeName ? t("loading.openingName", { name: storeName }) : t("loading.opening"), t("loading.checkingOrders"), t("loading.brief"), t("loading.almost")];
 
   const spin = useLoop(!reduceMotion, 1200);
   const pulse = useLoop(!reduceMotion, 900, EASE_IN_OUT, true);
@@ -165,11 +169,11 @@ export function OpeningShop({ storeName }: { storeName?: string | null }) {
           transform: [{ translateY: tipIn.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
         }}
         accessible
-        accessibilityLabel={`Peggy's tip: ${tip}`}
+        accessibilityLabel={t("loading.tipLabel", { tip })}
       >
         <Mascot name="peggy" size={52} />
         <View style={{ flex: 1, gap: 4 }}>
-          <T weight="extrabold" style={{ fontSize: 12, color: MINT, letterSpacing: 0.5 }}>PEGGY’S TIP</T>
+          <T weight="extrabold" style={{ fontSize: 12, color: MINT, letterSpacing: 0.5 }}>{t("loading.tipTitle")}</T>
           <T style={{ fontSize: 14, lineHeight: 20, color: "#E6FBF6" }}>{tip}</T>
         </View>
       </Animated.View>
@@ -191,6 +195,7 @@ export function HomeSkeleton() {
   const shimmer = useLoop(!reduceMotion, 700, EASE_IN_OUT, true);
   const opacity = reduceMotion ? 1 : shimmer.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] });
   const bars = ["40%", "65%", "50%", "80%", "55%", "70%"] as const;
+  const t = useT("m_home");
 
   return (
     <View style={{ flex: 1 }}>
@@ -210,12 +215,12 @@ export function HomeSkeleton() {
             <Bone tone="wash" width={260} height={34} radius={12} style={{ maxWidth: "80%" }} opacity={opacity} />
           </View>
 
-          <Pressable accessibilityRole="button" accessibilityLabel="Ask Peggy anything" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: radii.pill, paddingHorizontal: 8, height: 54 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("askPeggy")} onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: radii.pill, paddingHorizontal: 8, height: 54 }}>
             <Mascot name="peggy" size={36} label="" />
-            <T weight="semibold" style={{ fontSize: 14.5, color: colors.inkSoft }}>Ask Peggy anything</T>
+            <T weight="semibold" style={{ fontSize: 14.5, color: colors.inkSoft }}>{t("askPeggy")}</T>
           </Pressable>
 
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, padding: 16, gap: 14 }} accessible accessibilityRole="progressbar" accessibilityLabel="Loading your sales" accessibilityState={{ busy: true }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 24, padding: 16, gap: 14 }} accessible accessibilityRole="progressbar" accessibilityLabel={t("loading.sales")} accessibilityState={{ busy: true }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <Bone width={110} height={14} opacity={opacity} />
               <Bone width={60} height={14} opacity={opacity} />
@@ -238,9 +243,9 @@ export function HomeSkeleton() {
           </View>
 
           <View style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 16, gap: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessible accessibilityRole="progressbar" accessibilityLabel="Peggy is getting your brief ready" accessibilityState={{ busy: true }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessible accessibilityRole="progressbar" accessibilityLabel={t("loading.brief")} accessibilityState={{ busy: true }}>
               <Mascot name="peggy" mood="thinking" size={34} label="" />
-              <T weight="extrabold" style={{ flex: 1, fontSize: 14, color: colors.forest }}>Peggy is getting your brief ready</T>
+              <T weight="extrabold" style={{ flex: 1, fontSize: 14, color: colors.forest }}>{t("loading.brief")}</T>
             </View>
             {[["80%", "55%"], ["70%", "45%"]].map(([first, second], index) => (
               <View key={index} style={{ flexDirection: "row", gap: 10, alignItems: "center" }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -261,12 +266,13 @@ export function HomeSkeleton() {
 // ── 4 · Slow network or offline ─────────────────────────────────────────────
 
 export function OfflineBanner({ offline, savedAt, action }: { offline: boolean; savedAt: number; action?: ReactNode }) {
-  const lead = offline ? "You’re offline." : "Your network is slow.";
+  const t = useT("m_home");
+  const ago = timeAgo(savedAt, Date.now(), t);
   return (
     <View style={{ backgroundColor: AMBER.bg, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 10 }} accessibilityLiveRegion="polite">
       <AppIcon name="wifiOff" size={20} color={AMBER.fg} strokeWidth={2} />
       <T weight="bold" style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: AMBER.fg }}>
-        {lead} Showing what you saw {timeAgo(savedAt)}.
+        {offline ? t("offline.bannerOffline", { ago }) : t("offline.bannerSlow", { ago })}
       </T>
       {action}
     </View>
@@ -308,6 +314,7 @@ export function SlowNetwork({
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const compact = height < 700;
+  const t = useT("m_home", "common");
 
   // Re-render every second for the "next try" countdown and the "N min ago" age.
   const [now, setNow] = useState(Date.now());
@@ -317,15 +324,14 @@ export function SlowNetwork({
   }, []);
   const waitSeconds = nextRetryAt ? Math.max(0, Math.ceil((nextRetryAt - now) / 1000)) : 0;
 
-  const body = offline
-    ? "We can’t reach Shopinbos right now. Check your mobile data or Wi‑Fi. We’ll keep trying."
-    : "We’re still trying to load your shop. Check your connection. We’ll keep trying.";
+  const body = offline ? t("offline.bodyOffline") : t("offline.bodySlow");
+  const ago = cached ? timeAgo(cached.savedAt, now, t) : "";
 
   const still: Array<{ icon: AppIconName; label: string; tint?: boolean }> = [];
   if (cached) {
-    still.push({ icon: "receipt", label: "Today’s sales and orders", tint: true });
-    if (cached.data.tasks.length) still.push({ icon: "sparkle", label: "What Peggy needs you for" });
-    if (cached.data.sellingFast.length) still.push({ icon: "tag", label: "Stock and prices of best sellers" });
+    still.push({ icon: "receipt", label: t("offline.stillSales"), tint: true });
+    if (cached.data.tasks.length) still.push({ icon: "sparkle", label: t("offline.stillTasks") });
+    if (cached.data.sellingFast.length) still.push({ icon: "tag", label: t("offline.stillStock") });
   }
 
   return (
@@ -340,7 +346,7 @@ export function SlowNetwork({
         <View style={{ paddingTop: compact ? 28 : 48, paddingHorizontal: 24, alignItems: "center", gap: 14 }}>
           <Mascot name="peggy" mood="oops" size={compact ? 96 : 120} label="" />
           <T weight="extrabold" style={{ fontSize: 26, letterSpacing: -0.26, textAlign: "center" }} accessibilityRole="header">
-            {offline ? "You’re offline" : "Your network is slow"}
+            {offline ? t("offline.titleOffline") : t("offline.titleSlow")}
           </T>
           <T style={{ fontSize: 15, lineHeight: 23, color: colors.inkSoft, textAlign: "center", maxWidth: 310 }}>{body}</T>
         </View>
@@ -348,7 +354,7 @@ export function SlowNetwork({
         {still.length > 0 && cached && (
           <View style={{ marginTop: 26, marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 24, paddingVertical: 6, paddingHorizontal: 16 }}>
             <T weight="extrabold" style={{ fontSize: 12, color: colors.inkSoft, letterSpacing: 0.5, paddingTop: 12, paddingBottom: 4 }}>
-              YOU CAN STILL SEE · FROM {timeAgo(cached.savedAt, now).toUpperCase()}
+              {t("offline.stillTitle", { ago }).toUpperCase()}
             </T>
             {still.map((item, index) => (
               <StillRow key={item.label} {...item} onPress={onUseCached} last={index === still.length - 1} />
@@ -360,25 +366,25 @@ export function SlowNetwork({
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: Math.max(insets.bottom, 16) + 8, gap: 10 }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={attempting ? "Trying again" : "Try again now"}
-          accessibilityHint={!attempting && waitSeconds ? `Shopinbos tries again by itself in ${waitSeconds} seconds` : undefined}
+          accessibilityLabel={attempting ? t("offline.trying") : t("offline.tryNow")}
+          accessibilityHint={!attempting && waitSeconds ? t("offline.retryHint", { count: waitSeconds }) : undefined}
           accessibilityState={{ busy: attempting }}
           onPress={attempting ? undefined : onRetry}
           style={({ pressed }) => ({ minHeight: 52, borderRadius: radii.pill, backgroundColor: colors.ink, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.85 : 1 })}
         >
           {attempting && <ActivityIndicator size="small" color="#FFFFFF" />}
           <T weight="bold" style={{ fontSize: 16, color: "#FFFFFF" }}>
-            {attempting ? "Trying again…" : waitSeconds ? `Try again now · ${waitSeconds}s` : "Try again"}
+            {attempting ? t("offline.tryingDots") : waitSeconds ? t("offline.tryNowIn", { seconds: waitSeconds }) : t("tryAgain")}
           </T>
         </Pressable>
         {cached && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={offline ? "Keep working offline" : `Show what you saw ${timeAgo(cached.savedAt, now)}`}
+            accessibilityLabel={offline ? t("offline.keepWorking") : t("offline.showSaved", { ago })}
             onPress={onUseCached}
             style={({ pressed }) => ({ minHeight: 52, borderRadius: radii.pill, backgroundColor: pressed ? colors.canvas : colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 })}
           >
-            <T weight="bold" style={{ fontSize: 16 }}>{offline ? "Keep working offline" : `Show what you saw ${timeAgo(cached.savedAt, now)}`}</T>
+            <T weight="bold" style={{ fontSize: 16 }}>{offline ? t("offline.keepWorking") : t("offline.showSaved", { ago })}</T>
           </Pressable>
         )}
       </View>

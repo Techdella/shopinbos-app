@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { BRAND_LOOKS, BRAND_PALETTES, ONBOARDING_LANGUAGES, shopSlug, type BrandLook, type BrandPalette, type OnboardingLanguage } from "@shared/onboarding";
 import { localeFromName } from "@shared/i18n";
 import { useLocale } from "@/lib/i18n";
+import { tNow } from "@/lib/app-locale";
 import { buildStore, fetchStatus, type OnboardingStatus } from "@/lib/onboarding";
 
 interface OnboardingState {
@@ -42,7 +43,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       setError(null);
       return next;
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Couldn't load your shop. Check your connection and try again.");
+      setError(loadError instanceof Error ? loadError.message : tNow("m_onboarding")("loadFailed"));
       return null;
     }
   }, []);

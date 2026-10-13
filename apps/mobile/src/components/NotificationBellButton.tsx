@@ -4,10 +4,12 @@ import { router, useFocusEffect } from "expo-router";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
 import { fetchUnreadCount, getUnreadCount, onUnreadCount, setUnreadCount } from "@/lib/notifications";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 /** The bell in a screen header: unread count, opens Notifications. */
 export function NotificationBellButton() {
+  const t = useT("m_notifications");
   const [count, setCount] = useState(getUnreadCount());
   useEffect(() => onUnreadCount(setCount), []);
   useFocusEffect(
@@ -18,7 +20,7 @@ export function NotificationBellButton() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={count ? `Notifications, ${count} unread` : "Notifications"}
+      accessibilityLabel={count ? t("bell.unread", { count }) : t("bell.label")}
       onPress={() => router.push("/notifications")}
       hitSlop={6}
       style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}

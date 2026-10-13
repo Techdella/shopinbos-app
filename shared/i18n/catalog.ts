@@ -7,6 +7,24 @@ import settings from "./messages/settings/index.ts";
 import learn from "./messages/learn/index.ts";
 import glossary from "./messages/glossary/index.ts";
 import intros from "./messages/intros/index.ts";
+import supplier from "./messages/supplier/index.ts";
+import logistics from "./messages/logistics/index.ts";
+import rider from "./messages/rider/index.ts";
+import verification from "./messages/verification/index.ts";
+import marketing from "./messages/marketing/index.ts";
+import emailBuilder from "./messages/emailBuilder/index.ts";
+import automations from "./messages/automations/index.ts";
+import inbox from "./messages/inbox/index.ts";
+import social from "./messages/social/index.ts";
+import ads from "./messages/ads/index.ts";
+import video from "./messages/video/index.ts";
+import affiliates from "./messages/affiliates/index.ts";
+import analytics from "./messages/analytics/index.ts";
+import reviews from "./messages/reviews/index.ts";
+import discounts from "./messages/discounts/index.ts";
+import peggy from "./messages/peggy/index.ts";
+import rex from "./messages/rex/index.ts";
+import auth from "./messages/auth/index.ts";
 
 export const CATALOGS = {
   common,
@@ -15,6 +33,24 @@ export const CATALOGS = {
   learn,
   glossary,
   intros,
+  supplier,
+  logistics,
+  rider,
+  verification,
+  marketing,
+  emailBuilder,
+  automations,
+  inbox,
+  social,
+  ads,
+  video,
+  affiliates,
+  analytics,
+  reviews,
+  discounts,
+  peggy,
+  rex,
+  auth,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

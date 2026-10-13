@@ -5,6 +5,7 @@ import { isLocale, negotiateLocale, type Locale, type TFunction } from "@shared/
 import { tFor, type KeysOf, type Namespace } from "@shared/i18n/catalog";
 import { parsePreferences } from "@shared/preferences";
 import { api } from "./api";
+import { setAppLocale } from "./app-locale";
 import { useSession } from "./session";
 
 // App-wide language on the phone (same catalogs as the web, shared/i18n). Mounted in app/_layout.tsx.
@@ -68,6 +69,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const localeRef = useRef(locale);
+  // Code outside React (API error lines, lib alerts) reads the language from lib/app-locale.
+  setAppLocale(locale);
   useEffect(() => {
     localeRef.current = locale;
   }, [locale]);

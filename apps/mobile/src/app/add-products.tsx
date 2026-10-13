@@ -6,9 +6,11 @@ import { HelpButton } from "@/components/Help";
 import { BackButton, Notice, PillButton, T } from "@/components/ui";
 import { ProductDraftsCard, useProductDrafts } from "@/components/ProductDrafts";
 import { colors } from "@/theme";
+import { useT } from "@/lib/i18n";
 
 // The orange "+" button: snap or pick photos, Rex names and prices them, they go straight into the shop.
 export default function AddProducts() {
+  const t = useT("m_products", "common");
   const drafts = useProductDrafts();
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0);
@@ -20,7 +22,7 @@ export default function AddProducts() {
     try {
       if (await drafts.save()) setSaved((total) => total + count);
     } catch (saveError) {
-      drafts.setError(saveError instanceof Error ? saveError.message : "Couldn't add those products. Check your connection and try again.");
+      drafts.setError(saveError instanceof Error ? saveError.message : t("add.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -34,17 +36,17 @@ export default function AddProducts() {
         <HelpButton />
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}>
-        <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">Add a product</T>
-        <T style={{ color: colors.inkSoft, marginTop: 6, marginBottom: 18, lineHeight: 21 }}>Take a photo, or pick up to 6. Rex writes the name, price and description. You check them.</T>
-        {saved > 0 && <View style={{ marginBottom: 12 }}><Notice tone="success">{saved === 1 ? "It's in your shop now. Customers can see it." : `${saved} products are in your shop now. Customers can see them.`}</Notice></View>}
+        <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">{t("add.title")}</T>
+        <T style={{ color: colors.inkSoft, marginTop: 6, marginBottom: 18, lineHeight: 21 }}>{t("add.sub")}</T>
+        {saved > 0 && <View style={{ marginBottom: 12 }}><Notice tone="success">{t("add.saved", { count: saved })}</Notice></View>}
         <ProductDraftsCard state={drafts} />
       </ScrollView>
       <View style={{ paddingHorizontal: 18, paddingBottom: 10, paddingTop: 8 }}>
         {drafts.error && <View style={{ marginBottom: 10 }}><Notice>{drafts.error}</Notice></View>}
         {count > 0 ? (
-          <PillButton title={count === 1 ? "Put it in my shop" : `Put ${count} products in my shop`} busy={busy} disabled={drafts.reading} onPress={() => void save()} />
+          <PillButton title={t("add.put", { count })} busy={busy} disabled={drafts.reading} onPress={() => void save()} />
         ) : (
-          <PillButton title="Done" tone="white" onPress={() => router.back()} />
+          <PillButton title={t("done")} tone="white" onPress={() => router.back()} />
         )}
       </View>
     </SafeAreaView>
