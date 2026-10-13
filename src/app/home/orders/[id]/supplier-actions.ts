@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { cancelAndRefundAfterExpiry } from "@/lib/supplier-orders/seller-choices.server";
 import { undoSupplierSwitch } from "@/lib/supplier-orders/switch.server";
+import { getT } from "@/lib/i18n/server";
 
 // The seller's choice when a supplier didn't accept their order in time (src/lib/supplier-orders/acceptance.server.ts):
 // "Find another supplier" is a link; "Cancel and refund the customer" is this action. The stock goes back through
@@ -34,5 +35,6 @@ export async function undoSupplierSwitchAction(formData: FormData) {
   if (!store || !orderId || !replacementId) redirect("/home/orders");
   const result = await undoSupplierSwitch(store.id, replacementId);
   revalidatePath(`/home/orders/${orderId}`);
-  redirect(back(result.ok ? `saved=${encodeURIComponent("Undone. The order is back with you: find another supplier, or cancel and refund the customer.")}` : `error=${encodeURIComponent(result.message)}`));
+  const t = await getT("orders");
+  redirect(back(result.ok ? `saved=${encodeURIComponent(t("detail.undone"))}` : `error=${encodeURIComponent(result.message)}`));
 }

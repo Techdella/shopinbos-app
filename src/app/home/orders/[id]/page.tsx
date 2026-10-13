@@ -180,7 +180,6 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                             <input type="hidden" name="orderId" value={order.id} />
                             <input type="hidden" name="supplierOrderId" value={problem.switched.toSupplierOrderId} />
                             <span className="text-app-ink-soft">{t("detail.waitingFor", { name: problem.switched.toName })}</span>
-                            {/* Undo */}
                             <button type="submit" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">{t("detail.undo")}</button>
                           </form>
                         ) : problem.switched.accepted ? (

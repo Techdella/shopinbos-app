@@ -10,9 +10,14 @@ import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, SENDER_STORE_SELECT, storeSender } from "@/lib/email/compliance.server";
 import { invoiceEmail } from "@/lib/email/store-emails";
 import type { Prisma } from "@prisma/client";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatMoney } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Invoices" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("orders");
+  return { title: t("inv.title") };
+}
 
 function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
 
@@ -86,6 +91,9 @@ function orderTone(status: string): Tone {
 export default async function SellerInvoicesPage({ searchParams }: { searchParams?: Promise<{ show?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("orders", "common");
+  const locale = await getLocale();
+  const money = (n: number) => formatMoney(Math.round(n), locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -111,24 +119,24 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Invoices"
-      sub="Invoices for your orders, and ones you send to or get from suppliers, delivery partners and customers."
-      actions={<PillLink href="/home/payments" icon="coin">Money</PillLink>}
+      title={t("inv.title")}
+      sub={t("inv.sub")}
+      actions={<PillLink href="/home/payments" icon="coin">{t("inv.money")}</PillLink>}
     >
       <SplitLayout
         main={
           <>
             <StatGrid>
-              <StatTile tone="card" label="Order invoices" value={orders.length} hint="Latest 100 orders" />
-              <StatTile tone="card" label="Waiting for payment" value={fmt(pendingValue)} hint={`${pendingOrders.length} order${pendingOrders.length === 1 ? "" : "s"}`} />
-              <StatTile tone="card" label="Paid" value={paidOrders.length} hint="orders" />
-              <StatTile tone="card" label="Total ordered" value={fmt(grossValue)} />
+              <StatTile tone="card" label={t("inv.orderInvoices")} value={orders.length} hint={t("inv.latest100")} />
+              <StatTile tone="card" label={t("inv.waiting")} value={money(pendingValue)} hint={t("count.orders", { count: pendingOrders.length })} />
+              <StatTile tone="card" label={t("inv.paid")} value={paidOrders.length} hint={t("inv.ordersHint")} />
+              <StatTile tone="card" label={t("inv.totalOrdered")} value={money(grossValue)} />
             </StatGrid>
 
             <FilterChips
               items={[
-                { label: "Order invoices", href: "/home/invoices", count: orders.length, active: show === "orders" },
-                { label: "Invoices you made", href: "/home/invoices?show=manual", count: manualInvoices.length, active: show === "manual" },
+                { label: t("inv.orderInvoices"), href: "/home/invoices", count: orders.length, active: show === "orders" },
+                { label: t("inv.youMade"), href: "/home/invoices?show=manual", count: manualInvoices.length, active: show === "manual" },
               ]}
             />
 
@@ -143,62 +151,62 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
                       </span>
                       <span className="min-w-0 text-[13px] text-app-ink-soft sm:w-[150px]">
                         <span className="block truncate font-mono">{invoice.id}</span>
-                        <span className="block truncate">{humanize(invoice.partyType)} · {formatDate(invoice.createdAt)}</span>
+                        <span className="block truncate">{t.dynamic(`party.${invoice.partyType}`, humanize(invoice.partyType))} · {formatDate(invoice.createdAt, false, locale)}</span>
                       </span>
-                      <Pill tone={invoice.direction === "sent" ? "info" : "accent"}>{invoice.direction === "sent" ? "Sent" : "Received"}</Pill>
-                      <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{fmt(invoice.amount)}</span>
+                      <Pill tone={invoice.direction === "sent" ? "info" : "accent"}>{invoice.direction === "sent" ? t("inv.sent") : t("inv.received")}</Pill>
+                      <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{money(invoice.amount)}</span>
                     </ListRow>
                   ))}
                 </ListCard>
               ) : (
-                <EmptyState icon="document" title="No invoices made yet">Use the form to send an invoice, or to note one you got from a supplier or delivery partner.</EmptyState>
+                <EmptyState icon="document" title={t("inv.noneMade")}>{t("inv.noneMadeSub")}</EmptyState>
               )
             ) : orders.length ? (
               <ListCard>
                 {orders.slice(0, 50).map((o) => (
                   <ListRow key={o.id} href={`/home/orders/${o.id}`}>
                     <span className="min-w-0 flex-1 basis-full sm:basis-auto">
-                      <span className="block truncate text-[14.5px] font-extrabold">{o.buyerName || "Customer"}</span>
-                      <span className="block truncate text-[13px] text-app-ink-soft">{fmt(Number(o.subtotal))} + {fmt(Number(o.shippingFee))} delivery{o.buyerEmail ? ` · ${o.buyerEmail}` : ""}</span>
+                      <span className="block truncate text-[14.5px] font-extrabold">{o.buyerName || t("inv.customer")}</span>
+                      <span className="block truncate text-[13px] text-app-ink-soft">{t("inv.plusDelivery", { subtotal: money(Number(o.subtotal)), fee: money(Number(o.shippingFee)) })}{o.buyerEmail ? ` · ${o.buyerEmail}` : ""}</span>
                     </span>
                     <span className="min-w-0 text-[13px] text-app-ink-soft sm:w-[150px]">
                       <span className="block truncate font-mono">{o.orderNumber}</span>
-                      <span className="block truncate">{formatDate(o.createdAt)}</span>
+                      <span className="block truncate">{formatDate(o.createdAt, false, locale)}</span>
                     </span>
-                    <Pill tone={orderTone(o.status)}>{humanize(o.status)}</Pill>
-                    <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{fmt(Number(o.total))}</span>
+                    <Pill tone={orderTone(o.status)}>{t.dynamic(`status.${o.status}`, humanize(o.status))}</Pill>
+                    <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{money(Number(o.total))}</span>
                   </ListRow>
                 ))}
               </ListCard>
             ) : (
-              <EmptyState icon="document" title="No orders yet">Every order gets an invoice. They show up here once orders come in.</EmptyState>
+              <EmptyState icon="document" title={t("inv.noOrders")}>{t("inv.noOrdersSub")}</EmptyState>
             )}
           </>
         }
         side={
           <Card className="p-5">
-            <CardHead title="New invoice" sub="Sent invoices are emailed when you add an email." />
+            <CardHead title={t("inv.new")} sub={t("inv.newSub")} />
             <form id="new-invoice" action={createManualInvoice} className="mt-4 grid gap-4">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <Field label="Type" htmlFor="inv-direction">
+                <Field label={t("inv.type")} htmlFor="inv-direction">
                   <select id="inv-direction" name="direction" className={selectClass}>
-                    <option value="sent">I&apos;m sending it</option>
-                    <option value="received">I got it</option>
+                    <option value="sent">{t("inv.sending")}</option>
+                    <option value="received">{t("inv.gotIt")}</option>
                   </select>
                 </Field>
-                <Field label="Who" htmlFor="inv-party">
+                <Field label={t("inv.who")} htmlFor="inv-party">
                   <select id="inv-party" name="partyType" className={selectClass}>
-                    <option value="supplier">Supplier</option>
-                    <option value="logistics">Delivery partner</option>
-                    <option value="customer">Customer</option>
+                    <option value="supplier">{t("party.supplier")}</option>
+                    <option value="logistics">{t("party.logistics")}</option>
+                    <option value="customer">{t("party.customer")}</option>
                   </select>
                 </Field>
               </div>
-              <Field label="Their name" htmlFor="inv-name"><input id="inv-name" name="partyName" className={inputClass} required placeholder="Business name" /></Field>
-              <Field label="Their email (optional)" htmlFor="inv-email"><input id="inv-email" name="partyEmail" type="email" className={inputClass} placeholder="billing@example.com" /></Field>
-              <Field label="Amount (₦)" htmlFor="inv-amount"><input id="inv-amount" name="amount" type="number" min={1} step="0.01" className={inputClass} required placeholder="50000" /></Field>
-              <Field label="What it's for" htmlFor="inv-desc"><input id="inv-desc" name="description" className={inputClass} required placeholder="Stock supplied, delivery, wholesale order" /></Field>
-              <button type="submit" className={buttonClass("ink", "md", "w-full")}>Create invoice</button>
+              <Field label={t("inv.theirName")} htmlFor="inv-name"><input id="inv-name" name="partyName" className={inputClass} required placeholder={t("inv.businessName")} /></Field>
+              <Field label={t("inv.theirEmail")} htmlFor="inv-email"><input id="inv-email" name="partyEmail" type="email" className={inputClass} placeholder="billing@example.com" /></Field>
+              <Field label={t("inv.amount")} htmlFor="inv-amount"><input id="inv-amount" name="amount" type="number" min={1} step="0.01" className={inputClass} required placeholder="50000" /></Field>
+              <Field label={t("inv.forWhat")} htmlFor="inv-desc"><input id="inv-desc" name="description" className={inputClass} required placeholder={t("inv.forPlaceholder")} /></Field>
+              <button type="submit" className={buttonClass("ink", "md", "w-full")}>{t("inv.create")}</button>
             </form>
           </Card>
         }

@@ -24,6 +24,22 @@ export const SCENE_ARTS = [
   "quote-tags", // price tags going back and forth to a deal
   "cash-collect", // rider collects cash at the door → pay-in
   "theme-swap", // a shop changing theme
+  "order-pipeline", // an order moving through its statuses: new → paid → packed → on the way → delivered
+  "receipt", // a receipt printing line by line, then stamped paid
+  "invoice-paper", // a paper document (invoice, policy, certificate) with a total and a stamp
+  "star-reviews", // a star rating filling up and review cards sliding in
+  "customer-cards", // a customer card with tags, order history and what they've spent
+  "discount-ticket", // a discount ticket with its code typing in
+  "brand-palette", // a logo, colour swatches and fonts, stamped onto a flyer, a label and a phone
+  "import-ship", // a container ship sailing to port, a plane overhead
+  "video-reel", // photos flying into a phone and playing as a short video
+  "dashboard-tiles", // a home screen: greeting, a sales tile, a to-do list and little bars
+  "map-zones", // a city map with delivery zones and a price tag
+  "badge-verify", // papers being scanned, then a verified shield
+  "rider-team", // a row of riders with who's free and who's on a job
+  "inbox-list", // one inbox list with chats from many apps and an unread count
+  "bell-alerts", // a ringing bell and alerts sliding in
+  "search-rank", // a search typed into Google and your shop rising to the top
 ] as const;
 export type SceneArt = (typeof SCENE_ARTS)[number];
 
@@ -50,8 +66,10 @@ export interface FeatureIntro {
   term: string;
   title: string;
   roles: IntroRole[];
-  /** Screens (web and mobile paths) this intro belongs to. The longest matching prefix wins. */
+  /** Screens (web and mobile paths) this intro belongs to, with the pages under them. The longest matching prefix wins. */
   paths: string[];
+  /** Screens that match only exactly, not the pages under them (Home is "/home", but "/home/orders" isn't Home). */
+  exactPaths?: string[];
   /** The related help topic (shared/help-videos.ts), for "Watch the video" when one is published. */
   helpTopic?: string;
   /** The page's main action, offered on the last scene. */
@@ -100,7 +118,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "automations",
     title: "Automations",
     roles: ["seller"],
-    paths: ["/home/automations", "/seller/automations", "/home/inbox/auto-replies"],
+    paths: ["/home/automations", "/seller/automations", "/home/inbox/auto-replies", "/inbox/auto-replies"],
     cta: { label: "Turn on an automation", href: "/home/automations" },
     scenes: [
       { art: "flow-nodes", caption: "Automations work while you sleep.", sub: "Something happens in your shop, and a message or task follows by itself.", durationMs: S, chips: ["Order paid", "Wait 5 days", "Ask for review"] },
@@ -160,7 +178,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "dropship",
     title: "Dropship",
     roles: ["seller"],
-    paths: ["/home/dropship", "/marketplace", "/seller/marketplace", "/dropship", "/find"],
+    paths: ["/home/dropship", "/dropship"],
     helpTopic: "sell_without_stock",
     cta: { label: "Find products to sell", href: "/marketplace" },
     scenes: [
@@ -191,7 +209,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "payouts",
     title: "Payouts",
     roles: ["seller"],
-    paths: ["/home/payouts", "/home/payments", "/home/invoices", "/home/invoicing"],
+    paths: ["/home/payouts", "/home/payments"],
     helpTopic: "get_paid",
     cta: { label: "Add your bank account", href: "/home/payouts" },
     scenes: [
@@ -207,7 +225,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "inventory",
     title: "Products, inventory and variants",
     roles: ["seller"],
-    paths: ["/products", "/home/inventory", "/home/collections", "/home/categories", "/home/imports", "/seller/products", "/add-products"],
+    paths: ["/products", "/home/inventory", "/seller/products", "/add-products"],
     helpTopic: "add_product",
     cta: { label: "Add a product", href: "/products/new" },
     scenes: [
@@ -238,7 +256,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "ads",
     title: "Ads: budget, CTR and ROAS",
     roles: ["seller"],
-    paths: ["/home/ads", "/home/social", "/home/video"],
+    paths: ["/home/ads", "/home/social"],
     helpTopic: "get_customers",
     cta: { label: "Create an ad", href: "/home/ads" },
     scenes: [
@@ -269,7 +287,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "channels",
     title: "WhatsApp and selling everywhere",
     roles: ["seller"],
-    paths: ["/channels", "/home/inbox", "/home/messages", "/home/social/whatsapp", "/home/marketing/chat", "/chats", "/inbox"],
+    paths: ["/channels", "/home/social/whatsapp", "/home/inbox/whatsapp-catalog"],
     helpTopic: "whatsapp",
     cta: { label: "Connect WhatsApp", href: "/channels" },
     scenes: [
@@ -285,7 +303,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "themes",
     title: "Templates and themes",
     roles: ["seller"],
-    paths: ["/builder", "/seller/store", "/home/store", "/home/editor", "/home/pages", "/home/navigation", "/home/brand-kit"],
+    paths: ["/builder", "/seller/store", "/home/store", "/home/editor", "/home/pages", "/home/navigation", "/shop"],
     helpTopic: "start_shop",
     cta: { label: "Pick a template", href: "/builder/templates" },
     scenes: [
@@ -301,7 +319,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "logistics",
     title: "Delivery and shipping rates",
     roles: ["seller"],
-    paths: ["/home/logistics", "/home/shipping", "/marketplace/logistics", "/seller/logistics", "/partners", "/home/labels"],
+    paths: ["/home/logistics", "/marketplace/logistics", "/seller/logistics", "/partners", "/home/labels"],
     helpTopic: "delivery",
     cta: { label: "Find a delivery partner", href: "/marketplace/logistics" },
     scenes: [
@@ -335,7 +353,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "fulfilment",
     title: "Orders and fulfilment",
     roles: ["supplier"],
-    paths: ["/supplier/orders", "/supplier/order", "/supplier/wholesale"],
+    paths: ["/supplier/orders", "/supplier/order"],
     helpTopic: "supplier_orders",
     scenes: [
       { art: "phone-store", caption: "A shop sold your product.", sub: "Dropship orders come in when a seller’s customer pays.", durationMs: S, value: "₦9,000" },
@@ -382,7 +400,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "jobs",
     title: "Delivery jobs",
     roles: ["logistics_partner"],
-    paths: ["/logistics/bookings", "/logistics/quotes", "/logistics/jobs", "/logistics/job", "/logistics/couriers", "/logistics/riders"],
+    paths: ["/logistics/bookings", "/logistics/quotes", "/logistics/jobs", "/logistics/job"],
     helpTopic: "partner_jobs",
     scenes: [
       { art: "chat-bubbles", caption: "Shops send you jobs.", sub: "A job is a pick-up and drop-off, with the fee shown up front.", durationMs: S, label: "Yaba → Surulere · ₦2,500" },
@@ -415,7 +433,7 @@ export function normaliseIntroPath(path: string | null | undefined) {
   return clean.startsWith("/") ? clean : `/${clean}`;
 }
 
-/** The intro for the screen at `path`, for this role (if given), or null. The longest matching prefix wins. */
+/** The intro for the screen at `path`, for this role (if given), or null. The longest matching prefix (or exact path) wins. */
 export function introForPath(path: string | null | undefined, role?: string | null): FeatureIntro | null {
   const clean = normaliseIntroPath(path);
   let best: { intro: FeatureIntro; length: number } | null = null;
@@ -424,6 +442,9 @@ export function introForPath(path: string | null | undefined, role?: string | nu
     for (const prefix of intro.paths) {
       const match = clean === prefix || clean.startsWith(`${prefix}/`);
       if (match && (!best || prefix.length > best.length)) best = { intro, length: prefix.length };
+    }
+    for (const exact of intro.exactPaths ?? []) {
+      if (clean === exact && (!best || exact.length > best.length)) best = { intro, length: exact.length };
     }
   }
   return best?.intro ?? null;

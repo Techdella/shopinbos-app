@@ -39,6 +39,9 @@ const PARTNER_UI = [
   "apps/mobile/src/components/JobCard.tsx",
   "apps/mobile/src/components/SetupHelpRequest.tsx",
   "apps/mobile/src/lib/rider-strings.ts",
+  // Web partner and rider words live in the app-language catalogs.
+  "shared/i18n/messages/logistics/en.ts",
+  "shared/i18n/messages/rider/en.ts",
 ];
 
 const BANNED = [/API key/i, /webhook/i, /sk_live/i, /sk_test/i, /sandbox/i, /endpoint/i];
@@ -61,11 +64,15 @@ test("the old key and webhook panels are gone from the partner portal", () => {
 
 test("Connect your system is a request to the team, on the web and in the app", () => {
   const web = read("src/app/logistics/connect/page.tsx");
+  // The words are in the logistics catalog (shared/i18n/messages/logistics/en.ts), shown through t().
+  const webWords = read("shared/i18n/messages/logistics/en.ts");
   assert.match(web, /import \{ SetupHelpRequest \} from "@\/components\/support\/SetupHelpRequest"/);
   assert.match(web, /<SetupHelpRequest/);
   assert.match(web, /feature="logistics_api"/);
-  assert.match(web, /title="Connect your delivery software"/);
-  assert.match(web, /Already use delivery software\? Our team can connect it to Shopinbos for you, so jobs show up there automatically\./);
+  assert.match(web, /title=\{t\("connect\.helpTitle"\)\}/);
+  assert.match(webWords, /"connect\.helpTitle": "Connect your delivery software"/);
+  assert.match(web, /sub=\{t\("connect\.sub"\)\}/);
+  assert.match(webWords, /Already use delivery software\? Our team can connect it to Shopinbos for you, so jobs show up there automatically\./);
 
   const mobile = read("apps/mobile/src/app/logistics/connect.tsx");
   assert.match(mobile, /<SetupHelpRequest/);
