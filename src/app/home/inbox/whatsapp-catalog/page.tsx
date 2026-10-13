@@ -9,7 +9,7 @@ import { catalogView, syncIfDirty } from "@/lib/whatsapp-catalog/server";
 import { WhatsAppCatalogClient } from "./WhatsAppCatalogClient";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Products on WhatsApp" };
+export const metadata: Metadata = { title: "WhatsApp catalog" };
 
 export default async function WhatsAppCatalogPage() {
   const user = await requireRole(["seller"], "/login");
@@ -24,7 +24,7 @@ export default async function WhatsAppCatalogPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Products on WhatsApp"
+      title="WhatsApp catalog"
       sub="Customers look through your products inside WhatsApp and send you the order without leaving the chat."
       actions={
         <>

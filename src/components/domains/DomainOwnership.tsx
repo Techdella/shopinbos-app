@@ -11,7 +11,7 @@ import type { DnsRecord, DomainSettingsState, HostingStatus, ServeAs, VerifyChec
 import { RegistrarTip } from "./RegistrarTip";
 import { setupStepsMessage, whatsappShareUrl } from "./steps";
 
-// Connect a web address the seller already owns. The seller types it; we make a WhatsApp message with the setup
+// Connect a domain the seller already owns. The seller types it; we make a WhatsApp message with the setup
 // steps for "the person who set it up" and keep checking. The records (TXT proof + routing) and the Verify button
 // live behind "Show the technical details". Only a verified address is served (src/lib/domains/ownership.server.ts).
 
@@ -36,14 +36,14 @@ async function call<T>(method: "GET" | "POST" | "DELETE", url: string, body?: un
 
 /** Server reasons in plain words (the server wording is for the technical fold and the API). */
 function plainClaimError(error: unknown) {
-  if (!(error instanceof CallError)) return "We couldn't add that web address. Check your connection and try again.";
+  if (!(error instanceof CallError)) return "We couldn't add that domain. Check your connection and try again.";
   switch (error.code) {
     case "invalid_domain":
       return /platform|Shopinbos/i.test(error.message)
-        ? "That's a Shopinbos address. Your free address already works. Type a web address you bought yourself."
-        : "That doesn't look like a web address. Type it like yourbrand.com.";
+        ? "That's a Shopinbos address. Your free address already works. Type a domain you bought yourself."
+        : "That doesn't look like a domain. Type it like yourbrand.com.";
     case "domain_taken":
-      return "That web address is already on another Shopinbos shop. If it's yours, tap Help and we'll move it for you.";
+      return "That domain is already on another Shopinbos shop. If it's yours, tap Help and we'll move it for you.";
     case "rate_limited":
       return "You've changed this a lot in a short time. Wait an hour, then try again.";
     default:
@@ -61,7 +61,7 @@ function plainCheck(check: VerifyCheck) {
   if (check.ok) return null;
   if (check.code === "mismatch") return "Almost: one of the steps was copied wrongly. Send the steps again and ask them to copy them exactly.";
   if (check.code === "timeout" || check.code === "dns_error") return "We couldn't check just now. We'll try again by ourselves; you don't need to do anything.";
-  return "Not connected yet. Once the person who set up your web address adds the steps, it can take up to an hour to work.";
+  return "Not connected yet. Once the person who set up your domain adds the steps, it can take up to an hour to work.";
 }
 
 export function DomainOwnership({
@@ -95,7 +95,7 @@ export function DomainOwnership({
     if (initialState) return;
     call<DomainSettingsState>("GET", "/api/domains/connect")
       .then(setState)
-      .catch(() => setLoadError("We couldn't load your web address. Check your connection, then refresh the page."));
+      .catch(() => setLoadError("We couldn't load your domain. Check your connection, then refresh the page."));
   }, [initialState]);
 
   const apply = (next: DomainSettingsState) => {
@@ -106,7 +106,7 @@ export function DomainOwnership({
   async function claim() {
     const domain = input.trim();
     if (!domain) {
-      setClaimError("Type your web address first, like yourbrand.com.");
+      setClaimError("Enter the domain you own, like yourbrand.com.");
       return;
     }
     setClaiming(true);
@@ -146,7 +146,7 @@ export function DomainOwnership({
     }
   }
 
-  // "I'll keep checking": one quiet check each time the page opens while a web address is waiting.
+  // "I'll keep checking": one quiet check each time the page opens while a domain is waiting.
   const pendingDomain = state?.pending?.domain;
   useEffect(() => {
     if (!pendingDomain || autoChecked.current) return;
@@ -170,7 +170,7 @@ export function DomainOwnership({
   }
 
   if (!state) {
-    return loadError ? <Notice>{loadError}</Notice> : <Card className="p-4 text-[15px] text-app-ink-soft sm:p-5">Loading your web address…</Card>;
+    return loadError ? <Notice>{loadError}</Notice> : <Card className="p-4 text-[15px] text-app-ink-soft sm:p-5">Loading your domain…</Card>;
   }
 
   const { live, pending } = state;
@@ -183,7 +183,7 @@ export function DomainOwnership({
           <div className="flex flex-wrap items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-success-tint text-app-success"><Icon name="checkCircle" size={18} /></span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[13px] text-app-ink-soft">Your own web address</p>
+              <p className="m-0 text-[13px] text-app-ink-soft">Your own domain</p>
               <a href={`https://${live.domain}`} target="_blank" rel="noopener noreferrer" className="break-all text-[17px] font-extrabold text-app-ink no-underline hover:underline">
                 {live.domain}
               </a>
@@ -194,14 +194,14 @@ export function DomainOwnership({
           {!state.hostingConfigured && !check?.ok && (
             <p className="mb-0 mt-2 text-[14px] leading-[1.5] text-app-ink-soft">The Shopinbos team is finishing the last step for you. You don&apos;t need to do anything.</p>
           )}
-          <TechFold forWho="the person who set up your web address" className="mt-3">
+          <TechFold forWho="the person who set up your domain" className="mt-3">
             {check?.ok && check.hosting && <HostingNote hosting={check.hosting} />}
             <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">Routing records for {live.domain}. Keep them in place at the company it was bought from.</p>
             <RecordList records={live.records} />
           </TechFold>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {!pending && !changing && (
-              <PillButton size="sm" tone="white" onClick={() => setChanging(true)}>Use a different web address</PillButton>
+              <PillButton size="sm" tone="white" onClick={() => setChanging(true)}>Use a different domain</PillButton>
             )}
             {confirmRemove ? (
               <>
@@ -210,7 +210,7 @@ export function DomainOwnership({
                 <PillButton size="sm" tone="ghost" onClick={() => setConfirmRemove(false)}>Keep it</PillButton>
               </>
             ) : (
-              <PillButton size="sm" tone="ghost" onClick={() => setConfirmRemove(true)}>Stop using it</PillButton>
+              <PillButton size="sm" tone="ghost" onClick={() => setConfirmRemove(true)}>Remove domain</PillButton>
             )}
           </div>
           {verifyError && <div className="mt-3"><Notice>{verifyError}</Notice></div>}
@@ -240,7 +240,7 @@ export function DomainOwnership({
               void claim();
             }}
           >
-            <FieldLabel htmlFor="own-domain">{live ? "Your other web address" : "What's your web address?"}</FieldLabel>
+            <FieldLabel htmlFor="own-domain">{live ? "Your other domain" : "What's your domain?"}</FieldLabel>
             <TextInput
               id="own-domain"
               value={input}
@@ -272,7 +272,7 @@ export function DomainOwnership({
         </Card>
       )}
 
-      {check?.ok && !live && <Notice tone="success">Connected. Your shop opens on your web address within the hour.</Notice>}
+      {check?.ok && !live && <Notice tone="success">Connected. Your store opens on your domain within the hour.</Notice>}
     </div>
   );
 }
@@ -330,7 +330,7 @@ function PendingCard({
         </div>
         <Pill tone="warning" dot>{verifying ? "Checking…" : "Waiting"}</Pill>
       </div>
-      <p className="mb-0 mt-3 text-[16px] font-bold leading-[1.4]" role="status">Waiting for your web address to be connected</p>
+      <p className="mb-0 mt-3 text-[16px] font-bold leading-[1.4]" role="status">Waiting for your domain to be connected</p>
       <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">
         Send the steps to the person who set it up. We&apos;ll keep checking and your shop opens there the moment it works.
         {live ? ` ${live} keeps working meanwhile.` : " Your free address keeps working meanwhile."}
@@ -360,14 +360,14 @@ function PendingCard({
           </button>
         )}
         <button type="button" onClick={onRemove} disabled={removing} className="min-h-[44px] text-[14.5px] font-bold text-app-ink-soft underline-offset-4 hover:underline">
-          {live ? "Keep the current web address" : "Use a different web address"}
+          {live ? "Keep the current domain" : "Use a different domain"}
         </button>
       </div>
 
       {askTeam && (
         <SetupHelpRequest
           className="mt-3"
-          title={`Connect my web address ${domain}`}
+          title={`Connect my domain ${domain}`}
           description="Tell us where you bought it. We'll do the setup with you and message you when your shop opens there."
           feature="custom_domain"
           softwareQuestion="Where did you buy it?"
@@ -375,7 +375,7 @@ function PendingCard({
         />
       )}
 
-      <TechFold forWho="the person who set up your web address" className="mt-4">
+      <TechFold forWho="the person who set up your domain" className="mt-4">
         <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">
           Add these DNS records where {domain} was bought, then press Verify. The store is only served on this domain once it&apos;s verified.
         </p>

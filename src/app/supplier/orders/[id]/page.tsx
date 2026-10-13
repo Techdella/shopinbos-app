@@ -100,7 +100,7 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
     <AppPage
       frame={supplierFrame(user, supplier, { searchPlaceholder: "Search by seller, product, address…" })}
       title={isNew ? view.title : pickup?.packed ? "Ready for the rider" : pickup ? "Pack it with this label" : view.title}
-      sub={`${kind === "dropship" ? "A shop sold it for you" : "Bulk order"} · ${view.shop} · ${view.ref} · ${timeAgo(view.createdAt)}`}
+      sub={`${kind === "dropship" ? "Dropship order" : "Wholesale order"} · ${view.shop} · ${view.ref} · ${timeAgo(view.createdAt)}`}
       actions={<PillLink href="/supplier/orders" size="sm" icon="arrowLeft">All orders</PillLink>}
     >
       <div className="mx-auto grid max-w-[720px] gap-4">

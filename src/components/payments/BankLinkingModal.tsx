@@ -39,8 +39,8 @@ const NIGERIAN_BANKS = [
 ];
 
 const PAYMENT_PROVIDERS = [
-  { id: "paystack", label: "Paystack", description: "Money sent to your bank fast, Nigeria" },
-  { id: "flutterwave", label: "Flutterwave", description: "Money sent to banks across Africa" },
+  { id: "paystack", label: "Paystack", description: "Instant settlements, Nigeria" },
+  { id: "flutterwave", label: "Flutterwave", description: "Pan-African payouts" },
 ] as const;
 
 export function BankLinkingModal({
@@ -148,7 +148,7 @@ export function BankLinkingModal({
           </div>
 
           <div className="text-[13px] leading-5 text-[var(--ink-600)]">
-            Choose the bank we send your money to. Payments go into your bank account by themselves.
+            Configure where you collect your payouts. Payments are automatically processed and dropped into your bank account.
           </div>
 
           {/* Bank Select */}

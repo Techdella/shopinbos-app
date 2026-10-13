@@ -10,7 +10,7 @@ import { naira } from "@shared/onboarding";
 import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Messages to customers" };
+export const metadata: Metadata = { title: "Campaigns" };
 
 const FILTERS: Array<{ label: string; status?: CampaignStatus }> = [
   { label: "All" },
@@ -66,21 +66,21 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Messages to customers"
-      sub="Emails, SMS and WhatsApp messages to people who signed up, past customers or a group of customers."
+      title="Campaigns"
+      sub="Emails, SMS and WhatsApp messages to your subscribers, buyers or a segment."
       actions={
         <>
           <RexAICopywriter storeName={store?.name} />
-          <PillLink href="/home/marketing/templates" icon="mail">Email designs</PillLink>
-          <PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp messages</PillLink>
-          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New message</PillLink>
+          <PillLink href="/home/marketing/templates" icon="mail">Templates</PillLink>
+          <PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp templates</PillLink>
+          <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">New campaign</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         {needsAddress && (
           <AssistantNote action={<PillLink href="/home/settings?tab=Store#business-address" size="sm" tone="ink">Add address</PillLink>}>
-            Add your business address before sending emails to customers. Every offer email shows it in the footer, as anti-spam laws and Gmail and Yahoo require. Order emails still go out without it.
+            Add your business address before sending email campaigns. Every marketing email shows it in the footer, as anti-spam laws and Gmail and Yahoo require. Order emails still go out without it.
           </AssistantNote>
         )}
         <StatGrid>
@@ -125,10 +125,10 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
         ) : (
           <EmptyState
             icon="send"
-            title={active.status ? `No ${active.label.toLowerCase()} messages` : "No messages yet"}
-            action={<PillLink href="/home/marketing/campaigns/new" tone="ink" icon="plus">New message</PillLink>}
+            title={active.status ? `No ${active.label.toLowerCase()} campaigns` : "No campaigns yet"}
+            action={<PillLink href="/home/marketing/campaigns/new" tone="ink" icon="plus">New campaign</PillLink>}
           >
-            Write one message and send it by email, SMS or WhatsApp to a group of customers, people who signed up, or everyone who bought from you.
+            Write one message and send it by email, SMS or WhatsApp to a segment, your subscribers or everyone who bought from you.
           </EmptyState>
         )}
       </div>

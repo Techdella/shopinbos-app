@@ -101,7 +101,7 @@ export default async function SellerPaymentsPage() {
   // How customers paid, last 30 days.
   const methodTotals = new Map<string, number>();
   for (const order of paid) {
-    const label = isOnline(order.paymentMethod) ? "Paid online" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod!;
+    const label = isOnline(order.paymentMethod) ? "Online checkout" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod!;
     methodTotals.set(label, (methodTotals.get(label) ?? 0) + order.total);
   }
   const methods = [...methodTotals.entries()].sort((a, b) => b[1] - a[1]);
@@ -113,11 +113,11 @@ export default async function SellerPaymentsPage() {
       user={user}
       store={storeSummary(store)}
       title="Money"
-      sub="Shopinbos takes the payments for you. Here's what came in, what's still owed, and where your money goes."
+      sub="Shopinbos handles checkout. Here's what came in, what's still owed, and where your money goes."
       actions={
         <>
           <PillLink href="/home/invoices" icon="document">Invoices</PillLink>
-          <PillLink href="/home/payouts" icon="bank">Money sent to your bank</PillLink>
+          <PillLink href="/home/payouts" icon="bank">Payouts</PillLink>
           <PillLink href="/home/orders/new" tone="accent" icon="plus">Record a sale</PillLink>
         </>
       }
@@ -136,7 +136,7 @@ export default async function SellerPaymentsPage() {
             </Card>
 
             <StatGrid>
-              <StatTile tone="card" label="Paid online" value={naira(online)} hint="Last 30 days" />
+              <StatTile tone="card" label="Online checkout" value={naira(online)} hint="Last 30 days" />
               <StatTile tone="card" label="Collected yourself" value={naira(offline)} hint="Cash, transfer, POS" />
               <StatTile tone="card" label="Waiting for payment" value={naira(waiting?._sum.total ?? 0)} hint={`${waiting?._count ?? 0} order${waiting?._count === 1 ? "" : "s"}`} />
               <StatTile tone="card" label="Refunded" value={naira(refunded)} hint="Last 30 days" />
@@ -168,7 +168,7 @@ export default async function SellerPaymentsPage() {
                         <span className="block truncate text-[14.5px] font-extrabold">{order.buyerName || "Customer"}</span>
                         <span className="block truncate text-[13px] text-app-ink-soft">{order.orderNumber} · {formatDate(order.createdAt)}</span>
                       </span>
-                      <span className="text-[13px] text-app-ink-soft sm:w-[140px]">{isOnline(order.paymentMethod) ? "Paid online" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod}</span>
+                      <span className="text-[13px] text-app-ink-soft sm:w-[140px]">{isOnline(order.paymentMethod) ? "Online checkout" : PAYMENT_METHOD_LABEL[order.paymentMethod!] ?? order.paymentMethod}</span>
                       <Pill tone="success">Paid</Pill>
                       <span className="text-[14px] font-extrabold sm:w-[100px] sm:text-right">{naira(order.total)}</span>
                     </ListRow>
@@ -197,7 +197,7 @@ export default async function SellerPaymentsPage() {
             </Card>
             <PaymentMethods initial={readMethods(settings)} transferWindow={{ hours: readTransferWindowHours(settings), defaultHours: unpaidTransferTtlHours(process.env.UNPAID_TRANSFER_TTL_HOURS) }} />
             <AssistantNote>
-              Online payments go through Paystack and are sent to your bank. Cash, transfers and POS you record yourself never pass through Shopinbos.
+              Online payments go through Paystack checkout and are paid out to your payout bank. Cash, transfers and POS you record yourself never pass through Shopinbos.
             </AssistantNote>
           </>
         }

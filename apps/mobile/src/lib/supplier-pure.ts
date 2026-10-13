@@ -1,6 +1,6 @@
-// Supplier app words and order groups (build spec 8A, "Suppliers, delivery companies and riders get the same
-// rules"). Pure, so the root tests can load it. Suppliers never see "dropship", "white label", "escrow" or "quote":
-// shops sell it for you, the shop's label, the shop pays first and we keep the money safe, tell them your price.
+// Supplier app labels and order groups (build spec 8A, "Suppliers, delivery companies and riders get the same
+// rules"). Standard commerce names (Dropship, Wholesale, Quote) with short, clear stage labels. Pure, so the root
+// tests can load it.
 
 export type SupplierOrderGroup = "new" | "pack" | "sent";
 
@@ -16,13 +16,13 @@ export function supplierOrderGroup(order: OrderLike): SupplierOrderGroup {
   return "sent";
 }
 
-/** "Shops sell it for you" (the old dropship orders) or "Bulk order" (the old wholesale orders). */
-export const ORDER_KIND_LABEL = { dropship: "A shop sold it for you", wholesale: "Bulk order" } as const;
+/** The two kinds of supplier order. */
+export const ORDER_KIND_LABEL = { dropship: "Dropship", wholesale: "Wholesale" } as const;
 
 /** Where a single order is, in the supplier's words. */
 export const SUPPLIER_ORDER_STAGE: Record<string, string> = {
   pending: "New. The shop is waiting",
-  awaiting_payment: "New. Customer pays when it arrives",
+  awaiting_payment: "New. Pay on delivery",
   paid: "New. The shop is waiting",
   confirmed: "Accepted. Pack it",
   accepted: "Accepted. Pack it",
@@ -33,28 +33,28 @@ export const SUPPLIER_ORDER_STAGE: Record<string, string> = {
   rejected: "You said no",
   cancelled: "Cancelled",
   expired: "Time ran out. The shop was told",
-  refunded: "Money given back",
-  returned: "Sent back",
+  refunded: "Refunded",
+  returned: "Returned",
 };
 
 export function supplierOrderStage(status: string) {
   return SUPPLIER_ORDER_STAGE[status] ?? status.replace(/_/g, " ");
 }
 
-/** A bulk request's status, in the supplier's words. */
-export const BULK_REQUEST_STAGE: Record<string, string> = {
-  pending: "Tell them your price",
-  responded: "Price sent",
-  accepted: "The shop said yes",
-  rejected: "Said no",
-  expired: "Ran out of time",
+/** A quote request's status. */
+export const QUOTE_REQUEST_STAGE: Record<string, string> = {
+  pending: "Waiting for your quote",
+  responded: "Quote sent",
+  accepted: "Quote accepted",
+  rejected: "Declined",
+  expired: "Expired",
 };
 
-export function bulkRequestStage(status: string) {
-  return BULK_REQUEST_STAGE[status] ?? status;
+export function quoteRequestStage(status: string) {
+  return QUOTE_REQUEST_STAGE[status] ?? status;
 }
 
-/** "When can it be ready?" choices. The answer goes to the shop with the price. */
+/** "When can it be ready?" choices. The answer goes to the shop with the quote. */
 export const READY_CHOICES = [
   { key: "today", label: "Today", text: "It can be ready today." },
   { key: "3days", label: "In 3 days", text: "It can be ready in 3 days." },

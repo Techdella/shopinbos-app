@@ -53,7 +53,7 @@ export default async function ShippingPage() {
       user={user}
       store={storeSummary(store ?? null)}
       title="Delivery fees"
-      sub="The delivery zones and fees customers pay, and delivery companies you can book."
+      sub="The delivery zones and fees shoppers see at checkout, and delivery partners you can book."
       actions={<PillLink href="/home/shipping/new" tone="accent" icon="plus">Add zone</PillLink>}
     >
       <div className="grid gap-6">
@@ -61,7 +61,7 @@ export default async function ShippingPage() {
           <h2 className="m-0 text-[17px] font-extrabold">Your delivery zones</h2>
           {shippingZones.length === 0 ? (
             <EmptyState icon="pin" title="No delivery zones yet" action={<PillLink href="/home/shipping/new" tone="ink" icon="plus">Create a zone</PillLink>}>
-              Add zones to set the delivery fees customers pay: a flat fee, free delivery, or different fees by area.
+              Add zones to set the delivery fees shoppers see at checkout: a flat fee, free delivery, or different fees by area.
             </EmptyState>
           ) : (
             <ListCard>

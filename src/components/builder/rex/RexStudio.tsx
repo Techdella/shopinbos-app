@@ -40,7 +40,7 @@ function greeting(firstName: string, fromOnboarding: boolean, draftSaved: boolea
     return {
       id: "hello",
       role: "rex",
-      text: `Hi ${firstName}. I'm Rex. I can design your store, edit your product photos, make a logo or a product video, write descriptions and plan adverts. Your store isn't built yet, so let's start there: I'll design it, write the pages and add sample products as drafts. Nothing goes to shoppers until you press Publish.`,
+      text: `Hi ${firstName}. I'm Rex. I can design your store, edit your product photos, make a logo or a product video, write descriptions and set up campaigns. Your store isn't built yet, so let's start there: I'll design it, write the pages and add sample products as drafts. Nothing goes to shoppers until you press Publish.`,
       offer: "Build my store",
     };
   }
@@ -49,7 +49,7 @@ function greeting(firstName: string, fromOnboarding: boolean, draftSaved: boolea
     role: "rex",
     text: fromOnboarding
       ? `Hi ${firstName}. Your store draft is ready and I brought in your answers from setup. Have a look, or pick something below and I'll get on it. Nothing goes to shoppers until you press Publish.`
-      : `Hi ${firstName}. What are we making today? I can edit product photos, make images, a logo or a video, change any part of your store, and plan adverts and automations.`,
+      : `Hi ${firstName}. What are we making today? I can edit product photos, make images, a logo or a video, change any part of your store, and set up campaigns and automations.`,
     offer: "Show me my store",
   };
 }

@@ -107,10 +107,10 @@ export default function Payments() {
           </View>
         ))}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>Where your money goes</T>
+      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>Payouts</T>
       <Card>
         {bankLinked ? (
-          <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>✓ Your bank is saved</T>
+          <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>✓ Payout bank added</T>
         ) : (
           <>
             <T style={{ fontSize: 15, lineHeight: 22 }}>You can add your bank later. Until then, your money is safe here with Shopinbos.</T>
@@ -148,7 +148,7 @@ export default function Payments() {
       <Modal visible={bankOpen} transparent animationType="slide" onRequestClose={() => setBankOpen(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setBankOpen(false)}>
           <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 36, maxHeight: "85%" }} onPress={() => undefined}>
-            <T weight="extrabold" style={{ fontSize: 22, marginBottom: 14 }}>Where should we send your money?</T>
+            <T weight="extrabold" style={{ fontSize: 22, marginBottom: 14 }}>Add your payout bank</T>
             <Label>Bank</Label>
             <ScrollView style={{ maxHeight: 180, borderWidth: 1, borderColor: colors.line, borderRadius: 16 }}>
               {banks.map((bank) => (

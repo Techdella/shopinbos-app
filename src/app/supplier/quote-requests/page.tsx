@@ -73,8 +73,8 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Price requests"
-      sub="Shops asking for your price. Tell them your price, how long it lasts and when it can be ready, so they can order."
+      title="Quote requests"
+      sub="Reply to sellers with a clear price, an expiry date and fulfilment notes so they can move from interest to order."
       toolbar={
         <FilterChips
           items={[
@@ -179,7 +179,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <button type="submit" name="intent" value="respond" className={buttonClass.ink}>
-                              <Icon name="send" size={14} /> Send my price
+                              <Icon name="send" size={14} /> Send quote
                             </button>
                             <button type="submit" name="intent" value="reject" className={buttonClass.white}>
                               Pass
@@ -208,18 +208,18 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
         side={
           <>
             <Card className="p-5">
-              <h2 className="m-0 text-[17px] font-extrabold">Your price requests</h2>
+              <h2 className="m-0 text-[17px] font-extrabold">Quote health</h2>
               <div className="mt-2 grid grid-cols-2 gap-1">
                 <StatTile label="Waiting on you" value={pendingQuotes.length} />
                 <StatTile label="Answered" value={respondedQuotes.length} />
                 <StatTile label="Closed" value={closedQuotes.length} />
-                <StatTile label="Value of prices sent" value={money(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN")} />
+                <StatTile label="Quoted value" value={money(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN")} />
               </div>
             </Card>
             <section className="rounded-[22px] bg-app-peach p-5">
               <div className="mb-3 flex items-center gap-3">
                 <Mascot who="rex" size={40} />
-                <h2 className="m-0 text-[17px] font-extrabold">Prices that win orders</h2>
+                <h2 className="m-0 text-[17px] font-extrabold">Quotes that win</h2>
               </div>
               <ul className="m-0 grid list-none gap-2 p-0">
                 {quoteTips.map((tip) => (

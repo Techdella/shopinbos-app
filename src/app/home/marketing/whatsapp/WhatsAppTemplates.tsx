@@ -72,7 +72,7 @@ export function WhatsAppTemplates({ initial, whatsapp }: { initial: Row[]; whats
     run("sync", async () => {
       const result = await api<{ updated: number; added: number; removed: number; total: number }>("/api/app/marketing/whatsapp-templates", "POST", { action: "sync" });
       await refresh();
-      return `Up to date: ${result.total} message${result.total === 1 ? "" : "s"} on your WhatsApp${result.added ? `, ${result.added} new here` : ""}.`;
+      return `Synced with Meta: ${result.total} template${result.total === 1 ? "" : "s"} on your WhatsApp account${result.added ? `, ${result.added} new here` : ""}.`;
     });
 
   const submit = (id: string) =>
@@ -115,18 +115,18 @@ export function WhatsAppTemplates({ initial, whatsapp }: { initial: Row[]; whats
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       {!connected ? (
         <Notice tone="info">
-          <ChannelHelp label="Connect WhatsApp first" howTo="You can write messages now and send them to WhatsApp for approval once it's connected." href={whatsapp.connectHref} linkLabel={whatsapp.connectLabel ?? "Connect WhatsApp"} />
+          <ChannelHelp label="Connect WhatsApp first" howTo="You can write templates now and send them to WhatsApp for approval once it's connected." href={whatsapp.connectHref} linkLabel={whatsapp.connectLabel ?? "Connect WhatsApp"} />
         </Notice>
       ) : null}
 
       <Card className="p-5">
         <CardHead
-          title="Your messages"
+          title="Your templates"
           sub={connected ? `Sending from ${whatsapp.via}` : "Write them now and send them for approval once WhatsApp is connected."}
           action={
             <div className="flex flex-wrap gap-2">
               <PillButton size="sm" tone="white" busy={busy === "sync"} onClick={() => void sync()} disabled={!connected}>Check for updates</PillButton>
-              <PillButton size="sm" onClick={() => setEditing(blank())}>New message</PillButton>
+              <PillButton size="sm" onClick={() => setEditing(blank())}>New template</PillButton>
             </div>
           }
         />
@@ -158,13 +158,13 @@ export function WhatsAppTemplates({ initial, whatsapp }: { initial: Row[]; whats
           </ul>
         ) : (
           <div className="mt-3">
-            <EmptyState icon="whatsapp" title="No messages yet">Start from a ready-made one below, or write your own.</EmptyState>
+            <EmptyState icon="whatsapp" title="No templates yet">Start from a ready-made one below, or write your own.</EmptyState>
           </div>
         )}
       </Card>
 
-      <section aria-label="Ready-made messages" className="grid gap-3">
-        <h2 className="m-0 text-[17px] font-extrabold">Ready-made messages</h2>
+      <section aria-label="Ready-made templates" className="grid gap-3">
+        <h2 className="m-0 text-[17px] font-extrabold">Ready-made templates</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {TEMPLATE_PRESETS.map((preset) => (
             <Card key={preset.key} className="grid content-start gap-3 p-4">
@@ -273,11 +273,11 @@ function TemplateEditor({ draft: initial, connected, onClose, onSaved }: { draft
   }
 
   return (
-    <Modal title={draft.locked ? `${friendlyName(draft.name)}: customer details` : draft.id ? "Change message" : "New WhatsApp message"} onClose={onClose} wide>
+    <Modal title={draft.locked ? `${friendlyName(draft.name)}: customer details` : draft.id ? "Edit template" : "New template"} onClose={onClose} wide>
       <div className="grid gap-4">
         {error ? <Notice>{error}</Notice> : null}
         {draft.locked ? (
-          <p className="m-0 text-[14px] text-app-ink-soft">WhatsApp has approved these words, so they can&apos;t change here. You can change which customer detail goes in each gap.</p>
+          <p className="m-0 text-[14px] text-app-ink-soft">WhatsApp has approved this template, so its words can&apos;t change here. You can change which customer detail goes in each gap.</p>
         ) : (
           <>
             <div className="grid gap-2 rounded-[18px] bg-app-canvas p-3">

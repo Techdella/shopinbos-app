@@ -35,7 +35,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Show up on Google"
+      title="Search and analytics"
       sub="How your shop shows up on Google, and counting your visitors."
     >
       <PageToast />
@@ -45,7 +45,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
         <FilterChips
           items={[
             { label: "Search listing", href: "/home/seo", active: activeTab === "seo" },
-            { label: "Visitor tracking", href: "/home/seo?tab=integrations", active: activeTab === "integrations" },
+            { label: "Google tools", href: "/home/seo?tab=integrations", active: activeTab === "integrations" },
           ]}
         />
 

@@ -384,7 +384,7 @@ export function WhatsAppPeggyClient({
           <div className="grid gap-1.5">
             <span className="text-[13.5px] font-bold">When a customer wants to buy</span>
             <Segmented
-              options={[{ value: "link", label: "Send a link to pay" }, { value: "collect", label: "Take the order for me" }, { value: "off", label: "Off" }]}
+              options={[{ value: "link", label: "Send checkout link" }, { value: "collect", label: "Take the order for me" }, { value: "off", label: "Off" }]}
               value={wa.ordering}
               onChange={(ordering) => setWa({ ordering })}
               className="border border-app-line"
@@ -423,7 +423,7 @@ export function WhatsAppPeggyClient({
           <p className="m-0 rounded-[14px] bg-app-canvas px-4 py-3 text-[13px] leading-[1.5] text-app-ink-soft">
             <strong className="text-app-ink">Hand-off:</strong> when a customer says &quot;agent&quot;, &quot;person&quot;, &quot;human&quot; or asks something Peggy can&apos;t answer, she stops on that chat, tags it &quot;needs-human&quot; and you get a notification. She also goes quiet when you reply yourself.
             <br />
-            <strong className="text-app-ink">24-hour rule:</strong> WhatsApp only allows replies within 24 hours of the customer&apos;s last message. After that you need a message WhatsApp has approved (see <Link href="/home/marketing/whatsapp" className="font-bold underline">WhatsApp messages</Link>). Peggy only replies inside the 24 hours.
+            <strong className="text-app-ink">24-hour rule:</strong> WhatsApp only allows replies within 24 hours of the customer&apos;s last message. After that you need an approved message template (see <Link href="/home/marketing/whatsapp" className="font-bold underline">WhatsApp templates</Link>). Peggy only replies inside the 24 hours.
           </p>
         </Step>
 

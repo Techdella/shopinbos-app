@@ -257,7 +257,7 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
       <div className="rounded-[18px] bg-app-canvas px-4 py-3.5">
         <p className="m-0 text-[13.5px] font-bold">Rex writes for every page</p>
         <p className="mb-0 mt-1 text-[13px] leading-[1.6] text-app-ink-soft">
-          Headlines, section copy, button text, search descriptions and the footer, plus bag, payment and product pages. Picking Blog also sets up your blog.
+          Headlines, section copy, button text, search descriptions and the footer, plus cart, checkout and product pages. Picking Blog also sets up your blog.
         </p>
       </div>
 

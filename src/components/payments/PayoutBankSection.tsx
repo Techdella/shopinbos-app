@@ -36,7 +36,7 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
 
   return (
     <div className="card" style={{ padding: 18 }}>
-      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Your bank account (where we send your money)</div>
+      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Payout bank account</div>
 
       {payoutBank ? (
         <div style={{
@@ -87,7 +87,7 @@ export function PayoutBankSection({ role, payoutBank, displayName }: PayoutBankS
           <span style={{ fontSize: 24 }}>🏦</span>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink-800)" }}>No bank account linked</div>
           <p style={{ fontSize: 12, color: "var(--ink-500)", margin: "0 max(10px, 5%)", lineHeight: 1.4 }}>
-            Add your bank account and we send your money there through Paystack.
+            Link your bank account to automatically receive payout settlements via Paystack.
           </p>
         </div>
       )}

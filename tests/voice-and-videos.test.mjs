@@ -350,7 +350,7 @@ test("the mic sits next to every long text field in the seller, supplier and par
     "apps/mobile/src/app/onboarding/index.tsx": "what their shop sells",
     "apps/mobile/src/app/record-sale.tsx": "a note about a sale",
     "apps/mobile/src/app/supplier/product/new.tsx": "a product description",
-    "apps/mobile/src/app/supplier/quote/[id].tsx": "a note with a bulk price",
+    "apps/mobile/src/app/supplier/quote/[id].tsx": "a note with a quote",
     "apps/mobile/src/app/reviews/[key].tsx": "a reply to a customer review",
   };
   for (const [path, marker] of Object.entries(mobile)) {

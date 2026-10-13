@@ -78,7 +78,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
       <Card className="grid gap-2 p-5">
         <CardHead title="Who gets these" />
         <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">
-          Order messages go only to the phone number the customer typed when they ordered, and only about their own order. They don&apos;t need to say yes to offers, but anyone who replied STOP never gets them. No phone number, no message. Each message goes once per order.
+          Order messages go only to the phone number the buyer typed at checkout, and only about their own order or cart. They don't need a marketing opt-in, but anyone who replied STOP never gets them. No phone number, no message. Each message goes once per order.
         </p>
       </Card>
 
@@ -98,7 +98,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                 </label>
                 {s.whatsapp ? (
                   <>
-                    <Field label="Message" htmlFor={`tpl-${event.key}`} hint={auto && !s.templateId ? `Using “${friendlyName(auto.name)}” (approved).` : `Leave on automatic to use your approved “${event.preset.replace(/_/g, " ")}” message.`}>
+                    <Field label="Template" htmlFor={`tpl-${event.key}`} hint={auto && !s.templateId ? `Using “${friendlyName(auto.name)}” (approved).` : `Leave on automatic to use your approved “${event.preset.replace(/_/g, " ")}” template.`}>
                       <select id={`tpl-${event.key}`} className={selectClass} value={s.templateId ?? ""} onChange={(e) => setEvent(event.key, { templateId: e.target.value || null })}>
                         <option value="">Automatic{auto ? ` (${friendlyName(auto.name)})` : ""}</option>
                         {templates.map((t) => (
@@ -115,8 +115,8 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                       </div>
                     ) : (
                       <p className="m-0 text-[13px] font-semibold text-app-accent-ink">
-                        No approved message yet, so nothing goes out on WhatsApp.{" "}
-                        <a href="/home/marketing/whatsapp" className="underline">Use the ready-made “{event.preset.replace(/_/g, " ")}” message</a>.
+                        No approved template yet, so nothing goes out on WhatsApp.{" "}
+                        <a href="/home/marketing/whatsapp" className="underline">Submit the ready-made “{event.preset.replace(/_/g, " ")}” template</a>.
                       </p>
                     )}
                   </>
@@ -153,7 +153,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
           <Field label="Name your texts come from" htmlFor="sms-sender" hint="3 to 11 letters or numbers, like ADIREHOUSE. Your SMS company has to approve it first. Leave it empty to use the usual name.">
             <input id="sms-sender" value={settings.smsSenderId ?? ""} onChange={(e) => setSettings({ ...settings, smsSenderId: e.target.value.slice(0, 11) || null })} className={inputClass} maxLength={11} placeholder="e.g. ADIREHOUSE" />
           </Field>
-          <Field label={`Price per SMS part (${currency}, optional)`} htmlFor="sms-cost" hint="From your SMS company. We use it to tell you what a message to many customers costs.">
+          <Field label={`Price per SMS part (${currency}, optional)`} htmlFor="sms-cost" hint="From your SMS provider. Used for cost estimates in campaigns.">
             <input id="sms-cost" type="number" min={0} step="0.01" value={settings.smsCostPerSegment ?? ""} onChange={(e) => setSettings({ ...settings, smsCostPerSegment: e.target.value === "" ? null : Number(e.target.value) })} className={inputClass} placeholder="e.g. 4.5" />
           </Field>
         </div>

@@ -49,13 +49,13 @@ export default function Products() {
                 {product.images[0] && <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
                 <View style={{ position: "absolute", left: 8, bottom: 8, backgroundColor: low ? colors.peach : colors.surface, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 4 }}>
                   <T weight="bold" style={{ fontSize: 13, color: low ? colors.accentInk : colors.ink }}>
-                    {product.currentStock <= 0 ? "Sold out" : `${product.currentStock} left`}
+                    {product.currentStock <= 0 ? "Sold out" : low ? `${product.currentStock} left` : `${product.currentStock} in stock`}
                   </T>
                 </View>
               </View>
               <T weight="bold" style={{ marginTop: 8, fontSize: 14 }} numberOfLines={1}>{product.name}</T>
               <T weight="extrabold" style={{ fontSize: 14 }}>{naira(Number(product.retailPrice))}</T>
-              {product.status !== "published" && <T style={{ fontSize: 14, color: colors.inkSoft }}>Hidden from customers</T>}
+              {product.status !== "published" && <T style={{ fontSize: 14, color: colors.inkSoft }}>Draft</T>}
             </Pressable>
           );
         })}

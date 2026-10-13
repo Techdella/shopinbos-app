@@ -10,12 +10,12 @@ import { OrderRow, openOrder } from "@/components/SupplierOrderRow";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { fetchQuoteRequests, fetchSupplierOrders, moveSupplierOrder, type QuoteRequest, type SupplierOrder } from "@/lib/supplier";
-import { countWord, supplierOrderGroup, waitingLabel, type SupplierOrderGroup } from "@/lib/supplier-pure";
+import { countWord, ORDER_KIND_LABEL, supplierOrderGroup, waitingLabel, type SupplierOrderGroup } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
 // Supplier orders (build spec 8A): New, To pack and Sent. A new order shows what you get and a big Accept button.
-// Bulk requests from shops ("A shop wants 50 pieces") sit at the top of New. Each new order counts down the time
+// Quote requests from shops ("A shop wants 50 pieces") sit at the top of New. Each new order counts down the time
 // left to accept it ("Accept in 2h 14m"; amber in the last 30 minutes).
 
 function orderTitle(order: SupplierOrder) {
@@ -52,7 +52,7 @@ function NewOrderCard({ order, onAccepted }: { order: SupplierOrder; onAccepted:
         <Thumb uri={order.kind === "dropship" ? order.items[0]?.image : order.product.image} size={56} />
         <View style={{ flex: 1, gap: 2 }}>
           <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={2}>{orderTitle(order)}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={1}>For {order.shop} · to {area}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{ORDER_KIND_LABEL[order.kind]} · for {order.shop} · to {area}</T>
         </View>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -67,7 +67,7 @@ function NewOrderCard({ order, onAccepted }: { order: SupplierOrder; onAccepted:
   );
 }
 
-function BulkRequestRow({ quote }: { quote: QuoteRequest }) {
+function QuoteRequestRow({ quote }: { quote: QuoteRequest }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -77,7 +77,7 @@ function BulkRequestRow({ quote }: { quote: QuoteRequest }) {
       <Thumb uri={quote.supplierProduct.images[0]} />
       <View style={{ flex: 1, gap: 2 }}>
         <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{quote.seller.name} wants {countWord(quote.quantity)}</T>
-        <T style={{ color: colors.accentInk, fontSize: 15 }} numberOfLines={1}>{quote.supplierProduct.name} · Tell them your price</T>
+        <T style={{ color: colors.accentInk, fontSize: 15 }} numberOfLines={1}>{quote.supplierProduct.name} · Quote request</T>
       </View>
     </Pressable>
   );
@@ -119,7 +119,7 @@ export default function SupplierOrders() {
         {loader.error && !loader.data ? <ErrorState message={loader.error} onRetry={() => void loader.reload()} /> : null}
         {view === "new" && open.data ? (
           <>
-            {requests.map((quote) => <BulkRequestRow key={quote.id} quote={quote} />)}
+            {requests.map((quote) => <QuoteRequestRow key={quote.id} quote={quote} />)}
             {fresh.map((order) => <NewOrderCard key={order.id} order={order} onAccepted={accepted} />)}
             {!fresh.length && !requests.length ? (
               <EmptyState icon="bag" title="No new orders">When a shop sells your product, the order shows here. Accept it, pack it, and a rider collects it.</EmptyState>
@@ -129,7 +129,7 @@ export default function SupplierOrders() {
         {view === "pack" && open.data ? (
           toPack.length ? (
             <>
-              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>Pack each one with the shop&apos;s label. Don&apos;t put your own name inside.</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>Dropship orders are white label: pack each one with the shop&apos;s label. Don&apos;t put your own name inside.</T>
               {toPack.map((order) => <OrderRow key={order.id} order={order} />)}
             </>
           ) : (

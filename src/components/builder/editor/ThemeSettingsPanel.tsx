@@ -27,7 +27,7 @@ const VIEWS: Array<{ id: ThemeView; label: string }> = [
   { id: "buttons", label: "Buttons" },
   { id: "cart", label: "Cart" },
   { id: "social", label: "Social media" },
-  { id: "checkout", label: "Payment page" },
+  { id: "checkout", label: "Checkout" },
 ];
 
 export interface ThemeSettingsPanelProps {
@@ -47,14 +47,14 @@ export function ThemeSettingsPanel(props: ThemeSettingsPanelProps) {
   if (!view) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <PanelHeading title="Colours and fonts" sub={`${draft.templateName} · colours and fonts start from your Brand kit`} onClose={props.onClose} />
-        <nav aria-label="Colours and fonts" className="min-h-0 flex-1 overflow-y-auto px-4">
+        <PanelHeading title="Theme settings" sub={`${draft.templateName} · colours and fonts start from your Brand kit`} onClose={props.onClose} />
+        <nav aria-label="Theme settings" className="min-h-0 flex-1 overflow-y-auto px-4">
           {VIEWS.map((entry) => <NavRow key={entry.id} label={entry.label} onClick={() => props.onView(entry.id)} />)}
         </nav>
       </div>
     );
   }
-  const title = VIEWS.find((entry) => entry.id === view)?.label ?? "Colours and fonts";
+  const title = VIEWS.find((entry) => entry.id === view)?.label ?? "Theme settings";
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PanelHeading title={title} onBack={() => props.onView(null)} onClose={props.onClose} />
@@ -90,7 +90,7 @@ function ColourRow({ label, value, onChange }: { label: string; value: string; o
 function Colours(props: ThemeSettingsPanelProps) {
   return (
     <>
-      <Note>Colours apply to every page. Your Brand kit sets them when you first pick a shop look.</Note>
+      <Note>Colours apply to every page. Your Brand kit sets them when a theme is first applied.</Note>
       {COLOUR_TOKENS.map(([key, label]) => (
         <ColourRow key={key} label={label} value={String(props.draft.themeTokens[key] ?? "")} onChange={(value) => props.onTheme(key, value)} />
       ))}
@@ -184,7 +184,7 @@ function Checkout(props: ThemeSettingsPanelProps) {
         {shopper.payOnDelivery ? " Pay on delivery is on." : ""}
       </Note>
       <NavRow label="Payment methods" href="/home/payments" />
-      <NavRow label="Payment page settings" sub="Fields, notes and order confirmation" href="/home/checkout" />
+      <NavRow label="Checkout settings" sub="Fields, notes and order confirmation" href="/home/checkout" />
     </>
   );
 }

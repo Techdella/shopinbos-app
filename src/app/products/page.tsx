@@ -29,7 +29,7 @@ const FILTERS: Array<{ key: string; label: string; test: (p: ProductRow) => bool
   { key: "live", label: "Live", test: isLive },
   { key: "draft", label: "Drafts", test: (p) => p.status === "draft" },
   { key: "low_stock", label: "Low stock", test: (p) => p.status !== "archived" && isLow(p) },
-  { key: "dropship", label: "Sell without stock", test: (p) => p.status !== "archived" && isDropship(p) },
+  { key: "dropship", label: "Dropship", test: (p) => p.status !== "archived" && isDropship(p) },
   { key: "archived", label: "Archived", test: (p) => p.status === "archived" },
 ];
 
@@ -139,7 +139,7 @@ export default async function ProductsPage({
           <SearchForm
             action="/products"
             defaultValue={query}
-            placeholder="Search name or product code"
+            placeholder="Search name or SKU"
             keep={{ filter: filter.key === "all" ? undefined : filter.key, visibility: visibilityKey === "all" ? undefined : visibilityKey }}
           />
         </>
@@ -173,7 +173,7 @@ export default async function ProductsPage({
             </div>
           }
         >
-          Add your first product, import a list, or pick products to sell without stock from the marketplace.
+          Add your first product, import a list, or pick dropship products from the marketplace.
         </EmptyState>
       ) : products.length === 0 ? (
         <EmptyState icon="search" title="No products match" action={<PillLink href="/products">Show all products</PillLink>}>
@@ -185,7 +185,7 @@ export default async function ProductsPage({
             const dropship = isDropship(p);
             const stock = stockLabel(p);
             const variants = variantCount(p.variants);
-            const detail = [variants > 0 ? `${variants} ${variants === 1 ? "size or colour" : "sizes and colours"}` : p.category?.name ?? p.sku, dropship ? "Sell without stock" : "Own stock"].filter(Boolean).join(" · ");
+            const detail = [variants > 0 ? `${variants} ${variants === 1 ? "variant" : "variants"}` : p.category?.name ?? p.sku, dropship ? "Dropship" : "Own stock"].filter(Boolean).join(" · ");
             const statusPill = isLive(p) ? (
               <Pill tone="success">Live</Pill>
             ) : p.status === "archived" ? (

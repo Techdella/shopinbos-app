@@ -18,8 +18,7 @@ export const dynamic = "force-dynamic";
 // The supplier's orders: dropship orders (shops' store orders they ship in the shop's name, SupplierOrder) and
 // wholesale orders (shops buying stock, WholesaleOrder). Accept, ship with a tracking code, mark delivered or
 // decline with a reason (src/app/actions/supplier.ts → src/lib/supplier-orders).
-// Suppliers see plain words (section 8A): orders are grouped New, To pack and Sent; dropship is "shops sell it
-// for you", wholesale is "bulk"; each new order shows "You get ₦X" and one big Accept.
+// Orders are grouped New, To pack and Sent; each new order shows "You get ₦X" and one big Accept.
 
 // Wholesale statuses still to send; dropship ones are "pending" and "accepted".
 const TO_SHIP = ["pending", "confirmed", "processing"] as const;
@@ -37,8 +36,8 @@ const GROUPS = FILTERS.slice(0, 3);
 
 const KINDS = [
   { key: undefined, label: "All orders" },
-  { key: "dropship", label: "Shops sold it for you" },
-  { key: "wholesale", label: "Bulk orders" },
+  { key: "dropship", label: "Dropship" },
+  { key: "wholesale", label: "Wholesale" },
 ] as const;
 
 const DROPSHIP_STATUS: Record<string, { label: string; tone: "accent" | "info" | "warning" | "success" | "muted" | "danger" }> = {
@@ -166,7 +165,7 @@ function DropshipRow({ order }: { order: DropshipView }) {
         <Thumb src={first?.image} label={first?.name ?? "Order"} size={48} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">A shop sold it</span>
+            <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Dropship</span>
             <span className="truncate text-[14.5px] font-extrabold">{units} {units === 1 ? "unit" : "units"} for {order.shop}</span>
           </div>
           <ul className="m-0 mt-1 list-none p-0 text-[13px]">
@@ -291,7 +290,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     <Thumb src={order.supplierProduct.images[0]} label={order.supplierProduct.name} size={48} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Bulk order</span>
+                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">Wholesale</span>
                         <span className="truncate text-[14.5px] font-extrabold">{order.supplierProduct.name} × {order.quantity.toLocaleString("en-NG")}</span>
                       </div>
                       <div className="truncate text-[12.5px] text-app-ink-soft">
@@ -354,7 +353,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
       {rows.length === 0 ? (
         <EmptyState icon="package" title={total === 0 ? "No orders yet" : "No orders match"}>
           {total === 0
-            ? "Orders show up here when a shop sells your product for you, or buys from you in bulk."
+            ? "Orders show up here when a shop sells a product you dropship, or buys from you wholesale."
             : "Try another filter or clear the search."}
         </EmptyState>
       ) : (

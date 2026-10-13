@@ -60,7 +60,7 @@ type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
 const RAIL: Array<{ id: Exclude<Panel, "rex">; icon: IconName; label: string }> = [
   { id: "sections", icon: "list", label: "Sections" },
   { id: "insert", icon: "plus", label: "Insert" },
-  { id: "theme", icon: "settings", label: "Colours and fonts" },
+  { id: "theme", icon: "settings", label: "Theme settings" },
   { id: "apps", icon: "grid", label: "Apps" },
 ];
 
@@ -536,9 +536,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     <div className="grid h-full place-items-center overflow-y-auto bg-[#ECEBF1] p-4">
       <div className="w-full max-w-[560px] rounded-[22px] border border-app-line bg-white p-6 text-center">
         <h1 className="text-[22px] font-extrabold text-app-ink">Let&apos;s build your store</h1>
-        <p className="mt-2 text-[14px] text-app-ink-soft">Pick a shop look, start from a blank page, or let Rex build a first version from your products.</p>
+        <p className="mt-2 text-[14px] text-app-ink-soft">Pick a theme, start from a blank page, or let Rex build a first version from your products.</p>
         <div className="mt-5 grid gap-2 sm:grid-cols-3">
-          <button type="button" onClick={() => void openThemes()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="palette" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">Pick a shop look</span></button>
+          <button type="button" onClick={() => void openThemes()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="palette" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">Pick a theme</span></button>
           <button type="button" onClick={() => void b.startBlank()} className="rounded-[16px] border border-app-line p-4 text-left hover:border-app-line-strong"><Icon name="grid" size={18} /><span className="mt-2 block text-[14px] font-bold text-app-ink">Start blank</span></button>
           <a href="/studio" className="rounded-[16px] bg-app-peach p-4 text-left"><Mascot name="rex" className="h-6 w-6" alt="" /><span className="mt-2 block text-[14px] font-bold text-app-ink">Build with Rex</span></a>
         </div>
@@ -549,7 +549,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const previewBar = preview ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-peach px-4 py-2 text-[13.5px] text-app-ink">
       <span className="min-w-0 flex-1"><strong>Previewing {preview.name}.</strong> Your products show in it; nothing changes until you use it.</span>
-      <button type="button" onClick={() => setView("themes")} className="min-h-9 rounded-full border border-app-line bg-white px-3 font-semibold">Back to shop looks</button>
+      <button type="button" onClick={() => setView("themes")} className="min-h-9 rounded-full border border-app-line bg-white px-3 font-semibold">Back to themes</button>
       <button type="button" onClick={() => setPreview(null)} className="min-h-9 rounded-full bg-app-ink px-3 font-semibold text-white">Stop preview</button>
     </div>
   ) : null;

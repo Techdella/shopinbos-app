@@ -297,6 +297,6 @@ test("screens: countdown on new orders (web and mobile), the pickup question wit
   const mobile = read("apps/mobile/src/app/supplier/order/[id].tsx");
   for (const words of ["When can a rider pick it up?", "Book the rider", "Change the time", "Cancel pickup", "<AcceptCountdown acceptBy={data.acceptBy} big />", "I've packed it"]) assert.ok(mobile.includes(words), words);
   assert.match(read("apps/mobile/src/app/supplier/(tabs)/orders.tsx"), /<AcceptCountdown acceptBy=\{order\.acceptBy\} \/>/);
-  // Suppliers never read "dropship" in their new-order message.
-  assert.match(read("src/lib/supplier-orders/service.server.ts"), /title: `New order \$\{ref\} from \$\{shop\}: accept within \$\{within\}`/);
+  // The new-order notification names the order type and the deadline.
+  assert.match(read("src/lib/supplier-orders/service.server.ts"), /title: `New dropship order \$\{ref\} from \$\{shop\}: accept within \$\{within\}`/);
 });

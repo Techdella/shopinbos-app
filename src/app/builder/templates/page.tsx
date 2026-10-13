@@ -60,7 +60,7 @@ export default async function BuilderTemplatesPage({ searchParams }: { searchPar
     <SellerPage
       user={user}
       store={storeSummary(workspace.store)}
-      title="Shop looks"
+      title="Store templates"
       sub="Switch any time. Your products, prices and orders stay."
     >
       <ThemeLibrary

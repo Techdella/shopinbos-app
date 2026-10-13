@@ -68,7 +68,7 @@ export const ORDER_STATUS: Record<string, { label: string; tone: Tone }> = {
 
 export const QUOTE_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Waiting on you", tone: "accent" },
-  responded: { label: "Price sent", tone: "info" },
+  responded: { label: "Quote sent", tone: "info" },
   accepted: { label: "Accepted", tone: "success" },
   rejected: { label: "Passed", tone: "muted" },
   expired: { label: "Expired", tone: "muted" },

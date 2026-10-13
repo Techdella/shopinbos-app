@@ -10,14 +10,14 @@ import { Segmented, T } from "@/components/ui";
 import { capitalise, friendlyDay } from "@/lib/friendly";
 import { quoteStage } from "@/lib/partner-pure";
 import { fetchQuoteRequests } from "@/lib/supplier";
-import { bulkRequestStage, countWord } from "@/lib/supplier-pure";
+import { quoteRequestStage, countWord } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
-// Shops asking to buy a lot (bulk requests). Not a tab any more: new ones show at the top of Orders → New, and
-// Money → "Shops asking for a lot" opens this list. Tap one to tell them your price.
+// Quote requests: shops asking for a price on a large order. Not a tab any more: new ones show at the top of
+// Orders → New, and Money → "Quote requests" opens this list. Tap one to send your quote.
 
-export default function BulkRequests() {
+export default function QuoteRequests() {
   const quotes = useLoad(fetchQuoteRequests);
   const [view, setView] = useState<"waiting" | "answered">("waiting");
   const all = quotes.data ?? [];
@@ -25,14 +25,14 @@ export default function BulkRequests() {
   const shown = view === "waiting" ? waiting : all.filter((quote) => quote.status !== "pending");
 
   return (
-    <TabScreen title="Shops asking for a lot" action={<HelpButton />} refreshing={quotes.refreshing} onRefresh={() => void quotes.refresh()}>
+    <TabScreen title="Quote requests" action={<HelpButton />} refreshing={quotes.refreshing} onRefresh={() => void quotes.refresh()}>
       <Segmented value={view} onChange={setView} options={[{ value: "waiting", label: waiting.length ? `Waiting ${waiting.length}` : "Waiting" }, { value: "answered", label: "Answered" }]} />
       <View style={{ marginTop: 14, gap: 8 }}>
         {quotes.loading && !quotes.data ? <LoadingBlock label="Loading…" /> : null}
         {quotes.error && !quotes.data ? <ErrorState message={quotes.error} onRetry={() => void quotes.reload()} /> : null}
         {quotes.data && !shown.length ? (
-          <EmptyState icon="tag" title={view === "waiting" ? "No shops waiting" : "Nothing answered yet"}>
-            When a shop wants to buy a lot of one product, it shows here. Tell them your price and when it can be ready.
+          <EmptyState icon="tag" title={view === "waiting" ? "No quote requests waiting" : "Nothing answered yet"}>
+            When a shop wants a large order of one product, the quote request shows here. Send your price and when it can be ready.
           </EmptyState>
         ) : null}
         {shown.map((quote) => (
@@ -47,7 +47,7 @@ export default function BulkRequests() {
               <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{quote.seller.name} wants {countWord(quote.quantity)}</T>
               <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{quote.supplierProduct.name} · {capitalise(friendlyDay(quote.createdAt))}</T>
               <View style={{ flexDirection: "row", gap: 6 }}>
-                <TonePill tone={quoteStage(quote.status).tone} label={bulkRequestStage(quote.status)} />
+                <TonePill tone={quoteStage(quote.status).tone} label={quoteRequestStage(quote.status)} />
                 {quote.quotedPrice ? <TonePill tone="muted" label={`${naira(quote.quotedPrice)} each`} /> : null}
               </View>
             </View>

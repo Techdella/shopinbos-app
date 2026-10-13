@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const ROLES = [
   { value: "manager", label: "Manager" },
-  { value: "inventory", label: "Stock (how many you have)" },
+  { value: "inventory", label: "Inventory" },
   { value: "support", label: "Support" },
   { value: "sales", label: "Sales" },
 ];

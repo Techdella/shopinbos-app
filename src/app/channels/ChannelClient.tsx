@@ -59,7 +59,7 @@ export function MetaConnectForm({ channel, canStoreTokens }: { channel: "meta" |
         Access token
         <input name="token" type="password" autoComplete="off" required placeholder="System user token with catalog_management" className={inputClass} />
       </label>
-      <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>{pending ? "Checking with Facebook…" : "Connect catalog"}</button>
+      <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>{pending ? "Checking with Meta…" : "Connect catalog"}</button>
       <Message state={state} />
     </form>
   );

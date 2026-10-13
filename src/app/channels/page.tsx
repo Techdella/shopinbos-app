@@ -43,7 +43,7 @@ const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; name: s
       "Choose “Add products from a file”, then “Enter a link to your file”.",
       "Paste the Google feed URL and set it to fetch daily.",
     ],
-    note: <>Google asks you to verify the website your product links point to. That&apos;s easiest on your own web address (<TextLink href="/home/domain">Web address</TextLink>).</>,
+    note: <>Google asks you to verify the website your product links point to. That&apos;s easiest on your own domain (<TextLink href="/home/domain">Domain</TextLink>).</>,
   },
   {
     key: "meta",
@@ -151,7 +151,7 @@ export default async function ChannelsPage() {
       store={storeSummary(store)}
       title="Sell everywhere"
       sub="Show your products on Google, Facebook, Instagram, TikTok and WhatsApp, share links, and see where your sales come from."
-      actions={<PillLink href="/home/analytics" icon="chart">How your shop is doing</PillLink>}
+      actions={<PillLink href="/home/analytics" icon="chart">Analytics</PillLink>}
     >
       <div className="grid gap-5">
         {connections === null && (
@@ -161,7 +161,7 @@ export default async function ChannelsPage() {
         <section aria-labelledby="catalogs-title" className="grid gap-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
-              <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Show your products on other apps</h2>
+              <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Product catalogs</h2>
               <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">Pick an app. We&apos;ll connect it for you, or Peggy shows you how. Your prices, photos and what&apos;s in stock stay up to date by themselves.</p>
             </div>
             <Pill tone={health.listed ? "success" : "warning"} dot>{health.listed} product{health.listed === 1 ? "" : "s"} ready to show</Pill>
@@ -288,7 +288,7 @@ export default async function ChannelsPage() {
         <Card className="p-5">
           <CardHead
             title="Products other apps can show"
-            sub={`${health.listed} ready · ${health.outOfStock} sold out (shown as sold out) · ${health.drafts} draft${health.drafts === 1 ? "" : "s"} not shown`}
+            sub={`${health.listed} listed · ${health.outOfStock} out of stock (listed as out of stock) · ${health.drafts} draft${health.drafts === 1 ? "" : "s"} not listed`}
             action={<TextLink href="/products">Products</TextLink>}
           />
           {health.skipped.length ? (
@@ -314,7 +314,7 @@ export default async function ChannelsPage() {
 
         <div className="grid gap-5 xl:grid-cols-2">
           <Card className="p-5">
-            <CardHead title="Sales by app" sub="Paid orders, last 30 days" action={<TextLink href="/home/analytics">How your shop is doing</TextLink>} />
+            <CardHead title="Sales by channel" sub="Paid orders, last 30 days" action={<TextLink href="/home/analytics">Full analytics</TextLink>} />
             {report.channels.length ? (
               <ul className="m-0 mt-4 grid list-none gap-4 p-0">
                 {report.channels.map((row) => (
@@ -340,7 +340,7 @@ export default async function ChannelsPage() {
                 ))}
                 {report.utmCampaigns.slice(0, 6).map((row) => (
                   <li key={`c-${row.key}`} className="flex justify-between gap-3 text-[13px] text-app-ink-soft">
-                    <span className="min-w-0 truncate">Link: {row.key}</span>
+                    <span className="min-w-0 truncate">Campaign: {row.key}</span>
                     <span className="shrink-0">{row.visits}</span>
                   </li>
                 ))}

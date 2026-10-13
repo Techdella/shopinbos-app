@@ -76,16 +76,16 @@ export default async function MarketingReportsPage({ searchParams }: { searchPar
       user={user}
       store={storeSummary(store)}
       title="Marketing reports"
-      sub="What your messages to customers, automations, forms and discounts did, from real sends and paid orders."
+      sub="What your campaigns, automations, forms and discounts did, from real sends and paid orders."
       actions={<PillLink href="/home/marketing" icon="arrowLeft">Marketing</PillLink>}
     >
       <div className="grid gap-5">
         <FilterChips items={RANGES.map((r) => ({ label: r.label, href: `/home/marketing/analytics?range=${r.key}`, active: r === range }))} />
         <StatGrid className="xl:grid-cols-6">
-          <StatTile tone="card" label="Messages to customers" value={sent.toLocaleString("en-NG")} hint={`${campaigns.length} sent`} />
+          <StatTile tone="card" label="Campaign messages" value={sent.toLocaleString("en-NG")} hint={`${campaigns.length} campaigns`} />
           <StatTile tone="card" label="Email open rate" value={pct(opens, emailSent)} />
           <StatTile tone="card" label="Click rate" value={pct(clicks, sent)} />
-          <StatTile tone="card" label="Sales from your messages" value={naira(revenue)} />
+          <StatTile tone="card" label="Sales from campaigns" value={naira(revenue)} />
           <StatTile tone="card" label="Carts won back" value={recoveredOrders._count} hint={naira(recoveredOrders._sum.total ?? 0)} />
           <StatTile tone="card" label="New subscribers" value={newSubs.length.toLocaleString("en-NG")} hint={`${unsubs} unsubscribed`} />
         </StatGrid>
@@ -95,13 +95,13 @@ export default async function MarketingReportsPage({ searchParams }: { searchPar
           main={
             <>
               <Card className="p-5">
-                <CardHead title="Messages to customers" sub="Orders and sales are paid orders placed after tapping the message" />
+                <CardHead title="Campaigns" sub="Orders and sales are paid orders placed after clicking the campaign" />
                 {campaigns.length ? (
                   <div className="mt-3 overflow-x-auto">
                     <table className="w-full min-w-[640px] border-collapse text-[13.5px]">
                       <thead>
                         <tr className="text-left text-app-ink-soft">
-                          {["Message", "Sent", "Opened", "Clicked", "Orders", "Sales", "Unsubs"].map((h) => <th key={h} className="border-b border-app-line py-2 pr-3 font-semibold">{h}</th>)}
+                          {["Campaign", "Sent", "Opened", "Clicked", "Orders", "Sales", "Unsubs"].map((h) => <th key={h} className="border-b border-app-line py-2 pr-3 font-semibold">{h}</th>)}
                         </tr>
                       </thead>
                       <tbody>
@@ -120,12 +120,12 @@ export default async function MarketingReportsPage({ searchParams }: { searchPar
                     </table>
                   </div>
                 ) : (
-                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No messages sent in this period.</p>
+                  <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">No campaigns sent in this period.</p>
                 )}
               </Card>
 
               <Card className="p-5">
-                <CardHead title="Automations" sub="Messages sent by each automation. Opens and taps are counted for messages to customers only." />
+                <CardHead title="Automations" sub="Messages sent by each automation. Opens and clicks are tracked for campaigns only." />
                 {flowRows.length ? (
                   <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                     {flowRows.map((row) => (

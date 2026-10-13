@@ -239,7 +239,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                     <span className="text-[14.5px] font-extrabold">You keep</span>
                     <span className={cx("text-[17px] font-extrabold", sale.keep > 0 ? "text-app-success" : "text-app-danger")}>{naira(sale.keep)} · {sale.keepPct}%</span>
                   </div>
-                  <p className="mb-0 mt-1 text-[12.5px] text-app-ink-soft">Delivery is added when the customer pays and goes to the rider.</p>
+                  <p className="mb-0 mt-1 text-[12.5px] text-app-ink-soft">Delivery is added at checkout and goes to the rider.</p>
                 </div>
               </section>
 

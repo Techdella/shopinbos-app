@@ -1,14 +1,14 @@
 import type { AppIconName } from "@/components/icons";
 
-// Technical jobs the Shopinbos team does for people on mobile ("Ask us to set it up"), in plain words.
+// Technical jobs the Shopinbos team does for people on mobile ("Ask us to set it up"), with plain helper sentences.
 export const SETUP_JOBS = {
   "web-address": {
     icon: "store",
-    title: "Get my own web address",
-    sub: "A name like yourshop.com. We set it up for you.",
-    description: "We'll get you a name like yourshop.com, or use one you already have, and set everything up. Your old link keeps working.",
+    title: "Connect a domain",
+    sub: "Your own name like yourshop.com. We set it up for you.",
+    description: "We'll get you a domain like yourshop.com, or connect one you already have, and set everything up. Your old link keeps working.",
     feature: "web_address",
-    softwareQuestion: "Do you already have a name? Type it here",
+    softwareQuestion: "Do you already have a domain? Type it here",
     softwarePlaceholder: "yourshop.com",
   },
   channels: {
@@ -22,7 +22,7 @@ export const SETUP_JOBS = {
   },
   "product-lists": {
     icon: "box",
-    title: "Show my products on Google and Facebook",
+    title: "Product feeds for Google and Facebook",
     sub: "So people find them when they search or scroll.",
     description: "We'll send your products to Google Shopping and the Facebook and Instagram shop, and keep them up to date.",
     feature: "product_feeds",
@@ -31,8 +31,8 @@ export const SETUP_JOBS = {
   },
   software: {
     icon: "settings",
-    title: "Connect my other software",
-    sub: "Accounting, delivery or anything else you use.",
+    title: "Integrations",
+    sub: "Connect accounting, delivery or other software you use.",
     description: "Tell us what you use. Our team connects it to your shop so you don't have to type things twice.",
     feature: "developer",
     softwareQuestion: "Which software do you use?",

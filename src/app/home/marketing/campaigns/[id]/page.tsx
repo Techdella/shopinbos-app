@@ -18,7 +18,7 @@ import { friendlyName } from "../../_kit/friendly";
 import { SentCampaignPreview } from "./SentCampaignPreview";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Message to customers" };
+export const metadata: Metadata = { title: "Campaign" };
 
 const STATUS: Record<string, { tone: Tone; label: string }> = {
   draft: { tone: "muted", label: "Draft" },
@@ -81,7 +81,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         store={storeSummary(store)}
         title={campaign.name}
         sub={`${isEmail ? "Email" : campaign.channel === "sms" ? "SMS" : "WhatsApp"} · sent ${formatDate(campaign.sentAt, true)}`}
-        actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All messages</PillLink>}
+        actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
       >
         <div className="grid gap-5">
           {campaign.status === "sending" ? <Pill tone="info">Still sending: {count("queued").toLocaleString("en-NG")} waiting. It carries on by itself within 10 minutes.</Pill> : null}
@@ -131,7 +131,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                     rows={[
                       ["Audience", segment ? `Segment: ${segment.name}` : parseRecipientFilter(campaign.recipientFilter).mode === "subscribers" ? "Subscribers" : "Subscribers and buyers"],
                       ...(isEmail ? ([["Subject", campaign.subject]] as Array<[string, string]>) : []),
-                      ...(waTemplate ? ([["Message", friendlyName(waTemplate.name)]] as Array<[string, string]>) : []),
+                      ...(waTemplate ? ([["Template", friendlyName(waTemplate.name)]] as Array<[string, string]>) : []),
                       ...(campaign.channel === "sms" && config.senderId ? ([["Sender ID", config.senderId]] as Array<[string, string]>) : []),
                       ["Sent", formatDate(campaign.sentAt, true)],
                       ["Made", formatDate(campaign.createdAt, true)],
@@ -167,9 +167,9 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={isNew ? "New message to customers" : campaign!.name}
-      sub={isNew ? "Write it once, send it to a group of customers by email, SMS or WhatsApp." : campaign!.status === "scheduled" ? `Scheduled for ${formatDate(campaign!.scheduledAt, true)} (Lagos time)` : "Draft"}
-      actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All messages</PillLink>}
+      title={isNew ? "New campaign" : campaign!.name}
+      sub={isNew ? "Write it once, send it to a segment by email, SMS or WhatsApp." : campaign!.status === "scheduled" ? `Scheduled for ${formatDate(campaign!.scheduledAt, true)} (Lagos time)` : "Draft"}
+      actions={<PillLink href="/home/marketing/campaigns" icon="arrowLeft">All campaigns</PillLink>}
     >
       <CampaignEditor
         initial={{

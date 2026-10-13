@@ -9,7 +9,7 @@ import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server
 import { WhatsAppTemplates } from "./WhatsAppTemplates";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "WhatsApp messages" };
+export const metadata: Metadata = { title: "WhatsApp templates" };
 
 export default async function WhatsAppTemplatesPage() {
   const user = await requireRole(["seller"], "/login");
@@ -21,12 +21,12 @@ export default async function WhatsAppTemplatesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="WhatsApp messages"
-      sub="Messages WhatsApp has approved, so you can send offers and order updates to customers any time, not only when they message you first."
+      title="WhatsApp templates"
+      sub="Message templates WhatsApp has approved, for campaigns, automations and order updates. They let you message customers any time, not only when they message you first."
       actions={
         <>
           <PillLink href="/home/marketing/messages" icon="bell">Order messages</PillLink>
-          <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">Send a WhatsApp message</PillLink>
+          <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">WhatsApp campaign</PillLink>
         </>
       }
     >
@@ -35,7 +35,7 @@ export default async function WhatsAppTemplatesPage() {
           initial={templates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables, preset: t.preset, syncedAt: t.syncedAt?.toISOString() ?? null }))}
           whatsapp={channels.whatsapp}
         />
-        <AssistantNote>WhatsApp usually approves a message within minutes, sometimes up to a day. An order update must only be about an order; anything with an offer is a promotion, and WhatsApp may change it to one.</AssistantNote>
+        <AssistantNote>WhatsApp usually approves a template within minutes, sometimes up to a day. An order update template must only be about an order; anything with an offer is a promotion, and WhatsApp may change it to one.</AssistantNote>
       </div>
     </SellerPage>
   );

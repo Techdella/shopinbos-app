@@ -15,8 +15,8 @@ import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
-// Add a supplier product from the phone, one question per screen: photos and what it is; your price to shops,
-// what shops sell it for and how many you have; then a description and the kind of product (the rest folded away). Saved through the portal's own
+// Add a supplier product from the phone, one question per screen: photos and what it is; wholesale price,
+// suggested retail price and stock; then a description and the kind of product (the rest folded away). Saved through the portal's own
 // POST /api/supplier/products as a draft or sent for review (admins publish it).
 
 type Photo = { uri: string; mimeType?: string | null; fileName?: string | null };
@@ -66,14 +66,14 @@ export default function NewSupplierProduct() {
     if (!photos.length) return { step: 0, text: "Add at least one photo, so shops can see it." };
     if (name.trim().length < 2) return { step: 0, text: "Type what it is, like \"Leather slides\"." };
     if (upTo < 1) return null;
-    if (!parseAmount(wholesale)) return { step: 1, text: "Type your price to shops for one, in naira, like 6000." };
-    if (!parseAmount(retail)) return { step: 1, text: "Type what shops sell it for, in naira, like 13000." };
-    if (parseCount(stock) === null) return { step: 1, text: "Type how many you have, like 50." };
+    if (!parseAmount(wholesale)) return { step: 1, text: "Type your wholesale price for one, in naira, like 6000." };
+    if (!parseAmount(retail)) return { step: 1, text: "Type the suggested retail price, in naira, like 13000." };
+    if (parseCount(stock) === null) return { step: 1, text: "Type how many you have in stock, like 50." };
     if (upTo < 2) return null;
     if (description.trim().length < 10) return { step: 2, text: "Describe it in a sentence: what it's made of, sizes or colours." };
     if (!categoryId) return { step: 2, text: "Pick what kind of product it is." };
-    if (!parseCount(moq) || parseCount(moq)! < 1) return { step: 2, text: "The smallest order should be 1 or more." };
-    if (!dropship && !bulk) return { step: 2, text: "Pick at least one way shops can buy it." };
+    if (!parseCount(moq) || parseCount(moq)! < 1) return { step: 2, text: "The minimum order (MOQ) should be 1 or more." };
+    if (!dropship && !bulk) return { step: 2, text: "Pick dropship, wholesale or both." };
     return null;
   }
 
@@ -117,11 +117,11 @@ export default function NewSupplierProduct() {
         processingTime: ships,
         status,
       });
-      Alert.alert(status === "draft" ? "Saved for later" : "Shops can see it soon", status === "draft" ? "Open it from My products and tap \"Show it to shops\" when you're ready." : "We check it first, usually within a day. We'll tell you when a shop adds it.");
+      Alert.alert(status === "draft" ? "Saved as a draft" : "Sent for review", status === "draft" ? "Open it from My products and tap \"Show it to shops\" when you're ready." : "We check it first, usually within a day. We'll tell you when a shop adds it.");
       router.back();
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again.";
-      setError(saveError instanceof ApiError && (saveError.code === "VERIFICATION_REQUIRED" || saveError.code === "ONBOARDING_REQUIRED") ? "You can add products once we've checked your business. Open Money → Checks on your business." : message);
+      setError(saveError instanceof ApiError && (saveError.code === "VERIFICATION_REQUIRED" || saveError.code === "ONBOARDING_REQUIRED") ? "You can add products once we've checked your business. Open Money → Verification." : message);
     } finally {
       setBusy(null);
       setProgress(null);
@@ -188,17 +188,17 @@ export default function NewSupplierProduct() {
       {step === 1 ? (
         <>
           <View>
-            <Label>Your price to shops (for one) ₦</Label>
-            <Field value={wholesale} onChangeText={setWholesale} keyboardType="decimal-pad" placeholder="6,000" accessibilityLabel="Your price to shops, for one" />
+            <Label>Wholesale price (for one) ₦</Label>
+            <Field value={wholesale} onChangeText={setWholesale} keyboardType="decimal-pad" placeholder="6,000" accessibilityLabel="Wholesale price, for one" />
           </View>
           <View>
-            <Label>Shops sell it for about ₦</Label>
-            <Field value={retail} onChangeText={setRetail} keyboardType="decimal-pad" placeholder="13,000" accessibilityLabel="Shops sell it for about" />
-            <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Shops add their own profit on top of your price.</T>
+            <Label>Suggested retail price ₦</Label>
+            <Field value={retail} onChangeText={setRetail} keyboardType="decimal-pad" placeholder="13,000" accessibilityLabel="Suggested retail price" />
+            <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Shops add their own margin on top of your wholesale price.</T>
           </View>
           <View>
-            <Label>How many do you have?</Label>
-            <Field value={stock} onChangeText={setStock} keyboardType="number-pad" placeholder="50" accessibilityLabel="How many do you have?" />
+            <Label>Stock: how many do you have?</Label>
+            <Field value={stock} onChangeText={setStock} keyboardType="number-pad" placeholder="50" accessibilityLabel="Units in stock" />
           </View>
         </>
       ) : null}
@@ -221,34 +221,34 @@ export default function NewSupplierProduct() {
           {more ? (
             <Card style={{ gap: 14 }}>
               <View>
-                <Label>Smallest order</Label>
-                <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" accessibilityLabel="Smallest order" />
+                <Label>Minimum order (MOQ)</Label>
+                <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" accessibilityLabel="Minimum order quantity" />
               </View>
               <View>
-                <Label>Ready to send within</Label>
+                <Label>Ships within</Label>
                 <ChipRow>{SHIPS.map((item) => <Chip key={item} label={item} on={ships === item} onPress={() => setShips(item)} />)}</ChipRow>
               </View>
               <View>
-                <Label>Places you send to</Label>
-                <Field value={regions} onChangeText={setRegions} placeholder="Lagos, Abuja, Ibadan" accessibilityLabel="Places you send to" />
+                <Label>Delivery regions</Label>
+                <Field value={regions} onChangeText={setRegions} placeholder="Lagos, Abuja, Ibadan" accessibilityLabel="Delivery regions" />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <View style={{ flex: 1 }}>
-                  <T weight="bold" style={{ fontSize: 15 }}>Shops sell it for you</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>You send each order with the shop&apos;s label.</T>
+                  <T weight="bold" style={{ fontSize: 15 }}>Dropship</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>Shops sell it, you ship each order white label with the shop&apos;s label.</T>
                 </View>
-                <Toggle on={dropship} onChange={setDropship} label="Shops sell it for you" />
+                <Toggle on={dropship} onChange={setDropship} label="Dropship" />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <View style={{ flex: 1 }}>
-                  <T weight="bold" style={{ fontSize: 15 }}>Shops can buy a lot at once</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>They ask, you tell them your price.</T>
+                  <T weight="bold" style={{ fontSize: 15 }}>Wholesale</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>Shops order in bulk at your wholesale price, or ask for a quote.</T>
                 </View>
-                <Toggle on={bulk} onChange={setBulk} label="Shops can buy a lot at once" />
+                <Toggle on={bulk} onChange={setBulk} label="Wholesale" />
               </View>
             </Card>
           ) : (
-            <LinkButton title="Smallest order, sending and more (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />
+            <LinkButton title="MOQ, shipping time and regions (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />
           )}
         </>
       ) : null}

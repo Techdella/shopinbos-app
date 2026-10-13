@@ -39,7 +39,7 @@ export default async function RewardsPage() {
       user={user}
       store={storeSummary(store)}
       title="Rewards and games"
-      sub="Spin the wheel, scratch cards, reward progress and loyalty points. Real discounts, fair odds, never in the way of paying."
+      sub="Spin the wheel, scratch cards, reward progress and loyalty points. Real discounts, fair odds, never in the way of checkout."
       actions={
         <>
           <PillLink href="/home/discounts" icon="percent">Discounts</PillLink>

@@ -40,13 +40,13 @@ export default async function TaxesPage({ searchParams }: TaxPageProps) {
   const checkRow = "flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[14px] bg-app-canvas px-4 text-[14.5px] font-semibold";
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Taxes" sub="How VAT is added when customers pay, and shown on receipts.">
+    <SellerPage user={user} store={storeSummary(store)} title="Taxes" sub="How VAT is added at checkout and shown on receipts.">
       <PageToast />
       <form action={saveStoreTaxSettings} className="grid gap-5 xl:grid-cols-2">
         {params?.saved && <div className="xl:col-span-2"><Notice tone="success">Tax settings saved.</Notice></div>}
 
         <Card className="p-5 sm:p-6">
-          <CardHead title={`VAT (${defaultRate}%)`} sub={`Value added tax on orders in ${country}.`} action={<Pill tone={vatEnabled ? "success" : "muted"} dot>{vatEnabled ? "On" : "Off"}</Pill>} />
+          <CardHead title={`VAT (${defaultRate}%)`} sub={`Value added tax at checkout in ${country}.`} action={<Pill tone={vatEnabled ? "success" : "muted"} dot>{vatEnabled ? "On" : "Off"}</Pill>} />
           <div className="mt-5 grid gap-4">
             <label className={checkRow}>
               <input type="checkbox" name="vatEnabled" defaultChecked={vatEnabled} className={checkClass} />

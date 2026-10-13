@@ -406,7 +406,7 @@ test("inner portal pages use the mockup-style operational shell", () => {
   assert.match(rolePage, /Search this list/);
   assert.match(rolePage, /dBtn-mint/);
 
-  assert.match(payments, /Shopinbos takes the payments for you/);
+  assert.match(payments, /Shopinbos handles checkout/);
   assert.match(payments, /Money in, last 30 days/);
   assert.match(payments, /Latest payments/);
   assert.match(payments, /How customers paid/);
@@ -515,8 +515,8 @@ test("supplier quote and order pages support response and fulfilment workflows",
 
   assert.match(quotes, /respondToSupplierQuote/);
   assert.match(quotes, /name="quotedPrice"/);
-  assert.match(quotes, /Send my price/);
-  assert.match(quotes, /Your price requests/);
+  assert.match(quotes, /Send quote/);
+  assert.match(quotes, /Quote health/);
   assert.match(quotes, /name="intent" value="reject"/);
 
   assert.match(orders, /updateSupplierOrderStatus/);

@@ -67,9 +67,9 @@ function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void })
     case "themes":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 15 }}>Looks for your shop</T>
+          <T weight="extrabold" style={{ fontSize: 15 }}>Themes</T>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {card.themes.map((theme) => <Chip key={theme.id} label={theme.name} on={theme.id === card.current} onPress={() => ask(`Change my shop to the ${theme.name} look.`)} />)}
+            {card.themes.map((theme) => <Chip key={theme.id} label={theme.name} on={theme.id === card.current} onPress={() => ask(`Switch my shop to the ${theme.name} theme.`)} />)}
           </View>
         </View>
       );
@@ -165,7 +165,7 @@ export default function Rex() {
           <Mascot name="rex" size={40} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 16 }}>Rex Studio</T>
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>Makes your shop look good: pictures, logo and words</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14 }}>Designs your shop, pictures, logos and campaigns</T>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Open Rex Studio on the web" onPress={() => void openWeb("/studio")} hitSlop={6} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.surface }}>
             <T weight="bold" style={{ fontSize: 14 }}>Preview</T>
@@ -177,7 +177,7 @@ export default function Rex() {
     >
       {!turns.length ? (
         <>
-          <Bubble mine={false}>Hi! I&apos;m Rex. I can change your store&apos;s look and words, edit product photos, make logos, videos and descriptions, and write messages to your customers. What shall we make?</Bubble>
+          <Bubble mine={false}>Hi! I&apos;m Rex. I can change your store&apos;s look and words, edit product photos, make logos, videos and descriptions, and build campaigns. What shall we make?</Bubble>
           <View style={{ gap: 8 }}>
             {REX_STARTERS.map((starter) => (
               <Pressable key={starter.title} accessibilityRole="button" onPress={() => void ask(starter.prompt)} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 }}>

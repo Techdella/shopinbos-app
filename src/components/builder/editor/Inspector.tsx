@@ -177,7 +177,7 @@ export function Inspector(props: InspectorProps) {
         ) : null}
         <div className="mt-4 border-t border-app-line pt-1">
           <button type="button" onClick={props.onOpenThemeSettings} className="flex min-h-11 w-full items-center justify-between text-[14px] font-semibold text-app-ink hover:opacity-80">
-            Colours and fonts <Icon name="chevRight" size={15} className="text-app-ink-faint" />
+            Theme settings <Icon name="chevRight" size={15} className="text-app-ink-faint" />
           </button>
           <button type="button" onClick={() => props.onAction("remove")} className="flex min-h-11 items-center gap-2 text-[14px] font-semibold text-app-danger hover:opacity-80">
             <Icon name="trash" size={15} /> Remove section

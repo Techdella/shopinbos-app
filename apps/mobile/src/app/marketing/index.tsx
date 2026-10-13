@@ -13,9 +13,8 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Get more customers (web /home/marketing and /home/discounts), in plain words: share the shop, an advert, a
-// discount code, ask for reviews; then the messages already sent to customers and the codes. Writing long emails
-// and the messages that send themselves stay on the web.
+// Marketing (web /home/marketing and /home/discounts): share the shop, an ad, a discount code, ask for reviews;
+// then the campaigns already sent and the codes. Writing campaigns and automations stays on the web.
 
 const STATUS_TONE: Record<string, { bg: string; fg: string; label: string }> = {
   draft: { bg: colors.canvas, fg: colors.inkSoft, label: "Draft" },
@@ -57,7 +56,7 @@ function CampaignCard({ campaign }: { campaign: CampaignRow }) {
         <View style={{ flexDirection: "row", gap: 14, marginTop: 2 }}>
           <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{String(campaign.sentCount)}</T> sent</T>
           <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{pct(campaign.openCount, campaign.sentCount)}</T> opened</T>
-          <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{pct(campaign.clickCount, campaign.sentCount)}</T> tapped</T>
+          <T style={{ fontSize: 14 }}><T weight="bold" style={{ fontSize: 14 }}>{pct(campaign.clickCount, campaign.sentCount)}</T> clicked</T>
           {campaign.revenueGenerated ? <T weight="bold" style={{ fontSize: 14, color: colors.success }}>{naira(campaign.revenueGenerated)}</T> : null}
         </View>
       ) : null}
@@ -86,7 +85,7 @@ export default function Marketing() {
       setCreating(false);
       setForm({ name: "", code: "", type: "percentage", value: 10, expiresAt: null });
       setDays(0);
-      setNote({ tone: "success", text: `Code ${created.code} works now. Customers type it when they pay.` });
+      setNote({ tone: "success", text: `Code ${created.code} works now. Customers type it at checkout.` });
       await data.reload();
     } catch (createError) {
       setNote({ tone: "error", text: createError instanceof Error ? createError.message : "Couldn't make the code. Check your connection and try again." });
@@ -101,10 +100,10 @@ export default function Marketing() {
   }
 
   return (
-    <Screen title="Get more customers" sub="Ways to bring more people to your shop." refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
+    <Screen title="Marketing" sub="Ways to get more customers to your shop." refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       <ChoiceRow icon="share" tint={colors.lilac} title="Share my shop" sub="Send your link on WhatsApp or your Status" onPress={() => void share()} />
-      <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title="Show a product to more people" sub="An advert on Instagram and Facebook. Opens in your browser" onPress={() => void openWeb("/home/ads")} />
+      <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title="Run an ad" sub="Instagram and Facebook ads. Opens in your browser" onPress={() => void openWeb("/home/ads")} />
       <ChoiceRow icon="tag" tint={colors.peach} iconColor={colors.accentInk} title="Make a discount code" sub="Money off, like SALE10" onPress={() => setCreating(true)} />
       <ChoiceRow icon="star" tint={colors.successTint} iconColor={colors.success} title="Ask for reviews" sub="Happy customers bring new ones" onPress={() => router.push("/reviews/ask")} />
 
@@ -114,8 +113,8 @@ export default function Marketing() {
         <>
           {overview.campaigns.length ? (
             <>
-              <SectionTitle>Messages you sent to customers</SectionTitle>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{overview.totals.sent} people got them · {pct(overview.totals.opens, overview.totals.sent)} opened · {pct(overview.totals.clicks, overview.totals.sent)} tapped · {naira(overview.totals.revenue)} in sales</T>
+              <SectionTitle>Campaigns</SectionTitle>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{overview.totals.sent} reached · {pct(overview.totals.opens, overview.totals.sent)} opened · {pct(overview.totals.clicks, overview.totals.sent)} clicked · {naira(overview.totals.revenue)} in sales</T>
               {overview.campaigns.slice(0, 5).map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} />)}
             </>
           ) : null}
@@ -163,16 +162,16 @@ export default function Marketing() {
                 </T>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                   <T style={{ fontSize: 14 }}>{discount.orders} order{discount.orders === 1 ? "" : "s"}{discount.revenue ? ` · ${naira(discount.revenue)} sold` : ""}</T>
-                  {discount.status === "active" && !expired ? <LinkButton title="Share" style={{ minHeight: 30 }} onPress={() => void Share.share({ message: `Use code ${discount.code} for ${discountLabel(discount, naira).toLowerCase()} when you pay!` })} /> : null}
+                  {discount.status === "active" && !expired ? <LinkButton title="Share" style={{ minHeight: 30 }} onPress={() => void Share.share({ message: `Use code ${discount.code} for ${discountLabel(discount, naira).toLowerCase()} at checkout!` })} /> : null}
                 </View>
               </Card>
             );
           })}
 
           <Card style={{ paddingVertical: 2, marginTop: 6 }}>
-            <LinkRow first icon="mail" label="Ready-made emails" hint="For sales, new stock and thank-yous" onPress={() => router.push("/marketing/templates")} />
-            <LinkRow icon="users" label="Groups of customers" hint="Opens in your browser" onPress={() => void openWeb("/home/marketing/subscribers")} />
-            <LinkRow icon="sparkle" label="Messages that send themselves" hint="Welcome, customers who didn't finish paying, thank-you. Opens in your browser" onPress={() => void openWeb("/home/marketing")} />
+            <LinkRow first icon="mail" label="Email templates" hint="Ready-made emails for sales, new stock and thank-yous" onPress={() => router.push("/marketing/templates")} />
+            <LinkRow icon="users" label="Subscribers and segments" hint="Group customers by what they buy. Opens in your browser" onPress={() => void openWeb("/home/marketing/subscribers")} />
+            <LinkRow icon="sparkle" label="Automations" hint="Welcome, abandoned checkout, thank-you. Opens in your browser" onPress={() => void openWeb("/home/marketing")} />
           </Card>
         </>
       ) : null}

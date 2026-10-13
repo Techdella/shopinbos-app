@@ -8,7 +8,7 @@ import { naira } from "@shared/onboarding";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Money sent to your bank" };
+export const metadata: Metadata = { title: "Payouts" };
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 
@@ -43,14 +43,14 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Money sent to your bank"
+      title="Payouts"
       sub="Paid orders and where the money for each one went."
       actions={<PillLink href="/home/payments" icon="coin">Money</PillLink>}
     >
       <div className="grid gap-5">
         {!hasBank && (
-          <AssistantNote action={<PillLink href="/home/payments" tone="ink" size="sm">Add your bank</PillLink>}>
-            You haven&apos;t added your bank yet. Add it so we can send you the money from online orders.
+          <AssistantNote action={<PillLink href="/home/payments" tone="ink" size="sm">Add payout bank</PillLink>}>
+            You haven&apos;t added a payout bank yet. Add one so money from online orders has somewhere to go.
           </AssistantNote>
         )}
 
@@ -58,7 +58,7 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
           <StatTile tone="card" label="Paid online" value={naira(onlineTotal)} hint={`${online.length} order${online.length === 1 ? "" : "s"}`} />
           <StatTile tone="card" label="Collected yourself" value={naira(offlineTotal)} hint={`${offline.length} order${offline.length === 1 ? "" : "s"}`} />
           <StatTile tone="card" label="Paid orders" value={paidOrders.length} hint="Latest 100" />
-          <StatTile tone="card" label="Your bank" value={hasBank ? "Added" : "Not added"} />
+          <StatTile tone="card" label="Payout bank" value={hasBank ? "Added" : "Not added"} />
         </StatGrid>
 
         <FilterChips

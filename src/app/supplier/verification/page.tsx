@@ -159,7 +159,7 @@ export default function SupplierVerificationPage() {
     <AppPage
       frame={supplierFrame(user, supplier, { verificationStatus: supplier.verificationStatus })}
       title="Verification"
-      sub="Verified suppliers get a public badge, show up higher in seller searches, and can take orders and tell shops their price."
+      sub="Verified suppliers get a public badge, show up higher in seller searches, and can take orders and send quotes."
       actions={
         isVerified && trustData ? (
           <VerificationBadge tier={badgeTier} trustScore={trustData.total} verificationStatus={supplier.verificationStatus} size="md" />

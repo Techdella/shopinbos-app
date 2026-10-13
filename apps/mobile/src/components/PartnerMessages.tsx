@@ -30,7 +30,7 @@ export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) 
         {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: "Open on web", onPress: () => void openWeb(webPath) }} /> : null}
         {contacts.data && !list.length ? (
           <EmptyState icon="chat" title={contacts.data.length ? "No chats match" : "No messages yet"}>
-            {contacts.data.length ? "Try another name." : "When a shop messages you about an order, a price or a delivery, it shows up here."}
+            {contacts.data.length ? "Try another name." : "When a shop messages you about an order, a quote or a delivery, it shows up here."}
           </EmptyState>
         ) : null}
         {list.map((contact) => (

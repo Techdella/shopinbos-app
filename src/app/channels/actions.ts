@@ -68,7 +68,7 @@ export async function connectMetaCatalog(_state: ChannelActionState, formData: F
     update: data,
   });
   revalidatePath("/channels");
-  return { ok: true, message: `Connected to “${name}”. Press “Send my products now” to update it.` };
+  return { ok: true, message: `Connected to the catalog “${name}”. Press Sync now to send your products.` };
 }
 
 export async function disconnectChannel(formData: FormData) {

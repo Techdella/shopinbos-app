@@ -25,7 +25,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "porkbun",
     name: "Porkbun",
-    description: "Low prices. Good for your first web address.",
+    description: "Low prices. Good for your first domain.",
     baseUrl: "https://porkbun.com",
     affiliateUrl: "https://porkbun.com",
     logoUrl: null,
@@ -33,7 +33,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "whogohost",
     name: "Whogohost",
-    description: "Nigerian company. Local support and you pay in Naira.",
+    description: "Nigeria's leading domain registrar — local support and Naira payments.",
     baseUrl: "https://whogohost.com",
     affiliateUrl: "https://whogohost.com",
     logoUrl: null,
@@ -41,7 +41,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "smartweb",
     name: "SmartWeb",
-    description: "Sells .ng web addresses. You pay in Naira.",
+    description: "African-focused registrar with .ng domains and local billing.",
     baseUrl: "https://smartwebng.com",
     affiliateUrl: "https://smartwebng.com",
     logoUrl: null,
@@ -100,8 +100,8 @@ export default async function DomainSettingsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Web address"
-      sub="Where customers open your shop. You have a free one already, and you can use your own."
+      title="Domain"
+      sub="Your store address. Free subdomain, or your own domain with a secure certificate."
     >
       <PageToast />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">

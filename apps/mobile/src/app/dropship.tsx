@@ -11,20 +11,20 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Sell without stock (web /home/dropship): products suppliers send straight to buyers, with Cost / Sell / You keep,
+// Dropship (web /home/dropship): products suppliers send straight to buyers, with Cost / Sell / You keep,
 // the supplier's stock, and Pause / Sell again. Prices are edited on the web product page.
 
 const FILTERS: { key: DropshipFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "selling", label: "Selling" },
   { key: "paused", label: "Paused" },
-  { key: "attention", label: "Almost finished" },
+  { key: "attention", label: "Low stock" },
 ];
 
 function stockBadge(stock: number) {
-  if (stock <= 0) return { label: "Finished at the supplier", bg: colors.dangerTint, fg: colors.danger };
+  if (stock <= 0) return { label: "Out of stock at the supplier", bg: colors.dangerTint, fg: colors.danger };
   if (stock < 5) return { label: `${stock} left at supplier`, bg: "#FDF0D5", fg: "#8A5A00" };
-  return { label: `Supplier has ${stock}`, bg: colors.successTint, fg: colors.success };
+  return { label: `${stock} in stock`, bg: colors.successTint, fg: colors.success };
 }
 
 function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: () => void; busy: boolean }) {
@@ -82,18 +82,18 @@ export default function DropshipScreen() {
   }
 
   return (
-    <Screen title="Sell without stock" sub="You don't buy these. When a customer pays, the supplier sends it with your shop's name on it." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title="Dropship" sub="You don't buy these. When a customer pays, the supplier sends it with your shop's name on it." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading ? <LoadingBlock /> : null}
       {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}
       {loaded.data && items.length === 0 ? (
-        <EmptyState icon="truck" title="Nothing here yet" action={<PillButton title="Find products to sell" size="md" onPress={() => router.push("/find")} />}>
+        <EmptyState icon="truck" title="No dropship products yet" action={<PillButton title="Find products to sell" size="md" onPress={() => router.push("/find")} />}>
           Pick products from suppliers and put them in your shop. You pay nothing until a customer pays you. Your money is safe here until delivery.
         </EmptyState>
       ) : null}
       {items.length > 0 ? (
         <>
-          {attention > 0 ? <Notice tone="info">{`${attention} almost finished at the supplier. Pause them so customers don't order what can't be sent.`}</Notice> : null}
+          {attention > 0 ? <Notice tone="info">{`${attention} low or out of stock at the supplier. Pause them so customers don't order what can't be sent.`}</Notice> : null}
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {FILTERS.map((entry) => <Chip key={entry.key} label={entry.label} on={filter === entry.key} onPress={() => setFilter(entry.key)} />)}
           </View>

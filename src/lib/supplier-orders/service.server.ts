@@ -124,13 +124,12 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
         const units = row.items.reduce((sum, item) => sum + item.quantity, 0);
         const within = deadlines.get(row.supplierId)?.words ?? "4 hours";
         const ref = supplierOrderRef(row.id);
-        // Suppliers' words (spec 8A): "a shop sold it for you", never "dropship".
         void messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, order.currency)}. Accept it within ${within} in the app.`);
         return createNotification({
           userId: supplier.userId,
           type: "dropshipping",
           priority: "warning",
-          title: `New order ${ref} from ${shop}: accept within ${within}`,
+          title: `New dropship order ${ref} from ${shop}: accept within ${within}`,
           description: `${shop} sold ${units} ${units === 1 ? "piece" : "pieces"} for you${place ? `, going to ${place}` : ""}. You get ${money(row.costTotal, order.currency)}.${pod ? " The customer pays the rider when it arrives." : ""} Accept it within ${within}, or the shop will be told you didn't answer.`,
           link: `/supplier/orders/${row.id}`,
           actionLabel: "Accept order",

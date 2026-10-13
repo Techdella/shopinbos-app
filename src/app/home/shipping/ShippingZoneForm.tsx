@@ -160,14 +160,14 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
           </div>
         </div>
         <p id="zone-order-hint" className="mb-0 mt-2 text-[13px] leading-5 text-app-ink-soft">
-          When a customer pays, zones are checked from the lowest number up and the first match is used. Give catch-all zones the highest number.
+          At checkout, zones are checked from the lowest number up and the first match is used. Give catch-all zones the highest number.
         </p>
         <div className="mt-4 flex items-center justify-between gap-3 rounded-[16px] bg-app-canvas px-4 py-3">
           <div className="min-w-0">
-            <div className="text-[14.5px] font-bold">Use this zone when customers pay</div>
+            <div className="text-[14.5px] font-bold">Use this zone at checkout</div>
             <div className="text-[13px] text-app-ink-soft">{active ? "On: shoppers in these areas see these fees." : "Off: this zone is skipped at checkout."}</div>
           </div>
-          <Toggle on={active} onChange={setActive} label="Use this zone when customers pay" />
+          <Toggle on={active} onChange={setActive} label="Use this zone at checkout" />
         </div>
       </section>
 

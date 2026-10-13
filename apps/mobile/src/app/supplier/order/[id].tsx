@@ -256,14 +256,14 @@ export default function SupplierOrderScreen() {
             <Step n={2}>{data.kind === "dropship" ? `Pack it with ${data.shop}'s label. Don't put your own name inside.` : "Pack it and get it ready."}</Step>
             <Step n={3}>A rider comes to collect it at a time you pick. You don&apos;t pay for delivery.</Step>
           </Card>
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>The shop pays first. We keep the money safe and send it to you after delivery.</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>The shop pays first. We hold the money in escrow and pay you out after delivery.</T>
         </>
       ) : null}
 
       {stage === "label" && data.kind === "dropship" ? (
         <>
           <ShopLabel order={data} big={way === "phone"} />
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>The customer thinks it came from {data.shop}. That&apos;s how the shop keeps buying from you.</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>It ships white label, as {data.shop}&apos;s parcel. That&apos;s how the shop keeps buying from you.</T>
           <T weight="extrabold" style={{ fontSize: 22, marginTop: 6 }}>How do you want the label?</T>
           {LABEL_WAYS.map((option) => {
             const on = way === option.key;
@@ -287,7 +287,7 @@ export default function SupplierOrderScreen() {
             );
           })}
           <Card style={{ gap: 6 }}>
-            <T weight="extrabold" style={{ fontSize: 16 }}>What goes inside</T>
+            <T weight="extrabold" style={{ fontSize: 16 }}>Packing slip</T>
             {data.items.map((item, index) => (
               <View key={`${item.name}-${index}`} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <Thumb uri={item.image} size={40} />
@@ -409,7 +409,7 @@ export default function SupplierOrderScreen() {
           <T weight="extrabold" style={{ fontSize: 17 }}>{itemsTitle(data)}</T>
           <KeyValue first label="You get" value={naira(youGet)} />
           <KeyValue label="Where it is" value={supplierOrderStage(data.status)} />
-          {data.trackingCode ? <KeyValue label="Rider's code" value={data.trackingCode} /> : null}
+          {data.trackingCode ? <KeyValue label="Tracking code" value={data.trackingCode} /> : null}
         </Card>
       ) : null}
 

@@ -17,7 +17,7 @@ import { colors, radii } from "@/theme";
 const VIEWS: Array<{ value: InboxView; label: string }> = [
   { value: "open", label: "Open" },
   { value: "unread", label: "Unread" },
-  { value: "snoozed", label: "Later" },
+  { value: "snoozed", label: "Snoozed" },
   { value: "closed", label: "Done" },
 ];
 
@@ -96,7 +96,7 @@ export default function Chats() {
               <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{item.preview || "No messages yet"}</T>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
                 <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? "Partner" : channelLabel(item.channel)}</T>
-                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 13, color: colors.accentInk }}>· Later</T> : null}
+                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 13, color: colors.accentInk }}>· Snoozed</T> : null}
               </View>
             </View>
             {item.unread ? (
@@ -109,8 +109,8 @@ export default function Chats() {
       </View>
 
       <Card style={{ marginTop: 18, paddingVertical: 2 }}>
-        <LinkRow first icon="users" label="Messages with suppliers and riders" onPress={() => router.push("/partners")} />
-        <LinkRow icon="clock" label="Replies when you're busy" hint="Away message and opening hours" onPress={() => router.push("/inbox/auto-replies")} />
+        <LinkRow first icon="users" label="Partner messages" hint="Suppliers and delivery partners" onPress={() => router.push("/partners")} />
+        <LinkRow icon="clock" label="Auto-replies" hint="Away message and opening hours" onPress={() => router.push("/inbox/auto-replies")} />
         <LinkRow icon="chat" label="Connect WhatsApp, Instagram, TikTok" hint="We set it up for you" onPress={() => router.push({ pathname: "/ask-us", params: { what: "channels" } })} />
       </Card>
     </TabScreen>

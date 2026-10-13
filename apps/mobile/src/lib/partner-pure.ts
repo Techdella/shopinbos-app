@@ -99,7 +99,7 @@ export const FAIL_REASONS = ["Customer didn't pick up calls", "Customer not at t
 
 const ORDER_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "New", tone: "accent" },
-  awaiting_payment: { label: "Pay when it arrives", tone: "accent" },
+  awaiting_payment: { label: "Pay on delivery", tone: "accent" },
   paid: { label: "To accept", tone: "accent" },
   confirmed: { label: "Accepted", tone: "warning" },
   accepted: { label: "Accepted, to send", tone: "warning" },

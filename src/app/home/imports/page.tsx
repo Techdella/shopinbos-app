@@ -132,7 +132,7 @@ export default async function ImportsPage({ searchParams }: { searchParams?: Pro
         )}
 
         <p className="m-0 text-[13.5px] text-app-ink-soft">
-          Selling a Nigerian supplier&apos;s products instead? <Link href="/home/dropship" className="font-extrabold text-app-accent-ink no-underline hover:underline">See the products you sell without stock</Link>.
+          Selling a Nigerian supplier&apos;s products instead? <Link href="/home/dropship" className="font-extrabold text-app-accent-ink no-underline hover:underline">See your dropship products</Link>.
         </p>
       </div>
     </SellerPage>

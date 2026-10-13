@@ -14,7 +14,7 @@ import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // Supplier Money (build spec 8A): what's coming to the bank, where it goes, recent orders, and the rows that used to
-// be on More (checks on your business, profile, team, settings). The bank form itself is on the web for now.
+// be on More (verification, quotes, profile, team, settings). The bank form itself is on the web for now.
 
 function orderTitle(order: SupplierOrder) {
   return order.kind === "dropship" ? order.items.map((item) => (item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name)).join(", ") : `${order.product.name} ×${order.quantity.toLocaleString("en-NG")}`;
@@ -38,11 +38,11 @@ export default function SupplierMoney() {
             <T weight="extrabold" style={{ fontSize: 34, letterSpacing: -0.8 }}>{naira(data.overview.earned)}</T>
             <T style={{ fontSize: 15, lineHeight: 21, color: colors.inkSoft }}>
               {data.overview.bank
-                ? `Goes to ${data.overview.bank.bankName} ${data.overview.bank.account}.${data.overview.bank.ready ? "" : " We're checking this account."}`
-                : "Add your bank so we can send you your money."}
+                ? `Payouts go to ${data.overview.bank.bankName} ${data.overview.bank.account}.${data.overview.bank.ready ? "" : " We're checking this account."}`
+                : "Add your bank account to get payouts."}
             </T>
-            <T style={{ fontSize: 15, lineHeight: 21 }}>The shop pays first. We keep the money safe and send it to you after delivery.</T>
-            <PillButton title={data.overview.bank ? "See money sent to my bank" : "Add my bank"} tone={data.overview.bank ? "white" : "ink"} style={{ marginTop: 6 }} onPress={() => void openWeb("/supplier/payouts")} />
+            <T style={{ fontSize: 15, lineHeight: 21 }}>The shop pays first. We hold the money in escrow and pay you out after delivery.</T>
+            <PillButton title={data.overview.bank ? "See my payouts" : "Add my bank"} tone={data.overview.bank ? "white" : "ink"} style={{ marginTop: 6 }} onPress={() => void openWeb("/supplier/payouts")} />
             <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>Opens in your browser</T>
           </Card>
 
@@ -66,9 +66,10 @@ export default function SupplierMoney() {
 
           <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">Your business</T>
           <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="shield" label="Checks on your business" hint="Your documents and where we are" onPress={() => router.push("/supplier/verification")} />
+            <LinkRow first icon="shield" label="Verification" hint="Your documents and review status" onPress={() => router.push("/supplier/verification")} />
             <LinkRow icon="chat" label="Messages with shops" onPress={() => router.push("/supplier/messages")} />
-            <LinkRow icon="tag" label="Shops asking for a lot" hint="Tell them your price" onPress={() => router.push("/supplier/quotes")} />
+            <LinkRow icon="tag" label="Quote requests" hint="Shops asking for a price on a large order" onPress={() => router.push("/supplier/quotes")} />
+            <LinkRow icon="coin" label="Wholesale price tiers" hint="Opens in your browser" onPress={() => void openWeb("/supplier/wholesale")} />
             <LinkRow icon="store" label="Business profile" hint="Logo and what you sell. Opens in your browser" onPress={() => void openWeb("/supplier/profile")} />
             <LinkRow icon="users" label="Team" hint="Who can manage orders. Opens in your browser" onPress={() => void openWeb("/supplier/team")} />
             <LinkRow icon="settings" label="Settings" hint="Notifications and account. Opens in your browser" onPress={() => void openWeb("/supplier/settings")} />

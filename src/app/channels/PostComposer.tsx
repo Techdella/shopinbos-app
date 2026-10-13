@@ -132,7 +132,7 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
         <div>
           <div className="mb-1.5 text-[13.5px] font-bold">Tagged link for {spec.label}</div>
           <CopyField value={link} label={`${spec.label} product link`} />
-          <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">Visits and orders from this link show under {spec.label} in How your shop is doing.</p>
+          <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">Visits and orders from this link show under {spec.label} in Analytics.</p>
         </div>
       </div>
 

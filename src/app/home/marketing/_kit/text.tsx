@@ -74,7 +74,7 @@ export function SmsCounter({ text, recipients, costPerSegment, currency }: { tex
 /** One select per {{n}}: what fills it. */
 export function VariableMapper({ template, value, onChange }: { template: TemplateOption; value: string[]; onChange: (next: string[]) => void }) {
   const count = variableCount(template.content);
-  if (!count) return <p className="m-0 text-[13px] text-app-ink-soft">This message has no customer details to fill in.</p>;
+  if (!count) return <p className="m-0 text-[13px] text-app-ink-soft">This template has no customer details to fill in.</p>;
   const mapping = value.some(Boolean) ? value : template.variables;
   return (
     <div className="grid gap-2 sm:grid-cols-2">

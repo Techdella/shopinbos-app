@@ -24,7 +24,7 @@ const categories = [
   { key: "all", label: "All" },
   { key: "unread", label: "Unread" },
   { key: "order", label: "Orders" },
-  { key: "inventory", label: "Stock" },
+  { key: "inventory", label: "Inventory" },
   { key: "payment", label: "Payments" },
   { key: "logistics", label: "Delivery" },
   { key: "product", label: "Products" },

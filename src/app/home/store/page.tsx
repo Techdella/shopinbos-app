@@ -144,14 +144,14 @@ export default async function YourStorePage() {
             </div>
           ) : (
             <EmptyState icon="store" title="Your store isn't built yet" action={<PillLink href="/builder" tone="ink" icon="sparkle">Build it with Rex</PillLink>}>
-              Tell Rex what you sell and he builds your home page, product pages and payment page. You can change everything after.
+              Tell Rex what you sell and he builds your home page, product pages and checkout. You can change everything after.
             </EmptyState>
           )}
 
           <div className="grid gap-3 sm:grid-cols-3">
             <ActionCard href="/studio" tone="dark" icon="chat" title="Rex Studio" sub="Build and change your store by chatting" />
             <ActionCard href={`/studio?prompt=${encodeURIComponent(REBRAND_PROMPT)}`} tone="mint" icon="sparkle" title="Rebrand with Rex" sub="New logo, colours, homepage" />
-            <ActionCard href="/seller/store/builder" tone="white" icon="monitor" title="Edit your store" sub="Pages, words and colours" />
+            <ActionCard href="/seller/store/builder" tone="white" icon="monitor" title="Edit your store" sub="Pages, sections and themes" />
           </div>
         </div>
 
@@ -183,8 +183,8 @@ export default async function YourStorePage() {
           </Link>
 
           <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-            <TileLink href="/builder/templates" icon="grid" title="How your shop looks" sub={look.themeName ? `${look.themeName} · ${THEME_LIBRARY.length} looks` : `${THEME_LIBRARY.length} looks to choose from`} />
-            <TileLink href="/home/domain" icon="globe" title="Web address" sub={host} />
+            <TileLink href="/builder/templates" icon="grid" title="Templates" sub={look.themeName ? `${look.themeName} · ${THEME_LIBRARY.length} looks` : `${THEME_LIBRARY.length} looks to choose from`} />
+            <TileLink href="/home/domain" icon="globe" title="Domain" sub={host} />
           </div>
 
           <Card className="p-5">

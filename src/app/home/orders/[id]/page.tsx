@@ -160,7 +160,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                 )}
                 <CardHead
                   title={parts.total > 1 ? "Parcels" : "Sent by the supplier"}
-                  sub={parts.line ?? "Products you sell without stock go straight from the supplier to your customer, in your shop's name."}
+                  sub={parts.line ?? "Dropship products go straight from the supplier to your customer, in your shop's name."}
                 />
                 {parts.problems.map((problem) => (
                   <div key={problem.supplierOrderId} className="mt-3 grid gap-2 rounded-[14px] bg-app-canvas p-3 text-[13.5px]">

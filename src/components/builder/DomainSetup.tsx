@@ -274,7 +274,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
 
       setSearchResults(payload?.data ?? []);
       if ((payload?.data ?? []).length === 0) {
-        setSearchError("Nothing came back for that. Try a shorter word.");
+        setSearchError("No domain ideas came back for that search. Try a shorter keyword.");
       }
     } catch (error) {
       setSearchError(error instanceof Error ? error.message : "We couldn't search just now. Check your connection and try again.");
@@ -452,7 +452,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
             <Icon name={ready ? "check" : "clock"} size={18} />
           </span>
           <div className="min-w-0">
-            <p className="m-0 text-[13px] font-bold text-app-ink-soft">{ready ? "Web address ready" : "Almost there"}</p>
+            <p className="m-0 text-[13px] font-bold text-app-ink-soft">{ready ? "Domain ready" : "Almost there"}</p>
             <h3 className="m-0 mt-0.5 break-all text-[20px] font-extrabold">{connectedDomain.domain}</h3>
             <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
               {ready
@@ -463,7 +463,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         </div>
 
         {(connectedDomain.verification.length > 0 || (connectedDomain.configuration && !connectedDomain.verified)) && (
-          <TechFold forWho="the person who set up your web address">
+          <TechFold forWho="the person who set up your domain">
         {connectedDomain.verification.length > 0 && (
           <RecordList title="Add these records">
             {connectedDomain.verification.map((record) => (
@@ -488,7 +488,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         <div className="flex flex-wrap items-center gap-3">
           <PillButton size="md" onClick={() => onDone(connectedDomain.domain)}>{doneLabel}</PillButton>
           <button type="button" onClick={resetDomainFlow} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
-            Use a different web address
+            Use a different domain
           </button>
         </div>
       </div>
@@ -501,7 +501,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Store address">
           {[
             { id: "free" as const, label: "Free address", desc: `${freeDomain}, included with your store.` },
-            { id: "connect" as const, label: "I already have one", desc: "A web address you bought before. We send the steps to whoever set it up." },
+            { id: "connect" as const, label: "I already have one", desc: "A domain you bought before. We send the steps to whoever set it up." },
             { id: "buy" as const, label: "Buy a new one", desc: "Search, pay, and we set it up for you." },
           ].map((item) => (
             <button
@@ -527,7 +527,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
           <p className="m-0 text-[13px] font-bold text-app-ink-soft">Your free address</p>
           <div className="mt-1 break-all text-[22px] font-extrabold tracking-[-0.3px]">{freeDomain}</div>
           <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
-            It already opens {storeName}. You can use your own web address later.
+            It already points at {storeName}. You can connect your own domain later.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <PillButton size="md" onClick={() => onDone(null)}>Use {freeDomain}</PillButton>
@@ -542,7 +542,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         <div className="grid min-w-0 gap-3">
           <DomainOwnership onVerified={(domain) => onDone(domain)} />
           <button type="button" onClick={() => onDone(null)} className="min-h-[44px] justify-self-start px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
-            Use {freeDomain} for now and finish this later
+            Use {freeDomain} for now and verify later
           </button>
         </div>
       )}
@@ -555,7 +555,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
               void searchDomains();
             }}
           >
-            <FieldLabel htmlFor="domain-search">Search for a web address</FieldLabel>
+            <FieldLabel htmlFor="domain-search">Search for a domain</FieldLabel>
             <div className="flex flex-col gap-2 sm:flex-row">
               <TextInput
                 id="domain-search"
@@ -614,7 +614,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                 </label>
               </div>
 
-              <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">The company that sells web addresses needs the owner&apos;s details. Fields with * are needed.</p>
+              <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">Domain companies need the owner&apos;s contact details. Fields marked * are required.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[
                   { key: "firstName", label: "First name", placeholder: "Ada", required: true, auto: "given-name" },
@@ -681,7 +681,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
               )}
 
               {purchaseOrder && (
-                <div className="mt-4"><Notice tone="info">{purchaseOrder.status === "purchasing" ? "Buying your web address…" : purchaseOrder.status === "completed" ? "Bought. We're setting it up for you." : purchaseOrder.status === "failed" ? "The purchase didn't go through. Try again, or tap Help and we'll sort it out." : "Getting your order ready…"}</Notice></div>
+                <div className="mt-4"><Notice tone="info">{purchaseOrder.status === "purchasing" ? "Buying your domain…" : purchaseOrder.status === "completed" ? "Bought. We're setting it up for you." : purchaseOrder.status === "failed" ? "The purchase didn't go through. Try again, or tap Help and we'll sort it out." : "Getting your order ready…"}</Notice></div>
               )}
               {purchaseError && <div className="mt-4"><Notice>{purchaseError}</Notice></div>}
               {purchaseIntegrationError && <div className="mt-4"><Notice tone="info">{purchaseIntegrationError}</Notice></div>}
@@ -702,7 +702,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                   }}
                   className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink"
                 >
-                  Choose another name
+                  Choose another domain
                 </button>
               </div>
             </div>

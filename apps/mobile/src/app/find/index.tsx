@@ -37,7 +37,7 @@ function ProductCard({ product, added }: { product: FindProduct; added: boolean 
       <View style={{ aspectRatio: 1, backgroundColor: colors.lilac }}>
         {product.images[0] ? <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} /> : null}
         <View style={{ position: "absolute", left: 8, top: 8, flexDirection: "row", gap: 4 }}>
-          {added ? <Badge label="In your store" bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label="No stock needed" bg={colors.surface} /> : <Badge label="Buy in bulk" bg={colors.surface} />}
+          {added ? <Badge label="In your store" bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label="Dropship" bg={colors.surface} /> : <Badge label="Wholesale" bg={colors.surface} />}
         </View>
       </View>
       <View style={{ padding: 10, gap: 6 }}>
@@ -86,7 +86,7 @@ export default function FindProducts() {
   );
 
   return (
-    <Screen title="Find products to sell" sub="From suppliers near you. Sell without stock, or buy in bulk." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title="Find products to sell" sub="From suppliers near you. Dropship or buy wholesale, or import from China." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       <Segmented
         options={[
           { value: "nigeria", label: country === "Nigeria" ? "Nigeria" : country },
@@ -138,10 +138,10 @@ export default function FindProducts() {
                 <T style={{ flex: 1, lineHeight: 20 }}>{line}</T>
               </View>
             ))}
-            <PillButton title="Ask for a price (opens in your browser)" size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
+            <PillButton title="Request an import quote (opens in your browser)" size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
           </Card>
           <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="box" label="Things I'm bringing in" hint="Prices and what's on the way. Opens in your browser" onPress={() => void openWeb("/home/imports")} />
+            <LinkRow first icon="box" label="My imports" hint="Quotes and shipments on the way. Opens in your browser" onPress={() => void openWeb("/home/imports")} />
           </Card>
         </>
       ) : null}

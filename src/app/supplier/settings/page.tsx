@@ -19,7 +19,7 @@ type PageProps = {
 const LINKS: Array<{ label: string; hint: string; href: string; icon: IconName }> = [
   { label: "Supplier profile", hint: "Name, logo, about, contact", href: "/supplier/profile", icon: "shop" },
   { label: "Billing and plan", hint: "Free plan or Supplier Max", href: "/supplier/profile?tab=Billing%20%26%20Plan", icon: "card" },
-  { label: "Money to your bank", hint: "The bank we send your money to", href: "/supplier/payouts", icon: "bank" },
+  { label: "Payouts", hint: "Bank account for payments", href: "/supplier/payouts", icon: "bank" },
   { label: "Team", hint: "People who help you", href: "/supplier/team", icon: "users" },
   { label: "Verification", hint: "Documents and trust score", href: "/supplier/verification", icon: "shield" },
   { label: "Customise your menu", hint: "Switch off what you don't use; replay the walkthrough", href: "/supplier/features", icon: "settings" },

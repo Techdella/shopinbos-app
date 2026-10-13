@@ -94,9 +94,9 @@ export function CampaignEditor({
     draft.channel !== "whatsapp"
       ? null
       : !template
-        ? "Pick an approved WhatsApp message."
+        ? "Pick an approved WhatsApp template."
         : template.status !== "APPROVED"
-          ? "WhatsApp hasn't approved this message yet, so it can't be sent. It usually takes a few minutes."
+          ? "This template isn't approved yet, so it can't be sent."
           : Array.from({ length: variableCount(template.content) }).some((_, i) => !mapping[i])
             ? "Pick which customer detail goes in each gap."
             : mapping.includes("discount_code") && !config.discountCode
@@ -108,7 +108,7 @@ export function CampaignEditor({
   async function save(quiet = false): Promise<string | null> {
     setError(null);
     if (!draft.name.trim()) {
-      setError("Give the message a name so you can find it later.");
+      setError("Give the campaign a name.");
       return null;
     }
     if (draft.channel === "email" && !draft.subject.trim()) {
@@ -194,7 +194,7 @@ export function CampaignEditor({
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       {!ready ? (
         <Notice tone="info">
-          <ChannelHelp label={`${CHANNEL_LABEL[draft.channel]} can't send yet`} howTo="You can still write and save the message. Tap Help and we'll set it up for you." href={status.connectHref} linkLabel={status.connectLabel} />
+          <ChannelHelp label={`${CHANNEL_LABEL[draft.channel]} can't send yet`} howTo="You can still write and save the campaign. Tap Help and we'll set it up for you." href={status.connectHref} linkLabel={status.connectLabel} />
         </Notice>
       ) : null}
 
@@ -203,7 +203,7 @@ export function CampaignEditor({
         main={
           <>
             <Card className="grid gap-5 p-5 sm:p-6">
-              <CardHead title="About this message" />
+              <CardHead title="Campaign" />
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Name (only you see this)" htmlFor="c-name">
                   <input id="c-name" value={draft.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} placeholder="e.g. December sale" maxLength={120} />
@@ -226,7 +226,7 @@ export function CampaignEditor({
 
             <Card className="grid gap-4 p-5 sm:p-6">
               <CardHead title="Who gets it" sub={audience === null ? "Counting…" : `${peopleWord(audience)} can get this by ${CHANNEL_LABEL[draft.channel]} right now`} />
-              <Field label="Group of customers" htmlFor="c-audience" hint={draft.channel === "email" ? "People who unsubscribed are always left out. Every email has an unsubscribe link." : `Only people who said yes to ${CHANNEL_LABEL[draft.channel]} offers (sign-up forms, pop-ups, or added by you with their permission) get it. Anyone who replied STOP is left out. A phone number given when ordering is for order messages only.`}>
+              <Field label="Audience" htmlFor="c-audience" hint={draft.channel === "email" ? "People who unsubscribed are always left out. Every email has an unsubscribe link." : `Only people who said yes to ${CHANNEL_LABEL[draft.channel]} offers (sign-up forms, pop-ups, or added by you with their permission) get it. Anyone who replied STOP is left out. A phone given at checkout is for order messages only.`}>
                 <select
                   id="c-audience"
                   className={selectClass}
@@ -237,10 +237,10 @@ export function CampaignEditor({
                     else set({ segmentId: null, audienceMode: value as "all" | "subscribers" });
                   }}
                 >
-                  <option value="all">Everyone: people who signed up and past customers</option>
-                  <option value="subscribers">Only people who signed up</option>
+                  <option value="all">Everyone: subscribers and past buyers</option>
+                  <option value="subscribers">Subscribers only</option>
                   {segments.length ? (
-                    <optgroup label="Your groups of customers">
+                    <optgroup label="Saved segments">
                       {segments.map((segment) => (
                         <option key={segment.id} value={`segment:${segment.id}`}>
                           {segment.name} ({segment.count})
@@ -251,22 +251,22 @@ export function CampaignEditor({
                 </select>
               </Field>
               {draft.segmentId ? <p className="m-0 text-[13px] text-app-ink-soft">{segments.find((s) => s.id === draft.segmentId)?.summary}</p> : null}
-              <a href="/home/marketing/segments" className="text-[13.5px] font-bold text-app-accent-ink no-underline hover:underline">Make a new group of customers</a>
+              <a href="/home/marketing/segments" className="text-[13.5px] font-bold text-app-accent-ink no-underline hover:underline">Make a new segment</a>
             </Card>
 
             <Card className="grid gap-4 p-5 sm:p-6">
               <CardHead title="Message" />
               {draft.channel === "email" ? (
                 <>
-                  <Field label="Start from a ready-made design (optional)" htmlFor="c-template">
+                  <Field label="Start from a template (optional)" htmlFor="c-template">
                     <select id="c-template" className={selectClass} value="" onChange={(event) => applyTemplate(event.target.value)}>
-                      <option value="">Choose a design…</option>
+                      <option value="">Choose a template…</option>
                       {templates.some((t) => t.saved) ? (
-                        <optgroup label="Your saved designs">
+                        <optgroup label="Your templates">
                           {templates.filter((t) => t.saved).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </optgroup>
                       ) : null}
-                      <optgroup label="Ready-made designs">
+                      <optgroup label="Starter templates">
                         {templates.filter((t) => !t.saved).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </optgroup>
                     </select>
@@ -298,11 +298,11 @@ export function CampaignEditor({
                 </>
               ) : !status.templates ? (
                 <Notice tone="info">
-                  <ChannelHelp label="Connect WhatsApp first" howTo="WhatsApp messages to many customers need your WhatsApp Business number connected." href={status.connectHref} linkLabel={status.connectLabel} />
+                  <ChannelHelp label="Connect WhatsApp first" howTo="WhatsApp campaigns need your WhatsApp Business number connected." href={status.connectHref} linkLabel={status.connectLabel} />
                 </Notice>
               ) : (
                 <>
-                  <Field label="Approved message" htmlFor="c-wa-template" hint="Offers on WhatsApp must use a message WhatsApp has approved.">
+                  <Field label="Approved template" htmlFor="c-wa-template" hint="Marketing messages on WhatsApp must use a template Meta has approved.">
                     <select
                       id="c-wa-template"
                       className={selectClass}
@@ -312,7 +312,7 @@ export function CampaignEditor({
                         setConfig({ templateId: e.target.value || null, variables: next ? [...next.variables] : [] });
                       }}
                     >
-                      <option value="">Choose a message…</option>
+                      <option value="">Choose a template…</option>
                       {waTemplates.map((t) => (
                         <option key={t.id} value={t.id} disabled={t.status !== "APPROVED"}>
                           {friendlyName(t.name)}{t.status !== "APPROVED" ? ` · ${(TEMPLATE_STATUS[t.status]?.label ?? "not approved").toLowerCase()}` : ""}
@@ -321,8 +321,8 @@ export function CampaignEditor({
                     </select>
                   </Field>
                   <p className="m-0 text-[13px]">
-                    {waTemplates.some((t) => t.status === "APPROVED") ? null : "No approved messages yet. "}
-                    <a href="/home/marketing/whatsapp" className="font-bold text-app-accent-ink no-underline hover:underline">Write or change WhatsApp messages</a>
+                    {waTemplates.some((t) => t.status === "APPROVED") ? null : "No approved templates yet. "}
+                    <a href="/home/marketing/whatsapp" className="font-bold text-app-accent-ink no-underline hover:underline">Manage WhatsApp templates</a>
                   </p>
                   {template ? (
                     <>
@@ -338,7 +338,7 @@ export function CampaignEditor({
                       ) : null}
                       {template.content.header.format === "IMAGE" || mapping.some((v) => v === "product_name" || v === "product_link") ? (
                         <div className="grid gap-3 md:grid-cols-2">
-                          <Field label="Product (optional)" htmlFor="c-wa-product" hint={template.content.header.format === "IMAGE" ? "Its photo goes at the top of the message." : "Fills the product name and link."}>
+                          <Field label="Product (optional)" htmlFor="c-wa-product" hint={template.content.header.format === "IMAGE" ? "Its photo is the header picture." : "Fills the product name and link."}>
                             <select id="c-wa-product" className={selectClass} value={config.productId ?? ""} onChange={(e) => setConfig({ productId: e.target.value || null })}>
                               <option value="">None</option>
                               {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -390,7 +390,7 @@ export function CampaignEditor({
                     <p className="m-0 text-[12.5px] text-app-ink-soft">Preview uses a sample customer (Ada). Each person gets their own name.</p>
                   </div>
                 ) : (
-                  <p className="m-0 text-[14px] text-app-ink-soft">Pick a message to see it here.</p>
+                  <p className="m-0 text-[14px] text-app-ink-soft">Pick a template to see the message.</p>
                 )
               ) : (
                 <TextPreview channel="sms" message={draft.bodyHtml} />
@@ -401,7 +401,7 @@ export function CampaignEditor({
       />
 
       {confirmSend ? (
-        <Modal title="Send this message now?" onClose={() => setConfirmSend(false)}>
+        <Modal title="Send this campaign now?" onClose={() => setConfirmSend(false)}>
           <div className="grid gap-4">
             <p className="m-0 text-[15px] leading-[1.55]">
               {draft.channel === "email" ? <>The email <strong>“{draft.subject}”</strong></> : `This ${CHANNEL_LABEL[draft.channel]} message`} goes to <strong>{peopleWord(audience ?? 0)}</strong> right away. You can't unsend it.
@@ -423,7 +423,7 @@ export function CampaignEditor({
               void act("schedule", { scheduledAt: draft.scheduledAt });
             }}
           >
-            <Field label="Send on (Lagos time)" htmlFor="c-when" hint={`Goes to everyone in the group at that moment (${audience === null ? "…" : peopleWord(audience)} today).`}>
+            <Field label="Send on (Lagos time)" htmlFor="c-when" hint={`Goes to whoever matches the audience at that moment (${audience === null ? "…" : peopleWord(audience)} today).`}>
               <input id="c-when" type="datetime-local" required value={draft.scheduledAt} onChange={(e) => set({ scheduledAt: e.target.value })} className={inputClass} />
             </Field>
             <div className="flex flex-wrap justify-end gap-2">

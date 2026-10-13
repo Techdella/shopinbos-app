@@ -23,7 +23,7 @@ export default function Chatbot() {
   const loaded = useLoad(fetchAutomation);
   if (!loaded.data) {
     return (
-      <Screen title="Peggy answers shoppers" refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title="Peggy chatbot" refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
         {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
@@ -54,7 +54,7 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
 
   return (
     <Screen
-      title="Peggy answers shoppers"
+      title="Peggy chatbot"
       sub="Answers shoppers on your store's chat, day and night, and hands over to you when they ask for a person."
       refreshing={refreshing}
       onRefresh={onRefresh}
@@ -68,7 +68,7 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
           <T weight="extrabold" style={{ fontSize: 16 }}>{bot.enabled ? `${bot.name} is answering` : "Peggy isn't answering"}</T>
           <T style={{ color: colors.inkSoft, fontSize: 14 }}>{bot.when === "always" ? "Answers every chat" : "Answers outside your opening hours"}</T>
         </View>
-        <Toggle on={bot.enabled} onChange={(on) => setBot({ ...bot, enabled: on })} label="Peggy answers shoppers" />
+        <Toggle on={bot.enabled} onChange={(on) => setBot({ ...bot, enabled: on })} label="Chatbot on" />
       </Card>
 
       <Card style={{ gap: 8 }}>

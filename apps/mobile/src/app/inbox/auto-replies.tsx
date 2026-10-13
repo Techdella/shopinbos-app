@@ -34,7 +34,7 @@ export default function AutoReplies() {
   });
   if (!loaded.data) {
     return (
-      <Screen title="Replies when you're busy" sub="Answer customers on WhatsApp, Instagram and your shop while you're busy or closed." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title="Auto-replies" sub="Answer customers on WhatsApp, Instagram and your shop while you're busy or closed." refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
         {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
@@ -67,7 +67,7 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
 
   return (
     <Screen
-      title="Replies when you're busy"
+      title="Auto-replies"
       sub="Answer customers on WhatsApp, Instagram and your shop while you're busy or closed."
       refreshing={refreshing}
       onRefresh={onRefresh}
@@ -118,7 +118,7 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
 
       <Card style={{ paddingVertical: 2 }}>
         <LinkRow first icon="clock" label="Opening hours and quick replies" hint="Change them in your browser" onPress={() => void openWeb("/home/inbox/auto-replies")} />
-        <LinkRow icon="bot" label="Peggy answers shoppers" hint="On your shop's chat, day and night" onPress={() => router.push("/inbox/chatbot")} />
+        <LinkRow icon="bot" label="Peggy chatbot" hint="Answers shoppers on your shop's chat, day and night" onPress={() => router.push("/inbox/chatbot")} />
       </Card>
     </Screen>
   );

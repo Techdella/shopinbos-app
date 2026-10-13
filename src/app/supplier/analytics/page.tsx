@@ -91,20 +91,20 @@ export default async function SupplierAnalyticsPage() {
     ["Refunded", orders.length > 0 ? `${Math.round((refunded / orders.length) * 100)}%` : "—"],
     ["Rating", supplier.ratingCount > 0 ? `${supplier.rating.toFixed(1)} from ${supplier.ratingCount}` : "No ratings yet"],
     ["Response time", supplier.responseTimeLabel ?? supplier.responseTime ?? "Not set"],
-    ["Prices shops accepted", winRate],
+    ["Quotes accepted", winRate],
   ];
 
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="How you're doing"
+      title="Analytics"
       sub={`${orders.length} order${orders.length === 1 ? "" : "s"} worth ${money(totalRevenue)}${orders.length === 200 ? " (latest 200)" : ""}.`}
     >
       <StatGrid className="mb-5">
         <StatTile tone="card" label="Order value, 30 days" value={money(sum(last30))} hint={change(sum(last30), sum(prev30))} />
         <StatTile tone="card" label="Orders, 30 days" value={last30.length} hint={change(last30.length, prev30.length)} />
         <StatTile tone="card" label="Products" value={products} hint="in your catalogue" />
-        <StatTile tone="card" label="Orders sent" value={`${fulfillmentRate}%`} hint={`${fulfilled.length} of ${orders.length} orders`} />
+        <StatTile tone="card" label="Fulfilment rate" value={`${fulfillmentRate}%`} hint={`${fulfilled.length} of ${orders.length} orders`} />
       </StatGrid>
 
       {orders.length === 0 ? (

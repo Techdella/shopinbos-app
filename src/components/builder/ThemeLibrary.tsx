@@ -121,7 +121,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       setSwitched(result);
       router.refresh();
     } catch {
-      setError("That look didn't switch. Check your connection and try again.");
+      setError("That theme didn't switch. Check your connection and try again.");
     } finally {
       setBusyId(null);
     }
@@ -134,13 +134,13 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       const response = await fetch("/api/store/templates/recommend", { method: "POST" });
       const json = (await response.json().catch(() => null)) as { data?: RexPick; error?: { message?: string } } | null;
       if (!response.ok || !json?.data) {
-        setError(json?.error?.message ?? "Rex couldn't pick a look just now.");
+        setError(json?.error?.message ?? "Rex couldn't pick a theme just now.");
         return;
       }
       setPick(json.data);
       setCategory("all");
     } catch {
-      setError("Rex couldn't pick a look just now. Check your connection and try again.");
+      setError("Rex couldn't pick a theme just now. Check your connection and try again.");
     } finally {
       setPicking(false);
     }
@@ -153,7 +153,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       {mode === "builder" ? (
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="m-0 text-[28px] font-extrabold leading-[1.1] tracking-[-0.6px]">How your shop looks</h2>
+            <h2 className="m-0 text-[28px] font-extrabold leading-[1.1] tracking-[-0.6px]">Theme library</h2>
             <p className="mb-0 mt-1.5 text-[14.5px] text-app-ink-soft">
               {THEME_LIBRARY.length} themes, each with its own home, product and collection layouts. Your products, brand and orders carry over.
             </p>
@@ -168,12 +168,12 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <label className="flex h-11 min-w-[220px] max-w-[420px] flex-1 items-center gap-2 rounded-full border border-app-line bg-white px-4 focus-within:border-app-ink">
           <Icon name="search" size={16} />
-          <span className="sr-only">Search shop looks</span>
+          <span className="sr-only">Search themes</span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search shop looks: afefe, hair, food…"
+            placeholder="Search themes: afefe, hair, food…"
             className="h-full min-w-0 flex-1 bg-transparent text-[14.5px] outline-none"
           />
         </label>
@@ -185,7 +185,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         ) : null}
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Filter shop looks by category">
+      <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Filter themes by category">
         {chips.map((chip) => {
           const active = category === chip.id;
           return (
@@ -239,7 +239,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
             who="rex"
             action={
               picked.id === current ? (
-                <span className="text-[13.5px] font-bold">Already your look</span>
+                <span className="text-[13.5px] font-bold">Already your theme</span>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>Preview</PillButton>
@@ -311,7 +311,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       {!themes.length ? (
         <p className="py-10 text-center text-[14.5px] text-app-ink-soft">
           No theme matches &ldquo;{query}&rdquo;{category !== "all" ? " in this category" : ""}. Try another word, or{" "}
-          <button type="button" className="font-bold underline underline-offset-4" onClick={() => { setQuery(""); setCategory("all"); }}>see all shop looks</button>.
+          <button type="button" className="font-bold underline underline-offset-4" onClick={() => { setQuery(""); setCategory("all"); }}>see all themes</button>.
         </p>
       ) : null}
 
@@ -333,7 +333,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
 
       {current && !themeLibraryEntry(current) ? (
         <p className="mt-6 text-[13.5px] text-app-ink-soft">
-          Your shop uses an older look. It keeps working; pick one of these whenever you want the new look.
+          Your store uses an older template. It keeps working; pick one of these whenever you want the new look.
         </p>
       ) : null}
     </div>

@@ -13,12 +13,12 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 type Registrar = { id: string; name: string; description: string; baseUrl: string; affiliateUrl: string | null };
 type Choice = "buy" | "own" | "team";
 
-// "Use your own web address" (simplicity rules, section 8A): three plain choices instead of DNS records.
+// "Use your own domain" (simplicity rules, section 8A): three plain choices instead of DNS records.
 // - Buy a new one (only when buying inside Shopinbos is switched on): search, pay, we set it up.
 // - I already have one: we make a WhatsApp message with the steps for the person who set it up
 //   (DomainOwnership; the records and the Verify button are folded under "technical details").
 // - Ask the Shopinbos team to do it: a setup request (support ticket, topic "setup").
-// Once a web address is waiting or connected, DomainOwnership shows its status instead.
+// Once a domain is waiting or connected, DomainOwnership shows its status instead.
 export function DomainConnect({
   storeSlug,
   storeName,
@@ -68,10 +68,10 @@ export function DomainConnect({
       <div className="grid min-w-0 gap-3">
         <BackButton onClick={() => setChoice(null)} />
         <SetupHelpRequest
-          title="Use my own web address"
-          description="Tell us the web address you have (or the name you'd like). We'll set it up with you and message you when your shop opens there."
+          title="Use my own domain"
+          description="Tell us the domain you have (or the name you'd like). We'll set it up with you and message you when your shop opens there."
           feature="custom_domain"
-          softwareQuestion="Which web address?"
+          softwareQuestion="Which domain?"
           softwarePlaceholder="yourbrand.com"
         />
       </div>
@@ -87,7 +87,7 @@ export function DomainConnect({
   return (
     <section className="grid min-w-0 gap-4 rounded-[22px] border border-app-line bg-white p-4 sm:p-6" aria-labelledby="own-address-title">
       <div>
-        <h2 id="own-address-title" className="m-0 text-[22px] font-extrabold leading-tight">Use your own web address</h2>
+        <h2 id="own-address-title" className="m-0 text-[22px] font-extrabold leading-tight">Use your own domain</h2>
         <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">Like yourbrand.com. Your free address keeps working too.</p>
       </div>
       <div className="grid gap-2.5">

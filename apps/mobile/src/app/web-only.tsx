@@ -6,13 +6,13 @@ import { BackButton, LinkButton, Mascot, PillButton, T, Wordmark } from "@/compo
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// "Do this on the web", in plain words. With ?what=… a seller learns why a tool is easier on a bigger screen and
+// "Do this on the web". With ?what=… a seller learns why a tool is easier on a bigger screen and
 // can open it there (signed in) or ask us to do it. Without it, admin accounts land here: the admin panel is web only.
 
 const TOOLS: Record<string, { title: string; body: string; path: string; ask: string }> = {
   look: {
-    title: "Change how your shop looks on a bigger screen",
-    body: "Changing colours, pictures and the layout of your shop is easier on a computer or tablet. You can open it on this phone too. Or ask Rex to change it for you.",
+    title: "Change your theme on a bigger screen",
+    body: "Changing your theme, colours, pictures and the layout of your shop is easier on a computer or tablet. You can open it on this phone too. Or ask Rex to change it for you.",
     path: "/home/editor",
     ask: "/rex",
   },
@@ -48,7 +48,7 @@ export default function WebOnly() {
         <Mascot name="peggyWave" size={150} label="" />
         <T weight="extrabold" style={{ fontSize: 26, textAlign: "center", letterSpacing: -0.4 }} accessibilityRole="header">The admin panel is on the web</T>
         <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 16, lineHeight: 23, maxWidth: 320 }}>
-          This account is a Shopinbos admin. Open the admin panel in your browser to check suppliers, partners and the money sent to sellers.
+          This account is a Shopinbos admin. Open the admin panel in your browser to review suppliers, partners and payouts.
         </T>
       </View>
       <PillButton title="Open the admin panel" onPress={() => void openWeb("/admin/dashboard")} />

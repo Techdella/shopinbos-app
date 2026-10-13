@@ -10,7 +10,7 @@ export function SupplierSwitchCard({ settings }: { settings: SwitchSettings }) {
   return (
     <form action={saveSupplierSwitchSettings} id="supplier-switch" className="scroll-mt-24">
       <Card className="p-5">
-        <CardHead title="When a supplier doesn't accept in time" sub="For products you sell without stock." />
+        <CardHead title="When a supplier doesn't accept in time" sub="For your dropship products." />
         <label className="mt-3 flex min-h-[56px] cursor-pointer items-center gap-3 py-2">
           <input type="checkbox" name="auto" defaultChecked={settings.auto} className={CHECKBOX} />
           <span className="min-w-0 flex-1">

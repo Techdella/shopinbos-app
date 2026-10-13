@@ -29,7 +29,7 @@ export default function Help() {
     <Screen title="How can we help?" refreshing={tickets.refreshing} onRefresh={() => void tickets.refresh()}>
       <ChoiceRow testID="help-person" icon="chat" tint={colors.successTint} iconColor={colors.success} title={SUPPORT_WHATSAPP ? "Chat with a person on WhatsApp" : "Chat with a person"} sub={SUPPORT_WHATSAPP ? "Our team answers on WhatsApp. English or Pidgin." : "Our team answers you here in the app."} onPress={() => void person()} />
       {!role || role === "seller" ? <ChoiceRow icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title="Ask Peggy" sub="Say what you need. She'll do it or show you how." onPress={() => router.push("/peggy")} /> : null}
-      <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title="Ask us to set something up" sub="Web address, connecting WhatsApp or Instagram, and other hard parts." onPress={() => router.push("/ask-us")} />
+      <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title="Ask us to set something up" sub="Domain, sales channels like WhatsApp or Instagram, and other technical parts." onPress={() => router.push("/ask-us")} />
 
       <T weight="extrabold" style={{ fontSize: 17, marginTop: 10 }} accessibilityRole="header">Your chats with our team</T>
       {tickets.loading && !tickets.data ? <LoadingBlock /> : null}

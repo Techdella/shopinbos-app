@@ -288,7 +288,7 @@ function PaymentsPanel({ initial, payoutBank, onDone }: { initial: Record<Paymen
           </div>
         ))}
       </div>
-      {methods.transfer && !payoutBank && <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Bank transfer shows customers your bank account, so add your bank below too.</p>}
+      {methods.transfer && !payoutBank && <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Bank transfer shows customers your payout account, so add your payout bank below too.</p>}
       {error && <div className="mt-3"><Notice>{error}</Notice></div>}
       <PillButton
         className="mt-3"
@@ -324,7 +324,7 @@ function DeliveryPanel({ zones, onDone }: { zones: SetupOverview["zones"]; onDon
 
   return (
     <div>
-      <p className="m-0 text-[14px] leading-[1.5]">Tap the cities you deliver to and set a fee for each. Customers pay the fee for their area when they order.</p>
+      <p className="m-0 text-[14px] leading-[1.5]">Tap the cities you deliver to and set a fee for each. Checkout charges the matching fee from the customer&apos;s address.</p>
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Cities you deliver to">
         {DELIVERY_CITY_PRESETS.map((preset) => {
           const on = preset.city in picked;

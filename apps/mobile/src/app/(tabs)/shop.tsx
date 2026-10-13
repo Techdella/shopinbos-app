@@ -14,7 +14,7 @@ import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
 // My shop (build spec 8A): everything that isn't Home, Orders or Chats, grouped by goal. "app:" paths are
-// screens in the app; "web:" opens that page of the web app, signed in. Technical jobs (web address, connecting
+// screens in the app; "web:" opens that page of the web app, signed in. Technical jobs (domain, connecting
 // WhatsApp and Instagram) go to "Ask us", where the Shopinbos team sets them up.
 type ShopLink = { label: string; icon: AppIconName; path: string; hint?: string };
 
@@ -22,37 +22,37 @@ export const SHOP_GROUPS: { title: string; links: ShopLink[] }[] = [
   {
     title: "Sell",
     links: [
-      { label: "My products", icon: "box", path: "app:/products", hint: "Prices, photos, how many you have" },
-      { label: "Sell without stock", icon: "truck", path: "app:/dropship", hint: "Pick products, a supplier sends them" },
+      { label: "My products", icon: "box", path: "app:/products", hint: "Prices, photos, inventory" },
+      { label: "Dropship", icon: "truck", path: "app:/dropship", hint: "Sell products a supplier sends for you" },
       { label: "Find products to sell", icon: "search", path: "app:/find", hint: "From suppliers in Nigeria and China" },
-      { label: "How your shop looks", icon: "image", path: "app:/web-only?what=look", hint: "Colours, logo and pictures" },
+      { label: "Themes", icon: "image", path: "app:/web-only?what=look", hint: "How your shop looks: colours, logo and pictures" },
       { label: "Connect WhatsApp, Instagram, TikTok", icon: "chat", path: "app:/ask-us?what=channels", hint: "We set it up for you" },
     ],
   },
   {
     title: "Get paid and deliver",
     links: [
-      { label: "Get paid to my bank", icon: "coin", path: "web:/home/payments", hint: "Money sent to your bank. Opens in your browser" },
+      { label: "Payments and payouts", icon: "coin", path: "web:/home/payments", hint: "Money sent to your bank. Opens in your browser" },
       { label: "Delivery", icon: "truck", path: "web:/home/logistics", hint: "Where you deliver and the price. Opens in your browser" },
-      { label: "Messages with suppliers and riders", icon: "users", path: "app:/partners" },
+      { label: "Partner messages", icon: "users", path: "app:/partners", hint: "Suppliers and delivery partners" },
     ],
   },
   {
     title: "Grow",
     links: [
-      { label: "Get more customers", icon: "megaphone", path: "app:/marketing", hint: "Discount codes, adverts and messages" },
+      { label: "Marketing", icon: "megaphone", path: "app:/marketing", hint: "Campaigns, discount codes and ads" },
       { label: "Reviews", icon: "star", path: "app:/reviews", hint: "What customers say, and asking for more" },
-      { label: "Ask Rex", icon: "sparkle", path: "app:/rex", hint: "Pictures, logo and words for your shop" },
-      { label: "My web address", icon: "store", path: "app:/ask-us?what=web-address", hint: "Get a name like yourshop.com. We set it up for you" },
+      { label: "Rex Studio", icon: "sparkle", path: "app:/rex", hint: "Pictures, logo and words for your shop" },
+      { label: "Domain", icon: "store", path: "app:/ask-us?what=web-address", hint: "Your own name like yourshop.com. We set it up for you" },
     ],
   },
   {
     title: "Settings and help",
     links: [
-      { label: "Replies when you're busy", icon: "clock", path: "app:/inbox/auto-replies" },
-      { label: "Peggy answers shoppers", icon: "bot", path: "app:/inbox/chatbot", hint: "On your shop's chat, day and night" },
+      { label: "Auto-replies", icon: "clock", path: "app:/inbox/auto-replies", hint: "Away message and opening hours" },
+      { label: "Peggy chatbot", icon: "bot", path: "app:/inbox/chatbot", hint: "Answers shoppers on your shop's chat, day and night" },
       { label: "Settings", icon: "settings", path: "web:/home/settings", hint: "Your details, team, notifications. Opens in your browser" },
-      { label: "Rules and policies", icon: "doc", path: "app:/legal", hint: "Refunds, delivery, privacy" },
+      { label: "Legal pages", icon: "doc", path: "app:/legal", hint: "Refunds, delivery, privacy" },
       { label: "Help", icon: "help", path: "app:/help", hint: "A person, or Peggy" },
     ],
   },

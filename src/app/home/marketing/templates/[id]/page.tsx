@@ -11,7 +11,7 @@ import { TEMPLATE_LIBRARY } from "@/lib/marketing/template-library";
 import { TemplateEditor } from "./TemplateEditor";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Email design" };
+export const metadata: Metadata = { title: "Email template" };
 
 // /home/marketing/templates/new (blank, or ?from=<starter key> to start from a starter without saving a copy
 // first) and /home/marketing/templates/<id>.
@@ -29,9 +29,9 @@ export default async function TemplatePage({ params, searchParams }: { params: P
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={template ? template.name : starter ? `New: ${starter.name}` : "New email design"}
-      sub="Build it once, then use it again in messages to customers and automations."
-      actions={<PillLink href="/home/marketing/templates" icon="arrowLeft">All email designs</PillLink>}
+      title={template ? template.name : starter ? `New: ${starter.name}` : "New template"}
+      sub="Build it once with blocks or HTML, then reuse it in campaigns and automations."
+      actions={<PillLink href="/home/marketing/templates" icon="arrowLeft">All templates</PillLink>}
     >
       <TemplateEditor
         initial={{

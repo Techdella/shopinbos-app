@@ -50,17 +50,17 @@ export default function SupplierProductScreen() {
     if (!data) return;
     const patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number } = {};
     if (stock !== null) {
-      if (stockValue === null) return setNotice({ tone: "error", text: "How many you have should be a whole number, like 12." });
+      if (stockValue === null) return setNotice({ tone: "error", text: "Stock should be a whole number, like 12." });
       patch.stockQuantity = stockValue;
     }
     if (wholesale !== null) {
       const value = parseAmount(wholesale);
-      if (!value) return setNotice({ tone: "error", text: "Type your price to shops in naira, like 4500." });
+      if (!value) return setNotice({ tone: "error", text: "Type your wholesale price in naira, like 4500." });
       patch.wholesalePrice = value;
     }
     if (retail !== null) {
       const value = parseAmount(retail);
-      if (!value) return setNotice({ tone: "error", text: "Type what shops sell it for, in naira, like 9000." });
+      if (!value) return setNotice({ tone: "error", text: "Type the suggested retail price in naira, like 9000." });
       patch.suggestedRetailPrice = value;
     }
     if (!Object.keys(patch).length) return setNotice({ tone: "success", text: "Nothing changed." });
@@ -114,12 +114,12 @@ export default function SupplierProductScreen() {
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
       <Card style={{ gap: 10 }}>
-        <Label>How many you have</Label>
+        <Label>Stock</Label>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Pressable accessibilityRole="button" accessibilityLabel="One less" onPress={() => bump(-1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" style={{ fontSize: 22 }}>−</T>
           </Pressable>
-          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel="How many you have" style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
+          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel="Units in stock" style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
           <Pressable accessibilityRole="button" accessibilityLabel="One more" onPress={() => bump(1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="plus" size={22} strokeWidth={2.4} />
           </Pressable>
@@ -135,25 +135,25 @@ export default function SupplierProductScreen() {
 
       <Card style={{ gap: 12 }}>
         <View>
-          <Label>Your price to shops (for one)</Label>
-          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel="Your price to shops" />
+          <Label>Wholesale price (₦ per unit)</Label>
+          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel="Wholesale price" />
         </View>
         <View>
-          <Label>Shops sell it for about</Label>
-          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel="Shops sell it for about" />
-          <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Now {naira(data.wholesalePrice)} to shops. They sell it for about {naira(data.suggestedRetailPrice)}. We check new prices before shops see them.</T>
+          <Label>Suggested retail price (₦)</Label>
+          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel="Suggested retail price" />
+          <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Now {naira(data.wholesalePrice)} wholesale. Shops sell it for about {naira(data.suggestedRetailPrice)}. We check new prices before shops see them.</T>
         </View>
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? "Shops can't see it" : data.status === "pending_review" ? "We're checking it" : "Shops can see it"}</T>
+        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? "Not on the marketplace" : data.status === "pending_review" ? "In review" : "Live on the marketplace"}</T>
         <T style={{ color: colors.inkSoft, lineHeight: 20 }}>
-          {hidden ? "Show it to shops. We check it first, usually within a day." : "Hide it to stop new shops adding it."}
+          {hidden ? "Show it to shops. We review it first, usually within a day." : "Hide it to stop new shops adding it."}
         </T>
         <PillButton title={hidden ? "Show it to shops" : "Hide it from shops"} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
       </Card>
 
-      <LinkButton title="Change photos, bulk prices and where it goes (opens in your browser)" color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
+      <LinkButton title="Edit photos, wholesale price tiers and regions (opens in your browser)" color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
     </Screen>
   );
 }

@@ -90,7 +90,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     userId: product.supplier.userId,
     type: "suppliers",
     priority: "warning",
-    title: `New bulk order ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
+    title: `New wholesale order ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
     description: `A shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} and send them your invoice; they pay you directly.`,
     link: `/supplier/orders/${order.id}?kind=wholesale`,
     actionLabel: "Accept order",

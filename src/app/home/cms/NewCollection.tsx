@@ -95,7 +95,7 @@ export function NewCollectionButton({ takenSlugs }: { takenSlugs: string[] }) {
     <>
       <PillButton tone="accent" size="md" onClick={() => setOpen(true)}><Icon name="plus" size={16} /> New collection</PillButton>
       {open && (
-        <Modal title="Start from a ready-made one" wide onClose={() => setOpen(false)}>
+        <Modal title="Start from a template" wide onClose={() => setOpen(false)}>
           <TemplateGallery takenSlugs={takenSlugs} compact />
         </Modal>
       )}

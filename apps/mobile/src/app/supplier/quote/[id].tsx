@@ -9,17 +9,17 @@ import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
 import { fetchQuote, replyToQuote } from "@/lib/supplier";
-import { bulkRequestStage, countWord, READY_CHOICES } from "@/lib/supplier-pure";
+import { quoteRequestStage, countWord, READY_CHOICES } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
-// A bulk request from a shop (build spec 8A): "Adaeze Studio wants 50 pieces". The supplier types a price for each
-// and picks when it can be ready, then "Send my price". Same API as before (respond with a price, or decline).
+// A quote request from a shop (build spec 8A): "Adaeze Studio wants 50 pieces". The supplier types a price for each
+// and picks when it can be ready, then "Send my quote". Same API as before (respond with a price, or decline).
 
 type ReadyKey = (typeof READY_CHOICES)[number]["key"];
 
-export default function BulkRequest() {
+export default function QuoteRequestScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const quote = useLoad(() => fetchQuote(String(id)), String(id));
   const [price, setPrice] = useState("");
@@ -37,7 +37,7 @@ export default function BulkRequest() {
     const unit = parseAmount(price);
     if (!unit) return setError("Type your price for one piece, in naira. For example 4500.");
     const minimum = moq.trim() ? parseCount(moq) : null;
-    if (moq.trim() && (!minimum || minimum < 1)) return setError("The smallest order should be a whole number, like 10.");
+    if (moq.trim() && (!minimum || minimum < 1)) return setError("The minimum order (MOQ) should be a whole number, like 10.");
     setBusy("respond");
     setError(null);
     try {
@@ -45,7 +45,7 @@ export default function BulkRequest() {
       quote.setData(await replyToQuote(String(id), { intent: "respond", quotedPrice: unit, moq: minimum ?? undefined, note: [readyText, note.trim()].filter(Boolean).join(" ") || undefined, validDays: 7 }));
       setSent(true);
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Your price didn't send. Check your connection and try again.");
+      setError(sendError instanceof Error ? sendError.message : "Your quote didn't send. Check your connection and try again.");
     } finally {
       setBusy(null);
     }
@@ -74,7 +74,7 @@ export default function BulkRequest() {
 
   if (!data) {
     return (
-      <Screen title="A shop wants to buy a lot" refreshing={quote.refreshing} onRefresh={() => void quote.refresh()}>
+      <Screen title="Quote request" refreshing={quote.refreshing} onRefresh={() => void quote.refresh()}>
         {quote.loading ? <LoadingBlock /> : null}
         {quote.error ? <ErrorState message={quote.error} onRetry={() => void quote.reload()} /> : null}
       </Screen>
@@ -83,7 +83,7 @@ export default function BulkRequest() {
 
   if (sent) {
     return (
-      <Screen title="Price sent" footer={<PillButton title="Done" onPress={() => (router.canGoBack() ? router.back() : router.replace("/supplier/orders"))} />}>
+      <Screen title="Quote sent" footer={<PillButton title="Done" onPress={() => (router.canGoBack() ? router.back() : router.replace("/supplier/orders"))} />}>
         <Card style={{ alignItems: "center", gap: 12, paddingVertical: 28 }}>
           <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="check" size={36} color={colors.success} strokeWidth={2.6} />
@@ -100,13 +100,13 @@ export default function BulkRequest() {
   return (
     <Screen
       title={`${shop} wants ${countWord(data.quantity)}`}
-      sub={`${data.product.name} · to ${data.destination}`}
+      sub={`Quote request · ${data.product.name} · to ${data.destination}`}
       refreshing={quote.refreshing}
       onRefresh={() => void quote.refresh()}
       footer={
         pending ? (
           <View style={{ gap: 4 }}>
-            <PillButton title="Send my price" busy={busy === "respond"} disabled={Boolean(busy)} onPress={() => void send()} />
+            <PillButton title="Send my quote" busy={busy === "respond"} disabled={Boolean(busy)} onPress={() => void send()} />
             <LinkButton title="I can't do this one" color={colors.inkSoft} onPress={cant} />
           </View>
         ) : null
@@ -117,7 +117,7 @@ export default function BulkRequest() {
         <Thumb uri={data.product.image} size={56} />
         <View style={{ flex: 1, gap: 2 }}>
           <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={2}>{data.product.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15 }}>Your usual price {naira(data.product.wholesalePrice)} · you have {data.product.stock.toLocaleString("en-NG")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }}>Your wholesale price {naira(data.product.wholesalePrice)} · {data.product.stock.toLocaleString("en-NG")} in stock</T>
         </View>
       </Card>
       {data.notes ? (
@@ -136,24 +136,24 @@ export default function BulkRequest() {
           <T weight="extrabold" style={{ fontSize: 22, marginTop: 6 }}>When can it be ready?</T>
           <ChipRow>{READY_CHOICES.map((choice) => <Chip key={choice.key} label={choice.label} on={ready === choice.key} onPress={() => setReady(choice.key)} />)}</ChipRow>
 
-          <Notice tone="info">The shop pays first. We keep the money safe and send it to you when they get the goods.</Notice>
+          <Notice tone="info">The shop pays first. We hold the money in escrow and pay you out when they get the goods.</Notice>
 
           {more ? (
             <View style={{ gap: 10 }}>
-              <T weight="bold" style={{ fontSize: 15 }}>Smallest order you accept (optional)</T>
-              <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" placeholder={String(data.product.moq)} accessibilityLabel="Smallest order you accept" />
+              <T weight="bold" style={{ fontSize: 15 }}>Minimum order quantity (MOQ, optional)</T>
+              <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" placeholder={String(data.product.moq)} accessibilityLabel="Minimum order quantity" />
               <T weight="bold" style={{ fontSize: 15 }}>Message to the shop (optional)</T>
               <Field value={note} onChangeText={setNote} multiline maxLength={800} placeholder="Price includes packaging." accessibilityLabel="Message to the shop" style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
-              <VoiceInput value={note} onChange={setNote} maxLength={800} context="a note with a bulk price" style={{ marginTop: 8 }} />
+              <VoiceInput value={note} onChange={setNote} maxLength={800} context="a note with a quote" style={{ marginTop: 8 }} />
             </View>
           ) : (
-            <LinkButton title="Smallest order and a message (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />
+            <LinkButton title="MOQ and a message (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />
           )}
         </>
       ) : (
         <Card style={{ gap: 6 }}>
           <T weight="extrabold" style={{ fontSize: 17 }}>{data.status === "rejected" ? "You said you can't do this one" : `You said ${data.quotedPrice ? naira(data.quotedPrice) : "a price"} each`}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15 }}>{bulkRequestStage(data.status)}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }}>{quoteRequestStage(data.status)}</T>
           {data.reply ? <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{data.reply}</T> : null}
         </Card>
       )}

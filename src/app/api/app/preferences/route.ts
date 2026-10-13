@@ -1,17 +1,12 @@
-import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { toggleableItems, type Role } from "@/lib/nav";
 import { mergePreferences, parsePreferences } from "@shared/preferences";
+import { PreferencesPatchSchema as PatchSchema } from "@/lib/preferences-schema";
 
-const PatchSchema = z.object({
-  hiddenNav: z.array(z.string().max(48)).max(100).optional(),
-  tour: z.enum(["done"]).nullable().optional(),
-});
-
-// "Customise your menu" and walkthrough progress, for every role.
+// "Customise your menu", walkthrough progress and the 60-second feature intros already seen, for every role.
 export const GET = withAuth(async (_req, { user }) => {
   const row = await db.user.findUnique({ where: { id: user.id }, select: { preferences: true } });
   return ok(parsePreferences(row?.preferences));

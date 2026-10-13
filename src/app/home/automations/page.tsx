@@ -140,7 +140,7 @@ export default async function AutomationsPage() {
             </Card>
           }
         />
-        <AssistantNote>Order confirmation emails go out on their own when customers pay. Automations here are for everything after: thank-yous, reviews, reminders and win-backs. Ask Peggy to set one up for you.</AssistantNote>
+        <AssistantNote>Order confirmation emails go out on their own at checkout. Automations here are for everything after: thank-yous, reviews, reminders and win-backs. Ask Peggy to set one up for you.</AssistantNote>
       </div>
     </SellerPage>
   );

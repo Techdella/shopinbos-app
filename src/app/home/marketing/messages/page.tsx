@@ -43,7 +43,7 @@ export default async function OrderMessagesPage() {
       store={storeSummary(store)}
       title="Order messages"
       sub="Send customers WhatsApp and SMS updates about their order, as well as the emails they already get."
-      actions={<PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp messages</PillLink>}
+      actions={<PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp templates</PillLink>}
     >
       <div className="grid gap-5">
         <OrderMessages

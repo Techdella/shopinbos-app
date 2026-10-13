@@ -42,9 +42,9 @@ export default async function CheckoutPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Paying for an order"
+      title="Checkout"
       sub="Shoppers check out in four short steps: contact, delivery, payment and review. Choose what they're asked for."
-      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/checkout")} icon="eye">See your payment page</PillLink> : undefined}
+      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/checkout")} icon="eye">See your checkout</PillLink> : undefined}
     >
       <CheckoutSettings
         initial={readCheckoutSettings(store?.checkoutConfig ?? null)}

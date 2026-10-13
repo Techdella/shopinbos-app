@@ -15,7 +15,7 @@ import { listTemplates } from "@/lib/marketing/templates";
 import { TemplateGallery, type GallerySeries, type GalleryTemplate } from "./TemplateGallery";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Email designs" };
+export const metadata: Metadata = { title: "Email templates" };
 
 const label = (category: string) => TEMPLATE_CATEGORIES[category as keyof typeof TEMPLATE_CATEGORIES] ?? category.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
@@ -71,18 +71,18 @@ export default async function TemplatesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Email designs"
-      sub="Over 60 ready-made emails in your logo and colours, for every step from welcome to win-back. Preview one, use it in a message to customers, make it your own, or switch on a whole series."
+      title="Email templates"
+      sub="Over 60 ready-made emails in your logo and colours, for every step from welcome to win-back. Preview one, use it in a campaign, make it your own, or switch on a whole series."
       actions={
         <>
           <PillLink href="/home/brand-kit" icon="palette">Brand kit</PillLink>
-          <PillLink href="/home/marketing/templates/new" tone="accent" icon="plus">New design</PillLink>
+          <PillLink href="/home/marketing/templates/new" tone="accent" icon="plus">New template</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <AssistantNote action={<PillLink href="/home/marketing/templates/new" size="sm" tone="ink">Write one with Peggy</PillLink>}>
-          Not sure where to start? Open a new design and tell Peggy what you need, like &ldquo;a Sallah flash sale with a countdown&rdquo; or &ldquo;the last email of my cart series&rdquo;. Rex can draft one for you in chat too.
+          Not sure where to start? Open a new template and tell Peggy what you need, like &ldquo;a Sallah flash sale with a countdown&rdquo; or &ldquo;the last email of my cart series&rdquo;. Rex can draft one for you in chat too.
         </AssistantNote>
         <TemplateGallery
           saved={saved}

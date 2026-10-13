@@ -119,7 +119,7 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
     <div className="grid min-w-0 gap-5">
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
       {!view.storeLive && (
-        <Notice tone="info">Your shop isn&apos;t open yet, so there&apos;s nothing to show on WhatsApp. Publish your shop first, then come back here.</Notice>
+        <Notice tone="info">Your store isn&apos;t live yet, so the catalog is empty. WhatsApp product links open your store: publish it first.</Notice>
       )}
 
       {/* What the seller sees: one status, one action */}

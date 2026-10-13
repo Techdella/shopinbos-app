@@ -7,7 +7,7 @@ import { listSegments } from "@/lib/marketing/segments";
 import { SegmentsManager } from "./SegmentsManager";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Groups of customers" };
+export const metadata: Metadata = { title: "Segments" };
 
 export default async function SegmentsPage() {
   const user = await requireRole(["seller"], "/login");
@@ -22,14 +22,14 @@ export default async function SegmentsPage() {
   const tags = [...new Set(tagRows.flatMap((row) => row.tags))].sort();
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Groups of customers" sub="Customers grouped by what they spend, buy, where they live and how they joined. Counts are live.">
+    <SellerPage user={user} store={storeSummary(store)} title="Segments" sub="Groups of customers by what they spend, buy, where they live and how they joined. Counts are live.">
       <div className="grid gap-5">
         <SegmentsManager
           segments={segments.map((s) => ({ id: s.id, name: s.name, description: s.description, rules: s.rules, summary: s.summary, count: s.count }))}
           products={products}
           tags={tags}
         />
-        <AssistantNote>Ask Peggy “make a group of people in Lagos who spent over ₦50,000” and she'll build it for you.</AssistantNote>
+        <AssistantNote>Ask Peggy “make a segment of people in Lagos who spent over ₦50,000” and she'll build it for you.</AssistantNote>
       </div>
     </SellerPage>
   );

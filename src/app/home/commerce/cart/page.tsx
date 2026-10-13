@@ -60,7 +60,7 @@ export default async function CommerceCartPage() {
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
                 <h2 id="left-carts" className="m-0 text-[19px] font-extrabold">Carts left behind</h2>
-                <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">Saved when a shopper gives their email or phone before paying but doesn&apos;t finish. Last 30 days.</p>
+                <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">Saved when a shopper gives their email or phone at checkout but doesn&apos;t finish. Last 30 days.</p>
               </div>
               <PillLink href="/home/automations" size="sm" icon="automation">Reminder emails</PillLink>
             </div>
@@ -69,7 +69,7 @@ export default async function CommerceCartPage() {
               <StatTile tone="card" label="Recovered" value={(recovered?._count ?? 0).toLocaleString("en-NG")} hint={naira(recovered?._sum.subtotal ?? 0)} />
             </StatGrid>
             {recent.length === 0 ? (
-              <EmptyState icon="cart" title="No carts left behind">When a customer doesn&apos;t finish paying after giving their email or phone, their bag shows up here.</EmptyState>
+              <EmptyState icon="cart" title="No carts left behind">When a shopper leaves checkout after giving their email or phone, their bag shows up here.</EmptyState>
             ) : (
               <ListCard>
                 {recent.map((cart) => {

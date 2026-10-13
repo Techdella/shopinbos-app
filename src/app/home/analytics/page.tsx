@@ -15,7 +15,7 @@ import { naira } from "@shared/onboarding";
 import { TrendChart } from "./TrendChart";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "How your shop is doing" };
+export const metadata: Metadata = { title: "Analytics" };
 
 type Search = Promise<{ range?: string; from?: string; to?: string }>;
 
@@ -73,7 +73,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
 
   if (!store) {
     return (
-      <SellerPage user={user} store={null} title="How your shop is doing">
+      <SellerPage user={user} store={null} title="Analytics">
         <EmptyState icon="chart" title="Set up your store first" action={<PillLink href="/onboarding" tone="ink">Start setup</PillLink>}>
           Your numbers show up here once you have a store and your first orders.
         </EmptyState>
@@ -125,7 +125,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="How your shop is doing"
+      title="Analytics"
       sub="Sales, visits, customers and what brought them, from your real orders and store visits."
       actions={
         <a href={exportHref} className={buttonClass("white")} download>
@@ -229,7 +229,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
               <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Nothing yet. Share tagged links from Sell everywhere so each sale shows its channel.</p>
             )}
             <p className="mb-0 mt-4 border-t border-app-line pt-3 text-[12.5px] leading-[1.5] text-app-ink-soft">
-              The channel is saved when they pay, from the link the buyer used (?ref= or utm_source), or picked when you record a sale. &ldquo;Not recorded&rdquo; is older orders from before channels were saved.
+              The channel is saved at checkout from the link the buyer used (?ref= or utm_source), or picked when you record a sale. &ldquo;Not recorded&rdquo; is older orders from before channels were saved.
             </p>
           </Card>
         </div>
@@ -303,7 +303,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             )}
             {report.utmCampaigns.length > 0 && (
               <div className="mt-4 border-t border-app-line pt-3">
-                <h3 className="m-0 text-[13.5px] font-bold">Visits by link name</h3>
+                <h3 className="m-0 text-[13.5px] font-bold">Link campaigns (utm_campaign)</h3>
                 <ul className="m-0 mt-2 grid list-none gap-1.5 p-0 text-[13.5px]">
                   {report.utmCampaigns.slice(0, 8).map((row) => (
                     <li key={row.key} className="flex justify-between gap-3"><span className="min-w-0 truncate">{row.key}</span><span className="shrink-0 text-app-ink-soft">{row.visits} visit{row.visits === 1 ? "" : "s"}</span></li>
@@ -317,7 +317,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
         <section aria-labelledby="attribution-title" className="grid gap-3">
           <h2 id="attribution-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">What your marketing brought in</h2>
           <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
-            <AttributionList title="Email messages to customers" rows={report.attribution.email} href="/home/marketing/campaigns" empty="No paid orders from email links in this period." />
+            <AttributionList title="Email campaigns" rows={report.attribution.email} href="/home/marketing/campaigns" empty="No paid orders from email links in this period." />
             <AttributionList title="Ads" rows={report.attribution.ads} extraLabel="Spend logged so far:" href="/home/ads" empty="No paid orders from ad links in this period." />
             <AttributionList title="Creators" rows={report.attribution.affiliates} href="/home/affiliates" empty="No paid orders from creator links in this period." />
             <AttributionList title="Discount codes" rows={report.attribution.discounts} extraLabel="Discount given:" href="/home/discounts" empty="No discount codes used on paid orders in this period." />

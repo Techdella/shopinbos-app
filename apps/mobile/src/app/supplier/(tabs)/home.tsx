@@ -29,11 +29,11 @@ export default function SupplierHome() {
       next.push({ key: "verify", icon: "shield", title: data.supplier.onboarded ? verification!.label : "Finish setting up", hint: data.supplier.onboarded ? verification!.hint : "Tell us what you sell, then add your documents.", go: () => router.push("/supplier/verification") });
     }
     if (data.counts.toPack) next.push({ key: "pack", icon: "box", title: `Pack ${data.counts.toPack} order${data.counts.toPack === 1 ? "" : "s"}`, hint: "Shops are waiting. Open Orders", go: () => router.push("/supplier/orders") });
-    if (data.counts.wholesale) next.push({ key: "bulk", icon: "bag", title: `${data.counts.wholesale} bulk order${data.counts.wholesale === 1 ? "" : "s"} to send`, hint: "Open Orders", go: () => router.push("/supplier/orders") });
+    if (data.counts.wholesale) next.push({ key: "wholesale", icon: "bag", title: `${data.counts.wholesale} wholesale order${data.counts.wholesale === 1 ? "" : "s"} to send`, hint: "Open Orders", go: () => router.push("/supplier/orders") });
     const request = data.quotes[0];
-    if (request) next.push({ key: "request", icon: "tag", title: `${request.seller} wants ${countWord(request.quantity)}`, hint: "Tell them your price", go: () => router.push({ pathname: "/supplier/quote/[id]", params: { id: request.id } }) });
+    if (request) next.push({ key: "request", icon: "tag", title: `Quote request: ${request.seller} wants ${countWord(request.quantity)}`, hint: "Send your quote", go: () => router.push({ pathname: "/supplier/quote/[id]", params: { id: request.id } }) });
     const low = data.lowStock[0];
-    if (low) next.push({ key: "low", icon: "box", title: low.stock === 0 ? `${low.name} is finished` : `${low.name} is almost finished`, hint: low.stock === 0 ? "Add more so shops can keep selling it" : `Only ${low.stock} left`, go: () => router.push({ pathname: "/supplier/product/[id]", params: { id: low.id } }) });
+    if (low) next.push({ key: "low", icon: "box", title: low.stock === 0 ? `${low.name} is out of stock` : `${low.name} is low on stock`, hint: low.stock === 0 ? "Update your inventory so shops can keep selling it" : `Only ${low.stock} left in stock`, go: () => router.push({ pathname: "/supplier/product/[id]", params: { id: low.id } }) });
   }
 
   return (
@@ -49,7 +49,7 @@ export default function SupplierHome() {
             <Card style={{ gap: 4 }}>
               <T style={{ color: colors.inkSoft, fontSize: 15 }}>Money you&apos;ve earned</T>
               <T weight="extrabold" style={{ fontSize: 34, letterSpacing: -0.8 }} accessibilityRole="header">{naira(data.earned)}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>From orders shops sold for you</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>From your dropship and wholesale orders</T>
             </Card>
           </Pressable>
 

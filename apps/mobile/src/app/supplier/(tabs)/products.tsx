@@ -19,10 +19,10 @@ const LOW = 5;
 
 const FILTERS: { key: string; label: string; test: (product: SupplierProduct) => boolean }[] = [
   { key: "all", label: "All", test: () => true },
-  { key: "live", label: "Shops can see", test: (product) => product.status === "published" },
-  { key: "low", label: "Almost finished", test: (product) => product.stockQuantity <= LOW && product.status !== "unpublished" },
-  { key: "review", label: "We're checking", test: (product) => product.status === "pending_review" },
-  { key: "hidden", label: "Not showing", test: (product) => ["draft", "unpublished", "rejected"].includes(product.status) },
+  { key: "live", label: "Live", test: (product) => product.status === "published" },
+  { key: "low", label: "Low stock", test: (product) => product.stockQuantity <= LOW && product.status !== "unpublished" },
+  { key: "review", label: "In review", test: (product) => product.status === "pending_review" },
+  { key: "hidden", label: "Drafts and hidden", test: (product) => ["draft", "unpublished", "rejected"].includes(product.status) },
 ];
 
 export default function SupplierProducts() {
@@ -47,7 +47,7 @@ export default function SupplierProducts() {
         {products.error && !products.data ? <ErrorState message={products.error} onRetry={() => void products.reload()} /> : null}
         {products.data && !shown.length ? (
           <EmptyState icon="box" title={products.data.length ? "No products here" : "No products yet"} action={products.data.length ? null : <PillButton title="Add your first product" size="sm" onPress={() => router.push("/supplier/product/new")} />}>
-            {products.data.length ? "Tap another button above to see more." : "Take a photo, set your price and how many you have, and shops can start selling it for you."}
+            {products.data.length ? "Tap another button above to see more." : "Take a photo, set your wholesale price and stock, and shops can start selling it for you."}
           </EmptyState>
         ) : null}
         {shown.map((product) => {
@@ -57,7 +57,7 @@ export default function SupplierProducts() {
             <Pressable
               key={product.id}
               accessibilityRole="button"
-              accessibilityLabel={`${product.name}, ${stage.label}, ${product.stockQuantity} left`}
+              accessibilityLabel={`${product.name}, ${stage.label}, ${product.stockQuantity} in stock`}
               onPress={() => router.push({ pathname: "/supplier/product/[id]", params: { id: product.id } })}
               style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12, opacity: pressed ? 0.8 : 1 })}
             >
@@ -65,11 +65,11 @@ export default function SupplierProducts() {
               <View style={{ flex: 1, gap: 4 }}>
                 <T weight="extrabold" style={{ fontSize: 14.5 }} numberOfLines={1}>{product.name}</T>
                 <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
-                  {naira(product.wholesalePrice)} to shops{product._count?.storeProducts ? ` · ${product._count.storeProducts} shops sell it` : ""}
+                  {naira(product.wholesalePrice)} wholesale · MOQ {product.moq}{product._count?.storeProducts ? ` · ${product._count.storeProducts} shops sell it` : ""}
                 </T>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   <TonePill tone={stage.tone} label={stage.label} />
-                  <TonePill tone={product.stockQuantity === 0 ? "danger" : low ? "warning" : "muted"} label={product.stockQuantity === 0 ? "Sold out" : `${product.stockQuantity.toLocaleString("en-NG")} left`} />
+                  <TonePill tone={product.stockQuantity === 0 ? "danger" : low ? "warning" : "muted"} label={product.stockQuantity === 0 ? "Sold out" : `${product.stockQuantity.toLocaleString("en-NG")} in stock`} />
                 </View>
               </View>
             </Pressable>

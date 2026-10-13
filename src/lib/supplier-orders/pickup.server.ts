@@ -328,7 +328,7 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
     userId: order.sellerId,
     type: "logistics",
     priority: "info",
-    title: `Rider booked for ${order.kind === "dropship" ? "order " : "your bulk order "}${order.ref}`,
+    title: `Rider booked for ${order.kind === "dropship" ? "order " : "your wholesale order "}${order.ref}`,
     description: `The supplier has packed it. ${pickupWindowText(window.start, window.end, now)}.`,
     link: order.retailOrderId ? `/home/orders/${order.retailOrderId}` : "/home/logistics",
   }).catch(() => null);

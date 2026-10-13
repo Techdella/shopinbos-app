@@ -213,7 +213,7 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
           />
           <div className="flex items-center gap-2">
             {isCurrent ? (
-              <span className="px-2 text-[14px] font-extrabold">Your current look</span>
+              <span className="px-2 text-[14px] font-extrabold">Your current theme</span>
             ) : (
               <PillButton tone="ink" size="sm" busy={busy} disabled={busy} onClick={onUse}>Use {theme.name}</PillButton>
             )}

@@ -12,7 +12,7 @@ import { naira } from "@/lib/marketplace/find";
 import { PauseButton } from "./DropshipActions";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Sell without stock" };
+export const metadata: Metadata = { title: "Dropship" };
 
 // Dropship: the products a supplier sends straight to the seller's buyers, as Find products-style cards
 // (Cost / Sell / You keep), with the supplier's stock, a filter, and Pause / Message supplier.
@@ -66,11 +66,11 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Sell without stock"
+      title="Dropship"
       sub="Products suppliers send straight to your buyers, packed with your label."
       actions={
         <Link href="/marketplace" className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-accent px-5 text-[14.5px] font-extrabold text-white no-underline hover:brightness-95">
-          <Icon name="search" size={16} /> Find products to sell without stock
+          <Icon name="search" size={16} /> Find dropship products
         </Link>
       }
     >
@@ -138,7 +138,7 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
         {rows.length === 0 ? (
           <div className="rounded-[22px] border border-app-line bg-white px-6 py-12 text-center">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-app-peach"><Icon name="truck" size={22} /></span>
-            <h2 className="m-0 mt-4 text-[18px] font-extrabold">No products without stock yet</h2>
+            <h2 className="m-0 mt-4 text-[18px] font-extrabold">No dropship products yet</h2>
             <p className="mx-auto mb-0 mt-2 max-w-[440px] text-[14.5px] leading-[1.55] text-app-ink-soft">
               Add a product from Find products. The supplier holds the stock, packs each order with your label and a rider delivers it. You pay nothing until a shopper pays you.
             </p>

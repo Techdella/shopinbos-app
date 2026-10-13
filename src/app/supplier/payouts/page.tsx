@@ -106,9 +106,9 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
         kind: "dropship",
         id: o.id,
         ref: supplierOrderRef(o.id),
-        title: lines.length > 1 ? `${lines[0].name} and ${lines.length - 1} more` : lines[0]?.name ?? "Order a shop sold for you",
+        title: lines.length > 1 ? `${lines[0].name} and ${lines.length - 1} more` : lines[0]?.name ?? "Dropship order",
         image: lines[0]?.image,
-        who: `Sold for you by ${shops.get(o.storeId) ?? "a shop"}`,
+        who: `Dropship for ${shops.get(o.storeId) ?? "a shop"}`,
         createdAt: o.createdAt,
         status: o.status,
         stage: statusOf(DROPSHIP_STAGE, o.status),
@@ -126,14 +126,14 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Money"
+      title="Payouts"
       sub={payoutAccount && verifiedBank
-        ? `${payoutAccount.bankName} ${payoutAccount.accountNumberMask} · we send your money here`
+        ? `${payoutAccount.bankName} ${payoutAccount.accountNumberMask} · Paystack recipient ready`
         : `${totals.earnedCount} order${totals.earnedCount === 1 ? "" : "s"} shipped or delivered, worth ${money(totals.earned)}. Add your bank account so we can send you your money.`}
     >
       {notice.error ? <div role="alert" className="mb-4 rounded-[16px] bg-app-danger-tint px-4 py-3 text-[14px] font-bold text-app-danger">{notice.error}</div> : null}
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Earned" value={money(totals.earned)} hint={`${totals.earnedCount} sent or delivered, bulk orders and orders shops sold for you`} />
+        <StatTile tone="card" label="Earned" value={money(totals.earned)} hint={`${totals.earnedCount} shipped or delivered, wholesale and dropship`} />
         <StatTile tone="card" label="Owed to you" value={money(totals.owed)} hint={`${totals.owedCount} order${totals.owedCount === 1 ? "" : "s"} not marked paid`} />
         <StatTile tone="card" label="Paid" value={money(totals.paid)} hint={`${totals.paidCount} order${totals.paidCount === 1 ? "" : "s"} you marked paid`} />
         <StatTile tone="card" label="Still to send" value={money(openValue)} hint={`${openCount} open order${openCount === 1 ? "" : "s"}`} />
@@ -146,7 +146,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
             <h2 className="mb-3 mt-0 text-[17px] font-extrabold">Orders and what they&apos;re worth</h2>
             {orders.length === 0 ? (
               <EmptyState icon="coin" title="No money coming yet">
-                Bulk orders and orders shops sold for you count toward your money once you send them.
+                Wholesale and dropship orders count toward your payout once you ship them.
               </EmptyState>
             ) : (
               <ListCard>
@@ -182,7 +182,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
           <>
             <PayoutBankSection role="supplier" payoutBank={payoutBank} displayName={supplier.displayName} />
             <Card className="p-5">
-              <CardHead title="Your bank (where we send your money)" />
+              <CardHead title="Payout account" />
               <dl className="m-0 mt-3 divide-y divide-app-line text-[14px]">
                 {[
                   ["Bank", payoutBank ? `${payoutBank.bankName} ··${payoutBank.accountNumber.slice(-4)}` : "Not connected"],

@@ -681,7 +681,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
         <div className="flex flex-wrap items-center gap-1.5">
           <button type="button" onClick={() => router.push("/builder/templates")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
-            Shop looks
+            Templates
           </button>
           <button type="button" onClick={() => router.push("/seller/store/builder")} className="hidden min-h-[38px] rounded-full px-3 text-[13px] font-bold text-app-ink hover:bg-app-canvas md:inline-flex md:items-center">
             Edit your store
@@ -1077,7 +1077,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
             {phase === "domain" && (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <PhaseHead eyebrow={stepEyebrow} title="Choose your address" sub="Use your free Shopinbos address, use a web address you already have, or buy a new one." />
+                <PhaseHead eyebrow={stepEyebrow} title="Choose your address" sub="Use your free Shopinbos address, connect a domain you own, or buy a new one." />
                 <StoreStrip>
                   <span>Free address</span>
                   <span className="font-bold text-app-ink">{storeConfig.slug}.shopinbos.com</span>

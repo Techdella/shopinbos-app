@@ -43,7 +43,7 @@ export function TemplateEditor({ initial, brand, shop }: { initial: Draft; brand
       setDraft(next);
       setSaved(JSON.stringify(next));
       if (!draft.id) router.replace(`/home/marketing/templates/${result.id}`);
-      setNotice("Saved.");
+      setNotice("Template saved.");
       return result.id;
     } catch (saveError) {
       setError(errorText(saveError));
@@ -74,7 +74,7 @@ export function TemplateEditor({ initial, brand, shop }: { initial: Draft; brand
   }
 
   async function remove() {
-    if (!draft.id || !window.confirm(`Delete "${draft.name}"? Messages already written with it keep their words.`)) return;
+    if (!draft.id || !window.confirm(`Delete "${draft.name}"? Campaigns already written with it keep their content.`)) return;
     setBusy("delete");
     try {
       await api(`/api/app/marketing/templates/${draft.id}`, "DELETE");
@@ -89,7 +89,7 @@ export function TemplateEditor({ initial, brand, shop }: { initial: Draft; brand
     <div className="grid gap-4">
       <Card className="grid gap-4 p-4 sm:p-5">
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-          <Field label="Design name" htmlFor="t-name"><input id="t-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} placeholder="Sallah sale" /></Field>
+          <Field label="Template name" htmlFor="t-name"><input id="t-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} placeholder="Sallah sale" /></Field>
           <Field label="Kind" htmlFor="t-kind">
             <select id="t-kind" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className={selectClass}>
               {KINDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -106,7 +106,7 @@ export function TemplateEditor({ initial, brand, shop }: { initial: Draft; brand
         <div className="flex flex-wrap items-center gap-2 border-t border-app-line pt-4">
           <PillButton size="md" busy={busy === "save"} onClick={() => void save()}>{dirty || !draft.id ? "Save template" : "Saved"}</PillButton>
           <PillButton size="md" tone="white" busy={busy === "test"} onClick={() => void sendTest()}><Icon name="send" size={15} /> Send me a test</PillButton>
-          <PillButton size="md" tone="white" onClick={() => void useIn("campaign")}><Icon name="megaphone" size={15} /> Use in a message to customers</PillButton>
+          <PillButton size="md" tone="white" onClick={() => void useIn("campaign")}><Icon name="megaphone" size={15} /> Use in a campaign</PillButton>
           <PillButton size="md" tone="white" onClick={() => void useIn("automation")}><Icon name="automation" size={15} /> Use in an automation</PillButton>
           {draft.id ? <PillButton size="md" tone="white" className="text-app-danger lg:ml-auto" busy={busy === "delete"} onClick={() => void remove()}>Delete</PillButton> : null}
         </div>
