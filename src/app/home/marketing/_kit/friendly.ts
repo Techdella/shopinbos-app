@@ -88,6 +88,7 @@ export const EVENT_COPY: Record<string, { label: string; sub: string }> = {
   order_confirmed: { label: "Order confirmed", sub: "Right after they order" },
   payment_received: { label: "Payment received", sub: "When their payment arrives or you mark it paid" },
   order_shipped: { label: "On its way (with tracking)", sub: "When you send the order" },
+  order_partly_shipped: { label: "Part of the order on its way", sub: "When the first parcel of an order sent in parts leaves (with the On its way SMS)" },
   order_delivered: { label: "Delivered", sub: "When the order is marked delivered" },
   abandoned_cart: { label: "Customers who didn't finish paying", sub: "One reminder, an hour after someone leaves without paying" },
 };

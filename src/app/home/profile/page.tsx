@@ -9,6 +9,7 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, Pill, StatTile } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK } from "@/components/seller-settings/fields";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +110,7 @@ export default async function SellerProfilePage() {
                 <div>
                   <label htmlFor="description" className={FIELD_LABEL}>About you</label>
                   <textarea id="description" name="description" className={FIELD_TEXTAREA} rows={3} defaultValue={store?.description ?? ""} placeholder="Tell buyers about your store" />
+                  <VoiceInputButton targetId="description" context="a description of a shop" className="mt-2" />
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="min-w-0">

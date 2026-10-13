@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { router } from "expo-router";
+import { lastSeenWords, rankRidersForPickup } from "@shared/delivery-geo";
 import { naira } from "@shared/onboarding";
 import { ChoiceSheet, RouteLine, Thumb, TonePill } from "@/components/partner";
 import { PillButton, T } from "@/components/ui";
@@ -11,21 +12,17 @@ import { colors } from "@/theme";
 // A delivery job card, from the "Shopinbos Partners · mobile" prototype: route, fee, parcel, and for a new
 // request Decline / Accept and assign (pick a rider from a sheet). Tap the card for the full job.
 
-const RIDER_WINDOW_MS = 30 * 60 * 1000;
-
-/** Riders for the picker, best first (the server already sorts them): free riders who are out, then busy, then offline. */
-export function riderOptions(riders: DispatchRider[], now = Date.now()) {
-  const rows = riders.map((rider) => {
-    const out = Boolean(rider.online && rider.lastSeenAt && now - new Date(rider.lastSeenAt).getTime() <= RIDER_WINDOW_MS);
-    const busy = (rider.openJobs ?? 0) > 0;
-    return { rider, out, busy, rank: out ? (busy ? 1 : 0) : 2 };
+/**
+ * Riders for the picker for one pickup, best first: free riders who are out, then busy, then offline; inside each,
+ * fresh locations (under 10 minutes) closest first (shared/delivery-geo rankRidersForPickup).
+ */
+export function riderOptions(riders: DispatchRider[], pickup?: { lat: number; lng: number } | null, now = new Date()) {
+  const ranked = rankRidersForPickup(riders.map((rider) => ({ ...rider, openJobs: rider.openJobs ?? 0 })), pickup, now);
+  return ranked.map(({ rider, group, fresh, distanceText }, index) => {
+    const state = group === 2 ? "Offline" : group === 1 ? `Finishing ${rider.openJobs === 1 ? "a job" : `${rider.openJobs} jobs`}` : index === 0 ? "Free now · best pick" : "Free now";
+    const where = distanceText ? (fresh ? distanceText : `${distanceText.split(" · ")[0]}, ${lastSeenWords(rider.locationAt ?? null, now)}`) : "";
+    return { value: rider.id, label: rider.name, hint: where ? `${state} · ${where}` : state };
   });
-  rows.sort((a, b) => a.rank - b.rank);
-  return rows.map(({ rider, out, busy }, index) => ({
-    value: rider.id,
-    label: rider.name,
-    hint: !out ? "Offline" : busy ? `Finishing ${rider.openJobs === 1 ? "a job" : `${rider.openJobs} jobs`}` : index === 0 ? "Free now · best pick" : "Free now",
-  }));
 }
 
 export function JobCard({ job, riders, onChanged }: { job: Job; riders: DispatchRider[]; onChanged: () => void }) {
@@ -69,6 +66,7 @@ export function JobCard({ job, riders, onChanged }: { job: Job; riders: Dispatch
         <View style={{ flex: 1, gap: 3 }}>
           <RouteLine from={shortPlace(job.from)} to={shortPlace(job.to)} />
           <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={2}>{[job.item, job.shop, job.rider ? `Rider: ${job.rider.name}` : null].filter(Boolean).join(" · ")}</T>
+          {job.pickupWindow ? <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }} numberOfLines={1}>{job.pickupWindow}</T> : null}
         </View>
       </View>
       {job.collect > 0 ? <TonePill tone="warning" label={`Collect ${naira(job.collect)}`} /> : null}
@@ -81,7 +79,7 @@ export function JobCard({ job, riders, onChanged }: { job: Job; riders: Dispatch
       <ChoiceSheet
         visible={picking}
         title="Pick a rider"
-        options={[...riderOptions(riders), { value: "", label: "Accept now, pick a rider later", hint: "Pick from the job when you're ready" }]}
+        options={[...riderOptions(riders, job.pickupGeo), { value: "", label: "Accept now, pick a rider later", hint: "Pick from the job when you're ready" }]}
         onPick={(value) => {
           setPicking(false);
           void run("accept", value || null);

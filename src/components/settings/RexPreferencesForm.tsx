@@ -14,6 +14,7 @@ import {
   REX_VOICES,
   type RexPreferences,
 } from "@shared/rex-preferences";
+import { Mascot } from "@/components/brand/Mascot";
 
 const chip = (on: boolean) =>
   cx(
@@ -46,8 +47,7 @@ export function RexPreferencesForm({ initial, versionCount }: { initial: RexPref
   return (
     <form action={saveRexPreferences} className="rounded-[22px] border border-app-line bg-white p-5">
       <div className="flex items-start gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/app/rex.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
+        <Mascot who="rex" size={40} decorative />
         <div className="min-w-0">
           <h2 className="m-0 text-[17px] font-extrabold">Rex — your store designer</h2>
           <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">How Rex designs your store, writes your words and makes your photos in Rex Studio.</p>

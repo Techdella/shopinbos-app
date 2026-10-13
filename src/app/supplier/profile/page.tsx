@@ -12,6 +12,7 @@ import { IdentityImageUploader } from "@/components/profile/IdentityImageUploade
 import { VERIFICATION_LABEL, buttonClass, fieldClass, hintClass, labelClass, supplierFrame, textareaClass } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { isProPlan } from "@/lib/role-queries";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
                       <div>
                         <label htmlFor="description" className={labelClass}>About</label>
                         <textarea id="description" className={textareaClass} name="description" rows={6} defaultValue={supplier.description ?? ""} placeholder="What you make, where, since when, and how you work with sellers." />
+                        <VoiceInputButton targetId="description" context="a description of a supplier business" className="mt-2" />
                         <div className={hintClass}>Two or three short paragraphs. The first line shows under your name.</div>
                       </div>
                     </div>

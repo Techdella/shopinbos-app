@@ -10,7 +10,8 @@ import { ORDER_STATUS, buttonClass, money, orderRef, statusOf, supplierFrame, ti
 import { updateSupplierOrderStatus } from "@/app/actions/supplier";
 import { messagesHref } from "@/lib/conversations/pure";
 import { SELLER_CANCEL_PREFIX, wholesaleActions, type SupplierAction } from "@/lib/supplier-orders/pure";
-import { listDropshipOrders, type DropshipView } from "@/lib/supplier-orders/views.server";
+import { listDropshipOrders, pickupSummaries, type DropshipView } from "@/lib/supplier-orders/views.server";
+import { AcceptCountdown } from "@/components/supplier/AcceptCountdown";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const FILTERS = [
   { key: "new", label: "New", wholesale: ["pending"], dropship: ["pending"] },
   { key: "to-pack", label: "To pack", wholesale: ["confirmed", "processing"], dropship: ["accepted"] },
   { key: "sent", label: "Sent", wholesale: ["shipped", "delivered"], dropship: ["shipped", "delivered"] },
-  { key: "closed", label: "Declined and cancelled", wholesale: ["cancelled", "refunded"], dropship: ["rejected", "cancelled"] },
+  { key: "closed", label: "Declined and cancelled", wholesale: ["cancelled", "refunded"], dropship: ["rejected", "cancelled", "expired"] },
 ] as const;
 // Older links (?status=to-ship, on-the-way, delivered) still land on the right group.
 const LEGACY_FILTER: Record<string, (typeof FILTERS)[number]["key"]> = { "to-ship": "to-pack", "on-the-way": "sent", delivered: "sent" };
@@ -47,6 +48,7 @@ const DROPSHIP_STATUS: Record<string, { label: string; tone: "accent" | "info" |
   delivered: { label: "Delivered", tone: "success" },
   rejected: { label: "Declined", tone: "muted" },
   cancelled: { label: "Cancelled by the shop", tone: "muted" },
+  expired: { label: "Time ran out", tone: "danger" },
 };
 
 type Kind = "dropship" | "wholesale";
@@ -193,8 +195,14 @@ function DropshipRow({ order }: { order: DropshipView }) {
         {order.notes && <div className="mt-1 text-app-ink-soft">Note: {order.notes}</div>}
         {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">Tracking {order.trackingCode}{order.carrier ? ` · ${order.carrier}` : ""}</div>}
         {order.rejectReason && <div className="mt-1 text-app-ink-soft">You declined: {order.rejectReason}</div>}
+        {order.status === "expired" && <div className="mt-1 font-bold text-app-danger">Time ran out, so the shop was told. Don&apos;t send it.</div>}
       </div>
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        {order.status === "pending" && <AcceptCountdown acceptBy={order.acceptBy} />}
+        {order.status === "accepted" && (
+          <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="truck" tone="ink">{order.pickup?.text ? `Rider booked: ${order.pickup.text.replace(/^Pick up/, "pick up")}` : order.packedAt ? "Book a rider" : "Pack it and book a rider"}</PillLink>
+        )}
+        <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="arrow">Open</PillLink>
         <Pill tone={stage.tone} dot>{stage.label}</Pill>
         <PillLink href={messagesHref("supplier", { with: order.sellerUserId })} size="sm" icon="chat">Message shop</PillLink>
         <span className="min-w-[90px] text-right">
@@ -252,6 +260,8 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
     db.supplierOrder.groupBy({ by: ["status"], where: { supplierId: supplier.id }, _count: { _all: true } }),
   ]);
 
+  const wholesalePickups = await pickupSummaries("wholesale", orders.filter((order) => order.status === "processing" || order.status === "confirmed").map((order) => order.id));
+
   const countRows = (rows: Array<{ status: string; _count: { _all: number } }>, statuses?: readonly string[]) =>
     rows.filter((row) => !statuses || statuses.includes(row.status)).reduce((sum, row) => sum + row._count._all, 0);
   const countOf = (item?: (typeof FILTERS)[number]) =>
@@ -297,9 +307,14 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     {order.notes && <div className="mt-1 text-app-ink-soft">Note: {order.notes}</div>}
                     {canShip && <div className="mt-1 text-app-ink-soft">No payment is taken on Shopinbos: confirm it, send the seller your invoice, and they pay you directly.</div>}
                     {order.trackingCode && <div className="mt-1 truncate text-app-ink-soft">Tracking {order.trackingCode}</div>}
-                    {order.rejectReason && <div className="mt-1 text-app-ink-soft">{order.rejectReason.startsWith(SELLER_CANCEL_PREFIX) ? order.rejectReason : `You declined: ${order.rejectReason}`}</div>}
+                    {order.rejectReason && <div className="mt-1 text-app-ink-soft">{order.expiredAt ? "Time ran out, so the shop was told. Don't send it." : order.rejectReason.startsWith(SELLER_CANCEL_PREFIX) ? order.rejectReason : `You declined: ${order.rejectReason}`}</div>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    {order.status === "pending" && <AcceptCountdown acceptBy={order.acceptBy?.toISOString() ?? null} />}
+                    {(order.status === "confirmed" || order.status === "processing") && (
+                      <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="truck" tone="ink">{wholesalePickups.get(order.id)?.text ? `Rider booked: ${wholesalePickups.get(order.id)!.text!.replace(/^Pick up/, "pick up")}` : "Pack it and book a rider"}</PillLink>
+                    )}
+                    <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="arrow">Open</PillLink>
                     <Pill tone={stage.tone} dot>{stage.label}</Pill>
                     <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">Message shop</PillLink>
                     <span className="min-w-[90px] text-right">

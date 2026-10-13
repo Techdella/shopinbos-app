@@ -8,6 +8,7 @@ import { riderFromToken } from "@/lib/logistics/rider-session";
 import { bookingNet, lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
 import { markDelivered, markFailed, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
 import { toE164 } from "@shared/phone";
+import { pickupWindowText } from "@shared/supplier-pickup";
 import { notesWithRecipient } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
       take: 60,
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
-        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true,
+        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true, pickupWindowStart: true, pickupWindowEnd: true,
         seller: { select: { name: true, store: { select: { name: true } } } },
       },
     }),
@@ -51,10 +52,13 @@ export async function GET(req: NextRequest) {
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
   // One run per pickup (same shop and address), like the web Riders app.
-  const runs = new Map<string, { key: string; pickupName: string; pickupAddress: string; fees: number; drops: unknown[] }>();
+  const runs = new Map<string, { key: string; pickupName: string; pickupAddress: string; pickupWindow: string | null; fees: number; drops: unknown[] }>();
   for (const job of active) {
     const key = `${job.sellerId}|${job.pickupLocation.trim().toLowerCase()}`;
-    const run = runs.get(key) ?? { key, pickupName: job.seller.store?.name ?? job.seller.name, pickupAddress: job.pickupLocation, fees: 0, drops: [] };
+    // Supplier pickups carry a time: "Pick up 12–4pm today" (the run shows the first one).
+    const pickupWindow = pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd);
+    const run = runs.get(key) ?? { key, pickupName: job.seller.store?.name ?? job.seller.name, pickupAddress: job.pickupLocation, pickupWindow, fees: 0, drops: [] };
+    if (!run.pickupWindow && pickupWindow) run.pickupWindow = pickupWindow;
     const order = job.orderId ? orderById.get(job.orderId) : undefined;
     const lines = order ? addressLines(order.deliveryAddress) : [];
     run.fees += bookingNet(job);

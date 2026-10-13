@@ -97,7 +97,7 @@ test("supplier order actions: dropship accept → handed over → delivered (or 
 
 test("dropship order lists: open is to accept or send, done is sent, delivered or closed", () => {
   assert.deepEqual([...rules.DROPSHIP_OPEN], ["pending", "accepted"]);
-  assert.deepEqual([...rules.DROPSHIP_DONE], ["shipped", "delivered", "rejected", "cancelled"]);
+  assert.deepEqual([...rules.DROPSHIP_DONE], ["shipped", "delivered", "rejected", "cancelled", "expired"]);
   assert.ok(rules.needsSupplier("dropship", "pending"));
   assert.ok(rules.needsSupplier("dropship", "accepted"));
   assert.ok(!rules.needsSupplier("dropship", "shipped"), "marking delivered isn't urgent");

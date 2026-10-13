@@ -276,6 +276,9 @@ export async function updateSupplierOrderStatus(formData: FormData) {
     const params = new URLSearchParams(query);
     const kind = text("kind");
     if (kind === "dropship" || kind === "wholesale") params.set("kind", kind);
+    // From the order's own page (/supplier/orders/[id]), go back there.
+    const orderPage = text("returnTo");
+    if (orderPage && /^\/supplier\/orders\/[\w-]{6,64}$/.test(orderPage)) return `${orderPage}?${params.toString()}`;
     return `/supplier/orders?${params.toString()}`;
   };
   if (!parsed.success) redirect(back({ error: "Choose a valid order action." }));
@@ -286,6 +289,7 @@ export async function updateSupplierOrderStatus(formData: FormData) {
   if (!result.ok) redirect(back({ error: result.message }));
 
   revalidatePath("/supplier/orders");
+  revalidatePath(`/supplier/orders/${parsed.data.orderId}`);
   revalidatePath("/supplier/dashboard");
   redirect(back({ saved: "1" }));
 }

@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { openPath } from "@/lib/web";
 import { colors, fonts, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { VoiceInput } from "@/components/VoiceInput";
 
 const SUGGESTIONS = [
   "How did I do this week?",
@@ -138,6 +139,7 @@ export default function Peggy() {
             accessibilityLabel="Ask Peggy"
             style={{ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 20, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
           />
+          <VoiceInput variant="icon" value={draft} onChange={setDraft} context="a question for Peggy" disabled={thinking} />
           <Pressable accessibilityRole="button" accessibilityLabel="Send" disabled={!draft.trim() || thinking} onPress={() => void ask()} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || thinking ? 0.5 : 1 }}>
             <AppIcon name="chevron" size={22} color="#FFFFFF" strokeWidth={2.4} />
           </Pressable>

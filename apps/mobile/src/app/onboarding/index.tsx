@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { Alert, Pressable, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import Svg, { Path, Rect } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { ONBOARDING_LANGUAGES, REX_GREETING, SELL_EXAMPLES, START_PATHS, type StartPath } from "@shared/onboarding";
 import { Chip, Mascot, T } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { askRex, saveMemory } from "@/lib/onboarding";
 import { colors, fonts, radii } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 interface Turn {
   from: "rex" | "me";
@@ -62,17 +63,7 @@ export default function Chat() {
             returnKeyType="send"
             style={{ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 20, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Record a voice note"
-            onPress={() => Alert.alert("Voice notes are coming", "Voice notes arrive in the next app update. Type what you sell for now.")}
-            style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}
-          >
-            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round">
-              <Rect x="9" y="3" width="6" height="11" rx="3" />
-              <Path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-            </Svg>
-          </Pressable>
+          <VoiceInput variant="icon" value={draft} onChange={setDraft} language={lang} context="what their shop sells" />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Send"
@@ -88,7 +79,7 @@ export default function Chat() {
       }
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-        <Mascot name="rex" size={56} />
+        <Mascot name="rex" mood="wave" size={56} />
         <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 20, borderTopLeftRadius: 6, paddingHorizontal: 16, paddingVertical: 14 }}>
           <T weight="bold" style={{ fontSize: 16, lineHeight: 22 }}>{REX_GREETING[lang](name)}</T>
         </View>

@@ -4,6 +4,7 @@ import { Screen } from "@/components/Screen";
 import { Field, Notice, PillButton, T } from "@/components/ui";
 import { startSupportChat } from "@/lib/support";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // "Chat with a person" when there's no WhatsApp number: one question, then the conversation with the team.
 export default function NewSupportChat() {
@@ -28,6 +29,7 @@ export default function NewSupportChat() {
   return (
     <Screen title="What do you need help with?" sub="A person from Shopinbos reads this and answers you here." footer={<PillButton title="Send to the team" busy={busy} onPress={() => void send()} />}>
       <Field value={message} onChangeText={setMessage} multiline maxLength={5000} autoFocus placeholder="For example: my customer paid but the order says not paid" accessibilityLabel="What do you need help with?" style={{ height: 160, paddingTop: 14, textAlignVertical: "top", fontSize: 17 }} />
+      <VoiceInput value={message} onChange={setMessage} maxLength={5000} context="a message to the support team" />
       {error ? <Notice>{error}</Notice> : null}
       <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>We usually answer within a few hours, 8am to 8pm. You&apos;ll get a message when we reply.</T>
     </Screen>

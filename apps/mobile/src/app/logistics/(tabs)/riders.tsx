@@ -43,6 +43,7 @@ export default function LogisticsRiders() {
                 <T weight="extrabold" style={{ fontSize: 15 }}>{rider.name}</T>
                 <T style={{ color: colors.inkSoft, fontSize: 14 }}>
                   {!rider.active ? "Paused" : rider.out ? (rider.openJobs ? "On a job" : "Free now") : rider.lastSeenAt ? `Offline · seen ${timeAgo(rider.lastSeenAt)}` : "Offline"}
+                  {rider.active && rider.where?.includes(",") ? ` · ${rider.where}` : ""}
                   {rider.hasAppLink ? "" : " · hasn't got the app link yet"}
                 </T>
               </View>

@@ -169,6 +169,7 @@ export default function JobScreen() {
             <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>Pick up</T>
             <T weight="bold">{current.shop}</T>
             <T selectable>{current.from}</T>
+            {current.pickupWindow ? <T weight="extrabold" style={{ color: colors.accentInk, fontSize: 15 }}>{current.pickupWindow}</T> : null}
           </View>
         </View>
         <View style={{ flexDirection: "row", gap: 12 }}>
@@ -255,7 +256,7 @@ export default function JobScreen() {
       <ChoiceSheet
         visible={sheet === "rider" || sheet === "accept"}
         title={sheet === "accept" ? "Pick a rider" : "Give the job to"}
-        options={[...riderOptions(data.riders), { value: "", label: sheet === "accept" ? "Accept now, pick a rider later" : "No rider" }]}
+        options={[...riderOptions(data.riders, data.job.pickupGeo), { value: "", label: sheet === "accept" ? "Accept now, pick a rider later" : "No rider" }]}
         onPick={(value) => {
           const mode = sheet;
           setSheet(null);

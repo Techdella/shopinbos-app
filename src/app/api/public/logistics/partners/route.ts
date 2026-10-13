@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
 import { okList, apiError } from "@/lib/api/response";
 import { PublicLogisticsQuerySchema } from "@/lib/schemas";
+import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 
 const select = {
   id: true,
@@ -52,12 +53,14 @@ export async function GET(req: NextRequest) {
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid query"));
   }
 
-  const { page, limit, sort, country, city, zone, vehicleType, q } = parsed.data;
+  const { page, limit, sort, country, city, zone, vehicleType, q, cod } = parsed.data;
   const skip = (page - 1) * limit;
 
   const where = {
     status: "active" as const,
     verificationStatus: "verified" as const,
+    // ?cod=true: for pay-when-it-arrives deliveries, skip partners paused for a late cash pay-in.
+    ...payWhenItArrivesWhere(cod === "true" || cod === "1"),
     ...(country ? { country } : {}),
     ...(city ? { city: { contains: city, mode: "insensitive" as const } } : {}),
     ...(zone ? { coverageZones: { has: zone } } : {}),

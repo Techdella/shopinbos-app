@@ -7,6 +7,7 @@ import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { inboxApi } from "@/components/messaging/inbox-ui";
 import { cleanKeywords, type ChatbotSettings } from "@/lib/inbox/assistant";
+import { Mascot } from "@/components/brand/Mascot";
 
 // The storefront chatbot: switch it on, how Peggy introduces herself, what she may use to answer, when she hands
 // over to the seller, and a test chat that uses the settings on screen (saved or not).
@@ -172,8 +173,7 @@ export function ChatbotClient({ initial, hoursOn, ready, aiAvailable, widgetOn, 
 
       <Card className="grid h-[min(680px,calc(100dvh-140px))] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden xl:sticky xl:top-4">
         <div className="flex items-center gap-3 bg-app-ink px-4 py-3 text-white">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/app/peggy.png" alt="" className="h-9 w-9 rounded-full bg-white object-contain p-0.5" />
+          <Mascot who="peggy" mood={asking ? "thinking" : testError ? "oops" : "idle"} className="h-9 w-9 rounded-full bg-white p-0.5" decorative />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[15px] font-bold">Test the chatbot</div>
             <div className="truncate text-[12px] text-white/70">As shoppers see it on {storeName}. Uses the settings on screen.</div>

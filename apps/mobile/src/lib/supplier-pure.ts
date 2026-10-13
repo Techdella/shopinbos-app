@@ -32,6 +32,7 @@ export const SUPPLIER_ORDER_STAGE: Record<string, string> = {
   delivered: "Delivered",
   rejected: "You said no",
   cancelled: "Cancelled",
+  expired: "Time ran out. The shop was told",
   refunded: "Money given back",
   returned: "Sent back",
 };

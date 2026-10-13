@@ -12,6 +12,7 @@ import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, VERIFICATION_LABEL, money, 
 import { DROPSHIP_TO_SHIP, WHOLESALE_TO_SHIP } from "@/lib/supplier-orders/pure";
 import { listDropshipOrders } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/money.server";
+import { Mascot } from "@/components/brand/Mascot";
 
 // Supplier home in the "Seller app · web" language: greeting, real tiles, orders to ship and quote requests.
 
@@ -249,8 +250,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         {/* Rex's brief */}
         <section className="rounded-[22px] bg-app-peach p-5">
           <div className="mb-4 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/app/rex.png" alt="Rex" className="h-12 w-12 object-contain" />
+            <Mascot who="rex" className="h-12 w-12" />
             <div>
               <h2 className="m-0 text-[17px] font-extrabold">Rex&apos;s brief</h2>
               <div className="text-[13px] text-app-ink-soft">

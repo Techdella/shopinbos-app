@@ -43,7 +43,7 @@ export default function Live() {
         </View>
         <View style={{ backgroundColor: colors.surface, borderRadius: 24, overflow: "hidden" }}>
           <View style={{ height: 190, backgroundColor: palette.swatches[1], alignItems: "center", justifyContent: "center" }}>
-            <Mascot name="rex" size={140} />
+            <Mascot name="rex" mood="celebrate" size={140} />
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16 }}>
             <View style={{ flex: 1 }}>
@@ -65,7 +65,6 @@ export default function Live() {
           ))}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: radii.card, padding: 16 }}>
-          <Mascot name="peggy" size={48} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 15 }}>Let Peggy answer WhatsApp?</T>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>She drafts replies in your voice. You approve until you trust her.</T>

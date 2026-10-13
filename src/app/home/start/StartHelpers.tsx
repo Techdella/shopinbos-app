@@ -103,7 +103,7 @@ function PeggyHelper({ steps, onChanged }: { steps: SetupStep[]; onChanged: () =
           )}
           {busy && (
             <div className="flex items-center gap-2 text-[13.5px] text-app-ink-soft">
-              <Mascot name="peggy" className="h-7 w-7" alt="" /> Peggy is working on it…
+              <Mascot name="peggy" mood="working" className="h-7 w-7" alt="" /> Peggy is working on it…
             </div>
           )}
           <div ref={endRef} />
@@ -159,7 +159,6 @@ function RexHelper({ steps }: { steps: SetupStep[] }) {
   return (
     <section aria-labelledby="ask-rex-title" className="flex flex-col rounded-[22px] bg-app-peach p-5">
       <div className="flex items-center gap-3">
-        <Mascot name="rex" className="h-12 w-12 shrink-0" alt="" />
         <div className="min-w-0">
           <h2 id="ask-rex-title" className="m-0 text-[17px] font-extrabold">Ask Rex</h2>
           <p className="m-0 text-[13px] leading-[1.4] text-app-ink-soft">Your store designer. He builds and edits pages, product photos, logos and banners in Rex Studio.</p>

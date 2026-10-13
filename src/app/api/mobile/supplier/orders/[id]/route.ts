@@ -6,7 +6,8 @@ import { apiError, ok } from "@/lib/api/response";
 import { moveSupplierOrder } from "@/lib/supplier-orders/service.server";
 import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 import { portalAction, statusAfter } from "../../_rules";
-import { WHOLESALE_SELECT, canTrade, dropshipOrders, supplierForUser, wholesaleView } from "../../_shared";
+import { markPacked } from "@/lib/supplier-orders/pickup.server";
+import { WHOLESALE_SELECT, canTrade, dropshipOrders, supplierForUser, wholesaleViews } from "../../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const APP_DECLINE_REASON = "Declined from the Shopinbos app";
 async function findOrder(supplierId: string, kind: string, id: string) {
   if (kind === "wholesale") {
     const order = await db.wholesaleOrder.findFirst({ where: { id, supplierId }, select: WHOLESALE_SELECT });
-    return order ? wholesaleView(order) : null;
+    return order ? (await wholesaleViews([order]))[0] : null;
   }
   const [order] = await dropshipOrders(supplierId, { orderId: id });
   return order ?? null;
@@ -52,14 +53,16 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
   const reason = parsed.data.reason || APP_DECLINE_REASON;
   const id = String(params.id);
 
-  if (kind === "wholesale" && action === "packed") {
-    const order = await db.wholesaleOrder.findFirst({ where: { id, supplierId: supplier.id }, select: { id: true, status: true } });
-    if (!order) return apiError("NOT_FOUND", "Order not found", 404);
-    const status = statusAfter("wholesale", order.status, action);
-    if (!status) return apiError("CONFLICT", "This order has already moved on. Pull down to refresh.", 409);
-    // Only move it if nobody else did in the meantime.
-    const moved = await db.wholesaleOrder.updateMany({ where: { id: order.id, status: order.status as never }, data: { status: status as never } });
-    if (moved.count === 0) return apiError("CONFLICT", "This order has already moved on. Pull down to refresh.", 409);
+  if (action === "packed") {
+    // "I've packed it": a bulk order moves confirmed → processing; a shop's order keeps packedAt and stays accepted
+    // until the rider (booked next, POST /api/supplier/orders/[id]/pickup) has it.
+    if (kind === "wholesale") {
+      const order = await db.wholesaleOrder.findFirst({ where: { id, supplierId: supplier.id }, select: { id: true, status: true } });
+      if (!order) return apiError("NOT_FOUND", "Order not found", 404);
+      if (!statusAfter("wholesale", order.status, action)) return apiError("CONFLICT", "This order has already moved on. Pull down to refresh.", 409);
+    }
+    const packed = await markPacked(supplier.id, kind, id);
+    if (!packed.ok) return apiError(packed.code, packed.code === "CONFLICT" ? "This order has already moved on. Pull down to refresh." : packed.message, packed.code === "NOT_FOUND" ? 404 : packed.code === "CONFLICT" ? 409 : 400);
     return ok(await findOrder(supplier.id, kind, id));
   }
 
@@ -69,7 +72,7 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
     ? await moveWholesaleOrder({ supplierId: supplier.id, orderId: id, action: move, trackingCode, reason })
     : await moveSupplierOrder({ supplierId: supplier.id, orderId: id, action: move, trackingCode, reason });
   if (!result.ok) {
-    if (result.code === "CONFLICT") return apiError("CONFLICT", "This order has already moved on. Pull down to refresh.", 409);
+    if (result.code === "CONFLICT") return apiError("CONFLICT", result.message.startsWith("Time ran out") ? result.message : "This order has already moved on. Pull down to refresh.", 409);
     return apiError(result.code, result.message);
   }
   return ok(await findOrder(supplier.id, kind, id));

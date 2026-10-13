@@ -152,7 +152,7 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
 
   return (
     <div className="flex w-full flex-col items-center px-4 py-10 text-center font-app text-app-ink sm:py-12">
-      <Mascot name="rex" className="h-20 w-20" alt="Rex" />
+      <Mascot name="rex" mood={hasFailures ? "oops" : summary ? "celebrate" : "working"} className="h-20 w-20" alt="Rex" />
 
       <p className="m-0 mt-5 text-[14px] font-bold text-app-ink-soft">Rex is building {storeConfig.name || "your store"}</p>
       <h2 className="m-0 mt-1.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[28px]" aria-live="polite">

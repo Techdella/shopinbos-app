@@ -3,7 +3,8 @@
 import { Icon } from "@/components/ui/Icon";
 
 // "Every screen has a Help button" (simplicity rules, section 8A). Opens the help panel the app shell already
-// mounts (Sidebar → SupportChatModal: Peggy, a person, or a setup request), so there is only ever one panel.
+// mounts (Sidebar → SupportChatModal: Peggy, a person, a setup request, or a one-minute video for this screen),
+// so there is only ever one panel.
 export const OPEN_HELP_EVENT = "shopinbos:open-help";
 
 export function HelpButton({ className = "" }: { className?: string }) {

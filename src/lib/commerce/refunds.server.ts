@@ -75,6 +75,21 @@ async function markFailed(order: RefundOrder, reason: string) {
   await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold. We tried to refund ${money(Number(order.total), order.currency)} through Paystack and it failed (${reason}). Refund the buyer from your Paystack dashboard or by transfer.`, "critical");
 }
 
+async function callPaystackRefund(secret: string, body: ReturnType<typeof paystackRefundBody>): Promise<ReturnType<typeof readPaystackRefund>> {
+  try {
+    const response = await fetch(`${paystackBase()}/refund`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    return readPaystackRefund(response.ok, await response.json().catch(() => null));
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Paystack could not be reached" };
+  }
+}
+
 /**
  * Refunds the late payment on an expired order whose stock is gone, once. Call it after the order was flagged
  * (paymentIssue set). The first caller claims the refund (refundStatus null → "pending"); everyone else gets
@@ -104,19 +119,7 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     }
 
     const body = paystackRefundBody(order, order.orderNumber);
-    let result: ReturnType<typeof readPaystackRefund>;
-    try {
-      const response = await fetch(`${paystackBase()}/refund`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        cache: "no-store",
-        signal: AbortSignal.timeout(15_000),
-      });
-      result = readPaystackRefund(response.ok, await response.json().catch(() => null));
-    } catch (error) {
-      result = { ok: false, message: error instanceof Error ? error.message : "Paystack could not be reached" };
-    }
+    const result = await callPaystackRefund(secret!, body);
 
     if (!result.ok) {
       await markFailed(order, result.message);
@@ -168,4 +171,55 @@ export async function applyRefundEvent(event: string, data: Record<string, unkno
     data: { refundStatus: status, ...(refundId ? { refundId } : {}), ...(status === "processed" ? { refundedAt: new Date(), status: "refunded" } : {}) },
   });
   return moved.count === 1;
+}
+
+/**
+ * The seller cancelled a paid order and chose to refund the customer (for example, its supplier didn't accept it
+ * in time). Same claim and Paystack call as a late payment: card payments go back through Paystack, anything else
+ * is flagged for the seller to refund by hand. Unpaid orders (pay when it arrives) have nothing to refund.
+ */
+export async function refundCancelledOrder(orderId: string, why: string): Promise<RefundOutcome> {
+  try {
+    const order = await loadOrder(orderId);
+    if (!order || !canStartRefund(order)) return "skipped";
+    const paid = order.paystackStatus === "success" || (order.paymentMethod !== null && order.paymentMethod !== "paystack" && order.paymentMethod !== "pay_on_delivery");
+    if (!paid || Number(order.total) <= 0) return "skipped";
+    const amount = money(Number(order.total), order.currency);
+
+    if (refundRoute(order) === "manual") {
+      const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual", paymentIssue: `${why} Refund the customer ${amount} by hand.`.slice(0, 500) } });
+      if (claimed.count !== 1) return "skipped";
+      await notifySeller(order, `Refund your customer: order ${order.orderNumber}`, `You cancelled this order. The customer paid you directly, so send ${amount} back to them by transfer.`, "critical");
+      await emailBuyer(order, "by_store");
+      return "manual";
+    }
+
+    const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "pending" } });
+    if (claimed.count !== 1) return "skipped";
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    if (!paystackSecretReady(secret)) {
+      await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: "pending" }, data: { refundStatus: "failed", paymentIssue: `${why} Automatic refund failed (Paystack isn't set up). Refund the customer by hand.`.slice(0, 500) } });
+      await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `We couldn't send ${amount} back automatically. Refund the customer from your Paystack dashboard or by transfer.`, "critical");
+      await emailBuyer(order, "by_store");
+      return "failed";
+    }
+    const result = await callPaystackRefund(secret!, paystackRefundBody(order, order.orderNumber));
+    if (!result.ok) {
+      await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: "pending" }, data: { refundStatus: "failed", paymentIssue: `${why} Automatic refund failed (${result.message}). Refund the customer by hand.`.slice(0, 500) } });
+      await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `We tried to send ${amount} back through Paystack and it failed (${result.message}). Refund the customer from your Paystack dashboard or by transfer.`, "critical");
+      await emailBuyer(order, "by_store");
+      return "failed";
+    }
+    const processed = result.status === "processed";
+    await db.retailOrder.updateMany({
+      where: { id: order.id, refundStatus: "pending" },
+      data: { refundStatus: result.status, refundId: result.id, ...(processed ? { refundedAt: new Date(), status: "refunded" } : {}) },
+    });
+    await notifySeller(order, `Refund started: order ${order.orderNumber}`, `${amount} is going back to your customer through Paystack.`, "info");
+    await emailBuyer(order, "automatic");
+    return processed ? "processed" : "started";
+  } catch (error) {
+    console.error(`[refunds] could not refund cancelled order ${orderId}`, error);
+    return "failed";
+  }
 }

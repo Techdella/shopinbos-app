@@ -6,6 +6,7 @@ import { FieldLabel, Notice, PillButton, TextInput } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { naira } from "@shared/onboarding";
 import { AD_BUDGETS, AD_DESTINATIONS, AD_PLATFORMS, STOP_RULE_DAYS, type AdAdvice, type AdDestination, type AdPlatform } from "@shared/ads";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface Product {
   id: string;
@@ -242,6 +243,7 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
             <div>
               <FieldLabel htmlFor={`text-${ad.id}`}>Ad text</FieldLabel>
               <textarea id={`text-${ad.id}`} rows={3} maxLength={500} value={text} onChange={(event) => setText(event.target.value)} className="w-full rounded-[16px] border border-app-line px-4 py-3 text-[15px]" />
+              <VoiceInputButton value={text} onChange={setText} maxLength={500} context="the text of an advert" className="mt-2" />
             </div>
             {edited && <PillButton size="sm" tone="white" busy={busy === "copy"} onClick={() => void patch("copy", { headline, primaryText: text })}>Save changes</PillButton>}
           </>

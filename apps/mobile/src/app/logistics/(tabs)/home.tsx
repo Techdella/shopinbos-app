@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { JobCard } from "@/components/JobCard";
+import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { PartnerHeader, PartnerScroll } from "@/components/partner";
 import { Card, LinkButton, Notice, T, Toggle } from "@/components/ui";
@@ -53,6 +54,9 @@ export default function LogisticsToday() {
   const ready = data ? data.partner.verificationStatus === "verified" && data.partner.onboarded : false;
   const newest = data?.newJobs[0];
   const moreNew = data ? data.counts.new - (newest ? 1 : 0) : 0;
+  // Riders switched Online and seen in the last 30 minutes (the server sends them first). No map: a list with where
+  // each was last seen ("last seen 2 min ago, Ikeja").
+  const outNow = (data?.riderList ?? []).filter((rider) => rider.out);
 
   return (
     <PartnerScroll refreshing={overview.refreshing} onRefresh={() => void overview.refresh()}>
@@ -102,6 +106,8 @@ export default function LogisticsToday() {
           )}
           {switchError ? <Notice>{switchError}</Notice> : null}
 
+          {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void overview.reload()} /> : null}
+
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Card style={{ flex: 1, gap: 4 }}>
               <T style={{ color: colors.inkSoft, fontSize: 15 }}>Delivered today</T>
@@ -135,10 +141,27 @@ export default function LogisticsToday() {
             </Pressable>
           ) : null}
 
-          {data.cashToPayIn > 0 ? (
+          {outNow.length ? (
+            <>
+              <SectionTitle action={<LinkButton title="All riders" color={colors.accentInk} onPress={() => router.push("/logistics/riders")} style={{ minHeight: 32 }} />}>Riders out now</SectionTitle>
+              <Card style={{ paddingVertical: 4 }}>
+                {outNow.slice(0, 6).map((rider, index) => (
+                  <View key={rider.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: rider.openJobs ? colors.accent : colors.success }} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <T weight="bold" style={{ fontSize: 15 }}>{rider.name} · {rider.openJobs ? "on a job" : "free"}</T>
+                      <T style={{ color: colors.inkSoft, fontSize: 14 }}>{rider.where ?? "last seen recently"}</T>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            </>
+          ) : null}
+
+          {data.cashToPayIn > 0 && !data.overdue ? (
             <Pressable accessibilityRole="button" onPress={() => router.push("/logistics/earnings")} style={{ backgroundColor: "#FDF0D5", borderRadius: radii.card, padding: 16, gap: 6 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                <T weight="extrabold" style={{ fontSize: 17, flex: 1 }}>Pay in {naira(data.cashToPayIn)} by 6pm</T>
+                <T weight="extrabold" style={{ fontSize: 17, flex: 1 }}>Pay in {naira(data.cashToPayIn)} {data.payInBy ?? "by 6pm"}</T>
                 <AppIcon name="chevron" size={18} color={colors.inkSoft} />
               </View>
               <T style={{ color: "#6B4A00", fontSize: 15, lineHeight: 21 }}>Cash your riders collected from customers who paid when it arrived.</T>

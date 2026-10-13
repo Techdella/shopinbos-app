@@ -1,5 +1,6 @@
 "use client";
 
+import { customerProgress } from "@shared/order-parts";
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import Link from "next/link";
@@ -44,6 +45,8 @@ interface Props {
     logisticsDetails?: Record<string, unknown> | null;
     shippedAt?: string | null;
     deliveredAt?: string | null;
+    /** Sent in more than one parcel and the first has left ("Part of your order is on its way"). */
+    partlySentAt?: string | null;
   };
   store: {
     name: string;
@@ -80,10 +83,13 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
     if (isPaid || method !== "paystack") clearCart();
   }, [clearCart, isPaid, method]);
 
+  const partly = customerProgress(order);
   const headline = order.status === "cancelled" ? "Order cancelled" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
   const subline = order.status === "cancelled"
     ? "This order was cancelled. Contact the store if you think this is a mistake."
-    : isPaid
+    : partly
+      ? `${partly}. It comes in more than one parcel, and we'll tell you when the rest is on its way.`
+      : isPaid
       ? `Your order is confirmed. We've sent the details to ${order.buyerEmail}.`
       : method === "transfer"
         ? transfer?.payBy
@@ -129,7 +135,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
 
           <Panel theme={theme} className="p-5" aria-labelledby="whats-next">
             <h2 id="whats-next" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>What happens next</h2>
-            <Timeline theme={theme} status={order.status} createdAt={order.createdAt} shippedAt={order.shippedAt} deliveredAt={order.deliveredAt} isPaid={isPaid} method={method} />
+            <Timeline theme={theme} status={order.status} createdAt={order.createdAt} shippedAt={order.shippedAt} deliveredAt={order.deliveredAt} isPaid={isPaid} method={method} partly={partly} />
             <p className="mt-4 text-[13.5px] leading-6" style={{ color: theme.muted }}>
               Keep your order number. You can come back to this page any time, or use <strong>Track an order</strong> in the store menu with your email or phone.
             </p>
@@ -197,13 +203,13 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   );
 }
 
-function Timeline({ theme, status, createdAt, shippedAt, deliveredAt, isPaid, method }: { theme: ShopperTheme; status: string; createdAt: string; shippedAt?: string | null; deliveredAt?: string | null; isPaid: boolean; method: string }) {
+function Timeline({ theme, status, createdAt, shippedAt, deliveredAt, isPaid, method, partly = null }: { theme: ShopperTheme; status: string; createdAt: string; shippedAt?: string | null; deliveredAt?: string | null; isPaid: boolean; method: string; partly?: string | null }) {
   const date = (value?: string | null) => (value ? new Date(value).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : null);
   const steps = [
     { label: "Order placed", done: true, when: date(createdAt) },
     { label: method === "pay_on_delivery" ? "Pay when it arrives" : "Payment confirmed", done: isPaid, when: null },
     { label: "Being prepared", done: ["processing", "packed", "shipped", "delivered"].includes(status), when: null },
-    { label: "On the way", done: ["shipped", "delivered"].includes(status), when: date(shippedAt) },
+    { label: partly ?? "On the way", done: ["shipped", "delivered"].includes(status) || Boolean(partly), when: date(shippedAt) },
     { label: "Delivered", done: status === "delivered", when: date(deliveredAt) },
   ];
   return (

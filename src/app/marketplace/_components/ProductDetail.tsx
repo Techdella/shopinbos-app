@@ -10,6 +10,7 @@ import { clampSellingPrice, naira, priceStep, saleBreakdown, supplierInitials, t
 import { SampleNotice } from "./SampleNotice";
 import { messagesHref } from "@/lib/conversations/pure";
 import { sellerWholesaleStage } from "@/lib/supplier-orders/pure";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
@@ -451,6 +452,7 @@ function MessageDialog({ open, supplierName, productName, onClose, onSend }: { o
           placeholder="Hi, can you do my label on the box? How fast can you ship to Abuja?"
           className="mt-3 w-full resize-y rounded-[16px] border border-app-line px-4 py-3 text-[15px] leading-[1.5] outline-none placeholder:text-app-ink-faint focus:border-app-ink"
         />
+        <VoiceInputButton value={text} onChange={setText} maxLength={2000} context="a message to a supplier" className="mt-2" />
         {error && <p role="alert" className="mb-0 mt-2 text-[13.5px] font-bold text-app-danger">{error}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="submit" disabled={pending || !text.trim()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black disabled:opacity-60">

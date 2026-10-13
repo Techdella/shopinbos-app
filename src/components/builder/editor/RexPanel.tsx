@@ -5,6 +5,7 @@ import { cx, Mascot } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import type { StoreEditorPatchOp } from "@/lib/store-templates";
 import { PanelHeading } from "./ui";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface Message {
   role: "rex" | "you";
@@ -104,6 +105,7 @@ export function RexPanel(props: RexPanelProps) {
           placeholder="Ask Rex to change something"
           className="min-h-11 w-full min-w-0 flex-1 resize-none rounded-[14px] border border-app-line px-3 py-2 text-[13.5px] outline-none focus:border-[#2F66F6]"
         />
+        <VoiceInputButton variant="icon" value={input} onChange={setInput} context="a change for Rex to make" disabled={busy} />
         <button type="submit" disabled={busy || !input.trim()} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-40">
           <Icon name="send" size={16} />
         </button>

@@ -7,6 +7,7 @@ import { fetchAutomation, saveAutomation, type ChatbotSettings, type InboxAutoma
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // Peggy chatbot (web /home/inbox/chatbot): Peggy answers shoppers in the store's chat bubble. The app covers the
 // switch, her name, greeting, tone, when she answers and what she may use; FAQs and hand-off words are on the web.
@@ -75,6 +76,7 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
         <Field value={bot.name} onChangeText={(name) => setBot({ ...bot, name })} maxLength={40} />
         <Label>Greeting</Label>
         <Field value={bot.greeting} onChangeText={(greeting) => setBot({ ...bot, greeting })} maxLength={300} multiline style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
+        <VoiceInput value={bot.greeting} onChange={(greeting) => setBot({ ...bot, greeting })} maxLength={300} mode="replace" context="a greeting for customers" style={{ marginTop: 8 }} />
       </Card>
 
       <Card style={{ gap: 10 }}>

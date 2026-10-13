@@ -21,6 +21,7 @@ import {
   textareaClass,
   timeAgo,
 } from "@/components/logistics/kit";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Price requests" };
@@ -107,6 +108,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
                       <div className="min-w-0">
                         <label htmlFor={`note-${quote.id}`} className={labelClass}>Note to the seller</label>
                         <textarea id={`note-${quote.id}`} name="partnerResponse" rows={2} maxLength={1000} placeholder="When you can pick up, how long it takes, anything they should know." className={textareaClass} />
+                        <VoiceInputButton targetId={`note-${quote.id}`} context="a note with a delivery price" className="mt-2" />
                       </div>
                       <div className="min-w-0">
                         <label htmlFor={`expires-${quote.id}`} className={labelClass}>Price good until</label>

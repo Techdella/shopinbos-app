@@ -13,6 +13,8 @@ import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
+import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
+import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -58,6 +60,21 @@ export async function POST(req: NextRequest) {
   }
 
   const eventType = event.event as string;
+
+  // ── Delivery partners' pay-in accounts (Paystack Dedicated Virtual Accounts) ──────────────────────────────
+  // A transfer into a partner's own account settles their cash from pay-on-delivery jobs (lib/logistics/payins.server.ts).
+  // Kept apart from everything below: it is never a store order or a subscription. Idempotent on the Paystack
+  // reference, so a 500 here (the database was unreachable) is safe for Paystack to retry.
+  if ((eventType === "charge.success" && isDedicatedCharge(event.data)) || eventType?.startsWith("dedicatedaccount.assign.")) {
+    try {
+      if (eventType === "charge.success") await handleDedicatedAccountCharge(event.data);
+      else await handleDedicatedAccountAssign(eventType, event.data);
+    } catch (error) {
+      console.error(`[paystack webhook] pay-in account event ${eventType} failed`, error);
+      return new NextResponse("Retry later", { status: 500 });
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
 
   // ── Subscription created (first payment via plan) ────────────────────────
   if (eventType === "subscription.create") {

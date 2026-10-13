@@ -4,6 +4,7 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { IMPORT_HOW_IT_WORKS, type FindProduct, type PeggyInsight, type TrendIdea } from "@/lib/marketplace/find";
 import { ProductGrid } from "./ProductGrid";
+import { Mascot } from "@/components/brand/Mascot";
 
 export type FindTab = "nigeria" | "china" | "trending";
 
@@ -78,8 +79,7 @@ export function FindProductsView({ tab, country, q, cat, categories, products, s
         <>
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
             <div className="flex items-start gap-3 rounded-[18px] bg-app-peach px-4 py-3.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/app/peggy.png" alt="Peggy" className="h-9 w-9 shrink-0 object-contain" />
+              <Mascot who="peggy" size={36} />
               <p className="m-0 min-w-0 text-[14px] leading-[1.5]">
                 {insight.category ? (
                   <Link href={hrefFor("nigeria", { cat: insight.category })} className="font-extrabold text-app-ink no-underline hover:underline">{insight.lead}</Link>

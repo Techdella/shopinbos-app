@@ -7,6 +7,7 @@ import { cx } from "@/components/app-ui/cx";
 import { CHANNEL_LABEL, RECORDED_SALE_CHANNELS, type RecordedSaleChannel } from "@shared/channels";
 import { SALE_DELIVERY, SALE_PAYMENTS, saleTotals, type SaleDelivery, type SalePayment } from "@shared/sales";
 import { naira } from "@shared/onboarding";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface CatalogProduct {
   id: string;
@@ -228,6 +229,7 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
           <div>
             <FieldLabel htmlFor="sale-notes">Note (optional)</FieldLabel>
             <TextInput id="sale-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="e.g. Size M, gift wrap" />
+            <VoiceInputButton value={notes} onChange={setNotes} context="a note about a sale" className="mt-2" />
           </div>
         </div>
       </section>

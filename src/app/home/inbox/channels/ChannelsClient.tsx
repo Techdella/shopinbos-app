@@ -11,6 +11,7 @@ import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { plainMetaError } from "@/components/simple/plain";
 import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
+import { Mascot } from "@/components/brand/Mascot";
 
 // Connect screens for every inbox channel: status, what you need, step-by-step setup, and the form.
 // Keys go to the server once, are checked with the provider and stored encrypted; they never come back here.
@@ -429,8 +430,7 @@ export function ChannelsClient({
           if (key === "whatsapp") {
             extra = (
               <Link href="/home/inbox/chatbot?tab=whatsapp" className="flex min-h-[48px] items-center gap-3 rounded-[14px] bg-app-canvas px-3.5 py-2 text-app-ink no-underline hover:bg-app-mint">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/app/peggy.png" alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
+                <Mascot who="peggy" className="h-8 w-8 rounded-full bg-white p-0.5" decorative />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13.5px] font-bold">Put Peggy on your WhatsApp</span>
                   <span className="block text-[12px] text-app-ink-soft">{view.status === "connected" ? "Let her answer customers, show products and take orders." : "Connect and set her up in three steps."}</span>

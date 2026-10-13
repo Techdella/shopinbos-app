@@ -772,7 +772,7 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(schemas, /images: z\.array\(z\.string\(\)\)\.default\(\[\]\)/);
   assert.match(productForm, /uploadVariantImages/);
   assert.match(productForm, /Create category/);
-  assert.match(productForm, /peggy-1\.png/);
+  assert.match(productForm, /<Mascot who="peggy"/);
   assert.match(productDetail, /Variant details/);
   assert.match(productDetail, /selectedVariantFields/);
   assert.match(homeApps, /redirect\("\/home\/marketing"\)/);

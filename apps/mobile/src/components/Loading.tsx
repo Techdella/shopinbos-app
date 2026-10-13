@@ -239,7 +239,7 @@ export function HomeSkeleton() {
 
           <View style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 16, gap: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessible accessibilityRole="progressbar" accessibilityLabel="Peggy is getting your brief ready" accessibilityState={{ busy: true }}>
-              <Mascot name="peggy" size={34} label="" />
+              <Mascot name="peggy" mood="thinking" size={34} label="" />
               <T weight="extrabold" style={{ flex: 1, fontSize: 14, color: colors.forest }}>Peggy is getting your brief ready</T>
             </View>
             {[["80%", "55%"], ["70%", "45%"]].map(([first, second], index) => (
@@ -338,7 +338,7 @@ export function SlowNetwork({
         )}
 
         <View style={{ paddingTop: compact ? 28 : 48, paddingHorizontal: 24, alignItems: "center", gap: 14 }}>
-          <Mascot name="peggy" size={compact ? 96 : 120} label="" />
+          <Mascot name="peggy" mood="oops" size={compact ? 96 : 120} label="" />
           <T weight="extrabold" style={{ fontSize: 26, letterSpacing: -0.26, textAlign: "center" }} accessibilityRole="header">
             {offline ? "You’re offline" : "Your network is slow"}
           </T>

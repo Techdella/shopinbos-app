@@ -13,6 +13,7 @@ import { START_SEEN_COOKIE } from "@/lib/setup/checklist";
 import { getSetupOverview, syncStartNav } from "@/lib/setup/server";
 import type { Tone } from "@/lib/dashboard/compute";
 import { naira } from "@shared/onboarding";
+import { isPeggyNight } from "@shared/mascots";
 import type { OrderChannel } from "@shared/channels";
 
 // Seller home, following the 2026 "Seller app · web" mockup.
@@ -170,7 +171,7 @@ export default async function HomePage() {
         {/* Peggy's brief */}
         <section className="rounded-[22px] bg-app-mint p-5">
           <div className="mb-4 flex items-center gap-3">
-            <Mascot name="peggy" className="h-12 w-12" alt="Peggy" />
+            <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} className="h-12 w-12" alt="Peggy" />
             <div>
               <h2 className="m-0 text-[17px] font-extrabold">Peggy&apos;s brief</h2>
               <div className="text-[13px] text-app-ink-soft">

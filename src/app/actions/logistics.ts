@@ -287,6 +287,13 @@ export async function recordCodRemittance(formData: FormData) {
   if (!(amount > 0)) redirect("/logistics/cash?error=Enter%20the%20amount%20you%20paid%20in.");
   if (!["transfer", "cash"].includes(method)) redirect("/logistics/cash?error=Choose%20how%20you%20paid%20it%20in.");
 
+  // With their own pay-in account, transfers are matched automatically from the bank's record; a typed-in pay-in
+  // could tick off jobs for money that never arrived, so the form is only for partners without one.
+  const payInAccount = await db.partnerPayInAccount.findUnique({ where: { logisticsPartnerId: partner.id }, select: { status: true, accountNumber: true } });
+  if (payInAccount?.status === "assigned" && payInAccount.accountNumber) {
+    redirect(`/logistics/cash?error=${encodeURIComponent("Pay into your own account number on this page. We match it automatically.")}`);
+  }
+
   const result = await recordRemittance({ partnerId: partner.id, amount, method: method as "transfer" | "cash", reference, note });
   if (!result.ok) redirect(`/logistics/cash?error=${encodeURIComponent(result.error)}`);
 

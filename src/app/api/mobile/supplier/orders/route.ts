@@ -3,7 +3,7 @@ import { withSupplier } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { DROPSHIP_DONE, DROPSHIP_OPEN } from "../_rules";
-import { WHOLESALE_SELECT, dropshipOrders, supplierForUser, wholesaleView } from "../_shared";
+import { WHOLESALE_SELECT, dropshipOrders, supplierForUser, wholesaleViews } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ export const GET = withSupplier(async (req: NextRequest, { user }) => {
   return ok({
     view,
     dropship,
-    wholesale: wholesale.map(wholesaleView),
+    wholesale: await wholesaleViews(wholesale),
     counts: { dropship: openDropship, wholesale: openWholesale },
   });
 });

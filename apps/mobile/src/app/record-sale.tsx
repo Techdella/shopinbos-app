@@ -12,6 +12,7 @@ import { Screen } from "@/components/Screen";
 import { fetchProducts, type ProductItem } from "@/lib/dashboard";
 import { recordSale } from "@/lib/orders";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 interface Line {
   key: string;
@@ -219,6 +220,7 @@ export default function RecordSale() {
                 {RECORDED_SALE_CHANNELS.map((key) => <Chip key={key} label={CHANNEL_LABEL[key]} on={channel === key} onPress={() => setChannel(key)} />)}
               </ChipRow>
               <Field accessibilityLabel="Note (optional)" placeholder="Note (optional)" value={notes} onChangeText={setNotes} />
+              <VoiceInput value={notes} onChange={setNotes} context="a note about a sale" />
             </>
           ) : (
             <LinkButton title="Where they bought it and a note (optional)" color={colors.inkSoft} onPress={() => setMore(true)} />

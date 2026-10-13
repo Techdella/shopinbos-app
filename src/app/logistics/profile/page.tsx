@@ -11,6 +11,7 @@ import { KeyValue, PartnerPage, SubmitButton, inputClass, labelClass, naira, tex
 import { LogoUploadForm } from "./LogoUploadForm";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { CoverImageUpload } from "./CoverImageUpload";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Company" };
@@ -106,6 +107,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                 <div>
                   <label htmlFor="description" className={labelClass}>About</label>
                   <textarea id="description" name="description" rows={4} defaultValue={partner.description ?? ""} placeholder="Who you are, where you deliver and what you're good at." className={textareaClass} />
+                  <VoiceInputButton targetId="description" context="a description of a delivery business" className="mt-2" />
                 </div>
               </div>
             </Card>

@@ -4,6 +4,7 @@ import { router, useFocusEffect, useNavigation } from "expo-router";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
+import { isPeggyNight } from "@shared/mascots";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
 import { HelpButton } from "@/components/Help";
@@ -146,7 +147,7 @@ export default function Home() {
               )}
 
               <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, paddingVertical: 6 }}>
-                <Mascot name="peggy" size={36} />
+                <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={36} />
                 <T style={{ flex: 1, fontSize: 15, lineHeight: 21 }}>{peggyLine(data.counts)}</T>
                 <T weight="bold" style={{ fontSize: 15, color: colors.forest }}>Ask Peggy</T>
               </Pressable>

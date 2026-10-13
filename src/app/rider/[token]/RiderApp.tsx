@@ -23,6 +23,8 @@ export interface RiderRun {
   key: string;
   pickupName: string;
   pickupAddress: string;
+  /** Supplier pickups: "Pick up 12–4pm today". */
+  pickupWindow?: string | null;
   fees: number;
   drops: RiderDrop[];
 }
@@ -166,6 +168,7 @@ function RunCard({ token, run, onError }: { token: string; run: RiderRun; onErro
         <div className="min-w-0 flex-1">
           <h3 className="m-0 text-[17px] font-extrabold leading-tight">Pick up: {run.pickupName}</h3>
           <p className="m-0 mt-0.5 break-words text-[14px] text-app-ink-soft">{run.pickupAddress}</p>
+          {run.pickupWindow && <p className="m-0 mt-0.5 text-[14.5px] font-extrabold text-app-accent-ink">{run.pickupWindow}</p>}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">

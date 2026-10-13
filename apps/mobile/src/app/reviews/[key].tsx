@@ -9,6 +9,7 @@ import { draftReviewReply, fetchReview, rememberReview, saveReviewReply, SOURCE_
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
 
 // One review (web /home/reviews/[key]): read it, write or edit the public reply (Peggy can draft one), delete it.
 // Publishing, hiding, featuring and linking an order stay on the web.
@@ -90,6 +91,7 @@ function ReviewView({ item, onSaved, refreshing, onRefresh }: { item: ReviewItem
       <Card style={{ gap: 8 }}>
         <Label>Your public reply to {item.authorName}</Label>
         <Field value={reply} onChangeText={setReply} multiline maxLength={4000} placeholder="Thank them, answer what they asked, and keep it short." style={{ height: 140, paddingTop: 14, textAlignVertical: "top" }} />
+        <VoiceInput value={reply} onChange={setReply} maxLength={4000} context="a reply to a customer review" />
         {item.source === "google" ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>When Google is connected, saving posts the reply on Google too.</T> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <PillButton title="Draft with Peggy" size="sm" tone="white" busy={busy === "draft"} disabled={busy !== null} onPress={() => void draft()} />

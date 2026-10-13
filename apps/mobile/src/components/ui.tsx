@@ -17,6 +17,7 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
 import { washStops } from "@shared/tokens";
 import { colors, fonts, radii } from "@/theme";
+import { Mascot as SharedMascot, type MascotMood, type MascotWho } from "@/components/Mascot";
 
 // Building blocks for the 2026 app redesign, matching the web app's src/components/app-ui.
 
@@ -24,9 +25,6 @@ export const images = {
   wordmark: require("../../assets/brand/wordmark-dark.png"),
   wordmarkLight: require("../../assets/brand/wordmark-light.png"),
   markWhite: require("../../assets/brand/mark-white.png"),
-  rex: require("../../assets/brand/rex.png"),
-  peggy: require("../../assets/brand/peggy.png"),
-  peggyWave: require("../../assets/brand/peggy-wave.png"),
 };
 
 export function T({ style, weight = "regular", children, ...props }: { style?: StyleProp<TextStyle>; weight?: keyof typeof fonts; children: ReactNode } & Omit<React.ComponentProps<typeof Text>, "style">) {
@@ -67,8 +65,11 @@ export function Wordmark({ height = 18, light = false }: { height?: number; ligh
   return <Image source={light ? images.wordmarkLight : images.wordmark} style={{ height, width: height * (660 / 63) }} contentFit="contain" accessibilityLabel="Shopinbos" />;
 }
 
-export function Mascot({ name, size, label }: { name: "rex" | "peggy" | "peggyWave"; size: number; label?: string }) {
-  return <Image source={images[name]} style={{ width: size, height: size }} contentFit="contain" accessibilityLabel={label ?? (name === "rex" ? "Rex" : "Peggy")} />;
+/** Rex or Peggy: wraps the shared <Mascot> (components/Mascot.tsx) for older call sites. `peggyWave` is Peggy's wave
+ * mood; an empty `label` makes it decorative. */
+export function Mascot({ name, who, mood, size, label, style }: { name?: "rex" | "peggy" | "peggyWave"; who?: MascotWho; mood?: MascotMood; size: number; label?: string; style?: StyleProp<ViewStyle> }) {
+  const mascot: MascotWho = who ?? (name === "rex" ? "rex" : "peggy");
+  return <SharedMascot who={mascot} mood={mood ?? (name === "peggyWave" ? "wave" : "idle")} size={size} decorative={label === ""} label={label || undefined} style={style} />;
 }
 
 type Tone = "ink" | "white" | "accent" | "forest";

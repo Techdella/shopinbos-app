@@ -442,7 +442,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
         title={product?.name.trim() ? undefined : "Add the product name first"}
         className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-full bg-app-mint px-2.5 text-[12.5px] font-bold text-app-forest disabled:opacity-45"
       >
-        <Mascot name="peggy" className="h-4 w-4" alt="" />
+        <Mascot name="peggy" mood={isLoading ? "thinking" : "idle"} className="h-4 w-4" alt="" />
         {isLoading ? "Writing…" : "Ask Peggy"}
       </button>
     );
