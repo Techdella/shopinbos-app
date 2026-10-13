@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Fees" };
 const BEARERS: Record<string, string> = {
   seller: "The seller (added to their delivery cost)",
   supplier: "The supplier on the order",
-  logistics_partner: "You (taken from the money we send to your bank)",
+  logistics_partner: "You (taken from your payout)",
 };
 
 export default async function LogisticsBillingPage() {

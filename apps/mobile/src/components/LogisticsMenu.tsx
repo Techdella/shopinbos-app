@@ -20,15 +20,15 @@ const SECTIONS: { title: string; links: Row[] }[] = [
     title: "Your work",
     links: [
       { label: "Messages", icon: "chat", path: "app:/logistics/messages", hint: "Chats with shops" },
-      { label: "Shops asking for your price", icon: "tag", path: "/logistics/quotes", hint: "Opens the website" },
-      { label: "Where you deliver and your prices", icon: "pin", path: "/logistics/coverage", hint: "Opens the website" },
+      { label: "Quote requests", icon: "tag", path: "/logistics/quotes", hint: "Shops asking for your price (opens the website)" },
+      { label: "Coverage and rates", icon: "pin", path: "/logistics/coverage", hint: "Where you deliver and your prices (opens the website)" },
     ],
   },
   {
     title: "Your company",
     links: [
-      { label: "Your papers", icon: "shield", path: "app:/logistics/verification", hint: "So shops can trust you" },
-      { label: "Company details", icon: "store", path: "/logistics/profile", hint: "Opens the website" },
+      { label: "Verification", icon: "shield", path: "app:/logistics/verification", hint: "Your documents, so shops can trust you" },
+      { label: "Company profile", icon: "store", path: "/logistics/profile", hint: "Opens the website" },
       { label: "Connect your system", icon: "send", path: "app:/logistics/connect", hint: "Already use delivery software? We connect it for you" },
     ],
   },

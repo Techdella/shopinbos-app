@@ -125,7 +125,7 @@ export default function JobScreen() {
           disabled={Boolean(busy)}
           onPress={() => Alert.alert("Decline this job?", "The shop is told to book someone else.", [{ text: "Keep it", style: "cancel" }, { text: "Decline", style: "destructive", onPress: () => void run("decline", { action: "decline" }) }])}
         />
-        <PillButton title="Accept and pick a rider" size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setSheet("accept")} />
+        <PillButton title="Accept and assign" size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setSheet("accept")} />
       </View>
     ) : delivering ? (
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -160,13 +160,13 @@ export default function JobScreen() {
       </View>
       {current.status !== "pending" && current.status !== "cancelled" && current.status !== "failed" ? <Pipeline status={current.status} /> : null}
       {error ? <Notice>{error}</Notice> : null}
-      {current.status === "failed" && current.failedReason ? <Notice>Couldn&apos;t deliver: {current.failedReason}</Notice> : null}
+      {current.status === "failed" && current.failedReason ? <Notice>Delivery failed: {current.failedReason}</Notice> : null}
 
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: "row", gap: 12 }}>
           <AppIcon name="store" size={20} color={colors.accentInk} />
           <View style={{ flex: 1 }}>
-            <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>Pick up</T>
+            <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>Pickup</T>
             <T weight="bold">{current.shop}</T>
             <T selectable>{current.from}</T>
             {current.pickupWindow ? <T weight="extrabold" style={{ color: colors.accentInk, fontSize: 15 }}>{current.pickupWindow}</T> : null}
@@ -175,7 +175,7 @@ export default function JobScreen() {
         <View style={{ flexDirection: "row", gap: 12 }}>
           <AppIcon name="pin" size={20} color={colors.forest} />
           <View style={{ flex: 1 }}>
-            <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>Drop off</T>
+            <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>Drop-off</T>
             {current.buyer ? <T weight="bold">{current.buyer.name}</T> : null}
             <T selectable>{current.buyer?.address ?? current.to}</T>
           </View>
@@ -196,9 +196,9 @@ export default function JobScreen() {
 
       <Card style={{ paddingVertical: 4 }}>
         <KeyValue first label="Parcel" value={current.item} />
-        {current.collect > 0 ? <KeyValue label="Customer pays when it arrives" value={naira(current.collect)} /> : null}
+        {current.collect > 0 ? <KeyValue label="Cash on delivery (COD)" value={naira(current.collect)} /> : null}
         <KeyValue label="Delivery fee" value={`${naira(current.deliveryFee)} (you keep ${naira(current.fee)})`} />
-        {current.trackingCode ? <KeyValue label="Your tracking number" value={current.trackingCode} /> : null}
+        {current.trackingCode ? <KeyValue label="Tracking code" value={current.trackingCode} /> : null}
         {current.codCollected !== null ? <KeyValue label="Collected" value={`${naira(current.codCollected)} ${current.codMethod ?? ""}`.trim()} /> : null}
         {current.notes ? <KeyValue label="Notes" value={current.notes} /> : null}
       </Card>
@@ -224,17 +224,17 @@ export default function JobScreen() {
               <T weight="bold">{current.proofUrl ? "Retake photo" : "Take a photo of the parcel"}</T>
             </PillButton>
             <View>
-              <Label>Who received it (optional)</Label>
+              <Label>Received by (optional)</Label>
               <Field value={recipient} onChangeText={setRecipient} placeholder={current.buyer?.name ?? "Name of the person"} autoCapitalize="words" />
             </View>
             <View>
-              <Label>Customer&apos;s 4 numbers</Label>
+              <Label>Delivery code</Label>
               <Field value={code} onChangeText={(text) => setCode(text.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="0000" maxLength={4} style={{ letterSpacing: 6, fontSize: 20 }} />
-              <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>The customer has these 4 numbers on their phone. No numbers? Add a photo or who received it.</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>The customer has this 4-digit code on their phone. No code? Add a proof of delivery photo or who received it.</T>
             </View>
             {current.collect > 0 ? (
               <View style={{ gap: 8 }}>
-                <Label>Customer paid (₦)</Label>
+                <Label>COD collected (₦)</Label>
                 <Field value={cash} onChangeText={setCash} keyboardType="decimal-pad" placeholder={String(current.collect)} />
                 <ChipRow>
                   <Chip label="Cash" on={method === "cash"} onPress={() => setMethod("cash")} />
@@ -255,8 +255,8 @@ export default function JobScreen() {
 
       <ChoiceSheet
         visible={sheet === "rider" || sheet === "accept"}
-        title={sheet === "accept" ? "Pick a rider" : "Give the job to"}
-        options={[...riderOptions(data.riders, data.job.pickupGeo), { value: "", label: sheet === "accept" ? "Accept now, pick a rider later" : "No rider" }]}
+        title={sheet === "accept" ? "Assign a rider" : "Reassign to"}
+        options={[...riderOptions(data.riders, data.job.pickupGeo), { value: "", label: sheet === "accept" ? "Accept, assign later" : "No rider" }]}
         onPick={(value) => {
           const mode = sheet;
           setSheet(null);

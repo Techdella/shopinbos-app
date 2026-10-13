@@ -46,11 +46,11 @@ export default function LogisticsEarnings() {
             <T style={{ color: data.late && !data.overdue ? colors.danger : colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
               {data.cashToPayIn > 0
                 ? data.late && !data.overdue
-                  ? "This was due earlier today. Pay it in now so you keep getting jobs where customers pay when it arrives."
-                  : "Cash your riders collected from customers who paid when it arrived."
+                  ? "This was due earlier today. Pay it in now so you keep getting cash-on-delivery jobs."
+                  : "Cash on delivery (COD) your riders collected and you haven't paid in yet."
                 : (data.credit ?? 0) > 0
                 ? `You paid ${naira(data.credit ?? 0)} extra. We'll use it for your next cash jobs.`
-                : "Cash your riders collect shows here."}
+                : "Cash on delivery (COD) your riders collect shows here."}
             </T>
           </View>
 
@@ -76,10 +76,10 @@ export default function LogisticsEarnings() {
               <T weight="extrabold" style={{ fontSize: 17 }}>How to pay in</T>
               <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
                 {data.payIn?.state === "setting_up"
-                  ? "We're getting your own account number ready. Until then, pay in the usual way and tell us how much you paid, so we can tick off your jobs."
-                  : "Pay in the usual way, then tell us how much you paid. We tick off your jobs once we've checked it."}
+                  ? "We're getting your own account number ready. Until then, pay in the usual way and record the pay-in, so we can settle your jobs."
+                  : "Pay in the usual way, then record the pay-in. We settle your jobs once we've checked it."}
               </T>
-              <PillButton title="I've paid it in" style={{ marginTop: 4 }} onPress={() => void openWeb("/logistics/cash")} />
+              <PillButton title="Record a pay-in" style={{ marginTop: 4 }} onPress={() => void openWeb("/logistics/cash")} />
             </Card>
           ) : null}
 
@@ -100,11 +100,11 @@ export default function LogisticsEarnings() {
           <Pressable accessibilityRole="button" onPress={() => void openWeb("/logistics/payouts")} style={{ backgroundColor: data.bank?.ready ? colors.surface : "#FDF0D5", borderRadius: radii.card, padding: 16, gap: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <AppIcon name="coin" size={20} />
-              <T weight="extrabold" style={{ flex: 1, fontSize: 15 }}>Money sent to your bank</T>
+              <T weight="extrabold" style={{ flex: 1, fontSize: 15 }}>Payouts</T>
               <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }}>{data.bank ? "Change" : "Add bank"}</T>
             </View>
             <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
-              {data.bank ? `${data.bank.bankName} ${data.bank.account} · ${data.bank.accountName}${data.bank.ready ? "" : " · we're checking it"}` : "Add your company bank account so we can send you money for delivered jobs."}
+              {data.bank ? `${data.bank.bankName} ${data.bank.account} · ${data.bank.accountName}${data.bank.ready ? "" : " · being verified"}` : "Add your company bank account to receive payouts for delivered jobs."}
             </T>
           </Pressable>
 

@@ -7,7 +7,7 @@ import { checkPayInsAgain, type PayInOverdue } from "@/lib/logistics";
 import { radii } from "@/theme";
 
 // Calm amber card on Today and Money while a cash pay-in is late (web: src/components/logistics/PayInOverdueCard.tsx):
-// how much and since when, that pay-when-it-arrives jobs are paused until they pay, their account number with Copy,
+// how much and since when, that cash-on-delivery jobs are paused until they pay, their account number with Copy,
 // and "I've paid. Check again", which looks for the transfer straight away.
 
 const AMBER = "#FDF0D5";

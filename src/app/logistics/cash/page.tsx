@@ -30,11 +30,11 @@ import {
 
 // Cash on delivery: what riders collect at the door, what the partner still has to pay in (by 6pm), their own pay-in
 // account (transfers to it are matched automatically: lib/logistics/payins.server.ts), and the pay-ins with status.
-// Without a pay-in account (Paystack not set up, or not available yet) the old "Tell us you paid in" form shows.
+// Without a pay-in account (Paystack not set up, or not available yet) the "Record a pay-in" form shows.
 // Transfers go straight from the buyer to the seller, so they're shown apart and never owed.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Cash collected" };
+export const metadata: Metadata = { title: "Cash on delivery" };
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -131,10 +131,10 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Cash collected"
-      sub="When a customer pays when it arrives, your rider collects the cash. Here's what you still have to pay in, and what you've paid in already."
+      title="Cash on delivery"
+      sub="Cash on delivery (COD) your riders collect at the door, what you still have to pay in, and the pay-ins you've made."
     >
-      <ActionNotice saved={saved} error={error} savedText="Saved. We've ticked off the jobs this pay-in covers." />
+      <ActionNotice saved={saved} error={error} savedText="Pay-in recorded. It settles the jobs it covers." />
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="Cash to pay in" value={naira(owed)} hint={owed > 0 ? `${late ? "Late: pay in now" : `Pay in ${due.words}`} · ${heldCash.length} ${heldCash.length === 1 ? "job" : "jobs"}` : credit > 0 ? `${naira(credit)} extra kept for next time` : "Nothing owed"} />
@@ -147,7 +147,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_420px]">
         <div className="grid min-w-0 content-start gap-5">
           <>
-            <Section id="held" title="Cash not paid in yet" sub="Cash your riders collected. When you pay in, we tick these off oldest first.">
+            <Section id="held" title="Cash not paid in yet" sub="Collected in cash by your riders. Oldest first; a pay-in settles these in this order.">
               {heldCash.length === 0 ? (
                 <Empty>All collected cash has been paid in.</Empty>
               ) : (
@@ -176,7 +176,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </Section>
 
-            <Section id="to-collect" title="To collect" sub="Open jobs where the customer pays when it arrives.">
+            <Section id="to-collect" title="To collect" sub="Cash-on-delivery jobs that are still open.">
               {toCollect.length === 0 ? (
                 <Empty>Nothing to collect on open jobs.</Empty>
               ) : (
@@ -226,9 +226,9 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                   {owed > 0
                     ? late
                       ? overdue
-                        ? "Cash your riders collected from customers who paid when it arrived."
-                        : "This was due earlier today. Pay it in now so you keep getting jobs where customers pay when it arrives."
-                      : "Cash your riders collected from customers who paid when it arrived."
+                        ? "Cash on delivery (COD) your riders collected and you haven't paid in yet."
+                        : "This was due earlier today. Pay it in now so you keep getting cash-on-delivery jobs."
+                      : "Cash on delivery (COD) your riders collected and you haven't paid in yet."
                     : credit > 0
                     ? `You paid ${naira(credit)} extra. We'll use it for your next cash jobs.`
                     : "When your riders collect cash, the amount to pay in shows here."}
@@ -241,11 +241,11 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                 <>
                   <p className="m-0 rounded-[14px] bg-app-canvas p-3 text-[15px] leading-[1.5] text-app-ink-soft">
                     {account.state === "setting_up"
-                      ? "We're getting your own account number ready, so your payments match by themselves. Until then, pay in the usual way and tell us below."
-                      : "Pay in the usual way, then tell us how much you paid. We tick off your jobs once we've checked it."}
+                      ? "We're getting your own account number ready, so your payments match by themselves. Until then, pay in the usual way and record the pay-in below."
+                      : "Pay in the usual way, then record the pay-in here. We settle your jobs once we've checked it."}
                   </p>
                   <form action={recordCodRemittance} className="grid gap-3">
-                    <CardHead title="Tell us you paid in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
+                    <CardHead title="Record a pay-in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
                     <div>
                       <label htmlFor="payin-amount" className={labelClass}>Amount (₦)</label>
                       <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
@@ -272,9 +272,9 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                         </div>
                       </div>
                     </details>
-                    <SubmitButton>Save pay-in</SubmitButton>
+                    <SubmitButton>Record pay-in</SubmitButton>
                     <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
-                      We tick off your oldest cash jobs that this amount fully covers. Anything left over is kept for next time.
+                      The pay-in settles your oldest cash jobs it fully covers. Anything left over is kept as credit for next time.
                     </p>
                   </form>
                 </>

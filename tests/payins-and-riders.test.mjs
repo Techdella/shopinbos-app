@@ -251,7 +251,7 @@ test("partner screens show the account with Copy and the automatic-matching line
     assert.match(source, /"Copy"/);
   }
   const cash = read("src/app/logistics/cash/page.tsx");
-  assert.match(cash, /Tell us you paid in/, "the manual form stays as the fallback");
+  assert.match(cash, /Record a pay-in/, "the manual form stays as the fallback");
   // What a partner can read: the source without imports and comments.
   const visible = (source) => source.replace(/^import .*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
   for (const source of [web, mobile, cash]) {

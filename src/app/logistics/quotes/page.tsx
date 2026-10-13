@@ -24,12 +24,12 @@ import {
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Price requests" };
+export const metadata: Metadata = { title: "Quote requests" };
 
 const FILTERS: Array<{ key: string; label: string; statuses?: QuoteStatus[] }> = [
   { key: "pending", label: "Waiting for you", statuses: ["pending"] },
-  { key: "quoted", label: "Price sent", statuses: ["responded"] },
-  { key: "won", label: "Booked you", statuses: ["accepted"] },
+  { key: "quoted", label: "Quoted", statuses: ["responded"] },
+  { key: "won", label: "Won", statuses: ["accepted"] },
   { key: "closed", label: "Declined or expired", statuses: ["rejected", "expired"] },
   { key: "all", label: "All" },
 ];
@@ -62,15 +62,15 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Price requests"
-      sub="Sellers asking what you'd charge for a delivery. Send a price, and they can book you straight away."
+      title="Quote requests"
+      sub="Sellers asking what you'd charge for a delivery. Send a quote, and they can book you straight away."
       toolbar={<FilterChips items={FILTERS.map((item) => ({ label: item.label, href: item.key === "pending" ? "/logistics/quotes" : `/logistics/quotes?status=${item.key}`, count: countOf(item.statuses), active: item.key === filter.key }))} />}
     >
       <ActionNotice saved={saved} error={error} savedText="Sent. The seller can see your answer now." />
 
       {quotes.length === 0 && (
         <EmptyState icon="chat" title={filter.key === "pending" ? "No one is waiting on you" : "Nothing here"}>
-          {filter.key === "pending" ? "When a seller asks what you'd charge, it shows up here." : "Try another filter."}
+          {filter.key === "pending" ? "New quote requests from sellers show up here." : "Try another filter."}
         </EmptyState>
       )}
 
@@ -89,7 +89,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
                   <div><dt className="text-app-ink-soft">Package</dt><dd className="m-0 font-bold">{packageSummary(quote.packageDetails)}</dd></div>
                   <div><dt className="text-app-ink-soft">Wanted</dt><dd className="m-0 font-bold">{quote.preferredDate ? lagosDate(quote.preferredDate, { weekday: "short", day: "numeric", month: "short" }) : "Any day"}</dd></div>
                   {typeof pkg.declaredValue === "number" && (
-                    <div><dt className="text-app-ink-soft">Value of the goods</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
+                    <div><dt className="text-app-ink-soft">Declared value</dt><dd className="m-0 font-bold">{naira(pkg.declaredValue)}</dd></div>
                   )}
                 </dl>
 
@@ -118,7 +118,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
                   </details>
                   <div className="flex flex-wrap items-center justify-end gap-3">
                     <button type="submit" form={`decline-${quote.id}`} className="min-h-[44px] px-2 text-[15px] font-bold text-app-ink-soft underline-offset-4 hover:underline">Decline</button>
-                    <SubmitButton>Send price</SubmitButton>
+                    <SubmitButton>Send quote</SubmitButton>
                   </div>
                 </form>
                 <form id={`decline-${quote.id}`} action={respondToDeliveryQuote} className="hidden">

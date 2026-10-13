@@ -67,7 +67,7 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
               <p className="m-0 mt-1 text-[15px] text-app-ink-soft">{[place, partner.estimatedSpeed || "Same-day delivery"].filter(Boolean).join(" · ")}</p>
             </div>
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-              <PillLink href={`/home/logistics?partner=${partner.slug}`} tone="accent" icon="truck" className="flex-1 sm:flex-none">Ask for a price</PillLink>
+              <PillLink href={`/home/logistics?partner=${partner.slug}`} tone="accent" icon="truck" className="flex-1 sm:flex-none">Request a quote</PillLink>
               <PillLink href={`/home/logistics?partner=${partner.slug}`} icon="cart" className="flex-1 sm:flex-none">Book a delivery</PillLink>
               <PillLink href={messagesHref("seller", { with: partner.id })} icon="chat" className="flex-1 sm:flex-none">Message</PillLink>
             </div>
@@ -116,7 +116,7 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
               <CardHead title="Pricing" />
               <div className="mt-2 divide-y divide-app-line">
                 <KeyValue label="How they charge">{PRICING_MODEL[partner.pricingModel] ?? partner.pricingModel}</KeyValue>
-                <KeyValue label="Starting price">{partner.basePrice > 0 ? naira(partner.basePrice) : "Ask for a price"}</KeyValue>
+                <KeyValue label="Starting price">{partner.basePrice > 0 ? naira(partner.basePrice) : "Ask for a quote"}</KeyValue>
                 <KeyValue label="Speed">{partner.estimatedSpeed ?? "Same-day"}</KeyValue>
               </div>
             </Card>

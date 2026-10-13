@@ -60,16 +60,16 @@ export default function LogisticsVerificationPage() {
   const fetchData = useCallback(async () => {
     try {
       const r = await fetch("/api/logistics/me");
-      if (!r.ok) throw new Error("We couldn't open your papers just now. Check your connection, then refresh the page.");
+      if (!r.ok) throw new Error("We couldn't open your verification documents just now. Check your connection, then refresh the page.");
       const d = await r.json();
       const payload = d.data ?? d;
-      if (!payload.partner || !payload.user) throw new Error("We couldn't open your papers just now. Refresh the page to try again.");
+      if (!payload.partner || !payload.user) throw new Error("We couldn't open your verification documents just now. Refresh the page to try again.");
       setPartner(payload.partner);
       setUser(payload.user);
       setDocuments(payload.partner.verificationDocuments ?? []);
       if (payload.trustBreakdown) setTrustData(payload.trustBreakdown);
     } catch (err: any) {
-      setError(err.message || "We couldn't open your papers just now. Refresh the page to try again.");
+      setError(err.message || "We couldn't open your verification documents just now. Refresh the page to try again.");
     }
   }, []);
 
@@ -110,10 +110,10 @@ export default function LogisticsVerificationPage() {
     try {
       const r = await fetch("/api/logistics/verification/submit", { method: "POST" });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "We couldn't send your papers. Try again in a minute."); setSubmitting(false); return; }
-      setMessage("Sent. We'll check your papers and let you know, usually within a day or two.");
+      if (!result.success) { setMessage(result.error ?? "We couldn't send your verification documents. Try again in a minute."); setSubmitting(false); return; }
+      setMessage("Sent. We'll check your verification documents and let you know, usually within a day or two.");
       fetchData();
-    } catch { setMessage("We couldn't send your papers. Check your connection and try again."); }
+    } catch { setMessage("We couldn't send your verification documents. Check your connection and try again."); }
     finally { setSubmitting(false); }
   }, [fetchData]);
 
@@ -186,7 +186,7 @@ export default function LogisticsVerificationPage() {
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="m-0 text-[18px] font-extrabold">
-              {isVerified ? "You're verified" : isPending ? "We're checking your papers" : "Not verified yet"}
+              {isVerified ? "You're verified" : isPending ? "Under review" : "Not verified yet"}
             </h2>
             <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
               {isVerified

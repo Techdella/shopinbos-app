@@ -63,12 +63,12 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
       sub="Your company details and the public page sellers see when they choose a delivery partner."
       actions={
         <>
-          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">See your page</PillLink>}
+          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">Public page</PillLink>}
         </>
       }
     >
       <div className="mb-4 grid gap-3 empty:hidden">
-        {params.saved && <Notice tone="success">Saved.</Notice>}
+        {params.saved && <Notice tone="success">Company details saved.</Notice>}
         {params.error && <Notice tone="error">{params.error}</Notice>}
         {limitMessage && <Notice tone="info">{limitMessage}</Notice>}
         {params.verification === "pending" && !isVerified && (
@@ -154,7 +154,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
                 <span>
                   <span className="block text-[17px] font-extrabold">Opening hours (optional)</span>
-                  <span className="block text-[15px] text-app-ink-soft">When you work, and the latest time a seller can book a pickup for the same day.</span>
+                  <span className="block text-[15px] text-app-ink-soft">When you work. Cut-off is the latest time a seller can book a same-day pickup.</span>
                 </span>
                 <span aria-hidden className="text-[20px] text-app-ink-soft transition group-open:rotate-90">›</span>
               </summary>
@@ -173,7 +173,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                       <input id={`hours_${index}_close`} name={`hours_${index}_close`} type="time" defaultValue={row.close} className={`${inputClass} px-2.5`} />
                     </div>
                     <div className="min-w-0">
-                      <label htmlFor={`hours_${index}_cutoff`} className="mb-1 block text-[15px] text-app-ink-soft">Last same-day booking</label>
+                      <label htmlFor={`hours_${index}_cutoff`} className="mb-1 block text-[15px] text-app-ink-soft">Cut-off</label>
                       <input id={`hours_${index}_cutoff`} name={`hours_${index}_cutoff`} type="time" defaultValue={row.cutoff} className={`${inputClass} px-2.5`} />
                     </div>
                     <label className="col-span-3 flex min-h-[44px] items-center gap-2 text-[15px] font-bold sm:col-span-1">
@@ -186,7 +186,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
             </details>
 
             <div className="flex justify-end">
-              <SubmitButton>Save</SubmitButton>
+              <SubmitButton>Save company details</SubmitButton>
             </div>
           </form>
         </div>

@@ -80,7 +80,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       sub="The riders and dispatch staff who carry your jobs. Riders use the Shopinbos Riders app."
       actions={<PillLink href="#add-rider" icon="plus">Add a rider</PillLink>}
     >
-      <ActionNotice saved={saved} error={error} savedText="Saved." />
+      <ActionNotice saved={saved} error={error} savedText="Team updated." />
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="Riders out now" value={presence.out} hint={`${presence.offline} offline · ${presence.total} active`} />
@@ -118,7 +118,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   </div>
                   <span className="text-[15px] capitalize text-app-ink-soft">{member.role}</span>
                   {member.status !== "active" ? (
-                    <Pill tone="muted" dot>Paused</Pill>
+                    <Pill tone="muted" dot>Inactive</Pill>
                   ) : member.role === "rider" ? (
                     <Pill tone={isRiderOut(member, now) ? "success" : "muted"} dot>
                       {isRiderOut(member, now) ? "Online" : member.lastSeenAt ? `Offline · seen ${timeAgo(member.lastSeenAt, now)}` : "Offline"}
@@ -130,8 +130,8 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   <form action={updateLogisticsTeamMemberStatus} className="ml-auto">
                     <input type="hidden" name="teamMemberId" value={member.id} />
                     <input type="hidden" name="status" value={member.status === "active" ? "inactive" : "active"} />
-                    <SubmitButton tone="white" size="sm" aria-label={`${member.status === "active" ? "Pause" : "Turn back on"} ${member.name}`}>
-                      {member.status === "active" ? "Pause" : "Turn back on"}
+                    <SubmitButton tone="white" size="sm" aria-label={`${member.status === "active" ? "Deactivate" : "Reactivate"} ${member.name}`}>
+                      {member.status === "active" ? "Deactivate" : "Reactivate"}
                     </SubmitButton>
                   </form>
                   </div>
@@ -181,7 +181,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
             </div>
             {atStarterLimit && (
               <Notice tone="info">
-                Your free plan has room for {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} people. To add someone new, pause someone you don&apos;t need, or move to Pro.
+                Starter logistics includes {LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Deactivate someone or move to Pro to add more.
               </Notice>
             )}
             <SubmitButton disabled={atStarterLimit}>Send invite</SubmitButton>

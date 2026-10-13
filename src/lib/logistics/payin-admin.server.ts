@@ -50,7 +50,7 @@ export async function markPayInSettled(input: { partnerId: string; reason: strin
 }
 
 /**
- * "Unpause": lets a late partner get pay-when-it-arrives jobs again while they're still late. The late flag stays
+ * "Unpause": lets a late partner get cash-on-delivery jobs again while they're still late. The late flag stays
  * (and escalation carries on); the cron won't pause them again until this late period is paid in.
  */
 export async function unpausePartner(input: { partnerId: string; adminUserId: string; reason?: string | null; now?: Date }): Promise<Result> {
@@ -73,7 +73,7 @@ export async function unpausePartner(input: { partnerId: string; adminUserId: st
       adminUserId: input.adminUserId,
     },
   });
-  return { ok: true, message: "Unpaused. They get pay-when-it-arrives jobs again; the late cash is still owed." };
+  return { ok: true, message: "Unpaused. They get cash-on-delivery jobs again; the late cash is still owed." };
 }
 
 /** A pay-in the partner made some other way (cash at the office, a transfer to the main account), recorded by the team. */

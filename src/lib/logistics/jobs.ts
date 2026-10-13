@@ -83,7 +83,7 @@ export async function assignRider(input: { bookingId: string; partnerId: string;
   if (["delivered", "cancelled"].includes(job.status)) return { ok: false, error: "This job is already finished, so it can't be changed." };
   if (input.riderId) {
     const rider = await db.logisticsTeamMember.findFirst({ where: { id: input.riderId, logisticsPartnerId: input.partnerId, status: "active" }, select: { id: true } });
-    if (!rider) return { ok: false, error: "That rider is paused. Pick another rider." };
+    if (!rider) return { ok: false, error: "That rider is inactive. Pick an active rider." };
   }
   await db.deliveryBooking.update({ where: { id: job.id }, data: { riderId: input.riderId } });
   // Supplier pickups: tell the supplier which rider is coming.

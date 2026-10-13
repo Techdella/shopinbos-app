@@ -2,11 +2,11 @@
 // new COD jobs paused, admin alerted"). Pure (only payin-rules), unit-tested in tests/payin-deadline.test.mjs.
 //
 // The rule:
-//   - Cash a rider collects on a pay-when-it-arrives job is due by the cut-off (6pm Lagos) that day; cash collected
+//   - Cash a rider collects on a cash-on-delivery job is due by the cut-off (6pm Lagos) that day; cash collected
 //     after the cut-off is due by the cut-off the next day (payin-rules payInDeadline).
 //   - Two hours before a deadline, a partner who still owes cash due by then gets one reminder.
 //   - Once a deadline plus the grace (60 minutes) has passed with cash still owed after credit, the partner is
-//     flagged: payInOverdueSince = that deadline, and paused from new pay-when-it-arrives jobs only (codPaused).
+//     flagged: payInOverdueSince = that deadline, and paused from new cash-on-delivery jobs only (codPaused).
 //     Prepaid jobs and jobs they already have carry on. This is not the "Taking new jobs" switch, so the partner
 //     can't switch it off; paying in does.
 //   - 24 hours late: told again, high priority for the team. 72 hours late: flagged for the team to review (the
@@ -203,10 +203,10 @@ export function planPayInStanding(input: { partnerId: string; standing: PayInSta
   return { standing: next, steps, changed };
 }
 
-// ─── Who gets pay-when-it-arrives jobs ────────────────────────────────────────
+// ─── Who gets cash-on-delivery jobs ────────────────────────────────────────
 
 /**
- * Can this partner be offered a new job? Active ("Taking new jobs") and verified, and for pay-when-it-arrives
+ * Can this partner be offered a new job? Active ("Taking new jobs") and verified, and for cash-on-delivery
  * jobs, not paused for a late pay-in. Prepaid jobs ignore the late pause.
  */
 export function canOfferJob(partner: { status: string; verificationStatus: string; codPaused?: boolean | null }, job: { cod: boolean }) {
@@ -214,7 +214,7 @@ export function canOfferJob(partner: { status: string; verificationStatus: strin
   return job.cod ? !partner.codPaused : true;
 }
 
-/** Prisma where-fragment for partner lists: skip partners paused for a late pay-in when the job is pay-when-it-arrives. */
+/** Prisma where-fragment for partner lists: skip partners paused for a late pay-in when the job is cash-on-delivery. */
 export function payWhenItArrivesWhere(cod: boolean): { codPaused?: false } {
   return cod ? { codPaused: false } : {};
 }
@@ -249,7 +249,7 @@ const accountLine = (account: PayInAccountWords | null) =>
 export function overdueCardWords(input: { amount: number; since: Date; paused: boolean; now: Date }) {
   const title = `${nairaWords(input.amount)} overdue since ${lagosWhenWords(input.since, input.now)}.`;
   const body = input.paused
-    ? "You're paused from pay-when-it-arrives jobs until you pay in."
+    ? "You're paused from cash-on-delivery jobs until you pay in."
     : "Please pay it in now. You still get all jobs for now.";
   return { title, body };
 }
@@ -266,9 +266,9 @@ export function payInMessage(kind: "reminder" | "overdue" | "escalated" | "clear
     };
   }
   if (kind === "cleared") {
-    return { title: "Thanks, you're back to getting all jobs.", body: "Your cash is paid in. Shops can book you for pay-when-it-arrives jobs again." };
+    return { title: "Thanks, you're back to getting all jobs.", body: "Your cash is paid in. Shops can book you for cash-on-delivery jobs again." };
   }
-  const body = `You have ${amount} from customers to pay in. Until you pay, you won't get new pay-when-it-arrives jobs. ${accountLine(input.account)}`;
+  const body = `You have ${amount} from customers to pay in. Until you pay, you won't get new cash-on-delivery jobs. ${accountLine(input.account)}`;
   return kind === "escalated"
     ? { title: `Still to pay in: ${amount}`, body: `It was due ${lagosWhenWords(input.deadline, input.now)}. ${body}` }
     : { title: `Pay in ${amount} now`, body };

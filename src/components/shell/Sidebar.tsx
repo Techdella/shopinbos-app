@@ -11,6 +11,8 @@ import { SupportChatModal } from "./SupportChatModal";
 import { useUnreadMessages } from "@/components/conversations/client";
 import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity } from "./useShellCounts";
 import { OPEN_HELP_EVENT } from "@/components/simple/HelpButton";
+import { TermCard } from "@/components/learn/Term";
+import { navTerm, type GlossaryEntry } from "@shared/glossary";
 
 // App sidebar in the 2026 design (Seller app · web mockup): white rail, store card, orange "Add product",
 // grouped nav with an orange bar on the active item. On small screens it slides in from the top bar's menu button.
@@ -50,6 +52,14 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const [flyout, setFlyout] = useState<{ id: string; top: number } | null>(null);
   const [canHover, setCanHover] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
+  // What a menu word means: a hover tip (desktop, after a short pause) on items without a submenu, a line in the
+  // flyout for items with one, and a long-press bubble on touch screens. Words come from shared/glossary.ts.
+  const [tip, setTip] = useState<{ id: string; top: number; entry: GlossaryEntry } | null>(null);
+  const [touchTip, setTouchTip] = useState<{ id: string; left: number; top: number; entry: GlossaryEntry } | null>(null);
+  const [flyoutHint, setFlyoutHint] = useState<string | null>(null);
+  const tipTimer = useRef<number | undefined>(undefined);
+  const pressTimer = useRef<number | undefined>(undefined);
+  const longPressed = useRef(false);
   const { prefs } = usePreferences();
   // Store logo and the person's photo stay in step with uploads made anywhere in the app.
   const me = useIdentity({ name: userName, logoUrl: storeLogoUrl });
@@ -79,7 +89,31 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   useEffect(() => {
     setMobileOpen(false);
     setFlyout(null);
+    setTip(null);
+    setTouchTip(null);
   }, [pathname]);
+
+  // A long-press bubble closes on the next touch anywhere else, or when the menu scrolls.
+  useEffect(() => {
+    if (!touchTip) return;
+    const close = (event: Event) => {
+      if (!(event.target as Element | null)?.closest?.("[data-nav-touch-tip]")) setTouchTip(null);
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener("pointerdown", close, true);
+      document.addEventListener("scroll", close, true);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerdown", close, true);
+      document.removeEventListener("scroll", close, true);
+    };
+  }, [touchTip]);
+
+  useEffect(() => () => {
+    window.clearTimeout(tipTimer.current);
+    window.clearTimeout(pressTimer.current);
+  }, []);
 
   const badgeFor = (item: NavItem) => {
     // Inbox: unread partner messages (live) in every portal.
@@ -110,6 +144,51 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   };
   const flyoutItem = flyout ? visibleGroups.flatMap((group) => group.items).find((item) => item.id === flyout.id) : null;
 
+  // Hover tip for items without a submenu (those show their meaning inside the flyout instead).
+  const showTip = (item: NavItem, element: HTMLElement) => {
+    window.clearTimeout(tipTimer.current);
+    const entry = navTerm(role, item.id);
+    if (!canHover || item.children?.length || !entry) return;
+    tipTimer.current = window.setTimeout(() => setTip({ id: item.id, top: element.getBoundingClientRect().top, entry }), 400);
+  };
+  const hideTip = () => {
+    window.clearTimeout(tipTimer.current);
+    tipTimer.current = window.setTimeout(() => setTip(null), 140);
+  };
+
+  // Long-press on touch screens: a bubble under the item says what it means; the press doesn't open the page.
+  const pressHandlers = (id: string) => ({
+    onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
+      longPressed.current = false;
+      if (event.pointerType === "mouse") return;
+      const entry = navTerm(role, id);
+      if (!entry) return;
+      const element = event.currentTarget;
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = window.setTimeout(() => {
+        longPressed.current = true;
+        const rect = element.getBoundingClientRect();
+        setTouchTip({ id, left: Math.max(12, rect.left), top: rect.bottom + 6, entry });
+      }, 480);
+    },
+    onPointerUp: () => window.clearTimeout(pressTimer.current),
+    onPointerCancel: () => window.clearTimeout(pressTimer.current),
+    onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      if (event.pointerType !== "mouse" && (Math.abs(event.movementX) > 4 || Math.abs(event.movementY) > 4)) window.clearTimeout(pressTimer.current);
+    },
+    onContextMenu: (event: React.MouseEvent<HTMLElement>) => {
+      if (longPressed.current) event.preventDefault();
+    },
+    onClickCapture: (event: React.MouseEvent<HTMLElement>) => {
+      if (longPressed.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        longPressed.current = false;
+      }
+    },
+    style: { WebkitTouchCallout: "none" } as React.CSSProperties,
+  });
+
   const renderItem = (item: NavItem) => {
     const active = isActive(pathname, item);
     const badge = badgeFor(item);
@@ -120,16 +199,30 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
       <div
         key={item.id}
         data-tour={`nav-${item.id}`}
-        onMouseEnter={(event) => showFlyout(item, event.currentTarget)}
-        onMouseLeave={hideFlyout}
-        onFocus={(event) => showFlyout(item, event.currentTarget)}
-        onBlur={hideFlyout}
+        onMouseEnter={(event) => {
+          showFlyout(item, event.currentTarget);
+          showTip(item, event.currentTarget);
+        }}
+        onMouseLeave={() => {
+          hideFlyout();
+          hideTip();
+        }}
+        onFocus={(event) => {
+          showFlyout(item, event.currentTarget);
+          showTip(item, event.currentTarget);
+        }}
+        onBlur={() => {
+          hideFlyout();
+          hideTip();
+        }}
       >
         <div className="relative flex items-center">
           <Link
             href={item.href}
             aria-current={active && !children.some((child) => child.href === pathname && child.href !== item.href) ? "page" : undefined}
             aria-haspopup={children.length ? "menu" : undefined}
+            aria-describedby={tip?.id === item.id ? "nav-term-tip" : undefined}
+            {...pressHandlers(item.id)}
             className={cx(
               "relative flex min-h-[36px] flex-1 items-center gap-2.5 rounded-[10px] px-2.5 text-[13.5px] no-underline transition-colors",
               active ? "bg-[#F1EFF6] font-extrabold text-app-ink" : "font-semibold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink",
@@ -176,6 +269,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
                   <Link
                     href={child.href}
                     aria-current={on ? "page" : undefined}
+                    {...pressHandlers(child.id)}
                     className={cx("flex min-h-[32px] items-center rounded-[8px] px-2.5 text-[13px] no-underline", on ? "font-extrabold text-app-ink" : "font-semibold text-app-ink-soft hover:bg-app-canvas hover:text-app-ink")}
                   >
                     {child.label}
@@ -266,19 +360,61 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
           style={{ top: Math.max(8, Math.min(flyout.top - 6, window.innerHeight - 48 - flyoutItem.children.length * 38)) }}
         >
           <div className="px-3 pb-1 pt-2 text-[11px] font-extrabold uppercase tracking-[0.7px] text-[#9A96A8]">{flyoutItem.label}</div>
+          {(() => {
+            const entry = navTerm(role, flyoutItem.id);
+            return entry && entry.term.toLowerCase() === flyoutItem.label.toLowerCase() ? (
+              <p className="m-0 max-w-[260px] px-3 pb-1.5 text-[12px] leading-[1.4] text-app-ink-soft">{entry.short}</p>
+            ) : null;
+          })()}
           {flyoutItem.children.map((child) => (
             <Link
               key={child.id}
               role="menuitem"
               href={child.href}
               onClick={() => setFlyout(null)}
-              onFocus={() => window.clearTimeout(closeTimer.current)}
+              onMouseEnter={() => setFlyoutHint(child.id)}
+              onMouseLeave={() => setFlyoutHint((current) => (current === child.id ? null : current))}
+              onFocus={() => {
+                window.clearTimeout(closeTimer.current);
+                setFlyoutHint(child.id);
+              }}
               onBlur={hideFlyout}
               className={cx("flex min-h-[38px] items-center rounded-[10px] px-3 text-[13.5px] no-underline", pathname === child.href ? "bg-[#F1EFF6] font-extrabold text-app-ink" : "font-semibold text-app-ink hover:bg-app-canvas")}
             >
               {child.label}
             </Link>
           ))}
+          {(() => {
+            const entry = flyoutHint && flyoutItem.children.some((child) => child.id === flyoutHint) ? navTerm(role, flyoutHint) : null;
+            return entry ? (
+              <div className="mx-1.5 mb-1 mt-1.5 max-w-[248px] rounded-[12px] px-3 py-2.5 animate-slide-up" style={{ background: "#0E2A38" }} data-nav-hint={entry.key}>
+                <TermCard entry={entry} compact />
+              </div>
+            ) : null;
+          })()}
+        </div>
+      )}
+      {tip && canHover && (
+        <div
+          id="nav-term-tip"
+          role="tooltip"
+          onMouseEnter={() => window.clearTimeout(tipTimer.current)}
+          onMouseLeave={hideTip}
+          className="fixed left-[250px] z-50 hidden w-[272px] rounded-[16px] p-3.5 shadow-[0_18px_40px_-12px_rgba(6,18,26,0.45)] animate-slide-up lg:block"
+          style={{ top: Math.max(8, Math.min(tip.top - 6, window.innerHeight - 190)), background: "#0E2A38" }}
+        >
+          <span aria-hidden className="absolute -left-1.5 top-[18px] h-3 w-3 rotate-45" style={{ background: "#0E2A38" }} />
+          <TermCard entry={tip.entry} compact onWatch={() => setTip(null)} />
+        </div>
+      )}
+      {touchTip && (
+        <div
+          data-nav-touch-tip
+          role="tooltip"
+          className="fixed z-[60] w-[min(280px,calc(100vw-24px))] rounded-[16px] p-3.5 shadow-[0_18px_40px_-12px_rgba(6,18,26,0.45)] animate-slide-up"
+          style={{ left: Math.min(touchTip.left, window.innerWidth - Math.min(280, window.innerWidth - 24) - 12), top: Math.min(touchTip.top, window.innerHeight - 200), background: "#0E2A38" }}
+        >
+          <TermCard entry={touchTip.entry} onWatch={() => setTouchTip(null)} />
         </div>
       )}
       {mobileOpen && (

@@ -24,9 +24,9 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
       frame={{ user, partner }}
       title="Coverage and rates"
       sub="Where you deliver, what you deliver with, and your starting price for each area. Sellers see this when they look for a delivery partner."
-      actions={<PillLink href="/logistics/pricing" icon="coin">Your prices</PillLink>}
+      actions={<PillLink href="/logistics/pricing" icon="coin">Pricing model</PillLink>}
     >
-      <ActionNotice saved={saved} error={error} savedText="Saved. Sellers in these areas can find you now." />
+      <ActionNotice saved={saved} error={error} savedText="Coverage saved. Sellers in these areas can find you now." />
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_440px]">
         <div className="grid min-w-0 content-start gap-5">
@@ -49,7 +49,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="p-5">
-              <h2 className="m-0 text-[15px] font-extrabold">Riders start from</h2>
+              <h2 className="m-0 text-[15px] font-extrabold">Depot</h2>
               <p className="m-0 mt-1 text-[15px] text-app-ink-soft">{depot || "Not set"}</p>
             </Card>
             <Card className="p-5">
@@ -59,7 +59,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
               </div>
             </Card>
             <Card className="p-5">
-              <h2 className="m-0 text-[15px] font-extrabold">Kinds of delivery</h2>
+              <h2 className="m-0 text-[15px] font-extrabold">Delivery types</h2>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {partner.deliveryTypes.length ? partner.deliveryTypes.map((type) => <Pill key={type}>{type.replace(/_/g, " ")}</Pill>) : <span className="text-[15px] text-app-ink-soft">None yet</span>}
               </div>
@@ -68,7 +68,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
         </div>
 
         <Card className="h-fit p-5">
-          <CardHead title="Change your areas" sub={`The free plan covers up to ${LOGISTICS_FREE_ROUTE_LIMIT} areas.`} />
+          <CardHead title="Edit coverage" sub={`Starter covers up to ${LOGISTICS_FREE_ROUTE_LIMIT} areas.`} />
           <form action={updateLogisticsCoverage} className="mt-4 grid gap-3">
             <div>
               <label htmlFor="coverageZones" className={labelClass}>Areas you deliver to</label>
@@ -85,7 +85,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
               </summary>
               <div className="mt-3 grid gap-3">
                 <div>
-                  <label htmlFor="coverageRows" className={labelClass}>A different price for some areas</label>
+                  <label htmlFor="coverageRows" className={labelClass}>Rates per area</label>
                   <textarea
                     id="coverageRows"
                     name="coverageRows"
@@ -94,19 +94,19 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
                     placeholder="Yaba|Same-day|2500"
                     className={textareaClass}
                   />
-                  <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">One area per line, like this: Yaba|Same-day|2500. Leave it empty to charge your usual price everywhere.</p>
+                  <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">One per line: area | service | starting price, like Yaba|Same-day|2500. Leave empty to use your base price everywhere.</p>
                 </div>
                 <div>
-                  <label htmlFor="deliveryTypes" className={labelClass}>Kinds of delivery</label>
+                  <label htmlFor="deliveryTypes" className={labelClass}>Delivery types</label>
                   <input id="deliveryTypes" name="deliveryTypes" defaultValue={partner.deliveryTypes.join(", ")} placeholder="Same-day, Next-day" className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="depot" className={labelClass}>Where your riders start from</label>
+                  <label htmlFor="depot" className={labelClass}>Depot (where your riders start from)</label>
                   <input id="depot" name="depot" defaultValue={depot} className={inputClass} />
                 </div>
               </div>
             </details>
-            <SubmitButton>Save</SubmitButton>
+            <SubmitButton>Save coverage</SubmitButton>
           </form>
         </Card>
       </div>

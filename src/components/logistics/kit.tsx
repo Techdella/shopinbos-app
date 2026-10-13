@@ -55,7 +55,7 @@ const STAGE: Record<string, { label: string; tone: Tone }> = {
   picked_up: { label: "Picked up", tone: "info" },
   in_transit: { label: "Picked up, on the way", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
-  failed: { label: "Couldn't deliver", tone: "danger" },
+  failed: { label: "Delivery failed", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
@@ -70,8 +70,8 @@ export function StatusPill({ status }: { status: string }) {
 
 const QUOTE_STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Waiting for your price", tone: "accent" },
-  responded: { label: "Price sent", tone: "info" },
-  accepted: { label: "Booked you", tone: "success" },
+  responded: { label: "Quoted", tone: "info" },
+  accepted: { label: "Won", tone: "success" },
   rejected: { label: "Declined", tone: "muted" },
   expired: { label: "Expired", tone: "muted" },
 };

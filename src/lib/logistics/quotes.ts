@@ -22,8 +22,8 @@ export async function replyToQuote(input: {
   const quote = input.quoteId
     ? await db.deliveryQuoteRequest.findFirst({ where: { id: input.quoteId, logisticsPartnerId: input.partnerId }, select: { id: true, status: true } })
     : null;
-  if (!quote) return { ok: false, code: "NOT_FOUND", error: "We couldn't find that price request. Refresh the page." };
-  if (quote.status !== "pending") return { ok: false, code: "CONFLICT", error: "You've already answered this price request." };
+  if (!quote) return { ok: false, code: "NOT_FOUND", error: "We couldn't find that quote request. Refresh the page." };
+  if (quote.status !== "pending") return { ok: false, code: "CONFLICT", error: "You've already answered this quote request." };
 
   const partnerResponse = input.partnerResponse?.trim() || undefined;
   let data: { status: "rejected" | "responded"; quotedPrice?: number; partnerResponse?: string; expiresAt?: Date };
@@ -37,7 +37,7 @@ export async function replyToQuote(input: {
 
   // Only a still-pending quote is updated, so two replies at once can't both win.
   const updated = await db.deliveryQuoteRequest.updateMany({ where: { id: quote.id, status: "pending" }, data });
-  if (updated.count === 0) return { ok: false, code: "CONFLICT", error: "You've already answered this price request." };
+  if (updated.count === 0) return { ok: false, code: "CONFLICT", error: "You've already answered this quote request." };
   const saved = await db.deliveryQuoteRequest.findUniqueOrThrow({
     where: { id: quote.id },
     select: { id: true, status: true, quotedPrice: true, partnerResponse: true, expiresAt: true },

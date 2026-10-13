@@ -64,10 +64,10 @@ export function AcceptAssignForm({ bookingId, riders, returnTo, className, picku
       <input type="hidden" name="returnTo" value={returnTo} />
       <label htmlFor={`assign-${bookingId}`} className="sr-only">Rider for job {jobId(bookingId)}</label>
       <select id={`assign-${bookingId}`} name="riderId" defaultValue={bestRider(riders, now, pickup)} className={`${inputClass} h-10 min-w-[200px] flex-1 rounded-full`}>
-        <option value="">{riders.length ? "Pick a rider later" : "No riders yet"}</option>
+        <option value="">{riders.length ? "Assign a rider later" : "No riders yet"}</option>
         {riderOptions(riders, now, pickup)}
       </select>
-      <SubmitButton size="sm" aria-label={`Accept and pick a rider for job ${jobId(bookingId)}`}>Accept and pick a rider</SubmitButton>
+      <SubmitButton size="sm" aria-label={`Accept and assign job ${jobId(bookingId)}`}>Accept and assign</SubmitButton>
     </form>
   );
 }
@@ -86,7 +86,7 @@ export function ReassignForm({ bookingId, riderId, riderName, riders, returnTo, 
           {riderOptions(riders, now, pickup)}
         </select>
       </div>
-      <SubmitButton tone="white">{riderId ? "Change rider" : "Give to rider"}</SubmitButton>
+      <SubmitButton tone="white">{riderId ? "Reassign" : "Assign"}</SubmitButton>
     </form>
   );
 }

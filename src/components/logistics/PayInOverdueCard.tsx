@@ -8,7 +8,7 @@ import { checkMyPayInsAgain } from "@/app/actions/logistics-payins";
 
 /**
  * Calm amber card on Today and Cash when a pay-in is late (lib/logistics/payin-deadline.ts): how much and since
- * when, that pay-when-it-arrives jobs are paused until they pay, their own account number with Copy, and
+ * when, that cash-on-delivery jobs are paused until they pay, their own account number with Copy, and
  * "I've paid. Check again", which looks for the transfer straight away.
  */
 export function PayInOverdueCard({

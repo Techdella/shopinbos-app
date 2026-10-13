@@ -15,7 +15,7 @@ import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
 // Delivery partner "Today" (spec 8A, "Simple supplier, delivery and rider apps"): a big "Taking new jobs" switch,
-// today's deliveries and earnings, the newest job with "Accept and pick a rider", and the cash to pay in by 6pm.
+// today's deliveries and earnings, the newest job with "Accept and assign", and the cash to pay in by 6pm.
 // Everything else is one tap away: Messages and Menu in the header, the other tabs below.
 
 function HeaderButton({ icon, label, onPress }: { icon: AppIconName; label: string; onPress: () => void }) {
@@ -84,7 +84,7 @@ export default function LogisticsToday() {
                 <T weight="extrabold" style={{ flex: 1, fontSize: 16 }}>{data.partner.onboarded ? verification.label : "Finish setting up"}</T>
                 <AppIcon name="chevron" size={18} color={colors.inkSoft} />
               </View>
-              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{data.partner.onboarded ? verification.hint : "Set where you deliver and your prices, then add your papers to start taking jobs."}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{data.partner.onboarded ? verification.hint : "Set where you deliver and your prices, then upload your verification documents to start taking jobs."}</T>
             </Pressable>
           ) : (
             <Pressable
@@ -122,21 +122,21 @@ export default function LogisticsToday() {
           {data.counts.issues ? (
             <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "issues" } })} style={{ backgroundColor: colors.dangerTint, borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <AppIcon name="help" size={20} color={colors.danger} />
-              <T weight="bold" style={{ flex: 1, fontSize: 15, color: colors.danger }}>{data.counts.issues} {data.counts.issues === 1 ? "job" : "jobs"} couldn&apos;t be delivered</T>
+              <T weight="bold" style={{ flex: 1, fontSize: 15, color: colors.danger }}>{data.counts.issues} failed {data.counts.issues === 1 ? "delivery" : "deliveries"}</T>
               <T weight="bold" style={{ fontSize: 15, color: colors.danger }}>See</T>
             </Pressable>
           ) : null}
 
-          <SectionTitle action={moreNew > 0 ? <LinkButton title={`${moreNew} more`} color={colors.accentInk} onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "new" } })} style={{ minHeight: 32 }} /> : undefined}>New job</SectionTitle>
+          <SectionTitle action={moreNew > 0 ? <LinkButton title={`${moreNew} more`} color={colors.accentInk} onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "new" } })} style={{ minHeight: 32 }} /> : undefined}>New requests</SectionTitle>
           {newest ? (
             <JobCard job={newest} riders={data.riderList} onChanged={() => void overview.reload()} />
           ) : (
-            <EmptyState icon="truck" title="No new jobs">When a shop books you, the job shows up here for you to accept.</EmptyState>
+            <EmptyState icon="truck" title="No new requests">When a shop books you, the job shows up here to accept and assign.</EmptyState>
           )}
           {data.counts.quotes ? (
             <Pressable accessibilityRole="button" onPress={() => void openWeb("/logistics/quotes")} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <AppIcon name="tag" size={20} />
-              <T weight="bold" style={{ flex: 1, fontSize: 15 }}>{data.counts.quotes} shop{data.counts.quotes === 1 ? "" : "s"} asking for your price</T>
+              <T weight="bold" style={{ flex: 1, fontSize: 15 }}>{data.counts.quotes} quote request{data.counts.quotes === 1 ? "" : "s"}</T>
               <AppIcon name="chevron" size={18} color={colors.inkSoft} />
             </Pressable>
           ) : null}
@@ -164,7 +164,7 @@ export default function LogisticsToday() {
                 <T weight="extrabold" style={{ fontSize: 17, flex: 1 }}>Pay in {naira(data.cashToPayIn)} {data.payInBy ?? "by 6pm"}</T>
                 <AppIcon name="chevron" size={18} color={colors.inkSoft} />
               </View>
-              <T style={{ color: "#6B4A00", fontSize: 15, lineHeight: 21 }}>Cash your riders collected from customers who paid when it arrived.</T>
+              <T style={{ color: "#6B4A00", fontSize: 15, lineHeight: 21 }}>Cash on delivery (COD) your riders collected and you haven&apos;t paid in yet.</T>
             </Pressable>
           ) : null}
         </>

@@ -35,9 +35,9 @@ export const metadata: Metadata = { title: "Jobs" };
 const FILTERS: Array<{ key: string; label: string; statuses?: BookingStatusValue[] }> = [
   { key: "all", label: "All" },
   { key: "new", label: "New", statuses: ["pending"] },
-  { key: "active", label: "On the way", statuses: ACTIVE_STATUSES },
-  { key: "issues", label: "Problems", statuses: ["failed", "cancelled"] },
-  { key: "delivered", label: "Done", statuses: ["delivered"] },
+  { key: "active", label: "Active", statuses: ACTIVE_STATUSES },
+  { key: "issues", label: "Failed or cancelled", statuses: ["failed", "cancelled"] },
+  { key: "delivered", label: "Delivered", statuses: ["delivered"] },
 ];
 
 function filterHref(key: string, q?: string) {
@@ -147,10 +147,10 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                     <PillLink href={messagesHref("logistics_partner", { with: job.sellerId, context: { kind: "booking", id: job.id } })} size="sm" icon="chat">Message {job.seller.name}</PillLink>
                   </div>
                   {job.notes && <p className="m-0 mb-3 text-[15px] text-app-ink-soft">Seller note: {job.notes}</p>}
-                  {job.status === "failed" && job.failedReason && <p className="m-0 mb-3 text-[15px] font-bold text-app-danger">Not delivered: {job.failedReason}</p>}
+                  {job.status === "failed" && job.failedReason && <p className="m-0 mb-3 text-[15px] font-bold text-app-danger">Delivery failed: {job.failedReason}</p>}
                   {job.codAmount ? (
                     <p className="m-0 mb-3 text-[15px] text-app-ink-soft">
-                      Customer pays when it arrives: collect {naira(job.codAmount)}
+                      Cash on delivery (COD): collect {naira(job.codAmount)}
                       {job.codCollected !== null ? ` · ${naira(job.codCollected)} collected by ${job.codMethod === "transfer" ? "transfer (straight to the seller)" : "cash"}` : ""}
                     </p>
                   ) : null}
@@ -192,7 +192,7 @@ type JobForForm = {
   codAmount: number | null;
 };
 
-/** Stage first; tracking code and delivery time are folded away. Only the moves the job rules allow are offered, plus what an undelivered or pay-when-it-arrives job needs. */
+/** Stage first; tracking code and delivery time are folded away. Only the moves the job rules allow are offered, plus what an undelivered or cash-on-delivery job needs. */
 function JobUpdateForm({ job }: { job: JobForForm }) {
   const options = [job.status, ...nextStatuses(job.status)];
   const canFail = options.includes("failed") && job.status !== "failed";
@@ -202,7 +202,7 @@ function JobUpdateForm({ job }: { job: JobForForm }) {
     <form action={updateDeliveryBookingStatus} className="grid max-w-[720px] gap-3">
       <input type="hidden" name="bookingId" value={job.id} />
       <div className="min-w-0">
-        <label htmlFor={`status-${job.id}`} className="mb-1.5 block text-[15px] font-bold">Where is this job now?</label>
+        <label htmlFor={`status-${job.id}`} className="mb-1.5 block text-[15px] font-bold">Status</label>
         <select id={`status-${job.id}`} name="status" defaultValue={job.status} className={inputClass}>
           {options.map((value) => (
             <option key={value} value={value}>{bookingStage(value).label}</option>
@@ -213,18 +213,18 @@ function JobUpdateForm({ job }: { job: JobForForm }) {
         <div className="grid gap-3 sm:grid-cols-2">
           {canFail && (
             <div className="min-w-0">
-              <label htmlFor={`reason-${job.id}`} className="mb-1.5 block text-[15px] font-bold">If you couldn&apos;t deliver, why?</label>
+              <label htmlFor={`reason-${job.id}`} className="mb-1.5 block text-[15px] font-bold">If the delivery failed, why?</label>
               <input id={`reason-${job.id}`} name="failedReason" maxLength={300} placeholder="Customer not picking calls" className={inputClass} />
             </div>
           )}
           {needsCash && (
             <>
               <div className="min-w-0">
-                <label htmlFor={`cod-${job.id}`} className="mb-1.5 block text-[15px] font-bold">If delivered, how much did the customer pay? (₦)</label>
+                <label htmlFor={`cod-${job.id}`} className="mb-1.5 block text-[15px] font-bold">If delivered, COD amount collected (₦)</label>
                 <input id={`cod-${job.id}`} name="codCollected" type="number" min="0" step="any" inputMode="decimal" defaultValue={job.codAmount ?? ""} className={inputClass} />
               </div>
               <div className="min-w-0">
-                <label htmlFor={`codm-${job.id}`} className="mb-1.5 block text-[15px] font-bold">How did they pay?</label>
+                <label htmlFor={`codm-${job.id}`} className="mb-1.5 block text-[15px] font-bold">Paid by</label>
                 <select id={`codm-${job.id}`} name="codMethod" defaultValue="cash" className={inputClass}>
                   <option value="cash">Cash to the rider</option>
                   <option value="transfer">Transfer to the seller</option>
@@ -240,11 +240,11 @@ function JobUpdateForm({ job }: { job: JobForForm }) {
         </summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="min-w-0">
-            <label htmlFor={`tracking-${job.id}`} className="mb-1.5 block text-[15px] font-bold">Your own tracking number</label>
+            <label htmlFor={`tracking-${job.id}`} className="mb-1.5 block text-[15px] font-bold">Tracking code</label>
             <input id={`tracking-${job.id}`} name="trackingCode" defaultValue={job.trackingCode ?? ""} className={inputClass} />
           </div>
           <div className="min-w-0">
-            <label htmlFor={`eta-${job.id}`} className="mb-1.5 block text-[15px] font-bold">When will it arrive?</label>
+            <label htmlFor={`eta-${job.id}`} className="mb-1.5 block text-[15px] font-bold">Estimated delivery</label>
             <input
               id={`eta-${job.id}`}
               name="estimatedDelivery"
@@ -255,7 +255,7 @@ function JobUpdateForm({ job }: { job: JobForForm }) {
           </div>
         </div>
       </details>
-      <SubmitButton className="sm:justify-self-start">Save</SubmitButton>
+      <SubmitButton className="sm:justify-self-start">Update job</SubmitButton>
     </form>
   );
 }

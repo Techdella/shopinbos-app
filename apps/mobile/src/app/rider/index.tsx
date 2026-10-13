@@ -17,7 +17,7 @@ import { colors, radii } from "@/theme";
 // Shopinbos Riders (spec 8A, "Simple supplier, delivery and rider apps"): no tabs, one screen at a time with very
 // large buttons. Home: language, Online switch, earned today and cash with you, and the next delivery
 // ("Take this delivery"). Then: Go to the shop ("I have the parcel") → Take it to the customer ("I'm with the
-// customer") → the customer's 4 numbers on a big keypad → "I collected it" when there's cash → "Delivered".
+// customer") → the customer's 4-digit delivery code on a big keypad → "I collected it" when there's cash → "Delivered".
 // Every word comes from lib/rider-strings.ts.
 
 type Step = "home" | "pickup" | "dropoff" | "code" | "cash" | "done";

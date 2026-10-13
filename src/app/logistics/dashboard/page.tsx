@@ -88,7 +88,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       select: { codCollected: true, codMethod: true, remittanceId: true, codCollectedAt: true, createdAt: true },
     }),
   ]);
-  // Closest rider first in "Accept and pick a rider": riders' open jobs and the new jobs' pickup coordinates.
+  // Closest rider first in "Accept and assign": riders' open jobs and the new jobs' pickup coordinates.
   const [riders, pickupGeo, overdue] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now)]);
 
   const orderIds = [...newBookings, ...activeJobs, ...deliveredToday].map((booking) => booking.orderId).filter((id): id is string => Boolean(id));
@@ -127,7 +127,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label="New requests" value={newCount} />
-        <StatTile tone="card" label="On the way" value={activeCount} />
+        <StatTile tone="card" label="Active jobs" value={activeCount} />
         <StatTile tone="card" label="Delivered today" value={deliveredToday.length} />
         <StatTile tone="card" label="Earned today" value={naira(earnedToday)} />
       </StatGrid>
@@ -162,7 +162,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
 
           <section aria-labelledby="active-jobs" className="min-w-0">
             <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h2 id="active-jobs" className="m-0 text-[18px] font-extrabold">On the way</h2>
+              <h2 id="active-jobs" className="m-0 text-[18px] font-extrabold">Active jobs</h2>
               <TextLink href="/logistics/bookings">All jobs</TextLink>
             </div>
             {activeJobs.length === 0 ? (
@@ -239,7 +239,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
             <Card key={quote.id} as="article" className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <Pill tone="accent">{quote.expiresAt ? `Reply by ${lagosTime(quote.expiresAt)}` : `Asked ${timeAgo(quote.createdAt, now)}`}</Pill>
-                <span className="text-[15px] font-bold text-app-ink-soft">Needs your price</span>
+                <span className="text-[15px] font-bold text-app-ink-soft">Quote request</span>
               </div>
               <div className="mt-3 min-w-0">
                 <Route from={quote.pickupLocation} to={quote.destination} className="block break-words text-[15px]" />
@@ -286,12 +286,12 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
               />
               <p className="m-0 mt-1 text-[15px] leading-[1.5] text-[#5C4100]">
                 {cashOwed > 0
-                  ? "Cash your riders collected from customers who paid when it arrived, not paid in yet."
-                  : "Customers on jobs that are on the way pay when it arrives. Your riders collect it."}
+                  ? "Cash on delivery (COD) your riders collected and you haven't paid in yet."
+                  : "Cash on delivery (COD) on active jobs. Your riders collect it at the door."}
                 {cashCollectedToday > 0 ? ` ${naira(cashCollectedToday)} collected today.` : ""}
-                {cashOwed > 0 && cashOnActiveJobs > 0 ? ` ${naira(cashOnActiveJobs)} more to collect on jobs on the way.` : ""}
+                {cashOwed > 0 && cashOnActiveJobs > 0 ? ` ${naira(cashOnActiveJobs)} more to collect on active jobs.` : ""}
               </p>
-              <PillLink href="/logistics/cash" size="sm" className="mt-3">See cash</PillLink>
+              <PillLink href="/logistics/cash" size="sm" className="mt-3">Open cash on delivery</PillLink>
             </Card>
           )}
         </div>

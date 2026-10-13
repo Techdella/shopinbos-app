@@ -10,7 +10,7 @@ import { jobStage, shortPlace, timeAgo } from "@/lib/partner-pure";
 import { colors } from "@/theme";
 
 // A delivery job card, from the "Shopinbos Partners · mobile" prototype: route, fee, parcel, and for a new
-// request Decline / Accept and assign (pick a rider from a sheet). Tap the card for the full job.
+// request Decline / Accept and assign (assign a rider from a sheet). Tap the card for the full job.
 
 /**
  * Riders for the picker for one pickup, best first: free riders who are out, then busy, then offline; inside each,
@@ -73,13 +73,13 @@ export function JobCard({ job, riders, onChanged }: { job: Job; riders: Dispatch
       {isNew ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <PillButton title="Decline" tone="white" size="md" style={{ flex: 0.7 }} busy={busy === "decline"} disabled={Boolean(busy)} onPress={decline} />
-          <PillButton title="Accept and pick a rider" size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setPicking(true)} />
+          <PillButton title="Accept and assign" size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setPicking(true)} />
         </View>
       ) : null}
       <ChoiceSheet
         visible={picking}
-        title="Pick a rider"
-        options={[...riderOptions(riders, job.pickupGeo), { value: "", label: "Accept now, pick a rider later", hint: "Pick from the job when you're ready" }]}
+        title="Assign a rider"
+        options={[...riderOptions(riders, job.pickupGeo), { value: "", label: "Accept, assign later", hint: "Assign a rider from the job when you're ready" }]}
         onPick={(value) => {
           setPicking(false);
           void run("accept", value || null);

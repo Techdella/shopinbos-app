@@ -74,7 +74,7 @@ const JOB_STAGE: Record<string, { label: string; tone: Tone }> = {
   picked_up: { label: "Picked up", tone: "info" },
   in_transit: { label: "On the way", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
-  failed: { label: "Couldn't deliver", tone: "danger" },
+  failed: { label: "Delivery failed", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 
