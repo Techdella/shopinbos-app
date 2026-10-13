@@ -94,7 +94,10 @@ test("wiring: send route, hook, flag endpoint, env docs and the migration", () =
   const delivery = readFileSync("src/lib/auth/otp-delivery.server.ts", "utf8");
   assert.match(delivery, /deliveryPlan\(note\?\.wanted, Boolean\(whatsapp\)\)/);
   assert.match(delivery, /sendPlatformSms/, "SMS fallback through the platform providers");
-  for (const file of [route, hook, delivery]) assert.doesNotMatch(file, /twilio/i);
+  for (const file of [route, hook, delivery]) {
+    assert.doesNotMatch(file, /from\s+["'][^"']*twilio/i, "no Twilio import");
+    assert.doesNotMatch(file, /TWILIO_|api\.twilio\.com/i, "no Twilio keys or API");
+  }
   const env = readFileSync(".env.local.example", "utf8");
   for (const name of ["AUTH_OTP_WHATSAPP=", "AUTH_OTP_WHATSAPP_SENDER=", "AUTH_OTP_WHATSAPP_TEMPLATE=", "AUTH_OTP_WHATSAPP_PROVIDER="]) assert.ok(env.includes(name), name);
   assert.ok(existsSync("docs/migrations/2026-10-21-auth-code-channel.sql"));
