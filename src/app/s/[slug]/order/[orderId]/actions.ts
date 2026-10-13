@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db/client";
+import { notify } from "@/lib/notifications/notify.server";
 
 const TRANSFER_SENT = "transfer_sent";
 
@@ -17,6 +18,7 @@ export async function notifyTransferSent(orderId: string): Promise<{ ok: boolean
   if (!order || order.paymentMethod !== "transfer") return { ok: false, error: "Order not found." };
   if (order.status !== "pending" && order.status !== "awaiting_payment") return { ok: true };
 
+  // Older notifications marked the event in metadata; new ones also carry a dedupe key, so this can't spam the seller.
   const already = await db.notification.findFirst({
     where: { userId: order.store.userId, metadata: { path: ["event"], equals: `${TRANSFER_SENT}:${order.id}` } },
     select: { id: true },
@@ -24,18 +26,18 @@ export async function notifyTransferSent(orderId: string): Promise<{ ok: boolean
   if (already) return { ok: true };
 
   const amount = new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(order.total);
-  await db.notification.create({
-    data: {
-      userId: order.store.userId,
-      type: "order",
-      priority: "warning",
-      title: `Transfer sent for ${order.orderNumber}`,
-      description: `${order.buyerName} says they sent ${amount} by bank transfer with reference ${order.orderNumber}. Check your account, then mark the order as paid.`,
-      link: `/home/orders/${order.id}`,
-      actionLabel: "Open order",
-      actionUrl: `/home/orders/${order.id}`,
-      metadata: { orderId: order.id, event: `${TRANSFER_SENT}:${order.id}` },
-    },
+  await notify({
+    userId: order.store.userId,
+    event: "order.transfer_sent",
+    dedupeKey: `order.transfer_sent:${order.id}`,
+    type: "order",
+    priority: "warning",
+    title: `Transfer sent for ${order.orderNumber}`,
+    description: `${order.buyerName} says they sent ${amount} by bank transfer with reference ${order.orderNumber}. Check your account, then mark the order as paid.`,
+    link: `/home/orders/${order.id}`,
+    actionLabel: "Open order",
+    actionUrl: `/home/orders/${order.id}`,
+    metadata: { orderId: order.id, event: `${TRANSFER_SENT}:${order.id}` },
   });
   return { ok: true };
 }

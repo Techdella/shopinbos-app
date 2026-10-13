@@ -18,6 +18,7 @@ import { MISSING_ADDRESS_MESSAGE, unsubscribeMailto } from "@/lib/email/shell";
 import type { Prisma } from "@prisma/client";
 import { fillVariables, firstName } from "@/lib/marketing/flows";
 import { extractCampaignLinks, renderCampaignEmail } from "./render";
+import { notifyCampaignFinished } from "@/lib/notifications/events.server";
 
 export type RecipientFilter =
   | { mode: "all" }
@@ -260,6 +261,7 @@ export async function sendCampaign(storeId: string, campaignId: string): Promise
       where: { id: campaignId },
       data: { status: "sent", sentAt: campaign.sentAt ?? new Date(), sentCount: sent, deliveredCount: sent },
     });
+    await notifyCampaignFinished(campaignId);
     return { ok: true, sent, failed };
   } catch (error) {
     await restoreStatus().catch(() => null);
@@ -429,6 +431,7 @@ async function continueTextCampaign(campaign: ClaimedCampaign, channel: "sms" | 
   }
   // Delivered counts come from receipts (marketingStatusHook), not from "the provider accepted it".
   await db.broadcastCampaign.update({ where: { id: campaign.id }, data: { status: "sent", sentAt: campaign.sentAt ?? new Date(), sentCount: sent } });
+  await notifyCampaignFinished(campaign.id);
   return { ok: true, sent, failed: failed + queued };
 }
 

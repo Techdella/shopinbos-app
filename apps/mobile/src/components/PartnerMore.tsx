@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import type { AppIconName } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
+import { LanguageRow } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, T } from "@/components/ui";
@@ -43,6 +44,9 @@ export function PartnerMore({ sections }: { sections: Array<{ title: string; lin
           </Card>
         </View>
       ))}
+      <Card style={{ paddingVertical: 2, marginBottom: 14 }}>
+        <LanguageRow first />
+      </Card>
       <LinkButton title="Log out" color={colors.danger} onPress={() => confirmSignOut()} />
     </TabScreen>
   );

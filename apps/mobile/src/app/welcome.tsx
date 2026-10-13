@@ -7,6 +7,7 @@ import { Chip, LinkButton, Mascot, PillButton, T, Wash, Wordmark } from "@/compo
 import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { colors, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { LanguageButton } from "@/components/LanguagePicker";
 
 // First screen: pick what you do (like the web sign-up's "I sell / I supply shops / I deliver"), then sign up
 // with a phone number or email, or log in. Riders open the private link their dispatcher sent.
@@ -27,7 +28,10 @@ export default function Welcome() {
         <View style={{ paddingTop: 10, gap: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Wordmark />
-            <HelpButton />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <LanguageButton />
+              <HelpButton />
+            </View>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="What do you do?">
             {SIGNUP_ROLES.map((item) => <Chip key={item.role} label={item.tab} on={role === item.role} onPress={() => setRole(item.role)} />)}

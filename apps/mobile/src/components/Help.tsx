@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, type StyleProp, type ViewStyle } from "react-native";
 import { router, usePathname } from "expo-router";
@@ -119,18 +120,19 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
 /** The Help pill for screen headers: an icon with the word, as the prototype has it. */
 export function HelpButton({ style, testID = "help-button" }: { style?: StyleProp<ViewStyle>; testID?: string }) {
   const [open, setOpen] = useState(false);
+  const t = useT("common");
   return (
     <>
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel="Help"
+        accessibilityLabel={t("help")}
         onPress={() => setOpen(true)}
         hitSlop={4}
         style={({ pressed }) => [{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.8 : 1 }, style]}
       >
         <AppIcon name="help" size={18} />
-        <T weight="bold" style={{ fontSize: 15 }}>Help</T>
+        <T weight="bold" style={{ fontSize: 15 }}>{t("help")}</T>
       </Pressable>
       <HelpSheet visible={open} onClose={() => setOpen(false)} />
     </>

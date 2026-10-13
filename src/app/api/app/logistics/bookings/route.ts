@@ -8,6 +8,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { canOfferJob } from "@/lib/logistics/payin-deadline";
+import { notifyJobOffered } from "@/lib/notifications/events.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -69,6 +70,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     data: { sellerId: user.id, ...parsed.data, codAmount },
   });
   void emitPartnerEvent(partner.id, "job.offered", partnerJob(booking)).catch(() => undefined);
+  await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: partner.id });
 
   return ok(booking, 201);
 });

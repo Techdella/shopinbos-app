@@ -418,6 +418,8 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
     return { pathname: "/supplier/order/[id]", params: queryParam(query, "kind") === "wholesale" ? { id: match[1], kind: "wholesale" } : { id: match[1] } };
   }
   if ((match = /^\/supplier\/(?:quotes|quote-requests)\/([\w-]+)$/.exec(pathname))) return { pathname: "/supplier/quote/[id]", params: { id: match[1] } };
+  const quote = queryParam(query, "quote");
+  if (/^\/supplier\/(quotes|quote-requests)$/.test(pathname) && quote) return { pathname: "/supplier/quote/[id]", params: { id: quote } };
   if ((match = /^\/supplier\/products\/([\w-]+)$/.exec(pathname)) && match[1] !== "new") return { pathname: "/supplier/product/[id]", params: { id: match[1] } };
   if ((match = /^\/logistics\/(?:bookings|jobs)\/([\w-]+)$/.exec(pathname))) return { pathname: "/logistics/job/[id]", params: { id: match[1] } };
   const job = queryParam(query, "job");

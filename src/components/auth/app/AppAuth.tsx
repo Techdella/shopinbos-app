@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { LanguagePicker } from "@/components/i18n/LanguagePicker";
 import { SupportRequestPanel } from "@/components/support/SupportRequestPanel";
 import { roleDestination, roleLabel, type AuthRole } from "@/lib/brand";
 import { getPublicEnv } from "@/lib/env";
@@ -318,7 +319,10 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   const welcome = (
     <div className="app-wash flex min-h-dvh flex-col px-[22px] pb-[30px] pt-[22px]">
-      <Wordmark />
+      <div className="flex items-center justify-between gap-3">
+        <Wordmark />
+        <LanguagePicker variant="globe" />
+      </div>
       <div className="relative flex flex-1 items-center justify-center">
         <Mascot name="rex" mood="wave" className="h-[260px] w-[260px]" />
         <span className="absolute right-0 top-10 rounded-[20px_20px_4px_20px] bg-white px-3.5 py-2.5 text-[14px] font-bold shadow-[0_10px_30px_-12px_rgba(22,20,31,0.3)]">
@@ -571,11 +575,14 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
               else window.history.length > 1 ? window.history.back() : (window.location.href = getPublicEnv().appUrl);
             }}
           />
-          {activeScreen === "details" && (
-            <Link href={switchHref} className="text-[14px] font-bold text-app-ink no-underline">
-              {mode === "signup" ? "Log in" : "Create a shop"}
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {activeScreen === "details" && (
+              <Link href={switchHref} className="text-[14px] font-bold text-app-ink no-underline">
+                {mode === "signup" ? "Log in" : "Create a shop"}
+              </Link>
+            )}
+            <LanguagePicker variant="globe" />
+          </div>
         </div>
         {activeScreen === "code" ? codeForm : detailsForm}
         {activeScreen === "details" && <StuckLink className="mt-8 pb-24" />}
@@ -589,6 +596,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         <div className="mx-auto flex h-[72px] max-w-[1136px] items-center justify-between px-6">
           <a href="https://shopinbos.com" aria-label="Shopinbos home"><Wordmark className="h-[20px]" /></a>
           <div className="flex items-center gap-5">
+            <LanguagePicker variant="globe" />
             <span className="text-[14px] text-app-ink-soft">{mode === "signup" ? "Already have a shop?" : "New to Shopinbos?"}</span>
             <Link href={switchHref} className="rounded-full bg-app-accent px-4 py-2.5 text-[14px] font-bold text-white no-underline hover:brightness-95">
               {mode === "signup" ? "Log in" : isAdmin ? "Back to app" : "Start your shop"}

@@ -15,6 +15,7 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
+import { notifyOrderPaid } from "@/lib/notifications/events.server";
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -150,6 +151,7 @@ export async function POST(req: NextRequest) {
           });
       if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
       if (moved.count === 1) await notifyOrderCustomer(ref, "payment_received"); // WhatsApp/SMS to the buyer, if switched on
+      if (moved.count === 1) await notifyOrderPaid(ref); // the seller's bell and phone
       // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
         await ensureSupplierOrdersSafely(ref);

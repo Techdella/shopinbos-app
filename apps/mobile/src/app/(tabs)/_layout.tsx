@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CreateSheet } from "@/components/CreateSheet";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Four tabs and a big orange "+" in the middle (build spec 8A, "Simple app" prototype): Home, Orders, +, Chats,
@@ -39,6 +40,8 @@ function TabButton({ label, icon, focused, onPress }: { label: string; icon: App
 function TabBar({ state, navigation, descriptors }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const [creating, setCreating] = useState(false);
+  // Labels stay English in TABS; shown in the app language (shared/i18n "nav" catalog, "tab.<name>").
+  const t = useT("nav");
   // A screen hides the bar with options.tabBarStyle = { display: "none" } (Home does while it shows a full-screen loading state).
   const focusedOptions = descriptors[state.routes[state.index].key]?.options;
   if ((StyleSheet.flatten(focusedOptions?.tabBarStyle) as { display?: string } | undefined)?.display === "none") return null;
@@ -53,7 +56,7 @@ function TabBar({ state, navigation, descriptors }: TabBarProps) {
     return (
       <TabButton
         key={tab.name}
-        label={tab.label}
+        label={t.dynamic(`tab.${tab.name}`, tab.label)}
         icon={tab.icon}
         focused={focused}
         onPress={() => {
@@ -72,7 +75,7 @@ function TabBar({ state, navigation, descriptors }: TabBarProps) {
           <Pressable
             testID="create-button"
             accessibilityRole="button"
-            accessibilityLabel="Add or sell"
+            accessibilityLabel={t("tab.create")}
             onPress={() => setCreating(true)}
             style={({ pressed }) => ({ width: 62, height: 62, borderRadius: 31, marginTop: -26, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", borderWidth: 4, borderColor: colors.surface, shadowColor: colors.accent, shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8, opacity: pressed ? 0.85 : 1 })}
           >

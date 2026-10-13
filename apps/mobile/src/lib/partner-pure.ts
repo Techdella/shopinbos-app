@@ -14,8 +14,8 @@ export function homeFor(role: AppRole | null | undefined): string {
 }
 
 const PUBLIC = ["/", "/welcome", "/login", "/signup", "/verify", "/forgot", "/web-only"];
-/** Help (a person on WhatsApp, the chat with the team) and "Ask us to set it up" are for every role. */
-const SHARED = ["/help", "/ask-us"];
+/** Help (a person on WhatsApp, the chat with the team), "Ask us to set it up" and Notifications are for every role. */
+const SHARED = ["/help", "/ask-us", "/notifications"];
 
 /** Which part of the app a path belongs to. Everything outside the partner areas is the seller app. */
 export function areaOf(pathname: string): Area {

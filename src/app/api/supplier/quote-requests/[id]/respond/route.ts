@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { QuoteResponseSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { notifySupplierQuoteAnswered } from "@/lib/notifications/events.server";
 
 export const POST = withSupplier(async (
   req: NextRequest,
@@ -35,6 +36,7 @@ export const POST = withSupplier(async (
       expiresAt: parsed.data.expiresAt,
     },
   });
+  await notifySupplierQuoteAnswered(updated.id);
 
   return ok(updated);
 });

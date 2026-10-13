@@ -92,7 +92,7 @@ test("every screen frame has Help, and Help offers a person and Peggy", () => {
   }
   // Help and Ask us are open to suppliers too.
   const pure = read("lib/partner-pure.ts");
-  assert.match(pure, /SHARED = \["\/help", "\/ask-us"\]/);
+  assert.match(pure, /SHARED = \["\/help", "\/ask-us"[,\]]/);
 });
 
 test("one main button per screen is 56 tall", () => {

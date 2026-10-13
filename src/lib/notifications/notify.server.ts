@@ -114,7 +114,7 @@ export async function notify(input: NotifyInput): Promise<NotifyResult> {
     actionLabel: input.actionLabel ?? null,
     actionUrl: input.actionUrl ?? null,
     imageUrl: input.imageUrl ?? null,
-    metadata: { ...(input.metadata ?? {}), ...(input.event ? { event: input.event } : {}) } as Prisma.InputJsonValue,
+    metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
   };
 
   let notification: NotifyResult["notification"];

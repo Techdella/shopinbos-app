@@ -10,6 +10,7 @@ import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { LanguageButton } from "@/components/LanguagePicker";
 
 type Mode = "signup" | "login";
 type Method = "phone" | "email";
@@ -110,6 +111,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <LinkButton title={mode === "signup" ? "Log in" : "Create a shop"} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
+              <LanguageButton />
               <HelpButton />
             </View>
           </View>

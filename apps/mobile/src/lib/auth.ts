@@ -3,6 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import { api, API_URL } from "./api";
 import { supabase } from "./supabase";
+import { unregisterPushDevice } from "./push";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -102,6 +103,8 @@ export function confirmSignOut(options: { everywhere?: boolean } = {}) {
 /** Signs out without asking. Used after confirmSignOut, and when a session has expired. */
 export async function signOutNow(scope: "local" | "global" = "local") {
   markUserSignOut();
+  // This phone stops getting the account's notifications (while the session can still say so).
+  await unregisterPushDevice().catch(() => null);
   await supabase.auth.signOut({ scope }).catch(() => supabase.auth.signOut({ scope: "local" }));
 }
 

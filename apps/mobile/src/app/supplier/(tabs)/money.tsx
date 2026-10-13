@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { naira } from "@shared/onboarding";
 import { HelpButton } from "@/components/Help";
+import { LanguageRow } from "@/components/LanguagePicker";
 import { EmptyState, ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
 import { confirmSignOut, Thumb } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
@@ -73,6 +74,7 @@ export default function SupplierMoney() {
             <LinkRow icon="store" label="Business profile" hint="Logo and what you sell. Opens in your browser" onPress={() => void openWeb("/supplier/profile")} />
             <LinkRow icon="users" label="Team" hint="Who can manage orders. Opens in your browser" onPress={() => void openWeb("/supplier/team")} />
             <LinkRow icon="settings" label="Settings" hint="Notifications and account. Opens in your browser" onPress={() => void openWeb("/supplier/settings")} />
+            <LanguageRow />
             <LinkRow icon="help" label="Help" hint="Chat with a person" onPress={() => router.push("/help")} />
           </Card>
           <LinkButton title="Log out" color={colors.danger} onPress={() => confirmSignOut()} />

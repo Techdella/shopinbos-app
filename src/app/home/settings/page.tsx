@@ -2,10 +2,11 @@ import { requireRole } from "@/lib/server-auth";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
-import { updateSellerProfile, saveNotificationPreferences, saveStoreSettings, saveBusinessAddress, closeStore, inviteTeamMember } from "@/app/actions/workspace";
+import { updateSellerProfile, saveStoreSettings, saveBusinessAddress, closeStore, inviteTeamMember } from "@/app/actions/workspace";
 import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
 import { userLinks } from "@/lib/email/compliance.server";
 import { PageToast } from "@/components/PageToast";
+import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
 import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
@@ -16,11 +17,12 @@ import { readRexVersions } from "@/lib/ai/rex/studio-versions";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, Pill, PillLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
-import { CHECKBOX, FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK, SUBMIT_WHITE } from "@/components/seller-settings/fields";
+import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK, SUBMIT_WHITE } from "@/components/seller-settings/fields";
 import { db } from "@/lib/db/client";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 import { SupplierSwitchCard } from "@/components/settings/SupplierSwitchCard";
 import { switchSettings } from "@shared/order-parts";
+import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +34,6 @@ const TABS = ["Store", "Peggy & Rex", "Team", "Billing", "Notifications", "Secur
 /** Old tab names still in links and redirects. */
 const TAB_ALIASES: Record<string, (typeof TABS)[number]> = { "Peggy & AI": "Peggy & Rex" };
 
-const NOTIFY_EVENTS = [
-  { e: "orderPlaced", l: "New orders", d: "When a customer places an order" },
-  { e: "orderShipped", l: "Order sent", d: "When an order is marked as sent" },
-  { e: "orderDelivered", l: "Order delivered", d: "When a delivery is confirmed" },
-  { e: "paymentConfirmed", l: "Payment received", d: "When a payout is processed" },
-] as const;
 
 export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -65,11 +61,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const savedCommStyle = peggyPrefs.communicationStyle ?? "Friendly";
   const savedDailyBrief = peggyPrefs.dailyBrief ?? "Morning only";
 
-  // Saved notification choices; before the first save everything except WhatsApp starts on.
-  const notify = workspace.settings.notifications;
-  const channels = (notify?.enabledChannels ?? []) as string[];
-  const eventOn = (key: (typeof NOTIFY_EVENTS)[number]["e"]) => (notify ? Boolean(notify.events?.[key]) : true);
-  const channelOn = (key: string, fallback: boolean) => (notify ? channels.includes(key) : fallback);
 
   const storeName = store?.name ?? "Your Store";
   const storeUrl = store?.slug ? `${store.slug}.shopinbos.shop` : undefined;
@@ -298,46 +289,12 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                 />
               </Card>
             )}
-            {activeTab === "Notifications" && (
-              <form action={saveNotificationPreferences}>
-                <Card className="p-5">
-                  <CardHead title="Alerts" sub="What we tell you about, and how." action={<PillLink href="/home/notifications/preferences" size="sm">More options</PillLink>} />
-                  <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
-                    {NOTIFY_EVENTS.map((n) => (
-                      <li key={n.e}>
-                        <label className="flex min-h-[56px] cursor-pointer items-center gap-3 py-3">
-                          <input type="checkbox" name={n.e} defaultChecked={eventOn(n.e)} className={CHECKBOX} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[14.5px] font-bold">{n.l}</span>
-                            <span className="block text-[13px] text-app-ink-soft">{n.d}</span>
-                          </span>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                  <fieldset className="m-0 mt-4 border-0 p-0">
-                    <legend className="mb-2 p-0 text-[14px] font-bold">Send alerts by</legend>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { name: "smsChannel", key: "sms", label: "SMS", on: true },
-                        { name: "emailChannel", key: "email", label: "Email", on: true },
-                        { name: "whatsappChannel", key: "whatsapp", label: "WhatsApp", on: false },
-                      ].map((c) => (
-                        <label key={c.name} className="flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-full border border-app-line px-4 text-[14px] font-bold has-[:checked]:border-app-ink">
-                          <input type="checkbox" name={c.name} defaultChecked={channelOn(c.key, c.on)} className={CHECKBOX} />
-                          {c.label}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <button type="submit" className={`${SUBMIT_INK} mt-5`}><Icon name="check" size={16} /> Save alerts</button>
-                </Card>
-              </form>
-            )}
+            {activeTab === "Notifications" && <NotificationSettingsPanel />}
             {activeTab === "Security" && <SecuritySettings />}
           </div>
 
           <aside className="grid min-w-0 content-start gap-5">
+            <LanguageSettingsCard />
             <Card className="p-5">
               <CardHead title="Customise your menu" sub="Switch off the parts of Shopinbos you don't use, and replay the walkthrough." action={<PillLink href="/home/features" size="sm" tone="ink">Open</PillLink>} />
             </Card>

@@ -7,6 +7,8 @@ import { Icon } from "@/components/ui/Icon";
 import { glossaryTerm } from "@shared/glossary";
 import { introDurationMs, type FeatureIntro as Intro } from "@shared/feature-intros";
 import { helpLanguage, type VideoSource } from "@shared/help-videos";
+import { translateIntro, translateTerm } from "@shared/i18n/learn";
+import { useT } from "@/components/i18n/I18nProvider";
 import { C, INTRO_CSS, SceneArtwork } from "./scenes";
 
 // The 60-second feature intro: a navy panel that plays five short motion-graphics scenes (scenes.tsx), each with
@@ -56,7 +58,12 @@ function useHelpVideo(topic: string | undefined, role: string | null) {
   return video;
 }
 
-export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: string | null; onClose: (reason: IntroCloseReason) => void }) {
+export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; role: string | null; onClose: (reason: IntroCloseReason) => void }) {
+  // Captions, title and button in the person's language; the scene art keeps its sample labels.
+  const t = useT("learn");
+  const tIntros = useT("intros");
+  const tGlossary = useT("glossary");
+  const intro = translateIntro(source, tIntros);
   const reduced = usePrefersReducedMotion();
   const video = useHelpVideo(intro.helpTopic, role);
   const [index, setIndex] = useState(0);
@@ -69,7 +76,8 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
   const primaryRef = useRef<HTMLButtonElement>(null);
   const scenes = intro.scenes;
   const scene = scenes[index]!;
-  const term = glossaryTerm(intro.term);
+  const glossaryEntry = glossaryTerm(intro.term);
+  const term = glossaryEntry ? translateTerm(glossaryEntry, tGlossary) : null;
   const still = reduced;
   const playing = !paused && !finished && !still && tab === "intro";
 
@@ -180,7 +188,7 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
 
         {/* Header: segmented progress, eyebrow, close, title */}
         <div className="relative px-4 pt-4 sm:px-7 sm:pt-6">
-          <div className="flex gap-1.5" role="group" aria-label="Scenes">
+          <div className="flex gap-1.5" role="group" aria-label={t("scenes")}>
             {scenes.map((item, i) => (
               <button
                 key={i}
@@ -189,7 +197,7 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
                   setTab("intro");
                   go(i);
                 }}
-                aria-label={`Scene ${i + 1} of ${scenes.length}: ${item.caption}`}
+                aria-label={t("sceneOf", { n: i + 1, total: scenes.length, caption: item.caption })}
                 aria-current={!finished && i === index ? "step" : undefined}
                 className="group relative h-6 flex-1 cursor-pointer"
               >
@@ -201,26 +209,26 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
           </div>
           <div className="mt-2 flex items-center gap-3">
             <span className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: C.mint }}>
-              Learn · {seconds} sec
+              {t("eyebrow", { seconds })}
             </span>
             <span className="flex-1" />
             {!finished && (
               <button type="button" onClick={() => onClose("skip")} className="min-h-[36px] rounded-full px-3 text-[13px] font-bold text-[rgba(244,241,234,0.72)] hover:text-[#F4F1EA]">
-                Skip
+                {t("skip")}
               </button>
             )}
-            <button type="button" onClick={() => onClose(finished ? "done" : "close")} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full bg-[rgba(244,241,234,0.1)] hover:bg-[rgba(244,241,234,0.18)]">
+            <button type="button" onClick={() => onClose(finished ? "done" : "close")} aria-label={t("close")} className="grid h-9 w-9 place-items-center rounded-full bg-[rgba(244,241,234,0.1)] hover:bg-[rgba(244,241,234,0.18)]">
               <Icon name="x" size={16} />
             </button>
           </div>
           <h2 id="feature-intro-title" className="m-0 mt-1 text-[26px] font-extrabold leading-[1.08] tracking-[-0.6px] sm:text-[32px]">
             {intro.title}
             <span className="font-normal italic tracking-[-0.3px]" style={{ fontFamily: "var(--font-accent), Fraunces, Georgia, serif", color: C.mint }}>
-              {" "}in 60 seconds
+              {" "}{t("in60")}
             </span>
           </h2>
           {video && (
-            <div role="tablist" aria-label="How to watch" className="mt-3 inline-flex rounded-full bg-[rgba(244,241,234,0.08)] p-1">
+            <div role="tablist" aria-label={t("howToWatch")} className="mt-3 inline-flex rounded-full bg-[rgba(244,241,234,0.08)] p-1">
               {(["intro", "video"] as const).map((value) => (
                 <button
                   key={value}
@@ -234,7 +242,7 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
                   className="min-h-[34px] rounded-full px-4 text-[13px] font-bold transition"
                   style={tab === value ? { backgroundColor: C.mint, color: C.navy } : { color: "rgba(244,241,234,0.78)" }}
                 >
-                  {value === "intro" ? "Animated intro" : "Watch the video"}
+                  {value === "intro" ? t("animated") : t("watchVideo")}
                 </button>
               ))}
             </div>
@@ -268,18 +276,18 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
                 </div>
                 {finished && term && (
                   <div className="absolute inset-0 flex flex-col justify-center gap-2 px-5 sm:px-10" style={{ backgroundColor: "rgba(10,34,48,0.94)" }}>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: C.mint }}>The word to know</span>
+                    <span className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: C.mint }}>{t("wordToKnow")}</span>
                     <span className="text-[34px] italic leading-none sm:text-[44px]" style={{ fontFamily: "var(--font-accent), Fraunces, Georgia, serif" }}>{term.term}</span>
                     <span className="max-w-[560px] text-[15px] leading-[1.45] sm:text-[17px]">{term.short}</span>
-                    <span className="max-w-[560px] text-[13.5px] leading-[1.45] text-[rgba(244,241,234,0.7)] sm:text-[14.5px]">For example: {term.example}</span>
+                    <span className="max-w-[560px] text-[13.5px] leading-[1.45] text-[rgba(244,241,234,0.7)] sm:text-[14.5px]">{t("forExample", { example: term.example })}</span>
                   </div>
                 )}
               </div>
               <div className="min-h-[96px] pt-4 sm:min-h-[104px]" aria-live="polite">
                 {finished ? (
                   <>
-                    <p className="m-0 text-[19px] font-extrabold leading-[1.25] sm:text-[22px]">That’s it. You’ve got {term?.term ?? intro.title}.</p>
-                    <p className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-[rgba(244,241,234,0.72)] sm:text-[15.5px]">Replay it any time from “Learn · 60s” at the top of this page.</p>
+                    <p className="m-0 text-[19px] font-extrabold leading-[1.25] sm:text-[22px]">{t("thatsIt", { term: term?.term ?? intro.title })}</p>
+                    <p className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-[rgba(244,241,234,0.72)] sm:text-[15.5px]">{t("replayHint")}</p>
                   </>
                 ) : (
                   <div key={`${run}-${index}`} className="animate-slide-up">
@@ -297,7 +305,7 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
           {finished ? (
             <>
               <button type="button" onClick={replay} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[rgba(244,241,234,0.2)] px-4 text-[14px] font-bold hover:bg-[rgba(244,241,234,0.08)]">
-                <Icon name="refresh" size={15} /> Replay
+                <Icon name="refresh" size={15} /> {t("replay")}
               </button>
               <span className="flex-1" />
               {intro.cta && (
@@ -311,12 +319,12 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
                 </Link>
               )}
               <button ref={primaryRef} type="button" onClick={() => onClose("done")} className="inline-flex min-h-[44px] items-center rounded-full px-6 text-[14.5px] font-extrabold" style={{ backgroundColor: C.mint, color: C.navy }}>
-                Got it
+                {t("gotIt")}
               </button>
             </>
           ) : (
             <>
-              <button type="button" onClick={() => go(index - 1)} disabled={index === 0 || tab !== "intro"} aria-label="Previous scene" className="grid h-11 w-11 place-items-center rounded-full border border-[rgba(244,241,234,0.2)] hover:bg-[rgba(244,241,234,0.08)] disabled:opacity-35">
+              <button type="button" onClick={() => go(index - 1)} disabled={index === 0 || tab !== "intro"} aria-label={t("previousScene")} className="grid h-11 w-11 place-items-center rounded-full border border-[rgba(244,241,234,0.2)] hover:bg-[rgba(244,241,234,0.08)] disabled:opacity-35">
                 <Icon name="chevRight" size={16} className="rotate-180" />
               </button>
               {!still && (
@@ -327,7 +335,7 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
                     setTab("intro");
                     setPaused(!paused);
                   }}
-                  aria-label={paused ? "Play" : "Pause"}
+                  aria-label={paused ? t("play") : t("pause")}
                   className="grid h-12 w-12 place-items-center rounded-full"
                   style={{ backgroundColor: C.mint, color: C.navy }}
                 >
@@ -341,14 +349,14 @@ export function FeatureIntro({ intro, role, onClose }: { intro: Intro; role: str
                   setTab("intro");
                   go(index + 1);
                 }}
-                aria-label="Next scene"
+                aria-label={t("nextScene")}
                 className={still ? "inline-flex min-h-[44px] items-center gap-2 rounded-full px-5 text-[14px] font-extrabold" : "grid h-11 w-11 place-items-center rounded-full border border-[rgba(244,241,234,0.2)] hover:bg-[rgba(244,241,234,0.08)]"}
                 style={still ? { backgroundColor: C.mint, color: C.navy } : undefined}
               >
-                {still && "Next"}
+                {still && t("next")}
                 <Icon name="chevRight" size={16} />
               </button>
-              <button type="button" onClick={replay} aria-label="Replay from the start" className="grid h-11 w-11 place-items-center rounded-full text-[rgba(244,241,234,0.75)] hover:bg-[rgba(244,241,234,0.08)] hover:text-[#F4F1EA]">
+              <button type="button" onClick={replay} aria-label={t("replayFromStart")} className="grid h-11 w-11 place-items-center rounded-full text-[rgba(244,241,234,0.75)] hover:bg-[rgba(244,241,234,0.08)] hover:text-[#F4F1EA]">
                 <Icon name="refresh" size={16} />
               </button>
               <span className="flex-1" />

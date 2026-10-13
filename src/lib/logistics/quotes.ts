@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { DeliveryQuoteResponseSchema } from "@/lib/schemas";
+import { notifyDeliveryQuoteAnswered } from "@/lib/notifications/events.server";
 
 // A partner's reply to a seller's delivery quote request: a price (with an optional note and expiry) or a decline.
 // Shared by the portal's quote forms and POST /v1/partner/quotes so both follow the same rules.
@@ -38,6 +39,7 @@ export async function replyToQuote(input: {
   // Only a still-pending quote is updated, so two replies at once can't both win.
   const updated = await db.deliveryQuoteRequest.updateMany({ where: { id: quote.id, status: "pending" }, data });
   if (updated.count === 0) return { ok: false, code: "CONFLICT", error: "You've already answered this quote request." };
+  await notifyDeliveryQuoteAnswered(quote.id);
   const saved = await db.deliveryQuoteRequest.findUniqueOrThrow({
     where: { id: quote.id },
     select: { id: true, status: true, quotedPrice: true, partnerResponse: true, expiresAt: true },

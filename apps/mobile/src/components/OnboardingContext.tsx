@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { BRAND_LOOKS, BRAND_PALETTES, shopSlug, type BrandLook, type BrandPalette, type OnboardingLanguage } from "@shared/onboarding";
+import { BRAND_LOOKS, BRAND_PALETTES, ONBOARDING_LANGUAGES, shopSlug, type BrandLook, type BrandPalette, type OnboardingLanguage } from "@shared/onboarding";
+import { localeFromName } from "@shared/i18n";
+import { useLocale } from "@/lib/i18n";
 import { buildStore, fetchStatus, type OnboardingStatus } from "@/lib/onboarding";
 
 interface OnboardingState {
@@ -25,7 +27,9 @@ const Context = createContext<OnboardingState | null>(null);
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lang, setLang] = useState<OnboardingLanguage>("English");
+  // Rex chats in the app language to start with (the first step's chips change both).
+  const appLocale = useLocale();
+  const [lang, setLang] = useState<OnboardingLanguage>(() => ONBOARDING_LANGUAGES.find((item) => localeFromName(item) === appLocale) ?? "English");
   const [description, setDescription] = useState("");
   const [palette, setPalette] = useState<BrandPalette>(BRAND_PALETTES[0]);
   const [look, setLook] = useState<BrandLook>(BRAND_LOOKS[0]);

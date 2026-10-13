@@ -1,9 +1,12 @@
-import "expo-sqlite/localStorage/install";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useLocale, useSetLocale } from "./i18n";
 
 // Every word the Riders app shows, in one place so translators can add languages (spec 8A: English and Pidgin
 // first, then Yorùbá and Hausa). To add a language: add its code to RIDER_LANGS and a full block to STRINGS.
 // Pidgin here follows the prototype ("Same app in Pidgin"); have a native speaker check new lines before release.
+// The language itself is the app language (apps/mobile/src/lib/i18n.tsx, shared/i18n): choosing English or Pidgin
+// here changes it for the whole app, and a rider whose app is in another language sees English rider words until
+// that language has a block below.
 
 export const RIDER_LANGS = [
   { code: "en", label: "English" },
@@ -155,29 +158,17 @@ const pcm: Strings = {
 
 export const STRINGS: Record<RiderLang, Strings> = { en, pcm };
 
-const LANG_KEY = "shopinbos.rider.lang";
-
-function savedLang(): RiderLang {
-  try {
-    const value = localStorage.getItem(LANG_KEY);
-    return RIDER_LANGS.some((lang) => lang.code === value) ? (value as RiderLang) : "en";
-  } catch {
-    return "en";
-  }
-}
-
 export type RiderT = Strings;
 
-/** The rider's language (kept on this phone) and its strings. */
+function isRiderLang(value: string): value is RiderLang {
+  return RIDER_LANGS.some((lang) => lang.code === value);
+}
+
+/** The rider's language (the app language, kept on this phone) and its strings. */
 export function useRiderStrings() {
-  const [lang, setLangState] = useState<RiderLang>(savedLang);
-  const setLang = useCallback((next: RiderLang) => {
-    setLangState(next);
-    try {
-      localStorage.setItem(LANG_KEY, next);
-    } catch {
-      // Storage unavailable: the choice lasts until the app closes.
-    }
-  }, []);
+  const locale = useLocale();
+  const setLocale = useSetLocale();
+  const lang: RiderLang = isRiderLang(locale) ? locale : "en";
+  const setLang = useCallback((next: RiderLang) => void setLocale(next), [setLocale]);
   return { lang, setLang, t: STRINGS[lang] };
 }

@@ -8,6 +8,8 @@ import { introDurationMs, type FeatureIntro } from "@shared/feature-intros";
 import { HelpVideoPlayer } from "@/components/HelpVideoPlayer";
 import { api } from "@/lib/api";
 import { helpVideoLanguage, type HelpVideoItem } from "@/lib/help-videos";
+import { translateIntro, translateTerm } from "@shared/i18n/learn";
+import { useT } from "@/lib/i18n";
 import { fonts } from "@/theme";
 import { ANIM_MS, LC, MONO, SceneBoard } from "./scenes";
 
@@ -79,7 +81,12 @@ function useTopicVideo(topic: string | undefined, role: string | null, path: str
   return video;
 }
 
-export function FeatureIntroSheet({ intro, role, path, onClose }: { intro: FeatureIntro; role: string | null; path: string; onClose: (reason: "done" | "skip" | "close") => void }) {
+export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intro: FeatureIntro; role: string | null; path: string; onClose: (reason: "done" | "skip" | "close") => void }) {
+  // Captions, title and recap in the app language; the scene art keeps its sample labels.
+  const tl = useT("learn");
+  const tIntros = useT("intros");
+  const tGlossary = useT("glossary");
+  const intro = translateIntro(source, tIntros);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const still = useReduceMotion();
@@ -94,7 +101,8 @@ export function FeatureIntroSheet({ intro, role, path, onClose }: { intro: Featu
   const [loop] = useState(() => new Animated.Value(0));
   const scenes = intro.scenes;
   const scene = scenes[index]!;
-  const term = glossaryTerm(intro.term);
+  const glossaryEntry = glossaryTerm(intro.term);
+  const term = glossaryEntry ? translateTerm(glossaryEntry, tGlossary) : null;
   const playing = !paused && !finished && !still && tab === "intro";
   const boardWidth = Math.min(screenWidth - 32, 560);
 
@@ -166,27 +174,27 @@ export function FeatureIntroSheet({ intro, role, path, onClose }: { intro: Featu
         </Svg>
 
         <View style={{ paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Scene ${index + 1} of ${scenes.length}`}>
+          <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={tl("sceneProgress", { n: index + 1, total: scenes.length })}>
             {scenes.map((item, i) => (
-              <Pressable key={i} onPress={() => go(i)} accessibilityRole="button" accessibilityLabel={`Scene ${i + 1}: ${item.caption}`} hitSlop={{ top: 10, bottom: 10 }} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "rgba(244,241,234,0.16)", overflow: "hidden" }}>
+              <Pressable key={i} onPress={() => go(i)} accessibilityRole="button" accessibilityLabel={tl("sceneOf", { n: i + 1, total: scenes.length, caption: item.caption })} hitSlop={{ top: 10, bottom: 10 }} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "rgba(244,241,234,0.16)", overflow: "hidden" }}>
                 <View style={{ width: `${progress(i) * 100}%`, height: 4, borderRadius: 2, backgroundColor: LC.mint }} />
               </Pressable>
             ))}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 }}>
-            <Text style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 1.8, color: LC.mint, flex: 1 }}>LEARN · {seconds} SEC</Text>
+            <Text style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 1.8, color: LC.mint, flex: 1 }}>{tl("eyebrow", { seconds }).toUpperCase()}</Text>
             {!finished && (
               <Pressable accessibilityRole="button" onPress={() => onClose("skip")} hitSlop={8} style={{ minHeight: 40, paddingHorizontal: 12, justifyContent: "center" }}>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: "rgba(244,241,234,0.75)" }}>Skip</Text>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: "rgba(244,241,234,0.75)" }}>{tl("skip")}</Text>
               </Pressable>
             )}
-            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => onClose(finished ? "done" : "close")} hitSlop={6} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(244,241,234,0.1)", alignItems: "center", justifyContent: "center" }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={tl("close")} onPress={() => onClose(finished ? "done" : "close")} hitSlop={6} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(244,241,234,0.1)", alignItems: "center", justifyContent: "center" }}>
               <Glyph name="x" size={16} />
             </Pressable>
           </View>
           <Text accessibilityRole="header" style={{ fontFamily: fonts.extrabold, fontSize: 28, lineHeight: 33, color: LC.cream, marginTop: 6, letterSpacing: -0.6 }}>
             {intro.title}
-            <Text style={{ fontFamily: SERIF, fontStyle: "italic", fontWeight: "400", color: LC.mint }}> in 60 seconds</Text>
+            <Text style={{ fontFamily: SERIF, fontStyle: "italic", fontWeight: "400", color: LC.mint }}> {tl("in60")}</Text>
           </Text>
           {video && (
             <View style={{ flexDirection: "row", alignSelf: "flex-start", marginTop: 12, padding: 4, borderRadius: 999, backgroundColor: "rgba(244,241,234,0.08)" }} accessibilityRole="tablist">
@@ -201,7 +209,7 @@ export function FeatureIntroSheet({ intro, role, path, onClose }: { intro: Featu
                   }}
                   style={{ minHeight: 36, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: tab === value ? LC.mint : "transparent" }}
                 >
-                  <Text style={{ fontFamily: fonts.bold, fontSize: 13.5, color: tab === value ? LC.navy : "rgba(244,241,234,0.8)" }}>{value === "intro" ? "Animated intro" : "Watch the video"}</Text>
+                  <Text style={{ fontFamily: fonts.bold, fontSize: 13.5, color: tab === value ? LC.navy : "rgba(244,241,234,0.8)" }}>{value === "intro" ? tl("animated") : tl("watchVideo")}</Text>
                 </Pressable>
               ))}
             </View>
@@ -234,16 +242,16 @@ export function FeatureIntroSheet({ intro, role, path, onClose }: { intro: Featu
                 <SceneBoard key={`${run}-${index}`} scene={scene} width={boardWidth} t={t} loop={loop} paused={!playing} still={still} />
                 {finished && term && (
                   <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(10,34,48,0.95)", justifyContent: "center", paddingHorizontal: 20, gap: 6 }}>
-                    <Text style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: 1.8, color: LC.mint }}>THE WORD TO KNOW</Text>
+                    <Text style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: 1.8, color: LC.mint }}>{tl("wordToKnow").toUpperCase()}</Text>
                     <Text style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 34, color: LC.cream }}>{term.term}</Text>
                     <Text style={{ fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: LC.cream }}>{term.short}</Text>
                   </View>
                 )}
               </View>
               <View style={{ minHeight: 110, paddingTop: 18 }} accessibilityLiveRegion="polite">
-                <Text style={{ fontFamily: fonts.extrabold, fontSize: 21, lineHeight: 27, color: LC.cream }}>{finished ? `That’s it. You’ve got ${term?.term ?? intro.title}.` : scene.caption}</Text>
+                <Text style={{ fontFamily: fonts.extrabold, fontSize: 21, lineHeight: 27, color: LC.cream }}>{finished ? tl("thatsIt", { term: term?.term ?? intro.title }) : scene.caption}</Text>
                 <Text style={{ fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, color: "rgba(244,241,234,0.74)", marginTop: 6 }}>
-                  {finished ? `For example: ${term?.example ?? ""}` : scene.sub}
+                  {finished ? tl("forExample", { example: term?.example ?? "" }) : scene.sub}
                 </Text>
               </View>
             </>
@@ -255,34 +263,34 @@ export function FeatureIntroSheet({ intro, role, path, onClose }: { intro: Featu
             <>
               <Pressable accessibilityRole="button" onPress={replay} style={{ minHeight: 48, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1, borderColor: "rgba(244,241,234,0.22)", flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Glyph name="replay" size={16} />
-                <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: LC.cream }}>Replay</Text>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: LC.cream }}>{tl("replay")}</Text>
               </Pressable>
               <View style={{ flex: 1 }} />
               <Pressable testID="feature-intro-done" accessibilityRole="button" onPress={() => onClose("done")} style={{ minHeight: 48, paddingHorizontal: 26, borderRadius: 999, backgroundColor: LC.mint, justifyContent: "center" }}>
-                <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.navy }}>Got it</Text>
+                <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.navy }}>{tl("gotIt")}</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <RoundButton label="Previous scene" onPress={() => go(index - 1)} disabled={index === 0}>
+              <RoundButton label={tl("previousScene")} onPress={() => go(index - 1)} disabled={index === 0}>
                 <Glyph name="prev" />
               </RoundButton>
               {!still && (
-                <RoundButton label={paused ? "Play" : "Pause"} filled size={52} onPress={() => { setTab("intro"); setPaused(!paused); }}>
+                <RoundButton label={paused ? tl("play") : tl("pause")} filled size={52} onPress={() => { setTab("intro"); setPaused(!paused); }}>
                   <Glyph name={paused ? "play" : "pause"} color={LC.navy} size={20} />
                 </RoundButton>
               )}
               {still ? (
                 <Pressable accessibilityRole="button" onPress={() => go(index + 1)} style={{ minHeight: 48, paddingHorizontal: 22, borderRadius: 999, backgroundColor: LC.mint, flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.navy }}>Next</Text>
+                  <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.navy }}>{tl("next")}</Text>
                   <Glyph name="next" color={LC.navy} size={16} />
                 </Pressable>
               ) : (
-                <RoundButton label="Next scene" onPress={() => go(index + 1)}>
+                <RoundButton label={tl("nextScene")} onPress={() => go(index + 1)}>
                   <Glyph name="next" />
                 </RoundButton>
               )}
-              <RoundButton label="Replay from the start" onPress={replay}>
+              <RoundButton label={tl("replayFromStart")} onPress={replay}>
                 <Glyph name="replay" size={17} />
               </RoundButton>
               <View style={{ flex: 1 }} />

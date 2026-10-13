@@ -159,7 +159,7 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
     description: note.description,
     link: `/marketplace/product/${order.supplierProductId}`,
     sendEmail: next !== "delivered",
-    event: next === "accepted" ? "supplier.accepted" : next === "rejected" ? "supplier.declined" : "supplier.update",
+    event: next === "confirmed" ? "supplier.accepted" : next === "cancelled" ? "supplier.declined" : "supplier.update",
     dedupeKey: `supplier.${next}:wholesale:${order.id}`,
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: next } };

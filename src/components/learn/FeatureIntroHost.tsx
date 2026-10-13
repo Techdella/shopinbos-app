@@ -6,6 +6,7 @@ import { introByKey, introForPath, type FeatureIntro as Intro } from "@shared/fe
 import { introsSeenLocally, usePreferences } from "@/components/shell/useShellCounts";
 import { FeatureIntro } from "./FeatureIntro";
 import { OPEN_INTRO_EVENT, openFeatureIntro } from "./Term";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Mounted once in the app shell (AppFrame). Picks the 60-second intro for the current page and opens it by itself
 // the first time a person visits one of its pages, once per person per intro:
@@ -93,19 +94,21 @@ export function FeatureIntroHost({ role }: { role: string }) {
 export function LearnPill({ role, className = "" }: { role: string; className?: string }) {
   const pathname = usePathname();
   const intro = introForPath(pathname, role);
+  const t = useT("learn");
+  const tIntros = useT("intros");
   if (!intro) return null;
   return (
     <button
       type="button"
       onClick={() => openFeatureIntro(intro.key)}
       data-learn-pill={intro.key}
-      title={`${intro.title} in 60 seconds`}
+      title={t("pillTitle", { title: tIntros.dynamic(`${intro.key}.title`, intro.title) })}
       className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#0E2A38]/10 bg-[#0E2A38] pl-1.5 pr-4 text-[13.5px] font-extrabold text-[#F4F1EA] transition hover:bg-[#143A4C] ${className}`}
     >
       <span className="grid h-8 w-8 place-items-center rounded-full bg-[#73D8C8] text-[#0E2A38]">
         <svg aria-hidden width="11" height="11" viewBox="0 0 10 10"><path d="M2.2 1 L9 5 L2.2 9 Z" fill="currentColor" /></svg>
       </span>
-      Learn
+      {t("pill")}
       <span className="font-mono text-[11px] font-medium tracking-[0.08em] text-[#73D8C8]">60s</span>
     </button>
   );

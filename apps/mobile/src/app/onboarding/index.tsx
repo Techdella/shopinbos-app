@@ -9,6 +9,8 @@ import { useOnboarding } from "@/components/OnboardingContext";
 import { askRex, saveMemory } from "@/lib/onboarding";
 import { colors, fonts, radii } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
+import { localeFromName } from "@shared/i18n";
+import { useLocale, useSetLocale, useT } from "@/lib/i18n";
 
 interface Turn {
   from: "rex" | "me";
@@ -16,7 +18,16 @@ interface Turn {
 }
 
 export default function Chat() {
-  const { status, lang, setLang, description, setDescription } = useOnboarding();
+  const { status, lang, setLang: setRexLang, description, setDescription } = useOnboarding();
+  // One choice for Rex's chat language and the app language (shared/i18n).
+  const appLocale = useLocale();
+  const setAppLocale = useSetLocale();
+  const tSettings = useT("settings");
+  const setLang = (item: (typeof ONBOARDING_LANGUAGES)[number]) => {
+    setRexLang(item);
+    const locale = localeFromName(item);
+    if (locale && locale !== appLocale) void setAppLocale(locale);
+  };
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>(() => (description ? [{ from: "me", text: description }] : []));
   const [thinking, setThinking] = useState(false);
@@ -87,6 +98,7 @@ export default function Chat() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
         {ONBOARDING_LANGUAGES.map((item) => <Chip key={item} label={item} on={lang === item} onPress={() => setLang(item)} />)}
       </View>
+      <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 8 }}>{tSettings("language.onboarding")}</T>
       <View style={{ gap: 12, marginTop: 18 }}>
         {turns.map((turn, index) =>
           turn.from === "me" ? (

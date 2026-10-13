@@ -1,0 +1,37 @@
+// The 60-second intro player and Term tooltips (web src/components/learn, phone apps/mobile/src/components/learn).
+// The intros' own words are in the "intros" namespace; the glossary's in "glossary".
+const en = {
+  pill: "Learn",
+  pillTitle: "{title} in 60 seconds",
+  eyebrow: "Learn · {seconds} sec",
+  in60: "in 60 seconds",
+  skip: "Skip",
+  close: "Close",
+  replay: "Replay",
+  replayFromStart: "Replay from the start",
+  gotIt: "Got it",
+  next: "Next",
+  previousScene: "Previous scene",
+  nextScene: "Next scene",
+  play: "Play",
+  pause: "Pause",
+  scenes: "Scenes",
+  sceneOf: "Scene {n} of {total}: {caption}",
+  sceneProgress: "Scene {n} of {total}",
+  howToWatch: "How to watch",
+  animated: "Animated intro",
+  watchVideo: "Watch the video",
+  wordToKnow: "The word to know",
+  forExample: "For example: {example}",
+  forExampleLabel: "For example",
+  eg: "e.g. {example}",
+  thatsIt: "That’s it. You’ve got {term}.",
+  replayHint: "Replay it any time from “Learn · 60s” at the top of this page.",
+  watchIntro: "Watch 60-sec intro",
+  watchIntroLong: "Watch the 60-sec intro",
+  whatItMeans: "{term}: what it means",
+  whatItMeansSr: ", what it means",
+  explains: "Explains {term}",
+} satisfies Record<string, string>;
+
+export default en;

@@ -12,6 +12,8 @@ import { fetchSupplierOverview } from "@/lib/supplier";
 import { countWord } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
 
 // Supplier Home (build spec 8A, "Simple supplier app"): the money shops have earned you, at most three "Do these
 // next" items, and nothing else. Numbers from /api/mobile/supplier/overview.
@@ -38,7 +40,8 @@ export default function SupplierHome() {
 
   return (
     <PartnerScroll refreshing={overview.refreshing} onRefresh={() => void overview.refresh()}>
-      <PartnerHeader eyebrow={data?.firstName ? `Good day, ${data.firstName}` : "Shopinbos"} name={data?.supplier.name ?? "Your business"} logoUrl={data?.supplier.logoUrl} right={<HelpButton />} />
+      <PartnerHeader eyebrow={data?.firstName ? `Good day, ${data.firstName}` : "Shopinbos"} name={data?.supplier.name ?? "Your business"} logoUrl={data?.supplier.logoUrl} right={<View style={{ flexDirection: "row", gap: 6 }}><NotificationBellButton /><HelpButton /></View>} />
+      <PushPromptCard who="supplier" when={Boolean(data)} />
 
       {overview.loading && !data ? <LoadingBlock label="Loading…" /> : null}
       {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} /> : null}

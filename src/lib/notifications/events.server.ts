@@ -308,7 +308,7 @@ export function notifySupplierQuoteRequested(quoteId: string) {
       type: "suppliers",
       title: "New quote request",
       description: `A shop wants ${quote.quantity.toLocaleString("en-NG")} × ${short(quote.supplierProduct?.name, 60) || "your product"}. Send your price.`,
-      link: `/supplier/quotes/${quote.id}`,
+      link: `/supplier/quotes?quote=${quote.id}`,
       actionLabel: "Send a price",
       metadata: { supplierQuoteId: quote.id },
       dedupeKey: `quote.request:${quote.id}`,
@@ -371,4 +371,14 @@ export function notifyVerificationDecision(input: { userId: string; status: stri
 /** Something for the team to check (verification documents, a product waiting for review). */
 export function notifyAdminsToReview(input: { title: string; description: string; link: string; dedupeKey: string }) {
   return safely("admin review", () => notifyAdmins({ event: "admin.review", type: "system", priority: "warning", title: input.title, description: input.description, link: input.link, actionLabel: "Review", dedupeKey: input.dedupeKey }));
+}
+
+/** A supplier sent a product for review. */
+export function notifyProductForReview(productId: string, name: string, supplierName?: string | null) {
+  return notifyAdminsToReview({
+    title: `New product to review: ${short(name, 50)}`,
+    description: `${short(supplierName, 40) || "A supplier"} sent it for review. Approve it so shops can sell it.`,
+    link: "/admin/supplier-products?status=pending_review",
+    dedupeKey: `admin.product:${productId}:${new Date().toISOString().slice(0, 10)}`,
+  });
 }

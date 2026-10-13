@@ -17,6 +17,8 @@ import { useSession } from "@/lib/session";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openPath } from "@/lib/web";
 import { colors } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
 
 // Seller Home (build spec 8A, "Simple app" prototype): today's sales, at most three "Do these next" items and one
 // line about Peggy. Nothing else; everything else is in My shop or the orange +.
@@ -93,8 +95,12 @@ export default function Home() {
               <T style={{ color: colors.inkSoft, fontSize: 15 }}>{greeting()}</T>
               <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{firstName || " "}</T>
             </View>
+            <NotificationBellButton />
             <HelpButton />
           </View>
+
+          {/* After the first sale: the moment a push matters. */}
+          {data?.counts.ordersToday ? <View style={{ marginTop: 14 }}><PushPromptCard who="seller" /></View> : null}
 
           <View style={{ backgroundColor: colors.surface, borderRadius: 26, padding: 20, marginTop: 18, gap: 4 }}>
             <T style={{ color: colors.inkSoft, fontSize: 16 }}>You sold today</T>

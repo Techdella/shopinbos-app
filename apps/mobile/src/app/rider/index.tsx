@@ -13,6 +13,7 @@ import { useRiderLocation } from "@/lib/rider-location";
 import { RIDER_LANGS, STRINGS, useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
 
 // Shopinbos Riders (spec 8A, "Simple supplier, delivery and rider apps"): no tabs, one screen at a time with very
 // large buttons. Home: language, Online switch, earned today and cash with you, and the next delivery
@@ -172,6 +173,7 @@ export default function RiderApp() {
 
         {step === "home" || (!drop && step !== "done") ? (
           <>
+            <PushPromptCard who="rider" when={Boolean(data)} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.appName}{data ? ` · ${data.rider.partnerName}` : ""}</T>

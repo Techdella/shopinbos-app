@@ -1,5 +1,7 @@
 // Per-person app preferences (User.preferences JSON): menu items switched off in "Customise your menu",
-// the guided walkthrough's progress and which 60-second feature intros they've seen. Pure helpers, unit-tested.
+// the guided walkthrough's progress, which 60-second feature intros they've seen and the app language. Pure
+// helpers, unit-tested.
+import { isLocale, type Locale } from "./i18n/index.ts";
 
 export interface AppPreferences {
   /** Nav item ids (see src/lib/nav.ts) the person switched off. */
@@ -8,6 +10,8 @@ export interface AppPreferences {
   tour: "done" | null;
   /** Feature intros (shared/feature-intros.ts keys) already shown, newest last. Left out while empty. */
   introsSeen?: string[];
+  /** App language (shared/i18n); left out until they pick one (the device's language is used meanwhile). */
+  language?: Locale;
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = { hiddenNav: [], tour: null };
@@ -29,7 +33,12 @@ export function parsePreferences(raw: unknown): AppPreferences {
     ? [...new Set(value.hiddenNav.filter((id): id is string => typeof id === "string" && /^[\w-]{1,48}$/.test(id)))].slice(0, 100)
     : [];
   const introsSeen = parseIntros(value.introsSeen);
-  return { hiddenNav, tour: value.tour === "done" ? "done" : null, ...(introsSeen.length ? { introsSeen } : {}) };
+  return {
+    hiddenNav,
+    tour: value.tour === "done" ? "done" : null,
+    ...(introsSeen.length ? { introsSeen } : {}),
+    ...(isLocale(value.language) ? { language: value.language } : {}),
+  };
 }
 
 /**
@@ -44,5 +53,6 @@ export function mergePreferences(current: AppPreferences, patch: Partial<AppPref
     const merged = parseIntros([...(current.introsSeen ?? []).filter((key) => !patch.introsSeen!.includes(key)), ...patch.introsSeen]);
     if (merged.length) next.introsSeen = merged;
   }
+  if (isLocale(patch.language)) next.language = patch.language;
   return next;
 }

@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { HelpButton } from "@/components/Help";
+import { LanguageRow } from "@/components/LanguagePicker";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
 import { Card, LinkButton, PillButton, T } from "@/components/ui";
@@ -51,6 +52,7 @@ export const SHOP_GROUPS: { title: string; links: ShopLink[] }[] = [
     links: [
       { label: "Auto-replies", icon: "clock", path: "app:/inbox/auto-replies", hint: "Away message and opening hours" },
       { label: "Peggy chatbot", icon: "bot", path: "app:/inbox/chatbot", hint: "Answers shoppers on your shop's chat, day and night" },
+      { label: "Notifications", icon: "bell", path: "app:/notifications", hint: "Orders, payments and messages, and what buzzes your phone" },
       { label: "Settings", icon: "settings", path: "web:/home/settings", hint: "Your details, team, notifications. Opens in your browser" },
       { label: "Legal pages", icon: "doc", path: "app:/legal", hint: "Refunds, delivery, privacy" },
       { label: "Help", icon: "help", path: "app:/help", hint: "A person, or Peggy" },
@@ -140,6 +142,9 @@ export default function MyShop() {
           </Card>
         </View>
       ))}
+      <Card style={{ paddingVertical: 2, marginBottom: 14 }}>
+        <LanguageRow first />
+      </Card>
       <View style={{ marginTop: 4 }}>
         <LinkButton title="Log out" color={colors.danger} onPress={() => void signOut().then(() => router.replace("/welcome"))} />
       </View>

@@ -13,6 +13,8 @@ import { verificationStage } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
 
 // Delivery partner "Today" (spec 8A, "Simple supplier, delivery and rider apps"): a big "Taking new jobs" switch,
 // today's deliveries and earnings, the newest job with "Accept and assign", and the cash to pay in by 6pm.
@@ -66,12 +68,14 @@ export default function LogisticsToday() {
         logoUrl={data?.partner.logoUrl}
         right={
           <View style={{ flexDirection: "row", gap: 6 }}>
+            <NotificationBellButton />
             <HeaderButton icon="chat" label="Messages" onPress={() => router.push("/logistics/messages")} />
             <HeaderButton icon="grid" label="Menu" onPress={() => router.push("/logistics/menu")} />
           </View>
         }
       />
 
+      <PushPromptCard who="logistics" when={Boolean(data)} />
       {overview.loading && !data ? <LoadingBlock label="Loading today…" /> : null}
       {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/logistics/dashboard") }} /> : null}
 

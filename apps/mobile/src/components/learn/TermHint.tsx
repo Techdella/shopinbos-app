@@ -4,6 +4,8 @@ import { glossaryTerm } from "@shared/glossary";
 import { introByKey } from "@shared/feature-intros";
 import { Sheet } from "@/components/Sheet";
 import { T } from "@/components/ui";
+import { translateTerm } from "@shared/i18n/learn";
+import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 import { openFeatureIntro } from "./events";
 import { LC } from "./scenes";
@@ -13,15 +15,19 @@ import { LC } from "./scenes";
 // there is one, the 60-second intro.
 
 export function TermHint({ k, children, style }: { k: string; children?: ReactNode; style?: StyleProp<TextStyle> }) {
-  const entry = glossaryTerm(k);
+  const source = glossaryTerm(k);
   const [open, setOpen] = useState(false);
+  const t = useT("learn");
+  const tGlossary = useT("glossary");
+  // The meaning and example in the app language; the word itself stays the standard one.
+  const entry = source ? translateTerm(source, tGlossary) : null;
   if (!entry) return <Text style={style}>{children}</Text>;
   const intro = introByKey(entry.introKey);
   return (
     <>
       <Text
         accessibilityRole="button"
-        accessibilityHint={`Explains ${entry.term}`}
+        accessibilityHint={t("explains", { term: entry.term })}
         onPress={() => setOpen(true)}
         suppressHighlighting
         style={[{ textDecorationLine: "underline", textDecorationStyle: "dotted", textDecorationColor: colors.inkFaint }, style]}
@@ -32,7 +38,7 @@ export function TermHint({ k, children, style }: { k: string; children?: ReactNo
       <Sheet visible={open} onClose={() => setOpen(false)} title={entry.term} testID="term-hint">
         <T style={{ fontSize: 17, lineHeight: 25 }}>{entry.short}</T>
         <View style={{ borderRadius: 18, backgroundColor: colors.mintTint, padding: 14 }}>
-          <T weight="bold" style={{ fontSize: 13, color: colors.forest }}>For example</T>
+          <T weight="bold" style={{ fontSize: 13, color: colors.forest }}>{t("forExampleLabel")}</T>
           <T style={{ fontSize: 15.5, lineHeight: 22, marginTop: 2 }}>{entry.example}</T>
         </View>
         {intro ? (
@@ -47,7 +53,7 @@ export function TermHint({ k, children, style }: { k: string; children?: ReactNo
             <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: LC.mint, alignItems: "center", justifyContent: "center" }}>
               <Text style={{ color: LC.navy, fontSize: 12 }}>▶</Text>
             </View>
-            <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.cream }}>Watch the 60-sec intro</Text>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.cream }}>{t("watchIntroLong")}</Text>
           </Pressable>
         ) : null}
       </Sheet>

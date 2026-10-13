@@ -145,6 +145,8 @@ test("every seller and supplier page header has a labelled Help button that open
   assert.match(read("src/components/seller/SellerPage.tsx"), /<HelpButton \/>/);
   assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? \(\s*<>\{actions\}<LearnPill role=\{frame\.role\} \/><HelpButton \/><\/>/);
   const help = read("src/components/simple/HelpButton.tsx");
-  assert.match(help, /<Icon name="chat" size=\{16\} \/> Help/);
+  // The label is "Help" in English, shown in the person's language (shared/i18n "common" catalog).
+  assert.match(help, /<Icon name="chat" size=\{16\} \/> \{t\("help"\)\}/);
+  assert.match(read("shared/i18n/messages/common/en.ts"), /help: "Help",/);
   assert.match(read("src/components/shell/Sidebar.tsx"), /window\.addEventListener\(OPEN_HELP_EVENT, open\)/);
 });

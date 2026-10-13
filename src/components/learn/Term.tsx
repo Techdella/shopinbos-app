@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { createPortal } from "react-dom";
 import { findTerm, glossaryTerm, type GlossaryEntry } from "@shared/glossary";
 import { introByKey } from "@shared/feature-intros";
+import { translateTerm } from "@shared/i18n/learn";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // <Term k="segments">Segments</Term>: the standard word with a dotted underline and a tiny info dot. Hover or
 // keyboard focus shows a tooltip; a tap (or click) opens it as a small dialog with a close button. Escape closes
@@ -21,7 +23,10 @@ const NAVY = "#0E2A38";
 const MINT = "#73D8C8";
 
 /** The tooltip body, shared with the sidebar's hover tips. */
-export function TermCard({ entry, onWatch, compact = false }: { entry: GlossaryEntry; onWatch?: () => void; compact?: boolean }) {
+export function TermCard({ entry: source, onWatch, compact = false }: { entry: GlossaryEntry; onWatch?: () => void; compact?: boolean }) {
+  // The meaning and example in the person's language (the word itself stays the standard one).
+  const t = useT("learn");
+  const entry = translateTerm(source, useT("glossary"));
   const intro = introByKey(entry.introKey);
   return (
     <div className="font-app text-[#F4F1EA]">
@@ -30,7 +35,7 @@ export function TermCard({ entry, onWatch, compact = false }: { entry: GlossaryE
         <span className="text-[14px] font-extrabold">{entry.term}</span>
       </div>
       <p className="m-0 mt-1 text-[13.5px] leading-[1.45]">{entry.short}</p>
-      {!compact && <p className="m-0 mt-1.5 text-[12.5px] leading-[1.45] text-[rgba(244,241,234,0.7)]">e.g. {entry.example}</p>}
+      {!compact && <p className="m-0 mt-1.5 text-[12.5px] leading-[1.45] text-[rgba(244,241,234,0.7)]">{t("eg", { example: entry.example })}</p>}
       {intro && (
         <button
           type="button"
@@ -42,7 +47,7 @@ export function TermCard({ entry, onWatch, compact = false }: { entry: GlossaryE
           style={{ background: MINT, color: NAVY }}
         >
           <svg aria-hidden width="10" height="10" viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="currentColor" /></svg>
-          Watch 60-sec intro
+          {t("watchIntro")}
         </button>
       )}
     </div>
@@ -62,6 +67,7 @@ function place(rect: DOMRect, width: number, height: number) {
 
 export function Term({ k, children, className = "" }: { k: string; children?: ReactNode; className?: string }) {
   const entry = glossaryTerm(k);
+  const t = useT("learn", "common");
   const id = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -133,14 +139,14 @@ export function Term({ k, children, className = "" }: { k: string; children?: Re
             ref={cardRef}
             id={id}
             role={mode === "tip" ? "tooltip" : "dialog"}
-            aria-label={mode === "dialog" ? `${entry.term}: what it means` : undefined}
+            aria-label={mode === "dialog" ? t("whatItMeans", { term: entry.term }) : undefined}
             onMouseEnter={() => window.clearTimeout(timer.current)}
             onMouseLeave={mode === "tip" ? hideTip : undefined}
             className={CARD_CLASS}
             style={{ background: NAVY, width: Math.min(300, typeof window === "undefined" ? 300 : window.innerWidth - 32), left: position?.left ?? -9999, top: position?.top ?? -9999 }}
           >
             {mode === "dialog" && (
-              <button type="button" onClick={() => close(true)} aria-label="Close" className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full text-[rgba(244,241,234,0.7)] hover:text-[#F4F1EA]">
+              <button type="button" onClick={() => close(true)} aria-label={t("close")} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full text-[rgba(244,241,234,0.7)] hover:text-[#F4F1EA]">
                 <svg aria-hidden width="12" height="12" viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </button>
             )}
@@ -180,7 +186,7 @@ export function Term({ k, children, className = "" }: { k: string; children?: Re
       >
         {children ?? entry.term}
         <span aria-hidden className="relative -top-[0.55em] ml-[2px] inline-block h-[6px] w-[6px] rounded-full align-baseline" style={{ background: MINT, boxShadow: "0 0 0 2px rgba(115,216,200,0.25)" }} />
-        <span className="sr-only">, what it means</span>
+        <span className="sr-only">{t("whatItMeansSr")}</span>
       </button>
       {card}
     </>

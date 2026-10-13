@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { quoteReplyText } from "../../_rules";
 import { canTrade, supplierForUser } from "../../_shared";
+import { notifySupplierQuoteAnswered } from "@/lib/notifications/events.server";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,7 @@ export const POST = withSupplier(async (req: NextRequest, { user, params }) => {
   // Only a still-pending request is answered, so two replies at once can't both win.
   const updated = await db.supplierQuoteRequest.updateMany({ where: { id: String(params.id), supplierId: supplier.id, status: "pending" }, data });
   if (updated.count === 0) return apiError("CONFLICT", "This request has already been answered.", 409);
+  await notifySupplierQuoteAnswered(String(params.id));
   const quote = await findQuote(supplier.id, String(params.id));
   return ok(quote ? view(quote) : null);
 });

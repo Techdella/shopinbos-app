@@ -9,6 +9,7 @@ import { fetchOrders, TONE_COLORS, type OrderRow } from "@/lib/dashboard";
 import { router, useFocusEffect } from "expo-router";
 import { capitalise, friendlyDay } from "@/lib/friendly";
 import { colors } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
 
 const FILTERS = [
   { key: "", label: "All" },
@@ -46,6 +47,7 @@ export default function Orders() {
         {FILTERS.map((item) => <Chip key={item.key} label={item.label} on={filter === item.key} onPress={() => setFilter(item.key)} />)}
       </View>
       {error && <Notice>{error}</Notice>}
+      {orders?.length ? <View style={{ marginBottom: 14 }}><PushPromptCard who="seller" /></View> : null}
       {orders && !orders.length && (
         filter ? (
           <EmptyState icon="bag" title="Nothing here right now">Tap &quot;All&quot; to see every order.</EmptyState>

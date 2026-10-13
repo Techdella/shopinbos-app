@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { updateLogisticsProfile } from "@/app/actions/logistics";
 import { requireRole } from "@/lib/server-auth";
@@ -253,6 +254,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
           <CardHead title="Emails from Shopinbos" sub="Product news and tips, setup nudges and weekly summaries. Security, billing and booking emails always arrive." action={<PillLink href={emailPreferencesUrl} size="sm">Email preferences</PillLink>} />
         </Card>
       )}
+      <LanguageSettingsCard className="mt-5" />
       <SecuritySettings className="mt-5 p-5" />
     </PartnerPage>
   );

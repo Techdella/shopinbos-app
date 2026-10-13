@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import type { AppIconName } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
+import { LanguageRow } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
 import { HELP_SECTION } from "@/components/PartnerMore";
 import { Screen } from "@/components/Screen";
@@ -27,6 +28,7 @@ const SECTIONS: { title: string; links: Row[] }[] = [
   {
     title: "Your company",
     links: [
+      { label: "Notifications", icon: "bell", path: "app:/notifications", hint: "New jobs, cash to pay in, and what buzzes your phone" },
       { label: "Verification", icon: "shield", path: "app:/logistics/verification", hint: "Your documents, so shops can trust you" },
       { label: "Company profile", icon: "store", path: "/logistics/profile", hint: "Opens the website" },
       { label: "Connect your system", icon: "send", path: "app:/logistics/connect", hint: "Already use delivery software? We connect it for you" },
@@ -54,6 +56,9 @@ export function LogisticsMenu() {
           </Card>
         </View>
       ))}
+      <Card style={{ paddingVertical: 2 }}>
+        <LanguageRow first />
+      </Card>
       <LinkButton title="Log out" color={colors.danger} onPress={() => confirmSignOut()} />
     </Screen>
   );

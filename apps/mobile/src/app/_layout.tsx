@@ -6,7 +6,9 @@ import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJa
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RoleGuard } from "@/components/RoleGuard";
 import { LearnHost } from "@/components/learn/LearnHost";
+import { PushManager } from "@/components/PushManager";
 import { SessionProvider, useSession } from "@/lib/session";
+import { I18nProvider } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Keep the native launch screen (app.json → expo-splash-screen) up until fonts and the saved session are ready.
@@ -35,12 +37,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <SessionProvider>
-        <SplashHandover />
-        <RoleGuard />
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
-        {/* 60-second feature intros: once per person on the first visit to a feature's screen. */}
-        <LearnHost />
+        {/* App language (shared/i18n): the phone's saved choice, the account's, else the phone's language. */}
+        <I18nProvider>
+          <SplashHandover />
+          <RoleGuard />
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
+          <PushManager />
+          {/* 60-second feature intros: once per person on the first visit to a feature's screen. */}
+          <LearnHost />
+        </I18nProvider>
       </SessionProvider>
     </SafeAreaProvider>
   );

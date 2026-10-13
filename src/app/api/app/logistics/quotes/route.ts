@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { DeliveryQuoteRequestSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { notifyDeliveryQuoteRequested } from "@/lib/notifications/events.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -52,6 +53,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       preferredDate,
     },
   });
+  await notifyDeliveryQuoteRequested(quote.id);
 
   return ok(quote, 201);
 });

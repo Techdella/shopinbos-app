@@ -17,6 +17,8 @@ import {
   type OnboardingLanguage,
   type StartPath,
 } from "@shared/onboarding";
+import { localeFromName } from "@shared/i18n";
+import { useLocale, useSetLocale, useT } from "@/components/i18n/I18nProvider";
 import { askRex, buildStore, finishOnboarding, saveMemory, saveStoreName, transcribe, type OnboardingStatus } from "./api";
 
 // Seller onboarding, cut to the two steps that need the seller: tell Rex what you sell, then pick a name and
@@ -52,8 +54,18 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const [step, setStep] = useState<Step>(memory?.screen === "brand" && memory.businessDescription ? "brand" : "chat");
   const [error, setError] = useState<string | null>(null);
 
-  // Chat
-  const [lang, setLang] = useState<OnboardingLanguage>(isLanguage(memory?.languages?.[0]) ? (memory?.languages?.[0] as OnboardingLanguage) : "English");
+  // Chat. The language chips set both the language Rex chats in and the app language (shared/i18n), so a
+  // first-time seller picks it once; it starts from the language they already chose (or their browser's).
+  const appLocale = useLocale();
+  const setAppLocale = useSetLocale();
+  const tSettings = useT("settings");
+  const appLanguage = ONBOARDING_LANGUAGES.find((item) => localeFromName(item) === appLocale);
+  const [lang, setLangState] = useState<OnboardingLanguage>(isLanguage(memory?.languages?.[0]) ? (memory?.languages?.[0] as OnboardingLanguage) : appLanguage ?? "English");
+  const setLang = (item: OnboardingLanguage) => {
+    setLangState(item);
+    const locale = localeFromName(item);
+    if (locale && locale !== appLocale) void setAppLocale(locale);
+  };
   const [draft, setDraft] = useState("");
   const [description, setDescription] = useState(memory?.businessDescription ?? "");
   const [turns, setTurns] = useState<ChatTurn[]>(memory?.businessDescription ? [{ from: "me", text: memory.businessDescription }] : []);
@@ -229,12 +241,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
               key={item}
               type="button"
               onClick={() => setLang(item)}
+              lang={localeFromName(item) ?? undefined}
               className={cx("rounded-full border px-4 py-2 text-[14px] font-bold transition", lang === item ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong")}
             >
               {item}
             </button>
           ))}
         </div>
+        <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{tSettings("language.onboarding")}</p>
         <div className="mt-5 grid gap-3">
           {turns.map((turn, index) =>
             turn.from === "me" ? (

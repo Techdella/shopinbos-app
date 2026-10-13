@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { saveSupplierNotificationPreferences } from "@/app/actions/supplier";
 import { AppPage, Card } from "@/components/app-kit";
@@ -22,6 +23,7 @@ const LINKS: Array<{ label: string; hint: string; href: string; icon: IconName }
   { label: "Payouts", hint: "Bank account for payments", href: "/supplier/payouts", icon: "bank" },
   { label: "Team", hint: "People who help you", href: "/supplier/team", icon: "users" },
   { label: "Verification", hint: "Documents and trust score", href: "/supplier/verification", icon: "shield" },
+  { label: "Notifications", hint: "Push, email, texts and quiet hours", href: "/home/notifications/preferences", icon: "bell" },
   { label: "Customise your menu", hint: "Switch off what you don't use; replay the walkthrough", href: "/supplier/features", icon: "settings" },
 ];
 
@@ -145,6 +147,7 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
         </nav>
       </div>
 
+      <LanguageSettingsCard className="mt-5 sm:p-6" />
       <SecuritySettings className="mt-5 p-5 sm:p-6" />
     </AppPage>
   );

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Fraunces, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClientLayout } from "@/components/ClientLayout";
+import { I18nProvider } from "@/components/i18n/I18nProvider";
+import { getClientMessages, getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -39,16 +41,23 @@ export const metadata: Metadata = {
   // icon.tsx and apple-icon.tsx in this directory are picked up automatically
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // App language (shared/i18n): the sib_lang cookie, else Accept-Language. Pidgin is lang="pcm".
+  const [locale, messages] = await Promise.all([getLocale(), getClientMessages()]);
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${fraunces.variable} ${jetbrainsMono.variable} ${plusJakarta.variable} h-full`}
     >
-      <body className="min-h-full"><ClientLayout>{children}</ClientLayout><Analytics /></body>
+      <body className="min-h-full">
+        <I18nProvider locale={locale} messages={messages}>
+          <ClientLayout>{children}</ClientLayout>
+        </I18nProvider>
+        <Analytics />
+      </body>
     </html>
   );
 }
