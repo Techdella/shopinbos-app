@@ -3,6 +3,8 @@
 import { cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { CHANNELS, type InboxChannelKey } from "@/lib/inbox/meta";
+import { useT } from "@/components/i18n/I18nProvider";
+import { APP_TIME_ZONE, formatRelative, intlLocale, type Locale } from "@shared/i18n";
 
 // Small pieces shared by the inbox screens.
 
@@ -26,23 +28,37 @@ export function channelLabel(channel: ListChannelKey) {
   return channel === "partner" ? "Suppliers and partners" : CHANNELS[channel].label;
 }
 
+/** channelLabel() in the person's language (brand names stay as they are). */
+export function useChannelLabel() {
+  const t = useT("inbox");
+  return (channel: ListChannelKey) => t.dynamic(`channel.${channel}`, channelLabel(channel));
+}
+
 export function channelIcon(channel: ListChannelKey) {
   return channel === "partner" ? "users" : CHANNELS[channel].icon;
 }
 
 /** Round channel mark: the icon in the channel's colour. */
 export function ChannelMark({ channel, size = 22, className }: { channel: ListChannelKey; size?: number; className?: string }) {
+  const label = useChannelLabel()(channel);
   return (
-    <span className={cx("grid shrink-0 place-items-center rounded-full", CHANNEL_TINT[channel], className)} style={{ width: size, height: size }} title={channelLabel(channel)}>
+    <span className={cx("grid shrink-0 place-items-center rounded-full", CHANNEL_TINT[channel], className)} style={{ width: size, height: size }} title={label}>
       <Icon name={channelIcon(channel)} size={Math.round(size * 0.58)} />
-      <span className="sr-only">{channelLabel(channel)}</span>
+      <span className="sr-only">{label}</span>
     </span>
   );
 }
 
-export function formatWhen(iso: string) {
+export function formatWhen(iso: string, locale: Locale = "en") {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
+  if (locale !== "en") {
+    const tag = intlLocale(locale);
+    if (diff < 3_600_000) return formatRelative(d, locale);
+    if (diff < 86_400_000) return d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE });
+    if (diff < 604_800_000) return d.toLocaleDateString(tag, { weekday: "short", timeZone: APP_TIME_ZONE });
+    return d.toLocaleDateString(tag, { day: "numeric", month: "short", timeZone: APP_TIME_ZONE });
+  }
   if (diff < 60_000) return "now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
   if (diff < 86_400_000) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -50,8 +66,8 @@ export function formatWhen(iso: string) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-export function formatStamp(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export function formatStamp(iso: string, locale: Locale = "en") {
+  return new Date(iso).toLocaleString(locale === "en" ? "en-GB" : intlLocale(locale), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 /** fetch → the `data` of our API envelope, or an Error with the API's message. */

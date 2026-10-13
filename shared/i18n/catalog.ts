@@ -49,6 +49,10 @@ import discounts from "./messages/discounts/index.ts";
 import peggy from "./messages/peggy/index.ts";
 import rex from "./messages/rex/index.ts";
 import auth from "./messages/auth/index.ts";
+import store from "./messages/store/index.ts";
+import domain from "./messages/domain/index.ts";
+import marketplace from "./messages/marketplace/index.ts";
+import shipping from "./messages/shipping/index.ts";
 import payments from "./messages/payments/index.ts";
 import customers from "./messages/customers/index.ts";
 import products from "./messages/products/index.ts";
@@ -105,6 +109,10 @@ export const CATALOGS = {
   peggy,
   rex,
   auth,
+  store,
+  domain,
+  marketplace,
+  shipping,
   payments,
   customers,
   products,

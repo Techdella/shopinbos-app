@@ -270,7 +270,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const supplierOnboardingRoute = read("src/app/api/supplier/onboarding/route.ts");
   const logisticsOnboardingRoute = read("src/app/api/logistics/onboarding/route.ts");
   const storeRouteApp = read("src/app/api/app/store/route.ts");
-  const supplierOnboardingComponent = read("src/components/onboarding/SupplierOnboarding.tsx");
+  const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "onboarding");
   const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
   const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
   const logisticsOnboardingComponent = read("src/components/onboarding/LogisticsOnboarding.tsx");
@@ -356,7 +356,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
 });
 
 test("auth experience keeps each portal focused and conversational", () => {
-  const auth = read("src/components/auth/app/AppAuth.tsx");
+  const auth = withWords("src/components/auth/app/AppAuth.tsx", "auth");
   const authApi = read("src/components/auth/app/auth-api.ts");
   const otpRoute = read("src/app/api/auth/otp/route.ts");
   const serverAuth = read("src/lib/server-auth.ts");
@@ -399,8 +399,8 @@ test("auth experience keeps each portal focused and conversational", () => {
 
 test("inner portal pages use the mockup-style operational shell", () => {
   const rolePage = read("src/components/role/RolePage.tsx");
-  const payments = read("src/app/home/payments/page.tsx");
-  const logistics = read("src/app/home/logistics/page.tsx");
+  const payments = withWords("src/app/home/payments/page.tsx", "payments");
+  const logistics = withWords("src/app/home/logistics/page.tsx", "shipping");
 
   assert.match(rolePage, /Shop focus/);
   assert.match(rolePage, /Factory focus/);
@@ -906,7 +906,8 @@ test("Your store hub links to Rex Studio, the builder, brand kit, templates and 
 
   assert.match(nav, /id: "your-store", label: "Your store", icon: "shop", href: "\/home\/store"/);
   assert.ok(exists("src/app/home/store/page.tsx"));
-  assert.match(hub, /title="Your store"/);
+  assert.match(hub, /title=\{t\("hub\.title"\)\}/);
+  assert.match(read("shared/i18n/messages/store/en.ts"), /"hub\.title": "Your store"/);
   assert.match(hub, /href="\/studio"/);
   assert.match(hub, /`\/studio\?prompt=\$\{encodeURIComponent\(REBRAND_PROMPT\)\}`/);
   assert.match(look, /export const REBRAND_PROMPT = /);

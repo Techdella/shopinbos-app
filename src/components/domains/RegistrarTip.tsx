@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Mascot, cx } from "@/components/app-ui";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Rex's tip inside the domain "technical details" fold: where each common registrar keeps its DNS records.
 const GUIDES: Array<{ id: string; name: string; steps: string[] }> = [
@@ -13,6 +14,7 @@ const GUIDES: Array<{ id: string; name: string; steps: string[] }> = [
 ];
 
 export function RegistrarTip() {
+  const t = useT("domain");
   const [open, setOpen] = useState<string | null>(null);
   const guide = GUIDES.find((entry) => entry.id === open);
 
@@ -21,9 +23,9 @@ export function RegistrarTip() {
       <Mascot name="rex" className="h-10 w-10 shrink-0" alt="Rex" />
       <div className="min-w-0 flex-1">
         <p className="m-0 text-[14.5px] leading-[1.5]">
-          Bought your domain from Whogohost, Qservers or GoDaddy? Pick it and I&apos;ll show you where to add the records.
+          {t("tip.intro")}
         </p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Where did you buy your domain?">
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("tip.where")}>
           {GUIDES.map((entry) => (
             <button
               key={entry.id}

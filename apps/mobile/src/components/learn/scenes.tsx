@@ -748,6 +748,783 @@ function ThemeSwap({ scene }: { scene: IntroScene }) {
   );
 }
 
+// ─── Scenes for orders, money, customers, brand and partners ───
+
+/** Keeps gently pulsing (or swinging) on the loop; still frames rest at the middle. */
+function Pulse({ x, y, w, h, swing = false, children }: { x: number; y: number; w: number; h: number; swing?: boolean; children: ReactNode }) {
+  const { loop, still } = useScene();
+  const transform = still
+    ? []
+    : swing
+      ? [{ rotate: loop.interpolate({ inputRange: [0, 0.08, 0.18, 0.28, 0.38, 0.55, 1], outputRange: ["0deg", "14deg", "-11deg", "7deg", "-4deg", "0deg", "0deg"] }) }]
+      : [{ scale: loop.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [1, 1.1, 1, 1.1, 1] }) }];
+  return <Animated.View style={{ position: "absolute", left: x, top: y, width: w, height: h, transform, transformOrigin: swing ? "top" : "center" }}>{children}</Animated.View>;
+}
+
+function Tick({ size = 20, color = LC.navy }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Path d="M4 10 l4 4 l8 -9" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function starPoints(cx: number, cy: number, r: number) {
+  return `M${Array.from({ length: 10 }, (_, i) => {
+    const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+    const radius = i % 2 ? r * 0.45 : r;
+    return `${(cx + Math.cos(angle) * radius).toFixed(1)} ${(cy + Math.sin(angle) * radius).toFixed(1)}`;
+  }).join(" L")} Z`;
+}
+
+function Star({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size}>
+      <Path d={starPoints(size / 2, size / 2 + size * 0.04, size / 2)} fill={color} />
+    </Svg>
+  );
+}
+
+const chipW = (text: string) => Math.max(40, text.length * 6.6 + 22);
+
+function chipColor(text: string, i: number) {
+  if (/whatsapp/i.test(text)) return LC.whatsapp;
+  if (/insta|reels/i.test(text)) return LC.plum;
+  if (/live/i.test(text)) return LC.mint;
+  if (/form/i.test(text)) return LC.amber;
+  if (/tiktok/i.test(text)) return LC.coral;
+  return DOTS[i % DOTS.length]!;
+}
+
+const STATUSES = ["New", "Paid", "Packed", "On the way", "Delivered"];
+
+function OrderPipeline({ scene }: { scene: IntroScene }) {
+  const steps = (scene.chips?.length ? scene.chips : STATUSES).slice(0, 5);
+  const n = steps.length;
+  const x = (i: number) => (n === 1 ? 180 : 44 + (272 / (n - 1)) * i);
+  const y = 122;
+  const gap = 0.7;
+  return (
+    <>
+      <View style={{ position: "absolute", left: x(0), top: y - 4, width: Math.max(1, x(n - 1) - x(0)), height: 8, borderRadius: 4, backgroundColor: LC.panel }} />
+      <Appear kind="growx" at={at(0.6)} x={x(0)} y={y - 2}>
+        <Box w={Math.max(1, x(n - 1) - x(0))} h={4} r={2} bg={LC.mint} />
+      </Appear>
+      {steps.map((step, i) => {
+        const last = i === n - 1;
+        return (
+          <View key={`${step}-${i}`}>
+            <View style={{ position: "absolute", left: x(i) - 15, top: y - 15, width: 30, height: 30, borderRadius: 15, backgroundColor: LC.panel, borderWidth: 2, borderColor: LC.line }} />
+            <Appear at={at(0.6 + i * gap)} x={x(i) - 15} y={y - 15}>
+              <Box w={30} h={30} r={15} bg={last ? LC.mint : LC.teal} border={LC.mint} style={{ alignItems: "center", justifyContent: "center" }}>
+                <Tick size={18} color={last ? LC.navy : LC.cream} />
+              </Box>
+            </Appear>
+            <View style={{ position: "absolute", left: x(i) - 36, top: y + 24, width: 72, alignItems: "center", opacity: 0.45 }}>
+              <L size={10} color={LC.mintSoft}>{step}</L>
+            </View>
+            <Appear kind="fade" at={at(0.6 + i * gap)} x={x(i) - 36} y={y + 24} w={72} style={{ alignItems: "center" }}>
+              <L size={10} color={last ? LC.mint : LC.cream}>{step}</L>
+            </Appear>
+          </View>
+        );
+      })}
+      <Appear kind="move" at={at(0.6)} x={x(n - 1) - 14} y={y - 58} dx={x(0) - x(n - 1)} dy={0}>
+        <Box w={28} h={24} r={4} bg={LC.amber} style={{ alignItems: "center" }}>
+          <View style={{ width: 28, height: 2, backgroundColor: LC.navy, marginTop: 7 }} />
+        </Box>
+      </Appear>
+      {scene.label ? <Chip x={180} y={28} text={scene.label} bg={LC.cream} color={LC.navy} at={at(0.2)} /> : null}
+    </>
+  );
+}
+
+function Receipt({ scene }: { scene: IntroScene }) {
+  const lines = (scene.chips ?? []).slice(0, 3);
+  const rows = Math.max(2, lines.length);
+  const w = 136;
+  const h = 188;
+  const teeth = 10;
+  const zig = Array.from({ length: teeth + 1 }, (_, i) => `L${(w - (i * w) / teeth).toFixed(1)} ${i % 2 ? h - 6 : h}`).join(" ");
+  const rule = 70 + rows * 20;
+  return (
+    <>
+      <View style={{ position: "absolute", left: 100, top: 10, width: 160, height: 10, borderRadius: 5, backgroundColor: LC.line }} />
+      <Appear kind="rise" at={at(0.1)} x={112} y={18}>
+        <Svg width={w} height={h}>
+          <Path d={`M0 0 H${w} V${h} ${zig} Z`} fill={LC.cream} />
+          <Circle cx={w / 2} cy={22} r={10} fill={LC.teal} />
+          <Path d={`M10 58 H${w - 10}`} stroke={LC.navy} strokeOpacity={0.3} strokeDasharray="3 4" />
+          <Path d={`M10 ${rule} H${w - 10}`} stroke={LC.navy} strokeOpacity={0.3} strokeDasharray="3 4" />
+        </Svg>
+      </Appear>
+      <Appear kind="fade" at={at(0.3)} x={112} y={56} w={w} style={{ alignItems: "center" }}>
+        <L size={10.5} color={LC.navy}>{(scene.label ?? "Receipt").slice(0, 20)}</L>
+      </Appear>
+      {Array.from({ length: rows }, (_, i) => (
+        <Appear key={i} kind="rise" at={at(0.7 + i * 0.4)} x={124} y={86 + i * 20}>
+          {lines[i] ? <L mono size={9.5} color={LC.navy}>{lines[i]!.slice(0, 21)}</L> : <Box w={70} h={5} r={2.5} bg="#C9C6D3" />}
+        </Appear>
+      ))}
+      {scene.value ? (
+        <Appear kind="rise" at={at(1 + rows * 0.4)} x={124} y={18 + rule + 8} w={w - 24} style={{ alignItems: "flex-end" }}>
+          <Counter value={scene.value} startMs={1200 + rows * 400} size={16} color={LC.navy} />
+        </Appear>
+      ) : null}
+      <Appear at={at(Math.min(4.2, 2.4 + rows * 0.2))} x={146} y={158}>
+        <Box w={80} h={28} r={6} bg="rgba(46,126,120,0.08)" border={LC.teal} style={{ alignItems: "center", justifyContent: "center", borderWidth: 2.5, transform: [{ rotate: "-12deg" }] }}>
+          <L mono size={13} color={LC.teal}>PAID</L>
+        </Box>
+      </Appear>
+      <Appear at={at(1)} x={34} y={70}>
+        <Box w={48} h={28} r={4} bg={LC.whatsapp} />
+      </Appear>
+      <Appear at={at(1.3)} x={34} y={122}>
+        <Box w={48} h={32} r={6} bg={LC.plum} style={{ paddingTop: 8 }}>
+          <View style={{ height: 6, backgroundColor: "rgba(14,42,56,0.5)" }} />
+        </Box>
+      </Appear>
+      <Appear at={at(2)} x={284} y={56}>
+        <Box w={32} h={32} r={16} bg={LC.mint} style={{ alignItems: "center", justifyContent: "center" }}>
+          <Tick size={20} />
+        </Box>
+      </Appear>
+      {[0, 1, 2].map((i) => (
+        <Appear key={i} at={at(2.4 + i * 0.15)} x={283 + i * 10} y={141 - i * 8}>
+          <Box w={18} h={18} r={9} bg={LC.amber} border={LC.navy} />
+        </Appear>
+      ))}
+    </>
+  );
+}
+
+function InvoicePaper({ scene }: { scene: IntroScene }) {
+  const chips = scene.chips ?? [];
+  const stamp = chips.find((chip) => /✓|paid/i.test(chip));
+  const pills = chips.filter((chip) => chip !== stamp).slice(0, 2);
+  const rows = scene.value ? 4 : 6;
+  return (
+    <>
+      <Appear kind="rise" at={at(0.1)} x={92} y={12}>
+        <View>
+          <Box w={168} h={196} r={10} bg={LC.panel} style={{ position: "absolute", left: 6, top: 6 }} />
+          <Box w={168} h={196} r={10} bg={LC.cream} style={{ overflow: "hidden" }}>
+            <View style={{ height: 6, backgroundColor: LC.teal }} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, marginTop: 12 }}>
+              <Box w={20} h={20} r={10} bg={LC.teal} />
+              <L mono size={10.5} color={LC.navy}>{(scene.label ?? "INVOICE").slice(0, 16)}</L>
+            </View>
+            <View style={{ height: 2, backgroundColor: "#E8E2D5", marginHorizontal: 16, marginTop: 12 }} />
+          </Box>
+        </View>
+      </Appear>
+      {Array.from({ length: rows }, (_, i) => (
+        <View key={i}>
+          <Appear kind="growx" at={at(0.5 + i * 0.2)} x={108} y={76 + i * 16}>
+            <Box w={[86, 64, 78, 52, 90, 70][i]!} h={6} r={3} bg="#D9D3C4" />
+          </Appear>
+          {scene.value ? (
+            <Appear kind="fade" at={at(0.7 + i * 0.2)} x={208} y={76 + i * 16}>
+              <Box w={36} h={6} r={3} bg="#C9C6D3" />
+            </Appear>
+          ) : null}
+        </View>
+      ))}
+      {scene.value ? (
+        <Appear kind="rise" at={at(1.6)} x={108} y={152} w={136}>
+          <View style={{ height: 2, backgroundColor: "rgba(14,42,56,0.2)" }} />
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+            <Box w={30} h={7} r={3.5} bg={LC.teal} />
+            <Counter value={scene.value} startMs={1800} size={16} color={LC.navy} />
+          </View>
+        </Appear>
+      ) : null}
+      {pills.map((pill, i) => <Chip key={pill} x={Math.max(268 + chipW(pill) / 2, 312)} y={64 + i * 32} text={pill} bg={LC.amber} color={LC.navy} at={at(1.4 + i * 0.3)} />)}
+      {stamp ? (
+        <Appear at={at(2.6)} x={122} y={102}>
+          <Box w={108} h={36} r={8} bg="rgba(46,126,120,0.1)" border={LC.teal} style={{ alignItems: "center", justifyContent: "center", borderWidth: 3, transform: [{ rotate: "-12deg" }] }}>
+            <L mono size={14} color={LC.teal}>{stamp.toUpperCase().slice(0, 10)}</L>
+          </Box>
+        </Appear>
+      ) : null}
+      <Appear at={at(1)} x={34} y={94}>
+        <Svg width={42} height={40}>
+          <Path d="M0 18 L40 0 L28 38 L20 24 Z" fill={LC.mint} />
+          <Path d="M20 24 L40 0" stroke={LC.navy} strokeWidth={1.5} />
+        </Svg>
+      </Appear>
+    </>
+  );
+}
+
+function StarReviews({ scene }: { scene: IntroScene }) {
+  const value = scene.value ?? "4.8";
+  const full = Math.round(Math.min(5, Math.max(0, Number.parseFloat(value) || 5)));
+  return (
+    <>
+      <Appear at={at(0.1)} x={20} y={38}>
+        <Box w={124} h={144} r={20} bg={LC.panel} border={LC.line} style={{ alignItems: "center", paddingTop: 26 }}>
+          <L size={38} color={LC.cream}>{value}</L>
+        </Box>
+      </Appear>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <View key={i}>
+          <View style={{ position: "absolute", left: 33 + i * 20, top: 119 }}>
+            <Star size={18} color={LC.line} />
+          </View>
+          {i < full ? (
+            <Appear at={at(0.6 + i * 0.18)} x={33 + i * 20} y={119}>
+              <Star size={18} color={LC.amber} />
+            </Appear>
+          ) : null}
+        </View>
+      ))}
+      <Appear kind="growx" at={at(1.6)} x={42} y={152}>
+        <Box w={80} h={6} r={3} bg={LC.line} />
+      </Appear>
+      {[0, 1, 2].map((i) => (
+        <Appear key={i} kind="move" at={at(1 + i * 0.55)} x={160} y={22 + i * 62} dx={60} dy={0}>
+          <Box w={184} h={52} r={14} bg={i === 0 ? LC.cream : LC.panel} style={{ paddingHorizontal: 12, paddingTop: 9, gap: 6 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Box w={18} h={18} r={9} bg={[LC.mint, LC.amber, LC.plum][i]!} />
+              {[0, 1, 2, 3, 4].map((k) => <Star key={k} size={11} color={i === 2 && k === 4 ? LC.line : LC.amber} />)}
+            </View>
+            {i === 0 && scene.label ? <L size={10.5} color={LC.navy}>“{scene.label.slice(0, 24)}”</L> : <Box w={[120, 96, 110][i]!} h={5} r={2.5} bg={i === 0 ? "#C9C6D3" : LC.line} />}
+          </Box>
+        </Appear>
+      ))}
+    </>
+  );
+}
+
+function CustomerCards({ scene }: { scene: IntroScene }) {
+  const name = scene.label ?? "Customer";
+  const initials = name.split(/\s+/).map((word) => word[0] ?? "").join("").slice(0, 2).toUpperCase();
+  const chips = (scene.chips ?? []).slice(0, 3);
+  return (
+    <>
+      <Appear kind="fade" at={at(0.1)} x={96} y={20}>
+        <Box w={190} h={150} r={18} bg={LC.line} />
+      </Appear>
+      <Appear kind="fade" at={at(0.2)} x={84} y={32}>
+        <Box w={190} h={150} r={18} bg={LC.panel} />
+      </Appear>
+      <Appear kind="rise" at={at(0.3)} x={70} y={46}>
+        <Box w={196} h={158} r={18} bg={LC.cream} style={{ padding: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Box w={40} h={40} r={20} bg={LC.mint} style={{ alignItems: "center", justifyContent: "center" }}>
+              <L size={13} color={LC.navy}>{initials}</L>
+            </Box>
+            <View style={{ gap: 6 }}>
+              <L size={12.5} color={LC.navy}>{name.slice(0, 17)}</L>
+              <Box w={70} h={5} r={2.5} bg="#C9C6D3" />
+            </View>
+          </View>
+        </Box>
+      </Appear>
+      {chips.map((chip, i) => {
+        const left = 86 + chips.slice(0, i).reduce((sum, item) => sum + chipW(item) + 6, 0);
+        return <Chip key={chip} x={left + chipW(chip) / 2} y={124} text={chip} bg={[LC.amber, LC.mintSoft, LC.plum][i]} color={LC.navy} at={at(0.9 + i * 0.25)} />;
+      })}
+      <Appear kind="growx" at={at(1.6)} x={92} y={170}>
+        <Box w={156} h={3} r={1.5} bg="#E8E2D5" />
+      </Appear>
+      {[0, 1, 2, 3].map((i) => (
+        <Appear key={i} at={at(1.8 + i * 0.25)} x={92 + i * 46} y={164}>
+          <Box w={16} h={16} r={8} bg={i === 3 ? LC.mint : LC.teal} />
+        </Appear>
+      ))}
+      {scene.value ? (
+        <Appear at={at(2.4)} x={276} y={56}>
+          <Box w={78} h={50} r={16} bg={LC.mint} style={{ alignItems: "center", justifyContent: "center", gap: 2 }}>
+            <Star size={14} color={LC.navy} />
+            <Counter value={scene.value} startMs={2600} size={12.5} color={LC.navy} />
+          </Box>
+        </Appear>
+      ) : null}
+    </>
+  );
+}
+
+function DiscountTicket({ scene }: { scene: IntroScene }) {
+  const code = scene.label ?? "SALE10";
+  const value = scene.value ?? "10%";
+  return (
+    <>
+      <Appear at={at(0.1)} x={48} y={58}>
+        <Box w={264} h={104} r={14} bg={LC.amber} style={{ flexDirection: "row", alignItems: "center", transform: [{ rotate: "-5deg" }] }}>
+          <View style={{ position: "absolute", left: -13, top: 39, width: 26, height: 26, borderRadius: 13, backgroundColor: LC.deep }} />
+          <View style={{ position: "absolute", right: -13, top: 39, width: 26, height: 26, borderRadius: 13, backgroundColor: LC.deep }} />
+          <View style={{ width: 86, alignItems: "center" }}>
+            <Counter value={value} startMs={700} size={value.length > 4 ? 17 : 26} color={LC.navy} />
+          </View>
+          <View style={{ width: 0, height: 88, borderLeftWidth: 2, borderStyle: "dashed", borderColor: "rgba(14,42,56,0.4)" }} />
+          <View style={{ paddingLeft: 16, gap: 8 }}>
+            <Typed text={code.slice(0, 14)} startMs={900} size={code.length > 10 ? 13 : 16} color={LC.navy} />
+            <Box w={140} h={4} r={2} bg="rgba(14,42,56,0.25)" />
+          </View>
+        </Box>
+      </Appear>
+      <Pulse x={280} y={24} w={40} h={40}>
+        <Appear at={at(1.6)} x={0} y={0}>
+          <Box w={40} h={40} r={20} bg={LC.coral} style={{ alignItems: "center", justifyContent: "center" }}>
+            <L size={20} color={LC.cream}>%</L>
+          </Box>
+        </Appear>
+      </Pulse>
+      {([[70, 36, LC.mint], [40, 186, LC.plum], [250, 192, LC.mint], [330, 172, LC.amber]] as const).map(([x, y, color], i) => (
+        <Appear key={i} at={at(2 + i * 0.2)} x={x - 5} y={y - 5}>
+          <Box w={10} h={10} r={5} bg={color} />
+        </Appear>
+      ))}
+    </>
+  );
+}
+
+function swatchColor(name: string, i: number) {
+  if (/mint|green/i.test(name)) return LC.mint;
+  if (/gold|amber|yellow/i.test(name)) return LC.amber;
+  if (/coral|red|orange/i.test(name)) return LC.coral;
+  if (/plum|purple/i.test(name)) return LC.plum;
+  if (/navy|blue|dark/i.test(name)) return LC.deep;
+  return [LC.mint, LC.amber, LC.coral, LC.deep][i % 4]!;
+}
+
+function BrandPalette({ scene }: { scene: IntroScene }) {
+  const name = scene.label ?? "Your brand";
+  const chips = (scene.chips ?? []).slice(0, 4);
+  const swatches = chips.length ? chips.map(swatchColor) : [LC.mint, LC.amber, LC.coral, LC.deep];
+  return (
+    <>
+      <Appear at={at(0.1)} x={40} y={42}>
+        <Box w={84} h={84} r={42} bg={LC.mint} style={{ alignItems: "center", justifyContent: "center" }}>
+          <View style={{ position: "absolute", left: 9, top: 9, width: 66, height: 66, borderRadius: 33, borderWidth: 2.5, borderColor: LC.navy }} />
+          <L size={32} color={LC.navy}>{name.trim()[0]?.toUpperCase() ?? "B"}</L>
+        </Box>
+      </Appear>
+      <Appear kind="fade" at={at(0.5)} x={2} y={138} w={160} style={{ alignItems: "center" }}>
+        <L size={12}>{name.slice(0, 18)}</L>
+      </Appear>
+      {swatches.map((color, i) => (
+        <Appear key={i} at={at(0.8 + i * 0.2)} x={164 + i * 44} y={30} w={36} style={{ alignItems: "center", gap: 6 }}>
+          <Box w={36} h={36} r={10} bg={color} border={color === LC.deep ? "rgba(244,241,234,0.5)" : undefined} />
+          {chips[i] ? <L mono size={9} color={LC.mintSoft}>{chips[i]!.slice(0, 7)}</L> : null}
+        </Appear>
+      ))}
+      <Appear at={at(1.7)} x={166} y={106}>
+        <L size={32}>Aa</L>
+      </Appear>
+      <Appear at={at(1.9)} x={214} y={106}>
+        <Text style={{ fontSize: 30, color: LC.mint, fontStyle: "italic", fontFamily: Platform.select({ ios: "Georgia", default: "serif" }) }}>Aa</Text>
+      </Appear>
+      <Appear kind="rise" at={at(2.3)} x={270} y={104}>
+        <Box w={44} h={60} r={6} bg={LC.cream} style={{ overflow: "hidden", alignItems: "center" }}>
+          <View style={{ height: 16, alignSelf: "stretch", backgroundColor: swatches[0] }} />
+          <Box w={16} h={16} r={8} bg={swatches[1] ?? LC.amber} style={{ marginTop: 8 }} />
+        </Box>
+      </Appear>
+      <Appear kind="rise" at={at(2.6)} x={314} y={120}>
+        <Svg width={36} height={40}>
+          <Path d="M8 0 H36 V40 H8 L0 20 Z" fill={swatches[1] ?? LC.amber} />
+          <Circle cx={23} cy={20} r={7} fill={LC.cream} />
+        </Svg>
+      </Appear>
+      <Appear kind="growx" at={at(2.8)} x={166} y={176}>
+        <Box w={180} h={6} r={3} bg={swatches[0]!} style={{ opacity: 0.6 }} />
+      </Appear>
+    </>
+  );
+}
+
+function ImportShip({ scene }: { scene: IntroScene }) {
+  const chips = (scene.chips ?? []).slice(0, 2);
+  const containers = [LC.amber, LC.mint, LC.plum, LC.coral, LC.teal, LC.amber, LC.mintSoft, LC.plum];
+  return (
+    <>
+      <Svg width={360} height={220} style={{ position: "absolute" }}>
+        {[0, 1, 2].map((row) => (
+          <Path key={row} d={`M${10 + row * 14} ${170 + row * 12} ${Array.from({ length: 13 }, () => "q 12 -8 24 0").join(" ")}`} fill="none" stroke={LC.line} strokeWidth={2.5} strokeLinecap="round" />
+        ))}
+        <Path d="M24 150 H300" stroke={LC.mint} strokeWidth={2} strokeDasharray="6 6" opacity={0.5} />
+      </Svg>
+      <Appear at={at(0.2)} x={290} y={0}>
+        <Svg width={66} height={162}>
+          <Rect x={2} y={148} width={60} height={12} rx={3} fill={LC.panel} />
+          <Path d="M40 148 V58 M40 64 H6 M10 64 V86" fill="none" stroke={LC.cream} strokeWidth={3} strokeLinecap="round" />
+          <Rect x={3} y={86} width={14} height={10} rx={2} fill={LC.amber} />
+          <Path d="M40 32 c-10 -12 -10 -26 0 -26 s10 14 0 26 Z" fill={LC.coral} />
+          <Circle cx={40} cy={14} r={3.5} fill={LC.navy} />
+        </Svg>
+      </Appear>
+      <Appear kind="move" at={at(0.5)} x={92} y={88} dx={-80} dy={0}>
+        <Svg width={180} height={74}>
+          {containers.map((color, i) => <Rect key={i} x={24 + (i % 4) * 22} y={28 - Math.floor(i / 4) * 15} width={20} height={13} rx={2} fill={color} />)}
+          <Rect x={120} y={10} width={22} height={34} rx={3} fill={LC.cream} />
+          <Path d="M10 44 H170 L156 72 H26 Z" fill={LC.coral} />
+          <Path d="M18 54 H164" stroke={LC.cream} strokeWidth={2} opacity={0.7} />
+        </Svg>
+      </Appear>
+      <Mover x={40} y={48} dx={220} dy={-14}>
+        <Svg width={38} height={22}>
+          <Path d="M0 11 L26 11 L34 7 L36 11 L34 15 L26 11 Z M10 11 L4 1 L10 1 L18 11 L10 21 L4 21 Z" fill={LC.mint} />
+        </Svg>
+      </Mover>
+      {scene.label ? <Chip x={150} y={24} text={scene.label} bg={LC.cream} color={LC.navy} at={at(0.6)} /> : null}
+      {chips.map((chip, i) => <Chip key={chip} x={i ? 250 : 110} y={202} text={chip} bg={i ? LC.amber : LC.mint} color={LC.navy} at={at(1.8 + i * 0.3)} />)}
+    </>
+  );
+}
+
+function VideoReel({ scene }: { scene: IntroScene }) {
+  const { loop, still } = useScene();
+  const frames = [LC.amber, LC.coral, LC.plum];
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <Appear key={i} at={at(0.2 + i * 0.2)} x={30 + (i % 2) * 18} y={34 + i * 46}>
+          <Box w={60} h={42} r={6} bg={LC.cream} style={{ padding: 5 }}>
+            <Box w={50} h={32} r={4} bg={frames[i]!} />
+          </Box>
+        </Appear>
+      ))}
+      <Appear kind="growx" at={at(0.9)} x={104} y={108}>
+        <Box w={24} h={3} r={1.5} bg={LC.mint} />
+      </Appear>
+      <Appear kind="rise" at={at(0.1)} x={136} y={12}>
+        <Box w={92} h={196} r={16} bg={LC.deep} border={LC.line} />
+      </Appear>
+      {frames.map((color, i) => {
+        const opacity = still ? (i === 0 ? 1 : 0) : i === 0 ? 1 : loop.interpolate({ inputRange: [0, i / 3 - 0.02, i / 3, (i + 1) / 3 - 0.02, (i + 1) / 3, 1].map((n) => Math.min(1, Math.max(0, n))), outputRange: [0, 0, 1, 1, 0, 0] });
+        return (
+          <Animated.View key={i} style={{ position: "absolute", left: 144, top: 28, opacity }}>
+            <Box w={76} h={150} r={8} bg={color} style={{ justifyContent: "flex-end", padding: 12 }}>
+              <Box w={52} h={20} r={8} bg="rgba(244,241,234,0.9)" />
+            </Box>
+          </Animated.View>
+        );
+      })}
+      <Pulse x={166} y={68} w={32} h={32}>
+        <Appear at={at(1.4)} x={0} y={0}>
+          <Box w={32} h={32} r={16} bg="rgba(244,241,234,0.92)" style={{ alignItems: "center", justifyContent: "center" }}>
+            <Svg width={14} height={16}>
+              <Path d="M1 0 L14 8 L1 16 Z" fill={LC.navy} />
+            </Svg>
+          </Box>
+        </Appear>
+      </Pulse>
+      <View style={{ position: "absolute", left: 144, top: 182, width: 76, height: 4, borderRadius: 2, backgroundColor: LC.line }} />
+      <Appear kind="growx" at={at(1.6)} x={144} y={182}>
+        <Box w={76} h={4} r={2} bg={LC.mint} />
+      </Appear>
+      {scene.label ? (
+        <Appear kind="rise" at={at(2)} x={146} y={152}>
+          <Box w={72} h={20} r={6} bg="rgba(14,42,56,0.82)" style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
+            <L size={8} color={LC.cream}>{scene.label.slice(0, 18)}</L>
+          </Box>
+        </Appear>
+      ) : null}
+      {scene.value ? <Chip x={268} y={34} text={scene.value} bg={LC.mint} color={LC.navy} at={at(1.2)} /> : null}
+      {([[262, 64], [296, 100], [262, 140]] as const).map(([x, y], i) => (
+        <Appear key={i} at={at(1.6 + i * 0.3)} x={x} y={y}>
+          <L size={24} color={[LC.mint, LC.amber, LC.plum][i]}>♪</L>
+        </Appear>
+      ))}
+    </>
+  );
+}
+
+function DashboardTiles({ scene }: { scene: IntroScene }) {
+  const tasks = (scene.chips ?? []).slice(0, 3);
+  const bars = [22, 30, 26, 38, 34, 44, 52];
+  return (
+    <>
+      <Appear kind="fade" at={0} x={20} y={12}>
+        <Box w={320} h={196} r={18} bg={LC.deep} border={LC.line} />
+      </Appear>
+      <Appear kind="fade" at={at(0.3)} x={38} y={26}>
+        <L size={13}>{(scene.label ?? "Good morning").slice(0, 26)}</L>
+      </Appear>
+      <Appear kind="rise" at={at(0.5)} x={36} y={54}>
+        <Box w={150} h={78} r={14} bg={LC.cream} style={{ padding: 14, gap: 8 }}>
+          <Box w={40} h={5} r={2.5} bg="#C9C6D3" />
+          {scene.value ? <Counter value={scene.value} startMs={900} size={20} color={LC.navy} /> : null}
+        </Box>
+      </Appear>
+      <Appear kind="fade" at={at(1.2)} x={36} y={54}>
+        <Svg width={150} height={78}>
+          <Path d="M14 66 L40 60 L64 64 L90 52 L114 56 L136 42" fill="none" stroke={LC.teal} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </Appear>
+      {(tasks.length ? tasks : ["", "", ""]).map((task, i) => (
+        <Appear key={i} kind="move" at={at(0.9 + i * 0.35)} x={198} y={54 + i * 27} dx={24} dy={0}>
+          <Box w={128} h={22} r={11} bg={LC.panel} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8 }}>
+            <Box w={10} h={10} r={5} bg={[LC.amber, LC.mint, LC.coral][i]!} />
+            {task ? <L size={10}>{task.slice(0, 17)}</L> : <Box w={70} h={5} r={2.5} bg={LC.line} />}
+          </Box>
+        </Appear>
+      ))}
+      <View style={{ position: "absolute", left: 36, top: 195, width: 288, height: 2, backgroundColor: LC.line }} />
+      {bars.map((height, i) => (
+        <Appear key={i} kind="grow" at={at(1.6 + i * 0.12)} x={44 + i * 28} y={196 - height}>
+          <Box w={18} h={height} r={4} bg={i === bars.length - 1 ? LC.mint : LC.teal} />
+        </Appear>
+      ))}
+      <Appear at={at(2.6)} x={250} y={150}>
+        <Box w={74} h={36} r={12} bg={LC.mint} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10 }}>
+          <L size={16} color={LC.navy}>✦</L>
+          <View style={{ gap: 5 }}>
+            <Box w={28} h={5} r={2.5} bg="rgba(14,42,56,0.5)" />
+            <Box w={20} h={5} r={2.5} bg="rgba(14,42,56,0.3)" />
+          </View>
+        </Box>
+      </Appear>
+    </>
+  );
+}
+
+const ZONES = [
+  { x: 104, y: 86, r: 54 },
+  { x: 208, y: 120, r: 46 },
+  { x: 282, y: 66, r: 40 },
+];
+
+function MapZones({ scene }: { scene: IntroScene }) {
+  const zones = (scene.chips?.length ? scene.chips : ["Zone A", "Zone B", "Zone C"]).slice(0, 3);
+  return (
+    <>
+      <Svg width={360} height={220} style={{ position: "absolute" }}>
+        <Rect x={16} y={12} width={328} height={196} rx={18} fill={LC.deep} />
+        <Path d="M16 162 C 90 142, 150 192, 230 170 S 330 152, 344 162 V 196 a12 12 0 0 1 -12 12 H 28 a12 12 0 0 1 -12 -12 Z" fill={LC.teal} opacity={0.35} />
+        {["M16 60 H344", "M16 128 H344", "M70 12 V208", "M160 12 V208", "M250 12 V208"].map((d) => <Path key={d} d={d} stroke={LC.panel} strokeWidth={7} />)}
+      </Svg>
+      {zones.map((zone, i) => {
+        const off = /✕|×|off/i.test(zone);
+        const color = off ? LC.coral : [LC.mint, LC.amber, LC.plum][i]!;
+        const spot = ZONES[i]!;
+        return (
+          <View key={zone}>
+            <Appear at={at(0.5 + i * 0.45)} x={spot.x - spot.r} y={spot.y - spot.r}>
+              <Svg width={spot.r * 2 + 4} height={spot.r * 2 + 4}>
+                <Circle cx={spot.r + 2} cy={spot.r + 2} r={spot.r} fill={off ? "none" : color} fillOpacity={0.22} stroke={color} strokeWidth={2} strokeDasharray="5 5" />
+                {off ? <Path d={`M${spot.r * 0.4 + 2} ${spot.r * 0.4 + 2} L${spot.r * 1.6 + 2} ${spot.r * 1.6 + 2}`} stroke={LC.coral} strokeWidth={2.5} /> : null}
+              </Svg>
+            </Appear>
+            <Chip x={Math.min(spot.x, 340 - chipW(zone) / 2)} y={spot.y} text={zone} bg={off ? LC.panel : color} color={off ? LC.cream : LC.navy} at={at(0.8 + i * 0.45)} />
+          </View>
+        );
+      })}
+      <Appear at={at(1.8)} x={94} y={4}>
+        <Svg width={20} height={30}>
+          <Path d="M10 28 c-10 -12 -10 -26 0 -26 s10 14 0 26 Z" fill={LC.coral} />
+          <Circle cx={10} cy={10} r={3.5} fill={LC.navy} />
+        </Svg>
+      </Appear>
+      {scene.value ? (
+        <Appear at={at(2.4)} x={260} y={165}>
+          <Box w={76} h={30} r={6} bg={LC.cream} style={{ alignItems: "center", justifyContent: "center" }}>
+            <Counter value={scene.value} startMs={2600} size={14} color={LC.navy} />
+          </Box>
+        </Appear>
+      ) : null}
+    </>
+  );
+}
+
+function BadgeVerify({ scene }: { scene: IntroScene }) {
+  const chips = (scene.chips ?? []).slice(0, 3);
+  return (
+    <>
+      <Appear kind="rise" at={at(0.1)} x={30} y={34}>
+        <Box w={172} h={120} r={14} bg={LC.cream} style={{ padding: 14 }}>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Box w={46} h={56} r={8} bg={LC.mintSoft} style={{ alignItems: "center", justifyContent: "flex-end", overflow: "hidden" }}>
+              <Box w={18} h={18} r={9} bg={LC.navy} style={{ marginBottom: 4 }} />
+              <Box w={28} h={14} r={14} bg={LC.navy} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }} />
+            </Box>
+            <View style={{ gap: 10, paddingTop: 6 }}>
+              {[84, 60, 72].map((width) => <Box key={width} w={width} h={6} r={3} bg="#C9C6D3" />)}
+            </View>
+          </View>
+          <Box w={144} h={20} r={4} bg="#E8E2D5" style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6 }}>
+            {Array.from({ length: 22 }, (_, i) => <View key={i} style={{ width: i % 3 ? 2 : 3.5, height: 12, backgroundColor: "rgba(14,42,56,0.55)" }} />)}
+          </Box>
+        </Box>
+      </Appear>
+      <Mover x={26} y={36} dx={0} dy={110}>
+        <Box w={180} h={3} r={1.5} bg={LC.mint} />
+      </Mover>
+      <Appear kind="growx" at={at(1.6)} x={208} y={95}>
+        <Box w={24} h={3} r={1.5} bg={LC.mint} />
+      </Appear>
+      <Appear at={at(2.1)} x={240} y={30}>
+        <Svg width={84} height={110}>
+          <Path d="M42 0 L84 16 V52 C84 82 64 100 42 108 C20 100 0 82 0 52 V16 Z" fill={LC.mint} />
+          <Path d="M28 54 l10 10 l20 -22" fill="none" stroke={LC.navy} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </Appear>
+      {scene.label ? <Chip x={282} y={164} text={scene.label} bg={LC.cream} color={LC.navy} at={at(2.6)} /> : null}
+      {chips.map((chip, i) => {
+        const text = `✓ ${chip}`;
+        const left = 30 + chips.slice(0, i).reduce((sum, item) => sum + chipW(`✓ ${item}`) + 6, 0);
+        return <Chip key={chip} x={left + chipW(text) / 2} y={180} text={text} bg={LC.panel} color={LC.mintSoft} at={at(1 + i * 0.35)} />;
+      })}
+    </>
+  );
+}
+
+function RiderTeam({ scene }: { scene: IntroScene }) {
+  const names = (scene.chips?.length ? scene.chips : ["Rider 1", "Rider 2", "Rider 3"]).slice(0, 3);
+  return (
+    <>
+      {names.map((name, i) => {
+        const x = 24 + i * 108;
+        const busy = i === 1;
+        return (
+          <View key={name}>
+            <Appear kind="rise" at={at(0.2 + i * 0.25)} x={x} y={34}>
+              <Box w={96} h={150} r={16} bg={LC.panel} border={i === 0 ? LC.mint : LC.line} style={{ alignItems: "center", paddingTop: 16 }}>
+                <Box w={48} h={48} r={24} bg={[LC.mint, LC.amber, LC.plum][i]!} style={{ overflow: "hidden", alignItems: "center" }}>
+                  <View style={{ marginTop: 6, width: 40, height: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: LC.navy }} />
+                  <Box w={32} h={9} r={4.5} bg="rgba(244,241,234,0.85)" style={{ marginTop: -4 }} />
+                </Box>
+                <L size={12} style={{ marginTop: 10 }}>{name.slice(0, 12)}</L>
+                <Box w={12} h={12} r={6} bg={busy ? LC.amber : LC.mint} style={{ marginTop: 10 }} />
+                <Box w={60} h={6} r={3} bg={LC.line} style={{ marginTop: 10 }} />
+              </Box>
+            </Appear>
+            <Appear kind="growx" at={at(1.2 + i * 0.3)} x={x + 18} y={162}>
+              <Box w={[52, 34, 46][i]!} h={6} r={3} bg={busy ? LC.amber : LC.mint} />
+            </Appear>
+            {busy ? (
+              <Appear at={at(1.6)} x={x + 64} y={44}>
+                <Box w={22} h={18} r={3} bg={LC.amber} border={LC.navy} />
+              </Appear>
+            ) : null}
+          </View>
+        );
+      })}
+      <Appear at={at(2.6)} x={169} y={193}>
+        <Box w={22} h={22} r={11} bg={LC.mint} style={{ alignItems: "center", justifyContent: "center" }}>
+          <L size={15} color={LC.navy}>+</L>
+        </Box>
+      </Appear>
+    </>
+  );
+}
+
+function InboxList({ scene }: { scene: IntroScene }) {
+  const chips = scene.chips ?? [];
+  const rows = Math.max(3, Math.min(4, chips.length || 4));
+  return (
+    <>
+      <Appear kind="fade" at={0} x={36} y={12}>
+        <Box w={288} h={196} r={18} bg={LC.deep} border={LC.line} style={{ paddingLeft: 18, paddingTop: 14 }}>
+          <Box w={72} h={8} r={4} bg="rgba(244,241,234,0.75)" />
+        </Box>
+      </Appear>
+      {scene.value ? (
+        <Appear at={at(1.8)} x={289} y={19}>
+          <Box w={22} h={22} r={11} bg={LC.coral} style={{ alignItems: "center", justifyContent: "center" }}>
+            <L size={11}>{scene.value.slice(0, 3)}</L>
+          </Box>
+        </Appear>
+      ) : null}
+      {Array.from({ length: rows }, (_, i) => {
+        const chip = chips[i];
+        return (
+          <Appear key={i} kind="rise" at={at(0.3 + i * 0.3)} x={48} y={48 + i * 39}>
+            <Box w={264} h={32} r={12} bg={LC.panel} border={i === 0 ? LC.mint : undefined} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 8, gap: 8, borderWidth: i === 0 ? 1.5 : 0 }}>
+              <Box w={20} h={20} r={10} bg={chipColor(chip ?? "", i)} />
+              <View style={{ flex: 1, gap: 4 }}>
+                {chip ? <L size={10.5}>{chip.slice(0, 18)}</L> : <Box w={60} h={6} r={3} bg="rgba(244,241,234,0.6)" />}
+                {i === 0 && scene.label ? <L mono size={9} color={LC.mintSoft}>{scene.label.slice(0, 30)}</L> : <Box w={130 - i * 16} h={4} r={2} bg={LC.line} />}
+              </View>
+              {i < 2 ? <Box w={9} h={9} r={4.5} bg={LC.mint} /> : null}
+            </Box>
+          </Appear>
+        );
+      })}
+    </>
+  );
+}
+
+function BellAlerts({ scene }: { scene: IntroScene }) {
+  const alerts = (scene.chips?.length ? scene.chips : ["", "", ""]).slice(0, 3);
+  return (
+    <>
+      <Pulse x={40} y={64} w={60} h={84} swing>
+        <Appear at={at(0.1)} x={0} y={0}>
+          <Svg width={60} height={84}>
+            <Circle cx={30} cy={6} r={5} fill={LC.amber} />
+            <Path d="M10 60 C10 24 18 10 30 10 C42 10 50 24 50 60 L58 68 H2 Z" fill={LC.amber} />
+            <Circle cx={30} cy={76} r={6} fill={LC.amber} />
+          </Svg>
+        </Appear>
+      </Pulse>
+      <Appear at={at(0.6)} x={82} y={68}>
+        <Box w={20} h={20} r={10} bg={LC.coral} style={{ alignItems: "center", justifyContent: "center" }}>
+          <L size={11}>{alerts.length}</L>
+        </Box>
+      </Appear>
+      {alerts.map((alert, i) => (
+        <Appear key={i} kind="move" at={at(0.8 + i * 0.6)} x={128} y={30 + i * 56} dx={40} dy={0}>
+          <Box w={212} h={46} r={14} bg={i === 0 ? LC.cream : LC.panel} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 11 }}>
+            <Box w={22} h={22} r={11} bg={[LC.mint, LC.amber, LC.coral][i]!} />
+            <View style={{ gap: 5 }}>
+              {alert ? <L size={10.5} color={i === 0 ? LC.navy : LC.cream}>{alert.slice(0, 24)}</L> : <Box w={110} h={6} r={3} bg={i === 0 ? "#C9C6D3" : LC.line} />}
+              <Box w={[70, 54, 62][i]!} h={4} r={2} bg={i === 0 ? "#C9C6D3" : LC.line} />
+            </View>
+          </Box>
+        </Appear>
+      ))}
+    </>
+  );
+}
+
+function SearchRank({ scene }: { scene: IntroScene }) {
+  const query = (scene.label ?? "your shop").slice(0, 24);
+  const typed = Math.min(3, 1 + query.length * 0.085);
+  return (
+    <>
+      <Appear kind="rise" at={at(0.1)} x={30} y={16}>
+        <Box w={300} h={38} r={19} bg={LC.cream} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, gap: 10 }}>
+          <Svg width={18} height={18}>
+            <Circle cx={7.5} cy={7.5} r={6} fill="none" stroke={LC.navy} strokeWidth={2.5} />
+            <Path d="M12 12 l5 5" stroke={LC.navy} strokeWidth={2.5} strokeLinecap="round" />
+          </Svg>
+          <View style={{ flex: 1 }}>
+            <Typed text={query} startMs={1000} size={12} color={LC.navy} />
+          </View>
+          {[LC.mint, LC.amber, LC.coral, LC.plum].map((color) => <Box key={color} w={7} h={7} r={3.5} bg={color} />)}
+        </Box>
+      </Appear>
+      {[1, 2].map((slot) => (
+        <Appear key={slot} kind="rise" at={at(typed + 0.2 + slot * 0.2)} x={30} y={70 + slot * 46}>
+          <Box w={300} h={38} r={12} bg={LC.panel} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 }}>
+            <Box w={16} h={16} r={8} bg={LC.line} />
+            <View style={{ gap: 6 }}>
+              <Box w={130 - slot * 20} h={6} r={3} bg={LC.line} />
+              <Box w={180} h={4} r={2} bg="rgba(36,84,106,0.6)" />
+            </View>
+          </Box>
+        </Appear>
+      ))}
+      <Appear kind="move" at={at(typed + 0.9)} x={30} y={70} dx={0} dy={92}>
+        <Box w={300} h={38} r={12} bg={LC.cream} border={LC.mint} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10, borderWidth: 2.5 }}>
+          <Box w={16} h={16} r={8} bg={LC.teal} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Box w={150} h={6} r={3} bg={LC.navy} />
+            <Box w={92} h={4} r={2} bg={LC.teal} />
+          </View>
+          <Box w={22} h={22} r={11} bg={LC.amber} style={{ alignItems: "center", justifyContent: "center" }}>
+            <L size={11} color={LC.navy}>1</L>
+          </Box>
+        </Box>
+      </Appear>
+    </>
+  );
+}
+
 /** Scene art id → illustration. tests/learn.test.mjs checks every SCENE_ARTS id has an entry here. */
 export const MOBILE_SCENE_KIT: Record<SceneArt, (props: { scene: IntroScene }) => ReactNode> = {
   "phone-store": PhoneStore,
@@ -768,6 +1545,22 @@ export const MOBILE_SCENE_KIT: Record<SceneArt, (props: { scene: IntroScene }) =
   "quote-tags": QuoteTags,
   "cash-collect": CashCollect,
   "theme-swap": ThemeSwap,
+  "order-pipeline": OrderPipeline,
+  "receipt": Receipt,
+  "invoice-paper": InvoicePaper,
+  "star-reviews": StarReviews,
+  "customer-cards": CustomerCards,
+  "discount-ticket": DiscountTicket,
+  "brand-palette": BrandPalette,
+  "import-ship": ImportShip,
+  "video-reel": VideoReel,
+  "dashboard-tiles": DashboardTiles,
+  "map-zones": MapZones,
+  "badge-verify": BadgeVerify,
+  "rider-team": RiderTeam,
+  "inbox-list": InboxList,
+  "bell-alerts": BellAlerts,
+  "search-rank": SearchRank,
 };
 
 /**

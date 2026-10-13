@@ -13,7 +13,9 @@ const read = (path) => readFileSync(join(ROOT, path), "utf8");
 // ─── "We'll set it up for you" ────────────────────────────────────────────────
 
 test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold the technical details", () => {
-  const connect = read("src/app/home/domain/DomainConnect.tsx");
+  // Domain copy lives in the domain catalog (shared/i18n/messages/domain/en.ts); the screens show it through t().
+  const domainCopy = read("shared/i18n/messages/domain/en.ts");
+  const connect = read("src/app/home/domain/DomainConnect.tsx") + domainCopy;
   const ownership = read("src/components/domains/DomainOwnership.tsx");
   assert.match(connect, /<SetupHelpRequest/);
   assert.match(connect, /Use your own domain/);
@@ -23,13 +25,17 @@ test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold
   assert.match(connect, /Ask the Shopinbos team to do it/);
   assert.match(ownership, /<SetupHelpRequest/);
   assert.match(ownership, /whatsappShareUrl\(message\)/);
-  assert.match(ownership, /Copy the steps/);
-  assert.match(ownership, /Waiting for your domain to be connected/);
-  assert.match(ownership, /<Pill tone="success" dot>Connected<\/Pill>/);
-  assert.match(ownership, /<TechFold forWho="the person who set up your domain"/);
+  assert.match(ownership, /t\("pend\.copy"\)/);
+  assert.match(domainCopy, /"pend\.copy": "Copy the steps"/);
+  assert.match(ownership, /t\("pend\.title"\)/);
+  assert.match(domainCopy, /"pend\.title": "Waiting for your domain to be connected"/);
+  assert.match(ownership, /<Pill tone="success" dot>\{t\("own\.connected"\)\}<\/Pill>/);
+  assert.match(domainCopy, /"own\.connected": "Connected"/);
+  assert.match(ownership, /<TechFold forWho=\{t\("own\.forWho"\)\}/);
+  assert.match(domainCopy, /"own\.forWho": "the person who set up your domain"/);
   // Records and Verify are inside the fold.
-  const fold = ownership.slice(ownership.indexOf('<TechFold forWho="the person who set up your domain" className="mt-4">'));
-  assert.match(fold.slice(0, fold.indexOf("</TechFold>")), /<RecordList records=\{records\} \/>[\s\S]*>Verify</);
+  const fold = ownership.slice(ownership.indexOf('<TechFold forWho={t("own.forWho")} className="mt-4">'));
+  assert.match(fold.slice(0, fold.indexOf("</TechFold>")), /<RecordList records=\{records\} \/>[\s\S]*>\{t\("verify"\)\}</);
   assert.match(read("src/components/simple/Fold.tsx"), /t\("techDetails", \{ forWho \}\)/);
   assert.match(read("shared/i18n/messages/ui/en.ts"), /techDetails: "Show the technical details \(for \{forWho\}\)"/);
 

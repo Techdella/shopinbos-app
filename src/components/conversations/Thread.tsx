@@ -24,6 +24,9 @@ import {
 import { announceMessagesChanged, messagesApi } from "./client";
 import { Attachments, ContextCard, PartnerAvatar, RoleBadge, formatClock } from "./parts";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatDate, formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 // One partner chat: bubbles by day, "Seen" receipts, optimistic sending with retry, Enter to send
 // (Shift+Enter for a new line), photos/PDFs, linked product/order/booking cards and quick replies.
@@ -33,7 +36,7 @@ type LocalMessage = ThreadMessage & { status?: "sending" | "failed"; error?: str
 type Staged = { key: string; name: string; type: string; size: number; status: "uploading" | "ready" | "failed"; error?: string; ref?: AttachmentRef; previewUrl?: string };
 type ThreadMeta = { conversation: ConversationSummary | null; hasMore: boolean; seenUpTo: string | null };
 
-const CONTEXT_GROUP: Record<ContextSnapshot["kind"], string> = { product: "Products", wholesale_order: "Wholesale orders", order: "Your orders", booking: "Deliveries" };
+const CONTEXT_GROUP: Record<ContextSnapshot["kind"], MessageKey<"inbox">> = { product: "ctxGroup.product", wholesale_order: "ctxGroup.wholesale", order: "ctxGroup.order", booking: "ctxGroup.booking" };
 
 function profileHref(viewerRole: PartnerRole, partner: ConversationSummary["with"]) {
   if (!partner.slug) return null;
@@ -60,6 +63,8 @@ export function Thread({
   onActivity?: () => void;
   compact?: boolean;
 }) {
+  const t = useT("inbox", "common");
+  const locale = useLocale();
   const id = conversation.id;
   const partner = conversation.with;
   const [messages, setMessages] = useState<LocalMessage[]>([]);
@@ -160,13 +165,14 @@ export function Thread({
         if (!alive) return;
         setOptions(body.data);
         const match = body.data.find((item) => item.kind === pendingContext.kind && item.id === pendingContext.id);
-        setContext(match ?? { kind: pendingContext.kind, id: pendingContext.id, label: pendingContext.kind === "product" ? "This product" : "Linked item" });
+        setContext(match ?? { kind: pendingContext.kind, id: pendingContext.id, label: pendingContext.kind === "product" ? t("pt.thisProduct") : t("pt.linkedItem") });
       })
-      .catch(() => alive && setContext({ kind: pendingContext.kind, id: pendingContext.id, label: "Linked item" }))
+      .catch(() => alive && setContext({ kind: pendingContext.kind, id: pendingContext.id, label: t("pt.linkedItem") }))
       .finally(() => alive && setPendingContext(null));
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, pendingContext]);
 
   async function loadOlder() {
@@ -223,12 +229,12 @@ export function Thread({
     const trimmed = text.trim();
     const ready = staged.filter((file) => file.status === "ready" && file.ref);
     if (staged.some((file) => file.status === "uploading")) {
-      setComposerError("Wait for the files to finish uploading.");
+      setComposerError(t("pt.waitUpload"));
       return;
     }
     if (!trimmed && !ready.length && !context) return;
     if (trimmed.length > MESSAGE_MAX) {
-      setComposerError(`Messages can be up to ${MESSAGE_MAX.toLocaleString()} characters.`);
+      setComposerError(t("pt.tooLong", { max: formatNumber(MESSAGE_MAX, locale) }));
       return;
     }
     setComposerError(null);
@@ -257,7 +263,7 @@ export function Thread({
     if (!list?.length) return;
     const room = MAX_ATTACHMENTS - staged.filter((file) => file.status !== "failed").length;
     const files = [...list].slice(0, Math.max(0, room));
-    if (list.length > files.length) setComposerError(`You can send up to ${MAX_ATTACHMENTS} files at a time.`);
+    if (list.length > files.length) setComposerError(t("pt.maxFiles", { max: MAX_ATTACHMENTS }));
     for (const file of files) {
       const key = `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 6)}`;
       const problem = attachmentProblem(file);
@@ -286,8 +292,12 @@ export function Thread({
 
   const visible = messages;
   const seenId = lastSeenId(visible.filter((message) => !message.status));
-  const groups = groupByDay(visible);
-  const replies = quickReplies(role, partner.role);
+  const groups = groupByDay(visible).map((group) => ({
+    ...group,
+    label: group.label === "Today" ? t("time.today") : group.label === "Yesterday" ? t("time.yesterday") : locale === "en" ? group.label : formatDate(group.items[0].createdAt, locale, { weekday: "short", day: "numeric", month: "short" }),
+  }));
+  const pair = `${role}>${partner.role}`;
+  const replies = quickReplies(role, partner.role).map((reply, index) => t.dynamic(`qr.${pair}.${index}`, reply));
   const profile = profileHref(role, partner);
   const canSend = Boolean(text.trim() || staged.some((file) => file.status === "ready") || context);
 
@@ -295,7 +305,7 @@ export function Thread({
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
       <header className="flex shrink-0 items-center gap-3 border-b border-app-line px-3 py-2.5 sm:px-4">
         {onBack && (
-          <button type="button" onClick={onBack} aria-label="Back to conversations" className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas", !compact && "lg:hidden")}>
+          <button type="button" onClick={onBack} aria-label={t("thread.back")} className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas", !compact && "lg:hidden")}>
             <Icon name="arrowLeft" size={18} />
           </button>
         )}
@@ -305,11 +315,11 @@ export function Thread({
             <h2 className="m-0 truncate text-[15px] font-extrabold">{partner.name}</h2>
             <RoleBadge role={partner.role} />
           </div>
-          <div className="truncate text-[12.5px] text-app-ink-soft">{partner.city ? `${partner.city} · on Shopinbos` : "On Shopinbos"}</div>
+          <div className="truncate text-[12.5px] text-app-ink-soft">{partner.city ? t("pt.cityOn", { city: partner.city }) : t("pt.on")}</div>
         </div>
         {profile && (
           <Link href={profile} className="hidden min-h-[34px] shrink-0 items-center rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline hover:border-app-line-strong sm:inline-flex">
-            Profile
+            {t("pt.profile")}
           </Link>
         )}
       </header>
@@ -327,12 +337,12 @@ export function Thread({
         {hasMore && (
           <div className="mb-3 text-center">
             <button type="button" onClick={() => void loadOlder()} disabled={loadingOlder} className="min-h-[34px] rounded-full border border-app-line bg-white px-3.5 text-[12.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-60">
-              {loadingOlder ? "Loading…" : "Show earlier messages"}
+              {loadingOlder ? t("loading") : t("pt.earlier")}
             </button>
           </div>
         )}
         {loading ? (
-          <div className="grid gap-3 p-2" aria-label="Loading messages">
+          <div className="grid gap-3 p-2" aria-label={t("pt.loadingMessages")}>
             {[60, 40, 70].map((width, index) => (
               <div key={index} className={cx("h-10 animate-pulse rounded-[16px] bg-app-line/60", index % 2 ? "ml-auto" : "")} style={{ width: `${width}%` }} />
             ))}
@@ -342,8 +352,8 @@ export function Thread({
         ) : visible.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <PartnerAvatar name={partner.name} logoUrl={partner.logoUrl} size={56} />
-            <p className="mb-0 mt-3 text-[14.5px] font-extrabold">Say hello to {partner.name}</p>
-            <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">Ask about stock, prices or a pickup. You can attach photos and PDFs, or link a product, order or delivery.</p>
+            <p className="mb-0 mt-3 text-[14.5px] font-extrabold">{t("pt.sayHello", { name: partner.name })}</p>
+            <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">{t("pt.helloBody")}</p>
           </div>
         ) : (
           groups.map((group) => (
@@ -371,7 +381,7 @@ export function Thread({
         className="shrink-0 border-t border-app-line bg-white px-3 pb-3 pt-2 sm:px-4"
       >
         {!text.trim() && !staged.length && !context && replies.length > 0 && (
-          <div className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5" aria-label="Quick replies">
+          <div className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5" aria-label={t("pt.quickReplies")}>
             {replies.map((reply) => (
               <button
                 key={reply}
@@ -404,10 +414,10 @@ export function Thread({
                     <span className="min-w-0">
                       <span className="block truncate font-bold">{file.name}</span>
                       <span className={cx("block truncate", file.status === "failed" ? "text-app-danger" : "text-app-ink-soft")}>
-                        {file.status === "uploading" ? "Uploading…" : file.status === "failed" ? file.error ?? "Upload failed" : "Ready"}
+                        {file.status === "uploading" ? t("pt.uploading") : file.status === "failed" ? file.error ?? t("pt.uploadFailed") : t("pt.ready")}
                       </span>
                     </span>
-                    <button type="button" aria-label={`Remove ${file.name}`} onClick={() => setStaged((current) => current.filter((item) => item.key !== file.key))} className="grid h-6 w-6 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
+                    <button type="button" aria-label={t("ctx.remove", { label: file.name })} onClick={() => setStaged((current) => current.filter((item) => item.key !== file.key))} className="grid h-6 w-6 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
                       <Icon name="x" size={11} />
                     </button>
                   </div>
@@ -423,9 +433,9 @@ export function Thread({
           <input ref={fileRef} type="file" multiple accept={ATTACHMENT_TYPES.join(",")} className="hidden" onChange={(event) => void addFiles(event.target.files)} />
           <button
             type="button"
-            onClick={() => (filesEnabled ? fileRef.current?.click() : setComposerError("Sending files will be switched on shortly. Send text for now."))}
-            aria-label="Attach a photo or PDF"
-            title="Attach a photo or PDF"
+            onClick={() => (filesEnabled ? fileRef.current?.click() : setComposerError(t("pt.filesSoon")))}
+            aria-label={t("pt.attach")}
+            title={t("pt.attach")}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-ink"
           >
             <Icon name="paperclip" size={18} />
@@ -433,14 +443,14 @@ export function Thread({
           <button
             type="button"
             onClick={() => void openLinks()}
-            aria-label="Link a product, order or delivery"
+            aria-label={t("pt.link")}
             aria-expanded={linkOpen}
-            title="Link a product, order or delivery"
+            title={t("pt.link")}
             className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-app-canvas hover:text-app-ink", linkOpen ? "bg-app-canvas text-app-ink" : "text-app-ink-soft")}
           >
             <Icon name="link" size={18} />
           </button>
-          <label htmlFor={`composer-${id}`} className="sr-only">Message {partner.name}</label>
+          <label htmlFor={`composer-${id}`} className="sr-only">{t("partner.messageName", { name: partner.name })}</label>
           <textarea
             id={`composer-${id}`}
             ref={inputRef}
@@ -459,11 +469,11 @@ export function Thread({
                 send();
               }
             }}
-            placeholder="Write a message"
+            placeholder={t("partner.write")}
             className="max-h-[140px] min-h-[44px] min-w-0 flex-1 resize-none rounded-[22px] border border-app-line bg-white px-4 py-[10px] text-[16px] leading-[1.4] outline-none placeholder:text-app-ink-faint focus:border-app-ink sm:text-[15px]"
           />
           <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={MESSAGE_MAX} context="a message to a business partner" />
-          <button type="submit" disabled={!canSend} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-accent text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="submit" disabled={!canSend} aria-label={t("send")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-accent text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45">
             <Icon name="send" size={17} />
           </button>
 
@@ -472,16 +482,16 @@ export function Thread({
               {optionsError ? (
                 <p className="m-0 p-3 text-[13px] text-app-danger">{optionsError}</p>
               ) : !options ? (
-                <p className="m-0 p-3 text-[13px] text-app-ink-soft">Loading…</p>
+                <p className="m-0 p-3 text-[13px] text-app-ink-soft">{t("loading")}</p>
               ) : options.length === 0 ? (
-                <p className="m-0 p-3 text-[13px] text-app-ink-soft">Nothing to link yet. Products, orders and deliveries between you two show up here.</p>
+                <p className="m-0 p-3 text-[13px] text-app-ink-soft">{t("pt.nothingToLink")}</p>
               ) : (
                 (Object.keys(CONTEXT_GROUP) as Array<ContextSnapshot["kind"]>).map((kind) => {
                   const items = options.filter((item) => item.kind === kind);
                   if (!items.length) return null;
                   return (
                     <div key={kind} className="py-1">
-                      <div className="px-2.5 pb-1 pt-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-app-ink-faint">{CONTEXT_GROUP[kind]}</div>
+                      <div className="px-2.5 pb-1 pt-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-app-ink-faint">{t(CONTEXT_GROUP[kind])}</div>
                       {items.map((item) => (
                         <button
                           key={`${item.kind}-${item.id}`}
@@ -512,13 +522,15 @@ export function Thread({
             </div>
           )}
         </div>
-        {!compact && <p className="m-0 mt-1.5 hidden text-[11.5px] text-app-ink-faint sm:block">Enter to send · Shift + Enter for a new line</p>}
+        {!compact && <p className="m-0 mt-1.5 hidden text-[11.5px] text-app-ink-faint sm:block">{t("pt.enterHint")}</p>}
       </form>
     </div>
   );
 }
 
 function Bubble({ message, role, seen, onRetry, onDiscard }: { message: LocalMessage; role: PartnerRole; seen: boolean; onRetry: () => void; onDiscard: () => void }) {
+  const t = useT("inbox", "common");
+  const locale = useLocale();
   const mine = message.mine;
   return (
     <div className={cx("flex flex-col", mine ? "items-end" : "items-start")}>
@@ -534,19 +546,19 @@ function Bubble({ message, role, seen, onRetry, onDiscard }: { message: LocalMes
         <Attachments files={message.attachments} mine={mine} />
         {message.text && <div className="whitespace-pre-wrap break-words">{message.text}</div>}
         <div className={cx("text-right text-[11px]", mine ? "text-white/60" : "text-app-ink-faint")}>
-          {message.status === "sending" ? "Sending…" : formatClock(message.createdAt)}
+          {message.status === "sending" ? t("msg.sending") : formatClock(message.createdAt, locale)}
         </div>
       </div>
       {message.status === "failed" && (
         <div className="mt-1 flex items-center gap-2 text-[12px]">
-          <span className="font-semibold text-app-danger">{message.error ?? "Not sent."}</span>
-          <button type="button" onClick={onRetry} className="font-extrabold text-app-ink underline">Retry</button>
-          <button type="button" onClick={onDiscard} className="text-app-ink-soft underline">Delete</button>
+          <span className="font-semibold text-app-danger">{message.error ?? t("pt.notSent")}</span>
+          <button type="button" onClick={onRetry} className="font-extrabold text-app-ink underline">{t("pt.retry")}</button>
+          <button type="button" onClick={onDiscard} className="text-app-ink-soft underline">{t("delete")}</button>
         </div>
       )}
       {seen && !message.status && (
         <div className="mt-0.5 flex items-center gap-1 text-[11.5px] font-semibold text-app-ink-soft">
-          <Icon name="check" size={12} /> Seen{message.readAt ? ` ${formatClock(message.readAt)}` : ""}
+          <Icon name="check" size={12} /> {t("msgr.seen")}{message.readAt ? ` ${formatClock(message.readAt, locale)}` : ""}
         </div>
       )}
     </div>

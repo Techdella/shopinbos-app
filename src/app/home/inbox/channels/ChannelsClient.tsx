@@ -12,6 +12,7 @@ import { plainMetaError } from "@/components/simple/plain";
 import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
 import { Mascot } from "@/components/brand/Mascot";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Connect screens for every inbox channel: status, what you need, step-by-step setup, and the form.
 // Keys go to the server once, are checked with the provider and stored encrypted; they never come back here.
@@ -157,6 +158,7 @@ const SETUPS: Record<ConnectableChannel, Setup> = {
 const ORDER: ConnectableChannel[] = ["whatsapp", "instagram", "messenger", "email", "sms", "voice", "telegram"];
 
 function CopyRow({ label, value }: { label: string; value: string }) {
+  const t = useT("inbox");
   const [copied, setCopied] = useState(false);
   return (
     <div className="grid gap-1">
@@ -171,7 +173,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
               window.setTimeout(() => setCopied(false), 1500);
             });
           }}
-          aria-label={`Copy ${label}`}
+          aria-label={t("ch.copy", { label })}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white"
         >
           <Icon name={copied ? "check" : "copy"} size={15} />
@@ -186,6 +188,8 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 const metaChannelKey = (channel: string) => channel === "whatsapp" || channel === "instagram" || channel === "messenger";
 
 function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { view: ChannelView; setup: Setup; onChange: (view: ChannelView) => void; encryptionReady: boolean; extra?: ReactNode; tech?: ReactNode }) {
+  const t = useT("inbox", "common");
+  const title = t.dynamic(`ch.${view.channel}.title`, setup.title);
   const connected = view.status === "connected";
   const [open, setOpen] = useState(false);
   const [askUs, setAskUs] = useState(false);
@@ -204,22 +208,22 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       onChange(next);
       setValues({});
       setOpen(false);
-      setMessage({ tone: "success", text: `${setup.title} is connected.` });
+      setMessage({ tone: "success", text: t("ch.isConnected", { title }) });
     } catch (error) {
       const raw = (error as Error).message;
-      setMessage({ tone: "error", text: metaChannelKey(view.channel) ? plainMetaError(raw) : `${setup.title} didn't accept those details. Check them, or ask us to connect it for you.` });
+      setMessage({ tone: "error", text: metaChannelKey(view.channel) ? plainMetaError(raw) : t("ch.rejected", { title }) });
     } finally {
       setBusy(false);
     }
   }
 
   async function disconnect() {
-    if (!window.confirm(`Disconnect ${setup.title}? Your conversations stay; new messages stop coming in.`)) return;
+    if (!window.confirm(t("ch.confirmDisconnect", { title }))) return;
     setBusy(true);
     try {
       await inboxApi(`/api/app/inbox/channels/${view.channel}`, { method: "DELETE" });
       onChange({ ...view, status: "disconnected", verifyToken: null, lastError: null });
-      setMessage({ tone: "success", text: "Disconnected." });
+      setMessage({ tone: "success", text: t("ch.disconnected") });
     } catch (error) {
       setMessage({ tone: "error", text: (error as Error).message });
     } finally {
@@ -237,42 +241,42 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
         <ChannelMark channel={view.channel} size={44} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="m-0 text-[16px] font-extrabold">{setup.title}</h2>
-            {connected ? <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? "Needs attention" : "Connected"}</Pill> : view.status === "error" ? <Pill tone="warning" dot>Reconnect</Pill> : <Pill tone="muted">Not connected</Pill>}
+            <h2 className="m-0 text-[16px] font-extrabold">{title}</h2>
+            {connected ? <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? t("ch.attention") : t("ch.connected")}</Pill> : view.status === "error" ? <Pill tone="warning" dot>{t("ch.reconnect")}</Pill> : <Pill tone="muted">{t("ch.notConnected")}</Pill>}
           </div>
-          <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{connected && view.displayName ? view.displayName : setup.blurb}</p>
+          <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{connected && view.displayName ? view.displayName : t.dynamic(`ch.${view.channel}.blurb`, setup.blurb)}</p>
         </div>
       </div>
 
       {view.lastError && (connected || view.status === "error") && (
-        <Notice tone="error">{metaChannel ? plainMetaError(view.lastError) : `We can't reach ${setup.title} right now. Ask us to help and we'll fix it with you.`}</Notice>
+        <Notice tone="error">{metaChannel ? plainMetaError(view.lastError) : t("ch.cantReach", { title })}</Notice>
       )}
       {extra}
 
       {!connected && setup.fields.length > 0 && (
         askUs ? (
-          <SetupHelpRequest title={`Connect ${setup.title}`} description={`We'll connect ${setup.title} to your inbox for you and message you when it's working.`} feature={`inbox_${view.channel}`} />
+          <SetupHelpRequest title={t("ch.helpTitle", { title })} description={t("ch.helpDesc", { title })} feature={`inbox_${view.channel}`} />
         ) : (
-          <div><PillButton size="md" tone="ink" onClick={() => setAskUs(true)}>Ask us to connect it</PillButton></div>
+          <div><PillButton size="md" tone="ink" onClick={() => setAskUs(true)}>{t("ch.askUs")}</PillButton></div>
         )
       )}
-      {connected && view.lastError && !askUs && <div><PillButton size="sm" tone="white" onClick={() => setAskUs(true)}>Ask us to help</PillButton></div>}
-      {connected && view.lastError && askUs && <SetupHelpRequest title={`Fix ${setup.title}`} description={`We'll check ${setup.title} for you and reconnect it.`} feature={`inbox_${view.channel}`} />}
+      {connected && view.lastError && !askUs && <div><PillButton size="sm" tone="white" onClick={() => setAskUs(true)}>{t("ch.askHelp")}</PillButton></div>}
+      {connected && view.lastError && askUs && <SetupHelpRequest title={t("ch.fixTitle", { title })} description={t("ch.fixDesc", { title })} feature={`inbox_${view.channel}`} />}
 
       {setup.fields.length > 0 || tech || (connected && metaChannel && view.webhookUrl) ? (
-      <TechFold forWho={`the person who manages your ${setup.title} account`}>
+      <TechFold forWho={t("ch.forWho", { title })}>
       <div className="grid gap-3">
-      {view.lastError && <p className="m-0 break-words text-[12.5px] text-app-ink-soft">Last problem: {view.lastError}</p>}
+      {view.lastError && <p className="m-0 break-words text-[12.5px] text-app-ink-soft">{t("ch.lastProblem", { error: view.lastError })}</p>}
       {tech}
       {connected && metaChannel && view.webhookUrl && (
         <div className="grid gap-2">
-          <CopyRow label="Callback URL" value={view.webhookUrl} />
-          {view.verifyToken && <CopyRow label="Verify token" value={view.verifyToken} />}
+          <CopyRow label={t("ch.callbackUrl")} value={view.webhookUrl} />
+          {view.verifyToken && <CopyRow label={t("ch.verifyToken")} value={view.verifyToken} />}
         </div>
       )}
 
       <div className="grid gap-2">
-        <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">You need:</strong> {setup.needs}</p>
+        <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">{t("ch.youNeed")}</strong> {setup.needs}</p>
         <ol className="m-0 grid gap-1.5 pl-5 text-[13px] leading-[1.5]">
           {setup.steps.map((step) => <li key={step}>{step}</li>)}
         </ol>
@@ -288,7 +292,7 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
         >
           {setup.fields.filter((field) => !field.only || field.only.includes(values.provider ?? "")).map((field) => (
             <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
-              <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> (optional)</span> : null}</span>
+              <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> {t("ch.optional")}</span> : null}</span>
               {field.options ? (
                 <select
                   required={!field.optional}
@@ -296,7 +300,7 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
                   onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
                   className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[14px] font-normal outline-none focus:border-app-ink"
                 >
-                  <option value="">{field.optional ? "Default" : "Choose…"}</option>
+                  <option value="">{field.optional ? t("ch.default") : t("ch.choose")}</option>
                   {field.options
                     .filter((option) => field.name !== "route" || (values.provider === "termii" ? ["dnd", "generic"] : ["dnd", "non_dnd", "international"]).includes(option.value))
                     .map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -316,10 +320,10 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
               {field.hint && <span className="text-[12px] font-normal text-app-ink-soft">{field.hint}</span>}
             </label>
           ))}
-          {(connected || view.status === "error") && setup.fields.length > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">Saved keys are never shown again. Enter them again to replace them.</p>}
+          {(connected || view.status === "error") && setup.fields.length > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">{t("ch.savedKeys")}</p>}
           <div className="flex flex-wrap gap-2">
-            <PillButton type="submit" size="md" busy={busy}>{connected || view.status === "error" ? "Save and reconnect" : "Connect"}</PillButton>
-            <PillButton size="md" tone="ghost" onClick={() => setOpen(false)}>Cancel</PillButton>
+            <PillButton type="submit" size="md" busy={busy}>{connected || view.status === "error" ? t("ch.saveReconnect") : t("ch.connect")}</PillButton>
+            <PillButton size="md" tone="ghost" onClick={() => setOpen(false)}>{t("cancel")}</PillButton>
           </div>
         </form>
       )}
@@ -327,21 +331,21 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       {!open && setup.fields.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {blocked ? (
-            <p className="m-0 text-[13px] text-app-ink-soft">This server can't store channel keys yet (INBOX_ENCRYPTION_KEY isn't set).</p>
+            <p className="m-0 text-[13px] text-app-ink-soft">{t("ch.noKeyStore")}</p>
           ) : (
-            <PillButton size="md" tone="white" onClick={() => setOpen(true)}>{connected ? "Update keys" : "Connect with keys"}</PillButton>
+            <PillButton size="md" tone="white" onClick={() => setOpen(true)}>{connected ? t("ch.updateKeys") : t("ch.connectKeys")}</PillButton>
           )}
         </div>
       )}
-      <p className="m-0 text-[12px] text-app-ink-soft">Keys are checked with the provider, stored encrypted, and never shown in the browser again.</p>
+      <p className="m-0 text-[12px] text-app-ink-soft">{t("ch.keysNote")}</p>
       </div>
       </TechFold>
       ) : null}
 
       {(setup.fields.length === 0 && !connected) || connected ? (
         <div className="flex flex-wrap gap-2">
-          {setup.fields.length === 0 && !connected ? <PillButton size="md" busy={busy} onClick={() => void connect()}>Turn on</PillButton> : null}
-          {connected && <PillButton size="md" tone="ghost" busy={busy} onClick={() => void disconnect()}>Disconnect</PillButton>}
+          {setup.fields.length === 0 && !connected ? <PillButton size="md" busy={busy} onClick={() => void connect()}>{t("ch.turnOn")}</PillButton> : null}
+          {connected && <PillButton size="md" tone="ghost" busy={busy} onClick={() => void disconnect()}>{t("ch.disconnect")}</PillButton>}
         </div>
       ) : null}
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
@@ -362,6 +366,7 @@ export function ChannelsClient({
   liveChat: { on: boolean; mode: string };
   forwardCallsTo: string;
 }) {
+  const t = useT("inbox");
   const [views, setViews] = useState(initial);
   const update = (next: ChannelView) => setViews((current) => current.map((v) => (v.channel === next.channel ? next : v)));
   const connectedCount = views.filter((v) => v.status === "connected").length;
@@ -369,60 +374,60 @@ export function ChannelsClient({
   return (
     <div className="grid gap-5">
       {!platform.encryption && (
-        <Notice tone="info">Connecting WhatsApp, Instagram, Facebook, SMS and calls yourself isn&apos;t switched on yet. Tap &quot;Ask us to connect it&quot; and we&apos;ll do it for you. Live chat, contact forms and email already work.</Notice>
+        <Notice tone="info">{t("ch.noEncryption")}</Notice>
       )}
 
-      <section aria-label="Built in" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+      <section aria-label={t("ch.builtIn")} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         <Card className="grid content-start gap-3 p-5">
           <div className="flex items-start gap-3">
             <ChannelMark channel="livechat" size={44} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2"><h2 className="m-0 text-[16px] font-extrabold">Live chat</h2><Pill tone={liveChat.on ? "success" : "muted"} dot>{liveChat.on ? "On your store" : "Off"}</Pill></div>
-              <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">A chat box on your store. Shoppers see your replies live; if you're away we ask for their email or phone and email your reply.</p>
+              <div className="flex flex-wrap items-center gap-2"><h2 className="m-0 text-[16px] font-extrabold">{t("channel.livechat")}</h2><Pill tone={liveChat.on ? "success" : "muted"} dot>{liveChat.on ? t("ch.onStore") : t("ch.off")}</Pill></div>
+              <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("ch.liveBlurb")}</p>
             </div>
           </div>
-          <div><Link href="/home/marketing/chat" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong">Style the chat box</Link></div>
+          <div><Link href="/home/marketing/chat" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong">{t("ch.styleChat")}</Link></div>
         </Card>
         <Card className="grid content-start gap-3 p-5">
           <div className="flex items-start gap-3">
             <ChannelMark channel="form" size={44} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2"><h2 className="m-0 text-[16px] font-extrabold">Contact forms</h2><Pill tone="success" dot>On</Pill></div>
-              <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">Messages sent through the forms on your store arrive here. Replies go to the email they left.</p>
+              <div className="flex flex-wrap items-center gap-2"><h2 className="m-0 text-[16px] font-extrabold">{t("ch.forms")}</h2><Pill tone="success" dot>{t("ch.on")}</Pill></div>
+              <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("ch.formsBlurb")}</p>
             </div>
           </div>
-          <div><Link href="/home/marketing/forms" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong">Manage forms</Link></div>
+          <div><Link href="/home/marketing/forms" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong">{t("ch.manageForms")}</Link></div>
         </Card>
         <Card className="grid content-start gap-3 p-5 md:col-span-2">
           <div className="flex items-start gap-3">
             <ChannelMark channel="tiktok" size={44} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2"><h2 className="m-0 text-[16px] font-extrabold">TikTok messages</h2><Pill tone="muted">Not available yet</Pill></div>
+              <div className="flex flex-wrap items-center gap-2"><h2 className="m-0 text-[16px] font-extrabold">{t("ch.tiktok")}</h2><Pill tone="muted">{t("ch.notAvailable")}</Pill></div>
               <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">
-                TikTok only opens direct-message access to a small group of approved partners, so no app can bring TikTok DMs into an inbox for you yet. Keep replying in the TikTok app, and point buyers to your WhatsApp or store chat in your bio. We'll add it here as soon as TikTok opens access.
+                {t("ch.tiktokBody")}
               </p>
             </div>
           </div>
         </Card>
       </section>
 
-      <h2 className="m-0 text-[17px] font-extrabold">Connect your channels <span className="font-semibold text-app-ink-soft">· {connectedCount} connected</span></h2>
-      <section aria-label="Channels to connect" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      <h2 className="m-0 text-[17px] font-extrabold">{t("ch.connectYours")} <span className="font-semibold text-app-ink-soft">· {t("ch.connectedCount", { count: connectedCount })}</span></h2>
+      <section aria-label={t("ch.toConnect")} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {ORDER.map((key) => {
           const view = views.find((v) => v.channel === key)!;
           let extra: ReactNode = null;
           if (key === "email") {
             extra = (
               <div className="grid gap-2">
-                {inboxAddress ? <CopyRow label="Your inbox address" value={inboxAddress} /> : <p className="m-0 text-[13px] text-app-ink-soft">Getting emails here isn&apos;t switched on yet. You can still reply by email to form and chat messages; customers&apos; answers go to your own mailbox.</p>}
-                {!platform.resend && <p className="m-0 text-[13px] font-semibold text-app-danger">Sending email isn&apos;t switched on yet. Tap Help and we&apos;ll sort it out.</p>}
+                {inboxAddress ? <CopyRow label={t("ch.inboxAddress")} value={inboxAddress} /> : <p className="m-0 text-[13px] text-app-ink-soft">{t("ch.noInbound")}</p>}
+                {!platform.resend && <p className="m-0 text-[13px] font-semibold text-app-danger">{t("ch.noResend")}</p>}
               </div>
             );
           }
           if (key === "voice" && view.status === "connected") {
             extra = (
               <div className="grid gap-2">
-                <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? `Calls ring ${forwardCallsTo}; missed ones are logged here.` : "Calls go straight to voicemail."} Change this in <Link href="/home/inbox/settings" className="font-bold text-app-ink">inbox settings</Link>.</p>
+                <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? t("ch.callsRing", { phone: forwardCallsTo }) : t("ch.voicemail")} {t("ch.changeIn")} <Link href="/home/inbox/settings" className="font-bold text-app-ink">{t("ch.inboxSettings")}</Link>.</p>
 
               </div>
             );
@@ -432,8 +437,8 @@ export function ChannelsClient({
               <Link href="/home/inbox/chatbot?tab=whatsapp" className="flex min-h-[48px] items-center gap-3 rounded-[14px] bg-app-canvas px-3.5 py-2 text-app-ink no-underline hover:bg-app-mint">
                 <Mascot who="peggy" className="h-8 w-8 rounded-full bg-white p-0.5" decorative />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13.5px] font-bold">Put Peggy on your WhatsApp</span>
-                  <span className="block text-[12px] text-app-ink-soft">{view.status === "connected" ? "Let her answer customers, show products and take orders." : "Connect and set her up in three steps."}</span>
+                  <span className="block text-[13.5px] font-bold">{t("ch.peggyOnWhatsApp")}</span>
+                  <span className="block text-[12px] text-app-ink-soft">{view.status === "connected" ? t("ch.peggyConnected") : t("ch.peggySetup")}</span>
                 </span>
                 <Icon name="chevRight" size={16} />
               </Link>
@@ -441,19 +446,19 @@ export function ChannelsClient({
           }
           let tech: ReactNode = null;
           if (key === "voice" && view.status === "connected" && view.webhookUrl) {
-            tech = <CopyRow label="Callback URL (paste in Africa's Talking → Voice → Phone numbers)" value={view.webhookUrl} />;
+            tech = <CopyRow label={t("ch.voiceCallback")} value={view.webhookUrl} />;
           }
           if (key === "sms" && view.status === "connected" && view.webhookUrl) {
-            tech = <CopyRow label="Webhook URL (paste in your provider's dashboard for replies and delivery reports)" value={view.webhookUrl} />;
+            tech = <CopyRow label={t("ch.smsWebhook")} value={view.webhookUrl} />;
           }
           if (key === "telegram" && view.status === "connected" && view.webhookUrl) {
-            tech = <CopyRow label="Webhook (set for you)" value={view.webhookUrl} />;
+            tech = <CopyRow label={t("ch.telegramWebhook")} value={view.webhookUrl} />;
           }
           return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} tech={tech} />;
         })}
       </section>
       <p className={cx("m-0 text-[13px] text-app-ink-soft")}>
-        Not sure how to connect something? Tap &quot;Ask us to connect it&quot; and the Shopinbos team does it for you.
+        {t("ch.notSure")}
       </p>
     </div>
   );

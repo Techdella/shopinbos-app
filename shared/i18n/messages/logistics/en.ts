@@ -507,7 +507,7 @@ const en = {
   "jobErrors.finished": "This job is already finished, so it can't be changed.",
   "jobErrors.riderInactive": "That rider is inactive. Pick an active rider.",
   "jobErrors.movedOn": "This job has already moved on, so that step isn't possible now. Refresh to see where it is.",
-  "jobErrors.sayWhy": "Say why you couldn't deliver it, for example “Customer not picking calls”.",
+  "jobErrors.sayWhy": "Say why you couldn't deliver it, for example \"Customer not picking calls\".",
   "jobErrors.codeMismatch": "That code doesn't match. Ask the customer for the 4-digit code on their phone.",
   "jobErrors.typeAmount": "Type how much the customer paid.",
   "jobErrors.pickMethod": "Pick how the customer paid: cash or transfer.",

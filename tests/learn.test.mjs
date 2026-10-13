@@ -74,6 +74,10 @@ test("intros: every one runs about a minute, in five-ish scenes, with known art"
     "segments", "campaigns", "automations", "analytics", "subscribers", "domain", "dropship", "wholesale", "payouts", "inventory",
     "abandoned-carts", "ads", "affiliates", "channels", "templates", "delivery",
     "supplier-products", "supplier-orders", "supplier-quotes", "supplier-payouts", "partner-jobs", "partner-cash",
+    "home", "orders", "record-sale", "inbox", "notifications", "customers", "reviews", "marketplace", "imports", "collections",
+    "brand-kit", "rex-studio", "video-studio", "discounts", "invoices", "taxes", "shipping-rates", "seo", "legal-pages", "store-settings",
+    "supplier-home", "supplier-wholesale", "supplier-buyers", "verification", "partner-inbox", "partner-performance", "company-profile",
+    "partner-home", "partner-riders", "partner-coverage", "partner-connect",
   ];
   for (const key of required) assert.ok(intros.introByKey(key), `${key} intro exists`);
   const keys = new Set();
@@ -85,7 +89,8 @@ test("intros: every one runs about a minute, in five-ish scenes, with known art"
     assert.ok(total >= 50_000 && total <= 70_000, `${intro.key} lasts ${total / 1000}s`);
     assert.ok(intro.scenes.length >= 4 && intro.scenes.length <= 7, `${intro.key} has ${intro.scenes.length} scenes`);
     assert.ok(glossary.glossaryTerm(intro.term), `${intro.key} teaches a glossary word (${intro.term})`);
-    assert.ok(intro.paths.length > 0 && intro.paths.every((path) => path.startsWith("/")));
+    const allPaths = [...intro.paths, ...(intro.exactPaths ?? [])];
+    assert.ok(allPaths.length > 0 && allPaths.every((path) => path.startsWith("/")), `${intro.key} has paths`);
     if (intro.cta) assert.ok(intro.cta.href.startsWith("/") && intro.cta.label.length <= 32);
     for (const scene of intro.scenes) {
       assert.ok(intros.SCENE_ARTS.includes(scene.art), `${intro.key}: ${scene.art} is a known art`);
@@ -112,14 +117,31 @@ test("path matching picks the right intro for web and mobile screens", () => {
   assert.equal(at("/home/marketing/segments?tab=new", "seller"), "segments");
   assert.equal(at("/home/marketing/campaigns/abc", "seller"), "campaigns");
   assert.equal(at("/home/marketing", "seller"), "campaigns");
-  assert.equal(at("/home/marketing/chat", "seller"), "channels", "longest prefix wins");
+  assert.equal(at("/home/marketing/chat", "seller"), "inbox", "longest prefix wins");
+  assert.equal(at("/home/inbox/auto-replies", "seller"), "automations", "longest prefix wins");
+  assert.equal(at("/home/inbox/whatsapp-catalog", "seller"), "channels");
+  assert.equal(at("/home/messages/partners", "seller"), "inbox");
+  assert.equal(at("/chats", "seller"), "inbox");
   assert.equal(at("/marketplace/logistics", "seller"), "delivery");
   assert.equal(at("/marketplace/wholesale", "seller"), "wholesale");
-  assert.equal(at("/marketplace", "seller"), "dropship");
+  assert.equal(at("/marketplace", "seller"), "marketplace");
+  assert.equal(at("/find/ankara-print-fabric", "seller"), "marketplace");
+  assert.equal(at("/home/dropship", "seller"), "dropship");
   assert.equal(at("/products/new", "seller"), "inventory");
   assert.equal(at("/home/domain/", "seller"), "domain");
-  assert.equal(at("/home", "seller"), null, "no intro on Home (the guided tour runs there)");
-  assert.equal(at("/home/orders", "seller"), null);
+  assert.equal(at("/home", "seller"), "home", "Home has its own intro (the host waits for the guided tour)");
+  assert.equal(at("/(tabs)/home", "seller"), "home", "the phone's Home tab too");
+  assert.equal(at("/home/orders", "seller"), "orders");
+  assert.equal(at("/home/orders/abc123", "seller"), "orders");
+  assert.equal(at("/home/orders/new", "seller"), "record-sale", "longest prefix wins");
+  assert.equal(at("/record-sale", "seller"), "record-sale");
+  assert.equal(at("/(tabs)/orders", "seller"), "orders");
+  assert.equal(at("/home/video", "seller"), "video-studio");
+  assert.equal(at("/home/shipping", "seller"), "shipping-rates");
+  assert.equal(at("/supplier/wholesale", "supplier"), "supplier-wholesale");
+  assert.equal(at("/supplier/(tabs)/home", "supplier"), "supplier-home");
+  assert.equal(at("/logistics/(tabs)/riders", "logistics_partner"), "partner-riders");
+  assert.equal(at("/logistics/verification", "logistics_partner"), "verification");
   assert.equal(at("/supplier/quote-requests", "supplier"), "supplier-quotes");
   assert.equal(at("/supplier/(tabs)/quotes", "supplier"), "supplier-quotes", "Expo groups are ignored");
   assert.equal(at("/supplier/(tabs)/money", "supplier"), "supplier-payouts");
@@ -128,6 +150,55 @@ test("path matching picks the right intro for web and mobile screens", () => {
   assert.equal(at("/supplier/products", "seller"), null, "roles filter");
   assert.equal(at("/home/payouts", "supplier"), null);
   assert.equal(intros.normaliseIntroPath("/(tabs)/products?x=1#y"), "/products");
+});
+
+test("every seller, supplier and delivery-partner sidebar page has an intro for that role", () => {
+  const missing = [];
+  for (const role of ["seller", "supplier", "logistics_partner"]) {
+    for (const group of NAV_BY_ROLE[role]) {
+      for (const item of [...group.items, ...group.items.flatMap((entry) => entry.children ?? [])]) {
+        const intro = intros.introForPath(item.href, role);
+        if (!intro) missing.push(`${role}: ${item.label} (${item.href})`);
+        else assert.ok(intro.roles.includes(role), `${item.href} → ${intro.key} is for ${role}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, [], `Nav pages without an intro:\n${missing.join("\n")}`);
+  // Everyone can see every intro once: the seen list must be able to hold them all.
+  assert.ok(intros.FEATURE_INTROS.length <= intros.MAX_INTROS_SEEN, `${intros.FEATURE_INTROS.length} intros fit in introsSeen (${intros.MAX_INTROS_SEEN})`);
+  assert.equal(intros.MAX_INTROS_SEEN, prefs.MAX_INTROS_SEEN);
+});
+
+test("exact paths: Home's intro stays on Home and doesn't leak onto pages under it", () => {
+  const at = (path, role = "seller") => intros.introForPath(path, role)?.key ?? null;
+  assert.equal(at("/home"), "home");
+  assert.equal(at("/home/"), "home", "trailing slash");
+  assert.equal(at("/home?tab=today"), "home");
+  assert.equal(at("/home/start"), "home", "Start here shares it");
+  assert.equal(at("/home/some-new-page"), null, "an unknown page under /home gets no intro, not Home's");
+  assert.equal(at("/homework"), null);
+  for (const path of ["/home/orders", "/home/customers", "/home/reviews", "/home/imports", "/home/brand-kit", "/home/discounts", "/home/video", "/home/invoices", "/home/messages"]) {
+    assert.notEqual(at(path), "home", `${path} isn't Home`);
+    assert.ok(at(path), `${path} has its own intro`);
+  }
+  assert.equal(at("/home", "supplier"), null, "roles still filter exact paths");
+  const withExact = intros.FEATURE_INTROS.filter((intro) => intro.exactPaths?.length);
+  assert.deepEqual(withExact.map((intro) => intro.key), ["home"]);
+});
+
+test("new scene arts read their words from the intro, so nothing English is baked in on the phone", () => {
+  const mobile = read("apps/mobile/src/components/learn/scenes.tsx");
+  const web = read("src/components/learn/scenes.tsx");
+  for (const art of ["order-pipeline", "receipt", "invoice-paper", "star-reviews", "customer-cards", "discount-ticket", "brand-palette", "import-ship", "video-reel", "dashboard-tiles", "map-zones", "badge-verify", "rider-team", "inbox-list", "bell-alerts", "search-rank"]) {
+    assert.ok(intros.SCENE_ARTS.includes(art), art);
+    assert.ok(intros.FEATURE_INTROS.some((intro) => intro.scenes.some((scene) => scene.art === art)), `${art} is used by an intro`);
+  }
+  // Every art is used somewhere.
+  for (const art of intros.SCENE_ARTS) assert.ok(intros.FEATURE_INTROS.some((intro) => intro.scenes.some((scene) => scene.art === art)), `${art} is used`);
+  // Reduced motion: the web kit turns animations off, the phone kit draws still frames.
+  assert.match(web, /prefers-reduced-motion: reduce/);
+  assert.match(web, /fi-swing/);
+  assert.match(mobile, /still \?/);
 });
 
 test("preferences: introsSeen is validated, capped and only ever adds", () => {

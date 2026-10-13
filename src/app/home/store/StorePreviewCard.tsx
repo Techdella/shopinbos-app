@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The store's real home page, drawn by the same renderer shoppers get, at desktop width and scaled down to
 // fit the card. It's a picture: no clicks, no focus, hidden from screen readers (the card says what it is).
@@ -21,6 +22,7 @@ export function StorePreviewCard({
   href: string;
   label: string;
 }) {
+  const t = useT("store");
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState<number | null>(null);
 
@@ -55,7 +57,7 @@ export function StorePreviewCard({
         )}
       </div>
       <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-extrabold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-visible:opacity-100">
-        Open your store
+        {t("preview.open")}
       </span>
     </a>
   );

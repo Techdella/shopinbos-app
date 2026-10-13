@@ -10,8 +10,14 @@ import { buildPlatformSubdomainOrigin } from "@/lib/domains/storefront";
 import { hasVercelDomainConfig } from "@/lib/domains/vercel";
 import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getT("domain");
+  return { title: t("title") };
+}
 
 const FALLBACK_REGISTRARS = [
   {
@@ -75,6 +81,7 @@ type RegistrarRow = {
 
 export default async function DomainSettingsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("domain");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
 
@@ -100,8 +107,8 @@ export default async function DomainSettingsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Domain"
-      sub="Your store address. Free subdomain, or your own domain with a secure certificate."
+      title={t("title")}
+      sub={t("sub")}
     >
       <PageToast />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
@@ -109,12 +116,12 @@ export default async function DomainSettingsPage() {
           <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="globe" size={18} /></span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[13px] text-app-ink-soft">Your free address</p>
+              <p className="m-0 text-[13px] text-app-ink-soft">{t("free")}</p>
               <a href={freeOrigin} target="_blank" rel="noopener noreferrer" className="break-all text-[16px] font-extrabold text-app-ink no-underline hover:underline">
                 {freeHost}
               </a>
             </div>
-            <Pill tone={live ? "success" : "muted"} dot>{live ? "Live" : "Not published yet"}</Pill>
+            <Pill tone={live ? "success" : "muted"} dot>{live ? t("live") : t("notPublished")}</Pill>
           </div>
 
           <DomainConnect
@@ -128,7 +135,7 @@ export default async function DomainSettingsPage() {
 
         <aside className="min-w-0 xl:pt-1">
           <AssistantNote who="rex">
-            Not sure what to do? Choose &quot;Ask the Shopinbos team to do it&quot; and we&apos;ll set it up for you. Your free address works the whole time.
+            {t("rexNote")}
           </AssistantNote>
         </aside>
       </div>

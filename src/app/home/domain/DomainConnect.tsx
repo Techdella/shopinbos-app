@@ -9,6 +9,7 @@ import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { Fold } from "@/components/simple/Fold";
 import type { DomainSettingsState } from "@/lib/domains/verification";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 type Registrar = { id: string; name: string; description: string; baseUrl: string; affiliateUrl: string | null };
 type Choice = "buy" | "own" | "team";
@@ -32,6 +33,7 @@ export function DomainConnect({
   initialState: DomainSettingsState;
   registrars: Registrar[];
 }) {
+  const t = useT("domain");
   const router = useRouter();
   const [choice, setChoice] = useState<Choice | null>(null);
   const hasOne = Boolean(initialState.live || initialState.pending);
@@ -54,7 +56,7 @@ export function DomainConnect({
           option="buy"
           storeSlug={storeSlug}
           storeName={storeName}
-          doneLabel="Done"
+          doneLabel={t("done")}
           onDone={(domain) => {
             if (domain) router.refresh();
           }}
@@ -68,10 +70,10 @@ export function DomainConnect({
       <div className="grid min-w-0 gap-3">
         <BackButton onClick={() => setChoice(null)} />
         <SetupHelpRequest
-          title="Use my own domain"
-          description="Tell us the domain you have (or the name you'd like). We'll set it up with you and message you when your shop opens there."
+          title={t("team.title")}
+          description={t("team.desc")}
           feature="custom_domain"
-          softwareQuestion="Which domain?"
+          softwareQuestion={t("team.which")}
           softwarePlaceholder="yourbrand.com"
         />
       </div>
@@ -79,16 +81,16 @@ export function DomainConnect({
   }
 
   const choices: Array<{ id: Choice; icon: IconName; title: string; desc: string }> = [
-    ...(configured ? [{ id: "buy" as const, icon: "cart" as const, title: "Buy a new one", desc: "Search for a name and pay. We set it up for you." }] : []),
-    { id: "own", icon: "whatsapp", title: "I already have one", desc: "Send the steps to the person who set it up. We make the WhatsApp message for you." },
-    { id: "team", icon: "chat", title: "Ask the Shopinbos team to do it", desc: "We'll set it up with you, free." },
+    ...(configured ? [{ id: "buy" as const, icon: "cart" as const, title: t("choice.buy"), desc: t("choice.buyDesc") }] : []),
+    { id: "own", icon: "whatsapp", title: t("choice.own"), desc: t("choice.ownDesc") },
+    { id: "team", icon: "chat", title: t("choice.team"), desc: t("choice.teamDesc") },
   ];
 
   return (
     <section className="grid min-w-0 gap-4 rounded-[22px] border border-app-line bg-white p-4 sm:p-6" aria-labelledby="own-address-title">
       <div>
-        <h2 id="own-address-title" className="m-0 text-[22px] font-extrabold leading-tight">Use your own domain</h2>
-        <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">Like yourbrand.com. Your free address keeps working too.</p>
+        <h2 id="own-address-title" className="m-0 text-[22px] font-extrabold leading-tight">{t("choice.title")}</h2>
+        <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">{t("choice.sub")}</p>
       </div>
       <div className="grid gap-2.5">
         {choices.map((item) => (
@@ -108,7 +110,7 @@ export function DomainConnect({
         ))}
       </div>
       {!configured && registrars.length > 0 && (
-        <Fold summary="Don't have one yet? Where to buy one">
+        <Fold summary={t("where.summary")}>
           <RegistrarList registrars={registrars} />
         </Fold>
       )}
@@ -117,9 +119,10 @@ export function DomainConnect({
 }
 
 function RegistrarList({ registrars }: { registrars: Registrar[] }) {
+  const t = useT("domain");
   return (
     <div className="grid gap-3">
-      <p className="m-0 text-[14px] leading-[1.5] text-app-ink-soft">Buy one from a company below, then come back and choose &quot;I already have one&quot;.</p>
+      <p className="m-0 text-[14px] leading-[1.5] text-app-ink-soft">{t("where.intro")}</p>
       <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
         {registrars.map((registrar) => (
           <li key={registrar.id} className="min-w-0">
