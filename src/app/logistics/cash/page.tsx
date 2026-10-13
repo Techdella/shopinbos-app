@@ -9,7 +9,7 @@ import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/pay
 import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
 import { PayInAccountCard } from "@/components/logistics/PayInAccountCard";
 import { PayInOverdueCard } from "@/components/logistics/PayInOverdueCard";
-import { payInConfig } from "@/lib/logistics/payin-deadline";
+import { overdueCardWords, payInConfig } from "@/lib/logistics/payin-deadline";
 import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import {
   ACTIVE_STATUSES,
@@ -223,7 +223,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
         </div>
         <div className="order-first grid min-w-0 content-start gap-5 xl:order-none">
           <>
-            {overdue && <PayInOverdueCard title={overdue.title} body={overdue.body} account={overdue.account} />}
+            {overdue && <PayInOverdueCard {...overdueCardWords({ amount: overdue.amount, since: new Date(overdue.since), paused: overdue.paused, now }, t)} account={overdue.account} />}
             <Card className="grid gap-4 p-5">
               <div>
                 <h2 className="m-0 text-[22px] font-extrabold leading-tight">{owed > 0 ? t("cash.payInAmount", { amount: naira(owed), when: due.words }) : t("cash.nothingToPay")}</h2>

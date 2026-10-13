@@ -7,6 +7,7 @@ import { naira } from "@shared/onboarding";
 import { intlLocale, type TFunction } from "@shared/i18n";
 import type { KeysOf } from "@shared/i18n/catalog";
 import { getT } from "@/lib/i18n/server";
+import { jobErrorWords } from "./job-errors";
 
 // Shared pieces for the Shopinbos Partners (logistics) portal, following the
 // "Partners · web dispatch console" and "Partners · mobile" prototypes.
@@ -58,7 +59,7 @@ export async function PartnerPage({ frame, ...props }: { frame: PartnerFrameInpu
 
 /** "Saved" / error banner driven by the ?saved= and ?error= params the server actions redirect with. */
 export async function ActionNotice({ saved, error, savedText }: { saved?: string; error?: string; savedText?: string }) {
-  if (error) return <div className="mb-4"><Notice tone="error">{error}</Notice></div>;
+  if (error) return <div className="mb-4"><Notice tone="error">{jobErrorWords(await getT("logistics"), error)}</Notice></div>;
   if (saved) return <div className="mb-4"><Notice tone="success">{savedText ?? (await getT("logistics"))("kit.saved")}</Notice></div>;
   return null;
 }

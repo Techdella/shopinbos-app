@@ -11,7 +11,7 @@ import { AcceptAssignForm, riderPresence, riderSelect } from "@/components/logis
 import { withOpenJobs } from "@/lib/logistics/dispatch-riders";
 import { ensurePickupCoords } from "@/lib/logistics/geocode";
 import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
-import { payInConfig } from "@/lib/logistics/payin-deadline";
+import { overdueCardWords, payInConfig } from "@/lib/logistics/payin-deadline";
 import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import { PayInOverdueCard } from "@/components/logistics/PayInOverdueCard";
 import { riderWhereWords } from "@shared/delivery-geo";
@@ -198,7 +198,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
         </div>
 
         <div className="order-first grid min-w-0 content-start gap-4 xl:order-none">
-          {overdue && <PayInOverdueCard title={overdue.title} body={overdue.body} account={overdue.account} />}
+          {overdue && <PayInOverdueCard {...overdueCardWords({ amount: overdue.amount, since: new Date(overdue.since), paused: overdue.paused, now }, t)} account={overdue.account} />}
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="m-0 text-[18px] font-extrabold">{t("today.newRequests")}</h2>
             {newCount > 0 && <TextLink href={pendingBookingCount ? "/logistics/bookings" : "/logistics/quotes"}>{t("seeAll")}</TextLink>}

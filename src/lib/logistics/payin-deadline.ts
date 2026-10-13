@@ -17,6 +17,10 @@
 // 15 minutes) and the pay-in hooks can run any number of times without repeating anything.
 
 import { hourWords, owedAfterCredit, payInDeadline } from "./payin-rules.ts";
+import type { TFunction } from "@shared/i18n";
+
+/** Optional translate function from a partner page ("logistics" namespace, payinWords.* keys). Without it, English. */
+type Translate = Pick<TFunction, "dynamic">;
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -227,12 +231,20 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "today 6pm", "yesterday 6pm", "Friday 6pm", "3 Oct 6pm" (Lagos time). */
-export function lagosWhenWords(at: Date, now: Date) {
+export function lagosWhenWords(at: Date, now: Date, t?: Translate) {
   const lagos = new Date(at.getTime() + LAGOS_OFFSET_MS);
   const dayOf = (date: Date) => Math.floor((date.getTime() + LAGOS_OFFSET_MS) / DAY_MS);
   const diff = dayOf(now) - dayOf(at);
   const minutes = lagos.getUTCMinutes();
   const time = minutes ? `${hourWords(lagos.getUTCHours()).replace(/(am|pm)$/, `:${String(minutes).padStart(2, "0")}$1`)}` : hourWords(lagos.getUTCHours());
+  if (t) {
+    const day =
+      diff === 0 ? t.dynamic("kit.today", "today")
+      : diff === 1 ? t.dynamic("kit.yesterday", "yesterday")
+      : diff > 1 && diff < 7 ? t.dynamic(`payinWords.weekday.${lagos.getUTCDay()}`, WEEKDAYS[lagos.getUTCDay()])
+      : `${lagos.getUTCDate()} ${t.dynamic(`payinWords.month.${lagos.getUTCMonth()}`, MONTHS[lagos.getUTCMonth()])}`;
+    return t.dynamic("payinWords.dayTime", "{day} {time}", { day, time });
+  }
   const day = diff === 0 ? "today" : diff === 1 ? "yesterday" : diff > 1 && diff < 7 ? WEEKDAYS[lagos.getUTCDay()] : `${lagos.getUTCDate()} ${MONTHS[lagos.getUTCMonth()]}`;
   return `${day} ${time}`;
 }
@@ -246,7 +258,15 @@ const accountLine = (account: PayInAccountWords | null) =>
   account ? `Pay into your account: ${account.accountNumber} ${account.bankName}.` : "Pay in from the Cash page in the Shopinbos Partners app.";
 
 /** The calm card on Today and Money: "₦X overdue since yesterday 6pm. You're paused from … until you pay in." */
-export function overdueCardWords(input: { amount: number; since: Date; paused: boolean; now: Date }) {
+export function overdueCardWords(input: { amount: number; since: Date; paused: boolean; now: Date }, t?: Translate) {
+  if (t) {
+    return {
+      title: t.dynamic("payinWords.overdueTitle", "{amount} overdue since {when}.", { amount: nairaWords(input.amount), when: lagosWhenWords(input.since, input.now, t) }),
+      body: input.paused
+        ? t.dynamic("payinWords.paused", "You're paused from cash-on-delivery jobs until you pay in.")
+        : t.dynamic("payinWords.notPaused", "Please pay it in now. You still get all jobs for now."),
+    };
+  }
   const title = `${nairaWords(input.amount)} overdue since ${lagosWhenWords(input.since, input.now)}.`;
   const body = input.paused
     ? "You're paused from cash-on-delivery jobs until you pay in."
