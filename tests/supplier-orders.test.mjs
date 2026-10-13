@@ -142,7 +142,8 @@ test("suppliers and sellers only reach their own orders", () => {
 test("wholesale never fakes a payment", () => {
   const detail = read("src/app/marketplace/_components/ProductDetail.tsx");
   assert.match(detail, /\/api\/app\/wholesale\/request/);
-  assert.match(detail, /You don&apos;t pay on Shopinbos/);
+  assert.match(detail, /t\("pd\.noPay"\)/);
+  assert.match(read("shared/i18n/messages/marketplace/en.ts"), /"pd\.noPay": "You don't pay on Shopinbos\."/);
   const service = read("src/lib/supplier-orders/wholesale.server.ts");
   assert.match(service, /tierPrice\(parsePricingTiers\(product\.pricingTiers\), input\.quantity, product\.wholesalePrice\)/);
   assert.match(service, /input\.quantity < moq/);
