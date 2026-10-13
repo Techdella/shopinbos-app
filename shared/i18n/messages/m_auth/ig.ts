@@ -91,6 +91,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "logout.everywhere": "Pụọ ebe niile",
   "session.endedTitle": "Ị pụọla",
   "session.endedBody": "Oge ịbanye gị agwụla. Banye ọzọ ka ị gaa n'ihu.",
+  // Mascot spotlights (Prototype 10)
+  "welcome.peggyHi": "Ndewo, abụ m Peggy! Mụ na Rex ga-enyere gị aka ire ahịa.",
+  "form.noPassword": "Enweghị password ị ga-echeta. Anyị na-ezitere gị code oge ọ bụla.",
 };
 
 export default ig;

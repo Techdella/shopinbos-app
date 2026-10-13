@@ -91,6 +91,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "logout.everywhere": "Fita a ko'ina",
   "session.endedTitle": "An fitar da kai",
   "session.endedBody": "Zaman shigarka ya ƙare. Sake shiga don ci gaba.",
+  // Mascot spotlights (Prototype 10)
+  "welcome.peggyHi": "Sannu, ni ce Peggy! Ni da Rex za mu taimaka maka ka sayar.",
+  "form.noPassword": "Babu password da za ka tuna. Muna aiko maka da code kowane lokaci.",
 };
 
 export default ha;

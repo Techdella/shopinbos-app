@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
-import { Chip, LinkButton, Mascot, PillButton, T, Wash, Wordmark } from "@/components/ui";
+import { Chip, LinkButton, PillButton, T, Wash, Wordmark } from "@/components/ui";
+import { MascotVideo } from "@/components/MascotVideo";
 import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { colors, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
@@ -12,6 +13,7 @@ import { useT } from "@/lib/i18n";
 
 // First screen: pick what you do (like the web sign-up's "I sell / I supply shops / I deliver"), then sign up
 // with a phone number or email, or log in. Riders open the private link their dispatcher sent.
+// Sellers are greeted by Peggy's hello clip in a soft spotlight (Prototype 10).
 
 // Lines are m_auth keys.
 const NEXT = {
@@ -23,6 +25,9 @@ export default function Welcome() {
   const t = useT("m_auth");
   const [role, setRole] = useState<SignupRole>("seller");
   const copy = SIGNUP_ROLES.find((item) => item.role === role) ?? SIGNUP_ROLES[0];
+  const { width, height } = useWindowDimensions();
+  // Big on most phones, smaller on short ones so the buttons stay on screen.
+  const spot = Math.round(Math.min(230, width * 0.58, height * 0.28));
 
   return (
     <View style={{ flex: 1 }}>
@@ -43,9 +48,9 @@ export default function Welcome() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           {role === "seller" ? (
             <>
-              <Mascot name="rex" mood="wave" size={240} />
-              <View style={{ position: "absolute", top: 30, right: 0, backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 10, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 20, borderBottomRightRadius: 4, shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 3 }}>
-                <T weight="bold">{t("welcome.rexHi")}</T>
+              <MascotVideo clip="peggy-hello" size={spot} decorative />
+              <View style={{ position: "absolute", top: 18, right: 0, maxWidth: 210, backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 10, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 20, borderBottomRightRadius: 4, shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 3 }}>
+                <T weight="bold">{t("welcome.peggyHi")}</T>
               </View>
             </>
           ) : (

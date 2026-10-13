@@ -138,6 +138,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "checklist.ig.hint": "Daidaita catalogue da posts ɗinka",
   "checklist.labels.label": "Buga alamun farashinka na farko",
   "checklist.labels.hint": "Taɓawa biyu daga kayanka",
+  // Welcome before Rex's first run (components/OnboardingWelcome.tsx)
+  "welcome.title": "Barka da zuwa Shopinbos, {name}",
+  "welcome.titleNoName": "Barka da zuwa Shopinbos",
+  "welcome.sub": "Rex yana shirin gina shagonka tare da kai.",
+  "welcome.progress": "Muna shirya shagonka",
+  "welcome.start": "Fara yanzu",
 };
 
 export default ha;

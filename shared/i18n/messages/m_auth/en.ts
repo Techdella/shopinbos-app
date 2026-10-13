@@ -94,6 +94,9 @@ const en = {
   "logout.everywhere": "Log out everywhere",
   "session.endedTitle": "You've been logged out",
   "session.endedBody": "Your session has ended. Log in again to carry on.",
+  // Mascot spotlights (Prototype 10)
+  "welcome.peggyHi": "Hi, I'm Peggy! Rex and I will help you sell.",
+  "form.noPassword": "No password to remember. We send a code each time.",
 } satisfies Record<string, string>;
 
 export default en;

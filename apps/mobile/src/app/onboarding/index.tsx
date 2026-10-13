@@ -5,6 +5,7 @@ import Svg, { Path } from "react-native-svg";
 import { ONBOARDING_LANGUAGES, REX_GREETING, SELL_EXAMPLES, START_PATHS, type StartPath } from "@shared/onboarding";
 import { Chip, Mascot, T } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
+import { OnboardingWelcome, onboardingWelcomeSeen } from "@/components/OnboardingWelcome";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { askRex, saveMemory } from "@/lib/onboarding";
 import { colors, fonts, radii } from "@/theme";
@@ -34,6 +35,10 @@ export default function Chat() {
   const [thinking, setThinking] = useState(false);
   const name = status?.ownerName.split(/\s+/)[0] || t("chat.there");
   const answered = turns.some((turn) => turn.from === "rex") || (turns.length > 0 && !thinking);
+  // First visit: "Welcome to Shopinbos, {name}" with Rex's hello clip, then the chat (Prototype 10).
+  const [intro, setIntro] = useState(() => !description && !onboardingWelcomeSeen());
+
+  if (intro) return <OnboardingWelcome name={status?.ownerName} onDone={() => setIntro(false)} />;
 
   async function send() {
     const message = draft.trim();

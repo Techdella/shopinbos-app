@@ -8,6 +8,7 @@ import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import type { StoreConfig } from "@/lib/ai/store-types";
 import type { PreviewVariant } from "./StorePreview";
 import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface LaunchSetupProps {
   storeName: string;
@@ -29,6 +30,7 @@ export function LaunchSetup({
   layoutVariant,
   onDone,
 }: LaunchSetupProps) {
+  const t = useT("builder");
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider | null>(null);
   const [shippingOption, setShippingOption] = useState<ShippingOption | null>(null);
   const [payoutBankName, setPayoutBankName] = useState("");
@@ -48,16 +50,13 @@ export function LaunchSetup({
 
   const payoutHelp = useMemo(() => {
     if (paymentProvider === "bank") {
-      return "These details can be shown for manual transfer payments at checkout.";
+      return t("ls.help.bank");
     }
-    if (paymentProvider === "paystack") {
-      return "Customers pay online. We save this bank account on your store profile for payout setup.";
-    }
-    if (paymentProvider === "flutterwave") {
-      return "Customers pay online. We save this bank account on your store profile for payout setup.";
+    if (paymentProvider === "paystack" || paymentProvider === "flutterwave") {
+      return t("ls.help.online");
     }
     return "";
-  }, [paymentProvider]);
+  }, [paymentProvider, t]);
 
   const payoutReady =
     !!paymentProvider &&
@@ -94,13 +93,13 @@ export function LaunchSetup({
           },
         }),
       });
-      if (!response.ok) throw new Error("We could not save your payment and delivery settings right now.");
+      if (!response.ok) throw new Error(t("ls.err.settings"));
       setSettingsSaved(true);
 
       // 2. Publish the draft. The first launch needs the launch fee; the billing modal handles that.
       await publish();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "We could not save your launch settings right now.");
+      setSaveError(error instanceof Error ? error.message : t("ls.err.launch"));
     } finally {
       setIsSaving(false);
     }
@@ -118,7 +117,7 @@ export function LaunchSetup({
     }
     if (!response.ok) {
       setBlockers(json?.error?.blockers ?? []);
-      throw new Error(json?.error?.message ?? "Your store couldn't be published yet.");
+      throw new Error(json?.error?.message ?? t("ls.err.publish"));
     }
     // The live address comes from the saved store, not the preview's suggested slug.
     const editor = await fetch("/api/store/editor", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)).catch(() => null) as { data?: { store?: { slug?: string } } } | null;
@@ -133,7 +132,7 @@ export function LaunchSetup({
     try {
       await publish();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Your store couldn't be published yet.");
+      setSaveError(error instanceof Error ? error.message : t("ls.err.publish"));
     } finally {
       setIsSaving(false);
     }
@@ -146,10 +145,13 @@ export function LaunchSetup({
           <Icon name="check" size={28} />
         </span>
         <div>
-          <p className="m-0 text-[14px] font-bold text-app-success">Your store is live</p>
-          <h2 className="m-0 mt-1.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px]">{storeName} is ready for customers.</h2>
+          <p className="m-0 text-[14px] font-bold text-app-success">{t("ls.live")}</p>
+          <h2 className="m-0 mt-1.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px]">{t("ls.ready", { store: storeName })}</h2>
           <p className="mb-0 mt-2 break-all text-[14.5px] text-app-ink-soft">
-            Shoppers can visit <strong className="text-app-ink">{storeUrl}</strong>
+            {(() => {
+              const [before, after = ""] = t("ls.visit", { url: "\u0001" }).split("\u0001");
+              return <>{before}<strong className="text-app-ink">{storeUrl}</strong>{after}</>;
+            })()}
           </p>
         </div>
 
@@ -160,16 +162,16 @@ export function LaunchSetup({
             rel="noopener noreferrer"
             className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-app-ink text-[15px] font-extrabold text-white no-underline hover:bg-black"
           >
-            <Icon name="eye" size={16} /> View my store
+            <Icon name="eye" size={16} /> {t("ls.view")}
           </a>
-          <PillButton size="md" tone="white" onClick={onDone}>Go to Your store</PillButton>
+          <PillButton size="md" tone="white" onClick={onDone}>{t("ls.goStore")}</PillButton>
         </div>
 
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
           {[
-            { label: "Change it with Rex", href: "/studio" },
-            { label: "Add products", href: "/products" },
-            { label: "Orders", href: "/home/orders" },
+            { label: t("ls.link.rex"), href: "/studio" },
+            { label: t("ls.link.products"), href: "/products" },
+            { label: t("ls.link.orders"), href: "/home/orders" },
           ].map((link) => (
             <Link key={link.href} href={link.href} className="text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">
               {link.label}
@@ -185,18 +187,17 @@ export function LaunchSetup({
       <div className="flex items-start gap-3 rounded-[18px] bg-app-peach px-4 py-3.5">
         <Mascot name="rex" className="h-9 w-9 shrink-0" alt="Rex" />
         <p className="m-0 text-[14px] leading-[1.55]">
-          Almost there. Choose how customers pay you, where payouts land and how you deliver, then publish. Publishing makes
-          your store visible to shoppers; the first launch has a one-time launch fee.
+          {t("ls.intro")}
         </p>
       </div>
 
       <fieldset className="m-0 min-w-0 border-0 p-0">
-        <legend className="mb-3 p-0 text-[15px] font-extrabold">How should customers pay you?</legend>
+        <legend className="mb-3 p-0 text-[15px] font-extrabold">{t("ls.howPay")}</legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {[
-            { id: "paystack" as const, label: "Paystack", desc: "Customers pay online. Best for Nigeria.", icon: "card" as IconName },
-            { id: "flutterwave" as const, label: "Flutterwave", desc: "Customers pay online across Africa.", icon: "globe" as IconName },
-            { id: "bank" as const, label: "Bank transfer", desc: "Customers pay straight into your account.", icon: "bank" as IconName },
+            { id: "paystack" as const, label: "Paystack", desc: t("ls.paystack.desc"), icon: "card" as IconName },
+            { id: "flutterwave" as const, label: "Flutterwave", desc: t("ls.flutterwave.desc"), icon: "globe" as IconName },
+            { id: "bank" as const, label: t("ls.bank"), desc: t("ls.bank.desc"), icon: "bank" as IconName },
           ].map((provider) => (
             <ChoiceCard key={provider.id} active={paymentProvider === provider.id} onClick={() => setPaymentProvider(provider.id)} icon={provider.icon} label={provider.label} desc={provider.desc} />
           ))}
@@ -204,25 +205,25 @@ export function LaunchSetup({
 
         {paymentProvider && (
           <div className="mt-4 rounded-[18px] bg-app-canvas p-4">
-            <h3 className="m-0 text-[14.5px] font-extrabold">Where should payouts go?</h3>
+            <h3 className="m-0 text-[14.5px] font-extrabold">{t("ls.wherePayouts")}</h3>
             <p className="mb-0 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">{payoutHelp}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="min-w-0">
-                <FieldLabel htmlFor="payout-bank">Bank name</FieldLabel>
-                <TextInput id="payout-bank" value={payoutBankName} onChange={(event) => setPayoutBankName(event.target.value)} placeholder="e.g. GTBank" className="h-[48px] text-[15px]" />
+                <FieldLabel htmlFor="payout-bank">{t("ls.bankName")}</FieldLabel>
+                <TextInput id="payout-bank" value={payoutBankName} onChange={(event) => setPayoutBankName(event.target.value)} placeholder={t("ls.bankNamePh")} className="h-[48px] text-[15px]" />
               </div>
               <div className="min-w-0">
-                <FieldLabel htmlFor="payout-name">Account name</FieldLabel>
-                <TextInput id="payout-name" value={payoutAccountName} onChange={(event) => setPayoutAccountName(event.target.value)} placeholder="e.g. Ade Stores Ltd" autoComplete="name" className="h-[48px] text-[15px]" />
+                <FieldLabel htmlFor="payout-name">{t("ls.accountName")}</FieldLabel>
+                <TextInput id="payout-name" value={payoutAccountName} onChange={(event) => setPayoutAccountName(event.target.value)} placeholder={t("ls.accountNamePh")} autoComplete="name" className="h-[48px] text-[15px]" />
               </div>
               <div className="min-w-0 sm:col-span-2">
-                <FieldLabel htmlFor="payout-number">Account number</FieldLabel>
+                <FieldLabel htmlFor="payout-number">{t("ls.accountNumber")}</FieldLabel>
                 <TextInput
                   id="payout-number"
                   inputMode="numeric"
                   value={payoutAccountNumber}
                   onChange={(event) => setPayoutAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 12))}
-                  placeholder="e.g. 0123456789"
+                  placeholder={t("ls.accountNumberPh")}
                   className="h-[48px] text-[15px]"
                 />
               </div>
@@ -232,12 +233,12 @@ export function LaunchSetup({
       </fieldset>
 
       <fieldset className="m-0 min-w-0 border-0 p-0">
-        <legend className="mb-3 p-0 text-[15px] font-extrabold">How will you deliver?</legend>
+        <legend className="mb-3 p-0 text-[15px] font-extrabold">{t("ls.howDeliver")}</legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {[
-            { id: "self" as const, label: "I deliver myself", desc: "You arrange pickups and drop-offs.", icon: "user" as IconName },
-            { id: "logistics" as const, label: "A delivery partner", desc: "Book riders and couriers on Shopinbos.", icon: "truck" as IconName },
-            { id: "flat" as const, label: "Flat fee per order", desc: "Charge every customer one delivery fee.", icon: "coin" as IconName },
+            { id: "self" as const, label: t("ls.self"), desc: t("ls.self.desc"), icon: "user" as IconName },
+            { id: "logistics" as const, label: t("ls.partner"), desc: t("ls.partner.desc"), icon: "truck" as IconName },
+            { id: "flat" as const, label: t("ls.flat"), desc: t("ls.flat.desc"), icon: "coin" as IconName },
           ].map((option) => (
             <ChoiceCard key={option.id} active={shippingOption === option.id} onClick={() => setShippingOption(option.id)} icon={option.icon} label={option.label} desc={option.desc} />
           ))}
@@ -245,7 +246,7 @@ export function LaunchSetup({
 
         {shippingOption === "flat" && (
           <div className="mt-3 max-w-[360px]">
-            <FieldLabel htmlFor="flat-rate">Delivery fee per order</FieldLabel>
+            <FieldLabel htmlFor="flat-rate">{t("ls.flatFee")}</FieldLabel>
             <div className="flex items-center gap-2">
               <span className="text-[16px] font-bold text-app-ink-soft" aria-hidden>₦</span>
               <TextInput id="flat-rate" inputMode="numeric" value={flatRate} onChange={(event) => setFlatRate(event.target.value.replace(/\D/g, ""))} placeholder="1500" className="h-[48px] text-[15px]" />
@@ -268,7 +269,7 @@ export function LaunchSetup({
       )}
 
       {settingsSaved && !saved && launchPricing === null && !saveError && !isSaving && (
-        <Notice tone="info">Payment and delivery settings saved. Your store goes live once the launch fee is paid; then press &ldquo;Publish my store&rdquo; again.</Notice>
+        <Notice tone="info">{t("ls.savedNotice")}</Notice>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -279,10 +280,10 @@ export function LaunchSetup({
           onClick={settingsSaved ? retryPublish : handleSave}
           disabled={!paymentProvider || !shippingOption || !payoutReady}
         >
-          {settingsSaved ? "Publish my store" : "Save and publish my store"}
+          {settingsSaved ? t("ls.publish") : t("ls.savePublish")}
         </PillButton>
         <button type="button" onClick={onDone} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink">
-          Finish later
+          {t("ls.later")}
         </button>
       </div>
     </div>

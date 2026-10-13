@@ -1003,11 +1003,14 @@ test("switching to and between the industry themes carries the seller's words an
 test("theme cards show real, lazy, inert previews and a live preview dialog", () => {
   const gallery = readFileSync(new URL("../src/components/builder/ThemeLibrary.tsx", import.meta.url), "utf8");
   const preview = readFileSync(new URL("../src/components/builder/theme-preview/ThemePreview.tsx", import.meta.url), "utf8");
+  // Visible words live in the builder catalog (shared/i18n/messages/builder/en.ts) and reach the screen through t().
+  const builderCopy = readFileSync(new URL("../shared/i18n/messages/builder/en.ts", import.meta.url), "utf8");
   assert.match(gallery, /<ThemeThumbnail themeId=\{theme\.id\}/);
   assert.match(gallery, /<ThemePreviewDialog/);
-  assert.match(gallery, /themeMeaningLine\(theme\)/);
+  assert.match(gallery, /themeMeaningLine\(\{ name: theme\.name, meaning: t\.dynamic\(`theme\.\$\{theme\.id\}\.meaning`, theme\.meaning\) \}\)/);
   assert.match(gallery, /searchThemes\(query/);
-  assert.match(gallery, /Show with my products/);
+  assert.match(gallery, /t\("tl\.showOwn"\)/);
+  assert.match(builderCopy, /"tl\.showOwn": "Show with my products"/);
   assert.doesNotMatch(gallery, /function ThemeSketch/, "no more empty outline sketches");
   assert.match(preview, /new IntersectionObserver/);
   assert.match(preview, /inert/);
@@ -1016,7 +1019,8 @@ test("theme cards show real, lazy, inert previews and a live preview dialog", ()
   assert.match(preview, /transform: `scale\(\$\{scale\}\)`/);
   assert.match(preview, /aspect-\[4\/5\]/, "the card's shape is reserved before the preview mounts");
   assert.match(preview, /role="dialog" aria-modal="true"/);
-  assert.match(preview, /label: "Product" \}/);
+  assert.match(preview, /label: t\("tp\.product"\) \}/);
+  assert.match(builderCopy, /"tp\.product": "Product"/);
   assert.match(preview, /<DeviceToggle /, "computer / phone switch");
 });
 

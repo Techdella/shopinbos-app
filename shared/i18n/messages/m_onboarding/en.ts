@@ -143,6 +143,12 @@ const en = {
   "checklist.ig.hint": "Sync your catalogue and posts",
   "checklist.labels.label": "Print your first price tags",
   "checklist.labels.hint": "Two taps from your products",
+  // Welcome before Rex's first run (components/OnboardingWelcome.tsx)
+  "welcome.title": "Welcome to Shopinbos, {name}",
+  "welcome.titleNoName": "Welcome to Shopinbos",
+  "welcome.sub": "Rex is getting ready to build your shop with you.",
+  "welcome.progress": "Getting your shop ready",
+  "welcome.start": "Start now",
 } satisfies Record<string, string>;
 
 export default en;

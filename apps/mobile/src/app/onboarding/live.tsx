@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
 import { withChannelRef } from "@shared/channels";
 import { LinkButton, Mascot, PillButton, T, Wash } from "@/components/ui";
+import { MascotVideo } from "@/components/MascotVideo";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { API_URL } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -44,8 +45,9 @@ export default function Live() {
           </T>
         </View>
         <View style={{ backgroundColor: colors.surface, borderRadius: 24, overflow: "hidden" }}>
+          {/* Shop ready: Rex's double thumbs-up in a spotlight that fades into the shop's colour (Prototype 10). */}
           <View style={{ height: 190, backgroundColor: palette.swatches[1], alignItems: "center", justifyContent: "center" }}>
-            <Mascot name="rex" mood="celebrate" size={140} />
+            <MascotVideo clip="rex-thumbs" size={178} decorative fadeTo={palette.swatches[1]} />
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16 }}>
             <View style={{ flex: 1 }}>
@@ -66,7 +68,9 @@ export default function Live() {
             </Pressable>
           ))}
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: radii.card, padding: 16 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: radii.card, paddingVertical: 8, paddingLeft: 6, paddingRight: 16 }}>
+          {/* The transparent sticker: Peggy waves (animated WebP at 96 px and up). */}
+          <Mascot who="peggy" mood="wave" size={96} label="" style={{ marginVertical: -6 }} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 15 }}>{t("live.peggyTitle")}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{t("live.peggyBody")}</T>

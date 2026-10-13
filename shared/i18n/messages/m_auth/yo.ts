@@ -91,6 +91,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "logout.everywhere": "Jáde níbi gbogbo",
   "session.endedTitle": "O ti jáde",
   "session.endedBody": "Àkókò ìwọlé rẹ ti parí. Wọlé padà kí o lè tẹ̀síwájú.",
+  // Mascot spotlights (Prototype 10)
+  "welcome.peggyHi": "Báwo, èmi ni Peggy! Èmi àti Rex máa ràn ọ́ lọ́wọ́ láti tajà.",
+  "form.noPassword": "Kò sí password láti rántí. A máa fi code ránṣẹ́ sí ọ nígbà kọ̀ọ̀kan.",
 };
 
 export default yo;

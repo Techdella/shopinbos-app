@@ -91,6 +91,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "logout.everywhere": "Log out everywhere",
   "session.endedTitle": "You don log out",
   "session.endedBody": "Your session don end. Log in again make you continue.",
+  // Mascot spotlights (Prototype 10)
+  "welcome.peggyHi": "Hi, na me be Peggy! Me and Rex go help you sell.",
+  "form.noPassword": "No password to remember. We go send you code every time.",
 };
 
 export default pcm;

@@ -6,8 +6,9 @@
 //   under 3 GB of RAM, and whenever no animation file exists);
 // - a gentle Animated fallback motion on that still (breathing for idle, a bounce for celebrate, a shake for oops);
 //   celebrate / wave / oops play once and settle back to idle;
-// - the real animation, when assets/mascots/mascots.json lists a file and a renderer is registered (none yet, see
-//   MASCOT_NATIVE_RENDERERS below).
+// - the real animation, when assets/mascots/mascots.json lists a file and a renderer is registered (see
+//   MASCOT_NATIVE_RENDERERS below). Animated WebP stickers (<who>-<mood>.webp, e.g. peggy-wave, rex-celebrate) play
+//   through expo-image, only at size >= 96 (MASCOT_IMAGE_MIN_SIZE), and loop while shown.
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { AccessibilityInfo, Animated, Easing, Platform, View, type StyleProp, type ViewStyle } from "react-native";
@@ -15,6 +16,7 @@ import { Image } from "expo-image";
 import * as Device from "expo-device";
 import {
   isLowEndAndroid,
+  loopsForever,
   mascotAnimation,
   mascotLabel,
   mascotStill,
@@ -58,10 +60,25 @@ export interface MascotRendererProps {
   onError: () => void;
 }
 
+/** Animated WebP sticker through expo-image (already installed; animates on iOS, Android and web). */
+function MascotImage({ asset, size, onReady, onError }: MascotRendererProps) {
+  return (
+    <Image
+      source={asset as number}
+      style={{ width: size, height: size }}
+      contentFit="contain"
+      autoplay
+      accessible={false}
+      onDisplay={onReady}
+      onError={onError}
+    />
+  );
+}
+
 /**
- * Animation renderers, registered when their package is added. None are installed yet: both need native code (a new
- * development / EAS build, not Expo Go), and lottie-react-native's web build also needs @lottiefiles/dotlottie-react.
- * When files arrive:
+ * Animation renderers. `image` (animated WebP via expo-image) is built in. Rive and Lottie are not installed yet:
+ * both need native code (a new development / EAS build, not Expo Go), and lottie-react-native's web build also needs
+ * @lottiefiles/dotlottie-react. When files arrive:
  *   Lottie: `npx expo install lottie-react-native @lottiefiles/dotlottie-react`, write MascotLottie.tsx rendering
  *           <LottieView source={asset} autoPlay loop={loop} onAnimationLoaded={onReady} onAnimationFinish={onComplete} />
  *           and register it here as `lottie: MascotLottie`.
@@ -69,10 +86,11 @@ export interface MascotRendererProps {
  *           metro.config.js, render <Rive source={asset} stateMachineName={source.stateMachine} /> and set the `mood`
  *           input; register it as `rive: MascotRive`.
  */
-export const MASCOT_NATIVE_RENDERERS: Partial<Record<"rive" | "lottie", ComponentType<MascotRendererProps>>> = {};
+export const MASCOT_NATIVE_RENDERERS: Partial<Record<"rive" | "lottie" | "image", ComponentType<MascotRendererProps>>> = { image: MascotImage };
 const AVAILABLE: MascotRenderers = {
   rive: Boolean(MASCOT_NATIVE_RENDERERS.rive),
   lottie: Boolean(MASCOT_NATIVE_RENDERERS.lottie),
+  image: Boolean(MASCOT_NATIVE_RENDERERS.image),
 };
 
 /** Reduce Motion, kept live. Starts true (the still) until the system answers. */
@@ -124,7 +142,9 @@ export function Mascot({ who, mood = "idle", size, decorative = false, label, st
   const finish = () => setShown((prev) => (prev.mood === mood ? { ...prev, done: true } : prev));
 
   const source = mascotAnimation(who, playing, MANIFEST, AVAILABLE);
-  const animate = shouldAnimate(source, { reducedMotion, lowEndDevice: LOW_END });
+  const animate = shouldAnimate(source, { reducedMotion, lowEndDevice: LOW_END, size });
+  // A sticker loops while it is shown, so the mood does not settle back to idle under it.
+  const oneShot = playsOnce(playing) && !(animate && loopsForever(source));
   const [readyFile, setReadyFile] = useState<string | null>(null);
   const ready = animate && source !== null && readyFile === source.file;
   const moveStill = shouldMoveStill({ reducedMotion }) && !ready;
@@ -136,17 +156,17 @@ export function Mascot({ who, mood = "idle", size, decorative = false, label, st
 
   return (
     <View style={[{ width: size, height: size }, style]} testID={testID} {...a11y}>
-      <StillWithMotion who={who} mood={playing} size={size} move={moveStill} hidden={ready} onDone={playsOnce(playing) ? finish : undefined} />
+      <StillWithMotion who={who} mood={playing} size={size} move={moveStill} hidden={ready} onDone={oneShot ? finish : undefined} />
       {animate && source && Renderer ? (
         <View style={{ position: "absolute", top: 0, left: 0, width: size, height: size }} pointerEvents="none">
           <Renderer
             source={source}
             asset={MASCOT_ANIMATION_FILES[source.file]}
             mood={playing}
-            loop={!playsOnce(playing)}
+            loop={!oneShot}
             size={size}
             onReady={() => setReadyFile(source.file)}
-            onComplete={playsOnce(playing) ? finish : undefined}
+            onComplete={oneShot ? finish : undefined}
             onError={() => setReadyFile(null)}
           />
         </View>

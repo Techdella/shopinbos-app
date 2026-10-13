@@ -49,6 +49,7 @@ import discounts from "./messages/discounts/index.ts";
 import peggy from "./messages/peggy/index.ts";
 import rex from "./messages/rex/index.ts";
 import auth from "./messages/auth/index.ts";
+import builder from "./messages/builder/index.ts";
 import seo from "./messages/seo/index.ts";
 import cms from "./messages/cms/index.ts";
 import legal from "./messages/legal/index.ts";
@@ -113,6 +114,7 @@ export const CATALOGS = {
   peggy,
   rex,
   auth,
+  builder,
   seo,
   cms,
   legal,

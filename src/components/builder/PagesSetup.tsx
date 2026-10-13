@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Mascot, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,8 @@ const STYLE_LABELS: Record<string, string> = {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }: PagesSetupProps) {
+  const t = useT("builder");
+  const tr = (text: string | undefined) => (text ? t.dynamic(`pgs.${text}`, text) : text);
   const pages = getCategoryPages(category);
   const [selected, setSelected] = useState<string[]>(["home", "products"]);
   const [content, setContent] = useState<Record<string, string>>({});
@@ -148,10 +151,10 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
         }),
       });
       const json = (await res.json().catch(() => null)) as { data?: { text?: string }; error?: { message?: string } } | null;
-      if (!res.ok || !json?.data?.text) throw new Error(json?.error?.message ?? "Peggy couldn't write that right now.");
+      if (!res.ok || !json?.data?.text) throw new Error(json?.error?.message ?? t("pgs.peggyError"));
       setPageContent(type, json.data.text);
     } catch (error) {
-      setPeggyError({ type, message: error instanceof Error ? error.message : "Peggy couldn't write that right now." });
+      setPeggyError({ type, message: error instanceof Error ? error.message : t("pgs.peggyError") });
     } finally {
       setPeggyLoading(null);
     }
@@ -172,17 +175,19 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
         <Mascot name="rex" className="h-9 w-9 shrink-0" alt="Rex" />
         <div className="min-w-0">
           <p className="m-0 text-[14px] leading-[1.55]">
-            Pick the pages <strong>{storeName || "your store"}</strong> needs. I write all the copy; add your details where it helps.
-            Peggy can draft any notes you leave blank.
+            {(() => {
+              const [before, after = ""] = t("pgs.intro", { store: "\u0001" }).split("\u0001");
+              return <>{before}<strong>{storeName || t("pgs.yourStore")}</strong>{after}</>;
+            })()}
           </p>
           <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">
-            Layout: {STYLE_LABELS[designStyle] ?? "Classic layout"}, from your brand setup.
+            {t("pgs.layout", { name: STYLE_LABELS[designStyle] ? t.dynamic(`pgs.style.${designStyle}`, STYLE_LABELS[designStyle]) : t("pgs.style.classic") })}
           </p>
         </div>
       </div>
 
       <fieldset className="m-0 min-w-0 border-0 p-0">
-        <legend className="mb-3 p-0 text-[15px] font-extrabold">Pages</legend>
+        <legend className="mb-3 p-0 text-[15px] font-extrabold">{t("pgs.pages")}</legend>
         <div className="grid gap-2.5 sm:grid-cols-2">
           {pages.map((p) => {
             const active = selected.includes(p.type);
@@ -201,10 +206,10 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-[14.5px] font-extrabold">{p.label}</span>
-                    {p.required && <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-bold text-app-ink-soft">Always on</span>}
+                    <span className="text-[14.5px] font-extrabold">{tr(p.label)}</span>
+                    {p.required && <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-bold text-app-ink-soft">{t("pgs.alwaysOn")}</span>}
                   </span>
-                  <span className="mt-0.5 block text-[13px] leading-[1.45] text-app-ink-soft">{p.description}</span>
+                  <span className="mt-0.5 block text-[13px] leading-[1.45] text-app-ink-soft">{tr(p.description)}</span>
                 </span>
                 <span className={cx("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2", active ? "border-app-ink bg-app-ink text-white" : "border-app-line-strong")}>
                   {active && <Icon name="check" size={11} />}
@@ -217,7 +222,7 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
 
       {optionalSelected.length > 0 && (
         <div className="grid gap-3">
-          <h3 className="m-0 text-[15px] font-extrabold">Add your details, Rex writes the rest</h3>
+          <h3 className="m-0 text-[15px] font-extrabold">{t("pgs.addDetails")}</h3>
           {optionalSelected.map((type) => {
             const page = pages.find((p) => p.type === type)!;
             if (!page?.contentLabel) return null;
@@ -227,8 +232,8 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
               <div key={type} className="rounded-[18px] border border-app-line bg-white p-4">
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                   <label htmlFor={fieldId} className="min-w-0">
-                    <span className="block text-[14.5px] font-extrabold">{page.label}</span>
-                    <span className="block text-[13px] text-app-ink-soft">{page.contentLabel}</span>
+                    <span className="block text-[14.5px] font-extrabold">{tr(page.label)}</span>
+                    <span className="block text-[13px] text-app-ink-soft">{tr(page.contentLabel)}</span>
                   </label>
                   <button
                     type="button"
@@ -236,7 +241,7 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
                     disabled={isLoading}
                     className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-mint px-3 text-[13px] font-bold text-app-forest disabled:opacity-50"
                   >
-                    {isLoading ? "Writing…" : "Ask Peggy"}
+                    {isLoading ? t("pgs.writing") : t("pgs.askPeggy")}
                   </button>
                 </div>
                 <textarea
@@ -244,7 +249,7 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
                   rows={page.multiline ? 4 : 3}
                   value={content[type] ?? ""}
                   onChange={(e) => setPageContent(type, e.target.value)}
-                  placeholder={page.contentPlaceholder}
+                  placeholder={tr(page.contentPlaceholder)}
                   className="w-full resize-y rounded-[14px] border border-app-line bg-white px-3.5 py-3 text-[14.5px] leading-[1.55] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink"
                 />
                 {peggyError?.type === type && <p role="alert" className="mb-0 mt-2 text-[13px] font-semibold text-app-danger">{peggyError.message}</p>}
@@ -255,15 +260,15 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
       )}
 
       <div className="rounded-[18px] bg-app-canvas px-4 py-3.5">
-        <p className="m-0 text-[13.5px] font-bold">Rex writes for every page</p>
+        <p className="m-0 text-[13.5px] font-bold">{t("pgs.everyPage")}</p>
         <p className="mb-0 mt-1 text-[13px] leading-[1.6] text-app-ink-soft">
-          Headlines, section copy, button text, search descriptions and the footer, plus cart, checkout and product pages. Picking Blog also sets up your blog.
+          {t("pgs.everyPageBody")}
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <PillButton size="md" tone="white" onClick={onBack}>Back</PillButton>
-        <PillButton size="md" tone="accent" onClick={handleBuild}>Build my store</PillButton>
+        <PillButton size="md" tone="white" onClick={onBack}>{t("pgs.back")}</PillButton>
+        <PillButton size="md" tone="accent" onClick={handleBuild}>{t("pgs.build")}</PillButton>
       </div>
     </div>
   );

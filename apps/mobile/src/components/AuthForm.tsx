@@ -6,6 +6,8 @@ import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
 import { sendCode, signInWithGoogle, signInWithPassword, syncAccount, type CodeTarget } from "@/lib/auth";
 import { BackButton, Chip, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { MascotVideo } from "@/components/MascotVideo";
 import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { colors } from "@/theme";
@@ -118,6 +120,8 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               <HelpButton />
             </View>
           </View>
+          {/* Returning sellers: Peggy waves hello (Prototype 10, "Welcome back"). */}
+          {mode === "login" && <MascotVideo clip="peggy-hello" size={132} decorative fadeTo={colors.canvas} style={{ marginTop: -12, marginBottom: 6, marginLeft: -10 }} />}
           <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
             {mode === "signup" ? t(ROLE_HEADING[role]) : t("form.welcomeBack")}
           </T>
@@ -191,9 +195,15 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
         </ScrollView>
         <View style={{ paddingHorizontal: 22, paddingBottom: 12, paddingTop: 8 }}>
           {mode === "signup" && (
-            <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18, marginBottom: 12 }}>
-              {t("form.terms")}
-            </T>
+            <>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <AppIcon name="shield" size={14} color={colors.inkSoft} />
+                <T style={{ flex: 1, fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>{t("form.noPassword")}</T>
+              </View>
+              <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18, marginBottom: 12 }}>
+                {t("form.terms")}
+              </T>
+            </>
           )}
           <PillButton title={primary} busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} />
         </View>

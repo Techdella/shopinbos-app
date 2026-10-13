@@ -138,6 +138,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "checklist.ig.hint": "Mee ka catalogue na posts gị kwekọọ",
   "checklist.labels.label": "Bipụta akara ọnụahịa mbụ gị",
   "checklist.labels.hint": "Mpịa abụọ site na ngwaahịa gị",
+  // Welcome before Rex's first run (components/OnboardingWelcome.tsx)
+  "welcome.title": "Nnọọ na Shopinbos, {name}",
+  "welcome.titleNoName": "Nnọọ na Shopinbos",
+  "welcome.sub": "Rex na-akwado iwu ụlọ ahịa gị na gị.",
+  "welcome.progress": "Anyị na-akwado ụlọ ahịa gị",
+  "welcome.start": "Malite ugbu a",
 };
 
 export default ig;

@@ -9,10 +9,14 @@
 //   before the real files exist; celebrate / wave / oops play once and settle back to idle;
 // - the real animation on top, only when public/brand/mascots/anim/mascots.json lists a file for it and a renderer is
 //   installed (see MASCOT_RENDERERS below). It is a lazy chunk, so pages without one never download it.
+//   Animated WebP stickers (<who>-<mood>.webp, e.g. peggy-wave, rex-celebrate) only play when rendered at 96 px or
+//   more (MASCOT_IMAGE_MIN_SIZE; className-sized mascots are measured) and loop while shown; smaller ones keep the
+//   still + CSS motion.
 
-import { lazy, Suspense, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { cx } from "@/components/app-ui/cx";
 import {
+  loopsForever,
   mascotAnimation,
   mascotLabel,
   mascotStill,
@@ -33,11 +37,11 @@ export type { MascotMood, MascotSize, MascotWho } from "@shared/mascots";
 const MANIFEST = manifestJson as MascotManifest;
 
 /**
- * Which animation renderers this build has. lottie-react is installed. Rive needs @rive-app/react-canvas plus a
+ * Which animation renderers this build has. lottie-react is installed; animated WebP needs nothing (an <img>). Rive needs @rive-app/react-canvas plus a
  * self-hosted rive.wasm (the default unpkg download is blocked by our CSP); add both, wire RiveMascot in
  * MascotAnimation.tsx, then flip `rive` to true.
  */
-export const MASCOT_RENDERERS: MascotRenderers = { lottie: true, rive: false };
+export const MASCOT_RENDERERS: MascotRenderers = { lottie: true, rive: false, image: true };
 
 const MascotAnimation = lazy(() => import("./MascotAnimation"));
 
@@ -102,7 +106,23 @@ export function Mascot({ who, mood = "idle", size, decorative = false, alt, clas
   }
   const ready = current.ready;
   const setReady = (value: boolean) => setShown((prev) => (prev.file === file ? { ...prev, ready: value } : prev));
-  const animate = shouldAnimate(source, { reducedMotion }) && !still;
+  // Stickers need the rendered size: the size prop, or the box measured when it is sized with className.
+  const boxRef = useRef<HTMLSpanElement>(null);
+  const [measured, setMeasured] = useState<number | undefined>(undefined);
+  const measure = typeof size !== "number" && source?.kind === "image" && !reducedMotion && !still;
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!measure || !box || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setMeasured(Math.round(Math.min(entry.contentRect.width, entry.contentRect.height)));
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [measure]);
+  const renderedSize = typeof size === "number" ? size : measured;
+  const animate = shouldAnimate(source, { reducedMotion, size: renderedSize }) && !still;
+  // A sticker loops while it is shown, so the mood does not settle back to idle under it.
+  const oneShot = playsOnce(playing) && !(animate && loopsForever(source));
 
   const label = decorative ? "" : alt ?? mascotLabel(who);
   const motion = !still && shouldMoveStill({ reducedMotion }) && !(animate && ready) ? `sbm-${playing}` : "";
@@ -110,6 +130,7 @@ export function Mascot({ who, mood = "idle", size, decorative = false, alt, clas
 
   return (
     <span
+      ref={boxRef}
       className={cx("sbm-mascot shrink-0", !POSITION_CLASS.test(className) && "relative", !DISPLAY_CLASS.test(className) && "block", className)}
       style={boxStyle}
       data-mascot={who}
@@ -123,8 +144,8 @@ export function Mascot({ who, mood = "idle", size, decorative = false, alt, clas
         alt={label}
         draggable={false}
         decoding="async"
-        onAnimationEnd={playsOnce(playing) ? finish : undefined}
-        className={cx("pointer-events-none h-full w-full select-none object-contain", motion, animate && ready && "invisible", imgClassName)}
+        onAnimationEnd={oneShot ? finish : undefined}
+        className={cx("pointer-events-none h-full w-full select-none object-contain", motion, animate && ready && "opacity-0", imgClassName)}
         style={imgStyle}
       />
       {animate && source ? (
@@ -133,9 +154,9 @@ export function Mascot({ who, mood = "idle", size, decorative = false, alt, clas
             key={source.file}
             source={source}
             mood={playing}
-            loop={!playsOnce(playing)}
+            loop={!oneShot}
             onReady={() => setReady(true)}
-            onComplete={playsOnce(playing) ? finish : undefined}
+            onComplete={oneShot ? finish : undefined}
             onError={() => setReady(false)}
           />
         </Suspense>

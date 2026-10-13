@@ -4,22 +4,28 @@
 //
 //   node scripts/mascots-manifest.mjs
 //
-// Accepted names: rex.riv, peggy.riv (one state machine called "mood" with a `mood` input), or Lottie JSON per mood:
-// rex-<mood>.json, peggy-<mood>.json. Moods: idle, wave, thinking, working, celebrate, oops, sleep.
+// Accepted names: rex.riv, peggy.riv (one state machine called "mood" with a `mood` input), Lottie JSON per mood
+// (rex-<mood>.json, peggy-<mood>.json) or an animated WebP sticker per mood (rex-<mood>.webp, peggy-<mood>.webp;
+// 240x240, transparent, looping). Moods: idle, wave, thinking, working, celebrate, oops, sleep.
+// Posters (<name>-poster.png) and the studio clips in video/ are not animations for <Mascot> and are not listed.
 import { readdirSync, writeFileSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MOODS = ["idle", "wave", "thinking", "working", "celebrate", "oops", "sleep"];
-const VALID = new RegExp(`^(rex|peggy)(\\.riv|-(${MOODS.join("|")})\\.json)$`);
+const VALID = new RegExp(`^(rex|peggy)(\\.riv|-(${MOODS.join("|")})\\.(json|webp))$`);
+// Rive and Lottie files: under 150 KB (the spec). Animated WebP stickers are bitmaps, so they get more room; they
+// only load at 96 px and up (MASCOT_IMAGE_MIN_SIZE in shared/mascots.ts).
 const MAX_BYTES = 150 * 1024;
+const MAX_WEBP_BYTES = 1024 * 1024;
 
 function scan(dir) {
   const files = readdirSync(dir).filter((name) => VALID.test(name)).sort();
   for (const name of files) {
     const bytes = statSync(join(dir, name)).size;
-    if (bytes > MAX_BYTES) console.warn(`warning: ${join(dir, name)} is ${Math.round(bytes / 1024)} KB; the spec asks for under 150 KB`);
+    const max = name.endsWith(".webp") ? MAX_WEBP_BYTES : MAX_BYTES;
+    if (bytes > max) console.warn(`warning: ${join(dir, name)} is ${Math.round(bytes / 1024)} KB; keep it under ${Math.round(max / 1024)} KB`);
   }
   return files;
 }
