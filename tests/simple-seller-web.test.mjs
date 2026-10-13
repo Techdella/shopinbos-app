@@ -49,7 +49,8 @@ test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold
 
   const catalog = read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx");
   assert.match(catalog, /<SetupHelpRequest/);
-  assert.match(catalog, /<TechFold forWho="the person who manages your Facebook account">/);
+  assert.match(catalog, /<TechFold forWho=\{t\("wa\.forWhoFacebook"\)\}>/);
+  assert.match(read("shared/i18n/messages/inbox/en.ts"), /"wa\.forWhoFacebook": "the person who manages your Facebook account"/);
   const catalogTop = catalog.slice(0, catalog.indexOf("<TechFold"));
   assert.doesNotMatch(catalogTop, /<CopyRow|rotate_token|catalog_management<\/b>/);
   assert.match(catalog, /plainMetaError/);

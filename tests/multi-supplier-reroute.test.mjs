@@ -356,5 +356,6 @@ test("screens: the seller sees parcels, the switch with Undo, or two choices (we
   assert.match(app, /footer = deciding \? null/, "the two choices are the screen's main buttons");
   assert.doesNotMatch(app, /help=\{false\}/, "Help stays");
   assert.match(read("apps/mobile/src/app/find/index.tsx"), /useLocalSearchParams<\{ q\?: string \}>/);
-  assert.match(read("src/components/settings/SupplierSwitchCard.tsx"), /Send it to another supplier for me/);
+  assert.match(read("src/components/settings/SupplierSwitchCard.tsx"), /t\("switch\.auto"\)/);
+  assert.match(read("shared/i18n/messages/account/en.ts"), /"switch\.auto": "Send it to another supplier for me"/);
 });

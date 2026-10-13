@@ -846,7 +846,7 @@ function Receipt({ scene }: { scene: IntroScene }) {
   const h = 188;
   const teeth = 10;
   const zig = Array.from({ length: teeth + 1 }, (_, i) => `L${(w - (i * w) / teeth).toFixed(1)} ${i % 2 ? h - 6 : h}`).join(" ");
-  const rule = 70 + rows * 20;
+  const rule = 66 + rows * 18;
   return (
     <>
       <View style={{ position: "absolute", left: 100, top: 10, width: 160, height: 10, borderRadius: 5, backgroundColor: LC.line }} />
@@ -862,7 +862,7 @@ function Receipt({ scene }: { scene: IntroScene }) {
         <L size={10.5} color={LC.navy}>{(scene.label ?? "Receipt").slice(0, 20)}</L>
       </Appear>
       {Array.from({ length: rows }, (_, i) => (
-        <Appear key={i} kind="rise" at={at(0.7 + i * 0.4)} x={124} y={86 + i * 20}>
+        <Appear key={i} kind="rise" at={at(0.7 + i * 0.4)} x={124} y={86 + i * 18}>
           {lines[i] ? <L mono size={9.5} color={LC.navy}>{lines[i]!.slice(0, 21)}</L> : <Box w={70} h={5} r={2.5} bg="#C9C6D3" />}
         </Appear>
       ))}
@@ -871,7 +871,7 @@ function Receipt({ scene }: { scene: IntroScene }) {
           <Counter value={scene.value} startMs={1200 + rows * 400} size={16} color={LC.navy} />
         </Appear>
       ) : null}
-      <Appear at={at(Math.min(4.2, 2.4 + rows * 0.2))} x={146} y={158}>
+      <Appear at={at(Math.min(4.2, 2.4 + rows * 0.2))} x={142} y={174}>
         <Box w={80} h={28} r={6} bg="rgba(46,126,120,0.08)" border={LC.teal} style={{ alignItems: "center", justifyContent: "center", borderWidth: 2.5, transform: [{ rotate: "-12deg" }] }}>
           <L mono size={13} color={LC.teal}>PAID</L>
         </Box>
@@ -1165,8 +1165,8 @@ function ImportShip({ scene }: { scene: IntroScene }) {
         </Svg>
       </Appear>
       <Mover x={40} y={48} dx={220} dy={-14}>
-        <Svg width={38} height={22}>
-          <Path d="M0 11 L26 11 L34 7 L36 11 L34 15 L26 11 Z M10 11 L4 1 L10 1 L18 11 L10 21 L4 21 Z" fill={LC.mint} />
+        <Svg width={42} height={24} viewBox="0 -3 42 28">
+          <Path d="M4 8 H34 Q42 11 34 14 H4 Z M16 8 L10 -3 H15 L24 8 Z M16 14 L10 25 H15 L24 14 Z M4 8 L0 2 H5 L9 8 Z" fill={LC.mint} />
         </Svg>
       </Mover>
       {scene.label ? <Chip x={150} y={24} text={scene.label} bg={LC.cream} color={LC.navy} at={at(0.6)} /> : null}

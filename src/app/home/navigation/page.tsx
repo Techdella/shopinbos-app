@@ -7,8 +7,14 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, PillLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getT("store");
+  return { title: t("nav.title") };
+}
 
 type NavPageProps = { searchParams?: Promise<{ saved?: string }> };
 
@@ -19,6 +25,7 @@ function splitMenu(value: string) {
 export default async function NavigationSettingsPage({ searchParams }: NavPageProps) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
 
@@ -38,42 +45,42 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Navigation"
-      sub="The menu at the top of your store and the links in its footer."
-      actions={<PillLink href="/home/pages" icon="document">Pages</PillLink>}
+      title={t("nav.title")}
+      sub={t("nav.sub")}
+      actions={<PillLink href="/home/pages" icon="document">{t("nav.pages")}</PillLink>}
     >
       <PageToast />
       <div className="grid gap-5">
-        {params?.saved && <Notice tone="success">Navigation saved.</Notice>}
+        {params?.saved && <Notice tone="success">{t("nav.saved")}</Notice>}
 
         <form action={saveStoreNavigationSettings} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="grid min-w-0 content-start gap-5">
             <Card className="p-5">
-              <CardHead title="Main menu" sub="Links at the top of every page in your store." />
+              <CardHead title={t("nav.main")} sub={t("nav.mainSub")} />
               <div className="mt-4">
-                <label htmlFor="mainMenu" className={FIELD_LABEL}>Menu items</label>
+                <label htmlFor="mainMenu" className={FIELD_LABEL}>{t("nav.items")}</label>
                 <input id="mainMenu" name="mainMenu" className={FIELD_INPUT} placeholder="Home, Shop, About, Contact" defaultValue={mainMenu} />
-                <p className={FIELD_HELP}>Separate items with commas. Each one links to the page with the same name.</p>
+                <p className={FIELD_HELP}>{t("nav.itemsHelp")}</p>
               </div>
             </Card>
 
             <Card className="p-5">
-              <CardHead title="Footer menu" sub="Links at the bottom, usually policies and help." />
+              <CardHead title={t("nav.footer")} sub={t("nav.footerSub")} />
               <div className="mt-4">
-                <label htmlFor="footerMenu" className={FIELD_LABEL}>Footer links</label>
+                <label htmlFor="footerMenu" className={FIELD_LABEL}>{t("nav.footerLinks")}</label>
                 <input id="footerMenu" name="footerMenu" className={FIELD_INPUT} placeholder="Privacy, Terms, Returns, Contact" defaultValue={footerMenu} />
-                <p className={FIELD_HELP}>Separate items with commas.</p>
+                <p className={FIELD_HELP}>{t("nav.commas")}</p>
               </div>
             </Card>
 
             <div>
-              <button className={SUBMIT_ACCENT} type="submit">Save navigation</button>
+              <button className={SUBMIT_ACCENT} type="submit">{t("nav.save")}</button>
             </div>
           </div>
 
           <aside className="min-w-0">
             <Card className="p-5">
-              <CardHead title="What shoppers see now" />
+              <CardHead title={t("nav.preview")} />
               <div className="mt-4 overflow-hidden rounded-[16px] border border-app-line">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-app-line bg-app-canvas px-4 py-3">
                   <span className="mr-auto truncate text-[14px] font-extrabold">{store.name}</span>
@@ -84,7 +91,7 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
                   {splitMenu(footerMenu).map((item) => <span key={item} className="text-[12.5px] text-app-ink-soft">{item}</span>)}
                 </div>
               </div>
-              <p className={FIELD_HELP}>This shows your saved menus.</p>
+              <p className={FIELD_HELP}>{t("nav.previewNote")}</p>
             </Card>
           </aside>
         </form>

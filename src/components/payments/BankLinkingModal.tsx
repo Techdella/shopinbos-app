@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { linkBankAccount, linkFlutterwaveBankAccount } from "@/app/actions/payments";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface BankLinkingModalProps {
   isOpen: boolean;
@@ -39,8 +40,8 @@ const NIGERIAN_BANKS = [
 ];
 
 const PAYMENT_PROVIDERS = [
-  { id: "paystack", label: "Paystack", description: "Instant settlements, Nigeria" },
-  { id: "flutterwave", label: "Flutterwave", description: "Pan-African payouts" },
+  { id: "paystack", label: "Paystack", description: "bm.paystackDesc" },
+  { id: "flutterwave", label: "Flutterwave", description: "bm.flutterwaveDesc" },
 ] as const;
 
 export function BankLinkingModal({
@@ -52,6 +53,7 @@ export function BankLinkingModal({
   initialAccountNumber = "",
   initialAccountName = "",
 }: BankLinkingModalProps) {
+  const t = useT("payments", "common");
   const [isPending, startTransition] = useTransition();
   const [bankName, setBankName] = useState(initialBankName);
   const [accountNumber, setAccountNumber] = useState(initialAccountNumber);
@@ -76,15 +78,15 @@ export function BankLinkingModal({
     setError(null);
 
     if (!bankName) {
-      setError("Please select a bank");
+      setError(t("bm.selectBank"));
       return;
     }
     if (!accountNumber || accountNumber.length !== 10) {
-      setError("Account number must be exactly 10 digits");
+      setError(t("bm.tenDigits"));
       return;
     }
     if (!accountName.trim()) {
-      setError("Please enter the account name");
+      setError(t("bm.enterName"));
       return;
     }
 
@@ -96,7 +98,7 @@ export function BankLinkingModal({
         onSuccess?.();
         onClose();
       } else {
-        setError(result.error ?? "Failed to link bank account");
+        setError(result.error ?? t("bm.failed"));
       }
     });
   }
@@ -113,10 +115,11 @@ export function BankLinkingModal({
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--teal-50)] text-[var(--teal-700)]">
               <Icon name="bank" size={16} />
             </span>
-            <h3 className="m-0 text-[16px] font-semibold text-[var(--ink-900)]">Link Bank Account</h3>
+            <h3 className="m-0 text-[16px] font-semibold text-[var(--ink-900)]">{t("bm.title")}</h3>
           </div>
           <button 
             type="button" 
+            aria-label={t("bm.close")}
             onClick={onClose} 
             className="text-[var(--ink-400)] hover:text-[var(--ink-700)] transition"
           >
@@ -142,25 +145,25 @@ export function BankLinkingModal({
                 <div className="text-[13px] font-semibold" style={{ color: provider === p.id ? "var(--teal-700)" : "var(--ink-800)" }}>
                   {p.label}
                 </div>
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-500)" }}>{p.description}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-500)" }}>{t(p.description)}</div>
               </button>
             ))}
           </div>
 
           <div className="text-[13px] leading-5 text-[var(--ink-600)]">
-            Configure where you collect your payouts. Payments are automatically processed and dropped into your bank account.
+            {t("bm.intro")}
           </div>
 
           {/* Bank Select */}
           <div className="field">
-            <label className="label">Bank Name</label>
+            <label className="label">{t("bm.bankName")}</label>
             <select
               className="inp w-full"
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
               disabled={isPending}
             >
-              <option value="">-- Choose a bank --</option>
+              <option value="">{t("bm.chooseBank")}</option>
               {NIGERIAN_BANKS.map((bank) => (
                 <option key={bank} value={bank}>
                   {bank}
@@ -171,14 +174,14 @@ export function BankLinkingModal({
 
           {/* Account Number */}
           <div className="field">
-            <label className="label">Account Number (10 digits)</label>
+            <label className="label">{t("bm.accountNumber")}</label>
             <input
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={10}
               className="inp w-full"
-              placeholder="e.g. 0123456789"
+              placeholder={t("bm.accountNumberPlaceholder")}
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
               disabled={isPending}
@@ -187,11 +190,11 @@ export function BankLinkingModal({
 
           {/* Account Name */}
           <div className="field">
-            <label className="label">Account Name</label>
+            <label className="label">{t("bm.accountName")}</label>
             <input
               type="text"
               className="inp w-full"
-              placeholder="e.g. Chioma Eze Cosmetics Ltd"
+              placeholder={t("bm.accountNamePlaceholder")}
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
               disabled={isPending}
@@ -213,14 +216,14 @@ export function BankLinkingModal({
               disabled={isPending} 
               className="dbtn dBtn-ghost dBtn-sm"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button 
               type="submit" 
               disabled={isPending} 
               className="dbtn dBtn-mint dBtn-sm flex items-center gap-1.5"
             >
-              {isPending ? "Saving..." : <>Save Account <Icon name="check" size={12} /></>}
+              {isPending ? t("bm.saving") : <>{t("bm.save")} <Icon name="check" size={12} /></>}
             </button>
           </div>
         </form>

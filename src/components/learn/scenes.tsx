@@ -791,7 +791,7 @@ function Receipt({ scene, paused, still }: SceneProps) {
   const teeth = 10;
   const zig = Array.from({ length: teeth + 1 }, (_, i) => `L${(left + w - (i * w) / teeth).toFixed(1)} ${i % 2 ? bottom - 6 : bottom}`).join(" ");
   const rows = Math.max(2, lines.length);
-  const rule = top + 70 + rows * 20;
+  const rule = top + 66 + rows * 18;
   return (
     <g>
       <rect x={left - 12} y={top - 8} width={w + 24} height={10} rx={5} fill={C.line} />
@@ -804,11 +804,11 @@ function Receipt({ scene, paused, still }: SceneProps) {
       {Array.from({ length: rows }, (_, i) => (
         <g key={i} {...a("rise", 0.7 + i * 0.4)}>
           {lines[i] ? (
-            <text x={left + 12} y={top + 78 + i * 20} fill={C.navy} fontSize={9.5} fontWeight={600} fontFamily={MONO}>{lines[i]!.slice(0, 21)}</text>
+            <text x={left + 12} y={top + 78 + i * 18} fill={C.navy} fontSize={9.5} fontWeight={600} fontFamily={MONO}>{lines[i]!.slice(0, 21)}</text>
           ) : (
             <>
-              <rect x={left + 12} y={top + 72 + i * 20} width={70} height={5} rx={2.5} fill="#C9C6D3" />
-              <rect x={left + w - 44} y={top + 72 + i * 20} width={32} height={5} rx={2.5} fill="#C9C6D3" />
+              <rect x={left + 12} y={top + 72 + i * 18} width={70} height={5} rx={2.5} fill="#C9C6D3" />
+              <rect x={left + w - 44} y={top + 72 + i * 18} width={32} height={5} rx={2.5} fill="#C9C6D3" />
             </>
           )}
         </g>
@@ -820,7 +820,7 @@ function Receipt({ scene, paused, still }: SceneProps) {
           <Counter value={scene.value} x={left + w - 12} y={rule + 22} size={16} delayMs={1200 + rows * 400} paused={paused} still={still} anchor="end" color={C.navy} />
         </g>
       )}
-      <At x={left + w / 2 + 6} y={bottom - 34} rotate={-12}>
+      <At x={left + w / 2 + 4} y={bottom - 18} rotate={-10}>
         <g {...a("pop", 2.4 + rows * 0.2)}>
           <rect x={-40} y={-14} width={80} height={28} rx={6} fill="rgba(46,126,120,0.08)" stroke={C.teal} strokeWidth={2.5} />
           <text y={5} fill={C.teal} fontSize={13} fontWeight={800} fontFamily={MONO} textAnchor="middle" letterSpacing={2}>{t("scene.paid")}</text>
@@ -1041,9 +1041,7 @@ function BrandPalette({ scene }: SceneProps) {
         <circle cx={322} cy={140} r={3} fill={C.deep} />
         <circle cx={337} cy={140} r={7} fill={C.cream} />
       </g>
-      <line {...a("draw", 2.2)} pathLength={1} x1={126} y1={84} x2={160} y2={50} stroke={C.line} strokeWidth={2} strokeDasharray="1" />
       <rect {...a("growx", 2.8)} x={166} y={176} width={180} height={6} rx={3} fill={swatches[0]} opacity={0.6} />
-      <text {...a("fade", 3)} x={166} y={200} fill={C.mintSoft} fontSize={10} fontFamily={MONO}>✓ ✓ ✓</text>
     </g>
   );
 }
@@ -1081,7 +1079,7 @@ function ImportShip({ scene }: SceneProps) {
       </At>
       <At x={40} y={58}>
         <g className="fi-loop" style={{ ...v(220, -14), animationDuration: "4s", animationDelay: "1s" }}>
-          <path d="M0 0 L26 0 L34 -4 L36 0 L34 4 L26 0 Z M10 0 L4 -10 L10 -10 L18 0 L10 10 L4 10 Z" fill={C.mint} />
+          <path d="M0 -3 H30 Q38 0 30 3 H0 Z M12 -3 L6 -14 H11 L20 -3 Z M12 3 L6 14 H11 L20 3 Z M0 -3 L-4 -9 H1 L5 -3 Z" fill={C.mint} />
         </g>
       </At>
       {scene.label && <Chip x={150} y={24} text={scene.label} fill={C.cream} color={C.navy} delay={0.6} />}
