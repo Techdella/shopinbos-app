@@ -89,6 +89,29 @@ test("intent routing keeps WordPress handoff flows inside the right app surfaces
   assert.equal(routing.sanitizeNextPath("/home/settings", "https://app.shopinbos.com"), "/home/settings");
 });
 
+test("intent routing completes the shopinbos.com template, plan, import and add_product intents", () => {
+  const routing = require(path.join(workspaceRoot, "src/lib/intent-routing.js"));
+  const fromSignup = (query) => routing.getContinuationPath({ role: "seller", ...routing.extractIntentParams(new URLSearchParams(query)) });
+
+  assert.equal(
+    fromSignup("intent=template&template=breeze&source=website&utm_source=ig"),
+    "/builder/templates?intent=template&source=website&template=breeze",
+  );
+  assert.equal(
+    fromSignup("intent=plan&plan=grow&billing=year&source=website"),
+    "/home/settings?intent=plan&source=website&plan=grow&billing=year&tab=Billing",
+  );
+  assert.equal(fromSignup("intent=import&source=website"), "/home/imports?intent=import&source=website");
+  assert.equal(
+    fromSignup("intent=add_product&productSlug=womens-leather-handbag"),
+    "/marketplace?intent=add_product&productSlug=womens-leather-handbag",
+  );
+  assert.equal(
+    fromSignup("intent=tool_result&tool=profit-margin&source=website"),
+    "/home?intent=tool_result&source=website&tool=profit-margin",
+  );
+});
+
 test("seller nav targets and role namespaces resolve to real pages", () => {
   const navText = read("src/lib/nav.ts");
   const requiredPages = [

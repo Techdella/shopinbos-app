@@ -9,8 +9,9 @@ import { roleDestination, roleLabel, type AuthRole } from "@/lib/brand";
 import { getPublicEnv } from "@/lib/env";
 import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
 import intentRouting from "@/lib/intent-routing";
+import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import { safeNextPath } from "@/lib/auth/route-access";
-import { DEFAULT_DIAL_COUNTRY, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
+import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
 import {
   BackButton,
   CodeInput,
@@ -90,6 +91,17 @@ function buildNextUrl(role: AuthRole, mode: Mode, searchParams: URLSearchParams)
     if (value) url.searchParams.set(key, String(value));
   }
   return `${url.pathname}${url.search}`;
+}
+
+/** Banner title for intents that don't name a product (template, plan, delivery partner…). */
+function intentHeadline(params: URLSearchParams) {
+  const intent = params.get("intent");
+  const theme = intent === "template" ? themeLibraryEntry(params.get("template")) : null;
+  if (theme) return `Your store, in the ${theme.name} look`;
+  if (intent === "plan" && params.get("plan")) return "We saved the plan you picked";
+  if (intent === "book_delivery") return "We saved the delivery partner you picked";
+  if (intent === "import") return "Import products from China";
+  return "We saved where you were";
 }
 
 function useIsDesktop() {
@@ -186,6 +198,21 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         : null,
   );
   const countdown = useCountdown();
+
+  // The shopinbos.com hero form passes the typed WhatsApp number as #phone=+234… (a fragment, so it never
+  // reaches a server log). Prefill it once, then drop it from the address bar.
+  useEffect(() => {
+    const match = /(?:^|[#&])phone=([^&]+)/.exec(window.location.hash);
+    if (!match) return;
+    const value = decodeURIComponent(match[1]);
+    const dial = DIAL_COUNTRIES.find((item) => value.startsWith(item.dial));
+    if (dial) {
+      setCountry(dial);
+      setPhone(value.slice(dial.dial.length).replace(/\D/g, ""));
+      setMethod("phone");
+    }
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
 
   // Desktop has room for the form straight away; the welcome screen is the phone-sized front door.
   const activeScreen = desktop && screen === "welcome" ? "details" : screen;
@@ -378,7 +405,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           </>
         ) : (
           <>
-            <div className="text-[15px] font-bold text-app-ink">We saved where you were</div>
+            <div className="text-[15px] font-bold text-app-ink">{intentHeadline(params)}</div>
             After you {mode === "signup" ? "sign up" : "log in"}, we&apos;ll take you right back to it.
           </>
         )}

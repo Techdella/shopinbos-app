@@ -28,15 +28,21 @@ Delete `website/.dev` to start over. Local installs show sample marketplace data
 ## Put it on Hostinger
 
 1. Hostinger **Cloud** plan, install WordPress, PHP 8.1+. Turn on LiteSpeed Cache.
-2. Deploy the theme and plugin: `SSH_TARGET=… WP_PATH=… website/bin/deploy.sh` (staging first).
-3. Activate the **Shopinbos** theme and **Shopinbos Core** plugin, then on the server:
-   `wp shopinbos setup` (add `--samples` on staging only).
-4. Settings > Shopinbos: app URL, API base (`https://app.shopinbos.com/api/public`), support WhatsApp number,
+2. In hPanel > Advanced > **SSH Access**: turn SSH on, note host, port (usually 65002) and username, and
+   add a deploy public key (`ssh-keygen -t ed25519 -f hostinger_deploy -N ""`; paste `hostinger_deploy.pub`).
+3. In GitHub > Settings > **Environments**, create `staging` and `production`, each with secrets
+   `HOSTINGER_SSH_HOST`, `HOSTINGER_SSH_PORT`, `HOSTINGER_SSH_USER`, `HOSTINGER_SSH_KEY` (the private key)
+   and `HOSTINGER_WP_PATH` (e.g. `domains/shopinbos.com/public_html`).
+4. Actions > **Website deploy (Hostinger)** > Run workflow > staging. (From a laptop instead:
+   `SSH_TARGET=user@host SSH_PORT=65002 SSH_KEY_FILE=~/.ssh/hostinger_deploy WP_PATH=… website/bin/deploy.sh`.)
+5. First deploy only, over SSH: `wp theme activate shopinbos && wp plugin activate shopinbos-core && wp shopinbos setup`
+   (add `--samples` on staging only).
+6. Settings > Shopinbos: app URL, API base (`https://app.shopinbos.com/api/public`), support WhatsApp number,
    app store links, plan prices, Resend and PostHog keys. Secrets are better as constants in `wp-config.php`:
    `define( 'SIB_RESEND_API_KEY', '…' );` (any setting works as `SIB_` + its key in capitals).
-5. Plugins from the plan: Rank Math (SEO, redirects), LiteSpeed Cache, Wordfence or Solid Security (two-step
+7. Plugins from the plan: Rank Math (SEO, redirects), LiteSpeed Cache, Wordfence or Solid Security (two-step
    login), Tutor LMS (academy). Nothing else.
-6. Search Console and Bing: submit `/sitemap_index.xml` (Rank Math) and `/sitemap-marketplace.xml`.
+8. Search Console and Bing: submit `/sitemap_index.xml` (Rank Math) and `/sitemap-marketplace.xml`.
 
 DNS: `shopinbos.com` and `www` → Hostinger; `app.` and `*.shopinbos.com` store subdomains → Vercel.
 
@@ -80,12 +86,21 @@ Each page has a **Primary sign-up intent** in its Shopinbos box; plain "Start yo
 pick it up automatically. The home hero passes the typed WhatsApp number in the URL fragment
 (`#phone=+234…`) so it never reaches server logs.
 
-## For the app team
-- `src/lib/intent-routing.js` keeps only `intent, productSlug, supplierSlug, logisticsSlug, categorySlug,
-  source`. To complete the new intents after sign-up it also needs `template`, `plan`, `billing`, `tool`,
-  and routes for `template`, `plan` and `tool_result` (today they fall through to `/home`).
-- Signup could prefill the phone from `#phone=` in the URL fragment.
-- Delivery partners show "Pay on delivery" when `deliveryTypes` contains `cod` (or `pay_on_delivery`).
+## How the app finishes each intent
+`src/lib/intent-routing.js` carries `intent, productSlug, supplierSlug, logisticsSlug, categorySlug, source,
+template, plan, billing, tool` through sign-up and onboarding, then:
+
+| Intent | After sign-up |
+| --- | --- |
+| `add`, `add_product`, `dropship`, `request_quote`, `view_products` | `/marketplace` with the product or supplier |
+| `template` | `/builder/templates?template=…`, with that theme open in preview |
+| `plan` | `/home/settings?tab=Billing&plan=…&billing=…` |
+| `import` | `/home/imports` |
+| `book_delivery` | `/home/logistics` with the partner |
+| `tool_result` | `/home` |
+
+Sign-up prefills the phone number from the website's `#phone=` fragment and shows the theme or plan the
+visitor picked. Delivery partners show "Pay on delivery" when `deliveryTypes` contains `cod`.
 
 ## Still open (from the plan)
 Plan prices and fees are placeholders (`[PRICE]`, `[FEE]`) until agreed; legal pages need real text; which
