@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { useRexDrawer } from "@/components/rex/RexDrawerContext";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface ChipDrawerProps {
   tone?: string;
@@ -15,6 +16,7 @@ export function ChipDrawer({
   tone = "assistant",
   message,
 }: ChipDrawerProps) {
+  const t = useT("rex");
   const { openDrawer } = useRexDrawer();
   const [dismissed, setDismissed] = useState(true);
 
@@ -39,7 +41,7 @@ export function ChipDrawer({
       >
         <button
           onClick={handleDismiss}
-          aria-label="Dismiss"
+          aria-label={t("drawer.dismiss")}
           style={{
             position: "absolute", top: -6, right: -6, width: 20, height: 20,
             borderRadius: "50%", border: "none", background: "var(--ink-300)",
@@ -73,7 +75,7 @@ export function ChipDrawer({
           cursor: "pointer",
           boxShadow: "0 8px 24px rgb(115 216 200 / 0.4)",
         }}
-        aria-label="Open Rex"
+        aria-label={t("drawer.openRex")}
       >
         <ChipAvatar mascot="rex" size={48} />
       </button>

@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber, type TFunction } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { db } from "@/lib/db/client";
@@ -23,95 +26,104 @@ import { plainMetaError } from "@/components/simple/plain";
 import { PostComposer } from "./PostComposer";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Sell everywhere" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("social");
+  return { title: t("title") };
+}
 
 // Each channel: one plain action for the seller ("Show my products on …") that opens "Ask us to connect it" and
 // Peggy's steps. Feed links, the private key and the Meta catalog token live behind "Show the technical details
 // (for the person who manages your … account)" (simplicity rules, section 8A).
-const CHANNELS: Array<{ key: FeedChannel; icon: IconName; color: string; name: string; action: string; account: string; blurb: string; steps: ReactNode[]; api: boolean; note?: ReactNode }> = [
-  {
-    key: "google",
-    icon: "search",
-    color: "#4285F4",
-    name: "Google",
-    action: "Show my products on Google",
-    account: "Google",
-    blurb: "Your products show up free when people search on Google.",
-    api: false,
-    steps: [
-      <>Open <a href="https://merchants.google.com" target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Merchant Center</a> and go to Products, then Add products.</>,
-      "Choose “Add products from a file”, then “Enter a link to your file”.",
-      "Paste the Google feed URL and set it to fetch daily.",
-    ],
-    note: <>Google asks you to verify the website your product links point to. That&apos;s easiest on your own domain (<TextLink href="/home/domain">Domain</TextLink>).</>,
-  },
-  {
-    key: "meta",
-    icon: "instagram",
-    color: "#E4405F",
-    name: "Facebook and Instagram",
-    action: "Show my products on Facebook and Instagram",
-    account: "Facebook",
-    blurb: "Your products in your Facebook Shop and on your Instagram posts.",
-    api: true,
-    steps: [
-      <>In <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Commerce Manager</a>, open your catalog (or create one), then Data sources.</>,
-      "Choose Data feed, then “Use a URL”, and paste the Meta feed URL.",
-      "Pick a daily schedule. To tag products on Instagram, turn on Instagram Shopping for the catalog.",
-    ],
-  },
-  {
-    key: "tiktok",
-    icon: "tiktok",
-    color: "#111111",
-    name: "TikTok",
-    action: "Show my products on TikTok",
-    account: "TikTok",
-    blurb: "Product links on your TikTok videos and adverts.",
-    api: false,
-    steps: [
-      <>In <a href="https://ads.tiktok.com" target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">TikTok Ads Manager</a>, go to Assets, then Catalogs, and open or create one.</>,
-      "Add products with “Data feed”, choose scheduled updates, and paste the TikTok feed URL.",
-      "Set it to update daily.",
-    ],
-    note: "TikTok Shop checkout is only open in some countries. Where it isn't, the catalog still powers product links and catalog ads.",
-  },
-  {
-    key: "whatsapp",
-    icon: "whatsapp",
-    color: "#25D366",
-    name: "WhatsApp",
-    action: "Show my products on WhatsApp",
-    account: "WhatsApp Business",
-    blurb: "Customers see your products inside WhatsApp and can send you an order.",
-    api: true,
-    steps: [
-      "WhatsApp Business uses a Meta catalog. Create one in Commerce Manager from the WhatsApp feed URL (Data feed, “Use a URL”, daily).",
-      "In WhatsApp Business (app: Settings, Business tools, Catalog; or WhatsApp Manager for the API) connect that catalog to your number.",
-      "Links in this feed are tagged WhatsApp, so orders from it count under WhatsApp.",
-    ],
-  },
-];
+type SocialT = TFunction<MessageKey<"social"> | MessageKey<"common">>;
+type Channel = { key: FeedChannel; icon: IconName; color: string; name: string; action: string; account: string; blurb: string; steps: ReactNode[]; api: boolean; note?: ReactNode };
+const linkClass = "font-bold text-app-ink underline";
+
+function channelsFor(t: SocialT): Channel[] {
+  return [
+    {
+      key: "google",
+      icon: "search",
+      color: "#4285F4",
+      name: "Google",
+      action: t("ch.google.action"),
+      account: "Google",
+      blurb: t("ch.google.blurb"),
+      api: false,
+      steps: [
+        <>{t("ch.google.step1Before")} <a href="https://merchants.google.com" target="_blank" rel="noopener noreferrer" className={linkClass}>Merchant Center</a> {t("ch.google.step1After")}</>,
+        t("ch.google.step2"),
+        t("ch.google.step3"),
+      ],
+      note: <>{t("ch.google.note")} (<TextLink href="/home/domain">{t("ch.google.domain")}</TextLink>).</>,
+    },
+    {
+      key: "meta",
+      icon: "instagram",
+      color: "#E4405F",
+      name: t("ch.meta.name"),
+      action: t("ch.meta.action"),
+      account: "Facebook",
+      blurb: t("ch.meta.blurb"),
+      api: true,
+      steps: [
+        <>{t("ch.meta.step1Before")} <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener noreferrer" className={linkClass}>Commerce Manager</a>{t("ch.meta.step1After")}</>,
+        t("ch.meta.step2"),
+        t("ch.meta.step3"),
+      ],
+    },
+    {
+      key: "tiktok",
+      icon: "tiktok",
+      color: "#111111",
+      name: "TikTok",
+      action: t("ch.tiktok.action"),
+      account: "TikTok",
+      blurb: t("ch.tiktok.blurb"),
+      api: false,
+      steps: [
+        <>{t("ch.tiktok.step1Before")} <a href="https://ads.tiktok.com" target="_blank" rel="noopener noreferrer" className={linkClass}>TikTok Ads Manager</a>{t("ch.tiktok.step1After")}</>,
+        t("ch.tiktok.step2"),
+        t("ch.tiktok.step3"),
+      ],
+      note: t("ch.tiktok.note"),
+    },
+    {
+      key: "whatsapp",
+      icon: "whatsapp",
+      color: "#25D366",
+      name: "WhatsApp",
+      action: t("ch.whatsapp.action"),
+      account: "WhatsApp Business",
+      blurb: t("ch.whatsapp.blurb"),
+      api: true,
+      steps: [t("ch.whatsapp.step1"), t("ch.whatsapp.step2"), t("ch.whatsapp.step3")],
+    },
+  ];
+}
+
+type PlainStatus = "notSetUp" | "needsHelp" | "connected" | "showing" | "stale" | "waiting";
 
 /** What the card says, in plain words, from what we know (src/lib/social/status.ts has the technical label). */
-function plainStatus(tone: string, facts: { hasToken: boolean; lastSyncStatus: string | null; lastFetchAt: Date | null; feedAddedAt: Date | null } | null) {
-  if (!facts) return "Not set up";
-  if (facts.hasToken && facts.lastSyncStatus === "error") return "Needs your help";
-  if (facts.hasToken) return "Connected";
-  if (facts.lastFetchAt) return tone === "success" ? "Showing your products" : "Not updated for a few days";
-  if (facts.feedAddedAt) return "Waiting for the first update";
-  return "Not set up";
+function plainStatus(tone: string, facts: { hasToken: boolean; lastSyncStatus: string | null; lastFetchAt: Date | null; feedAddedAt: Date | null } | null): PlainStatus {
+  if (!facts) return "notSetUp";
+  if (facts.hasToken && facts.lastSyncStatus === "error") return "needsHelp";
+  if (facts.hasToken) return "connected";
+  if (facts.lastFetchAt) return tone === "success" ? "showing" : "stale";
+  if (facts.feedAddedAt) return "waiting";
+  return "notSetUp";
 }
 
 export default async function ChannelsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("social", "common");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
 
   if (!store) {
     return (
-      <SellerPage user={user} store={null} title="Sell everywhere">
-        <EmptyState icon="globe" title="Set up your shop first" action={<PillLink href="/onboarding" tone="ink">Start setup</PillLink>}>
-          To show your products on other apps, you need a shop and at least one product.
+      <SellerPage user={user} store={null} title={t("title")}>
+        <EmptyState icon="globe" title={t("noStore.title")} action={<PillLink href="/onboarding" tone="ink">{t("noStore.action")}</PillLink>}>
+          {t("noStore.body")}
         </EmptyState>
       </SellerPage>
     );
@@ -144,27 +156,28 @@ export default async function ChannelsPage() {
     url: productLink(store, product.id),
   }));
   const channelMax = Math.max(1, ...report.channels.map((row) => row.sales));
+  const CHANNELS = channelsFor(t);
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Sell everywhere"
-      sub="Show your products on Google, Facebook, Instagram, TikTok and WhatsApp, share links, and see where your sales come from."
-      actions={<PillLink href="/home/analytics" icon="chart">Analytics</PillLink>}
+      title={t("title")}
+      sub={t("sub")}
+      actions={<PillLink href="/home/analytics" icon="chart">{t("analytics")}</PillLink>}
     >
       <div className="grid gap-5">
         {connections === null && (
-          <p className="m-0 rounded-[14px] bg-app-peach px-4 py-3 text-[14px]">Your products still show where they&apos;re connected, but changes here can&apos;t be saved right now. Tap Help and we&apos;ll sort it out.</p>
+          <p className="m-0 rounded-[14px] bg-app-peach px-4 py-3 text-[14px]">{t("cantSave")}</p>
         )}
 
         <section aria-labelledby="catalogs-title" className="grid gap-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
-              <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">Product catalogs</h2>
-              <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">Pick an app. We&apos;ll connect it for you, or Peggy shows you how. Your prices, photos and what&apos;s in stock stay up to date by themselves.</p>
+              <h2 id="catalogs-title" className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">{t("catalogs.title")}</h2>
+              <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">{t("catalogs.sub")}</p>
             </div>
-            <Pill tone={health.listed ? "success" : "warning"} dot>{health.listed} product{health.listed === 1 ? "" : "s"} ready to show</Pill>
+            <Pill tone={health.listed ? "success" : "warning"} dot>{t("catalogs.ready", { count: health.listed })}</Pill>
           </div>
 
           <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-2">
@@ -174,8 +187,9 @@ export default async function ChannelsPage() {
                 ? { feedAddedAt: connection.feedAddedAt, lastFetchAt: connection.lastFetchAt, hasToken: Boolean(connection.tokenEnc), lastSyncAt: connection.lastSyncAt, lastSyncStatus: connection.lastSyncStatus }
                 : null;
               const status = channelStatus(facts, now);
-              const statusLabel = plainStatus(status.tone, facts);
-              const working = statusLabel === "Connected" || statusLabel === "Showing your products";
+              const plain = plainStatus(status.tone, facts);
+              const statusLabel = t(`status.${plain}`);
+              const working = plain === "connected" || plain === "showing";
               const file = channel.key === "google" ? "google.xml" : `${channel.key}.csv`;
               const alt = channel.key === "google" ? "google.csv" : `${channel.key}.xml`;
               const feedUrlFor = channelFeedUrl(channel.key, file);
@@ -200,45 +214,45 @@ export default async function ChannelsPage() {
                   <ChannelAction label={channel.action} done={working}>
                     <SetupHelpRequest
                       title={channel.action}
-                      description={`We'll connect your ${channel.account} account for you and message you when your products are showing.`}
+                      description={t("help.desc", { account: channel.account })}
                       feature={`channel_${channel.key}`}
-                      softwareQuestion={`Do you already have a ${channel.account} page or account for your business?`}
-                      softwarePlaceholder="Yes, it's called…"
+                      softwareQuestion={t("help.question", { account: channel.account })}
+                      softwarePlaceholder={t("help.placeholder")}
                     />
-                    <Fold summary="Or do it yourself with Peggy's steps">
+                    <Fold summary={t("help.diy")}>
                       <ol className="m-0 grid gap-1.5 pl-5 text-[14px] leading-[1.5]">
                         {channel.steps.map((step, index) => <li key={index}>{step}</li>)}
                       </ol>
-                      <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">The link to paste is under &quot;Show the technical details&quot; below.</p>
+                      <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">{t("help.linkBelow")}</p>
                       {channel.note && <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">{channel.note}</p>}
                     </Fold>
                   </ChannelAction>
 
-                  <TechFold forWho={`the person who manages your ${channel.account} account`}>
+                  <TechFold forWho={t("forWho", { account: channel.account })}>
                     <div className="grid min-w-0 gap-3">
                       <div className="min-w-0">
-                        <div className="mb-1.5 text-[13px] font-bold">Feed URL <span className="font-normal text-app-ink-soft">(private)</span></div>
+                        <div className="mb-1.5 text-[13px] font-bold">{t("feed.url")} <span className="font-normal text-app-ink-soft">{t("feed.private")}</span></div>
                         {feedUrlFor ? (
                           <>
-                            <CopyField value={feedUrlFor} label={`${FEED_CHANNEL_LABEL[channel.key]} feed URL`} />
+                            <CopyField value={feedUrlFor} label={t("feed.label", { channel: FEED_CHANNEL_LABEL[channel.key] })} />
                             <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">
                               {channel.key === "whatsapp" ? (
-                                <>In Meta&apos;s catalog format. Sync and problems are on <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-app-ink underline">WhatsApp catalog</Link>.{" "}</>
+                                <>{t("feed.metaFormat")} <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-app-ink underline">{t("feed.waCatalog")}</Link>.{" "}</>
                               ) : (
-                                <>Also as <a href={channelFeedUrl(channel.key, alt)!} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{alt}</a>.{" "}</>
+                                <>{t("feed.alsoAs")} <a href={channelFeedUrl(channel.key, alt)!} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{alt}</a>.{" "}</>
                               )}
-                              <a href={feedUrlFor} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">Preview</a>
+                              <a href={feedUrlFor} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline">{t("feed.preview")}</a>
                             </p>
                           </>
                         ) : (
-                          <p className="m-0 text-[13px] text-app-ink-soft">Feed links are switched off until the workspace database is updated (docs/migrations/2026-10-15-whatsapp-catalog.sql).</p>
+                          <p className="m-0 text-[13px] text-app-ink-soft">{t("feed.off")}</p>
                         )}
                       </div>
                       <p className="m-0 rounded-[12px] bg-[#FDF0D5] px-3 py-2 text-[12.5px] leading-[1.5] text-[#5C3D00]">
-                        <b>{FEED_KEY_NOTICE}</b> The link carries the store&apos;s private key, so keep it private.{" "}
-                        <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-[#5C3D00] underline">Change the key</Link> if a link has leaked.
+                        <b>{FEED_KEY_NOTICE}</b> {t("feed.keyPrivate")}{" "}
+                        <Link href="/home/inbox/whatsapp-catalog" className="font-bold text-[#5C3D00] underline">{t("feed.changeKey")}</Link> {t("feed.ifLeaked")}
                       </p>
-                      <p className="m-0 text-[12.5px] text-app-ink-soft">Status: {status.label}.</p>
+                      <p className="m-0 text-[12.5px] text-app-ink-soft">{t("feed.status", { status: status.label })}</p>
                       {connection?.lastSyncMessage && <p className="m-0 break-words text-[12.5px] leading-[1.45] text-app-ink-soft">{connection.lastSyncMessage}</p>}
 
                       <div className="flex flex-wrap items-center gap-2">
@@ -247,30 +261,30 @@ export default async function ChannelsPage() {
                             <input type="hidden" name="channel" value={channel.key} />
                             <input type="hidden" name="added" value={connection?.feedAddedAt ? "0" : "1"} />
                             <button type="submit" className={buttonClass("white", "sm")}>
-                              {connection?.feedAddedAt ? "Undo “I've added it”" : "I've added the feed"}
+                              {connection?.feedAddedAt ? t("feed.undoAdded") : t("feed.added")}
                             </button>
                           </form>
                         )}
                         {channel.api && connection?.tokenEnc && (
                           <form action={disconnectChannel}>
                             <input type="hidden" name="channel" value={channel.key} />
-                            <button type="submit" className={buttonClass("danger", "sm")}>Disconnect</button>
+                            <button type="submit" className={buttonClass("danger", "sm")}>{t("api.disconnect")}</button>
                           </form>
                         )}
                       </div>
 
                       {channel.api && connections !== null && (channel.key === "meta" || channel.key === "whatsapp") && (
                         <div className="grid gap-3 border-t border-app-line pt-3">
-                          <div className="text-[14px] font-bold">Faster updates with the Meta API <span className="text-[12.5px] font-normal text-app-ink-soft">optional</span></div>
+                          <div className="text-[14px] font-bold">{t("api.title")} <span className="text-[12.5px] font-normal text-app-ink-soft">{t("api.optional")}</span></div>
                           {connection?.tokenEnc ? (
                             <>
-                              <p className="m-0 text-[13px] text-app-ink-soft">Catalog {connection.externalId}. This sends every product straight away instead of waiting for the daily update.</p>
+                              <p className="m-0 text-[13px] text-app-ink-soft">{t("api.connected", { id: connection.externalId ?? "" })}</p>
                               <SyncButton channel={channel.key} />
                             </>
                           ) : (
                             <>
                               <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">
-                                For updates within minutes: in Meta Business Settings create a system user with access to this catalog, generate a token with catalog_management, and paste it with the catalog ID. We check it with Meta and store it encrypted.
+                                {t("api.how")}
                               </p>
                               <MetaConnectForm channel={channel.key} canStoreTokens={canStoreTokens} />
                             </>
@@ -287,9 +301,9 @@ export default async function ChannelsPage() {
 
         <Card className="p-5">
           <CardHead
-            title="Products other apps can show"
-            sub={`${health.listed} listed · ${health.outOfStock} out of stock (listed as out of stock) · ${health.drafts} draft${health.drafts === 1 ? "" : "s"} not listed`}
-            action={<TextLink href="/products">Products</TextLink>}
+            title={t("health.title")}
+            sub={t("health.sub", { listed: health.listed, outOfStock: health.outOfStock, drafts: health.drafts })}
+            action={<TextLink href="/products">{t("health.products")}</TextLink>}
           />
           {health.skipped.length ? (
             <ul className="m-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-2 2xl:grid-cols-3">
@@ -301,12 +315,12 @@ export default async function ChannelsPage() {
               ))}
             </ul>
           ) : (
-            <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{health.listed ? "Every product has a price and a photo, so all of them can show on other apps." : "Add products with a price and a photo, and they'll show on the apps you connect."}</p>
+            <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{health.listed ? t("health.allGood") : t("health.empty")}</p>
           )}
         </Card>
 
         <Card className="p-5">
-          <CardHead title="Post a product" sub="Peggy writes the caption; you post it. Every link is tagged so you can see what each post sells." />
+          <CardHead title={t("post.title")} sub={t("post.sub")} />
           <div className="mt-4">
             <PostComposer products={composerProducts} />
           </div>
@@ -314,22 +328,22 @@ export default async function ChannelsPage() {
 
         <div className="grid gap-5 xl:grid-cols-2">
           <Card className="p-5">
-            <CardHead title="Sales by channel" sub="Paid orders, last 30 days" action={<TextLink href="/home/analytics">Full analytics</TextLink>} />
+            <CardHead title={t("sales.title")} sub={t("sales.sub")} action={<TextLink href="/home/analytics">{t("sales.full")}</TextLink>} />
             {report.channels.length ? (
               <ul className="m-0 mt-4 grid list-none gap-4 p-0">
                 {report.channels.map((row) => (
                   <li key={row.key || "none"}>
-                    <ShareBar label={row.label} value={`${row.orders} paid · ${naira(row.sales)}`} share={row.sales / channelMax} />
-                    {row.visits > 0 && <div className="mt-1 text-[12.5px] text-app-ink-soft">{row.visits} visit{row.visits === 1 ? "" : "s"}</div>}
+                    <ShareBar label={row.label} value={t("sales.paid", { count: formatNumber(row.orders, locale), sales: naira(row.sales) })} share={row.sales / channelMax} />
+                    {row.visits > 0 && <div className="mt-1 text-[12.5px] text-app-ink-soft">{t("sales.visits", { count: row.visits })}</div>}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">No paid orders in the last 30 days yet.</p>
+              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{t("sales.empty")}</p>
             )}
           </Card>
           <Card className="p-5">
-            <CardHead title="Visits by link" sub="Where people came from when they opened your shop, last 30 days" />
+            <CardHead title={t("visits.title")} sub={t("visits.sub")} />
             {report.sources.length ? (
               <ul className="m-0 mt-4 grid list-none gap-2 p-0 text-[14px]">
                 {report.sources.map((row) => (
@@ -340,19 +354,19 @@ export default async function ChannelsPage() {
                 ))}
                 {report.utmCampaigns.slice(0, 6).map((row) => (
                   <li key={`c-${row.key}`} className="flex justify-between gap-3 text-[13px] text-app-ink-soft">
-                    <span className="min-w-0 truncate">Campaign: {row.key}</span>
+                    <span className="min-w-0 truncate">{t("visits.campaign", { name: row.key })}</span>
                     <span className="shrink-0">{row.visits}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">Visits show up here once people open your shop from a link.</p>
+              <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{t("visits.empty")}</p>
             )}
           </Card>
         </div>
 
-        <AssistantNote action={<PillLink href="/home/peggy" tone="ink" size="sm">Ask Peggy</PillLink>}>
-          Peggy can write a post for any product and give you its tagged link. Try “write an Instagram post for my best seller”.
+        <AssistantNote action={<PillLink href="/home/peggy" tone="ink" size="sm">{t("askPeggy")}</PillLink>}>
+          {t("peggyNote")}
         </AssistantNote>
       </div>
     </SellerPage>

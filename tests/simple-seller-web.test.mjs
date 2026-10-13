@@ -41,8 +41,11 @@ test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold
 
   const channels = read("src/app/channels/page.tsx");
   assert.match(channels, /<SetupHelpRequest/);
-  assert.match(channels, /Show my products on Facebook and Instagram/);
-  assert.match(channels, /<TechFold forWho=\{`the person who manages your \$\{channel\.account\} account`\}>/);
+  const socialCopy = read("shared/i18n/messages/social/en.ts");
+  assert.match(socialCopy, /"ch\.meta\.action": "Show my products on Facebook and Instagram"/);
+  assert.match(channels, /action: t\("ch\.meta\.action"\)/);
+  assert.match(channels, /<TechFold forWho=\{t\("forWho", \{ account: channel\.account \}\)\}>/);
+  assert.match(socialCopy, /"forWho": "the person who manages your \{account\} account"/);
   // Feed links and the Meta token form only appear inside the technical fold.
   const before = channels.slice(0, channels.indexOf("<TechFold"));
   assert.doesNotMatch(before, /<CopyField|<MetaConnectForm/);
@@ -98,16 +101,20 @@ test("WhatsApp messages: sellers type [Customer's first name], WhatsApp gets {{1
   const text = read("src/app/home/marketing/_kit/text.tsx");
   assert.match(text, /PENDING: \{ tone: "info", label: "Waiting for WhatsApp to approve \(usually a few minutes\)" \}/);
   assert.match(text, /APPROVED: \{ tone: "success", label: "Approved" \}/);
-  assert.match(read("src/app/home/marketing/whatsapp/WhatsAppTemplates.tsx"), /WhatsApp said no: /);
+  const marketingCopy = read("shared/i18n/messages/marketing/en.ts");
   const editor = read("src/app/home/marketing/whatsapp/WhatsAppTemplates.tsx");
-  assert.match(editor, /label: "Promotion" \}, \{ value: "UTILITY", label: "Order update" \}/);
+  assert.match(editor, /t\("wa\.saidNo"\)/);
+  assert.match(marketingCopy, /"wa\.saidNo": "WhatsApp said no:"/);
+  assert.match(editor, /label: t\("wa\.category\.MARKETING"\) \}, \{ value: "UTILITY", label: t\("wa\.category\.UTILITY"\) \}/);
+  assert.match(marketingCopy, /"wa\.category\.MARKETING": "Promotion",\n  "wa\.category\.UTILITY": "Order update"/);
   assert.doesNotMatch(editor.slice(0, editor.indexOf("<AdvancedFold")), /Add variable|font-mono/);
 });
 
 test("the HTML email editor is an advanced option; the visual builder is the default", () => {
+  assert.match(read("shared/i18n/messages/emailBuilder/en.ts"), /"composer\.advancedFold": "Advanced \(optional\): write the email in HTML code"/);
   for (const file of ["src/app/home/marketing/_kit/EmailBuilder.tsx", "src/app/home/marketing/_kit/EmailComposer.tsx"]) {
     const src = read(file);
-    assert.match(src, /<AdvancedFold label="Advanced \(optional\): write the email in HTML code"/, file);
+    assert.match(src, /<AdvancedFold label=\{t\("composer\.advancedFold"\)\}/, file);
     assert.match(src, /useState<"visual" \| "html">\(initial \|\| !(?:content\.bodyHtml|value)\.trim\(\) \? "visual" : "html"\)/, file);
     assert.doesNotMatch(src, /label: "HTML" \}/, file);
   }

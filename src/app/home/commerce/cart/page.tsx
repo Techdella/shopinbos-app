@@ -6,12 +6,21 @@ import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink, StatGrid
 import { buildDirectStorefrontPath } from "@/lib/domains/storefront";
 import { readCartSettings, sanitizeLines, CHECKOUT_STEP_LABELS, type CheckoutStep } from "@shared/cart-checkout";
 import { CartSettings } from "./CartSettings";
+import { formatMoney, formatNumber, formatRelative, type Locale } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-const naira = (amount: number) => `₦${Math.round(amount).toLocaleString("en-NG")}`;
+export async function generateMetadata() {
+  const t = await getT("store");
+  return { title: t("cart.title") };
+}
 
-function ago(date: Date) {
+const nairaFor = (locale: Locale) => (amount: number) =>
+  locale === "en" ? `₦${Math.round(amount).toLocaleString("en-NG")}` : formatMoney(Math.round(amount), locale);
+
+function ago(date: Date, locale: Locale) {
+  if (locale !== "en") return formatRelative(date, locale);
   const minutes = Math.round((Date.now() - date.getTime()) / 60000);
   if (minutes < 60) return `${Math.max(1, minutes)} min ago`;
   const hours = Math.round(minutes / 60);
@@ -21,6 +30,9 @@ function ago(date: Date) {
 
 export default async function CommerceCartPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store");
+  const locale = await getLocale();
+  const naira = nairaFor(locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -48,9 +60,9 @@ export default async function CommerceCartPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Cart and wishlist"
-      sub="How the bag behaves in your store, wishlists, and the carts shoppers left behind."
-      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/cart")} icon="eye">See your bag page</PillLink> : undefined}
+      title={t("cart.title")}
+      sub={t("cart.sub")}
+      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/cart")} icon="eye">{t("cart.seeBag")}</PillLink> : undefined}
     >
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="grid min-w-0 content-start gap-5">
@@ -59,36 +71,36 @@ export default async function CommerceCartPage() {
           <section aria-labelledby="left-carts" className="grid gap-3">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
-                <h2 id="left-carts" className="m-0 text-[19px] font-extrabold">Carts left behind</h2>
-                <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">Saved when a shopper gives their email or phone at checkout but doesn&apos;t finish. Last 30 days.</p>
+                <h2 id="left-carts" className="m-0 text-[19px] font-extrabold">{t("cart.left")}</h2>
+                <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">{t("cart.leftSub")}</p>
               </div>
-              <PillLink href="/home/automations" size="sm" icon="automation">Reminder emails</PillLink>
+              <PillLink href="/home/automations" size="sm" icon="automation">{t("cart.reminders")}</PillLink>
             </div>
             <StatGrid>
-              <StatTile tone="card" label="Waiting" value={(open?._count ?? 0).toLocaleString("en-NG")} hint={naira(open?._sum.subtotal ?? 0)} />
-              <StatTile tone="card" label="Recovered" value={(recovered?._count ?? 0).toLocaleString("en-NG")} hint={naira(recovered?._sum.subtotal ?? 0)} />
+              <StatTile tone="card" label={t("cart.waiting")} value={formatNumber(open?._count ?? 0, locale)} hint={naira(open?._sum.subtotal ?? 0)} />
+              <StatTile tone="card" label={t("cart.recovered")} value={formatNumber(recovered?._count ?? 0, locale)} hint={naira(recovered?._sum.subtotal ?? 0)} />
             </StatGrid>
             {recent.length === 0 ? (
-              <EmptyState icon="cart" title="No carts left behind">When a shopper leaves checkout after giving their email or phone, their bag shows up here.</EmptyState>
+              <EmptyState icon="cart" title={t("cart.none")}>{t("cart.noneSub")}</EmptyState>
             ) : (
               <ListCard>
                 {recent.map((cart) => {
                   const lines = sanitizeLines(cart.items);
                   const count = lines.reduce((sum, line) => sum + line.quantity, 0);
-                  const step = cart.checkoutStep && cart.checkoutStep in CHECKOUT_STEP_LABELS ? CHECKOUT_STEP_LABELS[cart.checkoutStep as CheckoutStep] : null;
+                  const step = cart.checkoutStep && cart.checkoutStep in CHECKOUT_STEP_LABELS ? t(`cart.step.${cart.checkoutStep as CheckoutStep}`) : null;
                   return (
                     <ListRow key={cart.id}>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14.5px] font-bold">{cart.name || cart.email || cart.phone}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {[cart.name ? cart.email || cart.phone : null, `${count} ${count === 1 ? "item" : "items"}: ${lines.map((line) => line.name).slice(0, 2).join(", ")}${lines.length > 2 ? "…" : ""}`].filter(Boolean).join(" · ")}
+                          {[cart.name ? cart.email || cart.phone : null, t("cart.items", { count, names: `${lines.map((line) => line.name).slice(0, 2).join(", ")}${lines.length > 2 ? "…" : ""}` })].filter(Boolean).join(" · ")}
                         </div>
                       </div>
-                      {step ? <Pill tone="muted">Left at {step.toLowerCase()}</Pill> : null}
-                      {cart.remindersSent ? <Pill tone="info">{cart.remindersSent} reminder{cart.remindersSent === 1 ? "" : "s"}</Pill> : null}
+                      {step ? <Pill tone="muted">{t("cart.leftAt", { step })}</Pill> : null}
+                      {cart.remindersSent ? <Pill tone="info">{t("cart.remindersSent", { count: cart.remindersSent })}</Pill> : null}
                       <div className="text-right">
                         <div className="text-[14.5px] font-bold tabular-nums">{naira(cart.subtotal)}</div>
-                        <div className="text-[12.5px] text-app-ink-soft">{ago(cart.updatedAt)}</div>
+                        <div className="text-[12.5px] text-app-ink-soft">{ago(cart.updatedAt, locale)}</div>
                       </div>
                     </ListRow>
                   );
@@ -100,27 +112,27 @@ export default async function CommerceCartPage() {
 
         <aside className="grid min-w-0 content-start gap-5">
           <Card className="p-5">
-            <CardHead title="Most wished for" sub={`${wishlistShoppers.length.toLocaleString("en-NG")} ${wishlistShoppers.length === 1 ? "shopper has" : "shoppers have"} saved items`} />
+            <CardHead title={t("cart.mostWished")} sub={t("cart.shoppersSaved", { count: wishlistShoppers.length })} />
             {wishlistTop.length === 0 ? (
-              <p className="m-0 mt-3 text-[14px] text-app-ink-soft">Nothing saved yet. Shoppers tap the heart on a product to save it.</p>
+              <p className="m-0 mt-3 text-[14px] text-app-ink-soft">{t("cart.nothingSaved")}</p>
             ) : (
               <ol className="m-0 mt-3 grid list-none gap-2 p-0">
                 {wishlistTop.map((row, index) => (
                   <li key={row.productId} className="flex items-center gap-3 text-[14px]">
                     <span className="w-5 text-app-ink-soft">{index + 1}</span>
-                    <Link href={`/products/${row.productId}`} className="min-w-0 flex-1 truncate font-bold hover:underline">{nameOf.get(row.productId) ?? "Removed product"}</Link>
-                    <span className="tabular-nums text-app-ink-soft">{row._count.productId} saved</span>
+                    <Link href={`/products/${row.productId}`} className="min-w-0 flex-1 truncate font-bold hover:underline">{nameOf.get(row.productId) ?? t("cart.removed")}</Link>
+                    <span className="tabular-nums text-app-ink-soft">{t("cart.savedCount", { count: row._count.productId })}</span>
                   </li>
                 ))}
               </ol>
             )}
           </Card>
           <Card className="p-5">
-            <CardHead title="What shoppers get" />
+            <CardHead title={t("cart.whatGet")} />
             <ul className="m-0 mt-3 grid list-none gap-2.5 p-0 text-[13.5px] leading-[1.5]">
-              <li className="flex gap-2"><span aria-hidden>•</span>A full bag page with quantities, save for later, discount code, delivery estimate from your zones and free-delivery progress.</li>
-              <li className="flex gap-2"><span aria-hidden>•</span>A wishlist page they can share with a link or on WhatsApp.</li>
-              <li className="flex gap-2"><span aria-hidden>•</span>A reminder link that puts a left-behind bag back exactly as it was.</li>
+              <li className="flex gap-2"><span aria-hidden>•</span>{t("cart.get1")}</li>
+              <li className="flex gap-2"><span aria-hidden>•</span>{t("cart.get2")}</li>
+              <li className="flex gap-2"><span aria-hidden>•</span>{t("cart.get3")}</li>
             </ul>
           </Card>
         </aside>

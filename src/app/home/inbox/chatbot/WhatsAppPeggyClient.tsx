@@ -357,7 +357,7 @@ export function WhatsAppPeggyClient({
                     { name: "appSecret", label: "App secret", secret: true, optional: platformSecret, hint: "App settings → Basic. We use it to check that messages really come from Meta." },
                   ].map((field) => (
                     <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
-                      <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> (optional)</span> : null}</span>
+                      <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> {t("wa.optional")}</span> : null}</span>
                       <input
                         type={field.secret ? "password" : "text"}
                         autoComplete="off"
@@ -372,8 +372,8 @@ export function WhatsAppPeggyClient({
                     </label>
                   ))}
                   {view.webhookUrl ? <CopyRow label="Callback URL (for your Meta app)" value={view.webhookUrl} /> : null}
-                  <p className="m-0 text-[12.5px] text-app-ink-soft">The verify token appears after you connect.</p>
-                  <div><PillButton type="submit" size="md" busy={connecting && manual}>Connect WhatsApp</PillButton></div>
+                  <p className="m-0 text-[12.5px] text-app-ink-soft">{t("wa.verifyAfter")}</p>
+                  <div><PillButton type="submit" size="md" busy={connecting && manual}>{t("cat.connectWa")}</PillButton></div>
                 </form>
               ) : null}
               </div>

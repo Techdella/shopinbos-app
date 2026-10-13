@@ -216,7 +216,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   const payments = read("src/app/actions/payments.ts");
   const supplierActions = read("src/app/actions/supplier.ts");
   const messages = read("src/app/api/conversations/[id]/messages/route.ts");
-  const suppliersPage = read("src/app/suppliers/[slug]/page.tsx");
+  const suppliersPage = withWords("src/app/suppliers/[slug]/page.tsx", "marketplace");
   const marketplaceSuppliers = read("src/app/marketplace/suppliers/page.tsx");
 
   assert.match(schema, /model SupplierPayoutAccount/);

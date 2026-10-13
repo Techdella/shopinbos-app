@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VOICE_COPY, VOICE_MAX_SECONDS, mergeVoiceText, voiceErrorMessage, voiceLanguage, voiceTimer } from "@shared/voice-input";
+import { useT } from "@/components/i18n/I18nProvider";
+
+const NO_MIC_FOUND = "We couldn't find a microphone. Plug one in, or type it instead.";
 
 // Voice typing for long text fields (build spec 8A). Tap the mic, speak, tap again: the recording goes to
 // POST /api/ai/transcribe and the words land in the field (after what's there, or instead of it).
@@ -51,6 +54,13 @@ function fillTarget(id: string, spoken: string, mode: "append" | "replace", maxL
 }
 
 export function VoiceInputButton({ value, onChange, targetId, mode = "append", maxLength, context, variant = "full", className = "", disabled }: VoiceInputButtonProps) {
+  const t = useT("rex", "common");
+  /** VOICE_COPY's English (shared with the API and the phone app) in the person's language; other text as sent. */
+  const say = (text: string) => {
+    if (text === NO_MIC_FOUND) return t("voice.noMicFound");
+    const key = (Object.keys(VOICE_COPY) as Array<keyof typeof VOICE_COPY>).find((name) => VOICE_COPY[name] === text);
+    return key ? t.dynamic(`voice.${key}`, text) : text;
+  };
   const [phase, setPhase] = useState<Phase>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
@@ -136,7 +146,7 @@ export function VoiceInputButton({ value, onChange, targetId, mode = "append", m
       media = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
       const name = error instanceof DOMException ? error.name : "";
-      setMessage(name === "NotFoundError" || name === "OverconstrainedError" ? "We couldn't find a microphone. Plug one in, or type it instead." : VOICE_COPY.deniedWeb);
+      setMessage(name === "NotFoundError" || name === "OverconstrainedError" ? NO_MIC_FOUND : VOICE_COPY.deniedWeb);
       return;
     }
     stream.current = media;
@@ -184,7 +194,8 @@ export function VoiceInputButton({ value, onChange, targetId, mode = "append", m
     else if (phase === "idle") void start();
   };
 
-  const label = phase === "listening" ? VOICE_COPY.listening : phase === "working" ? VOICE_COPY.working : VOICE_COPY.idle;
+  const label = say(phase === "listening" ? VOICE_COPY.listening : phase === "working" ? VOICE_COPY.working : VOICE_COPY.idle);
+  const shown = message ? say(message) : null;
   const listening = phase === "listening";
 
   if (variant === "icon") {
@@ -202,11 +213,11 @@ export function VoiceInputButton({ value, onChange, targetId, mode = "append", m
           {phase === "working" ? <Spin /> : <Mic size={18} />}
           {listening && <span className="tabular-nums">{voiceTimer(elapsed)}</span>}
         </button>
-        <span className="sr-only" aria-live="polite">{phase !== "idle" ? label : message ?? ""}</span>
+        <span className="sr-only" aria-live="polite">{phase !== "idle" ? label : shown ?? ""}</span>
         {message && phase === "idle" && (
           <span role="status" className="absolute bottom-full right-0 z-10 mb-2 w-[240px] rounded-[12px] bg-app-ink px-3 py-2 text-[12.5px] font-semibold leading-[1.4] text-white shadow-lg">
-            {message}
-            <button type="button" onClick={() => setMessage(null)} className="ml-2 underline">OK</button>
+            {shown}
+            <button type="button" onClick={() => setMessage(null)} className="ml-2 underline">{t("ok")}</button>
           </span>
         )}
       </span>
@@ -235,7 +246,7 @@ export function VoiceInputButton({ value, onChange, targetId, mode = "append", m
         )}
       </button>
       <span className="sr-only" aria-live="polite">{phase !== "idle" ? label : ""}</span>
-      {message && phase === "idle" && <span role="status" className="text-[13px] font-semibold text-app-ink-soft">{message}</span>}
+      {message && phase === "idle" && <span role="status" className="text-[13px] font-semibold text-app-ink-soft">{shown}</span>}
     </div>
   );
 }

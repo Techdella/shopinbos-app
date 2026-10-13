@@ -7,15 +7,22 @@ import { safeQuery } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { wholesaleRef } from "@/lib/supplier-orders/wholesale.server";
 import { WholesaleOrders, type SellerWholesaleRow } from "../_components/WholesaleOrders";
+import { formatDate } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Wholesale orders" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketplace");
+  return { title: t("ws.title") };
+}
 
 const placedFormat = new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" });
 
 // Sourcing → Find products → Wholesale orders: stock the seller bought from suppliers, newest first.
 export default async function SellerWholesaleOrdersPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketplace");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -40,7 +47,7 @@ export default async function SellerWholesaleOrdersPage() {
     unitPrice: order.unitPrice,
     totalPrice: order.totalPrice,
     currency: order.currency,
-    placed: placedFormat.format(order.createdAt),
+    placed: locale === "en" ? placedFormat.format(order.createdAt) : formatDate(order.createdAt, locale),
     supplier: { name: order.supplier.displayName, slug: order.supplier.slug },
     product: { id: order.supplierProduct.id, name: order.supplierProduct.name, image: order.supplierProduct.images[0] ?? null },
   }));
@@ -49,15 +56,15 @@ export default async function SellerWholesaleOrdersPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Wholesale orders"
-      sub="Stock you bought from suppliers. You can cancel an order until the supplier starts packing it; they send you an invoice and you pay them directly."
-      actions={<PillLink href="/marketplace" icon="search">Find products</PillLink>}
+      title={t("ws.title")}
+      sub={t("ws.sub")}
+      actions={<PillLink href="/marketplace" icon="search">{t("ws.findProducts")}</PillLink>}
     >
       {rows.length ? (
         <WholesaleOrders initial={rows} />
       ) : (
-        <EmptyState icon="box" title="No wholesale orders yet" action={<PillLink href="/marketplace" tone="ink">Find products</PillLink>}>
-          Buy stock from a verified supplier at their wholesale price. Your orders and their progress show up here.
+        <EmptyState icon="box" title={t("ws.empty")} action={<PillLink href="/marketplace" tone="ink">{t("ws.findProducts")}</PillLink>}>
+          {t("ws.emptySub")}
         </EmptyState>
       )}
     </SellerPage>

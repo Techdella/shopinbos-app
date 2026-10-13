@@ -8,6 +8,8 @@ import { cmsTheme } from "@/lib/cms/storefront";
 import { isStandardLegalKey } from "@/lib/legal/pages";
 import { legalContext, sellerLegalPage } from "@/lib/legal/server";
 import { LegalEditor } from "./LegalEditor";
+import { formatDate } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,8 @@ export const dynamic = "force-dynamic";
 export default async function LegalPageEditor({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("legal");
+  const locale = await getLocale();
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store;
   if (!store) redirect("/onboarding?role=seller");
@@ -30,8 +34,8 @@ export default async function LegalPageEditor({ params }: { params: Promise<{ ke
       user={user}
       store={storeSummary(store)}
       title={page.title}
-      sub={page.updatedAt ? `Last saved ${new Date(page.updatedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : "Not saved here yet"}
-      actions={<PillLink href="/home/legal" icon="arrowLeft">All legal pages</PillLink>}
+      sub={page.updatedAt ? t("lastSaved", { date: formatDate(page.updatedAt, locale, { dateStyle: "medium", timeStyle: "short" }) }) : t("notSavedHere")}
+      actions={<PillLink href="/home/legal" icon="arrowLeft">{t("allPages")}</PillLink>}
     >
       <LegalEditor
         page={JSON.parse(JSON.stringify(page))}

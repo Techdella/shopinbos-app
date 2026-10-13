@@ -14,6 +14,8 @@ import { FieldsEditor } from "./FieldsEditor";
 import { CollectionSettings } from "./CollectionSettings";
 import { ItemActions } from "./ItemActions";
 import { statusLook, studioHref } from "../shared";
+import { formatDate } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,8 @@ export default async function CollectionPage({ params, searchParams }: { params:
   const { collectionId } = await params;
   const sp = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("cms");
+  const locale = await getLocale();
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store;
   if (!store) notFound();
@@ -57,9 +61,9 @@ export default async function CollectionPage({ params, searchParams }: { params:
   const keep = { tab: undefined, status: status ?? undefined, view: sp.view };
   const chipHref = (s: string | null) => `${base}?${new URLSearchParams({ ...(s ? { status: s } : {}), ...(q ? { q } : {}), ...(sp.view ? { view: sp.view } : {}) })}`;
   const tabs = [
-    { key: "items", label: `${collection.itemLabel}s`, href: base },
-    { key: "fields", label: "Fields", href: `${base}?tab=fields` },
-    { key: "settings", label: "Settings and SEO", href: `${base}?tab=settings` },
+    { key: "items", label: t("col.tab.items", { label: collection.itemLabel }), href: base },
+    { key: "fields", label: t("fields"), href: `${base}?tab=fields` },
+    { key: "settings", label: t("col.tab.settings"), href: `${base}?tab=settings` },
   ];
 
   return (
@@ -67,20 +71,23 @@ export default async function CollectionPage({ params, searchParams }: { params:
       user={user}
       store={storeSummary(store)}
       title={collection.name}
-      sub={<>Shown at <span className="font-bold text-app-ink">/{collection.slug}</span> in your store{collection.isPublished ? "" : " (hidden right now)"}. {total} {total === 1 ? label : `${label}s`}, {count("published")} live.</>}
+      sub={(() => {
+        const [before, after = ""] = t("col.shownAt", { path: "\u0001" }).split("\u0001");
+        return <>{before}<span className="font-bold text-app-ink">/{collection.slug}</span>{after}{collection.isPublished ? "" : ` ${t("col.hiddenNow")}`}. {t("itemCount", { count: total, label })}, {t("liveCount", { count: count("published") })}.</>;
+      })()}
       actions={
         <>
-          <PillLink href="/home/cms" icon="arrowLeft">All content</PillLink>
+          <PillLink href="/home/cms" icon="arrowLeft">{t("col.allContent")}</PillLink>
           {collection.isPublished && (
             <a href={`/s/${store.slug}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
-              <Icon name="eye" size={16} /> View
+              <Icon name="eye" size={16} /> {t("view")}
             </a>
           )}
-          <PillLink href={`${base}/new`} tone="accent" icon="plus">New {label}</PillLink>
+          <PillLink href={`${base}/new`} tone="accent" icon="plus">{t("newItem", { label })}</PillLink>
         </>
       }
     >
-      <nav aria-label="Collection sections" className="mb-5 flex gap-2 overflow-x-auto pb-1">
+      <nav aria-label={t("col.sections")} className="mb-5 flex gap-2 overflow-x-auto pb-1">
         {tabs.map((entry) => (
           <Link key={entry.key} href={entry.href} aria-current={tab === entry.key ? "page" : undefined} className={cx("inline-flex min-h-[42px] shrink-0 items-center rounded-full border px-4 text-[14px] font-bold no-underline", tab === entry.key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong")}>
             {entry.label}
@@ -103,17 +110,17 @@ export default async function CollectionPage({ params, searchParams }: { params:
           <div className="flex flex-wrap items-center justify-between gap-3">
             <FilterChips
               items={[
-                { label: "All", href: chipHref(null), count: total, active: !status },
-                { label: "Live", href: chipHref("published"), count: count("published"), active: status === "published" },
-                { label: "Drafts", href: chipHref("draft"), count: count("draft"), active: status === "draft" },
-                { label: "Scheduled", href: chipHref("scheduled"), count: count("scheduled"), active: status === "scheduled" },
+                { label: t("col.all"), href: chipHref(null), count: total, active: !status },
+                { label: t("status.live"), href: chipHref("published"), count: count("published"), active: status === "published" },
+                { label: t("col.drafts"), href: chipHref("draft"), count: count("draft"), active: status === "draft" },
+                { label: t("status.scheduled"), href: chipHref("scheduled"), count: count("scheduled"), active: status === "scheduled" },
               ]}
             />
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <SearchForm action={base} defaultValue={q} placeholder={`Search ${label}s`} keep={keep} />
-              <div className="flex rounded-full border border-app-line bg-white p-1" role="group" aria-label="View">
+              <SearchForm action={base} defaultValue={q} placeholder={t("col.search", { label })} keep={keep} />
+              <div className="flex rounded-full border border-app-line bg-white p-1" role="group" aria-label={t("col.viewGroup")}>
                 {(["list", "grid"] as const).map((v) => (
-                  <Link key={v} href={`${base}?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), view: v })}`} aria-current={view === v ? "true" : undefined} aria-label={v === "list" ? "List view" : "Card view"} className={cx("grid h-9 w-10 place-items-center rounded-full", view === v ? "bg-app-ink text-white" : "text-app-ink")}>
+                  <Link key={v} href={`${base}?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), view: v })}`} aria-current={view === v ? "true" : undefined} aria-label={v === "list" ? t("col.listView") : t("col.cardView")} className={cx("grid h-9 w-10 place-items-center rounded-full", view === v ? "bg-app-ink text-white" : "text-app-ink")}>
                     <Icon name={v === "list" ? "list" : "grid"} size={15} />
                   </Link>
                 ))}
@@ -124,20 +131,20 @@ export default async function CollectionPage({ params, searchParams }: { params:
           {items.length === 0 ? (
             <EmptyState
               icon="document"
-              title={q || status ? `No ${label}s match` : `No ${label}s yet`}
+              title={q || status ? t("col.noMatch", { label }) : t("col.noneYet", { label })}
               action={
                 <div className="flex flex-wrap justify-center gap-2">
-                  <PillLink href={`${base}/new`} tone="ink" icon="plus">Write one</PillLink>
-                  <PillLink href={studioHref(`Write a ${label} for my "${collection.name}" collection about `)} icon="sparkle">Ask Rex to draft one</PillLink>
+                  <PillLink href={`${base}/new`} tone="ink" icon="plus">{t("col.writeOne")}</PillLink>
+                  <PillLink href={studioHref(`Write a ${label} for my "${collection.name}" collection about `)} icon="sparkle">{t("col.askRexDraft")}</PillLink>
                 </div>
               }
             >
-              {q || status ? "Try another search or filter." : "Write the first one, or let Rex draft it for you to check."}
+              {q || status ? t("col.tryAnother") : t("col.writeFirst")}
             </EmptyState>
           ) : view === "grid" ? (
             <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {items.map((item) => {
-                const look = statusLook(item.status, item.publishAt);
+                const look = statusLook(t, item.status, item.publishAt);
                 return (
                   <li key={item.id} className="min-w-0">
                     <Card className="flex h-full flex-col overflow-hidden">
@@ -163,7 +170,7 @@ export default async function CollectionPage({ params, searchParams }: { params:
           ) : (
             <ListCard>
               {items.map((item) => {
-                const look = statusLook(item.status, item.publishAt);
+                const look = statusLook(t, item.status, item.publishAt);
                 const date = item.publishedAt ?? item.updatedAt;
                 return (
                   <ListRow key={item.id}>
@@ -171,11 +178,11 @@ export default async function CollectionPage({ params, searchParams }: { params:
                     <Link href={`${base}/${item.id}`} className="min-w-0 flex-1 basis-[200px] text-app-ink no-underline hover:underline">
                       <span className="block truncate text-[14.5px] font-extrabold">{item.title}</span>
                       <span className="block truncate text-[13px] text-app-ink-soft">
-                        /{item.slug}{item.author ? ` · ${item.author}` : ""}{item.createdBy === "peggy" || item.createdBy === "rex" ? ` · drafted by ${item.createdBy === "peggy" ? "Peggy" : "Rex"}` : ""}
+                        /{item.slug}{item.author ? ` · ${item.author}` : ""}{item.createdBy === "peggy" || item.createdBy === "rex" ? ` · ${t("col.draftedBy", { who: item.createdBy === "peggy" ? "Peggy" : "Rex" })}` : ""}
                       </span>
                     </Link>
                     <Pill tone={look.tone} dot>{look.label}</Pill>
-                    <span className="hidden w-[100px] shrink-0 text-[13px] text-app-ink-soft lg:block">{date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    <span className="hidden w-[100px] shrink-0 text-[13px] text-app-ink-soft lg:block">{formatDate(date, locale, { day: "numeric", month: "short", year: "numeric" })}</span>
                     <ItemActions id={item.id} title={item.title} status={item.status} editHref={`${base}/${item.id}`} />
                   </ListRow>
                 );
@@ -183,8 +190,8 @@ export default async function CollectionPage({ params, searchParams }: { params:
             </ListCard>
           )}
 
-          <AssistantNote who="rex" action={<PillLink href={studioHref(`Write a ${label} for my "${collection.name}" collection about `)} size="sm" tone="ink">Ask Rex</PillLink>}>
-            <strong>Short on time?</strong> Rex can write a {label} for this collection and save it as a draft for you to check and publish.
+          <AssistantNote who="rex" action={<PillLink href={studioHref(`Write a ${label} for my "${collection.name}" collection about `)} size="sm" tone="ink">{t("askRex")}</PillLink>}>
+            <strong>{t("col.shortLead")}</strong> {t("col.shortBody", { label })}
           </AssistantNote>
         </div>
       )}

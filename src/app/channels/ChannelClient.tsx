@@ -5,9 +5,11 @@ import { Icon } from "@/components/ui/Icon";
 import { buttonClass, inputClass } from "@/components/growth/kit";
 import { cx } from "@/components/app-ui/cx";
 import { connectMetaCatalog, syncChannel, type ChannelActionState } from "./actions";
+import { useT } from "@/components/i18n/I18nProvider";
 
 /** Read-only value with a copy button (feed URLs, tagged links). */
 export function CopyField({ value, label }: { value: string; label: string }) {
+  const t = useT("social", "common");
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -21,9 +23,9 @@ export function CopyField({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
       <input readOnly value={value} aria-label={label} onFocus={(event) => event.currentTarget.select()} className={cx(inputClass, "h-[44px] font-mono text-[12.5px]")} />
-      <button type="button" onClick={copy} className={buttonClass("white", "sm")} aria-label={`Copy ${label}`}>
+      <button type="button" onClick={copy} className={buttonClass("white", "sm")} aria-label={t("copy.label", { label })}>
         <Icon name={copied ? "check" : "copy"} size={15} />
-        <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
+        <span aria-live="polite">{copied ? t("copied") : t("copy")}</span>
       </button>
     </div>
   );
@@ -40,11 +42,12 @@ function Message({ state }: { state: ChannelActionState }) {
 
 /** Catalog ID + token form for Meta catalog API sync (Facebook/Instagram Shop or WhatsApp catalog). */
 export function MetaConnectForm({ channel, canStoreTokens }: { channel: "meta" | "whatsapp"; canStoreTokens: boolean }) {
+  const t = useT("social");
   const [state, action, pending] = useActionState(connectMetaCatalog, {});
   if (!canStoreTokens) {
     return (
       <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">
-        Faster updates aren&apos;t switched on yet. The product link above works without them.
+        {t("meta.off")}
       </p>
     );
   }
@@ -52,27 +55,28 @@ export function MetaConnectForm({ channel, canStoreTokens }: { channel: "meta" |
     <form action={action} className="grid gap-2.5">
       <input type="hidden" name="channel" value={channel} />
       <label className="grid gap-1 text-[13px] font-bold">
-        Catalog ID
+        {t("meta.catalogId")}
         <input name="catalogId" inputMode="numeric" autoComplete="off" required placeholder="e.g. 123456789012345" className={inputClass} />
       </label>
       <label className="grid gap-1 text-[13px] font-bold">
-        Access token
-        <input name="token" type="password" autoComplete="off" required placeholder="System user token with catalog_management" className={inputClass} />
+        {t("meta.token")}
+        <input name="token" type="password" autoComplete="off" required placeholder={t("meta.tokenHint")} className={inputClass} />
       </label>
-      <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>{pending ? "Checking with Meta…" : "Connect catalog"}</button>
+      <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>{pending ? t("meta.checking") : t("meta.connect")}</button>
       <Message state={state} />
     </form>
   );
 }
 
 export function SyncButton({ channel }: { channel: "meta" | "whatsapp" }) {
+  const t = useT("social");
   const [state, action, pending] = useActionState(syncChannel, {});
   return (
     <form action={action} className="grid gap-2">
       <input type="hidden" name="channel" value={channel} />
       <button type="submit" disabled={pending} className={buttonClass("ink", "sm")}>
         <Icon name="refresh" size={15} />
-        {pending ? "Sending products…" : "Send my products now"}
+        {pending ? t("sync.sending") : t("sync.now")}
       </button>
       <Message state={state} />
     </form>
@@ -84,6 +88,7 @@ export function SyncButton({ channel }: { channel: "meta" | "whatsapp" }) {
  * the "Ask us to connect it" request and Peggy's steps. Children are rendered by the server page.
  */
 export function ChannelAction({ label, done, children }: { label: string; done?: boolean; children: ReactNode }) {
+  const t = useT("social", "common");
   const [open, setOpen] = useState(false);
   return (
     <div className="grid min-w-0 gap-3">
@@ -93,7 +98,7 @@ export function ChannelAction({ label, done, children }: { label: string; done?:
         onClick={() => setOpen((value) => !value)}
         className={buttonClass(open || done ? "white" : "ink", "md")}
       >
-        {open ? "Close" : done ? "Help with this" : label}
+        {open ? t("close") : done ? t("action.help") : label}
       </button>
       {open && <div className="grid min-w-0 gap-3">{children}</div>}
     </div>

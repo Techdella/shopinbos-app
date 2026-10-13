@@ -666,6 +666,8 @@ const en = {
   "cat.notSent": "Not sent",
   "cat.allAccepted": "Nothing to fix. WhatsApp accepted every product.",
   "cat.emptyBefore": "Anything to fix shows here once your products are on WhatsApp.",
+  "wa.optional": "(optional)",
+  "wa.verifyAfter": "The verify token appears after you connect.",
 } satisfies Record<string, string>;
 
 export default en;
