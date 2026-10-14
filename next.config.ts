@@ -5,9 +5,19 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  experimental: {
+    // Lower peak memory while compiling (Vercel's build machines have 8 GB).
+    webpackMemoryOptimizations: true,
+  },
   // Prevent Node.js-only packages from being bundled into the client bundle
   serverExternalPackages: ["@anthropic-ai/sdk", "openai", "@prisma/client", "prisma"],
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    // On Vercel, compile without webpack's on-disk cache: the restored cache keeps growing between deploys
+    // (1.5 GB+ after one build) and loading it ran the 8 GB build machine out of memory. A clean compile
+    // takes about 3 minutes.
+    if (!dev && process.env.VERCEL && config.cache) {
+      config.cache = Object.freeze({ type: "memory" as const });
+    }
     if (!isServer) {
       // Stub out Node.js built-in modules that leak into client bundles via SDK imports
       const nodeBuiltins = ["fs", "path", "os", "crypto", "stream", "buffer", "util", "url", "http", "https", "net", "tls", "child_process", "worker_threads", "process", "events", "assert", "string_decoder", "querystring", "zlib", "readline"];

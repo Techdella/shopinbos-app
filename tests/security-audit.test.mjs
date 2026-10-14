@@ -450,8 +450,11 @@ test("domains: buying is opt-in, priced by Vercel, capped, and an order attaches
   assert.deepEqual(domainOrdersOf({ domainOrders: "ord_1" }), []);
   const purchase = read("src/app/api/domains/purchase/route.ts");
   assert.match(purchase, /if \(process\.env\.DOMAIN_PURCHASE_ENABLED !== "true"\)/);
-  assert.match(purchase, /years: 1,\s*autoRenew: parsed\.data\.autoRenew,\s*maxPrice: MAX_PRICE_USD,/);
+  // The seller pays first; the domain is bought after a verified payment, one year, never auto-renewed by Vercel,
+  // capped at the quoted cost (tests/domain-billing.test.mjs covers the payment side).
+  assert.doesNotMatch(purchase, /buyDomainOnVercel/);
   assert.doesNotMatch(purchase, /expectedPrice: parsed\.data\.expectedPrice/);
+  assert.match(read("src/lib/domains/billing.server.ts"), /buyDomainOnVercel\(row\.domain, \{ years: 1, autoRenew: false, maxPrice,/);
   const vercel = read("src/lib/domains/vercel.ts");
   assert.match(vercel, /expectedPrice: pricing\.purchasePrice,/);
   assert.match(read("src/app/api/domains/order/[orderId]/route.ts"), /if \(!domainOrdersOf\(store\.brandSettings\)\.includes\(String\(orderId\)\)\)/);

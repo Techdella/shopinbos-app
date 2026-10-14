@@ -227,15 +227,15 @@ export const socialChannels: Array<{
 ];
 
 export async function getSellerWorkspace(userId: string) {
-  const user = await safeQuery(
-    () =>
-      db.user.findUnique({
-        where: { id: userId },
-        include: {
-          store: true,
-        },
-      }),
-    null,
+  // Not safeQuery: a failing query here (e.g. a column the database doesn't have yet) must show the error page.
+  // Turned into null, it looked like "no store" and bounced the seller through /onboarding back to /home.
+  const user = await workspaceQueryLimiter.run(() =>
+    db.user.findUnique({
+      where: { id: userId },
+      include: {
+        store: true,
+      },
+    }),
   );
 
   if (!user) {

@@ -174,7 +174,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "plan.growth.f4": "Àtìlẹ́yìn email",
   "plan.pro.f1": "AI credits 200/oṣù",
   "plan.pro.f2": "Ọjà láìlópin",
-  "plan.pro.f3": "Domain àdáni wà nínú rẹ̀",
+  "plan.pro.f3": "Lo domain tìrẹ",
   "plan.pro.f4": "Àtìlẹ́yìn àkọ́kọ́",
   "bill.yourPlan": "Ètò rẹ",
   "bill.bestValue": "Ó dára jù",
@@ -217,6 +217,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lm.sub": "Store rẹ yóò lọ live lẹ́yìn tí Paystack bá jẹ́rìísí ìsanwó yìí nìkan.",
   "lm.continue": "Tẹ̀síwájú pẹ̀lú {amount}",
   "lm.secure": "Paystack ló ń ṣe ìsanwó láìléwu. Shopinbos kì í gba àlàyé káàdì rẹ rárá.",
+  // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
+  "plan.freeDomain": "Domain ọ̀fẹ́ fún ọdún kan",
 };
 
 export default yo;

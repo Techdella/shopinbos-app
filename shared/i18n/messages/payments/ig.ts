@@ -174,7 +174,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "plan.growth.f4": "Nkwado email",
   "plan.pro.f1": "AI credits 200/ọnwa",
   "plan.pro.f2": "Ngwaahịa na-enweghị oke",
-  "plan.pro.f3": "Custom domain gụnyere",
+  "plan.pro.f3": "Jiri domain nke gị",
   "plan.pro.f4": "Nkwado mbụ",
   "bill.yourPlan": "Atụmatụ gị",
   "bill.bestValue": "Kacha mma",
@@ -217,6 +217,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lm.sub": "Store gị ga-aga live naanị mgbe Paystack kwadoro ịkwụ ụgwọ a.",
   "lm.continue": "Gaa n'ihu na {amount}",
   "lm.secure": "Paystack na-ahazi ịkwụ ụgwọ n'udo. Shopinbos anaghị anata nkọwa kaadị gị.",
+  // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
+  "plan.freeDomain": "Domain n'efu maka otu afọ",
 };
 
 export default ig;

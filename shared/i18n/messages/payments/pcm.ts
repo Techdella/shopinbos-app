@@ -174,7 +174,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "plan.growth.f4": "Email support",
   "plan.pro.f1": "200 AI credits/month",
   "plan.pro.f2": "Products wey no get limit",
-  "plan.pro.f3": "Custom domain dey inside",
+  "plan.pro.f3": "Use your own domain",
   "plan.pro.f4": "Priority support",
   "bill.yourPlan": "Your plan",
   "bill.bestValue": "Best value",
@@ -217,6 +217,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lm.sub": "Your store go live only after Paystack verify this payment.",
   "lm.continue": "Continue with {amount}",
   "lm.secure": "Na Paystack dey process the payment safely. Shopinbos no dey ever see your card details.",
+  // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
+  "plan.freeDomain": "Free domain for one year",
 };
 
 export default pcm;

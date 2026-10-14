@@ -128,6 +128,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "admin.supplier-pickups": "Pickups wey dey wait rider",
   "admin.marketplace-sync": "Marketplace",
   "admin.domain-partners": "Domain partners",
+  "admin.domain-purchases": "Domains wey sellers buy",
   "group.sourcing": "Where to buy goods",
   "group.people": "People",
   "group.store": "Shop",

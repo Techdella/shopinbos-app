@@ -172,7 +172,7 @@ const en = {
   "plan.growth.f4": "Email support",
   "plan.pro.f1": "200 AI credits/month",
   "plan.pro.f2": "Unlimited products",
-  "plan.pro.f3": "Custom domain included",
+  "plan.pro.f3": "Use your own domain",
   "plan.pro.f4": "Priority support",
   "bill.yourPlan": "Your plan",
   "bill.bestValue": "Best value",
@@ -215,6 +215,8 @@ const en = {
   "lm.sub": "Your store goes live only after Paystack verifies this payment.",
   "lm.continue": "Continue with {amount}",
   "lm.secure": "Payment is processed securely by Paystack. Shopinbos never receives your card details.",
+  // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
+  "plan.freeDomain": "Free domain for a year",
 } satisfies Record<string, string>;
 
 export default en;

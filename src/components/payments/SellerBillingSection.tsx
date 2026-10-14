@@ -47,7 +47,7 @@ const PLANS = [
     priceSub: "/month",
     annualNote: "₦15,000/mo · 2 months free",
     creditThreshold: 200,
-    features: ["200 AI credits/month", "Unlimited products", "Custom domain included", "Priority support"],
+    features: ["200 AI credits/month", "Unlimited products", "Use your own domain", "Priority support"],
     monthlyPlan: "PLN_2gph11w3yd0250y",
     annualPlan: "PLN_9gma70ofldhbj4r",
   },
@@ -140,6 +140,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
                   {plan.features.map((f, index) => (
                     <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t.dynamic(`plan.${plan.key}.f${index + 1}`, f)}</li>
                   ))}
+                  {/* Annual Growth and Pro pay for the seller's domain (src/lib/seller-plan.ts); monthly plans don't. */}
+                  {billing === "annual" && plan.annualPlan && (
+                    <li className="flex gap-2 font-bold text-app-ink"><span aria-hidden className="text-app-success">✓</span>{t("plan.freeDomain")}</li>
+                  )}
                 </ul>
                 <div className="mt-auto pt-4">
                   {!isCurrent && plan.key === "growth" && planCode && (

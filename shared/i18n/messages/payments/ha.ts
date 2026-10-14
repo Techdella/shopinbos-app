@@ -174,7 +174,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "plan.growth.f4": "Tallafi ta email",
   "plan.pro.f1": "AI credits 200/wata",
   "plan.pro.f2": "Kayayyaki marasa iyaka",
-  "plan.pro.f3": "Custom domain yana ciki",
+  "plan.pro.f3": "Yi amfani da domain naka",
   "plan.pro.f4": "Tallafi na farko",
   "bill.yourPlan": "Tsarinka",
   "bill.bestValue": "Mafi daraja",
@@ -217,6 +217,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lm.sub": "Store ɗinka zai fara aiki ne kawai bayan Paystack ya tabbatar da wannan biya.",
   "lm.continue": "Ci gaba da {amount}",
   "lm.secure": "Paystack ne ke sarrafa biyan lafiya. Shopinbos ba ya taɓa karɓar bayanan katinka.",
+  // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
+  "plan.freeDomain": "Domain kyauta na shekara ɗaya",
 };
 
 export default ha;
