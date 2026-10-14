@@ -3,6 +3,8 @@ import { cache } from "react";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { publicBrandSettings } from "@shared/public-brand-settings";
+import { readPaymentBadges, type PaymentBadgeKey } from "@shared/payment-badges";
+import { showsShopinbosBadge } from "@/lib/store-badges";
 import { loadShopperInfo } from "./shopper-info.server";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason, storefrontAccess, type StoreUnavailableReason } from "./store-visibility";
 
@@ -25,6 +27,8 @@ function storeSelect(productStatuses: readonly string[]) {
     brandSettings: true,
     customDomain: true,
     status: true,
+    // Only to decide the "Built with Shopinbos" badge; the plan itself never reaches shoppers.
+    user: { select: { planStatus: true, planPaidUntil: true } },
     storeProducts: {
       where: { status: { in: [...productStatuses] } },
       select: {
@@ -73,9 +77,22 @@ async function reviewStats(productIds: string[]) {
   return map;
 }
 
-/** Shapes a store row into the public payload: public brand settings, review stats, shopper info, no owner id. */
+/**
+ * The storefront's two footer badges: whether to show "Built with Shopinbos" (every store, unless a paid seller turned it off) and the payment
+ * logos. Only these answers go to shoppers, never the owner's plan.
+ */
+export interface StoreBadges {
+  showBadge: boolean;
+  paymentBadges: PaymentBadgeKey[];
+}
+
+function storeBadges(owner: { planStatus: string | null; planPaidUntil: Date | null } | null | undefined, brandSettings: unknown): StoreBadges {
+  return { showBadge: showsShopinbosBadge(owner, new Date(), brandSettings), paymentBadges: readPaymentBadges(brandSettings) };
+}
+
+/** Shapes a store row into the public payload: public brand settings, review stats, shopper info, no owner id or plan. */
 async function shapePublicStore(row: StoreRow) {
-  const { userId: _userId, ...store } = row;
+  const { userId: _userId, user: owner, ...store } = row;
   void _userId;
   const reviews = await reviewStats(store.storeProducts.map((product) => product.id));
   const storeProducts = store.storeProducts.map((product) => ({
@@ -87,7 +104,7 @@ async function shapePublicStore(row: StoreRow) {
   const shopper = await loadShopperInfo(store.id, store.brandSettings, storeProducts);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- brand settings are free-form JSON each renderer reads its own way
   const brandSettings = (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, any>;
-  const payload = { ...store, brandSettings, storeProducts, shopper };
+  const payload = { ...store, brandSettings, storeProducts, shopper, ...storeBadges(owner, store.brandSettings) };
   // The same plain JSON the API sends, so client components get identical props either way.
   return JSON.parse(JSON.stringify(payload)) as typeof payload;
 }
@@ -109,19 +126,26 @@ export const loadPublicStore = cache(async (slug: string): Promise<PublicStoreRe
 });
 
 /** Name, logo and colours for a store that isn't open yet (the "not open yet" page and storefront 404s). */
-export interface StoreBrand {
+export interface StoreBrand extends StoreBadges {
   name: string;
   slug: string;
   logoUrl: string | null;
   brandSettings: Record<string, unknown>;
 }
 
+/** Also what the storefront layouts hand every page's footer: the "Built with Shopinbos" badge and payment logos. */
 export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | null> => {
   const store = await db.store
-    .findUnique({ where: { slug }, select: { name: true, slug: true, logoUrl: true, brandSettings: true } })
+    .findUnique({ where: { slug }, select: { name: true, slug: true, logoUrl: true, brandSettings: true, user: { select: { planStatus: true, planPaidUntil: true } } } })
     .catch(() => null);
   if (!store) return null;
-  return { name: store.name, slug: store.slug, logoUrl: store.logoUrl, brandSettings: (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, unknown> };
+  return {
+    name: store.name,
+    slug: store.slug,
+    logoUrl: store.logoUrl,
+    brandSettings: (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, unknown>,
+    ...storeBadges(store.user, store.brandSettings),
+  };
 });
 
 export type StorefrontView =

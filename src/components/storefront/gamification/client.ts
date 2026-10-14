@@ -25,6 +25,8 @@ export interface WonCode {
   expiresAt: string | null;
   minOrder: number;
   gift: { productId: string; name: string; price: number } | null;
+  /** Where it came from: a game prize (default) or a sign-up reward from a pop-up or sign-up page. */
+  source?: "game" | "signup";
 }
 
 const wonKey = (slug: string) => `sib-game-won:${slug}`;

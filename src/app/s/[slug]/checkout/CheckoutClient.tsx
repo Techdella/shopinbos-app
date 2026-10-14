@@ -52,6 +52,7 @@ import {
 import { Banner, TrustLine } from "@/components/storefront/shopper/CartPage";
 import { ItemThumb, Money, Panel, PrimaryButton, SecondaryButton, ShopperShell, fieldClass } from "@/components/storefront/shopper/ShopperShell";
 import { readVariants } from "@/components/storefront/shopper/catalog";
+import { WeAccept } from "@/components/storefront/shopper/StoreFooterBadges";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import type { ShopperCommerce, ShopperStore } from "@/components/storefront/shopper/types";
 import { TransferInstructions, type TransferDetails } from "../order/[orderId]/TransferInstructions";
@@ -414,7 +415,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   );
 
   const shell = (children: React.ReactNode) => (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Checkout">
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Checkout" footPayments={false}>
       {children}
     </ShopperShell>
   );
@@ -920,6 +921,7 @@ function OrderSummary({
         </div>
       </dl>
       {trust}
+      <WeAccept muted={theme.muted} />
     </Panel>
   );
 }

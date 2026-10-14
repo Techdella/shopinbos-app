@@ -5,6 +5,7 @@ import { DeviceToggle, Spinner } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { FLOW_VARIABLES } from "@/lib/marketing/flows";
 import { useT } from "@/components/i18n/I18nProvider";
+import { EmailPreviewIframe } from "./EmailFrame";
 
 // Client pieces shared by the marketing editors (campaigns, templates, automations, forms).
 
@@ -70,10 +71,9 @@ export function EmailPreview({ bodyHtml, preheader, subject }: { bodyHtml: strin
       ) : null}
       {error ? <p className="m-0 text-[13px] text-app-danger">{error}</p> : null}
       <div className="overflow-hidden rounded-[18px] border border-app-line bg-app-canvas">
-        <iframe
+        <EmailPreviewIframe
           title={t("preview.title")}
-          sandbox=""
-          srcDoc={html}
+          html={html}
           className={cx("mx-auto block h-[560px] border-0 bg-white transition-all", device === "mobile" ? "w-[375px] max-w-full" : "w-full")}
         />
       </div>

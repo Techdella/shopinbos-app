@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
-import { createBlankEditorSnapshot, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
+import { createBlankEditorSnapshot, isBoutiqueTheme, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
+import { migrateSnapshot } from "@/lib/store-templates/section-content";
+import { heroDefaultLayout } from "./section-schema";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { useEditorT } from "./i18n";
 import {
@@ -129,9 +131,12 @@ export function useBuilder() {
         shopper: readShopperInfo(raw.shopper),
         rawShopper: raw.shopper ?? null,
       });
-      const nextDraft = (json.data.draft as StoreEditorSnapshot | null | undefined) ?? null;
+      // Older saves are upgraded in memory (slides get their own words, renamed layouts…); the published copy is
+      // upgraded the same way so the upgrade alone never shows as unpublished changes.
+      const upgrade = (snapshot: StoreEditorSnapshot | null) => migrateSnapshot(snapshot, { heroDefault: snapshot ? heroDefaultLayout(isBoutiqueTheme(snapshot.templateId) ? "boutique" : "classic", snapshot.templateId) : undefined });
+      const nextDraft = upgrade((json.data.draft as StoreEditorSnapshot | null | undefined) ?? null);
       resetDraft(nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null);
-      setPublished((json.data.published as StoreEditorSnapshot | null | undefined) ?? null);
+      setPublished(upgrade((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : tx("Your store couldn't be loaded."));
     } finally {

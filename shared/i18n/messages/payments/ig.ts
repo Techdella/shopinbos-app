@@ -219,6 +219,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lm.secure": "Paystack na-ahazi ịkwụ ụgwọ n'udo. Shopinbos anaghị anata nkọwa kaadị gị.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Domain n'efu maka otu afọ",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "err.badges": "Họrọ site na logo ịkwụ ụgwọ edepụtara.",
+  "badges.title": "Logo ịkwụ ụgwọ n'ụlọ ahịa gị",
+  "badges.sub": "Pịa logo ka o gosi ma ọ bụ zoo ya. Ndị ahịa ga-ahụ ha n'okpuru ụlọ ahịa gị na n'ebe checkout.",
+  "badges.preview": "Otú ndị ahịa ga-esi hụ ya",
+  "badges.none": "Ọ dịghị logo ga-egosi n'ụlọ ahịa gị.",
+  "badges.reset": "Jiri ụzọ ịkwụ ụgwọ m",
+  "badges.saved": "Echekwala ya",
+  "badge.transfer": "Bank transfer",
+  "badge.cod": "Kwụọ ụgwọ mgbe ọ bịarutere",
+  "plan.noBadge": "Ị nwere ike gbanyụọ akara 'Built with Shopinbos' n'ụlọ ahịa gị",
 };
 
 export default ig;

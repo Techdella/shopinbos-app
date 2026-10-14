@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront/shopper/StoreFooterBadges";
 import type { BoutiqueLook } from "./look";
 
 export interface ChromeStore {
@@ -219,6 +220,7 @@ export function BoutiqueFooter({
   const place = [store.city, store.country].filter(Boolean).join(", ");
   const whatsapp = shopper.whatsappNumber ? `WhatsApp +${shopper.whatsappNumber}` : null;
   const line = [place, whatsapp].filter(Boolean).join(" · ");
+  const storeBadges = useStoreFooterBadges();
   return (
     <footer className="border-t" style={{ borderColor: t.border, background: look.footerBg, color: t.ink }}>
       <div className="bq-wrap grid gap-6 py-10">
@@ -260,8 +262,10 @@ export function BoutiqueFooter({
               </ul>
             </nav>
           ) : null}
-          {shopper.paymentLabels.length ? <span>{shopper.paymentLabels.join(" · ")}</span> : null}
+          {/* On the storefront: the seller's payment logos and "Built with Shopinbos"; in the builder, the plain labels. */}
+          {storeBadges ? null : shopper.paymentLabels.length ? <span>{shopper.paymentLabels.join(" · ")}</span> : null}
         </div>
+        <StoreFooterBadges muted={t.muted} border={t.border} ink={t.ink} className="-mt-2" />
       </div>
     </footer>
   );

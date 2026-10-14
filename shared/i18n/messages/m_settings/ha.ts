@@ -146,6 +146,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.helpHint": "Mutum, ko Peggy",
   "set.more": "Ƙarin saituna a yanar gizo",
   "set.moreHint": "Ƙungiya, biyan kuɗi, tsaro da rufe shagonka. Zai buɗe a browser ɗinka",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "money.badgesTitle": "Tambarin biyan kuɗi a shagonka",
+  "money.badgesHint": "Taɓa don nunawa ko ɓoyewa. Kwastomomi za su gan su a ƙasan shagonka da wajen checkout.",
+  "money.badgesNone": "Babu tambarin da zai bayyana a shagonka.",
+  "money.badgesReset": "Yi amfani da hanyoyin biyana",
+  "money.badBadges": "Zaɓi daga cikin tambarin biyan kuɗi da aka lissafa.",
+  "money.badge.transfer": "Bank transfer",
+  "money.badge.cod": "Biya idan an kawo",
 };
 
 export default ha;

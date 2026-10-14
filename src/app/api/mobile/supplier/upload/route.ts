@@ -3,6 +3,7 @@ import { withSupplier } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
 import { supplierForUser } from "../_shared";
+import { recordMedia } from "@/lib/media/library.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,8 @@ export const POST = withSupplier(async (req: NextRequest, { user }) => {
   if (file.size > MAX_BYTES) return apiError("BAD_REQUEST", "That photo is too big (max 10 MB).");
   try {
     const result = await uploadFileServer("supplier-product-images", file, uploadPath(`supplier-product-images/${supplier.id}`, file));
+    // Also in the supplier's media library, to pick again on the web ("Choose from my media").
+    await recordMedia({ userId: user.id, storeId: null, url: result.publicUrl, path: result.path, kind: "image", bytes: file.size, source: "product" });
     return ok({ url: result.publicUrl });
   } catch (error) {
     console.error("Supplier photo upload failed", error);

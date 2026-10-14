@@ -458,6 +458,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       storeName={b.store.name}
       storeHost={storefrontHost(b.store.storefrontUrl)}
       products={b.store.products}
+      collections={b.store.shopper.collections}
+      pageTypes={draft.pages.map((entry) => entry.pageType)}
       tab={phone ? "settings" : inspectorTab}
       onTab={setInspectorTab}
       focusField={focusField}

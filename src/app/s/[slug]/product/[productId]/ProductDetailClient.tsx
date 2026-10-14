@@ -12,6 +12,7 @@ import { useStoreProductView } from "@/lib/analytics/storefront-events";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { CartDrawer } from "../../CartDrawer";
 import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
+import { StoreFootnote } from "@/components/storefront/shopper/StoreFooterBadges";
 import type { ShopperProduct } from "@/components/storefront/shopper/catalog";
 import { ProductReviewForm } from "@/components/storefront/reviews/ProductReviewForm";
 
@@ -441,6 +442,7 @@ export function ProductDetailClient({
             Continue Shopping
           </Link>
         </div>
+        <StoreFootnote muted="#6a6a6a" border={border} ink={ink} className="mt-12" />
       </div>
 
       <ShopperBottomNav

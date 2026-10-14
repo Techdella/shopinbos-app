@@ -7,6 +7,7 @@ import { Notice, PillButton, Segmented, Spinner, cx } from "@/components/app-ui"
 import { Pill } from "@/components/app-kit";
 import { SeoTab } from "@/components/seo/SeoTab";
 import { uploadCmsFile } from "@/components/cms/pickers";
+import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { mainRichField, slugError, slugify, type CmsField, type RichValue } from "@/lib/cms/fields";
 import { docImages, firstParagraphText, plainText, summarize } from "@/lib/cms/richtext";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
@@ -63,6 +64,8 @@ export function ItemEditor(props: {
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const tm = useT("media");
   const saved = useRef(JSON.stringify({ item: props.item, seo: normalizeSeo(props.item.seo) }));
   const dirty = JSON.stringify({ item, seo }) !== saved.current;
 
@@ -292,9 +295,13 @@ export function ItemEditor(props: {
               {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={15} />} {item.featuredImage ? t("ed.replace") : t("ed.upload")}
               <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(e) => void uploadFeatured(e.target.files?.[0])} />
             </label>
+            <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong">
+              <Icon name="grid" size={15} /> {tm("field.choose")}
+            </button>
             {item.featuredImage && <button type="button" onClick={() => set({ featuredImage: null })} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"><Icon name="trash" size={15} /> {t("ed.remove")}</button>}
           </div>
           {errors.featuredImage && <p className="m-0 text-[13px] text-app-danger" role="alert">{errors.featuredImage}</p>}
+          <MediaLibraryDialog open={libraryOpen} onClose={() => setLibraryOpen(false)} onSelect={([asset]) => asset && set({ featuredImage: asset.url })} />
           {item.createdBy === "peggy" || item.createdBy === "rex" || item.createdBy === "import" ? (
             <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{item.createdBy === "import" ? t("ed.fromOldBlog") : t("ed.draftedBy", { who: item.createdBy === "peggy" ? "Peggy" : "Rex" })}</p>
           ) : null}

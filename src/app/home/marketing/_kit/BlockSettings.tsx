@@ -6,6 +6,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Field, buttonClass, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { EMAIL_THEMES, EMAIL_THEME_INFO, GAME_LABELS, SOCIAL_LABELS, SOCIAL_NETWORKS, type Align, type ColumnCell, type EmailBlock, type EmailBlockType, type ProductItem } from "@/lib/marketing/blocks";
 import { api, errorText, insertAtCursor } from "./client";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { TFunction } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
@@ -142,58 +143,14 @@ const LINKS = [
   ["{{cart_url}}", "bs.link.cart"],
 ] as const;
 
-async function uploadImage(file: File) {
-  const body = new FormData();
-  body.append("file", file);
-  body.append("folder", "brand");
-  const res = await fetch("/api/upload", { method: "POST", body });
-  const json = await res.json().catch(() => null);
-  if (!res.ok || !json?.data?.publicUrl) throw new Error(json?.error?.message ?? "");
-  return json.data.publicUrl as string;
-}
-
 function ImageField({ url, onChange, label: givenLabel }: { url: string; onChange: (url: string) => void; label?: string }) {
   const t = useT("emailBuilder");
   const label = givenLabel ?? t("bubble.picture");
-  const input = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Upload, choose from the seller's media library, or paste a link (src/components/media).
   return (
     <div className="grid gap-2">
       <span className="text-[13.5px] font-bold">{label}</span>
-      <div className="flex items-center gap-2">
-        {url && /^https?:\/\//.test(url) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="" className="h-14 w-14 shrink-0 rounded-[12px] border border-app-line object-cover" />
-        ) : (
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[12px] border border-dashed border-app-line text-app-ink-soft"><Icon name="image" size={18} /></span>
-        )}
-        <button type="button" className={buttonClass("white", "sm")} disabled={busy} onClick={() => input.current?.click()}>
-          <Icon name="upload" size={14} /> {busy ? t("bs.uploading") : t("bs.upload")}
-        </button>
-        <input
-          ref={input}
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          className="hidden"
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            if (!file) return;
-            setBusy(true);
-            setError(null);
-            try {
-              onChange(await uploadImage(file));
-            } catch (uploadError) {
-              setError(errorText(uploadError, t("bs.uploadFailed")));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        />
-      </div>
-      <input aria-label={t("bs.labelLink", { label })} value={url} onChange={(e) => onChange(e.target.value)} className={inputClass} placeholder={t("bs.pasteImage")} inputMode="url" />
-      {error ? <p className="m-0 text-[12.5px] text-app-danger">{error}</p> : null}
+      <MediaPicker value={url} onChange={onChange} shape="square" compact />
     </div>
   );
 }

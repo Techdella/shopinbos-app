@@ -13,6 +13,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { PillButton, Spinner, cx } from "@/components/app-ui";
 import { CMS_PROSE_CSS } from "@/components/cms/prose-css";
 import { Modal, RecordPicker, uploadCmsFile } from "@/components/cms/pickers";
+import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { markdownToDoc } from "@/lib/cms/markdown";
 import { youtubeEmbedUrl, type RichDoc } from "@/lib/cms/richtext";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -119,6 +120,8 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
   const placeholder = placeholderProp ?? t("rte.placeholder");
   const [dialog, setDialog] = useState<DialogState>(null);
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const tm = useT("media");
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const labelId = useId();
@@ -296,6 +299,12 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         <Sep />
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" tabIndex={-1} aria-hidden onChange={(event) => void onFile(event.target.files?.[0])} />
         <ToolButton label={uploading ? t("rte.uploadingPicture") : t("rte.addPicture")} icon="image" disabled={uploading} onClick={() => fileRef.current?.click()} />
+        <ToolButton label={tm("field.choose")} icon="layers" disabled={uploading} onClick={() => setLibraryOpen(true)} />
+        <MediaLibraryDialog
+          open={libraryOpen}
+          onClose={() => setLibraryOpen(false)}
+          onSelect={([asset]) => asset && setDialog({ kind: "image", src: asset.url, alt: asset.name ?? "", caption: "", editing: false })}
+        />
         <ToolButton label={t("rte.addYoutube")} icon="play" onClick={() => setDialog({ kind: "youtube", url: "" })} />
         <ToolButton label={t("rte.addTable")} icon="grid" active={state.table} onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
         <ToolButton label={t("rte.addInfo")} icon="info" active={state.callout} onClick={() => (state.callout ? chain().lift("callout").run() : chain().wrapIn("callout", { tone: "info" }).run())} />

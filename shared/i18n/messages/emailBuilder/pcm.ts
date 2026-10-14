@@ -41,6 +41,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "preview.note": "Preview dey use sample customer (Ada). Links and your logo and colours dey come from your brand kit.",
   "preview.of": "Preview of {label}",
   "preview.thumbnail": "{label} thumbnail",
+  "preview.linksHint": "Links go work for the email wey you send.",
   "vars.insert": "Put personal detail",
   "flowVar.name": "Their first name (or “my person”)",
   "flowVar.full_name": "Their full name",

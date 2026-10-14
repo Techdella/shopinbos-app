@@ -19,7 +19,7 @@ export default async function StorefrontLayout({ children, params }: { children:
   const { slug } = await params;
   const [brand, host] = await Promise.all([loadStoreBrand(slug), headers().then((h) => h.get("host"))]);
   const value = brand
-    ? { name: brand.name, logoUrl: brand.logoUrl, basePath: getStorefrontBasePathForHost(host, slug), theme: resolveShopperTheme(brand.brandSettings) }
+    ? { name: brand.name, logoUrl: brand.logoUrl, basePath: getStorefrontBasePathForHost(host, slug), theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
     : null;
   return (
     <StoreBrandProvider value={value}>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Notice, PillButton, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { useT } from "@/components/i18n/I18nProvider";
 
 interface Collection {
@@ -120,8 +121,8 @@ export function CollectionsClient({ startOpen }: { startOpen: boolean }) {
               </select>
             </div>
             <div>
-              <label htmlFor="collection-image" className={field.label}>{t("col.cover")}</label>
-              <input id="collection-image" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className={field.input} placeholder="https://..." />
+              <label htmlFor="collection-image-choose" className={field.label}>{t("col.cover")}</label>
+              <MediaPicker id="collection-image" value={form.imageUrl} onChange={(imageUrl) => setForm({ ...form, imageUrl })} compact />
             </div>
           </div>
           <div>

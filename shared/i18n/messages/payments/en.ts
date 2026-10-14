@@ -217,6 +217,17 @@ const en = {
   "lm.secure": "Payment is processed securely by Paystack. Shopinbos never receives your card details.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Free domain for a year",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "err.badges": "Choose from the listed payment logos.",
+  "badges.title": "Payment logos on your store",
+  "badges.sub": "Tap a logo to show or hide it. Shoppers see them at the bottom of your store and at checkout.",
+  "badges.preview": "How shoppers see it",
+  "badges.none": "No logos will show on your store.",
+  "badges.reset": "Use my payment methods",
+  "badges.saved": "Saved",
+  "badge.transfer": "Bank transfer",
+  "badge.cod": "Pay on delivery",
+  "plan.noBadge": "Turn off the 'Built with Shopinbos' badge on your store",
 } satisfies Record<string, string>;
 
 export default en;

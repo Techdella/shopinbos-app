@@ -7,7 +7,7 @@ import { readSavedPaymentMethods, TRANSFER_WINDOW_CHOICES } from "./checkout-pay
 export const PAYMENT_METHOD_KEYS = Object.keys(DEFAULT_PAYMENT_METHODS) as PaymentMethodKey[];
 
 /** What went wrong saving a money setting (the web shows payments "err.<code>"). */
-export type PaymentsSettingsError = "keepOne" | "noStore" | "chooseTime";
+export type PaymentsSettingsError = "keepOne" | "noStore" | "chooseTime" | "badges";
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};

@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { lockedEmailError } from "@/lib/marketing/popup-rewards";
 import { bestAutomaticDiscount, discountAmount, describeDiscount, parseDiscountConfig, redemptionError, type DiscountLine } from "@/lib/discounts";
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import { readGameConfig } from "@/lib/gamification/logic";
@@ -74,6 +75,9 @@ function record(value: unknown): Record<string, unknown> {
 async function eligibilityError(storeId: string, discount: { code: string; config: unknown }, buyerEmail: string | null | undefined) {
   const config = parseDiscountConfig(discount.config);
   const email = buyerEmail?.trim().toLowerCase();
+  // A sign-up form's one-person code only works with the email that signed up.
+  const locked = lockedEmailError(discount.config, buyerEmail);
+  if (locked) return locked;
   if (config.oncePerCustomer) {
     if (!email) return "Enter your email to use this code.";
     const used = await db.retailOrder.count({ where: { storeId, buyerEmail: { equals: email, mode: "insensitive" }, discountCode: discount.code, status: { notIn: ["cancelled"] } } });

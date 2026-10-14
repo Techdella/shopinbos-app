@@ -149,6 +149,14 @@ const en = {
   "set.helpHint": "A person, or Peggy",
   "set.more": "More settings on the web",
   "set.moreHint": "Team, billing, security and closing your shop. Opens in your browser",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "money.badgesTitle": "Payment logos on your store",
+  "money.badgesHint": "Tap to show or hide. Shoppers see these at the bottom of your store and at checkout.",
+  "money.badgesNone": "No logos will show on your store.",
+  "money.badgesReset": "Use my payment methods",
+  "money.badBadges": "Choose from the listed payment logos.",
+  "money.badge.transfer": "Bank transfer",
+  "money.badge.cod": "Pay on delivery",
 } satisfies Record<string, string>;
 
 export default en;

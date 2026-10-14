@@ -34,6 +34,11 @@ const en = {
   "scene.tapToFinish": "Tap to finish",
   "scene.deal": "Deal ✓",
   "scene.cashAtDoor": "CASH AT THE DOOR",
+  // Logged in on another portal's page: why they landed on their own home (components/auth/PortalNote.tsx)
+  "portalNote.seller": "You have a seller account, so we opened your shop.",
+  "portalNote.supplier": "You have a supplier account, so we opened your supplier portal.",
+  "portalNote.logistics_partner": "You have a delivery partner account, so we opened your delivery portal.",
+  "portalNote.admin": "You have an admin account, so we opened the admin panel.",
 } satisfies Record<string, string>;
 
 export default en;

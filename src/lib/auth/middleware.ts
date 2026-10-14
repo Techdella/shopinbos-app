@@ -5,6 +5,7 @@ import { getSupabaseServiceClient, getSupabaseServerClient } from "@/lib/supabas
 import type { AuthUser, JWTClaims, Role } from "./types";
 import { apiError } from "@/lib/api/response";
 import { e164FromSupabase } from "@/lib/auth/app-user";
+import { asAccountRole } from "@/lib/auth/role-rules";
 
 // ─── Verify a raw access token via Supabase Admin client ─────────────────────
 
@@ -20,6 +21,7 @@ export async function verifyJWT(token: string): Promise<JWTClaims | null> {
       phone: e164FromSupabase(u.phone),
       user_metadata: {
         role: (u.user_metadata?.role as Role) ?? "seller",
+        rawRole: asAccountRole(u.user_metadata?.role),
         name: u.user_metadata?.name,
       },
       exp: 0,
@@ -54,14 +56,14 @@ export async function resolveUser(claims: JWTClaims): Promise<AuthUser | null> {
 
 // ─── Resolve Supabase user ID from request (header or cookie) ─────────────────
 
-async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email: string | null; role: Role; fullName?: string; businessName?: string; phone?: string | null } | null> {
+async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email: string | null; role: Role; metadataRole: Role | null; fullName?: string; businessName?: string; phone?: string | null } | null> {
   // 1. Try Authorization: Bearer <token>
   const auth = req.headers.get("authorization");
   const bearerToken = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
   if (bearerToken) {
     const claims = await verifyJWT(bearerToken);
     if (claims) {
-      return { id: claims.sub, email: claims.email, phone: claims.phone, role: claims.user_metadata.role, fullName: claims.user_metadata.name };
+      return { id: claims.sub, email: claims.email, phone: claims.phone, role: claims.user_metadata.role, metadataRole: claims.user_metadata.rawRole ?? null, fullName: claims.user_metadata.name };
     }
   }
 
@@ -74,6 +76,7 @@ async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email:
         id: data.user.id,
         email: data.user.email || null,
         role: (data.user.user_metadata?.role as Role) ?? "seller",
+        metadataRole: asAccountRole(data.user.user_metadata?.role),
         fullName:
           (data.user.user_metadata?.fullName as string | undefined) ??
           (data.user.user_metadata?.full_name as string | undefined) ??
@@ -118,7 +121,8 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
       const ensured = await ensureAppUserForSupabaseUser({
         supabaseId: identity.id,
         email: identity.email,
-        role: identity.role === "seller" && allowedRoles?.length === 1 ? allowedRoles[0] : identity.role,
+        // The role saved at sign-up; only an account with none at all takes the portal it first called.
+        role: !identity.metadataRole && allowedRoles?.length === 1 ? allowedRoles[0] : identity.role,
         fullName: identity.fullName,
         businessName: identity.businessName,
         phone: identity.phone,

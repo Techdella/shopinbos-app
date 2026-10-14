@@ -146,6 +146,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "set.helpHint": "Mmadụ, ma ọ bụ Peggy",
   "set.more": "Ntọala ndị ọzọ na weebụ",
   "set.moreHint": "Otu, ịkwụ ụgwọ, nchekwa na imechi ụlọ ahịa gị. Ọ ga-emepe na browser gị",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "money.badgesTitle": "Logo ịkwụ ụgwọ n'ụlọ ahịa gị",
+  "money.badgesHint": "Pịa ka o gosi ma ọ bụ zoo ya. Ndị ahịa ga-ahụ ha n'okpuru ụlọ ahịa gị na n'ebe checkout.",
+  "money.badgesNone": "Ọ dịghị logo ga-egosi n'ụlọ ahịa gị.",
+  "money.badgesReset": "Jiri ụzọ ịkwụ ụgwọ m",
+  "money.badBadges": "Họrọ site na logo ịkwụ ụgwọ edepụtara.",
+  "money.badge.transfer": "Bank transfer",
+  "money.badge.cod": "Kwụọ ụgwọ mgbe ọ bịarutere",
 };
 
 export default ig;

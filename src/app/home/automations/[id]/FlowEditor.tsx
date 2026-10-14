@@ -6,6 +6,7 @@ import { Card, CardHead } from "@/components/app-kit";
 import { Notice, PillButton, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/growth/Modal";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { CONDITION_LABEL, STEP_LABEL, TRIGGER_INFO, describeStep, stepProblems, stepWarnings, type FlowCondition, type FlowStep, type FlowStepType, type FlowTrigger } from "@/lib/marketing/flows";
 import { TEMPLATE_PRESETS, purposeOfTrigger, variableCount } from "@/lib/marketing/text-channels";
@@ -150,7 +151,7 @@ function WhatsAppStep({ step, onChange, waTemplates, whatsapp }: { step: Extract
           </div>
           <VariableMapper template={chosen} value={step.variables ?? []} onChange={(variables) => onChange({ ...step, variables })} />
           {chosen.content.header.format === "IMAGE" ? (
-            <input aria-label={t("fe.headerImage")} value={step.headerImageUrl ?? ""} onChange={(e) => onChange({ ...step, headerImageUrl: e.target.value.trim() || null })} className={inputClass} placeholder={t("fe.headerImagePlaceholder")} />
+            <MediaPicker label={t("fe.headerImage")} help={t("fe.headerImagePlaceholder")} value={step.headerImageUrl ?? ""} onChange={(url) => onChange({ ...step, headerImageUrl: url.trim() || null })} compact />
           ) : null}
           <WhatsAppBubble content={chosen.content} mapping={step.variables?.some(Boolean) ? step.variables : chosen.variables} headerImageUrl={step.headerImageUrl} />
         </>

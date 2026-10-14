@@ -229,3 +229,11 @@ export function parseCount(text: string): number | null {
   const value = Number(text.replace(/[,\s]/g, ""));
   return Number.isInteger(value) && value >= 0 ? value : null;
 }
+
+/** The picture on each Welcome card and on the "Sign up as …" badge (AppIcon names). */
+export const ROLE_ICON = { seller: "store", supplier: "box", logistics_partner: "truck" } as const satisfies Record<SignupRole, string>;
+
+/** A role from a link (?role=), only when it's one of the three sign-up choices; null means "not chosen yet". */
+export function pickedSignupRole(value: unknown): SignupRole | null {
+  return value === "seller" || value === "supplier" || value === "logistics_partner" ? value : null;
+}

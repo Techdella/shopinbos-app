@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { EmailPreviewIframe } from "@/app/home/marketing/_kit/EmailFrame";
 import { Card, CardHead, Pill, type Tone } from "@/components/app-kit";
 import { DeviceToggle, FieldLabel, Notice, PillButton, TextInput, Toggle, cx } from "@/components/app-ui";
 import { textareaClass } from "@/components/growth/kit";
@@ -378,7 +379,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
         <Card className="grid min-w-0 content-start gap-3 p-4 sm:p-5">
           <CardHead title="Preview" sub="Exactly what people get: the Shopinbos logo, light and dark mode, and the footer with Unsubscribe." action={<DeviceToggle value={device} onChange={setDevice} size="sm" />} />
           <div className="overflow-hidden rounded-[18px] border border-app-line bg-app-canvas">
-            <iframe title="Email preview" sandbox="" srcDoc={previewHtml} className={cx("mx-auto block h-[720px] border-0 bg-white", device === "mobile" ? "w-[375px] max-w-full" : "w-full")} />
+            <EmailPreviewIframe title="Email preview" html={previewHtml} className={cx("mx-auto block h-[720px] border-0 bg-white", device === "mobile" ? "w-[375px] max-w-full" : "w-full")} />
           </div>
           <p className="m-0 truncate text-[12.5px] text-app-ink-soft">
             <span className="font-semibold text-app-ink">{draft.subject || "Subject"}</span> · {draft.preheader || "Preview line"}
