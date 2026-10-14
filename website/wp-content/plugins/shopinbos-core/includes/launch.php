@@ -43,6 +43,18 @@ add_action( 'template_redirect', function () {
 }, 2 );
 
 /** An App Store or Google Play badge. */
+/** The badge and Coming soon styles, printed with the first badge so page caches that strip "unused" CSS
+ *  (LiteSpeed's UCSS) can't leave them unstyled. */
+function sib_launch_css( bool $page = false ): string {
+	static $done = [];
+	$key = $page ? 'page' : 'badge';
+	if ( isset( $done[ $key ] ) ) {
+		return '';
+	}
+	$done[ $key ] = true;
+	return '<style>' . ( $page ? 'section.cv.ahero.cs{padding:56px 0 88px;background:linear-gradient(#FFF6F1 0%,#fff 100%);position:relative;overflow:hidden}.cs-perks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}.cs-perks li{display:flex;gap:10px;align-items:center;font-weight:600}.cs-perks li::marker{content:none}.cs-blob{position:absolute;width:520px;height:520px;border-radius:999px;background:#FFE27A;opacity:.45;right:-160px;top:-200px}.cs-top{padding:22px 0;background:#FFF6F1}.cs-foot{padding:24px 0;border-top:1px solid #ECEAF2;font-size:13.5px;color:#6B6779}.cs-foot .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.cs-foot a{color:inherit}@media (max-width:640px){section.cv.ahero.cs{padding:28px 0 56px}.cs h1{font-size:40px!important}}' : '.store-badges{display:flex;gap:10px;flex-wrap:wrap}.store-badge{position:relative;display:inline-flex;align-items:center;gap:10px;min-height:54px;padding:0 18px 0 14px;border-radius:14px;background:#16141F;color:#fff;border:1px solid #16141F;text-decoration:none;font-family:inherit;cursor:pointer;text-align:left;transition:transform .18s ease,box-shadow .18s ease}.store-badge:hover{transform:translateY(-1px);box-shadow:0 10px 22px -12px rgba(22,20,31,.5);color:#fff}.store-badge span{display:flex;flex-direction:column;font-size:17px;font-weight:800;line-height:1.1;letter-spacing:-.01em}.store-badge small{font-size:10.5px;font-weight:600;opacity:.75;letter-spacing:.02em}.store-badge em{font-style:normal;font-size:10.5px;font-weight:800;background:#FF6A2B;color:#fff;border-radius:999px;padding:3px 8px;margin-left:4px}.store-badge.is-light{background:#fff;color:#16141F;border-color:#ECEAF2}' ) . '</style>';
+}
+
 function sib_store_badge( string $store, string $style = 'dark' ): string {
 	$ios   = 'ios' === $store;
 	$url   = (string) sib_setting( $ios ? 'ios_url' : 'android_url' );
@@ -54,9 +66,9 @@ function sib_store_badge( string $store, string $style = 'dark' ): string {
 	$name  = $ios ? 'App Store' : 'Google Play';
 	$cls   = 'store-badge' . ( 'light' === $style ? ' is-light' : '' ) . ( $soon ? ' is-soon' : '' );
 	$inner = $logo . '<span><small>' . esc_html( $small ) . '</small>' . esc_html( $name ) . '</span>' . ( $soon ? '<em>' . esc_html__( 'Notify me', 'shopinbos' ) . '</em>' : '' );
-	return $soon
+	return sib_launch_css() . ( $soon
 		? '<button type="button" class="' . $cls . '" data-cv="pop.openApp" data-platform="' . ( $ios ? 'ios' : 'android' ) . '" aria-label="' . esc_attr( sprintf( __( '%s app coming soon. Tell me when it’s live', 'shopinbos' ), $name ) ) . '">' . $inner . '</button>'
-		: '<a class="' . $cls . '" href="' . esc_url( $url ) . '" rel="noopener" target="_blank">' . $inner . '</a>';
+		: '<a class="' . $cls . '" href="' . esc_url( $url ) . '" rel="noopener" target="_blank">' . $inner . '</a>' );
 }
 
 /** The "tell me when the app is live" pop-up (added to the site's pop-ups). */
@@ -99,7 +111,7 @@ function sib_render_coming_soon(): string {
 		. '<input type="hidden" name="action" value="sib_lead"><input type="hidden" name="kind" value="waitlist"><input type="hidden" name="intent" value="' . esc_attr( $intent ) . '"><input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px"></form>';
 	$perks = [ __( 'Your store built with Rex in 5 minutes', 'shopinbos' ), __( 'Sell on WhatsApp, Instagram, TikTok and your own site', 'shopinbos' ), __( 'Pay on delivery, riders and Friday payouts', 'shopinbos' ), __( 'Early sellers get help setting up, free', 'shopinbos' ) ];
 	$list  = '<ul class="cs-perks">' . implode( '', array_map( fn( $p ) => '<li>' . sib_icon( 'tick', 18, '#16794A' ) . esc_html( $p ) . '</li>', $perks ) ) . '</ul>';
-	return '<section class="ahero cv cs" style="padding:64px 0 80px;background:linear-gradient(#FFF6F1 0%,#fff 100%);position:relative;overflow:hidden">'
+	return sib_launch_css( true ) . '<section class="ahero cv cs">'
 		. '<span class="cs-blob"></span><div class="wrap split" style="gap:56px;position:relative">'
 		. '<div style="display:flex;flex-direction:column;gap:18px"><span class="pill" style="align-self:flex-start"><span class="gist-dot"></span>' . esc_html__( 'Launching soon', 'shopinbos' ) . '</span>'
 		. '<h1 class="disp h1" style="font-size:60px">' . esc_html__( 'Shopinbos is', 'shopinbos' ) . ' <span class="grad">' . esc_html__( 'almost here', 'shopinbos' ) . '</span></h1>'

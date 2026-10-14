@@ -73,7 +73,15 @@ function sib_theme_is_current( string $url ): bool {
 	return str_starts_with( $current, $path );
 }
 
+/** The Coming soon page stands alone: logo only on top, one line at the bottom, no menus. */
+function sib_theme_is_launch_page(): bool {
+	return is_page( 'coming-soon' );
+}
+
 function sib_theme_render_header( array $attrs ): string {
+	if ( sib_theme_is_launch_page() ) {
+		return '<header class="cs-top cv"><div class="wrap"><a class="cv-b" href="' . esc_url( home_url( '/coming-soon/' ) ) . '" aria-label="Shopinbos"><img src="' . esc_url( sib_theme_img( 'c/logo-dark.png' ) ) . '" alt="Shopinbos" width="178" height="17" style="height:18px;width:auto;display:block"></a></div></header>';
+	}
 	if ( empty( $attrs['minimal'] ) && ( $html = sib_canvas_part( 'header' ) ) ) {
 		return $html;
 	}
@@ -124,6 +132,15 @@ function sib_theme_render_header( array $attrs ): string {
 
 function sib_theme_render_footer( array $attrs ): string {
 	$year = wp_date( 'Y' );
+	if ( sib_theme_is_launch_page() ) {
+		$pop = function_exists( 'sib_app_notify_popup' ) ? sib_app_notify_popup() : '';
+		if ( $pop && function_exists( 'sib_popup_contact_mode' ) ) {
+			$pop = sib_popup_contact_mode( $pop );
+		}
+		return '<footer class="cs-foot cv"><div class="wrap"><span>© ' . esc_html( $year ) . ' ' . esc_html__( 'Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770).', 'shopinbos' ) . '</span>'
+			. '<span><a href="' . esc_url( home_url( '/legal/privacy/' ) ) . '">' . esc_html__( 'Privacy', 'shopinbos' ) . '</a> · <a href="' . esc_url( home_url( '/legal/terms/' ) ) . '">' . esc_html__( 'Terms', 'shopinbos' ) . '</a></span></div></footer>'
+			. '<div class="cv-pops cv">' . $pop . '</div>';
+	}
 	if ( empty( $attrs['minimal'] ) && ( $html = sib_canvas_part( 'footer' ) ) ) {
 		return $html . sib_canvas_part( 'stickycta' ) . sib_canvas_part( 'popups' );
 	}
