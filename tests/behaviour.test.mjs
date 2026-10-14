@@ -1748,9 +1748,8 @@ test("product feeds: only published products with a photo and price, with each c
   assert.equal(batch[0].data.sale_price, "15000.00 NGN");
 });
 
-test("social sharing: tagged links, caption limits, share pages, channel status and visit sources", async () => {
+test("social sharing: tagged links, caption limits, share pages and visit sources", async () => {
   const share = await import("../src/lib/social/share.ts");
-  const status = await import("../src/lib/social/status.ts");
   const sources = await import("../src/lib/analytics/sources.ts");
   const channels = await import("../shared/channels.ts");
   const link = share.taggedProductLink("https://ada.shopinbos.com/product/p1", "x");
@@ -1764,14 +1763,7 @@ test("social sharing: tagged links, caption limits, share pages, channel status 
   assert.match(share.postText("instagram", "Hi", "https://l.ng"), /link in bio$/);
   assert.match(share.fallbackCaption({ name: "Bag", price: "₦5,000", storeName: "Ada" }, "whatsapp"), /^Bag, ₦5,000\. Available now at Ada\./);
 
-  const now = new Date("2026-10-11T12:00:00Z");
-  const facts = { feedAddedAt: null, lastFetchAt: null, hasToken: false, lastSyncAt: null, lastSyncStatus: null };
-  assert.deepEqual(status.channelStatus(null, now), { tone: "muted", label: "Not set up" });
-  assert.equal(status.channelStatus({ ...facts, feedAddedAt: now }, now).label, "Waiting for the first fetch");
-  assert.deepEqual(status.channelStatus({ ...facts, lastFetchAt: new Date("2026-10-11T10:00:00Z") }, now), { tone: "success", label: "Feed fetched 2 hours ago" });
-  assert.equal(status.channelStatus({ ...facts, lastFetchAt: new Date("2026-10-01T10:00:00Z") }, now).tone, "warning");
-  assert.equal(status.channelStatus({ ...facts, hasToken: true, lastSyncStatus: "error" }, now).tone, "danger");
-  assert.equal(status.channelStatus({ ...facts, hasToken: true }, now).label, "Connected, not synced yet");
+  // Channel card status moved to src/lib/sales-channels/pure.ts (tests/sales-channels.test.mjs).
 
   assert.equal(sources.normalizeSource("wa"), "whatsapp");
   assert.equal(sources.normalizeSource("Twitter"), "x");

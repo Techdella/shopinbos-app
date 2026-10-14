@@ -2497,7 +2497,7 @@ model SocialChannelConnection {
   id              String    @id @default(cuid())
   storeId         String
   channel         String // google | meta | tiktok | whatsapp
-  externalId      String? // Merchant Center ID, Meta catalog ID, TikTok catalog ID, WhatsApp catalog ID
+  externalId      String? // the catalog: Meta catalog ID, TikTok catalog ID (Google: the Merchant Center account ID)
   tokenEnc        String? // encrypted access token (src/lib/social/secrets.ts); never sent to the browser
   feedAddedAt     DateTime? // seller said they pasted the feed URL into the channel
   lastFetchAt     DateTime? // the channel's crawler last downloaded the feed
@@ -2505,11 +2505,32 @@ model SocialChannelConnection {
   lastSyncAt      DateTime?
   lastSyncStatus  String? // ok | error
   lastSyncMessage String?
+  // One-tap connect on /channels (src/lib/sales-channels; docs/migrations/2026-10-22-sales-channels.sql).
+  // tokenEnc then holds encrypted JSON { token, refreshToken? }; null status with a token = an older pasted-token link.
+  status          String? // syncing | connected | error | reauth | needs_account
+  accountId       String? // Meta business ID, Google Merchant Center account ID, TikTok Business Center ID
+  feedId          String? // the scheduled feed we registered there (Meta product feed, Google data source, TikTok feed)
+  tokenExpiresAt  DateTime? // null = doesn't expire (or unknown)
+  productCount    Int? // products the platform reports it has
+  connectedAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@unique([storeId, channel])
   @@index([storeId])
+  @@index([status, lastSyncAt])
+}
+
+/// "Tell me when it's ready" on a coming-soon sales channel (Amazon, Jumia, Konga…), one row per store and platform.
+model SalesChannelInterest {
+  id        String   @id @default(cuid())
+  storeId   String
+  platform  String // amazon | jumia | konga | jiji | ebay | etsy | shopify | pinterest | snapchat
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@unique([storeId, platform])
+  @@index([platform])
 }
 // ---- end analytics + social selling (agent G) ----
 
