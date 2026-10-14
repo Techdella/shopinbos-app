@@ -36,6 +36,7 @@ foreach ( [
 	'app-leads',
 	'resource-page',
 	'contact-page',
+	'gist',
 	'schema',
 	'seo',
 	'sitemaps',

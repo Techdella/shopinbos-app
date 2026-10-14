@@ -25,7 +25,7 @@ Many sellers stay local because interstate feels risky. But some of your most lo
 
 The key is to treat interstate orders as their own kind of order, with their own packing, timeline and price.
 
-## How interstate delivery works
+## How interstate delivery in Nigeria works
 
 Most interstate parcels go through a few stages:
 
@@ -123,9 +123,7 @@ Interstate delivery costs more than same-city delivery, and the price can depend
 
 Most sellers charge interstate delivery to the customer. The cleanest way is to **show the delivery price at checkout**, so the customer sees the total before paying. If you want to offer free interstate delivery, add the average cost into your product prices or set a minimum order value for it.
 
-:::tip Use bundles for interstate buyers
-If a customer in Kano pays for delivery anyway, suggest one more item: "Since delivery is the same for two, would you like the matching scarf?" It makes the delivery fee feel more worth it.
-:::
+**Use bundles for interstate buyers.** If a customer in Kano pays for delivery anyway, suggest one more item: "Since delivery is the same for two, would you like the matching scarf?" It makes the delivery fee feel more worth it.
 
 ## Payment for interstate orders
 
@@ -163,7 +161,7 @@ Update the customer | Send the tracking number and expected range on dispatch da
 Follow up | Check tracking, flag delays early and confirm delivery.
 :::
 
-## Handling problems
+### Handling problems
 
 Even with good packing, things go wrong sometimes.
 

@@ -15,7 +15,7 @@ If you want to know **how to accept payments online in Nigeria**, the short answ
 
 Most small sellers start with "send to my account" on WhatsApp. It works for the first few orders. Then you start confirming alerts by hand, missing who paid for what, and losing buyers who wanted to pay by card. This guide walks you through each payment method, what it costs, how to set it up and how to keep your records clean.
 
-## The main ways Nigerian customers pay online
+## How to accept payments online in Nigeria: the main options
 
 Before you choose a setup, know what your buyers actually use. In Nigeria, most online shoppers pay in one of four ways.
 
@@ -99,9 +99,7 @@ Here's how pay on delivery works on Shopinbos:
 
 The code step matters. It confirms the right person received the right order, and it gives you a clear record if anything is disputed. See the [pay on delivery page](/features/pay-on-delivery/) for details.
 
-:::tip Use POD to win first orders
-Many sellers offer pay on delivery to new customers, then encourage them to pay online on repeat orders once trust is built.
-:::
+**Use POD to win first orders.** Many sellers offer pay on delivery to new customers, then encourage them to pay online on repeat orders once trust is built.
 
 ## How to set up online payments step by step
 
@@ -118,7 +116,7 @@ Share links everywhere | Paste product or checkout links into WhatsApp chats, St
 
 If you don't have a store yet, Rex, the Shopinbos AI store builder, can build one from a short chat in about five minutes. You describe what you sell, and it sets up your pages, which you then edit.
 
-## When does the money reach your bank?
+### When does the money reach your bank?
 
 Getting paid is only half the job. You also need to know when you can spend it, so you can restock.
 
@@ -148,7 +146,7 @@ Put your store link in your bio. In captions, say "Order and pay via the link in
 
 Short, friendly, and the customer knows exactly what to do next.
 
-## Keeping records and staying out of trouble
+## Keeping records and avoiding mistakes
 
 When payments come in through one checkout, your records almost keep themselves. Still, a few habits make life easier when you need a loan, file taxes, or work out whether you're making money.
 
@@ -165,7 +163,7 @@ You save refund records with the reason and date
 
 Sometimes you'll need to give money back: wrong size, item out of stock, a delivery that went wrong. Have a clear return and refund policy, and refund through the same channel the customer paid with where you can. That keeps your records tidy and the customer calm.
 
-## Common mistakes to avoid
+### Common mistakes to avoid
 
 A few mistakes cost Nigerian sellers money again and again:
 

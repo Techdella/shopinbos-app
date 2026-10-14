@@ -158,9 +158,7 @@ Registered businesses may need a Tax Identification Number (TIN). Check current 
 
 Registered businesses may have yearly filing requirements with CAC. Check your obligations on the portal and set a reminder so your registration stays in good standing.
 
-:::tip Set up your store with your new name
-Once your business is registered, update your store name, logo and payout account at the same time so everything matches.
-:::
+**Set up your store with your new name.** Once your business is registered, update your store name, logo and payout account at the same time so everything matches.
 
 ## An example: from Instagram seller to registered business
 

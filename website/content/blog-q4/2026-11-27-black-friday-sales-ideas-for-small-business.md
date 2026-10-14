@@ -64,7 +64,7 @@ Not every product belongs in your Black Friday sale.
 
 If you need gift-friendly stock fast, browse checked Nigerian suppliers on the [marketplace](/marketplace/) and see what's moving on [trending](/trending/). With dropshipping, the supplier ships with your shop's label, so you don't hold the stock yourself.
 
-## Step 3: Black Friday sales ideas that protect your profit
+## Step 3: Black Friday sales ideas for small business that protect profit
 
 Here are offers that tend to work for small businesses without turning your sale into a loss.
 
@@ -106,7 +106,7 @@ Take Black Friday payments for items delivered in early December. You get cash n
 Use your unit cost to check every offer. If a bag costs you ₦7,200 to sell and you discount it to ₦8,000, a ₦273 payment fee and a free delivery could leave you with almost nothing.
 :::
 
-## Step 4: Know your floor price
+### Know your floor price
 
 A **floor price** is the lowest price where you still make a small profit. Work it out for every Black Friday product before you set the offer.
 
@@ -122,7 +122,7 @@ Anything below about ₦8,500 might not be worth the work. That's your floor.
 Raising prices the week before and then "cutting" them is easy for customers to spot, and screenshots spread fast. Real offers on real prices protect your name.
 :::
 
-## Step 5: Get your stock ready
+## Step 4: Get your stock ready
 
 Running out of stock halfway through Black Friday is painful. Selling items you don't have is worse.
 
@@ -134,7 +134,7 @@ Running out of stock halfway through Black Friday is painful. Selling items you 
 
 If you sell on WhatsApp, Instagram and your store at the same time, keep stock in one place so you don't sell the same item twice.
 
-## Step 6: Plan your delivery capacity
+## Step 5: Plan your delivery capacity
 
 This is where many small sellers get into trouble. You get 80 orders in one day, but your rider can do 15.
 
@@ -160,7 +160,7 @@ On Shopinbos, you can book riders from each order, and interstate orders go thro
 Pay on delivery helps new customers trust you. On Shopinbos it covers orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt, with a 4-digit code for each order and riders paying cash in by 6pm the same day.
 :::
 
-## Step 7: Tell people early and often
+## Step 6: Tell people early and often
 
 Your customers can't buy a deal they don't know about.
 
@@ -177,7 +177,9 @@ Last day | Send a final reminder with the end time.
 
 Every post should have a clear price and a link. When someone replies "how much?", answer fast with the price and the link. Peggy, the Shopinbos AI assistant, can answer customer chats in English and Pidgin while you pack, and help you draft your Black Friday posts. Learn more about [Peggy](/features/peggy-ai/).
 
-## Quick wins if Black Friday is today
+## Quick wins and what to do after
+
+### If Black Friday is today
 
 If you're reading this on the day, you can still take part:
 
@@ -187,7 +189,7 @@ If you're reading this on the day, you can still take part:
 4. **Message your last 30 customers** personally on WhatsApp.
 5. **Set an end time**, such as Monday midnight, and stick to it.
 
-## After Black Friday
+### After Black Friday
 
 The sale ends, but the work isn't done.
 

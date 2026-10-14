@@ -132,6 +132,10 @@ Post at least three short videos a week on TikTok or Instagram Reels
 Reply to every enquiry within an hour where you can
 :::
 
+### Let your content do the talking
+
+You do not need a big budget for marketing. Simple, honest content works: a short video of you packing an order, a close-up of the product in daylight, a customer's kind message. Post what you have, even if it is not perfect. Many sellers find their plain, real videos get more questions than polished flyers, because buyers can see a real person and a real product.
+
 ### Use reviews as your marketing
 
 Every happy customer is free advertising. Screenshot kind messages (hide their names and numbers) and post them on Status and in an Instagram highlight. New buyers trust other buyers more than they trust your captions.

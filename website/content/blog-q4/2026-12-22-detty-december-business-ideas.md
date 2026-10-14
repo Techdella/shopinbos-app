@@ -158,6 +158,26 @@ Many suppliers and markets close for some days around Christmas and New Year. As
 
 Decide now what you will do with stock left after the holidays: a January sale, bundles with slower items, or keeping them for Valentine's Day.
 
+## Price for the festive rush without scaring people off
+
+December costs more to run. Riders may charge more on busy days, packaging runs out, and you may be paying a helper. If you do not adjust, a busy month can still leave you with little profit.
+
+### Add a festive delivery or rush fee
+
+It is fair to charge more for same-day or late-evening delivery in December, as long as you say so upfront. Show the delivery price at checkout so nobody is surprised. Customers who need something for tonight's party usually accept a rush fee.
+
+### Use bundles instead of discounts
+
+Rather than cutting prices, add value. "Outfit plus bag for ₦32,000" or "Small chops tray plus 6 bottles of zobo" makes the order bigger and feels like a deal, while protecting your margin.
+
+### A quick example
+
+Say an example seller sells a party dress for ₦18,000 that costs her ₦11,000. Packaging is ₦500, and the payment fee on ₦18,000 is ₦370. Her profit is ₦6,130. If she pays a helper ₦3,000 a day and sells five dresses a day, the helper costs ₦600 per dress, so she still keeps over ₦5,500 per dress. Run this simple maths for your own products before the rush peaks.
+
+:::tip Price for your time too
+If a custom order takes you three hours, charge for those hours. December is when your time is most valuable.
+:::
+
 ## After the rush: what to do in January
 
 When the parties end, do three things:

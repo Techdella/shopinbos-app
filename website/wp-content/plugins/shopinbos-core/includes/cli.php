@@ -38,6 +38,7 @@ class Sib_CLI {
 		$blog  = $this->page( 'blog', 'Blog', '' );
 		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
 		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
+		$this->refresh_page( 'gist', 'Gist: selling tips in 60 seconds', sib_block_html( '<section class="ahero cv" style="padding:56px 0 8px;background:linear-gradient(#FFF6F1 0%,#fff 100%)"><div class="wrap" style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;max-width:760px"><span class="gist-badge"><span class="gist-dot"></span>Gist</span><h1 class="disp h1" style="font-size:58px">Selling tips in <span class="grad">60 seconds</span></h1><p class="lead">No long articles. Tap a circle and watch quick, animated tips on pricing, WhatsApp, delivery, photos and getting your first orders. New Gist every week.</p></div></section>' ) . "<!-- wp:shopinbos/gist-rail {\"layout\":\"grid\",\"heading\":false} /-->\n\n<!-- wp:shortcode -->\n[sib_gist_text]\n<!-- /wp:shortcode -->\n", 'page-canvas', 'Quick, animated selling tips for Nigerian online sellers: pricing, WhatsApp Status, delivery, photos and your first orders, in 60 seconds.' );
 		$this->refresh_page( 'trending', 'Trending products in Nigeria this week', function_exists( 'sib_canvas_blocks' ) ? sib_canvas_blocks( 'trending' ) : '', 'page-canvas', 'The products Nigerian online shops are adding and selling most this week, with what you keep on each. Updated every morning.' );
 		$this->refresh_page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
 		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
@@ -87,6 +88,7 @@ class Sib_CLI {
 		] );
 
 		$this->help();
+		$this->blog_q4();
 		$this->store_templates();
 		$this->tools();
 		if ( ! empty( $assoc['samples'] ) ) {
@@ -110,6 +112,50 @@ class Sib_CLI {
 	public function flush() {
 		sib_api_flush_cache();
 		WP_CLI::success( 'Marketplace cache cleared.' );
+	}
+
+	/** Long-form posts written to rank (seed/blog-q4.json, from content/blog-q4 via tools/md_posts.py). Future dates are scheduled. */
+	private function blog_q4(): void {
+		$file = SIB_CORE_DIR . '/includes/seed/blog-q4.json';
+		if ( ! file_exists( $file ) ) {
+			return;
+		}
+		foreach ( (array) json_decode( (string) file_get_contents( $file ), true ) as $b ) {
+			if ( get_page_by_path( $b['slug'], OBJECT, 'post' ) ) {
+				continue;
+			}
+			$date = $b['date'] . ( strlen( $b['date'] ) === 16 ? ':00' : '' );
+			$id   = wp_insert_post( wp_slash( [
+				'post_type'     => 'post',
+				'post_status'   => strtotime( $date ) > current_time( 'timestamp' ) ? 'future' : 'publish',
+				'post_name'     => $b['slug'],
+				'post_title'    => $b['title'],
+				'post_excerpt'  => $b['dek'],
+				'post_content'  => $b['content'],
+				'post_date'     => $date,
+				'post_date_gmt' => get_gmt_from_date( $date ),
+				'post_author'   => $this->team_author(),
+			] ) );
+			if ( ! $id || is_wp_error( $id ) ) {
+				WP_CLI::warning( "Could not create post {$b['slug']}" );
+				continue;
+			}
+			wp_set_object_terms( $id, [ $b['category'] ], 'category' );
+			update_post_meta( $id, 'sib_cover_bg', $b['cover_bg'] ?? '#FFEDE4' );
+			update_post_meta( $id, 'sib_cover_fit', str_starts_with( $b['cover'], 'person-' ) ? 'contain' : 'cover' );
+			if ( $att = $this->media( $b['cover'] ) ) {
+				set_post_thumbnail( $id, $att );
+			} else {
+				update_post_meta( $id, 'sib_cover', $b['cover'] );
+			}
+			foreach ( [ 'rank_math_title' => $b['meta_title'], 'rank_math_description' => $b['meta_description'], 'rank_math_focus_keyword' => $b['keyword'],
+				'_yoast_wpseo_title' => $b['meta_title'], '_yoast_wpseo_metadesc' => $b['meta_description'], '_yoast_wpseo_focuskw' => $b['keyword'] ] as $k => $v ) {
+				if ( $v ) {
+					update_post_meta( $id, $k, $v );
+				}
+			}
+			WP_CLI::log( 'Created post ' . $b['slug'] . ( strtotime( $date ) > current_time( 'timestamp' ) ? ' (scheduled ' . $b['date'] . ')' : '' ) );
+		}
 	}
 
 	/** Help centre topics (named as on the help centre home) and the popular articles. */

@@ -53,9 +53,7 @@ A payment card that works for online payments
 - **Two or three ad versions** at most, so each gets enough views
 - **At least 5 to 7 days** before big changes, because the system needs time to learn who responds
 
-:::note On ad costs
-What you pay per click or per message changes with season, competition and how good your ad is. December, for example, is usually busier. Watch your own numbers rather than relying on what someone else paid.
-:::
+**On ad costs.** What you pay per click or per message changes with season, competition and how good your ad is. December, for example, is usually busier. Watch your own numbers rather than relying on what someone else paid.
 
 ## Choosing the right campaign goal
 

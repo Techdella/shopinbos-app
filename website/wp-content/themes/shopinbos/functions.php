@@ -44,6 +44,8 @@ add_action( 'wp_enqueue_scripts', function () {
 	$js  = get_theme_file_path( 'assets/js/site.js' );
 	wp_enqueue_style( 'sib-site', get_theme_file_uri( 'assets/css/site.css' ), [], SIB_THEME_VERSION . '.' . filemtime( $css ) );
 	wp_enqueue_style( 'sib-canvas', get_theme_file_uri( 'assets/css/canvas.css' ), [ 'sib-site' ], SIB_THEME_VERSION . '.' . filemtime( get_theme_file_path( 'assets/css/canvas.css' ) ) );
+	wp_enqueue_style( 'sib-gist', get_theme_file_uri( 'assets/css/gist.css' ), [ 'sib-canvas' ], SIB_THEME_VERSION . '.' . filemtime( get_theme_file_path( 'assets/css/gist.css' ) ) );
+	wp_enqueue_script( 'sib-gist', get_theme_file_uri( 'assets/js/gist.js' ), [], SIB_THEME_VERSION . '.' . filemtime( get_theme_file_path( 'assets/js/gist.js' ) ), [ 'strategy' => 'defer', 'in_footer' => true ] );
 	wp_enqueue_script( 'sib-site', get_theme_file_uri( 'assets/js/site.js' ), [], SIB_THEME_VERSION . '.' . filemtime( $js ), [ 'strategy' => 'defer', 'in_footer' => true ] );
 } );
 

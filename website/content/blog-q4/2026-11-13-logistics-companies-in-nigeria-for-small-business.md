@@ -52,7 +52,7 @@ Sending a parcel with a transport company from a motor park, for the customer to
 Many sellers use one partner for same-day city orders and another for interstate. You don't need one company for everything.
 :::
 
-## What to look for in a logistics partner
+## What to look for in logistics companies in Nigeria for small business
 
 When you compare logistics companies in Nigeria for small business, judge them on the same points every time. Here are the ones that matter most.
 
@@ -153,13 +153,15 @@ Decide who pays for delivery. Many sellers show the delivery price at checkout s
 Adding a delivery charge after the customer has agreed to a price feels like a trick, even when it isn't. Show it upfront.
 :::
 
-## Booking delivery from your orders
+## Booking and working with your partner
+
+### Book delivery from your orders
 
 Juggling calls and WhatsApp voice notes with riders gets messy fast. Once you have more than a few orders a day, it helps to book delivery from the same place you manage orders.
 
 On Shopinbos, you can **book riders straight from the order**, and the **delivery price is shown at checkout** so the customer knows the total before paying. For orders outside your city, **interstate delivery goes through delivery partner companies**. If you offer pay on delivery, each order has a 4-digit code the customer gives the rider, and riders pay cash in by 6pm the same day. Read more on the [logistics feature page](/features/logistics/).
 
-## Building a good relationship with your partner
+### Build a good relationship
 
 Once you've chosen, treat your delivery partner like part of your team.
 

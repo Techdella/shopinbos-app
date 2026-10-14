@@ -163,6 +163,28 @@ It works the other way too. Consider going back to dropshipping, or stopping a p
 
 There is no shame in this. Good sellers adjust their range all the time.
 
+## Questions to ask yourself before you decide
+
+If you are still unsure which way to go, answer these honestly. They usually point to the right model for you right now.
+
+### How much cash can I afford to lock up?
+
+Take the amount you could spend on stock and ask: if half of it did not sell for three months, would my household or business be in trouble? If yes, dropship first or buy a much smaller batch.
+
+### How sure am I that this will sell?
+
+"My friends like it" is not the same as "20 people have paid for it." Past orders are the best evidence. If you have none yet, dropshipping lets you collect that evidence without the risk.
+
+### How fast do my customers expect delivery?
+
+If your buyers are in your city and expect same-day delivery, holding a little stock helps. If they are spread across states and happy to wait a few days, dropshipping fits well, since interstate orders take time either way.
+
+### How much time do I have each day?
+
+Holding stock means packing, labelling and booking riders. If you have a full-time job, dropshipping can free up evenings. If you enjoy packing and want every parcel to feel special, holding stock gives you that control.
+
+**Your answer can change.** Your situation in March may be different from today. Revisit these questions every few months, especially after a busy season.
+
 ## The hybrid model: the best of both
 
 Many experienced sellers settle on a mix:

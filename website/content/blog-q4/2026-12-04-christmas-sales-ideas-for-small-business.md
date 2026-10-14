@@ -21,9 +21,7 @@ In most months, a customer buys one thing for themselves. In December, the same 
 
 That changes how you sell. Your photos should show the gift wrapped or packed, not only the product on a plain background. Your captions should talk about who it is for ("for your mum", "for the office"). And your delivery promise matters more than any discount.
 
-:::note Who this guide is for
-Sellers of fashion, beauty, food, gadgets, home items and crafts who sell through WhatsApp, Instagram, TikTok or their own online store. You do not need a big budget for any of these ideas.
-:::
+**Who this guide is for.** Sellers of fashion, beauty, food, gadgets, home items and crafts who sell through WhatsApp, Instagram, TikTok or their own online store. You do not need a big budget for any of these ideas.
 
 ## Gift bundle ideas that sell themselves
 

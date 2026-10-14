@@ -141,6 +141,18 @@ The [Shopinbos trending page](/trending/) shows products that are getting attent
 - Buyers ask for colours or sizes you do not have yet
 - Your first test pieces sell out quickly
 
+### Check your margin with real numbers
+
+Demand is only half the story. Here is an example for a fictional seller testing a beaded mini bag:
+
+- Supplier price: ₦7,000
+- Packaging and thank-you card: ₦300
+- Selling price: ₦12,000
+- Payment fee if the buyer pays online through Shopinbos: ₦280 (1.5% + ₦100)
+- Profit per bag: ₦4,420
+
+If the profit is only a few hundred naira after costs, the product may not be worth your time, even if it sells. Either find a better supplier price, bundle it with something else, or move on.
+
 ### Signs to walk away
 
 - Lots of likes but no questions about buying
@@ -163,6 +175,23 @@ Buy wholesale once you know what sells. Your cost per item drops and you control
 ### If you want repeat customers
 
 Pick consumables like skincare, snacks and cleaning products. People come back when they run out, and a simple message on WhatsApp can bring them back.
+
+### If you want seasonal sales
+
+Some products sell slowly most of the year, then fly at certain times. Plan your stock a few weeks before each season:
+
+- **January:** gym wear, planners, healthy snacks and water bottles as people make new year plans
+- **February:** Valentine's gift boxes, perfume, jewellery, cakes and couple items
+- **Ramadan and Sallah:** dates, kaftans, abayas, prayer mats, food hampers and spices
+- **Easter:** family outfits, cakes and party trays
+- **August and September:** school bags, lunch boxes, stationery and kids' shoes for back to school
+- **November and December:** Christmas hampers, party outfits, home décor, gifts for office colleagues and family wear for owambe and church
+
+Seasonal products are a good way to boost sales, but buy carefully. Anything left over after the season may sit for months, so lean on pre-orders or dropshipping for the riskier items.
+
+### If you want to sell to other businesses
+
+Some sellers do well supplying offices, salons, restaurants and schools: cleaning supplies, branded packaging, uniforms or snacks for staff. Orders are often bigger and more regular, though buyers may ask for invoices and expect consistent stock. Start with businesses you already know in your area.
 
 :::checklist Before you commit to a product
 You have seen real buyer questions about it

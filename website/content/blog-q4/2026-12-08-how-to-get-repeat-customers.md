@@ -21,9 +21,7 @@ Getting a new customer takes effort. They have to find you, trust you, ask quest
 
 That is why many sellers find that a small group of loyal customers brings in a big share of their sales. They also tell friends, share your posts on their Status and forgive the odd mistake. When ad costs go up or the naira moves, these customers keep your business steady.
 
-:::note Think of it this way
-If you spend ₦2,000 on ads to get one new customer who spends ₦10,000 once, that is one sale. If that same customer comes back four more times without any extra ad spend, you have earned five sales from one ₦2,000. These figures are an example, but the logic holds for most sellers.
-:::
+**Think of it this way.** If you spend ₦2,000 on ads to get one new customer who spends ₦10,000 once, that is one sale. If that same customer comes back four more times without any extra ad spend, you have earned five sales from one ₦2,000. These figures are an example, but the logic holds for most sellers.
 
 ## Start with a first order worth remembering
 
@@ -155,6 +153,30 @@ Mistakes happen: wrong size, late rider, damaged item. How you respond matters m
 4. **Follow up** after the fix to check they are happy.
 
 Many sellers find that a customer whose problem was solved well becomes more loyal than one who never had a problem. They have seen you behave well under pressure.
+
+## Repeat-customer messages you can copy
+
+Here are a few more short messages you can adapt. Change the names, products and prices so they sound like you.
+
+### New arrival for a past buyer
+
+> "Hi Kemi, we just got new ankle boots in the same leather as the bag you bought in October. I kept a pair in your size aside until tomorrow evening. Want me to send a photo?"
+
+This works because it is specific. It shows you remember what she bought and her size.
+
+### Birthday or special date
+
+> "Happy birthday, Musa! Thank you for buying from us this year. Here is ₦1,000 off your next order this month, just mention BDAY when you order."
+
+Only send this if the customer told you their birthday. It feels warm, not creepy, when they shared it with you.
+
+### "We miss you" message
+
+> "Hi Grace, it has been a while! We now deliver to Ajah on the same day, and we have a new body oil I think you would like. Shall I send the details?"
+
+Give a real reason to come back, such as faster delivery, a new product or a payment option they asked for before.
+
+**Write like you talk.** Short, friendly messages with the customer's name get far more replies than long, formal broadcasts. A little Pidgin is fine if that is how you normally chat with them.
 
 ## Measure whether it is working
 

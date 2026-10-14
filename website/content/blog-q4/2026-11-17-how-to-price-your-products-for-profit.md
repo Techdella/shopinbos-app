@@ -65,7 +65,7 @@ There's no single right margin. It depends on what you sell, how fast it sells a
 
 Choose a target, then test it against the market in Step 4.
 
-## Step 3: Use the pricing formula
+## Step 3: How to price your products for profit with one formula
 
 Here's the formula for how to price your products for profit:
 
@@ -84,7 +84,7 @@ If an item costs ₦7,200 and you add a 50% markup, you sell at ₦10,800. Your 
 
 Using the margin formula avoids this confusion, because you start from what you want to keep.
 
-## Worked example 1: a fashion seller in Lagos
+### Worked example 1: a fashion seller in Lagos
 
 *Example seller.* Adaeze sells Ankara tote bags she buys in bulk.
 
@@ -104,7 +104,7 @@ Now include the payment fee. On Shopinbos, the fee is 1.5% + ₦100, capped at �
 
 Profit per bag: ₦11,500 − ₦7,200 − ₦273 = **₦4,027**. That's a 35% margin after fees.
 
-## Worked example 2: a food seller in Abuja
+### Worked example 2: a food seller in Abuja
 
 *Example seller.* Tunde sells small chops packs for office orders.
 
@@ -124,11 +124,9 @@ Payment fee on ₦7,000: ₦105 + ₦100 = ₦205.
 
 Profit per pack: ₦7,000 − ₦4,000 − ₦205 = **₦2,795**, about 40%.
 
-:::tip Food sellers: watch waste
-If you usually throw away two packs out of every twenty, add that loss to your unit cost. Waste is a real cost.
-:::
+**Food sellers: watch waste.** If you usually throw away two packs out of every twenty, add that loss to your unit cost. Waste is a real cost.
 
-## Worked example 3: a dropshipping seller
+### Worked example 3: a dropshipping seller
 
 *Example seller.* Zainab dropships kitchen gadgets. She doesn't hold stock. The supplier ships with her shop's label, and she's paid after delivery.
 

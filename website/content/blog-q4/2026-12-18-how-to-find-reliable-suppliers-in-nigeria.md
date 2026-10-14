@@ -131,6 +131,28 @@ Be careful with prices far below everyone else, pressure to pay "today only", or
 
 Keep every message, receipt and transfer record. Contact your bank quickly if you suspect fraud, and report it through the right channels. Tell other sellers you trust so they do not fall for the same person. Our post on avoiding payment scams covers more on protecting yourself.
 
+## Questions to ask a new supplier
+
+A short conversation tells you a lot about a supplier. Ask these before your first order, and note how clearly they answer.
+
+1. **What is the minimum order quantity,** and does the price drop at higher quantities?
+2. **How long does a restock take** when an item sells out?
+3. **Can you send to my customers directly,** or only to me?
+4. **What happens if an item arrives damaged or wrong?** Who pays for the return?
+5. **How do you pack items** for delivery, especially fragile ones?
+6. **Do you close for holidays,** and when?
+7. **Which payment methods do you accept,** and do you offer payment after delivery for regular buyers?
+
+Good suppliers answer quickly and specifically. Vague answers like "no problem, everything is fine" to every question are a sign to slow down and check more.
+
+### Market tips when you buy in person
+
+- Go early, before the heat and crowds build up.
+- Carry a notebook or use your phone to record prices, shop numbers and contacts.
+- Do not buy from the first shop. Compare at least three for quality and price.
+- Check items properly: stitching, zips, soles, seals and serial numbers.
+- Arrange how goods will get back to you before you pay, whether by your own transport or a trusted carrier.
+
 ## Building a long-term relationship with a good supplier
 
 Once you find a reliable supplier, treat the relationship well. Good suppliers prioritise good customers.
