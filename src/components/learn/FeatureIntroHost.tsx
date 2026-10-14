@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { introByKey, introForPath, type FeatureIntro as Intro } from "@shared/feature-intros";
 import { introsSeenLocally, usePreferences } from "@/components/shell/useShellCounts";
-import { FeatureIntro } from "./FeatureIntro";
+// The full 60-second scripts (and their words, the "intros" namespace) load only when an intro opens.
+const FeatureIntro = lazy(() => import("./FeatureIntro").then((mod) => ({ default: mod.FeatureIntro })));
 import { OPEN_INTRO_EVENT, openFeatureIntro } from "./Term";
 import { useT } from "@/components/i18n/I18nProvider";
 
@@ -78,6 +79,7 @@ export function FeatureIntroHost({ role }: { role: string }) {
 
   if (!open) return null;
   return (
+    <Suspense fallback={null}>
     <FeatureIntro
       key={open.key}
       intro={open}
@@ -87,6 +89,7 @@ export function FeatureIntroHost({ role }: { role: string }) {
         setOpen(null);
       }}
     />
+    </Suspense>
   );
 }
 
@@ -95,7 +98,7 @@ export function LearnPill({ role, className = "", variant = "pill" }: { role: st
   const pathname = usePathname();
   const intro = introForPath(pathname, role);
   const t = useT("learn");
-  const tIntros = useT("intros");
+  const tIntros = useT("introTitles");
   if (!intro) return null;
   const title = t("pillTitle", { title: tIntros.dynamic(`${intro.key}.title`, intro.title) });
   if (variant === "inline") {

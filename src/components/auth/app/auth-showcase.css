@@ -1,0 +1,30 @@
+/* The dark panel beside the sign-in forms (AuthShowcasePanel.tsx): cards drift gently, never under reduced motion. */
+@keyframes sb-auth-float {
+  0%, 100% { transform: translateY(0) rotate(var(--sb-tilt, 0deg)); }
+  50% { transform: translateY(-8px) rotate(var(--sb-tilt, 0deg)); }
+}
+
+.sb-auth-float {
+  transform: rotate(var(--sb-tilt, 0deg));
+  animation: sb-auth-float 6s ease-in-out infinite;
+  animation-delay: var(--sb-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-auth-float { animation: none; }
+}
+
+/* The ready bar on "Welcome to Shopinbos": fills once, or shows full under reduced motion. */
+@keyframes sb-auth-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.sb-auth-fill {
+  transform-origin: left center;
+  animation: sb-auth-fill var(--sb-fill-ms, 3200ms) ease-in-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-auth-fill { animation: none; transform: none; }
+}
