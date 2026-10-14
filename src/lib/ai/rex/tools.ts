@@ -5,6 +5,8 @@ import { db } from "@/lib/db/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi, type AiKind } from "@/lib/ai/usage";
 import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl } from "@/lib/ai/images";
+import { loadBrandContext } from "@/lib/ai/brand-context.server";
+import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { matchProducts } from "@/lib/ai/peggy/pure";
 import { computeStoreHealth } from "@/lib/store-health";
@@ -195,17 +197,45 @@ async function lifestylePhoto(ctx: RexToolContext, input: RexToolInput<"lifestyl
 
 async function generateProductImage(ctx: RexToolContext, input: RexToolInput<"generate_product_image">): Promise<RexToolOutput> {
   const product = input.product ? await findProduct(ctx, input.product) : null;
+  const brand = await loadBrandContext(ctx.storeId);
+  // References: what Rex picked (the seller's attachments, this shop's product photos or logo), else the product's main photo.
+  let references: string[] = [];
+  if (input.referenceImages?.length) {
+    const shopPhotos = new Set((await db.storeProduct.findMany({ where: { storeId: ctx.storeId }, select: { images: true }, take: 1000 })).flatMap((p) => p.images));
+    references = input.referenceImages.filter((url) => isOwnImageUrl(url) && (ctx.attachments.includes(url) || shopPhotos.has(url) || url === brand?.logoUrl));
+    if (!references.length) throw new RexToolError("Those reference photos aren't in this conversation or this shop. Use photos the seller attached or product photos from list_products.");
+  } else if (product?.images[0]) {
+    references = [product.images[0]];
+  }
   await meter(ctx, "image");
   const prompt = product ? `${input.prompt}\nThe product: ${product.name}.${product.description ? ` ${product.description.slice(0, 300)}` : ""}` : input.prompt;
-  let url: string;
+  const mode = input.brand ?? "colours";
+  let result: Awaited<ReturnType<typeof makeBrandImage>>;
   try {
-    url = await generateImage({ prompt, size: imageSizeFor(input.shape), path: `generated/${ctx.userId}/${Date.now()}` });
+    result = await makeBrandImage({ brand, prompt, size: imageSizeFor(input.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
     imageFailure(error);
   }
+  const logoNote =
+    result.logoProblem === "no_logo"
+      ? " The shop has no logo in its brand kit yet, so the store name was lettered on instead; tell the seller and offer generate_logo or uploading one at /home/brand-kit."
+      : result.logoProblem === "unreadable"
+        ? " The logo file couldn't be used (it needs to be a PNG, JPG or WebP), so the store name was lettered on instead; tell the seller to upload a PNG logo at /home/brand-kit."
+        : result.usedLogo
+          ? " Their logo from the brand kit is on it."
+          : "";
+  const refNote = result.usedReferences ? ` Worked from ${result.usedReferences} of their photo${result.usedReferences === 1 ? "" : "s"}.` : "";
   return {
-    content: `Made the image: ${url}. ${product ? `The seller can save it to ${product.name} from the card.` : "The seller can download it or ask you to use it on the store."} Not saved to any product yet.`,
-    card: { type: "image", tool: "generate_product_image", title: product ? `New picture for ${product.name}` : "New picture", before: null, after: url, product: product ? { id: product.id, name: product.name } : null, sourceIndex: null },
+    content: `Made the image: ${result.url}.${logoNote}${refNote} ${product ? `The seller can save it to ${product.name} from the card.` : "The seller can download it or ask you to use it on the store."} Not saved to any product yet.`,
+    card: {
+      type: "image",
+      tool: "generate_product_image",
+      title: product ? `New picture for ${product.name}` : result.usedLogo ? "New branded picture" : "New picture",
+      before: result.usedReferences ? references[0] ?? null : null,
+      after: result.url,
+      product: product ? { id: product.id, name: product.name } : null,
+      sourceIndex: null,
+    },
   };
 }
 

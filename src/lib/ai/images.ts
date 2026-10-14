@@ -33,27 +33,75 @@ export async function generateImage({
   prompt,
   size = "1024x1024",
   transparent = false,
+  references = [],
   path,
 }: {
   prompt: string;
   size?: ImageSize;
   transparent?: boolean;
+  /**
+   * Pictures to work from (the brand logo first, then the seller's photos or video stills), from loadReferences.
+   * With any, the model draws from them (images.edit) instead of from words alone.
+   */
+  references?: ReferenceImage[];
   /** Storage path without extension, e.g. `generated/<userId>/<timestamp>`. */
   path: string;
 }): Promise<string> {
   const openai = getOpenAIClient();
   if (!openai) throw new ImageUnavailableError("Image generation needs an OpenAI key (OPENAI_API_KEY).");
-  const response = await openai.images.generate({
-    model: OPENAI_IMAGE_MODEL,
-    prompt,
-    n: 1,
-    size,
-    output_format: "webp",
-    ...(transparent ? { background: "transparent" as const } : {}),
-  });
+  const sources = references.slice(0, MAX_REFERENCES).map((ref) => ref.file);
+  const response = sources.length
+    ? await openai.images.edit({
+        model: OPENAI_IMAGE_MODEL,
+        image: sources,
+        prompt,
+        n: 1,
+        size,
+        input_fidelity: "high",
+        output_format: "webp",
+        ...(transparent ? { background: "transparent" as const } : {}),
+      })
+    : await openai.images.generate({
+        model: OPENAI_IMAGE_MODEL,
+        prompt,
+        n: 1,
+        size,
+        output_format: "webp",
+        ...(transparent ? { background: "transparent" as const } : {}),
+      });
   const b64 = response.data?.[0]?.b64_json;
   if (!b64) throw new Error("No image came back");
   return store(b64, `${path}.webp`);
+}
+
+/** Most reference pictures sent with one request (logo plus a few photos). */
+export const MAX_REFERENCES = 5;
+
+export interface ReferenceImage {
+  url: string;
+  file: Awaited<ReturnType<typeof toFile>>;
+}
+
+/**
+ * Loads reference pictures, keeping only the ones the image model can use (PNG, JPEG or WebP in our own
+ * storage; an SVG logo or a missing file is skipped), in the order given.
+ */
+export async function loadReferences(urls: string[]): Promise<ReferenceImage[]> {
+  const unique = Array.from(new Set(urls.filter(Boolean))).slice(0, MAX_REFERENCES);
+  const files = await Promise.all(unique.map((url, index) => loadSourceImage(url, `reference-${index}`).catch(() => null)));
+  return unique.flatMap((url, index) => (files[index] ? [{ url, file: files[index]! }] : []));
+}
+
+/** A PNG, JPEG or WebP from our own storage, ready to hand to the image model. */
+async function loadSourceImage(url: string, name: string) {
+  if (!isOwnImageUrl(url)) throw new Error("Upload the photo to your shop first, then edit it.");
+  const source = await fetch(url);
+  if (!source.ok) throw new Error("Couldn't load that photo");
+  const type = source.headers.get("content-type")?.split(";")[0] || "image/png";
+  if (!/^image\/(png|jpeg|webp)$/.test(type)) throw new Error("Use a PNG, JPEG or WebP photo");
+  const bytes = Buffer.from(await source.arrayBuffer());
+  if (bytes.byteLength > 20 * 1024 * 1024) throw new Error("That photo is too large (20 MB max)");
+  return toFile(bytes, `${name}.${type.split("/")[1]}`, { type });
 }
 
 /**
@@ -85,16 +133,9 @@ export async function editImage({
 }): Promise<string> {
   const openai = getOpenAIClient();
   if (!openai) throw new ImageUnavailableError("Image editing needs an OpenAI key (OPENAI_API_KEY).");
-  if (!isOwnImageUrl(sourceUrl)) throw new Error("Upload the photo to your shop first, then edit it.");
-  const source = await fetch(sourceUrl);
-  if (!source.ok) throw new Error("Couldn't load that photo");
-  const type = source.headers.get("content-type")?.split(";")[0] || "image/png";
-  if (!/^image\/(png|jpeg|webp)$/.test(type)) throw new Error("Use a PNG, JPEG or WebP photo");
-  const bytes = Buffer.from(await source.arrayBuffer());
-  if (bytes.byteLength > 20 * 1024 * 1024) throw new Error("That photo is too large (20 MB max)");
   const response = await openai.images.edit({
     model: OPENAI_IMAGE_MODEL,
-    image: await toFile(bytes, `source.${type.split("/")[1]}`, { type }),
+    image: await loadSourceImage(sourceUrl, "source"),
     prompt,
     size: "1024x1024",
     output_format: "webp",

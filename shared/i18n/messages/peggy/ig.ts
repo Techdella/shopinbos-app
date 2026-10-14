@@ -38,6 +38,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "canTitle": "Ihe Peggy nwere ike ime",
   "neverAlone": "Ọ naghị eziga ozi, bipụta posts ma ọ bụ malite ads n'onwe ya; ọ na-echekwa ha dị ka draft ka ị lelee ha.",
   "didThis": "Peggy mere nke a",
+  "askRex": "Jụọ Rex: {request}",
 };
 
 export default ig;

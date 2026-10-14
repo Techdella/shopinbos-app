@@ -1282,7 +1282,7 @@ const en = {
   "rex.ch.placeholder": "Ask Rex to edit a photo, make a logo, change your store, build a campaign…",
   "rex.ch.link": "Link",
   "rex.ch.add": "Add",
-  "rex.ch.attach": "Attach photos",
+  "rex.ch.attach": "Attach photos or a video",
   "rex.ch.pasteLink": "Paste a link",
   "rex.ch.sendToRex": "Send to Rex",
   "rex.starter.edit-photo.title": "Edit a product photo",
@@ -1473,6 +1473,8 @@ const en = {
   "ed.Free plans show this badge. Upgrade to turn it off.": "Free plans show this badge. Upgrade to turn it off.",
   "ed.Upgrade": "Upgrade",
   "ed.The badge setting couldn't be saved. Try again.": "The badge setting couldn't be saved. Try again.",
+  "rex.ch.videoPrompt": "Use this video to make a clean product photo with my logo",
+  "rex.ch.fromVideo": "Still from your video",
 } satisfies Record<string, string>;
 
 export default en;

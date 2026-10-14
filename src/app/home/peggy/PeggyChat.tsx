@@ -251,8 +251,39 @@ function Bubble({ role, content, failed }: { role: "user" | "assistant"; content
         failed && "bg-app-danger-tint text-app-danger",
       )}
     >
-      {content}
+      {role === "assistant" && !failed ? <LinkedText text={content} /> : content}
     </div>
+  );
+}
+
+// In-app paths Peggy mentions become links; a /studio?prompt=… link (a request she wrote for Rex) becomes a button.
+const APP_PATH = /(\/(?:studio|home|products|marketplace|channels|settings)(?:[/?][^\s)\]]*)?)/g;
+
+function LinkedText({ text }: { text: string }) {
+  const t = useT("peggy");
+  const parts = text.split(APP_PATH);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 0) return part;
+        const trail = part.match(/[.,;:!?]+$/)?.[0] ?? "";
+        const path = trail ? part.slice(0, -trail.length) : part;
+        const ask = path.startsWith("/studio?") ? new URLSearchParams(path.slice(path.indexOf("?") + 1)).get("prompt") : null;
+        return (
+          <span key={index}>
+            {ask ? (
+              <Link href={path} className="my-1 inline-flex max-w-full items-center gap-1.5 rounded-full bg-app-ink px-3.5 py-1.5 text-[13px] font-bold text-white no-underline hover:opacity-90">
+                <Icon name="sparkle" size={14} className="shrink-0" />
+                <span className="truncate">{t("askRex", { request: ask.length > 60 ? `${ask.slice(0, 57)}…` : ask })}</span>
+              </Link>
+            ) : (
+              <Link href={path} className="font-bold text-app-ink underline underline-offset-2">{path}</Link>
+            )}
+            {trail}
+          </span>
+        );
+      })}
+    </>
   );
 }
 

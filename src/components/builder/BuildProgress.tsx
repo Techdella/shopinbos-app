@@ -5,6 +5,7 @@ import { Mascot, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import type { StoreConfig } from "@/lib/ai/store-types";
 import { useT } from "@/components/i18n/I18nProvider";
+import { RexQuip } from "./rex/RexProgress";
 
 export interface BuildSummary {
   /** What the build-store step created (sample products, images) and anything it skipped. */
@@ -164,6 +165,8 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
       <h2 className="m-0 mt-1.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[28px]" aria-live="polite">
         {summary ? (hasFailures ? t("bp.gaps") : t("bp.ready")) : activeStep ? `${activeStep.label}…` : t("bp.starting")}
       </h2>
+
+      {summary ? null : <RexQuip className="mt-2 text-[14px]" />}
 
       <div
         className="mt-6 h-2 w-full max-w-[420px] overflow-hidden rounded-full bg-app-track"
