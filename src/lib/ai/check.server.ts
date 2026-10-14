@@ -15,7 +15,7 @@ import { anthropicTools as peggyClaudeTools, openaiTools as peggyOpenAITools } f
 import { anthropicTools as rexClaudeTools, openaiTools as rexOpenAITools } from "@/lib/ai/rex/agent";
 
 // Admin → Settings → "Check AI": one small real call per job, shaped exactly like Rex's and Peggy's own calls
-// (same models, the full tool lists, a forced tool call), so a wrong key, a model the account can't use or a
+// (same models, the full tool lists, asked to use a tool), so a wrong key, a model the account can't use or a
 // tool the provider rejects shows up here instead of in a seller's chat. Costs a fraction of a cent; the
 // optional picture check makes one small low-quality image (about 1 US cent) and throws it away.
 
@@ -68,14 +68,16 @@ export async function runAiCheck({ images = false }: { images?: boolean } = {}):
     return timed(row, async () => {
       const response = await anthropic.messages.create({
         model,
-        max_tokens: 1024,
-        system: PROMPT,
+        max_tokens: 4000,
+        system: `${PROMPT} Call ${tool}.`,
         tools,
-        tool_choice: { type: "tool", name: tool },
-        messages: [{ role: "user", content: PROMPT }],
+        // Exactly like Rex and Peggy: this model doesn't allow forcing a tool, so it chooses.
+        tool_choice: { type: "auto" },
+        output_config: { effort: "medium" },
+        messages: [{ role: "user", content: `${PROMPT} Call ${tool}.` }],
       }, OPTIONS);
-      if (!response.content.some((block) => block.type === "tool_use")) throw new Error(`Answered without using a tool (stop: ${response.stop_reason}).`);
-      return `Works: ${tools.length} tools accepted.`;
+      const used = response.content.some((block) => block.type === "tool_use");
+      return `Works: ${tools.length} tools accepted${used ? " and it used one" : ""}.`;
     });
   };
   const gptTool = (id: string, label: string, model: string, tools: ReturnType<typeof rexOpenAITools>, tool: string) => {
