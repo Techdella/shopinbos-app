@@ -1,0 +1,1261 @@
+[
+ {
+  "type": "sib_feature",
+  "slug": "storefront",
+  "title": "Storefront builder",
+  "excerpt": "Tell Rex what you sell and get a real store at yourname.shopinbos.com, with naira prices, Paystack, pay on delivery and riders already set up.",
+  "eyebrow": "Online store builder",
+  "h1": "Create an online store in Nigeria, free, in 5 minutes",
+  "sub": "Tell Rex what you sell and get a real store at yourname.shopinbos.com, with naira prices, Paystack, pay on delivery and riders already set up.",
+  "img": "person-hero.webp",
+  "bg": "#FFEDE4",
+  "fit": "contain",
+  "kws": [
+   "free online store Nigeria",
+   "ecommerce website Nigeria",
+   "build an online shop",
+   "website for my business"
+  ],
+  "ben": [
+   [
+    "No website skills needed",
+    "Rex asks a few questions and builds the store with you. Change anything by just saying it."
+   ],
+   [
+    "Payments that work here",
+    "Cards, bank transfer, USSD and pay on delivery, all in naira, through Paystack."
+   ],
+   [
+    "Delivery at checkout",
+    "Customers see live rider prices for their area. You book with one tap."
+   ]
+  ],
+  "rows": [
+   [
+    "Your store, your brand",
+    "Pick a template, your colours and logo. Use yourname.shopinbos.com free, or connect a domain you own.",
+    [
+     "20+ templates made for Nigerian shops",
+     "Your own domain with free SSL",
+     "Looks good on any phone"
+    ],
+    "store"
+   ],
+   [
+    "Sell everywhere from one list",
+    "Add a product once. It shows in your store, WhatsApp catalogue, Instagram, TikTok and Google.",
+    [
+     "Stock updates everywhere",
+     "One inbox for every chat",
+     "Share links that open straight to checkout"
+    ],
+    "social"
+   ],
+   [
+    "Get paid on Friday",
+    "Every payment lands in your Shopinbos balance and goes to your bank every Friday.",
+    [
+     "No minimum payout",
+     "See exactly what each order made",
+     "Withdraw early any time"
+    ],
+    "pay"
+   ]
+  ],
+  "faq": [
+   [
+    "How much does it cost to create an online store in Nigeria?",
+    "You can start free on Shopinbos with up to 50 products. Paid plans start at ₦7,500 a month when you need your own domain and more tools."
+   ],
+   [
+    "Do I need a laptop?",
+    "No. You can build and run your whole store from the Shopinbos app on your phone."
+   ],
+   [
+    "Can I use my own domain name?",
+    "Yes. Connect a domain you already own, or buy one inside Shopinbos."
+   ],
+   [
+    "Can customers pay on delivery?",
+    "Yes. Pay on delivery is built in, with a 4-digit code so riders and customers never argue."
+   ]
+  ],
+  "seo": [
+   "An online store gives your business a home that you control. Unlike a social media page, it is not affected by changes to an app’s rules, and customers can order and pay any time, even while you sleep.",
+   "Shopinbos is built for Nigerian businesses. Prices are in naira, payments go through Paystack, pay on delivery is built in, and riders in Lagos, Abuja, Ibadan and Port Harcourt can be booked at checkout."
+  ],
+  "rel": [
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ],
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ],
+   [
+    "Fashion",
+    "/solutions/fashion/"
+   ],
+   [
+    "Dropshipping",
+    "/features/dropshipping/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_feature",
+  "slug": "store-management",
+  "title": "Store management",
+  "eyebrow": "Store management",
+  "h1": "Manage your whole store from your phone",
+  "sub": "Products, stock, orders and customers from every place you sell, in one app. Add a product once and it shows everywhere.",
+  "img": "person-gadgets.webp",
+  "bg": "#E3EEFD",
+  "fit": "cover",
+  "kws": [
+   "manage online store",
+   "inventory app Nigeria",
+   "order management",
+   "sell on many channels"
+  ],
+  "ben": [
+   [
+    "One list of products",
+    "Add a product once. It appears in your store, WhatsApp catalogue, Instagram, TikTok and Google."
+   ],
+   [
+    "Stock that stays right",
+    "Sell the last one on Instagram and it shows sold out everywhere else."
+   ],
+   [
+    "Every order in one place",
+    "Orders from your store, chats and social media, each with its status."
+   ]
+  ],
+  "rows": [
+   [
+    "Orders from start to finish",
+    "See what is new, paid, packed, on the way and delivered.",
+    [
+     "Book a rider from the order",
+     "Receipts and updates sent for you",
+     "Notes for each customer"
+    ],
+    "chat"
+   ],
+   [
+    "Customers you can come back to",
+    "Every buyer is saved with what they bought and how to reach them.",
+    [
+     "Past orders at a glance",
+     "Send offers to past buyers",
+     "Download your list any time"
+    ],
+    "ai"
+   ],
+   [
+    "Numbers that tell you what to do",
+    "Sales, best sellers and low stock in a short weekly summary.",
+    [
+     "What each product made",
+     "Low stock alerts",
+     "Money summary every Friday"
+    ],
+    "stock"
+   ]
+  ],
+  "faq": [
+   [
+    "Can my staff use it?",
+    "Yes. Add staff with their own sign-in."
+   ],
+   [
+    "Can I move my products from another platform?",
+    "Yes. Upload a spreadsheet, or export from Shopify or WooCommerce and Rex maps the fields."
+   ],
+   [
+    "Can I take my data with me?",
+    "Yes. You can download your products, orders and customer list at any time."
+   ]
+  ],
+  "seo": [
+   "Most Nigerian businesses sell in more than one place: their own store, WhatsApp, Instagram, TikTok and Facebook. Keeping prices, stock and orders right across all of them by hand takes hours every week.",
+   "Shopinbos keeps one list of products and one list of orders, so a change in one place shows everywhere, and you always know what is paid, packed and delivered."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Social selling",
+    "/features/social-selling/"
+   ],
+   [
+    "Payments",
+    "/features/payments/"
+   ],
+   [
+    "Delivery",
+    "/features/logistics/"
+   ]
+  ],
+  "excerpt": "Products, stock, orders and customers from every place you sell, in one app. Add a product once and it shows everywhere."
+ },
+ {
+  "type": "sib_feature",
+  "slug": "social-selling",
+  "title": "Social selling",
+  "eyebrow": "Social selling",
+  "h1": "Sell on WhatsApp, Instagram, TikTok and Facebook from one app",
+  "sub": "Share products where your customers already spend time, answer every chat in one inbox, and turn posts and messages into paid orders.",
+  "img": "person-cta-left.webp",
+  "bg": "#E7E1FF",
+  "fit": "contain",
+  "kws": [
+   "sell on Instagram Nigeria",
+   "sell on WhatsApp",
+   "TikTok selling Nigeria",
+   "social commerce"
+  ],
+  "ben": [
+   [
+    "Everywhere at once",
+    "Your products in your store, WhatsApp catalogue, Instagram, TikTok and Facebook, from one list."
+   ],
+   [
+    "One inbox",
+    "WhatsApp, Instagram and Facebook messages in one place, with the order beside each chat."
+   ],
+   [
+    "Links that end in a sale",
+    "Every post and chat can send people straight to checkout."
+   ]
+  ],
+  "rows": [
+   [
+    "A week of posts, planned",
+    "Peggy suggests posts around what’s selling and writes captions in your voice.",
+    [
+     "You approve with a tap",
+     "Posts at the best times",
+     "Reels from 3 photos"
+    ],
+    "social"
+   ],
+   [
+    "Ads that bring chats",
+    "Pick a product and a budget. Peggy writes the ad and picks the people.",
+    [
+     "No ad account needed",
+     "See chats and sales from each ad",
+     "Stops when it isn’t working"
+    ],
+    "ai"
+   ],
+   [
+    "Broadcasts people don’t mute",
+    "Send new arrivals to customers who asked to hear from you, with a link to buy.",
+    [
+     "Only to opted-in customers",
+     "Pick who gets it: past buyers, VIPs",
+     "See who opened and bought"
+    ],
+    "ai"
+   ]
+  ],
+  "faq": [
+   [
+    "Do I need WhatsApp Business?",
+    "Yes. It is free. Shopinbos connects to it and keeps your catalogue in sync."
+   ],
+   [
+    "Is TikTok Shop available in Nigeria?",
+    "We will connect TikTok Shop as soon as it opens to Nigerian sellers. Until then, link videos to your store."
+   ],
+   [
+    "Can I tag products on Instagram?",
+    "Yes, once your Instagram Shop is approved. We guide you through it."
+   ],
+   [
+    "Is it against WhatsApp rules?",
+    "No. We use the official WhatsApp Business tools and only message customers who chose to hear from you."
+   ]
+  ],
+  "seo": [
+   "Nigerian shoppers discover products on WhatsApp Status, Instagram, TikTok and Facebook, and they expect to ask questions and buy in the same place. Keeping up across all of them by hand means missed messages and lost orders.",
+   "Shopinbos connects every channel to one store, one inbox and one list of orders, so you can sell everywhere without working twice as hard."
+  ],
+  "rel": [
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ],
+   [
+    "Peggy AI",
+    "/features/peggy-ai/"
+   ],
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Fashion",
+    "/solutions/fashion/"
+   ]
+  ],
+  "excerpt": "Share products where your customers already spend time, answer every chat in one inbox, and turn posts and messages into paid orders."
+ },
+ {
+  "type": "sib_feature",
+  "slug": "payments",
+  "title": "Payments",
+  "eyebrow": "Payments",
+  "h1": "Get paid by card, transfer, USSD or pay on delivery",
+  "sub": "Every way Nigerians like to pay, in naira, with your money sent to your bank every Friday.",
+  "img": "tote-bag.webp",
+  "bg": "#FDF0D5",
+  "fit": "cover",
+  "kws": [
+   "receive payments online Nigeria",
+   "payment link Nigeria",
+   "Paystack store",
+   "pay on delivery"
+  ],
+  "ben": [
+   [
+    "All the ways people pay",
+    "Cards, bank transfer and USSD through Paystack, plus pay on delivery."
+   ],
+   [
+    "Money you can follow",
+    "Every payment lands in your Shopinbos balance with the order beside it."
+   ],
+   [
+    "Paid every Friday",
+    "Your balance goes to your bank every Friday, or withdraw any time."
+   ]
+  ],
+  "rows": [
+   [
+    "Payment links for any chat",
+    "Send a link on WhatsApp, Instagram or by SMS. The customer pays and you see it straight away.",
+    [
+     "No account numbers in the chat",
+     "Receipts sent for you",
+     "Works for custom orders"
+    ],
+    "pay"
+   ],
+   [
+    "Pay on delivery with codes",
+    "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+    [
+     "4-digit delivery code",
+     "Cash or transfer to the rider",
+     "Cash in by 6pm the same day"
+    ],
+    "deliver"
+   ]
+  ],
+  "faq": [
+   [
+    "What does it cost?",
+    "Card, transfer and USSD payments cost 1.5% + ₦100 through Paystack, capped at ₦2,000. Pay on delivery has no extra payment fee."
+   ],
+   [
+    "When do I get paid?",
+    "Every Friday, to your bank account. You can also withdraw any time."
+   ],
+   [
+    "Do I need my own Paystack account?",
+    "No. Payments are built in. You only add the bank account you want to be paid into."
+   ]
+  ],
+  "seo": [
+   "Customers in Nigeria pay in many ways: card, bank transfer, USSD and cash on delivery. A shop that accepts all of them sells more, but checking transfers and chasing cash by hand takes time.",
+   "Shopinbos confirms every payment for you, matches it to the order and pays your balance to your bank every Friday."
+  ],
+  "rel": [
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ],
+   [
+    "Delivery",
+    "/features/logistics/"
+   ],
+   [
+    "Store management",
+    "/features/store-management/"
+   ],
+   [
+    "Pricing",
+    "/pricing/"
+   ]
+  ],
+  "excerpt": "Every way Nigerians like to pay, in naira, with your money sent to your bank every Friday."
+ },
+ {
+  "type": "sib_feature",
+  "slug": "logistics",
+  "title": "Delivery",
+  "eyebrow": "Delivery",
+  "h1": "Deliver to your customers without chasing riders",
+  "sub": "Book a rider from the order, give customers live tracking, and let them pay on delivery with a code.",
+  "img": "person-food.webp",
+  "bg": "#FFEDE4",
+  "fit": "cover",
+  "kws": [
+   "delivery for online store Nigeria",
+   "dispatch rider booking",
+   "same day delivery Lagos",
+   "pay on delivery"
+  ],
+  "ben": [
+   [
+    "Riders at checkout",
+    "Customers see the delivery price for their area before they pay."
+   ],
+   [
+    "Live tracking",
+    "You and your customer can see where the parcel is."
+   ],
+   [
+    "Pay on delivery, safely",
+    "A 4-digit code confirms each delivery, and cash is paid in the same day."
+   ]
+  ],
+  "rows": [
+   [
+    "Riders you can trust",
+    "Shopinbos Riders and checked delivery companies, with live tracking for you and your customer.",
+    [
+     "Customer gets live updates",
+     "Rider calls before arriving",
+     "Refused parcels come back to you"
+    ],
+    "deliver"
+   ],
+   [
+    "Delivery prices you set",
+    "Group areas into zones with their own price, or show live rider prices at checkout.",
+    [
+     "Zones by area",
+     "Free delivery above an amount",
+     "Pickup option"
+    ],
+    "deliver"
+   ]
+  ],
+  "faq": [
+   [
+    "Which cities have pay on delivery?",
+    "Lagos, Abuja, Ibadan and Port Harcourt, with more cities coming."
+   ],
+   [
+    "What if the customer refuses the parcel?",
+    "The rider brings it back. You only pay the return delivery fee."
+   ],
+   [
+    "Can customers pay the rider by transfer?",
+    "Yes. They can pay cash or transfer to the rider’s Shopinbos account."
+   ],
+   [
+    "Is there an extra fee?",
+    "No. You pay the normal delivery fee only."
+   ]
+  ],
+  "seo": [
+   "Delivery is where many online orders go wrong: riders who don’t show up, customers who are “not around”, and cash that never comes back.",
+   "Shopinbos books checked riders and delivery companies from the order, keeps everyone updated and confirms each delivery with a code."
+  ],
+  "rel": [
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ],
+   [
+    "Payments",
+    "/features/payments/"
+   ],
+   [
+    "For delivery companies",
+    "/delivery/"
+   ],
+   [
+    "Food",
+    "/solutions/food/"
+   ]
+  ],
+  "excerpt": "Book a rider from the order, give customers live tracking, and let them pay on delivery with a code."
+ },
+ {
+  "type": "sib_feature",
+  "slug": "peggy-ai",
+  "title": "Peggy AI",
+  "excerpt": "Peggy replies to “how much?”, writes captions, plans posts and gives you a short brief every morning, in English, Pidgin, Yorùbá, Hausa and Igbo.",
+  "eyebrow": "Peggy, your AI assistant",
+  "h1": "Meet Peggy, the assistant that answers your customers",
+  "sub": "Peggy replies to “how much?”, writes captions, plans posts and gives you a short brief every morning, in English, Pidgin, Yorùbá, Hausa and Igbo.",
+  "img": "peggy-wave.webp",
+  "bg": "#E2F6F1",
+  "fit": "contain",
+  "kws": [
+   "AI for small business Nigeria",
+   "WhatsApp auto reply",
+   "AI customer service",
+   "AI store builder"
+  ],
+  "ben": [
+   [
+    "Replies in your voice",
+    "Peggy learns how you talk to customers and replies the same way."
+   ],
+   [
+    "Knows your shop",
+    "Prices, stock, delivery fees and your rules, always up to date."
+   ],
+   [
+    "You stay in charge",
+    "Choose what she can answer alone and what comes to you."
+   ]
+  ],
+  "rows": [
+   [
+    "A brief every morning",
+    "What sold, what’s running low, who to follow up, in one message.",
+    [
+     "Sent to your WhatsApp",
+     "One tap to act",
+     "Weekly money summary"
+    ],
+    "ai"
+   ],
+   [
+    "Content, done",
+    "Captions, product descriptions and ad text drafted for you to approve.",
+    [
+     "In five languages",
+     "Matched to your brand",
+     "Edits by just saying it"
+    ],
+    "social"
+   ]
+  ],
+  "faq": [
+   [
+    "Will Peggy say the wrong thing?",
+    "She only answers from your shop details and hands anything she isn’t sure about to you."
+   ],
+   [
+    "Which languages does Peggy speak?",
+    "English, Pidgin, Yorùbá, Hausa and Igbo."
+   ],
+   [
+    "Can I turn her off?",
+    "Yes, any time, or only for some chats."
+   ],
+   [
+    "Is my data used to train other AI?",
+    "No. Your messages are only used to run your shop."
+   ]
+  ],
+  "seo": [
+   "AI can save small businesses hours every day by answering repeat questions and drafting content. Peggy is built for Nigerian shops, so she understands naira prices, delivery areas and how customers really talk."
+  ],
+  "rel": [
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ],
+   [
+    "Social selling",
+    "/features/social-selling/"
+   ],
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Fashion",
+    "/solutions/fashion/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_feature",
+  "slug": "sell-on-whatsapp",
+  "title": "Sell on WhatsApp",
+  "excerpt": "Your WhatsApp catalogue, order links and replies in one place. Peggy answers “how much?” while you sleep.",
+  "eyebrow": "Sell on WhatsApp",
+  "h1": "Turn WhatsApp chats into orders, with a store behind them",
+  "sub": "Your WhatsApp catalogue, order links and replies in one place. Peggy answers “how much?” while you sleep.",
+  "img": "person-cta-right.webp",
+  "bg": "#E2F6F1",
+  "fit": "contain",
+  "kws": [
+   "sell on WhatsApp",
+   "WhatsApp business catalogue",
+   "WhatsApp store Nigeria",
+   "WhatsApp order link"
+  ],
+  "ben": [
+   [
+    "Catalogue that stays updated",
+    "Change a price or sell out once. Your WhatsApp catalogue updates by itself."
+   ],
+   [
+    "Links that go straight to checkout",
+    "Send one link. The customer picks size, pays or chooses pay on delivery."
+   ],
+   [
+    "Peggy answers the questions",
+    "Price, sizes, delivery fees, in English or Pidgin, in your voice."
+   ]
+  ],
+  "rows": [
+   [
+    "One inbox for every chat",
+    "WhatsApp, Instagram and Facebook messages in one list, with the order beside each chat.",
+    [
+     "See what the customer bought before",
+     "Quick replies you write once",
+     "Hand over to Peggy when you’re busy"
+    ],
+    "chat"
+   ],
+   [
+    "Broadcasts people don’t mute",
+    "Send new arrivals to customers who asked to hear from you, with a link to buy.",
+    [
+     "Only to opted-in customers",
+     "Pick who gets it: past buyers, VIPs",
+     "See who opened and bought"
+    ],
+    "ai"
+   ],
+   [
+    "Status posts made for you",
+    "Peggy prepares the picture and caption. You post in two taps.",
+    [
+     "Price on the picture",
+     "Your store link added",
+     "Best time to post suggested"
+    ],
+    "social"
+   ]
+  ],
+  "faq": [
+   [
+    "Do I need WhatsApp Business?",
+    "Yes. It is free. Shopinbos connects to it and keeps your catalogue in sync."
+   ],
+   [
+    "Can Peggy reply to my customers automatically?",
+    "Yes, if you turn it on. She answers common questions and hands anything tricky back to you."
+   ],
+   [
+    "Will my customers see Shopinbos?",
+    "No. They see your shop name, your logo and your number."
+   ],
+   [
+    "Is it against WhatsApp rules?",
+    "No. We use the official WhatsApp Business tools and only message customers who chose to hear from you."
+   ]
+  ],
+  "seo": [
+   "Most Nigerian online businesses already sell on WhatsApp. The hard part is keeping up: answering the same questions, sending account numbers, chasing payment and remembering who ordered what.",
+   "Shopinbos keeps WhatsApp as the place you talk to customers, and adds a store, payments and delivery behind it, so every chat can become an order."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Peggy AI",
+    "/features/peggy-ai/"
+   ],
+   [
+    "Social selling",
+    "/features/social-selling/"
+   ],
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_feature",
+  "slug": "pay-on-delivery",
+  "title": "Pay on delivery",
+  "excerpt": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+  "eyebrow": "Pay on delivery",
+  "h1": "Pay on delivery for your online store, without the wahala",
+  "sub": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+  "img": "person-food.webp",
+  "bg": "#FDF0D5",
+  "fit": "cover",
+  "kws": [
+   "pay on delivery Nigeria",
+   "cash on delivery online store",
+   "payment on delivery Lagos",
+   "POD delivery service"
+  ],
+  "ben": [
+   [
+    "More people say yes",
+    "New customers buy when they don’t have to trust you with money first."
+   ],
+   [
+    "No “I never got it”",
+    "The order is only marked delivered when the customer gives the rider their code."
+   ],
+   [
+    "Cash comes back the same day",
+    "Riders pay in by 6pm, and it shows in your balance that evening."
+   ]
+  ],
+  "rows": [
+   [
+    "Set your limits",
+    "Choose the most a customer can order with pay on delivery, and which areas it works in.",
+    [
+     "Up to ₦50,000 per order",
+     "Turn off for new customers if you want",
+     "Ask for a delivery deposit"
+    ],
+    "pay"
+   ],
+   [
+    "Riders you can trust",
+    "Shopinbos Riders and checked delivery companies, with live tracking for you and your customer.",
+    [
+     "Customer gets live updates",
+     "Rider calls before arriving",
+     "Refused parcels come back to you"
+    ],
+    "deliver"
+   ]
+  ],
+  "faq": [
+   [
+    "Which cities have pay on delivery?",
+    "Lagos, Abuja, Ibadan and Port Harcourt, with more cities coming."
+   ],
+   [
+    "What if the customer refuses the parcel?",
+    "The rider brings it back. You only pay the return delivery fee."
+   ],
+   [
+    "Can customers pay the rider by transfer?",
+    "Yes. They can pay cash or transfer to the rider’s Shopinbos account."
+   ],
+   [
+    "Is there an extra fee?",
+    "No. You pay the normal delivery fee only."
+   ]
+  ],
+  "seo": [
+   "Pay on delivery, also called cash on delivery, is how many Nigerians prefer to buy from shops they don’t know yet. It builds trust, but it can bring problems: fake orders, refused parcels and cash that goes missing.",
+   "Shopinbos solves these with delivery codes, rider tracking and same-day cash remittance, so you can offer pay on delivery with confidence."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ],
+   [
+    "Food",
+    "/solutions/food/"
+   ],
+   [
+    "Electronics and gadgets",
+    "/solutions/electronics/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_feature",
+  "slug": "dropshipping",
+  "title": "Dropshipping",
+  "excerpt": "Pick products from checked Nigerian suppliers, sell them under your brand, and keep the difference. The supplier ships with your label.",
+  "eyebrow": "Dropshipping in Nigeria",
+  "h1": "Start dropshipping in Nigeria with no stock and no rent",
+  "sub": "Pick products from checked Nigerian suppliers, sell them under your brand, and keep the difference. The supplier ships with your label.",
+  "img": "leather-slides.webp",
+  "bg": "#E3EEFD",
+  "fit": "cover",
+  "kws": [
+   "dropshipping in Nigeria",
+   "dropship suppliers Nigeria",
+   "sell without stock",
+   "local dropshipping"
+  ],
+  "ben": [
+   [
+    "No money tied up in stock",
+    "You only pay the supplier after your customer has paid you."
+   ],
+   [
+    "Checked local suppliers",
+    "Every supplier is CAC registered and ships within 3 days."
+   ],
+   [
+    "Your brand on every parcel",
+    "Customers see your shop name, never the supplier’s."
+   ]
+  ],
+  "rows": [
+   [
+    "Find products that sell",
+    "Browse fashion, beauty, gadgets, food and home products with the price you pay and what you keep.",
+    [
+     "See the profit before you add it",
+     "Stock levels update live",
+     "Order samples first"
+    ],
+    "stock"
+   ],
+   [
+    "Add to your store in one tap",
+    "Photos, description and sizes come with it. Set your own price.",
+    [
+     "Rex rewrites the description in your voice",
+     "Sell on WhatsApp and Instagram too",
+     "Mix with your own products"
+    ],
+    "store"
+   ],
+   [
+    "Get paid after delivery",
+    "Your share is held for 48 hours after delivery in case of returns, then paid out on Friday.",
+    [
+     "Returns go back to the supplier",
+     "Clear statement for every order",
+     "No hidden fees"
+    ],
+    "pay"
+   ]
+  ],
+  "faq": [
+   [
+    "Is dropshipping legal in Nigeria?",
+    "Yes. You are a reseller. Sell genuine products, describe them honestly and follow our Seller rules."
+   ],
+   [
+    "How much can I make?",
+    "You set your price. Each product shows what you keep after the supplier’s price and fees."
+   ],
+   [
+    "Who handles returns?",
+    "Returns go back to the supplier with a free label. You don’t pay for wrong or damaged items."
+   ],
+   [
+    "Can I dropship from China?",
+    "Yes, with Imports from China. Rex shows the full landed cost before you pay."
+   ]
+  ],
+  "seo": [
+   "Dropshipping means selling products you don’t keep in stock. When a customer orders, the supplier packs and sends it straight to them.",
+   "Local dropshipping is faster than importing for every order, because suppliers are in Nigeria and deliveries take days, not weeks. Shopinbos checks every supplier and holds payments until delivery, so both sides are protected."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Fashion",
+    "/solutions/fashion/"
+   ],
+   [
+    "Electronics and gadgets",
+    "/solutions/electronics/"
+   ],
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_solution",
+  "slug": "fashion",
+  "title": "Fashion and apparel",
+  "excerpt": "Sizes, colours, lookbooks and pre-orders, with same-day delivery in Lagos and pay on delivery built in.",
+  "eyebrow": "For fashion brands",
+  "h1": "An online store for fashion brands in Nigeria",
+  "sub": "Sizes, colours, lookbooks and pre-orders, with same-day delivery in Lagos and pay on delivery built in.",
+  "img": "person-fashion.webp",
+  "bg": "#FCE4EC",
+  "fit": "contain",
+  "kws": [
+   "online store for clothing brand",
+   "fashion ecommerce Nigeria",
+   "sell clothes online Nigeria",
+   "boutique website"
+  ],
+  "ben": [
+   [
+    "Sizes and colours made easy",
+    "Each piece can have sizes and colours with their own stock."
+   ],
+   [
+    "Pre-orders and drops",
+    "Take deposits for new collections and launch at a set time."
+   ],
+   [
+    "Looks good on Instagram",
+    "Templates made for fashion, with big photos and lookbooks."
+   ]
+  ],
+  "rows": [
+   [
+    "Lookbooks that sell",
+    "Turn a shoot into a page where every outfit can be bought.",
+    [
+     "Tag pieces in each photo",
+     "Shop the look in one tap",
+     "Share to Instagram and Status"
+    ],
+    "store"
+   ],
+   [
+    "Find more stock",
+    "Add bags, shoes and accessories from checked suppliers without buying stock.",
+    [
+     "Dropship or buy wholesale",
+     "Your label on every parcel",
+     "Profit shown before you add"
+    ],
+    "stock"
+   ]
+  ],
+  "faq": [
+   [
+    "Can I sell made-to-measure clothes?",
+    "Yes. Add a measurements form to the product and the customer fills it at checkout."
+   ],
+   [
+    "Can I take deposits for pre-orders?",
+    "Yes. Choose the deposit amount and when the balance is due."
+   ],
+   [
+    "Can customers return items that don’t fit?",
+    "You set your own return policy. Shopinbos handles the return delivery."
+   ],
+   [
+    "Which template is best for fashion?",
+    "Try Breeze or Adire. Both are made for big photos and outfits."
+   ]
+  ],
+  "seo": [
+   "Fashion is one of the biggest online categories in Nigeria, and most brands start on Instagram and WhatsApp. A store makes it easier to show every size and colour, take payment and manage stock without endless DMs."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Social selling",
+    "/features/social-selling/"
+   ],
+   [
+    "Beauty",
+    "/solutions/beauty/"
+   ],
+   [
+    "Dropshipping",
+    "/features/dropshipping/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_solution",
+  "slug": "beauty",
+  "title": "Beauty and wellness",
+  "excerpt": "Product pages that answer “is it original?”, bundles, refills and reminders when customers run out.",
+  "eyebrow": "For beauty brands",
+  "h1": "An online store for beauty and skincare brands",
+  "sub": "Product pages that answer “is it original?”, bundles, refills and reminders when customers run out.",
+  "img": "person-cta-left.webp",
+  "bg": "#E7E1FF",
+  "fit": "cover",
+  "kws": [
+   "skincare online store Nigeria",
+   "sell cosmetics online",
+   "beauty brand website",
+   "hair products online store"
+  ],
+  "ben": [
+   [
+    "Trust on every page",
+    "Show batch numbers, NAFDAC numbers and real reviews."
+   ],
+   [
+    "Bundles and routines",
+    "Sell sets with a better price, built in a minute."
+   ],
+   [
+    "Reorder reminders",
+    "Peggy reminds customers when they are about to run out."
+   ]
+  ],
+  "rows": [
+   [
+    "Reviews that sell",
+    "Ask for a photo review after delivery and show it on the product.",
+    [
+     "Photo and voice note reviews",
+     "Reply to reviews",
+     "Share reviews to Status"
+    ],
+    "ai"
+   ],
+   [
+    "Grow with creators",
+    "Give creators a link and pay them a share of each sale.",
+    [
+     "Set the percentage",
+     "Track every sale",
+     "Pay them on Friday"
+    ],
+    "social"
+   ]
+  ],
+  "faq": [
+   [
+    "Do I need NAFDAC registration?",
+    "Most cosmetics sold in Nigeria need it. Add your number to the product page to build trust."
+   ],
+   [
+    "Can I sell bundles?",
+    "Yes. Combine products into a set with its own price."
+   ],
+   [
+    "Can I work with influencers?",
+    "Yes. Creators get their own link and earn a share of each sale."
+   ],
+   [
+    "Can I import beauty products?",
+    "Yes, with Imports from China, following NAFDAC rules."
+   ]
+  ],
+  "seo": [
+   "Beauty buyers want proof before they pay. Clear product details, regulatory numbers and real reviews help new customers trust your brand."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Fashion",
+    "/solutions/fashion/"
+   ],
+   [
+    "Social selling",
+    "/features/social-selling/"
+   ],
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_solution",
+  "slug": "food",
+  "title": "Food and pantry",
+  "excerpt": "A menu link customers can order from, orders straight to your kitchen, and riders booked in one tap. Made for bakeries, small chops and home kitchens.",
+  "eyebrow": "For food businesses",
+  "h1": "Take food orders online: menu, WhatsApp orders and delivery",
+  "sub": "A menu link customers can order from, orders straight to your kitchen, and riders booked in one tap. Made for bakeries, small chops and home kitchens.",
+  "img": "person-food.webp",
+  "bg": "#FFF4DA",
+  "fit": "cover",
+  "kws": [
+   "food ordering website Nigeria",
+   "online menu for restaurant",
+   "small chops orders online",
+   "bakery online store"
+  ],
+  "ben": [
+   [
+    "A menu that takes orders",
+    "Customers pick, add notes and pay, without a long chat."
+   ],
+   [
+    "Order times you control",
+    "Set opening hours, cut-off times and pre-orders for events."
+   ],
+   [
+    "Fast local delivery",
+    "Book a bike for each order, or let customers pick up."
+   ]
+  ],
+  "rows": [
+   [
+    "Orders straight to the kitchen",
+    "A simple kitchen screen shows what to make next, with notes and pickup times.",
+    [
+     "Print or show on a tablet",
+     "Mark ready, then book a rider",
+     "Customer gets updates"
+    ],
+    "chat"
+   ],
+   [
+    "Events and trays",
+    "Take bulk orders for parties with deposits and delivery dates.",
+    [
+     "Deposit and balance",
+     "Calendar of orders",
+     "Reminders the day before"
+    ],
+    "pay"
+   ]
+  ],
+  "faq": [
+   [
+    "Can I set delivery areas?",
+    "Yes. Choose the areas you deliver to and the fee for each."
+   ],
+   [
+    "Can I take orders for a future date?",
+    "Yes. Customers pick a date and time at checkout."
+   ],
+   [
+    "Do I need a NAFDAC number?",
+    "For packaged food you sell widely, yes. For freshly made food sold locally, follow your state’s rules."
+   ],
+   [
+    "Can customers pay on delivery?",
+    "Yes, with a delivery code."
+   ]
+  ],
+  "seo": [
+   "Food businesses lose orders when customers wait too long for a reply. A menu link lets people order and pay any time, and keeps your kitchen organised."
+  ],
+  "rel": [
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ],
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ],
+   [
+    "Beauty",
+    "/solutions/beauty/"
+   ]
+  ]
+ },
+ {
+  "type": "sib_solution",
+  "slug": "electronics",
+  "title": "Electronics and gadgets",
+  "excerpt": "Show specs and condition clearly, offer pay on delivery to win trust, and sell accessories from suppliers without stock.",
+  "eyebrow": "For gadget sellers",
+  "h1": "Sell phones and gadgets online with pay on delivery",
+  "sub": "Show specs and condition clearly, offer pay on delivery to win trust, and sell accessories from suppliers without stock.",
+  "img": "person-gadgets.webp",
+  "bg": "#E2F6F1",
+  "fit": "cover",
+  "kws": [
+   "sell phones online Nigeria",
+   "gadget store website",
+   "electronics online shop Lagos",
+   "phone accessories wholesale"
+  ],
+  "ben": [
+   [
+    "Specs and condition, clear",
+    "New, UK used or refurbished, with storage, colour and warranty."
+   ],
+   [
+    "Trust at the door",
+    "Pay on delivery lets customers check before they pay."
+   ],
+   [
+    "More to sell",
+    "Earbuds, chargers and cases from suppliers, no stock needed."
+   ]
+  ],
+  "rows": [
+   [
+    "Variants with serial numbers",
+    "Track each phone by IMEI so you know exactly what was sold.",
+    [
+     "IMEI and serial tracking",
+     "Warranty on the receipt",
+     "Low stock alerts"
+    ],
+    "stock"
+   ],
+   [
+    "Same-day delivery in Ikeja and beyond",
+    "Book riders at checkout with live tracking.",
+    [
+     "Customer checks before paying",
+     "Code confirms delivery",
+     "Cash in by 6pm"
+    ],
+    "deliver"
+   ]
+  ],
+  "faq": [
+   [
+    "Can I sell used phones?",
+    "Yes. Mark the condition clearly and describe any marks or repairs."
+   ],
+   [
+    "Can I offer a warranty?",
+    "Yes. Add the warranty to the product and it shows on the receipt."
+   ],
+   [
+    "Can I sell on instalments?",
+    "Not yet. Pay on delivery and transfers are available today."
+   ],
+   [
+    "Where can I find accessories to sell?",
+    "In Find stock, from checked Nigerian suppliers. Dropship them or buy wholesale."
+   ]
+  ],
+  "seo": [
+   "Buyers of phones and electronics worry about fakes and damaged items. Clear specs, condition notes and pay on delivery help them buy with confidence."
+  ],
+  "rel": [
+   [
+    "Pay on delivery",
+    "/features/pay-on-delivery/"
+   ],
+   [
+    "Dropshipping",
+    "/features/dropshipping/"
+   ],
+   [
+    "Storefront builder",
+    "/features/storefront/"
+   ],
+   [
+    "Sell on WhatsApp",
+    "/features/sell-on-whatsapp/"
+   ]
+  ]
+ }
+]

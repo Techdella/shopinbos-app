@@ -40,7 +40,7 @@ function sib_schema_graph(): array {
 		$app = [
 			'@type' => 'SoftwareApplication', 'name' => 'Shopinbos', 'applicationCategory' => 'BusinessApplication',
 			'operatingSystem' => 'Android, iOS, Web', 'url' => $home, 'publisher' => $org,
-			'description' => 'Build an online store with AI, sell on WhatsApp, Instagram, TikTok and Google, with pay on delivery, riders and Friday payouts.',
+			'description' => 'Sell online and reach your customers: find products, sell in your own store and on WhatsApp, Instagram, TikTok, Facebook and Google, run your store, talk to customers and get paid.',
 		];
 		$price = preg_replace( '/[^0-9.]/', '', (string) sib_setting( 'price_start_month' ) );
 		if ( $price ) {

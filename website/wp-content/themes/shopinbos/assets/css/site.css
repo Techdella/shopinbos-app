@@ -685,3 +685,17 @@ select.input { appearance: auto; }
 .ahero-in > * { margin: 0; }
 .mosaic .tile.txt img { width: 72px !important; height: 72px !important; position: static; object-fit: contain; }
 @media (max-width: 640px) { .mosaic .tile.txt { padding: 16px; } .mosaic .tile.txt b { font-size: 18px !important; } .mosaic .tile.txt img { width: 48px !important; height: 48px !important; } }
+
+/* Feature and solution pages */
+.land-hero { background: linear-gradient(180deg, #FFF6F1 0%, #FFFFFF 100%); }
+.land-media { border-radius: 32px; overflow: hidden; height: 460px; position: relative; }
+.land-media img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.land-media img.is-contain { object-fit: contain; object-position: center bottom; }
+.col-56 { display: flex; flex-direction: column; gap: 72px; }
+.land-row.is-flip > :first-child { order: 2; }
+.land-vis { border-radius: 28px; padding: 32px; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
+.land-vis-ic { width: 64px; height: 64px; border-radius: 20px; background: #fff; display: flex; align-items: center; justify-content: center; }
+.land-vis-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.land-vis-list li { background: #fff; border-radius: 14px; padding: 12px 14px; display: flex; gap: 10px; align-items: center; font-weight: 700; font-size: 15px; }
+.benefit > * { margin: 0; }
+@media (max-width: 980px) { .land-row.is-flip > :first-child { order: 0; } .land-media { height: 340px; } .col-56 { gap: 48px; } }

@@ -24,7 +24,7 @@ class Sib_CLI {
 	 */
 	public function setup( $args, $assoc ) {
 		update_option( 'blogname', 'Shopinbos' );
-		update_option( 'blogdescription', 'Build your online store with AI. Sell on WhatsApp, Instagram, TikTok and Google, with pay on delivery and Friday payouts.' );
+		update_option( 'blogdescription', 'Sell online and reach your customers. Find products, sell everywhere, run your store, talk to customers and get paid, in one app.' );
 		update_option( 'timezone_string', 'Africa/Lagos' );
 		update_option( 'date_format', 'j F Y' );
 		update_option( 'default_comment_status', 'closed' );
@@ -34,13 +34,13 @@ class Sib_CLI {
 		global $wp_rewrite;
 		$wp_rewrite->set_permalink_structure( '/blog/%postname%/' );
 
-		$home  = $this->page( 'home', 'Home', $this->pattern( 'shopinbos/page-home' ), 'page-canvas' );
+		$home  = $this->refresh_page( 'home', 'Home', $this->pattern( 'shopinbos/page-home' ), 'page-canvas' );
 		$blog  = $this->page( 'blog', 'Blog', '' );
 		$this->page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
 		$this->page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
-		$this->page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
-		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We build for people who sell on WhatsApp. Shopinbos gives Nigerian sellers a store, payments, delivery and two helpers, in words they already use.' );
-		$this->page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
+		$this->refresh_page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
+		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
+		$this->refresh_page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
 		$this->refresh_page( 'careers', 'Careers', $this->careers_text(), 'page-article', 'Work on the app that helps Nigerian sellers run their shops from a phone.' );
 		$this->refresh_page( 'press', 'Press', $this->press_text(), 'page-article', 'Facts, logos and contacts for journalists writing about Shopinbos.' );
 		$this->academy();
@@ -56,6 +56,7 @@ class Sib_CLI {
 		update_option( 'page_on_front', $home );
 		update_option( 'page_for_posts', $blog );
 
+		$this->old_pages();
 		$this->blog();
 		$this->articles();
 		$this->resources();
@@ -122,21 +123,57 @@ class Sib_CLI {
 	}
 
 	/**
-	 * Replace a page that still holds first-install placeholder text. Pages someone has edited are left alone.
+	 * Create a page, or replace one that nobody has written in yet: empty (pages left by the old theme, whose
+	 * content lived in PHP files), first-install placeholder text, or content this command wrote and nobody has
+	 * edited since. Pages someone has edited are left alone.
 	 */
 	private function refresh_page( string $slug, string $title, string $content, string $template, string $excerpt = '', int $parent = 0, int $order = 0 ): int {
-		$existing = get_page_by_path( $parent ? get_post_field( 'post_name', $parent ) . '/' . $slug : $slug );
-		if ( ! $existing ) {
+		$existing = get_page_by_path( $parent ? get_page_uri( $parent ) . '/' . $slug : $slug );
+		if ( ! $existing || 'page' !== $existing->post_type ) {
 			$id = $this->page( $slug, $title, $content, $template, $excerpt, $parent );
 			wp_update_post( [ 'ID' => $id, 'menu_order' => $order ] );
+			$this->fingerprint( $id );
 			return $id;
 		}
-		if ( '' !== trim( $content ) && preg_match( '/\[(Legal to supply|Write the company|List open roles|Press kit)|^\s*<!-- wp:paragraph -->\s*<p>Our policies\.<\/p>|is coming soon/', $existing->post_content ) ) {
-			wp_update_post( wp_slash( [ 'ID' => $existing->ID, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] ) );
-			update_post_meta( $existing->ID, '_wp_page_template', $template );
-			WP_CLI::log( "Replaced placeholder page /{$slug}/" );
+		return $this->refresh_post( $existing, $title, $content, $excerpt, $template, $order );
+	}
+
+	/** Replace a post's content when it is safe to (see refresh_page). Returns the post ID. */
+	private function refresh_post( WP_Post $post, string $title, string $content, string $excerpt, string $template = '', int $order = 0 ): int {
+		if ( '' === trim( $content ) || ! $this->replaceable( $post ) ) {
+			return $post->ID;
 		}
-		return $existing->ID;
+		if ( md5( $content ) === get_post_meta( $post->ID, '_sib_seed_src', true ) ) {
+			return $post->ID; // already up to date
+		}
+		wp_update_post( wp_slash( [ 'ID' => $post->ID, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ?: $post->menu_order, 'post_status' => 'publish' ] ) );
+		if ( $template ) {
+			update_post_meta( $post->ID, '_wp_page_template', $template );
+		}
+		update_post_meta( $post->ID, '_sib_seed_src', md5( $content ) );
+		$this->fingerprint( $post->ID );
+		WP_CLI::log( 'Updated ' . $post->post_type . ' ' . get_page_uri( $post ) );
+		return $post->ID;
+	}
+
+	private function replaceable( WP_Post $post ): bool {
+		$text = trim( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ) );
+		if ( '' === $text && ! has_blocks( $post->post_content ) ) {
+			return true; // empty: left by the old theme
+		}
+		if ( preg_match( '/\[(Legal to supply|Write the company|List open roles|Press kit)|^\s*<!-- wp:paragraph -->\s*<p>Our policies\.<\/p>|is coming soon/', $post->post_content ) ) {
+			return true;
+		}
+		$print = get_post_meta( $post->ID, '_sib_seed_hash', true );
+		if ( $print ) {
+			return md5( $post->post_content ) === $print; // written by this command and not edited since
+		}
+		return $post->post_modified_gmt === $post->post_date_gmt && (int) $post->post_author === (int) get_current_user_id(); // created by an older version of this command
+	}
+
+	/** Remember what this command wrote, so a later run knows whether a person has edited it. */
+	private function fingerprint( int $id ): void {
+		update_post_meta( $id, '_sib_seed_hash', md5( (string) get_post_field( 'post_content', $id, 'raw' ) ) );
 	}
 
 	/** /legal/ and its seven documents. Returns the privacy policy page ID. */
@@ -421,6 +458,73 @@ class Sib_CLI {
 		}
 		update_post_meta( $id, '_sib_source', $key );
 		return (int) $id;
+	}
+
+	/**
+	 * Pages left by the old theme: rebuild what they showed and tidy what is no longer needed.
+	 *   - Features and solutions become sib_feature / sib_solution posts at the same URLs.
+	 *   - Partners, agencies and How it works get real content.
+	 *   - Empty old pages whose URL now belongs to an archive or another page are trashed (redirects.php
+	 *     sends their old URLs to the right place). Pages with content are never trashed.
+	 */
+	private function old_pages(): void {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		require_once SIB_CORE_DIR . '/includes/seed/pages.php';
+
+		// Empty pages that would hide the new sections, or duplicate another page.
+		$retire = [ 'features/logistics', 'features/payments', 'features/peggy-ai', 'features/social-selling', 'features/store-management', 'features/storefront', 'features',
+			'solutions/beauty', 'solutions/electronics', 'solutions/fashion', 'solutions/food', 'solutions',
+			'partners/logistics', 'partners/logistics-2', 'partners/supplier', 'partners/supplier-2',
+			'legal/privacy-2', 'legal/terms-2', 'legal/ndpr', 'legal/acceptable-use',
+			'help', 'templates', 'tools', 'marketplace', 'status', 'academy' ];
+		foreach ( $retire as $path ) {
+			foreach ( $this->pages_at( $path ) as $old ) {
+				if ( $this->replaceable( $old ) && '' === trim( wp_strip_all_tags( $old->post_content ) ) ) {
+					wp_trash_post( $old->ID );
+					WP_CLI::log( "Retired empty old page /{$path}/" );
+				}
+			}
+		}
+		// Two published pages at one URL (the old site has a few): keep the oldest.
+		foreach ( [ 'legal/cookies', 'legal/privacy', 'legal/terms', 'partners/agencies' ] as $path ) {
+			$dupes = $this->pages_at( $path );
+			foreach ( array_slice( $dupes, 1 ) as $old ) {
+				if ( $this->replaceable( $old ) ) {
+					wp_trash_post( $old->ID );
+					WP_CLI::log( "Removed duplicate page /{$path}/ (#{$old->ID})" );
+				}
+			}
+		}
+
+		foreach ( sib_seed_landings() as $i => $d ) {
+			$content  = sib_seed_landing_markup( $d );
+			$existing = get_page_by_path( $d['slug'], OBJECT, $d['type'] );
+			if ( $existing && $existing->post_type === $d['type'] ) {
+				$id = $this->refresh_post( $existing, $d['title'], $content, $d['excerpt'], '', $i + 1 );
+			} else {
+				$id = $this->cpt( $d['type'], $d['slug'], $d['title'], $content, $d['excerpt'], [ 'sib_cta_intent' => '', 'sib_reviewed' => gmdate( 'Y-m-d' ) ], $d['img'], $i + 1 );
+				update_post_meta( $id, '_sib_seed_src', md5( $content ) );
+				$this->fingerprint( $id );
+			}
+			update_post_meta( $id, 'rank_math_description', $d['excerpt'] );
+		}
+
+		foreach ( sib_seed_partner_pages() as [ $slug, $title, $content, $excerpt, $parent_slug ] ) {
+			$parent = $parent_slug ? get_page_by_path( $parent_slug ) : null;
+			$this->refresh_page( $slug, $title, $content, 'page-canvas', $excerpt, $parent ? $parent->ID : 0 );
+		}
+		$this->refresh_page( 'how-it-works', 'How it works', sib_seed_how_it_works( fn( $slug ) => $this->pattern( $slug ) ), 'page-canvas', 'Find products, sell them everywhere, run your store, talk to your customers and get paid.' );
+	}
+
+	/** Published pages at a path, oldest first. */
+	private function pages_at( string $path ): array {
+		$parts  = explode( '/', $path );
+		$slug   = array_pop( $parts );
+		$parent = $parts ? get_page_by_path( implode( '/', $parts ) ) : null;
+		if ( $parts && ! $parent ) {
+			return [];
+		}
+		return get_posts( [ 'post_type' => 'page', 'name' => $slug, 'post_parent' => $parent ? $parent->ID : 0, 'post_status' => 'publish', 'numberposts' => 10, 'orderby' => 'ID', 'order' => 'ASC' ] );
 	}
 
 	/** "Shopinbos team" author for posts written by the team. */

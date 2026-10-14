@@ -186,7 +186,7 @@ function sib_render_academy_hero(): string {
 		. '<div class="sticker" style="right:8%;top:300px">' . sib_icon( 'globe', 16, '#0C4A44' ) . esc_html__( 'English and Pidgin', 'shopinbos' ) . '</div>'
 		. '<div class="wrap ahero-in" style="gap:20px;position:relative"><span class="pill-label" style="border-color:#16794A;color:#16794A">' . sib_icon( 'lock', 14, '#16794A' ) . esc_html__( 'Free · No sign-up needed', 'shopinbos' ) . '</span>'
 		. '<h1 class="disp h1" style="max-width:900px;margin:0">' . esc_html__( 'Learn to sell online,', 'shopinbos' ) . ' <span class="grad">' . esc_html__( 'one short lesson', 'shopinbos' ) . '</span> ' . esc_html__( 'at a time', 'shopinbos' ) . '</h1>'
-		. '<p class="lead" style="max-width:620px">' . esc_html__( 'Short lessons for people selling on WhatsApp, Instagram and TikTok. Open any lesson now. No account, no password.', 'shopinbos' ) . '</p>'
+		. '<p class="lead" style="max-width:620px">' . esc_html__( 'Short lessons for people who sell online: in their own store, on WhatsApp, Instagram, TikTok and Facebook. Open any lesson now. No account, no password.', 'shopinbos' ) . '</p>'
 		. '<form class="prompt" role="search" method="get" action="' . esc_url( home_url( '/' ) ) . '"><input type="search" name="s" aria-label="' . esc_attr__( 'What do you want to learn?', 'shopinbos' ) . '" placeholder="' . esc_attr__( 'What do you want to learn? e.g. how to price my products', 'shopinbos' ) . '">'
 		. '<input type="hidden" name="post_type[]" value="sib_lesson"><input type="hidden" name="post_type[]" value="sib_help"><input type="hidden" name="post_type[]" value="post">'
 		. '<div class="row between" style="gap:10px"><div class="row wrapflex" style="gap:8px">';
