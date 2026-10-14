@@ -96,7 +96,7 @@ function fallbackText(state: RunState, reason: string) {
 // ─── Claude ──────────────────────────────────────────────────────────────────
 
 let claudeTools: Anthropic.Tool[] | null = null;
-function anthropicTools(): Anthropic.Tool[] {
+export function anthropicTools(): Anthropic.Tool[] {
   claudeTools ??= REX_TOOL_NAMES.map((name) => ({
     name,
     description: REX_TOOL_SPECS[name].description,
@@ -155,7 +155,7 @@ async function viaClaude(client: Anthropic, context: string, turns: RexTurn[], p
 // ─── OpenAI ──────────────────────────────────────────────────────────────────
 
 let gptTools: OpenAI.Responses.FunctionTool[] | null = null;
-function openaiTools(): OpenAI.Responses.FunctionTool[] {
+export function openaiTools(): OpenAI.Responses.FunctionTool[] {
   gptTools ??= REX_TOOL_NAMES.map((name) => ({
     type: "function",
     name,
