@@ -17,7 +17,9 @@ if [ -n "${SSH_KEY_FILE:-}" ]; then
   SSH="$SSH -i ${SSH_KEY_FILE/#\~/$HOME} -o IdentitiesOnly=yes"
 fi
 
-find "$HERE/wp-content" -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+if command -v php > /dev/null; then
+  find "$HERE/wp-content" -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+fi
 
 for dir in themes/shopinbos plugins/shopinbos-core; do
   rsync -az --delete -e "$SSH" "$HERE/wp-content/$dir/" "$SSH_TARGET:$WP_PATH/wp-content/$dir/"
