@@ -9,6 +9,7 @@ import { cx } from "@/components/app-ui";
 import { SignOutButton } from "./SignOutButton";
 import { SupportChatModal } from "./SupportChatModal";
 import { useUnreadMessages } from "@/components/conversations/client";
+import { FIT_MAX_HEIGHT, FitBox, useFitInViewport } from "./useFitInViewport";
 import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity, useTipsOn } from "./useShellCounts";
 import { OPEN_HELP_EVENT } from "@/components/simple/HelpButton";
 import { TermCard } from "@/components/learn/Term";
@@ -154,6 +155,10 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
     window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(() => setFlyout(null), 140);
   };
+  const flyoutRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const flyoutTop = useFitInViewport(flyoutRef, flyout ? flyout.top - 6 : null);
+  const tipTop = useFitInViewport(tipRef, tip ? tip.top - 6 : null);
   const flyoutItem = flyout ? visibleGroups.flatMap((group) => group.items).find((item) => item.id === flyout.id) : null;
 
   // Hover tip for items without a submenu (those show their meaning inside the flyout instead).
@@ -364,12 +369,13 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
       <div className="hidden h-full lg:flex">{rail}</div>
       {flyoutItem?.children && flyout && (
         <div
+          ref={flyoutRef}
           role="menu"
           aria-label={t("shell.itemPages", { item: label(flyoutItem) })}
           onMouseEnter={() => window.clearTimeout(closeTimer.current)}
           onMouseLeave={hideFlyout}
-          className="fixed left-[236px] z-50 hidden min-w-[220px] rounded-[16px] border border-app-line bg-white p-1.5 font-app shadow-[0_18px_40px_-12px_rgba(22,20,31,0.25)] lg:block"
-          style={{ top: Math.max(8, Math.min(flyout.top - 6, window.innerHeight - 48 - flyoutItem.children.length * 38)) }}
+          className="fixed left-[236px] z-50 hidden min-w-[220px] rounded-[16px] border border-app-line bg-white p-1.5 font-app shadow-[0_18px_40px_-12px_rgba(22,20,31,0.25)] overflow-y-auto overscroll-contain lg:block"
+          style={{ top: flyoutTop, maxHeight: FIT_MAX_HEIGHT }}
         >
           <div className="px-3 pb-1 pt-2 text-[11px] font-extrabold uppercase tracking-[0.7px] text-[#9A96A8]">{label(flyoutItem)}</div>
           {(() => {
@@ -408,26 +414,29 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
       )}
       {tip && canHover && (
         <div
+          ref={tipRef}
           id="nav-term-tip"
           role="tooltip"
           onMouseEnter={() => window.clearTimeout(tipTimer.current)}
           onMouseLeave={hideTip}
           className="fixed left-[250px] z-50 hidden w-[272px] rounded-[16px] p-3.5 shadow-[0_18px_40px_-12px_rgba(6,18,26,0.45)] animate-slide-up lg:block"
-          style={{ top: Math.max(8, Math.min(tip.top - 6, window.innerHeight - 190)), background: "#0E2A38" }}
+          style={{ top: tipTop, background: "#0E2A38" }}
         >
-          <span aria-hidden className="absolute -left-1.5 top-[18px] h-3 w-3 rotate-45" style={{ background: "#0E2A38" }} />
+          {/* The arrow stays level with the menu item when the tip moves up to fit. */}
+          <span aria-hidden className="absolute -left-1.5 h-3 w-3 rotate-45" style={{ background: "#0E2A38", top: Math.max(12, tip.top - 6 - tipTop + 18) }} />
           <TermCard entry={tip.entry} compact hideWatch />
         </div>
       )}
       {touchTip && (
-        <div
+        <FitBox
           data-nav-touch-tip
           role="tooltip"
+          anchorTop={touchTip.top}
           className="fixed z-[60] w-[min(280px,calc(100vw-24px))] rounded-[16px] p-3.5 shadow-[0_18px_40px_-12px_rgba(6,18,26,0.45)] animate-slide-up"
-          style={{ left: Math.min(touchTip.left, window.innerWidth - Math.min(280, window.innerWidth - 24) - 12), top: Math.min(touchTip.top, window.innerHeight - 200), background: "#0E2A38" }}
+          style={{ left: Math.min(touchTip.left, window.innerWidth - Math.min(280, window.innerWidth - 24) - 12), background: "#0E2A38" }}
         >
           <TermCard entry={touchTip.entry} hideWatch />
-        </div>
+        </FitBox>
       )}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label={t("shell.menu")}>

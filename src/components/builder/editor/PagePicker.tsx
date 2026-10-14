@@ -71,7 +71,7 @@ export function PagePicker(props: PagePickerProps) {
         <Icon name="chevDown" size={14} className="shrink-0" />
       </button>
       {open ? (
-        <div role="dialog" aria-label={tx("Choose a page to edit")} className="absolute left-1/2 top-full z-50 mt-2 w-[min(320px,calc(100vw-24px))] -translate-x-1/2 rounded-[18px] border border-app-line bg-white p-2 shadow-[0_18px_50px_rgba(22,20,31,.18)]">
+        <div role="dialog" aria-label={tx("Choose a page to edit")} className="absolute left-1/2 top-full z-50 mt-2 max-h-[calc(100dvh-120px)] w-[min(320px,calc(100vw-24px))] overflow-y-auto -translate-x-1/2 rounded-[18px] border border-app-line bg-white p-2 shadow-[0_18px_50px_rgba(22,20,31,.18)]">
           <label className="flex h-10 items-center gap-2 rounded-[12px] border border-app-line px-3 focus-within:border-[#2F66F6]">
             <Icon name="search" size={15} className="shrink-0 text-app-ink-faint" />
             <span className="sr-only">{tx("Search online store")}</span>

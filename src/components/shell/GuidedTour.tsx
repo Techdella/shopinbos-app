@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Mascot, PillButton } from "@/components/app-ui";
 import type { Role } from "@/lib/nav";
 import { usePreferences } from "./useShellCounts";
+import { FIT_MAX_HEIGHT, FitBox } from "./useFitInViewport";
 import { useT } from "@/components/i18n/I18nProvider";
 
 // First-visit walkthrough: a short spotlight tour of the menu and the main buttons, shown once on the
@@ -147,13 +148,16 @@ export function GuidedTour({ role }: { role: Role }) {
 
   // Card next to the highlighted element (right of the sidebar, under the top bar), or centred.
   const width = Math.min(340, window.innerWidth - 32);
-  let style: React.CSSProperties = { left: "50%", top: "50%", transform: "translate(-50%, -50%)", width };
+  // Its height is measured (FitBox), so a long step near the bottom of the window moves up instead of off-screen.
+  let style: React.CSSProperties = { left: "50%", top: "50%", transform: "translate(-50%, -50%)", width, maxHeight: FIT_MAX_HEIGHT, overflowY: "auto" };
+  let anchorTop: number | null = null;
   if (rect) {
     const roomRight = window.innerWidth - rect.right > width + 24;
     const left = roomRight ? rect.right + 14 : Math.min(Math.max(16, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 16);
-    const top = roomRight ? Math.min(Math.max(16, rect.top - 8), window.innerHeight - 240) : Math.min(rect.bottom + 12, window.innerHeight - 240);
-    style = { left, top, width };
+    anchorTop = roomRight ? Math.max(16, rect.top - 8) : rect.bottom + 12;
+    style = { left, width };
   }
+  const cardClass = "fixed rounded-[22px] bg-white p-5 shadow-[0_24px_60px_-20px_rgba(22,20,31,0.45)]";
 
   return (
     <div className="fixed inset-0 z-[70] font-app text-app-ink" role="dialog" aria-modal="true" aria-labelledby="tour-title">
@@ -166,7 +170,7 @@ export function GuidedTour({ role }: { role: Role }) {
       ) : (
         <div aria-hidden className="fixed inset-0 bg-[rgba(22,20,31,0.45)]" />
       )}
-      <div className="fixed rounded-[22px] bg-white p-5 shadow-[0_24px_60px_-20px_rgba(22,20,31,0.45)]" style={style}>
+      <TourCard anchorTop={anchorTop} className={cardClass} style={style}>
         <div className="flex items-center gap-3">
           <Mascot name={role === "seller" ? "peggy" : "rex"} className="h-10 w-10" alt="" />
           <div className="text-[12.5px] font-bold text-app-ink-soft">{t("progress", { n: step + 1, total: steps.length })}</div>
@@ -182,7 +186,11 @@ export function GuidedTour({ role }: { role: Role }) {
             <PillButton size="sm" autoFocus onClick={() => (last ? finish() : setStep(step + 1))}>{last ? t("done") : t("next")}</PillButton>
           </div>
         </div>
-      </div>
+      </TourCard>
     </div>
   );
+}
+
+function TourCard({ anchorTop, ...rest }: { anchorTop: number | null } & React.HTMLAttributes<HTMLDivElement>) {
+  return anchorTop === null ? <div {...rest} /> : <FitBox anchorTop={anchorTop} {...rest} />;
 }
