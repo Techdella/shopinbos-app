@@ -244,7 +244,7 @@
 
 	/* Reading progress in the table of contents. */
 	$$('[data-read-progress]').forEach(function (bar) {
-		var article = document.querySelector('[data-article]'), left = document.querySelector('[data-read-left]');
+		var article = document.querySelector('[data-article], .art-body'), left = document.querySelector('[data-read-left]');
 		if (!article) return;
 		var mins = Number(bar.getAttribute('data-read-progress')) || 1;
 		var tick = function () {

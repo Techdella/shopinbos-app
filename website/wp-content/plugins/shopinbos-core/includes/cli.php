@@ -17,7 +17,7 @@ class Sib_CLI {
 	 * Set up a fresh site.
 	 *
 	 * [--samples]
-	 * : Also create one sample feature, help article, guide, integration and blog post.
+	 * : Also create one sample feature, help article, guide and integration.
 	 *
 	 * @param array $args
 	 * @param array $assoc
@@ -58,9 +58,9 @@ class Sib_CLI {
 		update_option( 'page_on_front', $home );
 		update_option( 'page_for_posts', $blog );
 
-		$this->terms( 'category', [ 'Start a shop', 'Sell on WhatsApp and social', 'Marketing and ads', 'Delivery and payments', 'Sourcing and dropshipping', 'Seller stories', 'Product news' ] );
-		// Make "Start a shop" the default category and drop WordPress's sample content.
-		$start = get_term_by( 'slug', 'start-a-shop', 'category' );
+		$this->blog();
+		// Make "Selling on WhatsApp" the default category and drop WordPress's sample content.
+		$start = get_term_by( 'slug', 'selling-on-whatsapp', 'category' );
 		if ( $start ) {
 			update_option( 'default_category', $start->term_id );
 		}
@@ -84,6 +84,7 @@ class Sib_CLI {
 			$this->samples();
 		}
 
+		create_initial_taxonomies(); // picks up the new category and tag bases
 		sib_register_content_types();
 		sib_marketplace_rewrite_rules();
 		flush_rewrite_rules();
@@ -109,7 +110,7 @@ class Sib_CLI {
 		if ( $existing ) {
 			return $existing->ID;
 		}
-		$id = wp_insert_post( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'post_parent' => $parent ], true );
+		$id = wp_insert_post( wp_slash( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'post_parent' => $parent ] ), true );
 		if ( is_wp_error( $id ) ) {
 			WP_CLI::error( $id->get_error_message() );
 		}
@@ -176,7 +177,7 @@ class Sib_CLI {
 		if ( $existing ) {
 			return $existing->ID;
 		}
-		$id = wp_insert_post( [ 'post_type' => $type, 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] );
+		$id = wp_insert_post( wp_slash( [ 'post_type' => $type, 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] ) );
 		foreach ( $meta as $k => $v ) {
 			update_post_meta( $id, $k, $v );
 		}
@@ -188,6 +189,55 @@ class Sib_CLI {
 		}
 		WP_CLI::log( "Created {$type} {$slug}" );
 		return $id;
+	}
+
+	/** Blog categories with their colours, and the launch posts. */
+	private function blog(): void {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		foreach ( sib_seed_blog_categories() as $i => [ $slug, $name, $bg, $fg, $about ] ) {
+			$term = term_exists( $slug, 'category' ) ?: wp_insert_term( $name, 'category', [ 'slug' => $slug, 'description' => $about ] );
+			if ( ! is_wp_error( $term ) ) {
+				update_term_meta( (int) $term['term_id'], 'sib_bg', $bg );
+				update_term_meta( (int) $term['term_id'], 'sib_fg', $fg );
+				update_term_meta( (int) $term['term_id'], 'sib_order', $i + 1 );
+			}
+		}
+		foreach ( sib_seed_blog_posts() as [ $slug, $cat, $title, $dek, $date, $cover, $bg, $fit, $featured, $views, $lesson, $body ] ) {
+			if ( get_page_by_path( $slug, OBJECT, 'post' ) ) {
+				continue;
+			}
+			$id = wp_insert_post( wp_slash( [ 'post_type' => 'post', 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_excerpt' => $dek, 'post_content' => $body, 'post_date' => $date, 'post_author' => $this->team_author() ] ) );
+			if ( ! $id || is_wp_error( $id ) ) {
+				WP_CLI::warning( "Could not create post {$slug}" );
+				continue;
+			}
+			wp_set_object_terms( $id, [ $cat ], 'category' );
+			update_post_meta( $id, 'sib_cover_bg', $bg );
+			update_post_meta( $id, 'sib_cover_fit', $fit );
+			update_post_meta( $id, 'sib_views', $views );
+			if ( $featured ) {
+				update_post_meta( $id, 'sib_featured', 1 );
+			}
+			if ( $lesson ) {
+				update_post_meta( $id, 'sib_lesson', $lesson );
+			}
+			if ( $att = $this->media( $cover ) ) {
+				set_post_thumbnail( $id, $att );
+			} else {
+				update_post_meta( $id, 'sib_cover', $cover );
+			}
+			WP_CLI::log( "Created post {$slug}" );
+		}
+	}
+
+	/** "Shopinbos team" author for posts written by the team. */
+	private function team_author(): int {
+		$user = get_user_by( 'login', 'shopinbos-team' );
+		if ( $user ) {
+			return $user->ID;
+		}
+		$id = wp_insert_user( [ 'user_login' => 'shopinbos-team', 'user_pass' => wp_generate_password( 32 ), 'user_email' => 'team@shopinbos.com', 'display_name' => 'Shopinbos team', 'nickname' => 'Shopinbos team', 'role' => 'author', 'description' => 'Guides from the people who build Shopinbos, checked with sellers in Lagos, Abuja and Port Harcourt.' ] );
+		return is_wp_error( $id ) ? 1 : (int) $id;
 	}
 
 	private function store_templates(): void {
@@ -261,13 +311,6 @@ class Sib_CLI {
 		$this->cpt( 'sib_help', 'when-do-i-get-paid', 'When do I get paid?', $this->text_page( 'Every Friday, to your bank account. You can also withdraw any time.' ) . $steps, 'Every Friday, to your bank. You can also withdraw any time.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_help_area' => 'Money > Payouts' ], '', 0, [ 'sib_help_category' => [ 'payments-and-payouts' ] ] );
 
 		$this->cpt( 'sib_resource', 'whatsapp-selling-playbook', 'The WhatsApp selling playbook', "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">What’s inside</h2>\n<!-- /wp:heading -->\n\n<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>How to set up your WhatsApp Business catalogue</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Status posts that sell, with 10 examples</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Replies for price, delivery and “is it original?”</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n", 'Set up your catalogue, post Status that sells and answer every buyer question. Free PDF.', [ 'sib_gated' => true, 'sib_list_tag' => 'whatsapp-playbook' ], 'peggy-wave.webp' );
-
-		$post = $this->cpt( 'post', 'how-to-sell-on-whatsapp', 'How to sell on WhatsApp: a starter guide for Nigerian shops', $hd( 2, 'Set up WhatsApp Business', '' ) . $this->text_page( 'Use the WhatsApp Business app, not your personal WhatsApp. Add your shop name, address, opening hours and a short description.' )
-			. $hd( 2, 'Build your catalogue', '' ) . $this->text_page( 'Add your best 10 products with clear photos and prices. Shopinbos keeps your catalogue in sync with your store.' )
-			. sib_block_group_open( 'chat-bubble' ) . sib_block_html( '<img src="' . sib_img( 'peggy.webp' ) . '" alt="Peggy" width="56" height="56" loading="lazy">' )
-			. sib_block_group_open( 'bubble-body' ) . $p( '<strong>Peggy’s tip</strong>' ) . $p( 'Post your three best sellers on Status every morning. Most buyers check Status before 9am.' ) . sib_block_group_close() . sib_block_group_close()
-			. $hd( 2, 'Answer fast, every time', '' ) . $this->text_page( 'Most buyers ask about price, delivery and whether the item is available. Save quick replies, or let Peggy draft them for you to approve.' ),
-			'Set up WhatsApp Business, build a catalogue and answer buyers fast. A practical starter guide.', [ 'sib_cta_intent' => '' ], 'linen-set.webp', 0, [ 'category' => [ 'sell-on-whatsapp-and-social' ] ] );
 	}
 }
 

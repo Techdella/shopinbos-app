@@ -662,3 +662,5 @@ select.input { appearance: auto; }
 	.les-video > img { right: 0; }
 	.blk-cta h3 { font-size: 24px; }
 }
+.art-main { display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+@media (max-width: 640px) { .blk-dyk { flex-direction: column; gap: 14px; padding: 22px; } .dyk-text { font-size: 18px !important; } }

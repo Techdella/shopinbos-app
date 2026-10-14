@@ -28,6 +28,7 @@ foreach ( [
 	'meta',
 	'blocks',
 	'article-blocks',
+	'blog',
 	'schema',
 	'seo',
 	'sitemaps',
