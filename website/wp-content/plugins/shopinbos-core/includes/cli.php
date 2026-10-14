@@ -305,6 +305,12 @@ class Sib_CLI {
 				update_term_meta( (int) $term['term_id'], 'sib_order', $i + 1 );
 			}
 		}
+		// The old example post described a bakery with menus and a kitchen screen. Shopinbos sells food products, not menus.
+		$old = get_page_by_path( 'bakery-40-orders-a-day', OBJECT, 'post' );
+		if ( $old && str_contains( $old->post_content, 'One screen for the kitchen' ) ) {
+			wp_trash_post( $old->ID );
+			WP_CLI::log( 'Removed the bakery example post' );
+		}
 		foreach ( sib_seed_blog_posts() as [ $slug, $cat, $title, $dek, $date, $cover, $bg, $fit, $featured, $views, $lesson, $body ] ) {
 			if ( get_page_by_path( $slug, OBJECT, 'post' ) ) {
 				continue;
@@ -597,13 +603,18 @@ class Sib_CLI {
 			[ 'noir', 'Noir', 'Luxury', '#121212', '#F4EFE6', 'check-blazer.webp', 'Dark, quiet and premium, with gold buttons. For luxury and evening wear.' ],
 			[ 'plain', 'Plain', 'Any shop', '#F3F3F3', '#121212', 'knit-sweater.webp', 'Clean and simple. Works for any kind of shop.' ],
 			[ 'adire', 'Adire', 'Fashion', '#F3EDE6', '#2A2018', 'linen-set.webp', 'Warm tones and editorial type, inspired by Yoruba textile craft.' ],
-			[ 'pantry', 'Pantry', 'Food and drinks', '#FFF4DA', '#3A2A00', 'store-hero.webp', 'Bright and appetising, with menus, bundles and delivery times up front.' ],
+			[ 'pantry', 'Pantry', 'Food and drinks', '#FFF4DA', '#3A2A00', 'store-hero.webp', 'Bright and appetising, with packs, bundles and delivery times up front.' ],
 			[ 'ile', 'Ilé', 'Home and living', '#E8EFEA', '#15322A', 'camel-coat.webp', 'Calm and roomy, for furniture, décor and home goods.' ],
 			[ 'plug', 'Plug', 'Gadgets', '#16171C', '#FFFFFF', 'earbuds.webp', 'Sharp and dark, with specs and comparison tables for electronics.' ],
 			[ 'stride', 'Stride', 'Shoes', '#FFE9DD', '#3A1A08', 'suede-lace-ups.webp', 'Big product photos and a size guide on every page. Made for shoe shops.' ],
 		];
 		foreach ( $templates as $i => [ $key, $name, $kind, $bg, $ink, $img, $about ] ) {
 			$this->cpt( 'sib_template', $key, $name, $this->text_page( $about ), $about, [ 'sib_tpl_key' => $key, 'sib_tpl_kind' => $kind, 'sib_tpl_bg' => $bg, 'sib_tpl_ink' => $ink, 'sib_cta_intent' => 'template', 'sib_cta_args' => 'template=' . $key ], $img, $i );
+			// Earlier copy described food menus; Shopinbos food shops sell products.
+			$old = get_page_by_path( $key, OBJECT, 'sib_template' );
+			if ( $old && str_contains( $old->post_content, 'with menus,' ) ) {
+				wp_update_post( wp_slash( [ 'ID' => $old->ID, 'post_content' => $this->text_page( $about ), 'post_excerpt' => $about ] ) );
+			}
 		}
 	}
 

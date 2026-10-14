@@ -164,18 +164,18 @@ function sib_seed_blog_posts(): array {
 		. $b( 'faq', [ 'items' => "Who pays when the partner damages a parcel? | The delivery partner. Report it in the app with photos within 24 hours.\nShould I refund before I get the item back? | For small amounts and good customers, yes. It costs less than losing them.\nWhat if a customer says they never got it but the code was entered? | The code proves delivery. Share the delivery record calmly and offer to check with the rider." ] )
 		. $b( 'cta-inline', [ 'title' => 'Deliveries with codes and photos', 'text' => 'Every Shopinbos delivery has tracking, a code and a record you can share.', 'linkLabel' => 'Delivery on Shopinbos', 'linkUrl' => '/delivery/' ] );
 
-	$baker = $b( 'callout', [ 'kind' => 'note', 'title' => 'An example setup', 'text' => 'This is an example bakery, not a real one. It shows a setup any small kitchen can copy.' ] )
-		. $p( 'A small bakery in Surulere bakes bread, rolls and cakes. Orders come in on WhatsApp from 6am. On a busy day it is 40 orders, and missing one means an angry customer at breakfast.' )
-		. $h( '1. A menu link, not a menu picture' )
-		. $p( 'Instead of sending a menu photo and typing every order by hand, the bakery shares one link. Customers pick items, quantities and a delivery time, and pay or choose pay on delivery.' )
-		. $h( '2. One screen for the kitchen' )
-		. $p( 'Every order shows up in the Shopinbos app on a tablet in the kitchen, sorted by delivery time. The baker ticks each one when it is packed. Nothing lives in someone’s head.' )
-		. $b( 'steps', [ 'title' => 'A morning at the bakery', 'items' => "6:00 | Orders arrive from the menu link and WhatsApp.\n7:00 | First batch packed and ticked on the kitchen screen.\n7:30 | Riders booked from the orders, with addresses filled in.\n9:00 | Customers paid on delivery with a code. Cash paid in by 6pm." ] )
-		. $h( '3. Fewer chats, more baking' )
-		. $p( 'Peggy answers the common questions on WhatsApp: opening hours, delivery areas and “do you have sugar-free?”. The baker only steps in for special cake orders.' )
+	$baker = $b( 'callout', [ 'kind' => 'note', 'title' => 'An example setup', 'text' => 'This is an example food brand, not a real one. It shows a setup any small food business can copy.' ] )
+		. $p( 'A small snack brand in Surulere packs chin chin, plantain chips and spiced peanuts. Orders come in on WhatsApp, Instagram and TikTok from early morning. On a busy day it is 40 orders, and missing one means a customer who buys elsewhere next time.' )
+		. $h( '1. A store link, not a price list picture' )
+		. $p( 'Instead of sending a photo of the price list and typing every order by hand, the brand shares one store link. Customers pick products, pack sizes and quantities, and pay or choose pay on delivery.' )
+		. $h( '2. Every order in one list' )
+		. $p( 'Orders from the store, WhatsApp and Instagram all land in the Shopinbos app, with what is paid, packed and on the way. Stock goes down with every sale, so nobody sells a pack that is not on the shelf.' )
+		. $b( 'steps', [ 'title' => 'A day at the snack brand', 'items' => "7:00 | Orders arrive from the store link, WhatsApp and Instagram.\n10:00 | Packs labelled and ticked as packed in the app.\n11:00 | Riders booked from the orders, interstate parcels sent with a delivery company.\n18:00 | Pay on delivery cash confirmed with codes and paid in." ] )
+		. $h( '3. Fewer chats, more selling' )
+		. $p( 'Peggy answers the common questions on WhatsApp: prices, pack sizes, delivery areas and “is it still available?”. The owner only steps in for bulk orders from shops.' )
 		. $b( 'stats', [ 'title' => 'What changed (example)', 'items' => "40 a day | Orders without missing one\n1 link | Instead of typing every order\n0 | Orders lost in the chat", 'foot' => 'Example figures to show the kind of change, not a real shop’s results.' ] )
-		. $b( 'checklist', [ 'title' => 'Copy this setup', 'items' => "Put your menu in your store with photos and prices\nAdd delivery times customers can choose\nShare the link on Status every morning\nKeep the app open on one screen in the kitchen\nLet Peggy answer the common questions" ] )
-		. $b( 'cta-inline', [ 'title' => 'Set up your menu link', 'text' => 'Rex builds a food store from your photos, with delivery times and pay on delivery.', 'linkLabel' => 'See the Pantry template', 'linkUrl' => '/templates/pantry/' ] );
+		. $b( 'checklist', [ 'title' => 'Copy this setup', 'items' => "Add every product with clear photos, pack sizes and prices\nTrack stock for each pack size\nShare the store link on Status every morning\nOffer bundles and a wholesale price for shops\nLet Peggy answer the common questions" ] )
+		. $b( 'cta-inline', [ 'title' => 'Set up your food store', 'text' => 'Rex builds a food store from your product photos, with pack sizes, delivery and pay on delivery.', 'linkLabel' => 'See the Pantry template', 'linkUrl' => '/templates/pantry/' ] );
 
 	return [
 		[ 'how-to-get-your-first-10-orders-from-whatsapp-status', 'selling-on-whatsapp', 'How to get your first 10 orders from WhatsApp Status', 'No ad budget needed. Turn the people who already watch your Status into customers, one post at a time.', '2026-10-12 08:00', 'person-hero.webp', '#FFEDE4', 'contain', true, 420, 'turn-your-status-into-a-shop-window', $first10 ],
@@ -186,6 +186,6 @@ function sib_seed_blog_posts(): array {
 		[ 'product-photo-tips-phone-and-window', 'instagram-and-tiktok', '10 product photo tips using only your phone and a window', 'Daylight, a plain sheet and one trick with a white cardboard. That is all.', '2026-09-24 08:00', 'block-heels.webp', '#FFEDE4', 'cover', false, 210, '', $photos ],
 		[ 'from-a-yaba-stall-to-selling-across-lagos', 'seller-stories', 'From a Yaba stall to selling across Lagos: a bag seller’s first year online', 'What changed when the shop moved from a notebook to one app. An example story.', '2026-09-20 08:00', 'person-fashion.webp', '#FCE4EC', 'contain', false, 150, '', $tola ],
 		[ 'when-a-delivery-goes-wrong', 'delivery', '“I didn’t order this”: what to do when a delivery goes wrong', 'A calm, step-by-step way to handle wrong items, no-shows and damaged parcels.', '2026-09-16 08:00', 'person-food.webp', '#FDF0D5', 'cover', false, 190, '', $notmine ],
-		[ 'bakery-40-orders-a-day', 'seller-stories', 'How a small bakery takes 40 orders a day without missing one', 'A menu link on WhatsApp, a kitchen screen and pay on delivery. An example setup.', '2026-09-11 08:00', 'bread-rolls.webp', '#FFF4DA', 'cover', false, 120, '', $baker ],
+		[ 'snack-brand-40-orders-a-day', 'seller-stories', 'How a small snack brand takes 40 orders a day without missing one', 'One store link for WhatsApp, Instagram and TikTok, stock that stays right and pay on delivery. An example setup.', '2026-09-11 08:00', 'bread-rolls.webp', '#FFF4DA', 'cover', false, 120, '', $baker ],
 	];
 }

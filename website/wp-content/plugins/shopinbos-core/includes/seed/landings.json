@@ -1075,76 +1075,87 @@
  {
   "type": "sib_solution",
   "slug": "food",
-  "title": "Food and pantry",
-  "excerpt": "A menu link customers can order from, orders straight to your kitchen, and riders booked in one tap. Made for bakeries, small chops and home kitchens.",
-  "eyebrow": "For food businesses",
-  "h1": "Take food orders online: menu, WhatsApp orders and delivery",
-  "sub": "A menu link customers can order from, orders straight to your kitchen, and riders booked in one tap. Made for bakeries, small chops and home kitchens.",
+  "title": "Food and groceries",
+  "excerpt": "Put your packed food products in one store, sell them on WhatsApp, Instagram and TikTok, and deliver across Nigeria with pay on delivery. Made for snack brands, spice and sauce makers, drinks and grocery sellers.",
+  "eyebrow": "For food brands and grocery sellers",
+  "h1": "Sell food products online: snacks, spices, drinks and groceries",
+  "sub": "Put your packed food products in one store, sell them on WhatsApp, Instagram and TikTok, and deliver across Nigeria with pay on delivery. Made for snack brands, spice and sauce makers, drinks and grocery sellers.",
   "img": "person-food.webp",
   "bg": "#FFF4DA",
   "fit": "cover",
   "kws": [
-   "food ordering website Nigeria",
-   "online menu for restaurant",
-   "small chops orders online",
-   "bakery online store"
+   "sell food products online Nigeria",
+   "sell snacks online",
+   "online grocery store Nigeria",
+   "sell spices and sauces online"
   ],
   "ben": [
    [
-    "A menu that takes orders",
-    "Customers pick, add notes and pay, without a long chat."
+    "Products that sell themselves",
+    "Clear photos, sizes, weights, ingredients and expiry dates on every product."
    ],
    [
-    "Order times you control",
-    "Set opening hours, cut-off times and pre-orders for events."
+    "Stock you can trust",
+    "Track every pack and batch, and get a warning before something runs out or expires."
    ],
    [
-    "Fast local delivery",
-    "Book a bike for each order, or let customers pick up."
+    "Delivery that keeps it fresh",
+    "Book riders in your city, or send interstate with a delivery company, from the order."
    ]
   ],
   "rows": [
    [
-    "Orders straight to the kitchen",
-    "A simple kitchen screen shows what to make next, with notes and pickup times.",
+    "Sizes, packs and bundles",
+    "Sell the same product in different sizes, cartons and gift bundles, each with its own price and stock.",
     [
-     "Print or show on a tablet",
-     "Mark ready, then book a rider",
-     "Customer gets updates"
+     "250g, 500g and 1kg packs",
+     "Bundles and gift boxes",
+     "Wholesale prices for bulk buyers"
+    ],
+    "stock"
+   ],
+   [
+    "Reorders made easy",
+    "Food buyers come back. Remind past customers when it is time to restock and let them buy again in two taps.",
+    [
+     "Customer list with past orders",
+     "WhatsApp reminders",
+     "Discounts for repeat buyers"
     ],
     "chat"
    ],
    [
-    "Events and trays",
-    "Take bulk orders for parties with deposits and delivery dates.",
+    "Sell to shops, not just shoppers",
+    "List your products in Find stock so other Shopinbos sellers can stock or dropship them.",
     [
-     "Deposit and balance",
-     "Calendar of orders",
-     "Reminders the day before"
+     "Wholesale and dropship",
+     "You ship with their label",
+     "Paid after delivery"
     ],
-    "pay"
+    "deliver"
    ]
   ],
   "faq": [
    [
-    "Can I set delivery areas?",
-    "Yes. Choose the areas you deliver to and the fee for each."
-   ],
-   [
-    "Can I take orders for a future date?",
-    "Yes. Customers pick a date and time at checkout."
+    "What food products can I sell?",
+    "Packed and shelf-stable food: snacks, spices, sauces, grains, drinks, baking supplies and other groceries."
    ],
    [
     "Do I need a NAFDAC number?",
-    "For packaged food you sell widely, yes. For freshly made food sold locally, follow your state’s rules."
+    "For packaged food sold widely, yes. Add your NAFDAC number to the product so buyers can see it."
+   ],
+   [
+    "Can I deliver outside my state?",
+    "Yes. Book interstate delivery with our partner companies from the order."
    ],
    [
     "Can customers pay on delivery?",
-    "Yes, with a delivery code."
+    "Yes, with a 4-digit delivery code."
    ]
   ],
   "seo": [
-   "Food businesses lose orders when customers wait too long for a reply. A menu link lets people order and pay any time, and keeps your kitchen organised."
+   "Nigerians buy more snacks, spices, drinks and groceries online every year, from WhatsApp Status to Instagram and TikTok. Food brands that show clear photos, sizes and prices, and deliver on time, win repeat buyers.",
+   "Shopinbos gives food brands one store for every channel, stock tracking for each pack, pay on delivery and riders across Nigeria."
   ],
   "rel": [
    [

@@ -9,7 +9,7 @@
 $img    = fn( $f ) => sib_theme_img( $f );
 $mosaic = '<div class="wrap mosaic">'
 	. '<div class="tile" style="background:#FFEDE4;grid-row:span 2"><img class="cut" src="' . $img( 'person-hero.webp' ) . '" alt="A seller showing a product on her phone" loading="lazy"><span class="chipw" style="left:14px;top:14px">Sells everywhere</span></div>'
-	. '<div class="tile"><img class="fill" src="' . $img( 'person-food.webp' ) . '" alt="A baker behind his counter" loading="lazy" style="object-position:66% 30%"><span class="chipw" style="left:14px;bottom:14px">Bakery · Ibadan</span></div>'
+	. '<div class="tile"><img class="fill" src="' . $img( 'person-food.webp' ) . '" alt="A baker behind his counter" loading="lazy" style="object-position:66% 30%"><span class="chipw" style="left:14px;bottom:14px">Snacks · Ibadan</span></div>'
 	. '<div class="tile txt" style="background:#0C4A44;color:#fff"><img src="' . $img( 'rex.webp' ) . '" alt="" width="72" height="72" loading="lazy" style="width:72px;height:72px;object-fit:contain"><b class="disp" style="font-size:22px;line-height:1.15">Rex builds the store with you</b></div>'
 	. '<div class="tile" style="background:#E7E1FF"><img class="cut" src="' . $img( 'person-cta-left.webp' ) . '" alt="A fashion seller" loading="lazy"><span class="chipw" style="left:14px;top:14px">Fashion</span></div>'
 	. '<div class="tile"><img class="fill" src="' . $img( 'person-gadgets.webp' ) . '" alt="A gadget seller checking orders on his laptop" loading="lazy" style="object-position:60% 30%"><span class="chipw" style="left:14px;bottom:14px">Gadgets · Ikeja</span></div>'

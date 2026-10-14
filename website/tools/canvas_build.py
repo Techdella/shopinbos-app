@@ -42,6 +42,17 @@ BY_TEXT = {
     ('mg.help', 'Talk to us on WhatsApp'): '{{wa}}',
     ('mg.pay', 'Pay on delivery'): '/features/pay-on-delivery/',
 }
+# Copy changes on top of the canvas. Food on Shopinbos means food products (snacks, spices, drinks,
+# groceries), not restaurant menus or kitchen orders.
+TEXT = {
+    'Food and bakeries': 'Food and groceries',
+    'Menus, kitchen screen, delivery': 'Snacks, spices and drinks',
+    'Snacks and sauces, with a menu on WhatsApp and orders that go straight to the kitchen':
+        'Snacks, spices and sauces, sold on WhatsApp and in the store, packed and delivered across Nigeria',
+    'Mama Put Snacks': 'Mama Tee Pantry',
+    'mamaputsnacks.shopinbos.com': 'mamateepantry.shopinbos.com',
+    'A smiling baker behind his counter of fresh pastries': 'A smiling food seller with his packed snacks',
+}
 used_imgs = set()
 
 
@@ -166,6 +177,8 @@ def write(name, el, soup):
     clean(el, soup)
     el['class'] = (el.get('class') or []) + ['cv']
     html = str(el)
+    for a, b in TEXT.items():
+        html = html.replace(a, b)
     html = re.sub(r'\n\s*\n', '\n', html)
     open(os.path.join(OUT, name + '.html'), 'w').write(html.strip() + '\n')
     print(f'{name:22s} {len(html):7d}')

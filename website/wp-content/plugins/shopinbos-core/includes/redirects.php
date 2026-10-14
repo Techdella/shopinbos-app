@@ -12,6 +12,7 @@ function sib_redirects(): array {
 		'/legal/privacy-2/'       => '/legal/privacy/',
 		'/legal/terms-2/'         => '/legal/terms/',
 		'/legal/ndpr/'            => '/legal/privacy/',
+		'/blog/bakery-40-orders-a-day/' => '/blog/snack-brand-40-orders-a-day/',
 		'/legal/acceptable-use/'  => '/legal/seller-rules/',
 		'/privacy-policy/'        => '/legal/privacy/',
 		'/cookie-policy/'         => '/legal/cookies/',
