@@ -32,7 +32,7 @@ URLS = {
     'mg.drop': '/features/dropshipping/', 'mg.trending': '/trending/', 'mg.shopify': '/compare/shopify/',
     'mg.woo': '/compare/woocommerce/', 'mg.suppliers': '/for-suppliers/', 'mg.riders': '/delivery/#riders',
     'mg.academy': '/academy/', 'mg.blog': '/blog/', 'mg.pdf': '/resources/', 'mg.pdfdoc': '/resources/',
-    'mg.help': '/help/', 'mg.about': '/about/', 'mg.pdf': '/resources/online-sellers-starter-kit/',
+    'mg.help': '/help/', 'mg.about': '/about/', 'mg.gist': '/gist/', 'mg.pdf': '/resources/online-sellers-starter-kit/',
     'mg.pdfdoc': '/resources/online-sellers-starter-kit/',
     'legalNav.terms': '/legal/terms/', 'legalNav.privacy': '/legal/privacy/', 'legalNav.refunds': '/legal/refunds/',
     'legalNav.cookies': '/legal/cookies/', 'legalNav.rules': '/legal/seller-rules/',
@@ -46,6 +46,7 @@ HELP_POP = ['How pay on delivery works, step by step', 'When will I get my money
 BY_TEXT = {
     ('mg.help', 'Chat on WhatsApp'): '{{wa}}',
     ('mg.help', 'Back to Help centre'): '/help/',
+    ('mg.pdf', 'Free PDFs'): '/resources/',
     ('mg.delivery', 'Delivery companies'): '/delivery/',
     ('mg.help', 'Talk to us on WhatsApp'): '{{wa}}',
     ('mg.pay', 'Pay on delivery'): '/features/pay-on-delivery/',
@@ -333,6 +334,13 @@ def page_parts(prefix, view, variant_groups=None):
         else:
             el = BeautifulSoup(str(sec), 'html.parser').find('section')
         search_form(el)
+        if i == 0:
+            # The first section is above the fold: load its images straight away, the biggest one first.
+            imgs = el.find_all('img')
+            for k, img in enumerate(imgs):
+                img['loading'] = 'eager'
+                if k == 0 or 'p-hero' in img.get('src', '') or 'p-' in img.get('src', '')[:20]:
+                    img['fetchpriority'] = 'high'
         if prefix == 'trending':
             trend_filters(el)
         for k, b in enumerate(el.find_all(attrs={'data-go': 'item.toggle'})):
@@ -370,11 +378,34 @@ burger = header.find(class_='burger')
 burger['aria-controls'] = 'mmenu'
 burger['aria-expanded'] = 'false'
 burger['data-go'] = 'burger'
+# Gist (60-second story tips) next to Blog in the Resources menu, the mobile menu and the footer.
+import copy
+
+
+def add_gist_after_blog(root):
+    for b in list(root.find_all(attrs={'data-go': ['mg.blog', 'nav.blog']})):
+        g = copy.copy(b)
+        g['data-go'] = 'mg.gist'
+        title = g.find('b')
+        if title is not None:
+            title.string = 'Gist'
+            desc = title.find_next_sibling('span')
+            if desc is not None:
+                desc.string = 'Selling tips in 60 seconds'
+        else:
+            for t in g.find_all(string=True):
+                if t.strip() == 'Blog':
+                    t.replace_with('Gist')
+        b.insert_after(g)
+
+
+add_gist_after_blog(header)
 header['class'] = ['cv-hdr']
 write('header', header, home)
 
 # ---- Footer and the sticky mobile button ---------------------------------------------------------------
 foot = home.find('footer')
+add_gist_after_blog(foot)
 write('footer', foot, home)
 write('stickycta', home.find(class_='stickycta'), home)
 
