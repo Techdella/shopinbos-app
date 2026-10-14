@@ -1,5 +1,5 @@
 import { db } from "@/lib/db/client";
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis";
 import { checkShared, rateLimitKey, type RateLimitConfig, type RateLimitResult, type SharedRateLimitConfig } from "@/lib/rate-limit-core";
 
 // Two limiters:
@@ -48,18 +48,8 @@ export function checkRateLimit(
 
 type BumpRow = { current: number; previous: number | null };
 
-// Upstash Redis when UPSTASH_REDIS_REST_URL/TOKEN are set (or Vercel's KV_REST_API_URL/TOKEN); otherwise the
-// Postgres table. Same windows and keys either way, so switching backends only resets the current window.
-let redis: Redis | null | undefined;
-function sharedRedis() {
-  if (redis === undefined) {
-    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-    redis = url && token ? new Redis({ url, token, retry: { retries: 1 } }) : null;
-  }
-  return redis;
-}
-
+// Upstash Redis when it's configured (src/lib/redis.ts); otherwise the Postgres table. Same windows and keys either
+// way, so switching backends only resets the current window.
 const REDIS_PREFIX = "rl:";
 
 /**
@@ -67,7 +57,7 @@ const REDIS_PREFIX = "rl:";
  * Fails open with a console.warn when the store errors, unless `failClosed` is set.
  */
 export function checkRateLimitShared(key: string, config: SharedRateLimitConfig): Promise<RateLimitResult> {
-  const kv = sharedRedis();
+  const kv = getRedis();
   if (kv) {
     return checkShared(
       {

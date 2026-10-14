@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
+import { cachedPublic, publicCacheKey, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
 import { okList, apiError, sortToOrderBy } from "@/lib/api/response";
 import { PublicProductsQuerySchema } from "@/lib/schemas";
@@ -75,10 +76,13 @@ export async function GET(req: NextRequest) {
     ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
   };
 
-  const [total, products] = await Promise.all([
-    db.supplierProduct.count({ where }),
-    db.supplierProduct.findMany({ where, select, orderBy, skip, take: limit }),
-  ]);
+  const { total, products } = await cachedPublic(publicCacheKey("products:list", parsed.data), PUBLIC_LIST_TTL_S, async () => {
+    const [total, products] = await Promise.all([
+      db.supplierProduct.count({ where }),
+      db.supplierProduct.findMany({ where, select, orderBy, skip, take: limit }),
+    ]);
+    return { total, products };
+  });
 
   return withCors(req, okList(products, { page, limit, total }), { cacheControl: PUBLIC_LIST_CACHE });
 }
