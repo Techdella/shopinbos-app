@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Shopinbos Core
- * Description: Marketplace pages read from the Shopinbos app, content types, free tools, gated downloads, sign-up links that carry intent into the app, schema and sitemaps.
+ * Plugin Name: Shopinbos Website (shopinbos.com)
+ * Description: Runs the shopinbos.com marketing website: marketplace pages read from the Shopinbos app, content types, free tools, gated downloads, sign-up links that carry intent into the app, schema and sitemaps.
  * Version: 1.0.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
@@ -38,6 +38,8 @@ foreach ( [
 	'contact-page',
 	'gist',
 	'launch',
+	'investors',
+	'admin-menu',
 	'schema',
 	'seo',
 	'sitemaps',

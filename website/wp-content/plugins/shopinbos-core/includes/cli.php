@@ -40,10 +40,14 @@ class Sib_CLI {
 		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
 		$cs = $this->refresh_page( 'coming-soon', 'Coming soon', "<!-- wp:shopinbos/coming-soon /-->\n\n<!-- wp:shopinbos/gist-rail /-->\n", 'page-canvas', 'Shopinbos is almost here. Join the waitlist and we’ll tell you the moment your shop can go live.' );
 		update_post_meta( $cs, 'sib_noindex', 1 );
+		if ( $made = sib_gist_import() ) {
+			WP_CLI::log( "Added {$made} Gist stories (edit them under Website > Gist stories)" );
+		}
 		$this->refresh_page( 'gist', 'Gist: selling tips in 60 seconds', sib_block_html( '<section class="ahero cv" style="padding:56px 0 8px;background:linear-gradient(#FFF6F1 0%,#fff 100%)"><div class="wrap" style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;max-width:760px"><span class="gist-badge"><span class="gist-dot"></span>Gist</span><h1 class="disp h1" style="font-size:58px">Selling tips in <span class="grad">60 seconds</span></h1><p class="lead">No long articles. Tap a circle and watch quick, animated tips on pricing, WhatsApp, delivery, photos and getting your first orders. New Gist every week.</p></div></section>' ) . "<!-- wp:shopinbos/gist-rail {\"layout\":\"grid\",\"heading\":false} /-->\n\n<!-- wp:shortcode -->\n[sib_gist_text]\n<!-- /wp:shortcode -->\n", 'page-canvas', 'Quick, animated selling tips for Nigerian online sellers: pricing, WhatsApp Status, delivery, photos and your first orders, in 60 seconds.' );
 		$this->refresh_page( 'trending', 'Trending products in Nigeria this week', function_exists( 'sib_canvas_blocks' ) ? sib_canvas_blocks( 'trending' ) : '', 'page-canvas', 'The products Nigerian online shops are adding and selling most this week, with what you keep on each. Updated every morning.' );
 		$this->refresh_page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
 		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
+		$this->refresh_page( 'investors', 'Investor relations', "<!-- wp:shopinbos/investors-page /-->\n", 'page-canvas', 'Shopinbos is building the commerce operating system for African businesses. Company facts, business model and investor enquiries.' );
 		$this->refresh_page( 'contact', 'Contact us', "<!-- wp:shopinbos/contact-page /-->\n", 'page-canvas', 'Talk to a real person at Shopinbos on WhatsApp, by email or with the form. 8am to 8pm, in English or Pidgin.' );
 		$old_contact = get_page_by_path( 'contact' );
 		if ( $old_contact && str_contains( $old_contact->post_content, 'The fastest way to reach us is WhatsApp. A real person replies' ) && str_contains( $old_contact->post_content, 'shopinbos/lead-form' ) ) {
@@ -259,11 +263,25 @@ class Sib_CLI {
 		update_post_meta( $id, '_sib_seed_hash', md5( (string) get_post_field( 'post_content', $id, 'raw' ) ) );
 	}
 
-	/** /legal/ and its seven documents. Returns the privacy policy page ID. */
+	/** Two published pages at one URL (the old site has a few): keep the oldest. */
+	private function dedupe_pages(): void {
+		foreach ( [ 'legal/cookies', 'legal/privacy', 'legal/terms', 'legal/acceptable-use', 'partners/agencies' ] as $path ) {
+			$dupes = $this->pages_at( $path );
+			foreach ( array_slice( $dupes, 1 ) as $old ) {
+				if ( $this->replaceable( $old ) ) {
+					wp_trash_post( $old->ID );
+					WP_CLI::log( "Removed duplicate page /{$path}/ (#{$old->ID})" );
+				}
+			}
+		}
+	}
+
+	/** /legal/ and its documents. Returns the privacy policy page ID. */
 	private function legal(): int {
 		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
 		require_once SIB_CORE_DIR . '/includes/seed/legal.php';
 		$hub     = sib_block_p( 'The agreements and policies for everyone who uses Shopinbos: sellers, their customers, suppliers and delivery partners. Each one starts with a summary in plain words.' ) . sib_seed_b( 'legal-index' );
+		$this->dedupe_pages();
 		$legal   = $this->refresh_page( 'legal', 'Legal', $hub, 'page-article' );
 		$privacy = 0;
 		foreach ( sib_seed_legal_docs() as $i => [ $slug, $title, $lead, $summary, $sections, $email ] ) {
@@ -527,6 +545,7 @@ class Sib_CLI {
 				}
 			}
 			update_post_meta( $id, 'sib_pages', (int) $r['pages'] );
+			update_post_meta( $id, 'sib_style', (string) $r['style'] );
 			update_post_meta( $id, 'sib_chapters', array_values( (array) $r['chapters'] ) );
 			foreach ( [ 'rank_math_title' => $r['meta_title'], 'rank_math_description' => $r['sub'], 'rank_math_focus_keyword' => $r['keyword'] ] as $k => $v ) {
 				if ( $v ) {
@@ -575,7 +594,7 @@ class Sib_CLI {
 		$retire = [ 'features/logistics', 'features/payments', 'features/peggy-ai', 'features/social-selling', 'features/store-management', 'features/storefront', 'features',
 			'solutions/beauty', 'solutions/electronics', 'solutions/fashion', 'solutions/food', 'solutions',
 			'partners/logistics', 'partners/logistics-2', 'partners/supplier', 'partners/supplier-2',
-			'legal/privacy-2', 'legal/terms-2', 'legal/ndpr', 'legal/acceptable-use',
+			'legal/privacy-2', 'legal/terms-2', 'legal/ndpr',
 			'help', 'templates', 'tools', 'marketplace', 'status', 'academy' ];
 		foreach ( $retire as $path ) {
 			foreach ( $this->pages_at( $path ) as $old ) {
@@ -585,16 +604,14 @@ class Sib_CLI {
 				}
 			}
 		}
-		// Two published pages at one URL (the old site has a few): keep the oldest.
-		foreach ( [ 'legal/cookies', 'legal/privacy', 'legal/terms', 'partners/agencies' ] as $path ) {
-			$dupes = $this->pages_at( $path );
-			foreach ( array_slice( $dupes, 1 ) as $old ) {
-				if ( $this->replaceable( $old ) ) {
-					wp_trash_post( $old->ID );
-					WP_CLI::log( "Removed duplicate page /{$path}/ (#{$old->ID})" );
-				}
+		// Old slugs that WordPress would follow away from a section URL (e.g. /templates/ to another page).
+		global $wpdb;
+		foreach ( sib_reserved_paths() as $path ) {
+			if ( $wpdb->delete( $wpdb->postmeta, [ 'meta_key' => '_wp_old_slug', 'meta_value' => trim( $path, '/' ) ] ) ) {
+				WP_CLI::log( "Cleared an old slug that redirected {$path}" );
 			}
 		}
+		$this->dedupe_pages();
 
 		foreach ( sib_seed_landings() as $i => $d ) {
 			// The canvas landing sections (theme canvas/land-<slug>-NN.html) when they exist.

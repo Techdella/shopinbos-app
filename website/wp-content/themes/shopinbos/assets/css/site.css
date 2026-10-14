@@ -762,3 +762,81 @@ select.input { appearance: auto; }
 .cs-perks li { display: flex; gap: 10px; align-items: center; font-weight: 600; }
 .cs-blob { position: absolute; width: 520px; height: 520px; border-radius: 999px; background: #FFE27A; opacity: .45; right: -160px; top: -200px; animation: gistFloat 9s ease-in-out infinite; }
 .foot button.row { color: #C9C6D3; background: none; border: 0; padding: 0; font-size: 14px; display: inline-flex; align-items: center; cursor: pointer; }
+
+/* A section followed by a rounded "fold" section needs room under its content: the fold tucks 48px up over it. */
+.sib .wp-block-post-content > :is(.land-hero, .gist, .bg-white, .bg-mist):has(+ .fold, + .ctaband, + .cv-panes > .fold:first-child) { padding-bottom: 56px; }
+.site .navlink, .site .navcta { white-space: nowrap; }
+/* Cut-out people keep their shape whatever box the layout gives them. */
+.site img.cut { object-fit: contain; object-position: 50% 100%; }
+/* Blog: the featured post's photo grows to the height of the "Also new" column, so the card has no empty band. */
+.feat2 > .postcard:first-child { display: flex; flex-direction: column; }
+.feat2 > .postcard:first-child .feat-media { flex: 1 1 auto; height: auto; min-height: 340px; position: relative; }
+.feat2 > .postcard:first-child .feat-media img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.feat2 .side-card { flex-direction: row !important; align-items: center; text-align: left; padding: 10px; }
+.feat2 .side-card .pc-media { width: 112px; height: 112px; border-radius: 16px; overflow: hidden; flex: none; position: relative; }
+.feat2 .side-card .pc-media img { width: 100%; height: 100%; }
+@media (max-width: 900px) { .feat2 > .postcard:first-child .feat-media { min-height: 260px; } }
+
+/* Guides and PDFs (/resources/): featured guide, kind filters and a grid of covers shown whole, like books on a shelf. */
+.rs { padding: 48px 0 96px; background: linear-gradient(180deg, #FFF6F1 0, #fff 520px); }
+.rs-hero { display: grid; grid-template-columns: 1fr 1.15fr; gap: 48px; align-items: center; margin-bottom: 56px; }
+.rs-hero-copy { display: flex; flex-direction: column; gap: 18px; align-items: flex-start; }
+.rs-hero-copy .lead { max-width: 480px; }
+.rs-feat { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: center; padding: 28px; border-radius: 28px; background: var(--rs-bg); color: inherit; text-decoration: none; transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s ease; }
+.rs-feat:hover { transform: translateY(-4px); box-shadow: 0 30px 60px -30px rgba(22,20,31,.35); }
+.rs-feat-cover img, .rs-cover img { display: block; width: 100%; height: auto; aspect-ratio: 210 / 297; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,.04), 0 18px 34px -16px rgba(22,20,31,.45); background: #fff; }
+.rs-feat-cover img { transform: rotate(-3deg); }
+.rs-feat-body { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.rs-feat .rs-title { font-size: 26px; }
+.rs-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rs-tag { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.rs-tag-hot { background: #16141F; color: #fff; }
+.rs-pages { font-size: 12.5px; font-weight: 700; color: var(--muted, #6B6779); }
+.rs-title { font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 19px; line-height: 1.22; letter-spacing: -.01em; color: var(--ink, #16141F); }
+.rs-sub { font-size: 14.5px; line-height: 1.55; color: var(--muted, #6B6779); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.rs-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+.rs-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.rs-count { font-size: 13.5px; font-weight: 700; color: var(--muted, #6B6779); }
+.rs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.rs-card { display: flex; flex-direction: column; border: 1px solid var(--line, #ECEAF2); border-radius: 24px; background: #fff; overflow: hidden; color: inherit; text-decoration: none; transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s ease; }
+.rs-card[hidden] { display: none; }
+.rs-card:hover { transform: translateY(-4px); box-shadow: 0 26px 50px -30px rgba(22,20,31,.35); }
+.rs-cover { display: flex; align-items: flex-end; justify-content: center; background: var(--rs-bg); padding: 28px 28px 0; height: 236px; overflow: hidden; }
+.rs-cover img { width: 150px; transform: translateY(14px); transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+.rs-card:hover .rs-cover img { transform: translateY(4px) rotate(-2deg); }
+.rs-blank { width: 150px; height: 200px; border-radius: 6px; background: #fff; display: flex; align-items: center; justify-content: center; color: #9A96A8; }
+.rs-body { display: flex; flex-direction: column; gap: 10px; padding: 20px 22px 22px; flex: 1; }
+.rs-go { margin-top: auto; padding-top: 6px; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; color: #C2410C; }
+@media (max-width: 960px) { .rs-hero { grid-template-columns: 1fr; gap: 28px; } .rs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .rs { padding-top: 28px; } .rs-feat { grid-template-columns: 110px 1fr; gap: 18px; padding: 18px; } .rs-feat .rs-title { font-size: 20px; } .rs-feat .rs-sub { display: none; } .rs-grid { grid-template-columns: 1fr; } .rs-cover { height: 200px; } .rs-chips { flex-wrap: nowrap; overflow-x: auto; } }
+
+/* Investor relations */
+.inv-hero { padding: 56px 0 72px; background: linear-gradient(#F6F5F9 0%, #fff 100%); }
+.inv-panel { position: relative; overflow: hidden; background: #16141F; color: #fff; border-radius: 28px; padding: 30px; }
+.inv-panel .dot-grid { position: absolute; inset: 0; opacity: .5; pointer-events: none; }
+.inv-k { position: relative; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #8BE3D3; margin: 0 0 14px; }
+.inv-facts { position: relative; margin: 0; display: grid; gap: 0; }
+.inv-facts > div { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 13px 0; border-top: 1px solid rgba(255,255,255,.12); }
+.inv-facts dt { color: #C9C6D3; font-size: 13.5px; }
+.inv-facts dd { margin: 0; font-weight: 700; font-size: 15px; }
+.inv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.inv-list li { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid var(--line, #ECEAF2); border-radius: 18px; padding: 16px 18px; }
+.inv-list li svg { flex: none; margin-top: 2px; }
+.inv-list b { display: block; margin-bottom: 2px; }
+.inv-list span { font-size: 14.5px; color: var(--muted, #6B6779); line-height: 1.5; }
+.inv-list span b { color: var(--ink, #16141F); font-size: 15.5px; }
+@media (max-width: 640px) { .inv-hero h1 { font-size: 38px !important; } .inv-facts > div { grid-template-columns: 1fr; gap: 2px; } }
+/* Connections orbit: names on the outer bubbles stick out of narrow laptop screens, so show the logos only. */
+@media (max-width: 1140px) { .orbit .node span.nm { display: none; } .orbit .node { padding: 4px; } }
+body.site { overflow-x: clip; }
+.site a[aria-label="Shopinbos home"] { flex: none; }
+.site .hlogo { max-width: none; flex: none; }
+/* Laptop widths: tighten the menu so the logo, links and buttons fit on one line. */
+@media (min-width: 861px) and (max-width: 1180px) {
+	.cv-hdr .hdr { gap: 16px; }
+	.cv-hdr .navlinks { gap: 14px; margin-left: 0 !important; }
+	.cv-hdr .navlink { font-size: 14px; }
+	.cv-hdr .navlink .tag, .cv-hdr .navlink span[style*="background"] { display: none !important; }
+	.site .hlogo { height: 14px !important; }
+	.cv-hdr .navcta { padding: 0 6px !important; }
+}

@@ -11,12 +11,11 @@ function sib_redirects(): array {
 	return apply_filters( 'sib_redirects', [
 		'/legal/privacy-2/'       => '/legal/privacy/',
 		'/legal/terms-2/'         => '/legal/terms/',
-		'/legal/ndpr/'            => '/legal/privacy/',
+		'/legal/ndpr/'            => '/legal/data-protection/',
 		'/blog/bakery-40-orders-a-day/' => '/blog/snack-brand-40-orders-a-day/',
-		'/legal/acceptable-use/'  => '/legal/seller-rules/',
 		'/privacy-policy/'        => '/legal/privacy/',
 		'/cookie-policy/'         => '/legal/cookies/',
-		'/ndpr-compliance/'       => '/legal/privacy/',
+		'/ndpr-compliance/'       => '/legal/data-protection/',
 		'/privacy/'               => '/legal/privacy/',
 		'/terms/'                 => '/legal/terms/',
 		'/partners/logistics/'    => '/delivery/',
@@ -50,3 +49,19 @@ add_action( 'template_redirect', function () {
 		exit;
 	}
 }, 1 );
+
+/** URL bases that belong to the site's own sections (archives and canvas pages). WordPress must never guess these
+ *  away to another page: an old page once called "templates", or a 404 guess, used to send /templates/ elsewhere. */
+function sib_reserved_paths(): array {
+	$paths = [ '/templates/', '/tools/', '/resources/', '/compare/', '/features/', '/solutions/', '/help/', '/academy/', '/gist/', '/blog/', '/investors/' ];
+	return (array) apply_filters( 'sib_reserved_paths', $paths );
+}
+
+function sib_is_reserved_request(): bool {
+	$path = trailingslashit( (string) wp_parse_url( $_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH ) );
+	return in_array( $path, sib_reserved_paths(), true );
+}
+
+add_filter( 'old_slug_redirect_url', fn( $url ) => sib_is_reserved_request() ? false : $url );
+add_filter( 'redirect_canonical', fn( $url ) => sib_is_reserved_request() ? false : $url );
+add_filter( 'do_redirect_guess_404_permalink', fn( $guess ) => sib_is_reserved_request() ? false : $guess );

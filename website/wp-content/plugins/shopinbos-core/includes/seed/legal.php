@@ -1,6 +1,6 @@
 <?php
 /**
- * Seed content: the seven legal documents (canvas v7, Legal board). Drafts for legal review.
+ * Seed content: the legal documents (canvas v7, Legal board). Drafts for legal review.
  * [slug, title, lead, summary lines, [[heading, [paragraphs], in short], ...], contact email]
  */
 
@@ -19,6 +19,12 @@ function sib_seed_legal_markup( array $summary, array $sections ): string {
 }
 
 function sib_seed_legal_docs(): array {
+	$extra = (array) json_decode( (string) file_get_contents( __DIR__ . '/legal-extra.json' ), true );
+	return array_merge( sib_seed_legal_core(), $extra );
+}
+
+/** The first seven documents; the rest are in legal-extra.json. */
+function sib_seed_legal_core(): array {
 	return json_decode( <<<'JSON'
 [
  [
@@ -35,7 +41,7 @@ function sib_seed_legal_docs(): array {
    [
     "Who we are",
     [
-     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Shopinbos Technologies Limited.",
+     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Tech Della Solutions Ltd, which runs Shopinbos.",
      "By creating an account or using Shopinbos, you agree to these terms. If you use Shopinbos for a business, you agree on behalf of that business."
     ],
     "This is an agreement between you and our company in Lagos."

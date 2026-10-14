@@ -45,7 +45,7 @@
 	}
 
 	function slideNode(s, g) {
-		var n = el('div', 'gs gs-' + s.type);
+		var n = el('div', 'gs gs-is-' + s.type);
 		var add = function (tag, cls, text, i) { if (!text) return null; var x = el(tag, cls + ' ga', text); x.style.animationDelay = (0.12 + (i || 0) * 0.12) + 's'; n.appendChild(x); return x; };
 		n.appendChild(el('span', 'gs-blob gs-b1')); n.appendChild(el('span', 'gs-blob gs-b2'));
 		if (s.type === 'cover') {
@@ -70,7 +70,7 @@
 			add('b', 'gs-h', s.headline, 0); add('p', 'gs-t', s.text, 1);
 			var a = el('a', 'gs-cta ga', g.cta); a.href = g.link; a.style.animationDelay = '.4s'; n.appendChild(a);
 			a.addEventListener('click', function (e) { e.stopPropagation(); track('gist_cta', { group: g.slug }); });
-			var s2 = el('a', 'gs-cta2 ga', 'Start your shop free'); s2.href = '/go/signup?intent=gist'; s2.style.animationDelay = '.55s'; n.appendChild(s2);
+			var s2 = el('a', 'gs-cta2 ga', 'Or create your free store'); s2.href = '/go/signup?intent=gist'; s2.style.animationDelay = '.55s'; n.appendChild(s2);
 			s2.addEventListener('click', function (e) { e.stopPropagation(); });
 		} else {
 			add('span', 'gs-eye', s.eyebrow, 0); add('b', 'gs-h', s.headline, 1); add('p', 'gs-t', s.text, 2);

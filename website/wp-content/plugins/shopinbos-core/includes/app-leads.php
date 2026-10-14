@@ -17,7 +17,7 @@ function sib_app_leads_secret(): string {
 	return (string) ( sib_setting( 'leads_secret' ) ?: getenv( 'SIB_LEADS_SECRET' ) );
 }
 
-/** One line for Settings > Shopinbos. */
+/** One line for Settings > Shopinbos website. */
 function sib_app_leads_status_text(): string {
 	$queue = count( (array) get_option( SIB_APP_LEADS_QUEUE, [] ) );
 	if ( ! sib_app_leads_secret() ) {
@@ -71,6 +71,9 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		$payload['as']      = $str( 'as', 40 );
 		$payload['sells']   = $str( 'sells', 120 );
 		$payload['intent']  = $str( 'intent', 60 );
+	} elseif ( 'investor' === $kind ) {
+		$source         = 'Investor relations';
+		$payload['org'] = $str( 'org', 160 );
 	} elseif ( 'app_notify' === $kind ) {
 		$source              = 'App launch alert';
 		$payload['platform'] = $str( 'platform', 20 );

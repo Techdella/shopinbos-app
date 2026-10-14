@@ -2,7 +2,7 @@
 /**
  * Launch switch, Coming soon page and app store badges.
  *
- * Settings > Shopinbos > Launch:
+ * Settings > Shopinbos website > Launch:
  *  - "The web app is live" off: /go/ sign-up and log-in links land on /coming-soon/ (a waitlist form)
  *    instead of the app. Tick it on launch day.
  *  - "Show only the Coming soon page": hides the whole site from visitors (editors still see it), with a 503
@@ -107,4 +107,38 @@ function sib_render_coming_soon(): string {
 		. $list . '<div class="store-badges">' . sib_store_badge( 'android' ) . sib_store_badge( 'ios' ) . '</div></div>'
 		. '<div style="display:flex;flex-direction:column;gap:16px">' . $form . '<a class="lnk cv-b" style="align-self:center" href="' . esc_url( home_url( '/academy/' ) ) . '">' . esc_html__( 'While you wait: free lessons in the Academy', 'shopinbos' ) . sib_icon( 'arrow', 16 ) . '</a></div>'
 		. '</div></section>';
+}
+
+/** What pop-up forms ask for: email (default), whatsapp or either (Settings > Shopinbos website > Pop-ups). */
+function sib_popup_collect(): string {
+	$mode = (string) sib_setting( 'popup_collect' );
+	return in_array( $mode, [ 'email', 'whatsapp', 'either' ], true ) ? $mode : 'email';
+}
+
+/** Rewrite the pop-ups' contact fields and the words around them for the chosen mode. */
+function sib_popup_contact_mode( string $html ): string {
+	$mode = sib_popup_collect();
+	if ( 'either' === $mode ) {
+		return $html;
+	}
+	$email = 'email' === $mode;
+	$label = $email ? __( 'Your email', 'shopinbos' ) : __( 'WhatsApp number', 'shopinbos' );
+	$attrs = $email
+		? 'type="email" inputmode="email" autocomplete="email" placeholder="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '"'
+		: 'type="tel" inputmode="tel" autocomplete="tel" placeholder="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '"';
+	$html = preg_replace_callback( '/<input\b[^>]*\bname="contact"[^>]*>/', function ( $m ) use ( $attrs ) {
+		$tag = preg_replace( '/\s(?:type|inputmode|autocomplete|placeholder|aria-label)="[^"]*"/', '', $m[0] );
+		return preg_replace( '/^<input\b/', '<input ' . $attrs, $tag );
+	}, $html );
+	$words = $email ? [
+		'Free PDF. We send it to your WhatsApp or email.' => __( 'Free PDF. We email it to you straight away.', 'shopinbos' ),
+		'Check your WhatsApp. Want to start your shop while you read?' => __( 'Check your email. Want to start your shop while you read?', 'shopinbos' ),
+		'Free, sent to your WhatsApp.' => __( 'Free, sent to your email.', 'shopinbos' ),
+		'The top 5 products to sell this week, on WhatsApp. Free.' => __( 'The top 5 products to sell this week, in your inbox. Free.', 'shopinbos' ),
+		'Leave your WhatsApp number or email and we’ll tell you' => __( 'Leave your email and we’ll tell you', 'shopinbos' ),
+	] : [
+		'Free PDF. We send it to your WhatsApp or email.' => __( 'Free PDF. We send it to your WhatsApp.', 'shopinbos' ),
+		'Leave your WhatsApp number or email and we’ll tell you' => __( 'Leave your WhatsApp number and we’ll tell you', 'shopinbos' ),
+	];
+	return strtr( $html, $words );
 }

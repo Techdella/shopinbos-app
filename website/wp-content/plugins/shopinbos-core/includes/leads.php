@@ -312,7 +312,7 @@ function sib_process_lead( string $kind, array $in ): array {
 
 function sib_process_lead_form( string $kind, array $in ): array {
 	$fail = fn( $m ) => [ 'ok' => false, 'message' => $m ];
-	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download', 'sunday', 'trending', 'waitlist', 'app_notify' ], true ) ) {
+	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download', 'sunday', 'trending', 'waitlist', 'app_notify', 'investor' ], true ) ) {
 		return $fail( __( 'Unknown form.', 'shopinbos' ) );
 	}
 	if ( ! empty( $in['website'] ) ) { // honeypot: pretend it worked
@@ -416,6 +416,19 @@ function sib_process_lead_form( string $kind, array $in ): array {
 			}
 			sib_log_consent( $email ?: $phone, $kind, 'waitlist' === $kind ? 'waitlist' : 'app_notify_' . sanitize_key( (string) ( $in['platform'] ?? '' ) ), __( 'Tell me when Shopinbos is live. One message, no spam.', 'shopinbos' ) );
 			return [ 'ok' => true, 'message' => 'waitlist' === $kind ? __( 'You’re on the list! We’ll message you the moment your shop can go live.', 'shopinbos' ) : __( 'Done. We’ll tell you the day the app is live.', 'shopinbos' ) ];
+
+		case 'investor':
+			if ( ! $name || ! $email ) {
+				return $fail( __( 'Add your name and email.', 'shopinbos' ) );
+			}
+			$org = sanitize_text_field( mb_substr( (string) ( $in['org'] ?? '' ), 0, 160 ) );
+			$msg = sanitize_textarea_field( mb_substr( (string) ( $in['message'] ?? '' ), 0, 3000 ) );
+			$to  = (string) apply_filters( 'sib_investor_to', apply_filters( 'sib_contact_to', get_option( 'admin_email' ) ) );
+			sib_send_email( $to, 'Investor enquiry from ' . $name, sib_email_html( 'Investor enquiry', '<p><b>' . esc_html( $name ) . '</b> (' . esc_html( $email ) . ')' . ( $org ? ', ' . esc_html( $org ) : '' ) . '</p><p>' . nl2br( esc_html( $msg ) ) . '</p>' ) );
+			if ( ! empty( $in['consent'] ) ) {
+				sib_log_consent( $email, 'investor', 'investor_updates', __( 'Send me Shopinbos investor updates by email.', 'shopinbos' ) );
+			}
+			return [ 'ok' => true, 'message' => __( 'Thank you. We’ll reply within two working days.', 'shopinbos' ) ];
 
 		case 'contact':
 			$message = sanitize_textarea_field( mb_substr( (string) ( $in['message'] ?? '' ), 0, 3000 ) );

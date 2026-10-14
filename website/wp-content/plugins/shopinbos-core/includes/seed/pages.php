@@ -98,7 +98,7 @@ function sib_seed_partner_pages(): array {
 /** A How it works page built from the theme's sections. */
 function sib_seed_how_it_works( callable $pattern ): string {
 	return sib_block_group_open( 'land-hero', 'section' ) . sib_block_group_open( 'wrap col-22 mw-760', 'div', [ 'top' => '56px', 'bottom' => '24px' ] )
-		. sib_block_p( 'How it works', 'eyebrow' ) . sib_block_h( 1, 'From “I want to sell” to your first order', 'disp h1 h1-58' )
+		. sib_block_p( 'From first product to Friday payout', 'eyebrow' ) . sib_block_h( 1, 'How Shopinbos works', 'disp h1 h1-58' )
 		. sib_block_p( 'Find products, sell them everywhere your customers are, run your store, talk to your customers and get paid. Here is how it fits together.', 'lead' )
 		. sib_block_buttons( [ [ 'Start your shop', '/go/signup', 'accent' ], [ 'See pricing', '/pricing/', 'ghost' ] ] )
 		. sib_block_group_close() . sib_block_group_close( 'section' )

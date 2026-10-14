@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings > Shopinbos. Every value can also be set as a constant in wp-config.php
+ * Settings > Shopinbos website. Every value can also be set as a constant in wp-config.php
  * (SIB_ + upper-case key, e.g. SIB_RESEND_API_KEY), which wins over the database and keeps
  * secrets out of backups and the admin screen.
  */
@@ -23,6 +23,12 @@ function sib_settings_fields(): array {
 			'fields' => [
 				'app_live'      => [ __( 'The web app is live', 'shopinbos' ), '0', 'checkbox', __( 'Off: every “Start your shop” and “Log in” button goes to the Coming soon page with a waitlist form. Tick it on launch day to send people to the app.', 'shopinbos' ) ],
 				'site_coming_soon' => [ __( 'Show only the Coming soon page to visitors', 'shopinbos' ), '0', 'checkbox', __( 'Hides the whole website behind the Coming soon page (logged-in editors still see everything). Leave off to keep the site and blog visible to Google.', 'shopinbos' ) ],
+			],
+		],
+		'popups' => [
+			'title'  => __( 'Pop-ups', 'shopinbos' ),
+			'fields' => [
+				'popup_collect' => [ __( 'Pop-up forms ask for', 'shopinbos' ), 'email', 'select', __( 'What the pop-ups (free PDF, exit, trending products, app launch alert) ask visitors for. The words on the pop-ups change to match.', 'shopinbos' ), [ 'email' => __( 'Email address', 'shopinbos' ), 'whatsapp' => __( 'WhatsApp number', 'shopinbos' ), 'either' => __( 'WhatsApp number or email', 'shopinbos' ) ] ],
 			],
 		],
 		'contact' => [
@@ -95,7 +101,7 @@ function sib_setting( string $key ) {
 }
 
 add_action( 'admin_menu', function () {
-	add_options_page( 'Shopinbos', 'Shopinbos', 'manage_options', 'shopinbos', 'sib_settings_page' );
+	add_options_page( 'Shopinbos website', 'Shopinbos website', 'manage_options', 'shopinbos', 'sib_settings_page' );
 } );
 
 add_action( 'admin_init', function () {
@@ -115,6 +121,9 @@ function sib_sanitize_settings( $input ): array {
 				$out[ $key ] = empty( $v ) ? '0' : '1';
 			} elseif ( 'url' === $type ) {
 				$out[ $key ] = esc_url_raw( trim( (string) $v ) );
+			} elseif ( 'select' === $type ) {
+				$options     = $section['fields'][ $key ][4] ?? [];
+				$out[ $key ] = isset( $options[ (string) $v ] ) ? (string) $v : (string) $section['fields'][ $key ][1];
 			} elseif ( 'password' === $type && '' === $v ) {
 				$prev        = (array) get_option( 'sib_settings', [] );
 				$out[ $key ] = $prev[ $key ] ?? ''; // empty field keeps the saved secret
@@ -157,6 +166,12 @@ function sib_settings_page(): void {
 							<td>
 								<?php if ( defined( $const ) ) : ?>
 									<code><?php echo esc_html( $const ); ?></code> <?php esc_html_e( 'is set in wp-config.php.', 'shopinbos' ); ?>
+								<?php elseif ( 'select' === $type ) : ?>
+									<select id="sib-<?php echo esc_attr( $key ); ?>" name="sib_settings[<?php echo esc_attr( $key ); ?>]">
+										<?php foreach ( $section['fields'][ $key ][4] ?? [] as $opt => $opt_label ) : ?>
+											<option value="<?php echo esc_attr( $opt ); ?>" <?php selected( $value ?: $default, $opt ); ?>><?php echo esc_html( $opt_label ); ?></option>
+										<?php endforeach; ?>
+									</select>
 								<?php elseif ( 'checkbox' === $type ) : ?>
 									<input type="checkbox" id="sib-<?php echo esc_attr( $key ); ?>" name="sib_settings[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( '1', $value ?: $default ); ?>>
 								<?php else : ?>
@@ -177,11 +192,11 @@ function sib_settings_page(): void {
 /* Remind admins when the marketplace is showing sample data. */
 add_action( 'admin_notices', function () {
 	if ( current_user_can( 'manage_options' ) && sib_demo_mode() ) {
-		echo '<div class="notice notice-warning"><p>' . esc_html__( 'Shopinbos: the marketplace is showing sample products. Turn off "Use sample marketplace data" in Settings > Shopinbos before launch.', 'shopinbos' ) . '</p></div>';
+		echo '<div class="notice notice-warning"><p>' . esc_html__( 'Shopinbos: the marketplace is showing sample products. Turn off "Use sample marketplace data" in Settings > Shopinbos website before launch.', 'shopinbos' ) . '</p></div>';
 	}
 } );
 
-/* [sib_price key="price_grow_month"] prints a price or fee from Settings > Shopinbos, so one change updates every page. */
+/* [sib_price key="price_grow_month"] prints a price or fee from Settings > Shopinbos website, so one change updates every page. */
 add_shortcode( 'sib_price', function ( $atts ) {
 	$a   = shortcode_atts( [ 'key' => '', 'plan' => '', 'period' => 'month' ], $atts );
 	$key = $a['key'] ?: ( $a['plan'] ? 'price_' . ( 'growth' === $a['plan'] ? 'grow' : ( 'starter' === $a['plan'] ? 'start' : $a['plan'] ) ) . '_' . ( 'year' === $a['period'] ? 'year' : 'month' ) : '' );

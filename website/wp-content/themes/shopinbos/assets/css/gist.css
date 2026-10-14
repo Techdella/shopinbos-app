@@ -71,8 +71,9 @@ html.gv-open { overflow: hidden; }
 .gs-do b, .gs-dont b { font-size: 20px; line-height: 1.3; }
 .gs-cta { align-self: flex-start; display: inline-flex; align-items: center; min-height: 50px; padding: 0 22px; border-radius: 999px; background: var(--g-fg); color: var(--g-bg); font-weight: 800; text-decoration: none; margin-top: 6px; }
 .gs-cta2 { align-self: flex-start; color: var(--g-fg); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
-.gs-cover .gs-h-xl { font-size: 50px; }
+.gs-is-cover .gs-h-xl { font-size: 50px; }
 @media (prefers-reduced-motion: reduce) { .ga, .gs-num, .gs-hint { animation: none; opacity: 1; } .gs-blob { animation: none; } }
 .gs-pic { width: 132px; height: 132px; border-radius: 999px; overflow: hidden; border: 4px solid var(--g-fg); margin-bottom: 8px; animation: gistPop .8s cubic-bezier(.2,1.4,.3,1) both, gistFloat 6s 1s ease-in-out infinite; }
 .gs-pic img { width: 100%; height: 100%; object-fit: cover; display: block; background: color-mix(in srgb, var(--g-fg) 10%, transparent); }
 .sib .wp-block-post-content > .gist { padding: 28px 0 72px; }
+@media (max-height: 700px) and (min-width: 641px) { .gs { padding: 80px 24px 28px; gap: 12px; } .gs-h { font-size: 28px; } .gs-h-xl, .gs-is-cover .gs-h-xl { font-size: 38px; } .gs-t { font-size: 16px; } .gs-num { font-size: 60px; } .gs-list li { padding: 10px 14px; font-size: 15px; } .gs-pic { width: 100px; height: 100px; } }
