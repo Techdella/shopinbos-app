@@ -379,7 +379,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ls.intro": "Ọ fọdụrụ ntakịrị. Họrọ otú ndị ahịa ga-esi kwụọ gị ụgwọ, ebe payouts ga-ada na otú ị ga-esi bugaa, mgbe ahụ bipụta. Mbipụta na-eme ka ndị na-azụ hụ store gị; mmalite mbụ nwere ụgwọ mmalite otu oge.",
   "ls.howPay": "Kedu otú ndị ahịa ga-esi kwụọ gị ụgwọ?",
   "ls.paystack.desc": "Ndị ahịa na-akwụ n'ịntanetị. Kacha mma maka Naịjirịa.",
-  "ls.flutterwave.desc": "Ndị ahịa na-akwụ n'ịntanetị n'Afrịka niile.",
   "ls.bank": "Transfer banki",
   "ls.bank.desc": "Ndị ahịa na-akwụ ozugbo n'akaụntụ gị.",
   "ls.wherePayouts": "Ebee ka payouts ga-aga?",

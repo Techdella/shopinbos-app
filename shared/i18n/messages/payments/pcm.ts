@@ -129,7 +129,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bm.failed": "We no fit connect the bank account",
   "bm.title": "Connect Bank Account",
   "bm.paystackDesc": "Quick settlements, Naija",
-  "bm.flutterwaveDesc": "Payouts across Africa",
   "bm.intro": "Set where you go collect your payouts. Payments go process by themselves and land for your bank account.",
   "bm.bankName": "Bank Name",
   "bm.chooseBank": "-- Choose bank --",

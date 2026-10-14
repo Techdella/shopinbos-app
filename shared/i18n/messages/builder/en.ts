@@ -377,7 +377,6 @@ const en = {
   "ls.intro": "Almost there. Choose how customers pay you, where payouts land and how you deliver, then publish. Publishing makes your store visible to shoppers; the first launch has a one-time launch fee.",
   "ls.howPay": "How should customers pay you?",
   "ls.paystack.desc": "Customers pay online. Best for Nigeria.",
-  "ls.flutterwave.desc": "Customers pay online across Africa.",
   "ls.bank": "Bank transfer",
   "ls.bank.desc": "Customers pay straight into your account.",
   "ls.wherePayouts": "Where should payouts go?",

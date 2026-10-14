@@ -129,7 +129,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bm.failed": "Enweghị ike ijikọ akaụntụ bank",
   "bm.title": "Jikọọ Akaụntụ Bank",
   "bm.paystackDesc": "Settlement ozugbo, Naịjirịa",
-  "bm.flutterwaveDesc": "Payouts n'ofe Africa",
   "bm.intro": "Tọọ ebe ị ga-anata payouts gị. A na-ahazi ịkwụ ụgwọ n'onwe ha ma tinye ha n'akaụntụ bank gị.",
   "bm.bankName": "Aha Bank",
   "bm.chooseBank": "-- Họrọ bank --",

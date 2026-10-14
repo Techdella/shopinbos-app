@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { linkBankAccount, linkFlutterwaveBankAccount } from "@/app/actions/payments";
+import { linkBankAccount } from "@/app/actions/payments";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 
@@ -39,10 +39,6 @@ const NIGERIAN_BANKS = [
   "Zenith Bank",
 ];
 
-const PAYMENT_PROVIDERS = [
-  { id: "paystack", label: "Paystack", description: "bm.paystackDesc" },
-  { id: "flutterwave", label: "Flutterwave", description: "bm.flutterwaveDesc" },
-] as const;
 
 export function BankLinkingModal({
   isOpen,
@@ -59,7 +55,6 @@ export function BankLinkingModal({
   const [accountNumber, setAccountNumber] = useState(initialAccountNumber);
   const [accountName, setAccountName] = useState(initialAccountName);
   const [error, setError] = useState<string | null>(null);
-  const [provider, setProvider] = useState<"paystack" | "flutterwave">("paystack");
 
   useEffect(() => {
     if (isOpen) {
@@ -91,9 +86,7 @@ export function BankLinkingModal({
     }
 
     startTransition(async () => {
-      const result = provider === "flutterwave"
-        ? await linkFlutterwaveBankAccount(bankName, accountNumber, accountName)
-        : await linkBankAccount(role, bankName, accountNumber, accountName);
+      const result = await linkBankAccount(role, bankName, accountNumber, accountName);
       if (result.success) {
         onSuccess?.();
         onClose();
@@ -129,27 +122,6 @@ export function BankLinkingModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
-          {/* Provider selector */}
-          <div className="flex gap-2">
-            {PAYMENT_PROVIDERS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setProvider(p.id)}
-                className={`flex-1 p-3 rounded-xl text-left border transition ${
-                  provider === p.id
-                    ? "bg-[var(--teal-50)] border-[var(--teal-200)]"
-                    : "bg-[var(--ink-50)] border-[var(--ink-100)] hover:border-[var(--ink-200)]"
-                }`}
-              >
-                <div className="text-[13px] font-semibold" style={{ color: provider === p.id ? "var(--teal-700)" : "var(--ink-800)" }}>
-                  {p.label}
-                </div>
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-500)" }}>{t(p.description)}</div>
-              </button>
-            ))}
-          </div>
-
           <div className="text-[13px] leading-5 text-[var(--ink-600)]">
             {t("bm.intro")}
           </div>
