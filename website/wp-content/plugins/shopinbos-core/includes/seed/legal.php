@@ -35,7 +35,7 @@ function sib_seed_legal_docs(): array {
    [
     "Who we are",
     [
-     "Shopinbos is run by Shopinbos Technologies Limited, a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Shopinbos Technologies Limited.",
+     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Shopinbos Technologies Limited.",
      "By creating an account or using Shopinbos, you agree to these terms. If you use Shopinbos for a business, you agree on behalf of that business."
     ],
     "This is an agreement between you and our company in Lagos."
@@ -128,7 +128,7 @@ function sib_seed_legal_docs(): array {
    [
     "Who is responsible for your data",
     [
-     "Shopinbos Technologies Limited is the data controller for information about you as a seller, supplier or delivery partner. For your customers’ details, you are the controller and we process them for you, under these terms and the Nigeria Data Protection Act 2023 (NDPA).",
+     "Tech Della Solutions Ltd (RC 7038770) is the data controller for information about you as a seller, supplier or delivery partner. For your customers’ details, you are the controller and we process them for you, under these terms and the Nigeria Data Protection Act 2023 (NDPA).",
      "You can reach our Data Protection Officer at privacy@shopinbos.com."
     ],
     "We look after your data. You look after your customers’ data, and we help."

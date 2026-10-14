@@ -9,6 +9,10 @@
 defined( 'ABSPATH' ) || exit;
 
 function sib_seed_academy_tracks(): array {
+	return array_merge( sib_seed_academy_core_tracks(), array_map( fn( $t ) => [ $t['slug'], $t['name'], $t['about'], $t['bg'], $t['fg'], $t['icon'] ], sib_seed_academy_extra() ) );
+}
+
+function sib_seed_academy_core_tracks(): array {
 	return [
 		[ 'start-your-shop', 'Start your shop', 'From nothing to a store link you can share, with Rex beside you.', '#FFEDE4', '#B23E0A', 'store' ],
 		[ 'sell-on-whatsapp', 'Sell on WhatsApp', 'Status, broadcasts, quick replies and follow-ups that turn chats into orders.', '#E2F6F1', '#0C4A44', 'wa' ],
@@ -20,7 +24,21 @@ function sib_seed_academy_tracks(): array {
 }
 
 /** track slug => lessons */
+/** More tracks from academy-extra.json (same fields as below, as JSON objects). */
+function sib_seed_academy_extra(): array {
+	$file = __DIR__ . '/academy-extra.json';
+	return file_exists( $file ) ? (array) json_decode( (string) file_get_contents( $file ), true ) : [];
+}
+
 function sib_seed_academy_lessons(): array {
+	$extra = [];
+	foreach ( sib_seed_academy_extra() as $t ) {
+		$extra[ $t['slug'] ] = array_map( fn( $l ) => [ $l['title'], (int) $l['minutes'], $l['intro'], $l['intro_pcm'], $l['learn'], $l['steps'], $l['try'], $l['try_pcm'], $l['checks'], $l['quiz'], $l['options'], (int) $l['correct'], $l['why'], $l['video'] ], $t['lessons'] );
+	}
+	return sib_seed_academy_core_lessons() + $extra;
+}
+
+function sib_seed_academy_core_lessons(): array {
 	return [
 		'start-your-shop' => [
 			[ 'What you need before you start', 4,

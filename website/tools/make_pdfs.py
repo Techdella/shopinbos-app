@@ -157,7 +157,7 @@ p {{ font-size: 14pt; color: #C9C6D3; max-width: 140mm; line-height: 1.5; margin
 <p>Rex builds your store with you in 5 minutes. Take card, transfer and pay on delivery, book riders, and let Peggy answer customers on WhatsApp.</p>
 <a class="btn" href="https://shopinbos.com/go/signup?source=pdf">Start your shop free · shopinbos.com</a>
 <img class="rex" src="{flat('rex.webp', '#16141F')}" alt="">
-<div class="copy">© 2026 Shopinbos Technologies Limited · Free to share, not to sell</div>
+<div class="copy">© 2026 Tech Della Solutions Ltd · Free to share, not to sell</div>
 </div></body></html>"""
 
 

@@ -41,7 +41,12 @@ class Sib_CLI {
 		$this->refresh_page( 'trending', 'Trending products in Nigeria this week', function_exists( 'sib_canvas_blocks' ) ? sib_canvas_blocks( 'trending' ) : '', 'page-canvas', 'The products Nigerian online shops are adding and selling most this week, with what you keep on each. Updated every morning.' );
 		$this->refresh_page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
 		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
-		$this->refresh_page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
+		$this->refresh_page( 'contact', 'Contact us', "<!-- wp:shopinbos/contact-page /-->\n", 'page-canvas', 'Talk to a real person at Shopinbos on WhatsApp, by email or with the form. 8am to 8pm, in English or Pidgin.' );
+		$old_contact = get_page_by_path( 'contact' );
+		if ( $old_contact && str_contains( $old_contact->post_content, 'The fastest way to reach us is WhatsApp. A real person replies' ) && str_contains( $old_contact->post_content, 'shopinbos/lead-form' ) ) {
+			wp_update_post( wp_slash( [ 'ID' => $old_contact->ID, 'post_content' => "<!-- wp:shopinbos/contact-page /-->\n" ] ) );
+			update_post_meta( $old_contact->ID, '_wp_page_template', 'page-canvas' );
+		}
 		$this->refresh_page( 'careers', 'Careers', $this->careers_text(), 'page-article', 'Work on the app that helps Nigerian sellers run their shops from a phone.' );
 		$this->refresh_page( 'press', 'Press', $this->press_text(), 'page-article', 'Facts, logos and contacts for journalists writing about Shopinbos.' );
 		$this->academy();
@@ -316,9 +321,9 @@ class Sib_CLI {
 		$h = fn( $t ) => sib_block_h( 2, $t, '' );
 		return sib_block_p( 'For interviews, comments and images, email <a href="mailto:press@shopinbos.com">press@shopinbos.com</a>. We reply within one working day.' )
 			. $h( 'About Shopinbos' )
-			. sib_block_p( 'Shopinbos is an AI commerce app for Nigerian businesses, made in Lagos by Shopinbos Technologies Limited. Sellers build an online store in minutes with Rex, take card, transfer and pay on delivery payments, book riders, and let Peggy answer customers on WhatsApp. Sellers can also find stock from verified Nigerian suppliers and sell it without holding inventory.' )
+			. sib_block_p( 'Shopinbos is an AI commerce app for Nigerian businesses, made in Lagos by Tech Della Solutions Ltd (RC 7038770). Sellers build an online store in minutes with Rex, take card, transfer and pay on delivery payments, book riders, and let Peggy answer customers on WhatsApp. Sellers can also find stock from verified Nigerian suppliers and sell it without holding inventory.' )
 			. $h( 'Quick facts' )
-			. "<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Company: Shopinbos Technologies Limited, Lagos, Nigeria</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>What it does: online stores, payments, delivery and AI helpers for small businesses</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Plans: free Starter plan; paid plans in naira, VAT included</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Languages: English and Pidgin, with Yorùbá, Hausa and Igbo planned</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n"
+			. "<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Company: Tech Della Solutions Ltd (RC 7038770), Lagos, Nigeria</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>What it does: online stores, payments, delivery and AI helpers for small businesses</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Plans: free Starter plan; paid plans in naira, VAT included</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Languages: English and Pidgin, with Yorùbá, Hausa and Igbo planned</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n"
 			. $h( 'Logos' )
 			. sib_block_p( 'Download the <a href="' . esc_url( sib_theme_img( 'logo-dark.png' ) ) . '" download>dark logo</a> for light backgrounds or the <a href="' . esc_url( sib_theme_img( 'logo-light.png' ) ) . '" download>light logo</a> for dark backgrounds. Please don’t stretch, recolour or add effects to the logo.' );
 	}
@@ -473,6 +478,8 @@ class Sib_CLI {
 					}
 				}
 			}
+			update_post_meta( $id, 'sib_pages', (int) $r['pages'] );
+			update_post_meta( $id, 'sib_chapters', array_values( (array) $r['chapters'] ) );
 			foreach ( [ 'rank_math_title' => $r['meta_title'], 'rank_math_description' => $r['sub'], 'rank_math_focus_keyword' => $r['keyword'] ] as $k => $v ) {
 				if ( $v ) {
 					update_post_meta( $id, $k, $v );

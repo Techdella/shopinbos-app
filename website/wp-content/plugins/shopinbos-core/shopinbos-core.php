@@ -34,6 +34,8 @@ foreach ( [
 	'compare',
 	'redirects',
 	'app-leads',
+	'resource-page',
+	'contact-page',
 	'schema',
 	'seo',
 	'sitemaps',

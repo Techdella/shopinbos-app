@@ -362,6 +362,47 @@
 			});
 		});
 
+		// Motion: blocks fade up as they scroll into view; big numbers count up once.
+		(function motion() {
+			var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+			if (reduce || !('IntersectionObserver' in window)) return;
+			var sel = '.sib section .wrap > *, .sib .g2 > *, .sib .g3 > *, .sib .g4 > *, .sib .bento > *, .sib .stack > *, .sib .pcard, .sib .postcard, .sib .trk, .sib .tile, .sib .qa, .sib .card, .foot .wrap > *';
+			var seen = new Set();
+			var io = new IntersectionObserver(function (entries) {
+				entries.forEach(function (e) {
+					if (!e.isIntersecting) return;
+					e.target.classList.add('rv-in');
+					io.unobserve(e.target);
+				});
+			}, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+			$$(sel).forEach(function (el) {
+				if (seen.has(el) || el.closest('.rv') || el.closest('[hidden]') || el.closest('.cv-pops') || el.closest('header')) return;
+				if (el.getBoundingClientRect().top < innerHeight * 0.9) return; // already on screen: leave it be
+				seen.add(el);
+				var i = Array.prototype.indexOf.call(el.parentNode.children, el);
+				el.style.setProperty('--rv-d', Math.min(i, 5) * 0.07 + 's');
+				el.classList.add('rv');
+				io.observe(el);
+			});
+			var nums = new IntersectionObserver(function (entries) {
+				entries.forEach(function (e) {
+					if (!e.isIntersecting) return;
+					nums.unobserve(e.target);
+					var el = e.target, m = el.textContent.match(/^(₦?)([\d,]+)(\+?%?)$/);
+					if (!m) return;
+					var end = parseInt(m[2].replace(/,/g, ''), 10), t0 = performance.now(), dur = 900;
+					(function step(t) {
+						var k = Math.min(1, (t - t0) / dur), v = Math.round(end * (1 - Math.pow(1 - k, 3)));
+						el.textContent = m[1] + v.toLocaleString('en-NG') + m[3];
+						if (k < 1) requestAnimationFrame(step);
+					})(t0);
+				});
+			}, { threshold: 0.6 });
+			$$('.sib .disp, .sib b.disp').forEach(function (el) {
+				if (el.children.length === 0 && /^₦?[\d,]{2,}\+?%?$/.test(el.textContent.trim())) nums.observe(el);
+			});
+		})();
+
 		// Pop-ups (canvas/popups.html): opened by [data-cv="pop.open…"] buttons and, once per visit, on exit.
 		var pops = $('.cv-pops');
 		function openPop(name) {
@@ -432,7 +473,15 @@
 							done = $(':scope > [data-pane="1"]', wrap);
 						}
 					}
-					if (!done) return;
+					if (!done) {
+						var ok = document.createElement('div');
+						ok.className = 'card'; ok.setAttribute('role', 'status');
+						ok.style.cssText = 'padding:26px;display:flex;gap:14px;align-items:center;background:#E2F5EA;border-color:#B7E4C7';
+						ok.innerHTML = '<b style="font-size:17px"></b>';
+						ok.firstChild.textContent = res.message || 'Thanks, we got it.';
+						f.replaceWith(ok);
+						return;
+					}
 					$$('[data-cv="download"]', done).forEach(function (b) { if (res.download) b.setAttribute('data-url', res.download); else b.hidden = true; });
 					if (contact.indexOf('@') > -1) {
 						$$('.p, span', done).forEach(function (el) { if (el.children.length === 0) el.textContent = el.textContent.replace('Check your WhatsApp', 'Check your email').replace('Check WhatsApp', 'Check your email'); });

@@ -64,6 +64,8 @@ TEXT = {
     '24 pages. We send it to your WhatsApp or email.': 'Free PDF. We send it to your WhatsApp or email.',
     '24 pages on getting your first 10 orders.': 'Six short chapters on getting your first 10 orders.',
     '24 pages': '8 pages',  # the real Starter Kit
+    '<span>Payments by Paystack · Data handled under the NDPA 2023</span>': '',
+    'Shopinbos Technologies Limited. All rights reserved.': 'Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770). All rights reserved.',
     'We checked these details on 1 October 2026': 'We checked these details on {{checked}}',
 }
 def _urls(name):
@@ -245,7 +247,7 @@ def lead_form(box, kind, fields, button_text=None):
             inp['autocomplete'] = 'email tel'
     hidden = '<input type="hidden" name="action" value="sib_lead"><input type="hidden" name="kind" value="%s">' % kind
     if kind == 'download':
-        hidden += '<input type="hidden" name="resource" value="{{kit_id}}"><input type="hidden" name="consent" value="1">'
+        hidden += '<input type="hidden" name="resource" value="{{kit_id}}">'  # no marketing consent implied; we only send the PDF
     hidden += '<input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">'
     for h in BeautifulSoup(hidden, 'html.parser').find_all('input'):
         box.append(h)
@@ -461,7 +463,27 @@ css = """/* Generated from the design canvas by website/tools/canvas_build.py. E
 """ + css + """
 /* Canvas buttons that became links */
 :where(a.cv-b){display:inline-block;text-decoration:none;cursor:pointer;font-size:13.333px;line-height:normal;text-align:center;color:inherit}
-.site a.cv-b:hover{color:inherit}
+/* Hover: buttons keep their own text colour (the canvas's a:hover would turn it black) and lift a little */
+.site a.btn-acc:hover,.site a.btn-ink:hover,.site a.btn-ai:hover,.site a.btn-acc:focus-visible,.site a.btn-ink:focus-visible{color:#FFFFFF}
+.site a.btn-ghost:hover{color:#16141F}
+.site a.cv-b:not(.btn):hover{color:inherit}
+.site .btn,.site .gbtn,.site .chip,.site .store{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease,background-color .18s ease}
+.site .btn:hover,.site .store:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 10px 22px -12px rgba(22,20,31,.45)}
+.site .btn-ghost:hover{border-color:#16141F;filter:none}
+.site .btn:active{transform:translateY(0) scale(.98)}
+.site .lnk:hover svg,.site .navlink:hover{transform:translateX(2px)}
+.site .lnk svg{transition:transform .18s ease}
+.site .navlink:hover,.site .megab:hover{color:#16141F!important}
+.site .pcard,.site .postcard,.site .trk,.site a.card,.site .card:has(>a.cv-b),.site .tile,.site .mi{transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s ease}
+.site .pcard:hover,.site .postcard:hover,.site .trk:hover,.site a.card:hover,.site .card:has(>a.cv-b):hover{transform:translateY(-4px);box-shadow:0 24px 40px -28px rgba(22,20,31,.45)}
+.site .tile:hover{transform:translateY(-3px)}
+.site .pcard img,.site .postcard img{transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.site .pcard:hover img,.site .postcard:hover img{transform:scale(1.04)}
+.site .mi:hover{background:#F6F5F9;border-radius:14px}
+/* Scroll reveal (site.js adds .rv to blocks below the fold) */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--rv-d,0s)}
+.rv.rv-in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}.marq{animation:none}}
 .mega[hidden],.mmenu[hidden],.cv-panes>[hidden],.qa-a[hidden],.cv-pops>[hidden]{display:none!important}
 form[data-cv-lead].is-busy{opacity:.6;pointer-events:none}
 .cv-lead-err{color:#B42318;font-size:13px;font-weight:600}

@@ -115,7 +115,7 @@ function sib_render_legal_contact(): string {
 	$email = $post ? sib_legal_email( $post ) : 'legal@shopinbos.com';
 	return '<aside class="card" style="padding:26px;display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap"><span class="av" style="background:#E2F6F1;width:48px;height:48px">' . sib_icon( 'mail', 22, '#0C4A44' ) . '</span>'
 		. '<div class="col" style="gap:6px;flex:1;min-width:220px"><b style="font-size:18px">' . esc_html__( 'Contact us about this document', 'shopinbos' ) . '</b>'
-		. '<p class="p" style="margin:0">' . esc_html__( 'Shopinbos Technologies Limited, Lagos, Nigeria.', 'shopinbos' ) . ' <a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a></p>'
+		. '<p class="p" style="margin:0">' . esc_html__( 'Tech Della Solutions Ltd (RC 7038770), Lagos, Nigeria.', 'shopinbos' ) . ' <a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a></p>'
 		. '<p class="p" style="margin:0">' . esc_html__( 'For anything about your shop, chat with us on WhatsApp, 8am to 8pm every day.', 'shopinbos' ) . '</p></div>'
 		. '<a class="btn btn-ghost btn-s" href="' . esc_url( sib_whatsapp_url( 'I have a question about ' . get_the_title() ) ) . '">' . sib_icon( 'whatsapp', 16 ) . esc_html__( 'Chat with us', 'shopinbos' ) . '</a></aside>';
 }

@@ -67,7 +67,7 @@ echo sib_block_group_open( 'sec', 'section' ) . sib_block_group_open( 'wrap col-
 	. sib_block_group_open( 'g3' )
 	. $card( '#25D366', 'whatsapp', '#FFFFFF', 'Sellers and support', 'WhatsApp, 8am to 8pm every day, in English or Pidgin. <a href="/contact/">Contact us</a>' )
 	. $card( '#F6F5F9', 'mail', '#16141F', 'Partners and press', '<a href="mailto:hello@shopinbos.com">hello@shopinbos.com</a> · <a href="mailto:press@shopinbos.com">press@shopinbos.com</a>' )
-	. $card( '#F6F5F9', 'pin', '#16141F', 'Office', 'Shopinbos Technologies Limited, Lagos, Nigeria. Visits by appointment.' )
+	. $card( '#F6F5F9', 'pin', '#16141F', 'Office', 'Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770), Lagos, Nigeria. Visits by appointment.' )
 	. sib_block_group_close()
 	. sib_block_group_close() . sib_block_group_close( 'section' );
 

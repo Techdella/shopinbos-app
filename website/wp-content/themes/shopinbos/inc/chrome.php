@@ -190,8 +190,7 @@ function sib_theme_render_footer( array $attrs ): string {
 				</div>
 			</div>
 			<div class="foot-base">
-				<span>© <?php echo esc_html( $year ); ?> Shopinbos Technologies Limited. <?php esc_html_e( 'All rights reserved.', 'shopinbos' ); ?></span>
-				<span><?php esc_html_e( 'Payments by Paystack · Data handled under the NDPA 2023', 'shopinbos' ); ?></span>
+				<span>© <?php echo esc_html( $year ); ?> Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770). <?php esc_html_e( 'All rights reserved.', 'shopinbos' ); ?></span>
 			</div>
 		</div>
 	</footer>

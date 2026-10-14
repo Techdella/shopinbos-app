@@ -715,3 +715,23 @@ select.input { appearance: auto; }
 .mono.has-logo { box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .mono .brand-logo { width: 62%; height: 62%; object-fit: contain; display: block; }
 .mono.has-logo .brand-logo[src$=".png"] { width: 100%; height: 100%; object-fit: cover; }
+
+/* Round 2: post cards with full-bleed images, and the page numbers under the blog grid */
+.postcard:not(.side-card) { padding: 0; overflow: hidden; gap: 0; }
+.postcard:not(.side-card) .pc-media { border-radius: 0; }
+.postcard:not(.side-card) .pc-media img, .postcard:not(.side-card) .pc-media img.is-contain { object-fit: cover; object-position: center; }
+.postcard:not(.side-card) .pc-body { padding: 18px 20px 20px; }
+.feat2 > .postcard > .col { padding: 22px 24px 26px !important; }
+.postcard .chipw { z-index: 1; }
+.pager ul.page-numbers { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.pager .page-numbers li { margin: 0; }
+.pager a.page-numbers, .pager span.page-numbers { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid #ECEAF2; background: #fff; color: #16141F; font-weight: 700; font-size: 14px; text-decoration: none; transition: background .18s ease, border-color .18s ease; }
+.pager a.page-numbers:hover { border-color: #16141F; }
+.pager span.page-numbers.current { background: #16141F; border-color: #16141F; color: #fff; }
+.pager span.page-numbers.dots { border: 0; background: none; min-width: 24px; padding: 0; }
+.feat2 > .postcard { padding: 0 !important; }
+.res-cover { display: flex; justify-content: center; align-items: center; padding: 20px; }
+.res-cover img { width: min(380px, 80%); height: auto; border-radius: 10px; transform: rotate(-3deg); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 40px 70px -30px rgba(22,20,31,.45); transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+.res-cover img:hover { transform: rotate(0) scale(1.02); }
+@media (max-width: 640px) { .res-cover img { width: 70%; } .ahero h1.h1 { font-size: 38px !important; } }
+.side-card .pc-media img, .side-card .pc-media img.is-contain { object-fit: cover; object-position: center; }
