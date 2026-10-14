@@ -295,6 +295,8 @@ code.k{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;back
 .admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:32px}
 @media (max-width:782px){.admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:46px}}
 .cv{line-height:normal}
+section.cv.ahero,.cv>section.ahero{padding:0}
+.sib>.cv{margin-block:0}
 .mono:has(>.brand-logo){background:#FFFFFF!important;box-shadow:inset 0 0 0 1px #ECEAF2}
 .mono>.brand-logo{width:60%;height:60%;object-fit:contain}
 body .wp-block-post-content>*{margin-block:0}

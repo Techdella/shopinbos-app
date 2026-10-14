@@ -36,8 +36,8 @@ class Sib_CLI {
 
 		$home  = $this->refresh_page( 'home', 'Home', $this->pattern( 'shopinbos/page-home' ), 'page-canvas' );
 		$blog  = $this->page( 'blog', 'Blog', '' );
-		$this->page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
-		$this->page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
+		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
+		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
 		$this->refresh_page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
 		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
 		$this->refresh_page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );

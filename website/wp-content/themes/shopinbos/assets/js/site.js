@@ -301,6 +301,12 @@
 			track('canvas_tab', { group: wrap.getAttribute('data-group'), tab: k });
 		});
 
+		// /delivery/#riders opens the riders tab.
+		if (location.hash === '#riders') {
+			var rt = $('.cv-panes[data-group="partner"] > :not([hidden]) [data-cv="tab"][data-pane="1"]');
+			if (rt) rt.click();
+		}
+
 		// Chip rows: the picked chip takes the dark look.
 		$$('[data-cv="item.pick"]').forEach(function (b) {
 			b.addEventListener('click', function () {

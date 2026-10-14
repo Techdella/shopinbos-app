@@ -10,7 +10,7 @@ saved DOMs into static HTML partials for the theme:
 
 Usage: python3 -I canvas_build.py <cdom dir> <blob dir> <imgmap.json> <theme dir>
 """
-import json, os, re, shutil, sys
+import json, os, re, shutil, sys, unicodedata
 from bs4 import BeautifulSoup, NavigableString
 
 CDOM, BLOB, IMGMAP, THEME = sys.argv[1:5]
@@ -46,7 +46,8 @@ used_imgs = set()
 
 
 def slug(t):
-    return re.sub(r'[^a-z0-9]+', '-', t.lower().replace('’', '')).strip('-')
+    t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode()
+    return re.sub(r'[^a-z0-9]+', '-', t.lower().replace("'", '')).strip('-')
 
 
 def text(el):
@@ -63,6 +64,12 @@ def resolve(btn):
         return URLS[key]
     card = btn.find_parent(class_='pcard') or btn
     img = card.find('img')
+    up = btn
+    for _ in range(3):
+        if img is not None:
+            break
+        up = up.parent
+        img = up.find('img') if up is not None else None
     alt = img.get('alt', '') if img else ''
     if key in ('item.open', 'prod.open') and alt.endswith(' template preview'):
         return '/templates/' + slug(alt[:-len(' template preview')]) + '/'
@@ -70,8 +77,12 @@ def resolve(btn):
         return '/marketplace/products/' + slug(alt or text(btn)) + '/'
     if key in ('item.add', 'item.sellIt'):
         return '{{go:add:' + slug(alt or text(btn)) + '}}'
-    if key == 'item.use':
+    if key == 'item.use' and alt.endswith(' template preview'):
+        return '{{go:template:' + slug(alt[:-len(' template preview')]) + '}}'
+    if key in ('item.use', 'item.start'):
         return '{{go:signup}}'
+    if key == 'item.browse':
+        return '/marketplace/'
     return None
 
 
@@ -168,6 +179,10 @@ def page_parts(prefix, view, variant_groups=None):
     for group, views in (variant_groups or {}).items():
         vs = [sections(load(v)) for v in views]
         for i in range(len(base)):
+            if base[i].find(attrs={'data-go': 'item.toggle'}):
+                # Questions: keep the copy with every answer in it.
+                base[i] = max([base[i]] + [v[i] for v in vs], key=lambda x: len(str(x)))
+                continue
             changed = [v[i] for v in vs if str(v[i]) != str(base[i])]
             if changed:
                 diff[i] = (group, changed)
@@ -228,6 +243,16 @@ page_parts('home', 'home', {
     'adplat': ['home-fb', 'home-tt'],
 })
 
+page_parts('pricing', 'pricing', {'billing': ['pricing-year']})
+page_parts('suppliers', 'suppliers')
+page_parts('delivery', 'delivery', {
+    'partner': ['delivery-rider'],
+    'area': ['delivery-lagos', 'delivery-abuja', 'delivery-ibadan', 'delivery-ph', 'delivery-states'],
+})
+page_parts('templates', 'templates', {
+    'tplcat': ['templates-fashion', 'templates-shoes', 'templates-luxury', 'templates-food', 'templates-home', 'templates-gadgets'],
+})
+
 # ---- Stylesheet --------------------------------------------------------------------------------------------
 css = open(os.path.join(CDOM, 'site.css')).read()
 css = css[css.find('x-dc{display'):]
@@ -247,6 +272,8 @@ css = """/* Generated from the design canvas by website/tools/canvas_build.py. E
 .admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:32px}
 @media (max-width:782px){.admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:46px}}
 .cv{line-height:normal}
+section.cv.ahero,.cv>section.ahero{padding:0}
+.sib>.cv{margin-block:0}
 .mono:has(>.brand-logo){background:#FFFFFF!important;box-shadow:inset 0 0 0 1px #ECEAF2}
 .mono>.brand-logo{width:60%;height:60%;object-fit:contain}
 body .wp-block-post-content>*{margin-block:0}

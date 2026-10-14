@@ -34,6 +34,17 @@ function sib_canvas_parts(): array {
 	return $names;
 }
 
+/** Canvas section blocks for every part of a page, e.g. all pricing-NN parts. */
+function sib_canvas_blocks( string $prefix ): string {
+	$out = '';
+	foreach ( array_keys( sib_canvas_parts() ) as $part ) {
+		if ( preg_match( '/^' . preg_quote( $prefix, '/' ) . '-\d+$/', $part ) ) {
+			$out .= '<!-- wp:shopinbos/canvas {"part":"' . esc_attr( $part ) . "\"} /-->\n\n";
+		}
+	}
+	return $out;
+}
+
 /** A canvas section's markup with its links and images filled in. */
 function sib_canvas_part( string $part ): string {
 	$part = sanitize_key( $part );
@@ -53,6 +64,7 @@ function sib_canvas_part( string $part ): string {
 				'supplier' => sib_theme_go( 'supplier_signup' ),
 				'partner'  => sib_theme_go( 'partner_signup' ),
 				'add'      => sib_theme_go( 'add', [ 'productSlug' => $bits[1] ?? '' ] ),
+				'template' => sib_theme_go( 'template', [ 'template' => $bits[1] ?? '' ] ),
 				default    => sib_theme_go(),
 			} );
 		}
