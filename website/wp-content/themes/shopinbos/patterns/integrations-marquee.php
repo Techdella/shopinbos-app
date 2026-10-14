@@ -9,7 +9,8 @@ $apps = [ [ 'WA', 'WhatsApp', '#E2F6F1' ], [ 'IG', 'Instagram', '#FFEDE4' ], [ '
 $pills = function ( $hidden ) use ( $apps ) {
 	$out = '';
 	foreach ( $apps as [ $m, $name, $bg ] ) {
-		$out .= '<span class="pill"' . ( $hidden ? ' aria-hidden="true"' : '' ) . '><span class="mono" style="background:' . $bg . '">' . esc_html( $m ) . '</span>' . esc_html( $name ) . '</span>';
+		$logo = sib_brand_logo( $name, 22 );
+		$out .= '<span class="pill"' . ( $hidden ? ' aria-hidden="true"' : '' ) . '><span class="mono' . ( $logo ? ' has-logo' : '' ) . '" style="background:' . ( $logo ? '#FFFFFF' : $bg ) . '">' . ( $logo ?: esc_html( $m ) ) . '</span>' . esc_html( $name ) . '</span>';
 	}
 	return $out;
 };

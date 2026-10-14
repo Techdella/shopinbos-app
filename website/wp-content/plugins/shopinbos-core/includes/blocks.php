@@ -418,7 +418,9 @@ function sib_render_integration_tiles(): string {
 		$words = preg_split( '/\s+/', preg_replace( '/[^A-Za-z0-9 ]/', '', get_the_title( $p ) ) );
 		$init  = strtoupper( implode( '', array_map( fn( $w ) => $w[0] ?? '', array_slice( array_filter( $words ), 0, 2 ) ) ) );
 		$out  .= '<a class="card" href="' . esc_url( get_permalink( $p ) ) . '" style="padding:18px;display:flex;gap:14px;align-items:flex-start;text-decoration:none;color:inherit">'
-			. '<span class="mono" style="width:44px;height:44px;border-radius:14px;font-size:14px;background:' . $mono[ $i % 6 ] . '">' . esc_html( $init ) . '</span>'
+			. ( ( $logo = function_exists( 'sib_brand_logo' ) ? sib_brand_logo( get_the_title( $p ), 28 ) : '' )
+				? '<span class="mono has-logo" style="width:44px;height:44px;border-radius:14px;background:#fff">' . $logo . '</span>'
+				: '<span class="mono" style="width:44px;height:44px;border-radius:14px;font-size:14px;background:' . $mono[ $i % 6 ] . '">' . esc_html( $init ) . '</span>' )
 			. '<span style="flex:1;display:flex;flex-direction:column;gap:4px"><b style="font-size:15.5px">' . esc_html( get_the_title( $p ) ) . '</b><span style="font-size:13.5px;color:#6B6779">' . esc_html( wp_trim_words( get_the_excerpt( $p ), 14 ) ) . '</span></span>'
 			. '<span class="tag ' . $st[1] . '">' . esc_html( $st[0] ) . '</span></a>';
 	}

@@ -79,7 +79,8 @@ ob_start();
 		<div class="cgrid cpanel" role="tabpanel" id="cpanel-<?php echo esc_attr( $key ); ?>" aria-labelledby="ctab-<?php echo esc_attr( $key ); ?>"<?php echo $i ? ' hidden' : ''; ?>>
 			<?php foreach ( $items as $n => [ $name, $desc, $st ] ) : ?>
 				<div class="ctile">
-					<span class="mono" style="background:<?php echo esc_attr( $mono[ $n % 6 ] ); ?>"><?php echo esc_html( $initials( $name ) ); ?></span>
+					<?php $logo = sib_brand_logo( $name, 26 ) ?: sib_service_icon( $name ); ?>
+					<span class="mono<?php echo $logo ? ' has-logo' : ''; ?>" style="background:<?php echo esc_attr( $logo ? '#FFFFFF' : $mono[ $n % 6 ] ); ?>"><?php echo $logo ? $logo : esc_html( $initials( $name ) ); // phpcs:ignore ?></span>
 					<div style="flex:1;display:flex;flex-direction:column;gap:4px"><b style="font-size:15.5px"><?php echo esc_html( $name ); ?></b><span style="font-size:13.5px;color:#C9C6D3;line-height:1.45"><?php echo esc_html( $desc ); ?></span></div>
 					<span class="tag <?php echo $status[ $st ]; ?>" style="flex:none"><?php echo esc_html( $st ); ?></span>
 				</div>

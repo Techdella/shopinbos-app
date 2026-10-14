@@ -59,3 +59,37 @@ function sib_theme_icon( string $name, int $size = 22, string $stroke = 'current
 function sib_theme_icon_box( string $name, string $bg = '#F6F5F9' ): string {
 	return '<span style="width:44px;height:44px;border-radius:14px;background:' . esc_attr( $bg ) . ';display:flex;align-items:center;justify-content:center">' . sib_theme_icon( $name, 22, '#16141F' ) . '</span>';
 }
+
+/**
+ * Logo for a brand mentioned on the site (assets/img/brands), matched by name, e.g. "Instagram Shop" or
+ * "GIG Logistics". Returns an <img>, or '' when we have no logo for it.
+ */
+function sib_brand_logo( string $name, int $size = 28 ): string {
+	$n   = strtolower( $name );
+	$map = [
+		'instagram and facebook ads' => 'meta.svg', 'google shopping ads' => 'googleads.svg', 'google ads' => 'googleads.svg',
+		'whatsapp' => 'whatsapp.svg', 'instagram' => 'instagram.svg', 'facebook' => 'facebook.svg', 'tiktok' => 'tiktok.svg', 'google' => 'google.svg',
+		'paystack' => 'paystack.png', 'flutterwave' => 'flutterwave.png', 'jumia' => 'jumia.png', 'konga' => 'konga.png', 'gig' => 'gig-logistics.png',
+		'kwik' => 'kwik.png', 'shipbubble' => 'shipbubble.png', 'nipost' => 'nipost.png', 'shopify' => 'shopify.svg', 'woocommerce' => 'woocommerce.svg',
+		'amazon' => 'amazon.svg', 'bumpa' => 'bumpa.png', 'catlog' => 'catlog.png', '1688' => '1688.png', 'alibaba' => 'alibabadotcom.svg', 'meta' => 'meta.svg',
+	];
+	foreach ( $map as $key => $file ) {
+		if ( str_contains( $n, $key ) ) {
+			return '<img class="brand-logo" src="' . sib_theme_img( 'brands/' . $file ) . '" alt="" width="' . $size . '" height="' . $size . '" loading="lazy">';
+		}
+	}
+	return '';
+}
+
+/** Icon for Shopinbos's own services in lists of apps (no brand logo). */
+function sib_service_icon( string $name, int $size = 20 ): string {
+	$n   = strtolower( $name );
+	$map = [ 'store' => 'store', 'pay on delivery' => 'naira', 'bank' => 'naira', 'transfer' => 'naira', 'payment link' => 'link', 'invoice' => 'doc', 'rider' => 'truck',
+		'dreacot' => 'truck', 'creator' => 'users', 'affiliate' => 'users', 'csv' => 'doc', 'excel' => 'doc', 'posts' => 'layers', 'sms' => 'phone', 'email' => 'mail' ];
+	foreach ( $map as $key => $icon ) {
+		if ( str_contains( $n, $key ) ) {
+			return sib_theme_icon( $icon, $size, '#16141F' );
+		}
+	}
+	return '';
+}
