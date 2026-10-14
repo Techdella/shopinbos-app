@@ -148,6 +148,13 @@ function sib_theme_render_footer( array $attrs ): string {
 			[ __( 'About us', 'shopinbos' ), home_url( '/about/' ) ],
 			[ __( 'Contact', 'shopinbos' ), home_url( '/contact/' ) ],
 		] ],
+		[ __( 'Legal', 'shopinbos' ), 'footer_legal', [
+			[ __( 'Terms', 'shopinbos' ), home_url( '/legal/terms/' ) ],
+			[ __( 'Privacy', 'shopinbos' ), home_url( '/legal/privacy/' ) ],
+			[ __( 'Refunds', 'shopinbos' ), home_url( '/legal/refunds/' ) ],
+			[ __( 'Cookies', 'shopinbos' ), home_url( '/legal/cookies/' ) ],
+			[ __( 'Seller rules', 'shopinbos' ), home_url( '/legal/seller-rules/' ) ],
+		] ],
 	];
 	$apps = function_exists( 'sib_setting' ) ? [ sib_setting( 'ios_url' ), sib_setting( 'android_url' ) ] : [ '', '' ];
 	ob_start();
@@ -174,12 +181,10 @@ function sib_theme_render_footer( array $attrs ): string {
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C6D3" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/></svg><?php echo esc_html( $label ); ?>
 						</a>
 					<?php endforeach; ?>
-					<a href="<?php echo esc_url( home_url( '/legal/privacy/' ) ); ?>"><?php esc_html_e( 'Privacy', 'shopinbos' ); ?></a>
-					<a href="<?php echo esc_url( home_url( '/legal/terms/' ) ); ?>"><?php esc_html_e( 'Terms', 'shopinbos' ); ?></a>
 				</div>
 			</div>
 			<div class="foot-base">
-				<span>© <?php echo esc_html( $year ); ?> Shopinbos. <?php esc_html_e( 'All rights reserved.', 'shopinbos' ); ?></span>
+				<span>© <?php echo esc_html( $year ); ?> Shopinbos Technologies Limited. <?php esc_html_e( 'All rights reserved.', 'shopinbos' ); ?></span>
 				<span><?php esc_html_e( 'Payments by Paystack · Data handled under the NDPA 2023', 'shopinbos' ); ?></span>
 			</div>
 		</div>

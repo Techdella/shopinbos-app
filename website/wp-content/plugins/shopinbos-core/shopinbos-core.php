@@ -29,6 +29,7 @@ foreach ( [
 	'blocks',
 	'article-blocks',
 	'blog',
+	'legal',
 	'schema',
 	'seo',
 	'sitemaps',

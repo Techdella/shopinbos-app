@@ -25,7 +25,8 @@ add_action( 'after_setup_theme', function () {
 		'primary'        => __( 'Main menu', 'shopinbos' ),
 		'footer_sell'    => __( 'Footer: Sell', 'shopinbos' ),
 		'footer_join'    => __( 'Footer: Join', 'shopinbos' ),
-		'footer_company' => __( 'Footer: Company', 'shopinbos' ),
+		'footer_company' => __( 'Footer: Learn', 'shopinbos' ),
+		'footer_legal'   => __( 'Footer: Legal', 'shopinbos' ),
 	] );
 } );
 

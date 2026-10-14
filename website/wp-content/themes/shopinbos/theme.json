@@ -185,6 +185,7 @@
 	],
 	"customTemplates": [
 		{ "name": "page-canvas", "title": "Designed page (full width, no title)", "postTypes": [ "page", "sib_landing" ] },
-		{ "name": "page-article", "title": "Text page (legal, about)", "postTypes": [ "page" ] }
+		{ "name": "page-article", "title": "Text page", "postTypes": [ "page" ] },
+		{ "name": "page-legal", "title": "Legal document", "postTypes": [ "page" ] }
 	]
 }

@@ -46,9 +46,7 @@ class Sib_CLI {
 		$this->page( 'academy', 'Academy', $this->text_page( 'Free courses for store owners. The first course, Start your shop in a weekend, is coming soon.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"newsletter\",\"heading\":\"Tell me when it opens\"} /-->\n", 'page-article' );
 		$thanks = $this->page( 'thanks', 'You’re in', $this->text_page( 'Thanks for confirming. Your first tip is on its way.' ), 'page-article' );
 		update_post_meta( $thanks, 'sib_noindex', true );
-		$legal = $this->page( 'legal', 'Legal', $this->text_page( 'Our policies.' ), 'page-article' );
-		$privacy = $this->page( 'privacy', 'Privacy policy', $this->text_page( '[Legal to supply. Must match the NDPA 2023: what we collect on this website (lead forms, analytics), why, how long we keep it, and how to ask us to delete it.]' ), 'page-article', '', $legal );
-		$this->page( 'terms', 'Terms of use', $this->text_page( '[Legal to supply.]' ), 'page-article', '', $legal );
+		$privacy = $this->legal();
 
 		if ( ( $wp_privacy = (int) get_option( 'wp_page_for_privacy_policy' ) ) && $wp_privacy !== $privacy && 'draft' === get_post_status( $wp_privacy ) ) {
 			wp_delete_post( $wp_privacy, true );
@@ -119,6 +117,45 @@ class Sib_CLI {
 		}
 		WP_CLI::log( "Created page /{$slug}/" );
 		return $id;
+	}
+
+	/**
+	 * Replace a page that still holds first-install placeholder text. Pages someone has edited are left alone.
+	 */
+	private function refresh_page( string $slug, string $title, string $content, string $template, string $excerpt = '', int $parent = 0, int $order = 0 ): int {
+		$existing = get_page_by_path( $parent ? get_post_field( 'post_name', $parent ) . '/' . $slug : $slug );
+		if ( ! $existing ) {
+			$id = $this->page( $slug, $title, $content, $template, $excerpt, $parent );
+			wp_update_post( [ 'ID' => $id, 'menu_order' => $order ] );
+			return $id;
+		}
+		if ( preg_match( '/\[(Legal to supply|Write the company|List open roles|Press kit)|^\s*<!-- wp:paragraph -->\s*<p>Our policies\.<\/p>|is coming soon/', $existing->post_content ) ) {
+			wp_update_post( wp_slash( [ 'ID' => $existing->ID, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] ) );
+			update_post_meta( $existing->ID, '_wp_page_template', $template );
+			WP_CLI::log( "Replaced placeholder page /{$slug}/" );
+		}
+		return $existing->ID;
+	}
+
+	/** /legal/ and its seven documents. Returns the privacy policy page ID. */
+	private function legal(): int {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		require_once SIB_CORE_DIR . '/includes/seed/legal.php';
+		$hub     = sib_block_p( 'The agreements and policies for everyone who uses Shopinbos: sellers, their customers, suppliers and delivery partners. Each one starts with a summary in plain words.' ) . sib_seed_b( 'legal-index' );
+		$legal   = $this->refresh_page( 'legal', 'Legal', $hub, 'page-article' );
+		$privacy = 0;
+		foreach ( sib_seed_legal_docs() as $i => [ $slug, $title, $lead, $summary, $sections, $email ] ) {
+			$id = $this->refresh_page( $slug, $title, sib_seed_legal_markup( $summary, $sections ), 'page-legal', $lead, $legal, $i + 1 );
+			foreach ( [ 'sib_updated' => '2026-10-01', 'sib_effective' => '2026-11-01', 'sib_legal_email' => $email ] as $k => $v ) {
+				if ( ! get_post_meta( $id, $k, true ) ) {
+					update_post_meta( $id, $k, $v );
+				}
+			}
+			if ( 'privacy' === $slug ) {
+				$privacy = $id;
+			}
+		}
+		return $privacy;
 	}
 
 	/** A registered pattern's markup with nested pattern blocks expanded, so writers can edit everything. */
