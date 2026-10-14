@@ -72,7 +72,7 @@ function sib_schema_graph(): array {
 		$blocks = parse_blocks( $post->post_content );
 
 		$faq = sib_schema_faq( $blocks );
-		if ( count( $faq ) >= 2 && ! is_singular( 'sib_help' ) ) {
+		if ( count( $faq ) >= 2 ) {
 			$graph[] = [ '@type' => 'FAQPage', 'mainEntity' => $faq ];
 		}
 		if ( is_singular( 'post' ) && ! $plug ) {
@@ -87,7 +87,7 @@ function sib_schema_graph(): array {
 		if ( is_singular( [ 'post', 'sib_help', 'sib_resource' ] ) && ( $by = get_post_meta( $post->ID, 'sib_reviewed_by', true ) ) ) {
 			$graph[] = [ '@type' => 'WebPage', '@id' => get_permalink( $post ) . '#page', 'url' => get_permalink( $post ), 'reviewedBy' => [ '@type' => 'Person', 'name' => $by ], 'lastReviewed' => get_post_meta( $post->ID, 'sib_reviewed', true ) ?: null ];
 		}
-		if ( is_singular( 'sib_help' ) && ( $steps = sib_schema_steps( $blocks ) ) ) {
+		if ( ( $steps = sib_schema_steps( $blocks ) ) && ( is_singular( 'sib_help' ) || preg_match( '/"schema":true/', $post->post_content ) ) ) {
 			$graph[] = [ '@type' => 'HowTo', 'name' => get_the_title( $post ), 'step' => $steps ];
 		}
 	}
@@ -109,6 +109,11 @@ function sib_schema_graph(): array {
 function sib_schema_faq( array $blocks ): array {
 	$out = [];
 	foreach ( $blocks as $b ) {
+		if ( 'shopinbos/faq' === $b['blockName'] ) {
+			foreach ( sib_faq_items( (string) ( $b['attrs']['items'] ?? '' ) ) as [ $q, $ans ] ) {
+				$out[] = [ '@type' => 'Question', 'name' => wp_strip_all_tags( $q ), 'acceptedAnswer' => [ '@type' => 'Answer', 'text' => wp_strip_all_tags( $ans ) ] ];
+			}
+		}
 		if ( 'core/details' === $b['blockName'] ) {
 			$q = trim( wp_strip_all_tags( $b['attrs']['summary'] ?? ( preg_match( '#<summary>(.*?)</summary>#s', $b['innerHTML'], $m ) ? $m[1] : '' ) ) );
 			$a = trim( wp_strip_all_tags( implode( ' ', array_map( fn( $ib ) => render_block( $ib ), $b['innerBlocks'] ) ) ) );
@@ -126,6 +131,14 @@ function sib_schema_faq( array $blocks ): array {
 /** Steps from the first numbered list in a help article. */
 function sib_schema_steps( array $blocks ): array {
 	foreach ( $blocks as $b ) {
+		if ( 'shopinbos/steps' === $b['blockName'] && ( ! empty( $b['attrs']['schema'] ) || is_singular( 'sib_help' ) ) ) {
+			$steps = [];
+			foreach ( sib_lines( (string) ( $b['attrs']['items'] ?? '' ) ) as $i => $line ) {
+				[ $h, $d ] = sib_pair( $line );
+				$steps[]   = [ '@type' => 'HowToStep', 'position' => $i + 1, 'name' => wp_strip_all_tags( $h ), 'text' => wp_strip_all_tags( $d ?: $h ) ];
+			}
+			return $steps;
+		}
 		if ( 'core/list' === $b['blockName'] && ! empty( $b['attrs']['ordered'] ) ) {
 			$steps = [];
 			foreach ( $b['innerBlocks'] as $i => $li ) {

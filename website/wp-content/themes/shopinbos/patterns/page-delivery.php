@@ -46,7 +46,7 @@ echo sib_block_html( '<div class="g3" style="margin-top:40px">'
 	. $card( 'shield', 'Cash on delivery, sorted', 'Riders confirm each delivery with the buyer’s code. Pay cash in by 6pm to your own virtual account and it matches automatically.' ) . '</div>'
 	. '<div class="card facts" style="margin-top:24px">'
 	. $fact( 'What you need', 'CAC registration, goods-in-transit insurance, riders with checked papers.' )
-	. $fact( 'What it costs', 'Free to join. Shopinbos keeps [FEE] of each delivery fee.' )
+	. $fact( 'What it costs', 'Free to join. Shopinbos keeps [sib_price key="fee_partner"] of each delivery fee.' )
 	. $fact( 'Getting paid', 'Weekly to your company bank account, with a statement for every job.' )
 	. $fact( 'Going live', 'Start in sandbox. After one test delivery passes, we switch you on.' ) . '</div>' );
 echo sib_block_group_close() . sib_block_group_close( 'section' );

@@ -115,7 +115,7 @@ add_action( 'admin_post_nopriv_sib_help_vote', 'sib_help_vote' );
 add_action( 'admin_post_sib_help_vote', 'sib_help_vote' );
 function sib_help_vote(): void {
 	$post = absint( $_POST['post'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification -- anonymous counter, rate limited
-	if ( 'sib_help' === get_post_type( $post ) && sib_rate_limit( 'vote' . $post, 1, DAY_IN_SECONDS ) ) {
+	if ( in_array( get_post_type( $post ), [ 'sib_help', 'post', 'sib_lesson' ], true ) && sib_rate_limit( 'vote' . $post, 1, DAY_IN_SECONDS ) ) {
 		$key = ! empty( $_POST['helpful'] ) ? 'sib_votes_yes' : 'sib_votes_no'; // phpcs:ignore
 		update_post_meta( $post, $key, (int) get_post_meta( $post, $key, true ) + 1 );
 	}
@@ -123,14 +123,18 @@ function sib_help_vote(): void {
 }
 
 /* Votes column in the admin list so the support lead can spot weak articles. */
-add_filter( 'manage_sib_help_posts_columns', fn( $c ) => $c + [ 'sib_votes' => __( 'Helpful', 'shopinbos' ) ] );
-add_action( 'manage_sib_help_posts_custom_column', function ( $col, $id ) {
+foreach ( [ 'sib_help', 'post', 'sib_lesson' ] as $sib_pt ) {
+	add_filter( "manage_{$sib_pt}_posts_columns", fn( $c ) => $c + [ 'sib_votes' => __( 'Helpful', 'shopinbos' ) ] );
+	add_action( "manage_{$sib_pt}_posts_custom_column", 'sib_votes_column', 10, 2 );
+}
+unset( $sib_pt );
+function sib_votes_column( $col, $id ) {
 	if ( 'sib_votes' === $col ) {
 		$y = (int) get_post_meta( $id, 'sib_votes_yes', true );
 		$n = (int) get_post_meta( $id, 'sib_votes_no', true );
 		echo esc_html( $y + $n ? sprintf( '%d%% of %d', round( $y / ( $y + $n ) * 100 ), $y + $n ) : '–' );
 	}
-}, 10, 2 );
+}
 
 /* The app links to help articles by slug. Warn editors before they change one. */
 add_action( 'admin_notices', function () {

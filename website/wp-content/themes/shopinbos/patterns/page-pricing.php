@@ -9,10 +9,10 @@
 $fees = [
 	[ 'Card, transfer and USSD payments (Paystack)', '1.5% + ₦100, capped at ₦2,000' ],
 	[ 'Pay on delivery', 'No extra fee' ],
-	[ 'Shopinbos commission on your sales', '[FEE]' ],
+	[ 'Shopinbos commission on your sales', '[sib_price key="fee_commission"] on Starter. None on Growth and Pro' ],
 	[ 'Delivery', 'The rider’s price, shown at checkout' ],
-	[ 'WhatsApp broadcasts', 'Meta’s message price + [FEE]' ],
-	[ 'Product videos', '[PRICE] per video' ],
+	[ 'WhatsApp broadcasts', 'Meta’s message price + [sib_price key="fee_broadcast"]' ],
+	[ 'Product videos', '[sib_price key="fee_video"] per video' ],
 	[ 'Payouts to your bank', 'Free every Friday' ],
 ];
 echo sib_block_group_open( 'bg-mist', 'section' ) . sib_block_group_open( 'wrap col-22 pricing', 'div', [ 'top' => '56px', 'bottom' => '96px' ] );

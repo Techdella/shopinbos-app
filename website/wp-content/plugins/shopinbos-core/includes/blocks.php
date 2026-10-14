@@ -202,7 +202,7 @@ function sib_render_template_detail(): string {
 function sib_render_pricing_plans(): string {
 	$n     = (string) sib_setting( 'starter_products' );
 	$plans = [
-		[ 'start', __( 'Starter', 'shopinbos' ), __( 'For new shops getting their first orders', 'shopinbos' ), false, [ __( 'Store on yourname.shopinbos.com', 'shopinbos' ), __( 'Rex store builder and brand kit', 'shopinbos' ), __( 'WhatsApp and Instagram inbox', 'shopinbos' ), __( 'Pay on delivery and riders', 'shopinbos' ), sprintf( __( 'Up to %s products', 'shopinbos' ), $n ) ] ],
+		[ 'start', __( 'Starter', 'shopinbos' ), __( 'For new shops getting their first orders', 'shopinbos' ), false, [ __( 'Store on yourname.shopinbos.com', 'shopinbos' ), __( 'Rex store builder and brand kit', 'shopinbos' ), __( 'WhatsApp and Instagram inbox', 'shopinbos' ), __( 'Pay on delivery and riders', 'shopinbos' ), sprintf( __( 'Up to %s products', 'shopinbos' ), $n ), sprintf( __( '%s commission on sales', 'shopinbos' ), sib_setting( 'fee_commission' ) ) ] ],
 		[ 'grow', __( 'Growth', 'shopinbos' ), __( 'For shops selling every day', 'shopinbos' ), true, [ __( 'Everything in Starter', 'shopinbos' ), __( 'Your own domain', 'shopinbos' ), __( 'Peggy auto-replies and daily brief', 'shopinbos' ), __( 'Dropship and wholesale from suppliers', 'shopinbos' ), __( 'Broadcasts, discounts and affiliates', 'shopinbos' ), __( '3 staff accounts', 'shopinbos' ) ] ],
 		[ 'pro', __( 'Pro', 'shopinbos' ), __( 'For brands with a team', 'shopinbos' ), false, [ __( 'Everything in Growth', 'shopinbos' ), __( 'Advanced store builder', 'shopinbos' ), __( 'Sell on TikTok Shop, Google and marketplaces', 'shopinbos' ), __( 'Ads managed by Peggy', 'shopinbos' ), __( 'Imports from China', 'shopinbos' ), __( 'Unlimited staff', 'shopinbos' ) ] ],
 	];
@@ -219,7 +219,9 @@ function sib_render_pricing_plans(): string {
 			. '<div class="row" style="gap:6px;align-items:baseline">'
 			. '<span class="disp" style="font-size:40px" data-toggle-show="billing:month">' . esc_html( (string) sib_setting( "price_{$key}_month" ) ) . '</span>'
 			. '<span class="disp" style="font-size:40px" data-toggle-show="billing:year" hidden>' . esc_html( (string) sib_setting( "price_{$key}_year" ) ) . '</span>'
-			. '<span style="color:' . $sub . ';font-size:14px" data-toggle-text="billing" data-month="' . esc_attr__( '/ month', 'shopinbos' ) . '" data-year="' . esc_attr__( '/ year', 'shopinbos' ) . '">' . esc_html__( '/ month', 'shopinbos' ) . '</span></div>'
+			. ( 'free' === strtolower( (string) sib_setting( "price_{$key}_month" ) )
+				? '<span style="color:' . $sub . ';font-size:14px">' . esc_html__( 'forever', 'shopinbos' ) . '</span></div>'
+				: '<span style="color:' . $sub . ';font-size:14px" data-toggle-text="billing" data-month="' . esc_attr__( '/ month', 'shopinbos' ) . '" data-year="' . esc_attr__( '/ year', 'shopinbos' ) . '">' . esc_html__( '/ month', 'shopinbos' ) . '</span></div>' )
 			. '<a class="btn btn-block" data-toggle-param="billing" data-param="billing" style="background:' . ( $best ? '#FF6A2B' : '#16141F' ) . ';color:#fff" href="' . esc_url( sib_go_url( 'plan', [ 'plan' => $key, 'billing' => 'month' ] ) ) . '">' . esc_html( sprintf( __( 'Start with %s', 'shopinbos' ), $name ) ) . '</a>'
 			. '<ul class="ticks" style="--tick:' . ( $best ? '#8BE3D3' : '#16794A' ) . '">';
 		foreach ( $feats as $f ) {

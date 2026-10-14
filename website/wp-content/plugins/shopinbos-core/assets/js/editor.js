@@ -7,15 +7,19 @@
 	var C = wp.components;
 	var SSR = wp.serverSideRender;
 
-	function control(name, def, value, set) {
+	function control(name, def, value, set, ui) {
 		var label = name.replace(/([A-Z])/g, ' $1').replace(/^./, function (c) { return c.toUpperCase(); });
 		var onChange = function (v) { var o = {}; o[name] = v; set(o); };
+		var help = ui && ui.help && ui.help[name];
+		if (ui && ui.multiline && ui.multiline.indexOf(name) !== -1) {
+			return el(C.TextareaControl, { key: name, label: label, help: help, rows: 6, value: value || '', onChange: onChange });
+		}
 		if (def.enum) {
 			return el(C.SelectControl, { key: name, label: label, value: value, options: def.enum.map(function (o) { return { label: o || '—', value: o }; }), onChange: onChange });
 		}
-		if (def.type === 'boolean') return el(C.ToggleControl, { key: name, label: label, checked: !!value, onChange: onChange });
+		if (def.type === 'boolean') return el(C.ToggleControl, { key: name, label: label, help: help, checked: !!value, onChange: onChange });
 		if (def.type === 'number') return el(C.TextControl, { key: name, label: label, type: 'number', value: value, onChange: function (v) { onChange(parseInt(v, 10) || 0); } });
-		return el(C.TextControl, { key: name, label: label, value: value || '', onChange: onChange });
+		return el(C.TextControl, { key: name, label: label, help: help, value: value || '', onChange: onChange });
 	}
 
 	(window.SIB_BLOCKS || []).forEach(function (b) {
@@ -23,13 +27,13 @@
 		wp.blocks.registerBlockType(b.name, {
 			apiVersion: 3,
 			title: b.title,
-			category: 'widgets',
+			category: b.category || 'widgets',
 			icon: 'store',
 			attributes: b.attributes,
 			edit: function (props) {
-				var keys = Object.keys(b.attributes);
+				var keys = Object.keys(b.attributes).filter(function (k) { return k !== 'anchor'; });
 				return el('div', useBlockProps(),
-					keys.length ? el(Inspector, {}, el(C.PanelBody, { title: 'Settings' }, keys.map(function (k) { return control(k, b.attributes[k], props.attributes[k], props.setAttributes); }))) : null,
+					keys.length ? el(Inspector, {}, el(C.PanelBody, { title: 'Settings' }, keys.map(function (k) { return control(k, b.attributes[k], props.attributes[k], props.setAttributes, b.ui); }))) : null,
 					el(C.Disabled, {}, el(SSR, { block: b.name, attributes: props.attributes, EmptyResponsePlaceholder: function () { return el('p', { style: { padding: 16, background: '#F6F5F9', borderRadius: 12 } }, b.title + ' (shows on the live page)'); } }))
 				);
 			},

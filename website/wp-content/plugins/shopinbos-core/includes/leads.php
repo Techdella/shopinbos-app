@@ -11,6 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const SIB_CONSENT_TEXT = 'I agree to get emails from Shopinbos with selling tips and offers. I can unsubscribe any time.';
+const SIB_SUNDAY_CONSENT = 'By sending, you agree to one tip a week from Shopinbos on WhatsApp or email. Reply STOP or unsubscribe any time.';
 
 /* ---------- Storage ---------- */
 
@@ -174,12 +175,23 @@ function sib_email_html( string $title, string $body, string $button_label = '',
 /* ---------- Form rendering ---------- */
 
 function sib_render_lead_form( array $a ): string {
-	$kind     = in_array( $a['kind'] ?? '', [ 'newsletter', 'contact', 'tool', 'download' ], true ) ? $a['kind'] : 'newsletter';
+	$kind     = in_array( $a['kind'] ?? '', [ 'newsletter', 'contact', 'tool', 'download', 'sunday' ], true ) ? $a['kind'] : 'newsletter';
 	$id       = wp_unique_id( 'sib-lead-' );
 	$heading  = $a['heading'] ?? '';
 	$resource = (int) ( $a['resource'] ?? 0 );
 	$status   = isset( $_GET['sib_lead'] ) ? sanitize_key( $_GET['sib_lead'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 	$field    = fn( $name, $label, $type = 'text', $extra = '' ) => '<label class="field" for="' . $id . '-' . $name . '">' . esc_html( $label ) . '<input class="input" id="' . $id . '-' . $name . '" name="' . $name . '" type="' . $type . '"' . $extra . '></label>';
+
+	if ( 'sunday' === $kind ) {
+		return '<form class="sib-lead nl-form" id="' . esc_attr( $id ) . '" data-sib-lead method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'
+			. '<div class="heroform nl-input"><label class="screen-reader-text" for="' . $id . '-c">' . esc_html__( 'WhatsApp number or email', 'shopinbos' ) . '</label>'
+			. '<input class="input" id="' . $id . '-c" name="contact" required autocomplete="email" placeholder="' . esc_attr__( 'WhatsApp number or email', 'shopinbos' ) . '">'
+			. '<button class="btn btn-ink" type="submit">' . esc_html__( 'Send it to me', 'shopinbos' ) . sib_icon( 'arrow', 16 ) . '</button></div>'
+			. '<p class="nl-consent">' . esc_html( SIB_SUNDAY_CONSENT ) . ' <a href="' . esc_url( home_url( '/legal/privacy/' ) ) . '">' . esc_html__( 'Privacy policy', 'shopinbos' ) . '</a></p>'
+			. '<input type="hidden" name="action" value="sib_lead"><input type="hidden" name="kind" value="sunday"><input type="hidden" name="back" value="' . esc_url( get_permalink() ?: home_url( add_query_arg( [] ) ) ) . '">'
+			. '<label class="hp" aria-hidden="true">Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>'
+			. '<div data-sib-lead-out aria-live="polite"></div></form>';
+	}
 
 	$body = '';
 	if ( 'newsletter' === $kind ) {
@@ -239,6 +251,7 @@ function sib_lead_message( string $kind ): string {
 		'tool'       => __( 'Sent. Check your inbox.', 'shopinbos' ),
 		'download'   => __( 'Your guide is ready. We’ve also sent the link to your email.', 'shopinbos' ),
 		'contact'    => __( 'Thanks. A person will reply within one working day.', 'shopinbos' ),
+		'sunday'     => __( 'You’re in. Your first idea arrives on Sunday morning.', 'shopinbos' ),
 	][ $kind ] ?? '';
 }
 
@@ -289,7 +302,7 @@ function sib_handle_lead(): void {
  */
 function sib_process_lead( string $kind, array $in ): array {
 	$fail = fn( $m ) => [ 'ok' => false, 'message' => $m ];
-	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download' ], true ) ) {
+	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download', 'sunday' ], true ) ) {
 		return $fail( __( 'Unknown form.', 'shopinbos' ) );
 	}
 	if ( ! empty( $in['website'] ) ) { // honeypot: pretend it worked
@@ -318,6 +331,23 @@ function sib_process_lead( string $kind, array $in ): array {
 			sib_log_consent( $email, 'newsletter', 'newsletter' );
 			sib_send_confirm( $email, $name, 'newsletter' );
 			return [ 'ok' => true, 'message' => sib_lead_message( 'newsletter' ) ];
+
+		case 'sunday':
+			$contact = trim( (string) ( $in['contact'] ?? '' ) );
+			if ( is_email( $contact ) ) {
+				sib_log_consent( $contact, 'sunday', 'newsletter_sunday', SIB_SUNDAY_CONSENT );
+				sib_send_confirm( sanitize_email( $contact ), '', 'newsletter_sunday' );
+				return [ 'ok' => true, 'message' => __( 'Check your email and tap the link to confirm. Then you’re in.', 'shopinbos' ) ];
+			}
+			$digits = preg_replace( '/\D/', '', $contact );
+			$digits = preg_replace( '/^(234|0)/', '', $digits );
+			if ( strlen( $digits ) < 10 || strlen( $digits ) > 11 ) {
+				return $fail( __( 'Type a WhatsApp number like 0803 412 7790, or an email.', 'shopinbos' ) );
+			}
+			$phone = '+234' . substr( $digits, -10 );
+			sib_log_consent( $phone, 'sunday', 'newsletter_sunday', SIB_SUNDAY_CONSENT );
+			do_action( 'sib_lead_whatsapp', $phone, 'newsletter_sunday' );
+			return [ 'ok' => true, 'message' => sib_lead_message( 'sunday' ) ];
 
 		case 'tool':
 			if ( ! $email ) {
@@ -368,13 +398,13 @@ function sib_process_lead( string $kind, array $in ): array {
 	return $fail( '' );
 }
 
-function sib_log_consent( string $contact, string $kind, string $source ): void {
+function sib_log_consent( string $contact, string $kind, string $source, string $text = SIB_CONSENT_TEXT ): void {
 	global $wpdb;
 	$wpdb->insert( sib_consent_table(), [
 		'contact'      => mb_substr( $contact, 0, 190 ),
 		'kind'         => $kind,
 		'source'       => mb_substr( $source, 0, 190 ),
-		'consent_text' => SIB_CONSENT_TEXT,
+		'consent_text' => $text,
 		'ip'           => sib_client_ip(),
 		'created_at'   => current_time( 'mysql', true ),
 	] );

@@ -27,6 +27,7 @@ foreach ( [
 	'content-types',
 	'meta',
 	'blocks',
+	'article-blocks',
 	'schema',
 	'seo',
 	'sitemaps',

@@ -34,7 +34,7 @@ echo sib_block_html( '<div class="g3" style="margin-top:40px">'
 	. $card( 'chat', 'Quotes', 'Shops ask for custom quantities and prices. Reply with an offer in the portal and agree the deal in one thread.' ) . '</div>'
 	. '<div class="card facts" style="margin-top:24px">'
 	. $fact( 'What you need', 'CAC registration, a business bank account, and stock you can ship within 3 days.' )
-	. $fact( 'What it costs', 'Free to list. Shopinbos fee on each sale: [FEE].' )
+	. $fact( 'What it costs', 'Free to list. Shopinbos keeps [sib_price key="fee_supplier"] of each sale.' )
 	. $fact( 'Getting paid', 'To your bank every Friday, after delivery and the 48-hour return window.' )
 	. $fact( 'Delivery', 'Book Shopinbos riders from the portal, or hand orders to your own dispatch.' ) . '</div>' );
 echo sib_block_group_close() . sib_block_group_close( 'section' );

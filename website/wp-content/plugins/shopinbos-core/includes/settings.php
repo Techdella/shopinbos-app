@@ -31,13 +31,18 @@ function sib_settings_fields(): array {
 		'pricing' => [
 			'title'  => __( 'Plan prices', 'shopinbos' ),
 			'fields' => [
-				'price_start_month' => [ __( 'Starter, monthly', 'shopinbos' ), '[PRICE]', 'text', __( 'Shown as typed, e.g. ₦5,000. Placeholders stay until prices are agreed.', 'shopinbos' ) ],
-				'price_start_year'  => [ __( 'Starter, yearly', 'shopinbos' ), '[PRICE]', 'text', '' ],
-				'price_grow_month'  => [ __( 'Growth, monthly', 'shopinbos' ), '[PRICE]', 'text', '' ],
-				'price_grow_year'   => [ __( 'Growth, yearly', 'shopinbos' ), '[PRICE]', 'text', '' ],
-				'price_pro_month'   => [ __( 'Pro, monthly', 'shopinbos' ), '[PRICE]', 'text', '' ],
-				'price_pro_year'    => [ __( 'Pro, yearly', 'shopinbos' ), '[PRICE]', 'text', '' ],
-				'starter_products'  => [ __( 'Starter product limit', 'shopinbos' ), '[NUMBER]', 'text', '' ],
+				'price_start_month' => [ __( 'Starter, monthly', 'shopinbos' ), 'Free', 'text', __( 'Shown as typed, e.g. ₦7,500. Use [sib_price key="price_grow_month"] in any text to show it.', 'shopinbos' ) ],
+				'price_start_year'  => [ __( 'Starter, yearly', 'shopinbos' ), 'Free', 'text', '' ],
+				'price_grow_month'  => [ __( 'Growth, monthly', 'shopinbos' ), '₦7,500', 'text', '' ],
+				'price_grow_year'   => [ __( 'Growth, yearly', 'shopinbos' ), '₦75,000', 'text', '' ],
+				'price_pro_month'   => [ __( 'Pro, monthly', 'shopinbos' ), '₦25,000', 'text', '' ],
+				'price_pro_year'    => [ __( 'Pro, yearly', 'shopinbos' ), '₦250,000', 'text', '' ],
+				'starter_products'  => [ __( 'Starter product limit', 'shopinbos' ), '50', 'text', '' ],
+				'fee_commission'    => [ __( 'Commission on Starter sales', 'shopinbos' ), '2%', 'text', __( 'Growth and Pro pay no commission.', 'shopinbos' ) ],
+				'fee_supplier'      => [ __( 'Supplier fee per sale', 'shopinbos' ), '5%', 'text', '' ],
+				'fee_partner'       => [ __( 'Delivery partner fee per job', 'shopinbos' ), '8%', 'text', '' ],
+				'fee_broadcast'     => [ __( 'Broadcast fee per message', 'shopinbos' ), '₦3', 'text', __( 'On top of Meta’s message price.', 'shopinbos' ) ],
+				'fee_video'         => [ __( 'Product video price', 'shopinbos' ), '₦1,000', 'text', '' ],
 			],
 		],
 		'email' => [
@@ -163,4 +168,14 @@ add_action( 'admin_notices', function () {
 	if ( current_user_can( 'manage_options' ) && sib_demo_mode() ) {
 		echo '<div class="notice notice-warning"><p>' . esc_html__( 'Shopinbos: the marketplace is showing sample products. Turn off "Use sample marketplace data" in Settings > Shopinbos before launch.', 'shopinbos' ) . '</p></div>';
 	}
+} );
+
+/* [sib_price key="price_grow_month"] prints a price or fee from Settings > Shopinbos, so one change updates every page. */
+add_shortcode( 'sib_price', function ( $atts ) {
+	$a   = shortcode_atts( [ 'key' => '', 'plan' => '', 'period' => 'month' ], $atts );
+	$key = $a['key'] ?: ( $a['plan'] ? 'price_' . ( 'growth' === $a['plan'] ? 'grow' : ( 'starter' === $a['plan'] ? 'start' : $a['plan'] ) ) . '_' . ( 'year' === $a['period'] ? 'year' : 'month' ) : '' );
+	if ( ! preg_match( '/^(price|fee)_[a-z_]+$|^starter_products$/', $key ) ) {
+		return '';
+	}
+	return esc_html( (string) sib_setting( $key ) );
 } );

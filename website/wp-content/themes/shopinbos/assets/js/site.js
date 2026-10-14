@@ -205,9 +205,54 @@
 				body.append('post', root.getAttribute('data-vote'));
 				body.append('helpful', btn.getAttribute('data-helpful'));
 				fetch(root.getAttribute('data-endpoint'), { method: 'POST', body: body, credentials: 'same-origin' }).catch(function () {});
+				var chat = btn.getAttribute('data-helpful') === '0' ? root.querySelector('.helpful-chat') : null;
 				root.innerHTML = '<span class="notice notice-ok">' + (root.getAttribute('data-thanks') || 'Thanks for telling us.') + '</span>';
+				if (chat) { chat.hidden = false; root.appendChild(chat); }
 				track('help_vote', { helpful: btn.getAttribute('data-helpful'), path: location.pathname });
 			});
 		});
+	});
+
+	/* Article checklists: ticks are saved on this phone, per page. */
+	var store = {
+		get: function (k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } },
+		set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+	};
+	window.SIB.store = store;
+	$$('[data-checklist]').forEach(function (list) {
+		var key = 'sib-check:' + location.pathname + ':' + list.getAttribute('data-checklist');
+		var ticked = store.get(key) || [];
+		var rows = $$('.chkrow', list);
+		function paint() { rows.forEach(function (r, i) { r.setAttribute('aria-pressed', String(ticked.indexOf(i) !== -1)); }); }
+		rows.forEach(function (row, i) {
+			row.addEventListener('click', function () {
+				var at = ticked.indexOf(i);
+				if (at === -1) ticked.push(i); else ticked.splice(at, 1);
+				store.set(key, ticked); paint();
+			});
+		});
+		paint();
+	});
+
+	/* Copy link button. */
+	$$('[data-copy-link]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var done = function () { btn.classList.add('is-copied'); setTimeout(function () { btn.classList.remove('is-copied'); }, 1500); };
+			if (navigator.clipboard) navigator.clipboard.writeText(location.href).then(done).catch(function () {}); else prompt('Copy this link', location.href);
+		});
+	});
+
+	/* Reading progress in the table of contents. */
+	$$('[data-read-progress]').forEach(function (bar) {
+		var article = document.querySelector('[data-article]'), left = document.querySelector('[data-read-left]');
+		if (!article) return;
+		var mins = Number(bar.getAttribute('data-read-progress')) || 1;
+		var tick = function () {
+			var r = article.getBoundingClientRect(), h = r.height - innerHeight;
+			var pct = Math.max(0, Math.min(1, h > 0 ? -r.top / h : 1));
+			bar.style.width = Math.round(pct * 100) + '%';
+			if (left) left.textContent = pct >= 0.98 ? 'Done' : Math.max(1, Math.ceil(mins * (1 - pct))) + ' min left';
+		};
+		addEventListener('scroll', tick, { passive: true }); tick();
 	});
 })();
