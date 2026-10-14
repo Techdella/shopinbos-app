@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { z } from "zod";
-import { parseReviewKey, validRating, isReviewSource, type RequestChannel } from "@/lib/reviews/pure";
+import { parseReviewKey, validRating, isReviewSource, isReviewStatus, type RequestChannel } from "@/lib/reviews/pure";
+import { moderateReview } from "@/lib/reviews/server";
 import { requestReviews, type RequestOutcome } from "@/lib/reviews/requests";
 import { chooseGoogleLocation, disconnectGoogle, getGoogleConnection, GoogleReviewsError, replyOnGoogle, syncGoogleReviews } from "@/lib/reviews/google";
 
@@ -78,9 +79,8 @@ export async function setReviewStatus(formData: FormData) {
   const { store } = await requireSellerStore();
   const ref = keyFrom(formData);
   const status = String(formData.get("status") || "");
-  if (!ref || !["approved", "pending", "rejected"].includes(status)) return;
-  if (ref.kind === "store") await db.productReview.updateMany({ where: { id: ref.id, storeId: store.id }, data: { status: status as "approved" | "pending" | "rejected" } });
-  else await db.externalReview.updateMany({ where: { id: ref.id, storeId: store.id }, data: { status } });
+  if (!ref || !isReviewStatus(status)) return;
+  await moderateReview(store.id, ref, { status });
   refresh(String(formData.get("key")));
 }
 
@@ -89,10 +89,7 @@ export async function setReviewFeatured(formData: FormData) {
   const { store } = await requireSellerStore();
   const ref = keyFrom(formData);
   if (!ref) return;
-  const featured = formData.get("featured") === "1";
-  const data = featured ? { featured: true, status: "approved" as const } : { featured: false };
-  if (ref.kind === "store") await db.productReview.updateMany({ where: { id: ref.id, storeId: store.id }, data });
-  else await db.externalReview.updateMany({ where: { id: ref.id, storeId: store.id }, data });
+  await moderateReview(store.id, ref, { featured: formData.get("featured") === "1" });
   refresh(String(formData.get("key")));
 }
 

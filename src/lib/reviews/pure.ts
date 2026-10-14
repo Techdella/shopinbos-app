@@ -36,6 +36,20 @@ export function sourceLabel(source: string) {
 
 export type ReviewStatusValue = "approved" | "pending" | "rejected";
 export const STATUS_LABEL: Record<ReviewStatusValue, string> = { approved: "Published", pending: "Waiting", rejected: "Hidden" };
+export const REVIEW_STATUSES = ["approved", "pending", "rejected"] as const satisfies readonly ReviewStatusValue[];
+
+export function isReviewStatus(value: unknown): value is ReviewStatusValue {
+  return typeof value === "string" && (REVIEW_STATUSES as readonly string[]).includes(value);
+}
+
+/**
+ * The row change for "Publish / Move to waiting / Hide" or "Feature / Unfeature". Featured reviews show first on
+ * the wall, the widget and share pages, so featuring also publishes; unfeaturing leaves the status alone.
+ */
+export function reviewModerationData(change: { status: ReviewStatusValue } | { featured: boolean }): { status?: ReviewStatusValue; featured?: boolean } {
+  if ("featured" in change) return change.featured ? { featured: true, status: "approved" } : { featured: false };
+  return { status: change.status };
+}
 
 // ─── One review across sources ────────────────────────────────────────────────
 
@@ -337,6 +351,14 @@ export function reviewLinkExpired(createdAt: Date | string, now = new Date()) {
 // ─── Requests ─────────────────────────────────────────────────────────────────
 
 export type RequestChannel = "email" | "sms" | "whatsapp" | "link";
+export const REQUEST_CHANNELS = ["email", "sms", "whatsapp", "link"] as const satisfies readonly RequestChannel[];
+
+/** Which ways a buyer can be asked: email needs an address, SMS and WhatsApp a phone, a link always works. */
+export function requestReach(order: { buyerEmail: string | null; buyerPhone: string | null }): Record<RequestChannel, boolean> {
+  const email = Boolean(order.buyerEmail?.includes("@"));
+  const phone = Boolean(order.buyerPhone);
+  return { email, sms: phone, whatsapp: phone, link: true };
+}
 
 /** Orders that are due an automatic request: delivered at least `delayDays` ago (and within 30 days), never asked. */
 export function ordersDueForRequest<T extends { id: string; status: string; deliveredAt: Date | string | null; updatedAt?: Date | string }>(

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import type { Prisma, SubscriberSource, SubscriberStatus } from "@prisma/client";
+import type { SubscriberSource, SubscriberStatus } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { FilterChips, PillLink, SearchForm, StatGrid, StatTile } from "@/components/app-kit";
-import { consentSummary } from "@/lib/marketing/subscribers";
+import { consentSummary, listSubscribers } from "@/lib/marketing/subscribers";
 import { SOURCE_LABEL } from "@/lib/marketing/segment-rules";
 import { SubscribersManager } from "./SubscribersManager";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -36,29 +36,15 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const status = STATUSES.find((s) => s.key === params.status)?.key;
   const source = params.source && params.source in SOURCE_LABEL ? (params.source as SubscriberSource) : undefined;
-  const page = Math.max(1, Number(params.page) || 1);
+  const list = store ? await listSubscribers(store.id, { q: params.q, status, source, tag: params.tag, page: Math.max(1, Number(params.page) || 1), limit: PAGE }) : null;
+  const rows = list?.rows ?? [];
+  const filtered = list?.filtered ?? 0;
+  const newThisMonth = list?.newThisMonth ?? 0;
   const q = params.q?.trim().slice(0, 100);
-  const where: Prisma.SubscriberWhereInput = {
-    storeId: store?.id ?? "-",
-    ...(status ? { status } : {}),
-    ...(source ? { source } : {}),
-    ...(params.tag ? { tags: { has: params.tag } } : {}),
-    ...(q ? { OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }, { phone: { contains: q } }] } : {}),
-  };
-  const monthAgo = new Date(Date.now() - 30 * 86_400_000);
-
-  const [rows, filtered, counts, newThisMonth, tagRows] = store
-    ? await Promise.all([
-        db.subscriber.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE, take: PAGE }),
-        db.subscriber.count({ where }),
-        db.subscriber.groupBy({ by: ["status"], where: { storeId: store.id }, _count: true }),
-        db.subscriber.count({ where: { storeId: store.id, status: "active", createdAt: { gte: monthAgo } } }),
-        db.subscriber.findMany({ where: { storeId: store.id, NOT: { tags: { isEmpty: true } } }, select: { tags: true }, take: 5000 }),
-      ])
-    : [[], 0, [], 0, []];
-  const count = (key?: string) => counts.filter((row) => !key || row.status === key).reduce((sum, row) => sum + row._count, 0);
-  const tags = [...new Set(tagRows.flatMap((row) => row.tags))].sort();
-  const pages = Math.max(1, Math.ceil(filtered / PAGE));
+  const count = (key?: SubscriberStatus) => (list ? (key ? list.counts[key] : list.counts.all) : 0);
+  const tags = list?.tags ?? [];
+  const page = list?.page ?? 1;
+  const pages = list?.pages ?? 1;
   const exportHref = `/api/app/marketing/subscribers/export${status || params.tag ? `?${new URLSearchParams({ ...(status ? { status } : {}), ...(params.tag ? { tag: params.tag } : {}) })}` : ""}`;
 
   return (

@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { DomainOwnership } from "@/components/domains/DomainOwnership";
-import { buildStorefrontOrigin, getPlatformRootDomain } from "@/lib/domains/storefront";
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { useT } from "@/components/i18n/I18nProvider";
 import { naira } from "@shared/onboarding";
 import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
@@ -160,9 +160,8 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
   // A free (annual plan) domain is bought in place: no Paystack, the progress banner shows the result.
   const [freeStarted, setFreeStarted] = useState(false);
 
-  const rootDomain = getPlatformRootDomain();
-  const freeDomain = `${storeSlug}.${rootDomain}`;
   const freeOrigin = buildStorefrontOrigin({ slug: storeSlug });
+  const freeDomain = freeOrigin.replace(/^https?:\/\//, "");
 
   const schemaSection = useMemo(() => getSchemaSection(contactSchema), [contactSchema]);
   const extraFields = useMemo(

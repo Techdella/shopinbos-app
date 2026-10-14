@@ -1,0 +1,43 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const ig: Partial<Record<keyof typeof en, string>> = {
+  "status.published": "Ọ dị na ụlọ ahịa gị",
+  "status.draft": "Draft",
+  "status.empty": "E debeghị ya",
+  saved: "Echekwara {date}",
+  notSaved: "Echekwabeghị ya",
+  gone: "Ibe a adịghịzi ebe ahụ.",
+  name: "Aha ibe",
+  text: "Ihe ibe a na-ekwu",
+  textHint: "Bido ahịrị na # ka ọ bụrụ isiokwu, ma ọ bụ na - ka ọ bụrụ ndepụta.",
+  textPlaceholder: "Dee ibe gị ebe a…",
+  richOnly: "Ibe a nwere vidiyo, bọtịnụ ma ọ bụ ngwaahịa n'ime ya, ya mere a na-edezi okwu ya na web ka ha ghara ịfụ efu.",
+  editWeb: "Dezie na web",
+  view: "Hụ ya na ụlọ ahịa gị",
+  unsaved: "Ị nwere mgbanwe ị chekwabeghị.",
+  write: "Dee ya maka m",
+  writeSub: "Peggy ga-ede draft mbụ site n'ihe ọ maara gbasara ụlọ ahịa gị. Gụọ ya ma gbanwee ihe ọ bụla nwere akara [Check: …].",
+  brief: "Ọ nwere ihe Peggy kwesịrị ịma? (ọ dịghị mkpa)",
+  briefPlaceholder: "Dịka: anyị anaghị anabata uwe ime azụ",
+  writeGo: "Dee draft ahụ",
+  replaceTitle: "Dochie okwu gị?",
+  replaceBody: "Draft Peggy ga-edochi ihe ibe a na-ekwu ugbu a. Ọ dịghị ihe a ga-echekwa ruo mgbe ị pịrị Save.",
+  replace: "Dochie",
+  drafted: "Draft Peggy abịala. Gụọ ya, gbanwee ihe ọ bụla nwere akara [Check: …], hichapụ ọkwa dị n'elu, wee chekwaa.",
+  draftedTemplate: "Peggy nọ n'ọrụ, ya mere nke a bụ draft a kwadebere. Gụọ ya, gbanwee ihe ọ bụla nwere akara [Check: …], hichapụ ọkwa dị n'elu, wee chekwaa.",
+  draftFailed: "Peggy enweghị ike ide ibe a ugbu a. Nwaa ọzọ n'oge na-adịghị anya.",
+  saveDraft: "Chekwaa draft",
+  publish: "Bipụta",
+  update: "Chekwaa mgbanwe",
+  unpublish: "Wepu mbipụta",
+  published: "E bipụtala ya. Ndị na-azụ ahịa nwere ike ịhụ ya na ụlọ ahịa gị.",
+  updated: "Echekwala ya. Ndị na-azụ ahịa ga-ahụ nke ọhụrụ.",
+  unpublished: "Ewepụla mbipụta. Ndị na-azụ ahịa enweghị ike ịhụ ya ugbu a.",
+  savedDraft: "Echekwala ya dịka draft.",
+  writeFirst: "Dee ihe tupu ị bipụta ibe a.",
+  addName: "Nye ibe a aha.",
+  saveFailed: "Anyị enweghị ike ichekwa ibe a. Lelee network gị ma nwaa ọzọ.",
+};
+
+export default ig;

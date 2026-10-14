@@ -10,7 +10,9 @@ import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { AdvancedFold } from "@/components/simple/Fold";
 import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
 import { getT } from "@/lib/i18n/server";
+import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import type { ReactNode } from "react";
+import { SeoImageField } from "@/components/seo/SeoImageField";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
 
   const activeTab = params?.tab === "integrations" ? "integrations" : "seo";
   const previewImage = seo.socialImage || store.logoUrl;
+  const storeAddress = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null }).replace(/^https?:\/\//, "").replace(/\/$/, "");
 
   return (
     <SellerPage
@@ -99,9 +102,14 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
               <Card className="p-5">
                 <CardHead title={t("seo.linkPreview")} sub={t("seo.linkPreviewSub")} />
                 <div className="mt-4">
-                  <label htmlFor="socialImage" className={FIELD_LABEL}>{t("seo.imageLink")}</label>
-                  <input id="socialImage" name="socialImage" type="url" className={FIELD_INPUT} placeholder="https://your-storage.supabase.co/..." defaultValue={seo.socialImage ?? store.logoUrl ?? ""} />
-                  <p className={FIELD_HELP}>{t("seo.imageHelp")}</p>
+                  <SeoImageField name="socialImage" label={t("seo.imageLink")} help={t("seo.imageHelp")} initialUrl={seo.socialImage ?? store.logoUrl ?? ""} />
+                </div>
+              </Card>
+
+              <Card className="p-5">
+                <CardHead title={t("seo.favicon")} sub={t("seo.faviconSub")} />
+                <div className="mt-4">
+                  <SeoImageField name="favicon" shape="square" label={t("seo.faviconLabel")} help={t("seo.faviconHelp")} initialUrl={seo.favicon ?? ""} />
                 </div>
               </Card>
 
@@ -114,7 +122,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
               <Card className="p-5">
                 <CardHead title={t("seo.onGoogle")} />
                 <div className="mt-3 rounded-[14px] border border-app-line p-3">
-                  <div className="truncate text-[12px] text-app-ink-soft">{store.slug}.shopinbos.shop</div>
+                  <div className="truncate text-[12px] text-app-ink-soft">{storeAddress}</div>
                   <div className="truncate text-[15px] font-medium leading-snug text-[#1a0dab]">{seo.title ?? store.name}</div>
                   <div className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[#545454]">{seo.description ?? store.description ?? t("seo.addDesc")}</div>
                 </div>
@@ -125,7 +133,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={previewImage} alt={t("seo.previewAlt")} className="block aspect-[1200/630] w-full object-cover" />
                   <div className="border-t border-app-line px-4 py-3">
-                    <div className="text-[12px] uppercase text-app-ink-soft">shopinbos.com</div>
+                    <div className="text-[12px] uppercase text-app-ink-soft">{storeAddress.split("/")[0]}</div>
                     <div className="mt-0.5 truncate text-[14px] font-extrabold">{seo.title ?? store.name}</div>
                     <div className="mt-0.5 line-clamp-2 text-[12.5px] text-app-ink-soft">{seo.description ?? store.description ?? ""}</div>
                   </div>

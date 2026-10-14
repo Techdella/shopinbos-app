@@ -291,3 +291,53 @@ export function whatsappCardState(options: { signupConfigured: boolean; whatsapp
 export function isAuthProblem(message: string) {
   return /\b(401|invalid_grant|expired|revoked|session has been invalidated|error validating access token|access token|unauthori[sz]ed|permission|not authorized|insufficient)/i.test(message);
 }
+
+// ─── Connecting from the phone app ──────────────────────────────────────────
+// The app runs the same sign-in in an in-app browser (expo-web-browser openAuthSessionAsync) and passes
+// ?app=<its return address> to the connect route. The callback then sends the seller back into the app instead
+// of /channels. Only the app's own scheme is accepted, plus Expo Go (exp://) on this computer or the local
+// network while developing, so the callback can't be used to send people anywhere else.
+
+export const appReturnCookieName = (platform: OAuthPlatform) => `sib_sc_app_${platform}`;
+
+const PRIVATE_HOST = /^(localhost|127(?:\.\d{1,3}){3}|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})$/;
+
+/** The app's return address, or null when it isn't one of ours. */
+export function appReturnUrl(value: string | null | undefined): string | null {
+  if (!value || value.length > 300 || /[\s\\]/.test(value)) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.username || url.password) return null;
+  if (url.protocol === "shopinbos:") return value;
+  if ((url.protocol === "exp:" || url.protocol === "exps:") && PRIVATE_HOST.test(url.hostname)) return value;
+  return null;
+}
+
+export type AppConnectResult = "connected" | "problem" | "closed";
+
+/** shopinbos://channels?connected=meta (or problem=, or closed=): where the callback sends the app. */
+export function appResultUrl(base: string, platform: OAuthPlatform, result: AppConnectResult): string {
+  const [path, query = ""] = base.split("?");
+  const params = new URLSearchParams(query);
+  params.delete("connected");
+  params.delete("problem");
+  params.delete("closed");
+  params.set(result, platform);
+  return `${path}?${params.toString()}`;
+}
+
+/** Which button actions a card can take from the app (the web's server actions in src/app/channels/actions.ts). */
+export type ChannelAction = "retry" | "notify";
+
+export function channelActionAllowed(platform: string, action: ChannelAction): boolean {
+  if (action === "notify") return isComingSoon(platform);
+  return platform === "whatsapp" || isOAuthPlatform(platform);
+}
+
+export function isLivePlatform(value: unknown): value is LivePlatform {
+  return typeof value === "string" && (LIVE_PLATFORMS as readonly string[]).includes(value);
+}

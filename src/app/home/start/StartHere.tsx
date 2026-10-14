@@ -21,6 +21,8 @@ interface Props {
   overview: SetupOverview;
   launchResult: "paid" | "failed" | null;
   launchError?: string | null;
+  /** A checklist step to open first (from ?step=). */
+  openStep?: string | null;
 }
 
 type StartT = ReturnType<typeof useT<["home", "common"]>>;
@@ -35,11 +37,14 @@ function useNaira() {
   return (amount: number) => formatMoney(Math.round(amount), locale);
 }
 
-export function StartHere({ firstName, overview, launchResult, launchError }: Props) {
+export function StartHere({ firstName, overview, launchResult, launchError, openStep }: Props) {
   const t = useT("home", "common");
   const router = useRouter();
   const { checklist, store } = overview;
   const [open, setOpen] = useState<SetupStepKey | null>(() => {
+    // ?step=live (the store preview's "Publish your store") opens that step.
+    const asked = checklist.steps.find((step) => step.key === openStep);
+    if (asked) return asked.key;
     const next = checklist.next;
     return next && next.action.kind === "inline" ? next.key : null;
   });

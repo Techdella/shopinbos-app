@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { router } from "expo-router";
 import { Badge, ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, PillButton, T } from "@/components/ui";
@@ -9,8 +10,8 @@ import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Legal pages (web /home/legal): returns, privacy, terms… with whether each is published. Editing them (a rich
-// text editor, with Peggy drafting) opens the web.
+// Legal pages (web /home/legal): returns, privacy, terms… with whether each is published. Each opens the app's
+// plain-text editor (app/legal/[key].tsx); adding a page of your own opens the web.
 
 interface LegalPageRow {
   key: string;
@@ -47,7 +48,7 @@ export default function LegalPages() {
               icon="doc"
               label={page.title}
               hint={page.updatedAt ? t("legal.saved", { date: formatDate(page.updatedAt, locale) }) : page.custom ? t("legal.ownPage") : undefined}
-              onPress={() => void openWeb(`/home/legal/${encodeURIComponent(page.key)}`)}
+              onPress={() => router.push({ pathname: "/legal/[key]", params: { key: page.key } })}
               right={
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Badge label={t(STATUS[page.status].label)} bg={STATUS[page.status].bg} fg={STATUS[page.status].fg} />

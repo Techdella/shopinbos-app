@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { parseBrandSettings } from "@/lib/workspace";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { buildStorefrontUrl, buildDirectStorefrontPath } from "@/lib/domains/storefront";
 import { THEME_LIBRARY } from "@/lib/store-templates";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, EmptyState, PillLink, cx } from "@/components/app-kit";
@@ -72,7 +72,9 @@ export default async function YourStorePage() {
   const hasDeliveryText = ["shippingPolicy", "returnPolicy"].some((key) => typeof legal[key] === "string" && (legal[key] as string).trim());
 
   const storeUrl = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain });
-  const host = new URL(storeUrl).host;
+  // Not live yet: open the owner's preview on the app itself (where they're signed in), whatever the shop's address.
+  const openUrl = look.live ? storeUrl : buildDirectStorefrontPath(store.slug);
+  const host = storeUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const tokens = look.tokens;
   const sub = [host, look.themeName ? t("hub.template", { name: look.themeName }) : null, look.live ? t("hub.live") : t("hub.draft")].filter(Boolean).join(" · ");
 
@@ -113,7 +115,7 @@ export default async function YourStorePage() {
       actions={
         <>
           <a
-            href={storeUrl}
+            href={openUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
@@ -142,7 +144,7 @@ export default async function YourStorePage() {
                   storeProducts: products,
                 }}
                 snapshot={look.snapshot}
-                href={storeUrl}
+                href={openUrl}
                 label={t("hub.open", { name: store.name })}
               />
               {look.source !== "published" && (

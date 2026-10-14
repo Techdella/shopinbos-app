@@ -66,7 +66,9 @@ export type Toast = { id: number; message: string; tone: "ok" | "error"; action?
 export function storefrontHost(url: string | null) {
   if (!url) return null;
   try {
-    return new URL(url).host;
+    const parsed = new URL(url);
+    // Shops at app.shopinbos.com/s/<slug> show their path too.
+    return `${parsed.host}${parsed.pathname.replace(/\/$/, "")}`;
   } catch {
     return null;
   }

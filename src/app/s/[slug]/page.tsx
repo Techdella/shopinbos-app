@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { StorefrontClient } from "./StorefrontClient";
-import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { buildStorefrontUrl, getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { storeHomeMetadata } from "@/lib/seo/store-head";
 import { storePageSeo } from "@/lib/seo/page-seo";
 import { seoMetadata } from "@/lib/seo/fields";
 import { resolveStorefront } from "@/lib/storefront/public-store.server";
@@ -30,18 +31,6 @@ function getIntegrations(brandSettings?: Record<string, unknown>) {
   };
 }
 
-function getSeoSettings(brandSettings?: Record<string, unknown>) {
-  const seo = brandSettings?.seo;
-  if (!seo || typeof seo !== "object") return {};
-  const s = seo as Record<string, unknown>;
-  return {
-    title: typeof s.title === "string" ? s.title.trim() : "",
-    description: typeof s.description === "string" ? s.description.trim() : "",
-    keywords: typeof s.keywords === "string" ? s.keywords.trim() : "",
-    socialImage: typeof s.socialImage === "string" ? s.socialImage.trim() : "",
-  };
-}
-
 export async function generateMetadata({ params, searchParams }: Props & { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const { slug } = await params;
   const view = await resolveStorefront(slug);
@@ -55,56 +44,23 @@ export async function generateMetadata({ params, searchParams }: Props & { searc
   const requested = (await searchParams).page;
   const pageSeo = typeof requested === "string" ? storePageSeo(store, requested) : null;
   if (pageSeo) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
     return seoMetadata(pageSeo.seo, {
       title: pageSeo.title,
       titleSuffix: store.name,
       description: store.description ?? "",
       image: store.logoUrl,
-      canonical: `${appUrl}/s/${slug}?page=${encodeURIComponent(requested as string)}`,
+      canonical: buildStorefrontUrl({ slug, customDomain: store.customDomain ?? null }, `/?page=${encodeURIComponent(requested as string)}`),
       siteName: store.name,
     }) as Metadata;
   }
 
-  const seo = getSeoSettings(store.brandSettings);
   const { gaSiteVerification } = getIntegrations(store.brandSettings);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
-
-  const title = seo.title || store.name;
-  const description = seo.description || store.description || `Shop at ${store.name}`;
-  const image = seo.socialImage || store.logoUrl || null;
-  const canonicalUrl = `${appUrl}/s/${slug}`;
-
-  return {
-    title,
-    description,
-    keywords: seo.keywords || undefined,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title,
-      description,
-      url: canonicalUrl,
-      siteName: store.name,
-      type: "website",
-      images: image ? [{ url: image, width: 1200, height: 630, alt: title }] : [],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: image ? [image] : [],
-    },
-    ...(gaSiteVerification
-      ? { verification: { google: gaSiteVerification } }
-      : {}),
-  };
+  // Canonical: the store's real address (its own domain, mybos.store subdomain or app.shopinbos.com/s/<slug>).
+  return storeHomeMetadata(store, buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null }), gaSiteVerification || undefined);
 }
 
 function buildJsonLd(store: StoreData) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
-  const storeUrl = `${appUrl}/s/${store.slug}`;
+  const storeUrl = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null });
 
   const organization = {
     "@context": "https://schema.org",

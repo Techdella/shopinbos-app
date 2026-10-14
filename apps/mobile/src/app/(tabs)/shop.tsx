@@ -16,8 +16,8 @@ import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // My shop (build spec 8A): everything that isn't Home, Orders or Chats, grouped by goal. "app:" paths are
-// screens in the app; "web:" opens that page of the web app, signed in. Sell everywhere opens the web page, where
-// each platform connects in one tap (its sign-in runs in the in-app browser). The domain goes to "Ask us", where the
+// screens in the app; "web:" opens that page of the web app, signed in. Sell everywhere connects each platform in one tap
+// (its sign-in runs in the in-app browser and comes back to the app). The domain goes to "Ask us", where the
 // Shopinbos team sets it up.
 // Words are translated at render: m_shop "group.<key>", "link.<id>.label" and "link.<id>.hint" (English here is the fallback).
 type ShopLink = { id: string; label: string; icon: AppIconName; path: string; hint?: string };
@@ -31,15 +31,15 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "dropship", label: "Dropship", icon: "truck", path: "app:/dropship", hint: "Sell products a supplier sends for you" },
       { id: "find", label: "Find products to sell", icon: "search", path: "app:/find", hint: "From suppliers in Nigeria and China" },
       { id: "themes", label: "Themes", icon: "image", path: "app:/web-only?what=look", hint: "How your shop looks: colours, logo and pictures" },
-      { id: "channels", label: "Sell everywhere", icon: "chat", path: "web:/channels", hint: "Connect WhatsApp, Facebook, TikTok and Google. Opens in your browser" },
+      { id: "channels", label: "Sell everywhere", icon: "chat", path: "app:/channels", hint: "Connect WhatsApp, Facebook, TikTok and Google" },
     ],
   },
   {
     key: "paid",
     title: "Get paid and deliver",
     links: [
-      { id: "payments", label: "Payments and payouts", icon: "coin", path: "web:/home/payments", hint: "Money sent to your bank. Opens in your browser" },
-      { id: "delivery", label: "Delivery", icon: "truck", path: "web:/home/logistics", hint: "Where you deliver and the price. Opens in your browser" },
+      { id: "payments", label: "Payments and payouts", icon: "coin", path: "app:/payments", hint: "How customers pay you, and money sent to your bank" },
+      { id: "delivery", label: "Delivery", icon: "truck", path: "app:/delivery", hint: "Where you deliver and the price" },
       { id: "partners", label: "Partner messages", icon: "users", path: "app:/partners", hint: "Suppliers and delivery partners" },
     ],
   },
@@ -60,7 +60,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "autoReplies", label: "Auto-replies", icon: "clock", path: "app:/inbox/auto-replies", hint: "Away message and opening hours" },
       { id: "chatbot", label: "Peggy chatbot", icon: "bot", path: "app:/inbox/chatbot", hint: "Answers shoppers on your shop's chat, day and night" },
       { id: "notifications", label: "Notifications", icon: "bell", path: "app:/notifications", hint: "Orders, payments and messages, and what buzzes your phone" },
-      { id: "settings", label: "Settings", icon: "settings", path: "web:/home/settings", hint: "Your details, team, notifications. Opens in your browser" },
+      { id: "settings", label: "Settings", icon: "settings", path: "app:/settings", hint: "Your shop details, logo and your own details" },
       { id: "legal", label: "Legal pages", icon: "doc", path: "app:/legal", hint: "Refunds, delivery, privacy" },
       { id: "help", label: "Help", icon: "help", path: "app:/help", hint: "A person, or Peggy" },
     ],
