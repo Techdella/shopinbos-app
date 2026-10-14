@@ -72,7 +72,7 @@ export default async function YourStorePage() {
   const hasDeliveryText = ["shippingPolicy", "returnPolicy"].some((key) => typeof legal[key] === "string" && (legal[key] as string).trim());
 
   const storeUrl = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain });
-  const host = new URL(storeUrl).host;
+  const host = storeUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const tokens = look.tokens;
   const sub = [host, look.themeName ? t("hub.template", { name: look.themeName }) : null, look.live ? t("hub.live") : t("hub.draft")].filter(Boolean).join(" · ");
 

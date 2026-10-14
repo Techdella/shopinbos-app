@@ -1,4 +1,5 @@
 import type React from "react";
+import { PublishPrompt } from "./PublishPrompt";
 
 // The owner's preview of their store: a slim bar over every shopper page saying only they can see it, with
 // the next step (go live, or back to the builder), and "Exit preview" back to the dashboard. PreviewFrame sets --sb-preview-h so the shopper header
@@ -13,7 +14,7 @@ export const PREVIEW_EXIT_HREF = "/home";
 export type PreviewBarVariant = "not-live" | "draft" | "published";
 
 const COPY: Record<PreviewBarVariant, { lead: string; rest: string; cta: string; href: string }> = {
-  "not-live": { lead: "only you can see this.", rest: " Your store isn't live yet.", cta: "Go live", href: "/home/start" },
+  "not-live": { lead: "only you can see this.", rest: " Your store isn't live yet.", cta: "Publish your store", href: "/home/start?step=live" },
   draft: { lead: "your unpublished changes.", rest: " Shoppers still see the live store.", cta: "Open builder", href: "/builder" },
   published: { lead: "this is the live store.", rest: " Sign in to the builder to see your draft.", cta: "Open builder", href: "/builder" },
 };
@@ -55,6 +56,7 @@ export function PreviewFrame({ variant = "not-live", children }: { variant?: Pre
     <div style={{ ["--sb-preview-h" as string]: `${PREVIEW_BAR_HEIGHT}px` } as React.CSSProperties}>
       <PreviewBar variant={variant} />
       {children}
+      {variant === "not-live" && <PublishPrompt href={COPY["not-live"].href} />}
     </div>
   );
 }

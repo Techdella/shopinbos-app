@@ -50,6 +50,7 @@ export default async function StartHerePage({ searchParams }: { searchParams: Pr
         firstName={firstName}
         overview={JSON.parse(JSON.stringify(overview))}
         launchResult={launch === "paid" || launch === "failed" ? launch : null}
+        openStep={typeof params.step === "string" ? params.step : null}
         launchError={typeof params.error === "string" ? params.error.slice(0, 300) : null}
       />
     </AppFrame>

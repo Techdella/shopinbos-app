@@ -6,7 +6,7 @@ import { AssistantNote, Pill } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { PageToast } from "@/components/PageToast";
 import { db } from "@/lib/db/client";
-import { buildPlatformSubdomainOrigin } from "@/lib/domains/storefront";
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { hasVercelDomainConfig } from "@/lib/domains/vercel";
 import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
@@ -106,8 +106,8 @@ export default async function DomainSettingsPage({ searchParams }: { searchParam
   }
 
   const registrars: RegistrarRow[] = dbPartners.length > 0 ? dbPartners : FALLBACK_REGISTRARS;
-  const freeOrigin = buildPlatformSubdomainOrigin(store.slug);
-  const freeHost = new URL(freeOrigin).host;
+  const freeOrigin = buildStorefrontOrigin({ slug: store.slug });
+  const freeHost = freeOrigin.replace(/^https?:\/\//, "");
   const live = store.status === "active" || store.status === "published";
 
   return (
