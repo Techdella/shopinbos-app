@@ -90,6 +90,23 @@ function sib_canvas_part( string $part ): string {
 		$checked = (string) get_post_meta( get_queried_object_id(), 'sib_last_checked', true );
 		$html    = str_replace( '{{checked}}', esc_html( date_i18n( 'j F Y', $checked ? strtotime( $checked ) : time() ) ), $html );
 	}
+	// App Store and Google Play badges ("Coming soon" until Settings > Shopinbos has the store link).
+	$html = preg_replace_callback( '/\{\{store(link)?:(ios|android)\}\}/', function ( $m ) {
+		if ( ! function_exists( 'sib_store_badge' ) ) {
+			return '';
+		}
+		if ( ! $m[1] ) {
+			return sib_store_badge( $m[2] );
+		}
+		$url  = (string) sib_setting( 'ios' === $m[2] ? 'ios_url' : 'android_url' );
+		$name = 'ios' === $m[2] ? 'iPhone' : 'Android';
+		return $url
+			? '<a class="row cv-b" href="' . esc_url( $url ) . '" style="gap:8px">' . esc_html( $name ) . '</a>'
+			: '<button type="button" class="row cv-b" data-cv="pop.openApp" data-platform="' . $m[2] . '" style="gap:8px">' . esc_html( $name ) . ' <span class="tag" style="background:rgba(255,255,255,.12);color:#C9C6D3;min-height:20px;font-size:10.5px">' . esc_html__( 'Coming soon', 'shopinbos' ) . '</span></button>';
+	}, $html );
+	if ( 'popups' === $part && function_exists( 'sib_app_notify_popup' ) ) {
+		$html = preg_replace( '/<\/div>\s*$/', sib_app_notify_popup() . '</div>', $html, 1 );
+	}
 	$html = str_replace( '{{today}}', esc_html( wp_date( 'l j F Y', (int) wp_date( 'G' ) < 7 ? time() - DAY_IN_SECONDS : null ) ), $html );
 	if ( str_contains( $html, '{{kit_id}}' ) ) {
 		$kit  = get_page_by_path( 'online-sellers-starter-kit', OBJECT, 'sib_resource' );

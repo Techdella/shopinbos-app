@@ -18,12 +18,19 @@ function sib_settings_fields(): array {
 				'demo_mode' => [ __( 'Use sample marketplace data', 'shopinbos' ), '0', 'checkbox', __( 'For staging without the app. Shows the prototype products and never calls the API.', 'shopinbos' ) ],
 			],
 		],
+		'launch' => [
+			'title'  => __( 'Launch', 'shopinbos' ),
+			'fields' => [
+				'app_live'      => [ __( 'The web app is live', 'shopinbos' ), '0', 'checkbox', __( 'Off: every “Start your shop” and “Log in” button goes to the Coming soon page with a waitlist form. Tick it on launch day to send people to the app.', 'shopinbos' ) ],
+				'site_coming_soon' => [ __( 'Show only the Coming soon page to visitors', 'shopinbos' ), '0', 'checkbox', __( 'Hides the whole website behind the Coming soon page (logged-in editors still see everything). Leave off to keep the site and blog visible to Google.', 'shopinbos' ) ],
+			],
+		],
 		'contact' => [
 			'title'  => __( 'Contact and apps', 'shopinbos' ),
 			'fields' => [
 				'whatsapp_support'     => [ __( 'Support WhatsApp number', 'shopinbos' ), '', 'text', __( 'International format without +, e.g. 2348012345678. Used by "Chat with us" buttons.', 'shopinbos' ) ],
-				'ios_url'              => [ __( 'Shopinbos app: App Store link', 'shopinbos' ), '', 'url', '' ],
-				'android_url'          => [ __( 'Shopinbos app: Google Play link', 'shopinbos' ), '', 'url', '' ],
+				'ios_url'              => [ __( 'Shopinbos app: App Store link', 'shopinbos' ), '', 'url', __( 'Empty: the App Store badge shows “Coming soon” and opens a “tell me when it’s live” form.', 'shopinbos' ) ],
+				'android_url'          => [ __( 'Shopinbos app: Google Play link', 'shopinbos' ), '', 'url', __( 'Empty: the Google Play badge shows “Coming soon” and opens the same form.', 'shopinbos' ) ],
 				'riders_android_url'   => [ __( 'Riders app: Google Play link', 'shopinbos' ), '', 'url', '' ],
 				'riders_ios_url'       => [ __( 'Riders app: App Store link', 'shopinbos' ), '', 'url', '' ],
 				'partner_api_docs_url' => [ __( 'Delivery partner API docs link', 'shopinbos' ), '', 'url', '' ],

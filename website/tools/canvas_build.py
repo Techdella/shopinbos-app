@@ -163,7 +163,15 @@ def clean(root, soup):
         if not b.get('data-go') and not b.get('data-cv') and 'Download' in b.get_text():
             b['data-cv'] = 'download'
             b['type'] = 'button'
+    # App store buttons become real App Store / Google Play badges (PHP sib_store_badge, "Coming soon" until a link is set).
+    for b in root.find_all(class_='store'):
+        label = b.get_text(' ', strip=True)
+        if 'Android' in label or 'iPhone' in label:
+            b.replace_with(NavigableString('{{store:%s}}' % ('android' if 'Android' in label else 'ios')))
     for a in root.find_all('a', href='#'):
+        if a.get_text(strip=True) in ('iPhone', 'Android'):
+            a.replace_with(NavigableString('{{storelink:%s}}' % ('ios' if a.get_text(strip=True) == 'iPhone' else 'android')))
+            continue
         a['href'] = '{{go:signup}}'
     for b in root.find_all(attrs={'data-go': True}):
         url = resolve(b)

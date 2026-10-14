@@ -2,7 +2,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
-export const LEAD_KINDS = ["newsletter", "sunday", "trending", "download", "tool", "contact", "popup", "signup_start"] as const;
+export const LEAD_KINDS = ["newsletter", "sunday", "trending", "download", "tool", "contact", "popup", "signup_start", "waitlist", "app_notify"] as const;
 export const LEAD_STATUSES = ["new", "contacted", "converted", "closed"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
@@ -65,6 +65,8 @@ export const KIND_LABELS: Record<string, string> = {
   contact: "Contact form",
   popup: "Pop-up",
   signup_start: "Started sign-up",
+  waitlist: "Waitlist",
+  app_notify: "App launch alert",
 };
 
 export const STATUS_LABELS: Record<LeadStatus, string> = {

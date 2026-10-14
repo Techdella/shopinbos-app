@@ -312,7 +312,7 @@ function sib_process_lead( string $kind, array $in ): array {
 
 function sib_process_lead_form( string $kind, array $in ): array {
 	$fail = fn( $m ) => [ 'ok' => false, 'message' => $m ];
-	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download', 'sunday', 'trending' ], true ) ) {
+	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download', 'sunday', 'trending', 'waitlist', 'app_notify' ], true ) ) {
 		return $fail( __( 'Unknown form.', 'shopinbos' ) );
 	}
 	if ( ! empty( $in['website'] ) ) { // honeypot: pretend it worked
@@ -408,6 +408,14 @@ function sib_process_lead_form( string $kind, array $in ): array {
 			}
 			do_action( 'sib_lead_download', [ 'resource' => $rid, 'name' => $name, 'email' => $email, 'phone' => $phone, 'sells' => sanitize_text_field( (string) ( $in['sells'] ?? '' ) ), 'consent' => $consent ] );
 			return [ 'ok' => true, 'message' => $url ? sib_lead_message( 'download' ) : __( 'Thanks! The guide is almost ready; we’ll email it to you.', 'shopinbos' ), 'download' => $url ?: null ];
+
+		case 'waitlist':
+		case 'app_notify':
+			if ( ! $email && strlen( $phone ) < 10 ) {
+				return $fail( __( 'Add your WhatsApp number or email.', 'shopinbos' ) );
+			}
+			sib_log_consent( $email ?: $phone, $kind, 'waitlist' === $kind ? 'waitlist' : 'app_notify_' . sanitize_key( (string) ( $in['platform'] ?? '' ) ), __( 'Tell me when Shopinbos is live. One message, no spam.', 'shopinbos' ) );
+			return [ 'ok' => true, 'message' => 'waitlist' === $kind ? __( 'You’re on the list! We’ll message you the moment your shop can go live.', 'shopinbos' ) : __( 'Done. We’ll tell you the day the app is live.', 'shopinbos' ) ];
 
 		case 'contact':
 			$message = sanitize_textarea_field( mb_substr( (string) ( $in['message'] ?? '' ), 0, 3000 ) );

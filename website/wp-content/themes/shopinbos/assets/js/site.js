@@ -423,7 +423,12 @@
 		document.addEventListener('click', function (e) {
 			if (e.target.closest('[data-cv="pop.close"]') || (e.target.classList && e.target.classList.contains('ovl'))) { closePops(); return; }
 			var o = e.target.closest('[data-cv^="pop.open"]');
-			if (o) { e.preventDefault(); openPop(o.getAttribute('data-cv').slice(8).toLowerCase()); }
+			if (o) {
+				e.preventDefault();
+				openPop(o.getAttribute('data-cv').slice(8).toLowerCase());
+				var plat = o.getAttribute('data-platform'), sel = plat && $('[data-pop="app"] select[name=platform]', pops);
+				if (sel) sel.value = plat;
+			}
 			var d = e.target.closest('[data-cv="download"]');
 			if (d && d.getAttribute('data-url')) window.open(d.getAttribute('data-url'), '_blank', 'noopener');
 		});

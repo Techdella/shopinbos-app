@@ -748,3 +748,17 @@ select.input { appearance: auto; }
 .tool-text:last-child { border-bottom: 0; }
 .tool-text b { white-space: pre-line; font-weight: 600; font-size: 15px; line-height: 1.55; background: #F6F5F9; border-radius: 14px; padding: 12px 14px; }
 .tool-text .chip { align-self: flex-start; border: 1px solid #ECEAF2; background: #fff; cursor: pointer; }
+.g4 > .card, .g3 > .card { min-width: 0; overflow-wrap: anywhere; }
+
+/* App Store / Google Play badges */
+.store-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+.store-badge { position: relative; display: inline-flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 18px 0 14px; border-radius: 14px; background: #16141F; color: #fff; border: 1px solid #16141F; text-decoration: none; font-family: inherit; cursor: pointer; text-align: left; transition: transform .18s ease, box-shadow .18s ease; }
+.store-badge:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -12px rgba(22,20,31,.5); color: #fff; }
+.store-badge span { display: flex; flex-direction: column; font-size: 17px; font-weight: 800; line-height: 1.1; letter-spacing: -.01em; }
+.store-badge small { font-size: 10.5px; font-weight: 600; opacity: .75; letter-spacing: .02em; }
+.store-badge em { font-style: normal; font-size: 10.5px; font-weight: 800; background: #FF6A2B; color: #fff; border-radius: 999px; padding: 3px 8px; margin-left: 4px; }
+.store-badge.is-light { background: #fff; color: #16141F; border-color: #ECEAF2; }
+.cs-perks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.cs-perks li { display: flex; gap: 10px; align-items: center; font-weight: 600; }
+.cs-blob { position: absolute; width: 520px; height: 520px; border-radius: 999px; background: #FFE27A; opacity: .45; right: -160px; top: -200px; animation: gistFloat 9s ease-in-out infinite; }
+.foot button.row { color: #C9C6D3; background: none; border: 0; padding: 0; font-size: 14px; display: inline-flex; align-items: center; cursor: pointer; }

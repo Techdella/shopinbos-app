@@ -37,6 +37,7 @@ foreach ( [
 	'resource-page',
 	'contact-page',
 	'gist',
+	'launch',
 	'schema',
 	'seo',
 	'sitemaps',

@@ -64,7 +64,16 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 	} elseif ( 'newsletter' === $kind ) {
 		$source = 'Newsletter';
 	} elseif ( 'contact' === $kind ) {
-		$source = 'Contact form';
+		$source             = 'Contact form';
+		$payload['topic']   = $str( 'topic', 80 );
+	} elseif ( 'waitlist' === $kind ) {
+		$source             = 'Waitlist (coming soon)';
+		$payload['as']      = $str( 'as', 40 );
+		$payload['sells']   = $str( 'sells', 120 );
+		$payload['intent']  = $str( 'intent', 60 );
+	} elseif ( 'app_notify' === $kind ) {
+		$source              = 'App launch alert';
+		$payload['platform'] = $str( 'platform', 20 );
 	}
 	sib_app_lead( [
 		'kind'    => $kind,
@@ -74,7 +83,7 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		'message' => mb_substr( sanitize_textarea_field( (string) ( $in['message'] ?? '' ) ), 0, 5000 ),
 		'source'  => mb_substr( (string) $source, 0, 190 ),
 		'pageUrl' => esc_url_raw( (string) ( $in['back'] ?? wp_get_referer() ) ),
-		'consent' => ! empty( $in['consent'] ) || in_array( $kind, [ 'sunday', 'trending' ], true ),
+		'consent' => ! empty( $in['consent'] ) || in_array( $kind, [ 'sunday', 'trending', 'waitlist', 'app_notify' ], true ),
 		'payload' => array_filter( $payload, fn( $v ) => '' !== $v ),
 	] );
 }
