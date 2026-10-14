@@ -7,14 +7,9 @@ import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
 import { useT } from "@/components/i18n/I18nProvider";
+import type { PayoutBankSummary } from "@shared/seller-payments";
 
-export interface PayoutBankSummary {
-  bankName: string;
-  accountName: string;
-  /** Last digits only; the full number is never sent to the page. */
-  accountEnding: string;
-  status: string | null;
-}
+export type { PayoutBankSummary };
 
 const STATUS: Record<string, { tone: Tone; label: "bank.failed" | "bank.unconfigured" }> = {
   failed: { tone: "danger", label: "bank.failed" },

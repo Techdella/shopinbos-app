@@ -377,6 +377,10 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/products(\/.*)?$/, "/products"],
   [/^\/marketplace(\/.*)?$/, "/find"],
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],
+  [/^\/home\/(payments|payouts)(\/.*)?$/, "/payments"],
+  [/^\/home\/(shipping|logistics)$/, "/delivery"],
+  [/^\/home\/settings(\/.*)?$/, "/settings"],
+  [/^\/channels$/, "/channels"],
   [/^\/home$/, "/home"],
   [/^\/supplier\/orders$/, "/supplier/orders"],
   [/^\/supplier\/(quotes|quote-requests)$/, "/supplier/quotes"],
@@ -409,6 +413,9 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   let match: RegExpExecArray | null;
 
   if ((match = /^\/home\/orders\/([\w-]+)$/.exec(pathname)) && match[1] !== "new") return { pathname: "/order/[id]", params: { id: match[1] } };
+  if ((match = /^\/products\/([\w-]+)$/.exec(pathname)) && match[1] !== "new") return { pathname: "/product/[id]", params: { id: match[1] } };
+  if ((match = /^\/home\/legal\/([\w-]+)$/.exec(pathname))) return { pathname: "/legal/[key]", params: { key: match[1] } };
+  if (pathname === "/home/reviews/request") return { pathname: "/reviews/ask" };
   const conversation = queryParam(query, "c");
   if (pathname === "/home/messages" && conversation) return { pathname: "/inbox/[id]", params: { id: conversation } };
   if (pathname === "/home/messages/partners" && conversation) return { pathname: "/partners/[id]", params: { id: conversation } };

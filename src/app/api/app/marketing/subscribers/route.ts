@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { NextResponse } from "next/server";
 import { created } from "@/lib/api/response";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { marketingRoute, readBody } from "@/lib/marketing/api";
 import { MarketingError } from "@/lib/marketing/segments";
-import { addSubscriber } from "@/lib/marketing/subscribers";
+import { addSubscriber, consentSummary, listSubscribers } from "@/lib/marketing/subscribers";
 
 const AddSchema = z.object({
   email: z.string().trim().max(200),
@@ -14,6 +15,39 @@ const AddSchema = z.object({
   tags: z.array(z.string().max(40)).max(30).optional(),
   consent: z.object({ email: z.boolean(), sms: z.boolean().default(false), whatsapp: z.boolean().default(false), note: z.string().max(300).optional() }),
   sendWelcome: z.boolean().default(false),
+});
+
+const ListQuery = z.object({
+  q: z.string().max(100).optional(),
+  status: z.enum(["active", "unsubscribed", "bounced", "spam"]).optional().catch(undefined),
+  tag: z.string().max(40).optional(),
+  page: z.coerce.number().int().min(1).max(10_000).optional().catch(undefined),
+  limit: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
+});
+
+// GET ?q=&status=&tag=&page=&limit= → { data: people, meta: { page, limit, total, pages, counts, newThisMonth, tags } }:
+// the shop's list, the same as /home/marketing/subscribers (src/lib/marketing/subscribers.ts listSubscribers).
+export const GET = marketingRoute(async ({ req, store }) => {
+  const parsed = ListQuery.safeParse(Object.fromEntries(req.nextUrl.searchParams));
+  if (!parsed.success) throw new MarketingError("Search for a shorter name, email or phone number.");
+  const list = await listSubscribers(store.id, parsed.data);
+  return NextResponse.json({
+    data: list.rows.map((row) => {
+      const consent = consentSummary(row.metadata);
+      return {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        phone: row.phone,
+        status: row.status,
+        source: row.source,
+        tags: row.tags,
+        createdAt: row.createdAt.toISOString(),
+        consent: consent ? { email: consent.email, text: consent.sms || consent.whatsapp } : null,
+      };
+    }),
+    meta: { page: list.page, limit: list.limit, total: list.filtered, pages: list.pages, counts: list.counts, newThisMonth: list.newThisMonth, tags: list.tags },
+  });
 });
 
 // Add one person by hand. The seller says how they agreed (in person, WhatsApp, a paper list…).

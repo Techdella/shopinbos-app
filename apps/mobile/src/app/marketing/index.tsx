@@ -174,7 +174,7 @@ export default function Marketing() {
 
           <Card style={{ paddingVertical: 2, marginTop: 6 }}>
             <LinkRow first icon="mail" label={t("link.templates")} hint={t("link.templatesHint")} onPress={() => router.push("/marketing/templates")} />
-            <LinkRow icon="users" label={t("link.subscribers")} hint={t("link.subscribersHint")} onPress={() => void openWeb("/home/marketing/subscribers")} />
+            <LinkRow icon="users" label={t("link.subscribers")} hint={t("link.subscribersHint")} onPress={() => router.push("/marketing/subscribers")} />
             <LinkRow icon="sparkle" label={t("link.automations")} hint={t("link.automationsHint")} onPress={() => void openWeb("/home/marketing")} />
           </Card>
         </>

@@ -256,7 +256,10 @@ export const StoreProductCreateSchema = z.object({
   socialMediaCopy: z.string().max(2000).optional(),
 });
 
-export const StoreProductUpdateSchema = StoreProductCreateSchema.partial();
+// On an edit, `compareAtPrice: null` takes the crossed-out "was" price off (the phone's product editor sends it).
+export const StoreProductUpdateSchema = StoreProductCreateSchema.partial().extend({
+  compareAtPrice: z.number().positive().nullable().optional(),
+});
 
 export const InventoryUpdateSchema = z.object({
   currentStock: z.number().int().min(0),

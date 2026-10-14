@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { Card, Notice, PillButton, T } from "@/components/ui";
 import { TabScreen } from "@/components/TabScreen";
 import { fetchProducts, type ProductItem } from "@/lib/dashboard";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
@@ -25,9 +24,12 @@ export default function Products() {
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Loads on first open and again when coming back (after editing a product).
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   return (
     <TabScreen
@@ -46,7 +48,7 @@ export default function Products() {
         {products?.map((product) => {
           const low = product.currentStock <= 5;
           return (
-            <Pressable key={product.id} accessibilityRole="button" onPress={() => void openWeb(`/products/${product.id}`)} style={{ width: "48.3%" }}>
+            <Pressable key={product.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })} style={{ width: "48.3%" }}>
               <View style={{ aspectRatio: 1, borderRadius: 18, backgroundColor: colors.lilac, overflow: "hidden" }}>
                 {product.images[0] && <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
                 <View style={{ position: "absolute", left: 8, bottom: 8, backgroundColor: low ? colors.peach : colors.surface, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 4 }}>

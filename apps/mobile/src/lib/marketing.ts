@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, apiBody } from "./api";
 
 // Marketing quick view: GET /api/mobile/marketing (campaigns, totals, discount codes), new codes through
 // POST /api/app/marketing/discounts, and the email templates gallery from GET /api/app/marketing/templates.
@@ -76,3 +76,63 @@ export function suggestCode(name: string, value: number) {
   const word = name.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8) || "SAVE";
   return `${word}${value > 0 && value <= 100 ? Math.round(value) : ""}`.slice(0, 12);
 }
+
+// ─── Subscribers (web /home/marketing/subscribers): GET and POST /api/app/marketing/subscribers ──────────
+
+export type SubscriberStatus = "active" | "unsubscribed" | "bounced" | "spam";
+
+export interface SubscriberRow {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  status: SubscriberStatus;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  consent: { email: boolean; text: boolean } | null;
+}
+
+export interface SubscriberPage {
+  rows: SubscriberRow[];
+  total: number;
+  page: number;
+  pages: number;
+  counts: Record<SubscriberStatus | "all", number>;
+  newThisMonth: number;
+}
+
+export async function fetchSubscribers(query: { q?: string; status?: SubscriberStatus | null; page?: number }): Promise<SubscriberPage> {
+  const params = new URLSearchParams({ limit: "50", page: String(query.page ?? 1) });
+  if (query.q?.trim()) params.set("q", query.q.trim());
+  if (query.status) params.set("status", query.status);
+  const body = await apiBody<{ data: SubscriberRow[]; meta: { page: number; total: number; pages: number; counts: SubscriberPage["counts"]; newThisMonth: number } }>(`/api/app/marketing/subscribers?${params.toString()}`);
+  return { rows: body.data, total: body.meta.total, page: body.meta.page, pages: body.meta.pages, counts: body.meta.counts, newThisMonth: body.meta.newThisMonth };
+}
+
+export interface NewSubscriber {
+  email: string;
+  name: string;
+  phone: string;
+  birthday: string;
+  tags: string;
+  emailOk: boolean;
+  textOk: boolean;
+  note: string;
+  welcome: boolean;
+}
+
+/** The same body the web's "Add a person" sends. */
+export function subscriberBody(form: NewSubscriber) {
+  return {
+    email: form.email.trim(),
+    name: form.name.trim() || null,
+    phone: form.phone.trim() || null,
+    birthday: form.birthday.trim() || null,
+    tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+    consent: { email: form.emailOk, sms: form.textOk, whatsapp: form.textOk, note: form.note.trim() || undefined },
+    sendWelcome: form.welcome,
+  };
+}
+
+export const addSubscriber = (form: NewSubscriber) => api<{ id: string; created: boolean }>("/api/app/marketing/subscribers", { method: "POST", json: subscriberBody(form) });

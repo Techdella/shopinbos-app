@@ -38,13 +38,17 @@ const APP_SCREENS: Record<string, string> = {
   "/home/inbox/chatbot": "/inbox/chatbot",
   "/marketplace": "/find",
   "/home/reviews": "/reviews",
-  "/home/reviews/request": "/reviews",
   "/home/marketing": "/marketing",
   "/home/marketing/campaigns": "/marketing",
   "/home/discounts": "/marketing",
   "/home/marketing/templates": "/marketing/templates",
   "/studio": "/rex",
   "/home/legal": "/legal",
+  "/home/payments": "/payments",
+  "/home/shipping": "/delivery",
+  "/home/settings": "/settings",
+  "/channels": "/channels",
+  "/home/marketing/subscribers": "/marketing/subscribers",
 };
 
 /** Opens a web-app path, but in the app when the app has that screen (orders, inbox, find products, reviews…). */
@@ -52,6 +56,11 @@ export function openPath(path: string) {
   const [pathname] = path.split(/[?#]/);
   const order = pathname.match(/^\/home\/orders\/([\w-]+)$/);
   if (order && order[1] !== "new") return router.push({ pathname: "/order/[id]", params: { id: order[1] } });
+  const product = pathname.match(/^\/products\/([\w-]+)$/);
+  if (product && product[1] !== "new") return router.push({ pathname: "/product/[id]", params: { id: product[1] } });
+  const legal = pathname.match(/^\/home\/legal\/([\w-]+)$/);
+  if (legal) return router.push({ pathname: "/legal/[key]", params: { key: legal[1] } });
+  if (pathname === "/home/reviews/request") return router.push("/reviews/ask" as never);
   const conversation = path.match(/^\/home\/messages\?(?:.*&)?c=([\w-]+)/);
   if (conversation) return router.push({ pathname: "/inbox/[id]", params: { id: conversation[1] } });
   const screen = APP_SCREENS[pathname.replace(/\/$/, "")];

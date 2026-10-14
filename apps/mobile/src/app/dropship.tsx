@@ -8,12 +8,11 @@ import { Screen } from "@/components/Screen";
 import { Card, Chip, Notice, PillButton, T } from "@/components/ui";
 import { fetchDropship, filterDropship, setPaused, type DropshipFilter, type DropshipItem } from "@/lib/dropship";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Dropship (web /home/dropship): products suppliers send straight to buyers, with Cost / Sell / You keep,
-// the supplier's stock, and Pause / Sell again. Prices are edited on the web product page.
+// the supplier's stock, and Pause / Sell again. Price opens the product editor (app/product/[id].tsx).
 
 // Labels are m_products keys.
 const FILTERS: { key: DropshipFilter; label: "dropship.filter.all" | "dropship.filter.selling" | "dropship.filter.paused" | "dropship.filter.attention" }[] = [
@@ -56,7 +55,7 @@ function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: 
         </View>
       </View>
       <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingBottom: 12 }}>
-        <PillButton title={t("dropship.price")} tone="white" size="sm" style={{ flex: 1 }} onPress={() => void openWeb(`/products/${item.product.id}`)} />
+        <PillButton title={t("dropship.price")} tone="white" size="sm" style={{ flex: 1 }} onPress={() => router.push({ pathname: "/product/[id]", params: { id: item.product.id } })} />
         <PillButton title={item.paused ? t("dropship.sellAgain") : t("dropship.pause")} tone="white" size="sm" busy={busy} style={{ flex: 1 }} onPress={onToggle} />
         <PillButton title={t("dropship.message")} tone="white" size="sm" style={{ flex: 1 }} onPress={() => router.push({ pathname: "/partners/[id]", params: { id: item.supplier.userId, name: item.supplier.name } })} />
       </View>
