@@ -38,6 +38,7 @@ class Sib_CLI {
 		$blog  = $this->page( 'blog', 'Blog', '' );
 		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
 		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
+		$this->refresh_page( 'trending', 'Trending products in Nigeria this week', function_exists( 'sib_canvas_blocks' ) ? sib_canvas_blocks( 'trending' ) : '', 'page-canvas', 'The products Nigerian online shops are adding and selling most this week, with what you keep on each. Updated every morning.' );
 		$this->refresh_page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
 		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
 		$this->refresh_page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
@@ -80,6 +81,7 @@ class Sib_CLI {
 			[ 'Suppliers: getting started', 'supplier-getting-started' ], [ 'Delivery partners: getting started', 'delivery-partner-getting-started' ],
 		] );
 
+		$this->help();
 		$this->store_templates();
 		$this->tools();
 		if ( ! empty( $assoc['samples'] ) ) {
@@ -103,6 +105,33 @@ class Sib_CLI {
 	public function flush() {
 		sib_api_flush_cache();
 		WP_CLI::success( 'Marketplace cache cleared.' );
+	}
+
+	/** Help centre topics (named as on the help centre home) and the popular articles. */
+	private function help(): void {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		require_once SIB_CORE_DIR . '/includes/seed/help.php';
+		foreach ( sib_seed_help_topics() as $i => [ $name, $slug, $about ] ) {
+			$term = term_exists( $slug, 'sib_help_category' );
+			if ( $term ) {
+				wp_update_term( (int) $term['term_id'], 'sib_help_category', [ 'name' => $name, 'description' => $about ] );
+			} else {
+				$term = wp_insert_term( $name, 'sib_help_category', [ 'slug' => $slug, 'description' => $about ] );
+			}
+			if ( ! is_wp_error( $term ) ) {
+				update_term_meta( (int) $term['term_id'], 'sib_order', $i + 1 );
+			}
+		}
+		foreach ( sib_seed_help_articles() as $i => [ $slug, $title, $topic, $summary, $content ] ) {
+			$existing = get_page_by_path( $slug, OBJECT, 'sib_help' );
+			if ( $existing && 'sib_help' === $existing->post_type ) {
+				$this->refresh_post( $existing, $title, $content, $summary, '', $i + 1 );
+				continue;
+			}
+			$id = $this->cpt( 'sib_help', $slug, $title, $content, $summary, [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_popular' => 1 ], '', $i + 1, [ 'sib_help_category' => [ $topic ] ] );
+			update_post_meta( $id, '_sib_seed_src', md5( $content ) );
+			$this->fingerprint( $id );
+		}
 	}
 
 	/* ---------- helpers ---------- */

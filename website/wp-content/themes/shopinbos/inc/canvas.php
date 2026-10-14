@@ -70,10 +70,26 @@ function sib_canvas_part( string $part ): string {
 		}
 		return esc_url( home_url( $m[2] ) );
 	}, $html );
+	// Help centre: topic links and counts, popular article links.
+	$html = preg_replace_callback( '/\{\{(helpcat|helpcount|helpurl):([^}]+)\}\}/', function ( $m ) {
+		$name = html_entity_decode( $m[2] );
+		if ( 'helpurl' === $m[1] ) {
+			$found = get_posts( [ 'post_type' => 'sib_help', 'title' => $name, 'numberposts' => 1, 'post_status' => 'publish' ] );
+			return esc_url( $found ? get_permalink( $found[0] ) : home_url( '/help/' ) );
+		}
+		$term = get_term_by( 'name', $name, 'sib_help_category' );
+		if ( 'helpcat' === $m[1] ) {
+			return esc_url( $term ? get_term_link( $term ) : home_url( '/help/' ) );
+		}
+		$n = $term ? (int) $term->count : 0;
+		return esc_html( $n ? sprintf( _n( '%d article', '%d articles', $n, 'shopinbos' ), $n ) : __( 'Coming soon', 'shopinbos' ) );
+	}, $html );
+
 	if ( str_contains( $html, '{{checked}}' ) ) {
 		$checked = (string) get_post_meta( get_queried_object_id(), 'sib_last_checked', true );
 		$html    = str_replace( '{{checked}}', esc_html( date_i18n( 'j F Y', $checked ? strtotime( $checked ) : time() ) ), $html );
 	}
+	$html = str_replace( '{{today}}', esc_html( wp_date( 'l j F Y', (int) wp_date( 'G' ) < 7 ? time() - DAY_IN_SECONDS : null ) ), $html );
 	$wa   = function_exists( 'sib_whatsapp_url' ) ? sib_whatsapp_url() : 'https://wa.me/';
 	$html = str_replace( '{{wa}}', esc_url( $wa ), $html );
 

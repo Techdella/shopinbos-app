@@ -297,6 +297,10 @@ code.k{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;back
 .admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:32px}
 @media (max-width:782px){.admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:46px}}
 .cv{line-height:normal}
+.help-art{padding:40px 0 72px}
+.help-art-grid{grid-template-columns:260px minmax(0,740px)}
+.help-art-main{display:flex;flex-direction:column;gap:24px;min-width:0}
+.sib .help-art-main>*{margin:0}
 section.cv.ahero,.cv>section.ahero{padding:0}
 .sib>.cv{margin-block:0}
 .mono:has(>.brand-logo){background:#FFFFFF!important;box-shadow:inset 0 0 0 1px #ECEAF2}

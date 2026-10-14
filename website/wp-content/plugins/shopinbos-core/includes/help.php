@@ -105,10 +105,64 @@ function sib_render_help_vote(): string {
 	if ( ! is_singular() ) {
 		return '';
 	}
-	return '<div class="card" style="padding:18px 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center">'
-		. '<div class="vote" data-vote="' . (int) get_the_ID() . '" data-endpoint="' . esc_url( admin_url( 'admin-post.php?action=sib_help_vote' ) ) . '" data-thanks="' . esc_attr__( 'Thanks for telling us.', 'shopinbos' ) . '"><b>' . esc_html__( 'Was this helpful?', 'shopinbos' ) . '</b>'
-		. '<button type="button" class="chip" data-helpful="1">' . esc_html__( 'Yes', 'shopinbos' ) . '</button><button type="button" class="chip" data-helpful="0">' . esc_html__( 'No', 'shopinbos' ) . '</button></div>'
-		. '<a class="btn btn-acc btn-s" href="' . esc_url( sib_whatsapp_url( 'Hi Shopinbos, about "' . get_the_title() . '":' ) ) . '" rel="noopener">' . esc_html__( 'Chat with us', 'shopinbos' ) . '</a></div>';
+	// Canvas: "Did this answer your question?"
+	return '<div class="card" style="padding:20px 22px;display:flex;gap:12px;align-items:center;flex-wrap:wrap" data-vote="' . (int) get_the_ID() . '" data-endpoint="' . esc_url( admin_url( 'admin-post.php?action=sib_help_vote' ) ) . '" data-thanks="' . esc_attr__( 'Thanks for telling us.', 'shopinbos' ) . '">'
+		. '<b style="flex:1 1 0%;min-width:200px">' . esc_html__( 'Did this answer your question?', 'shopinbos' ) . '</b>'
+		. '<button type="button" class="btn btn-ghost btn-s" data-helpful="1">' . esc_html__( 'Yes', 'shopinbos' ) . '</button>'
+		. '<button type="button" class="btn btn-ghost btn-s" data-helpful="0">' . esc_html__( 'No, I need help', 'shopinbos' ) . '</button>'
+		. '<a class="btn btn-acc btn-s helpful-chat" hidden href="' . esc_url( sib_whatsapp_url( 'Hi Shopinbos, I need help with: ' . get_the_title() ) ) . '" rel="noopener">' . esc_html__( 'Chat with us on WhatsApp', 'shopinbos' ) . '</a></div>';
+}
+
+/** Help article top bar (canvas): breadcrumb and a search box. */
+function sib_render_help_top(): string {
+	$term = null;
+	if ( is_singular( 'sib_help' ) ) {
+		$terms = wp_get_object_terms( get_the_ID(), 'sib_help_category' );
+		$term  = $terms && ! is_wp_error( $terms ) ? $terms[0] : null;
+	} elseif ( is_tax( 'sib_help_category' ) ) {
+		$term = get_queried_object();
+	}
+	$crumb = '<a class="cv-b" href="' . esc_url( home_url( '/help/' ) ) . '" style="color:#6B6779;font-weight:600;font-size:13.5px">' . esc_html__( 'Help centre', 'shopinbos' ) . '</a>';
+	if ( $term ) {
+		$crumb .= '<span>/</span>' . ( is_singular() ? '<a href="' . esc_url( get_term_link( $term ) ) . '" style="color:#6B6779;font-weight:600;text-decoration:none">' . esc_html( $term->name ) . '</a>' : '<span>' . esc_html( $term->name ) . '</span>' );
+	}
+	return '<section class="cv" style="padding:28px 0 0;background:#F6F5F9"><div class="wrap" style="display:flex;flex-direction:column;gap:18px;padding-bottom:20px">'
+		. '<nav class="crumb" aria-label="' . esc_attr__( 'Breadcrumb', 'shopinbos' ) . '">' . $crumb . '</nav>'
+		. '<form role="search" action="' . esc_url( home_url( '/' ) ) . '" method="get" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #ECEAF2;border-radius:999px;padding:0 18px;min-height:48px;max-width:520px">'
+		. sib_icon( 'search', 18, '#6B6779' )
+		. '<input type="search" name="s" aria-label="' . esc_attr__( 'Search help', 'shopinbos' ) . '" placeholder="' . esc_attr__( 'Search help articles', 'shopinbos' ) . '" style="border:0;outline:0;flex:1 1 0%;font-size:15px;background:none;min-width:0">'
+		. '<input type="hidden" name="post_type" value="sib_help"></form></div></section>';
+}
+
+/** Help sidebar (canvas): the topic's articles. */
+function sib_render_help_topic_nav(): string {
+	$terms = is_singular( 'sib_help' ) ? wp_get_object_terms( get_the_ID(), 'sib_help_category' ) : [];
+	$term  = $terms && ! is_wp_error( $terms ) ? $terms[0] : null;
+	if ( ! $term ) {
+		return sib_render_help_nav();
+	}
+	$colors = [ 'getting-started' => [ '#FFEDE4', '#B23E0A' ], 'orders' => [ '#E2F6F1', '#0C4A44' ], 'payments-and-payouts' => [ '#FDF0D5', '#8A5A08' ], 'delivery-and-pay-on-delivery' => [ '#E3EEFD', '#1F5FBF' ],
+		'store-and-design' => [ '#E7E1FF', '#5B3FD6' ], 'whatsapp-and-social' => [ '#E2F5EA', '#16794A' ], 'sourcing-and-dropshipping' => [ '#FCE4EC', '#A0204F' ], 'account-and-security' => [ '#F6F5F9', '#16141F' ] ];
+	[ $bg, $fg ] = $colors[ $term->slug ] ?? [ '#F6F5F9', '#16141F' ];
+	$posts = get_posts( [ 'post_type' => 'sib_help', 'numberposts' => 12, 'tax_query' => [ [ 'taxonomy' => 'sib_help_category', 'terms' => $term->term_id ] ], 'orderby' => 'menu_order title', 'order' => 'ASC' ] );
+	$out   = '<nav aria-label="' . esc_attr__( 'In this topic', 'shopinbos' ) . '" class="lgl-toc sticky" style="display:flex;flex-direction:column;gap:4px;background:#F6F5F9;border-radius:22px;padding:14px">'
+		. '<a class="tag" href="' . esc_url( get_term_link( $term ) ) . '" style="background:' . $bg . ';color:' . $fg . ';align-self:flex-start;margin:4px 6px 8px;text-decoration:none">' . esc_html( $term->name ) . '</a>';
+	foreach ( $posts as $p ) {
+		$on   = get_the_ID() === $p->ID;
+		$out .= '<a href="' . esc_url( get_permalink( $p ) ) . '"' . ( $on ? ' aria-current="page"' : '' ) . ' style="background:' . ( $on ? '#FFFFFF' : 'transparent' ) . ';border-radius:12px;padding:10px 12px;font-size:14px;font-weight:' . ( $on ? '800' : '600' ) . ';color:#16141F;text-decoration:none">' . esc_html( get_the_title( $p ) ) . '</a>';
+	}
+	return $out . '</nav>';
+}
+
+/** Help article title and meta line (canvas). */
+function sib_render_help_head(): string {
+	if ( ! is_singular() ) {
+		return '';
+	}
+	$words = str_word_count( wp_strip_all_tags( function_exists( 'sib_post_plain_text' ) ? sib_post_plain_text( get_post() ) : get_the_content() ) );
+	$mins  = max( 1, (int) round( $words / 200 ) );
+	$meta  = sprintf( __( 'Updated %1$s ago · %2$d min read', 'shopinbos' ), human_time_diff( get_post_modified_time( 'U', true ) ), $mins );
+	return '<div style="display:flex;flex-direction:column;gap:10px"><h1 class="disp" style="font-size:44px;line-height:1.08;margin:0">' . esc_html( get_the_title() ) . '</h1><span class="meta">' . esc_html( $meta ) . '</span></div>';
 }
 
 add_action( 'admin_post_nopriv_sib_help_vote', 'sib_help_vote' );

@@ -12,9 +12,13 @@ function sib_demo_data(): array {
 		return $data;
 	}
 	$suppliers = [
-		'aba-leatherworks'     => [ 'Aba Leatherworks', 'Aba, Abia', 'Leather slides, lace-ups and bags', 4.8, 'fashion', 'leather-slides.webp' ],
-		'mama-tola-textiles'   => [ 'Mama Tola Textiles', 'Yaba, Lagos', 'Two-piece sets, blazers, ready-to-wear', 4.9, 'fashion', 'linen-set.webp' ],
-		'computer-village-hub' => [ 'Computer Village Hub', 'Ikeja, Lagos', 'Earbuds, chargers and phone accessories', 4.5, 'gadgets', 'earbuds.webp' ],
+		'aba-leatherworks'     => [ 'Aba Leatherworks', 'Aba', 'Leather slides, lace-ups and bags', 4.8, 'shoes', 'c/s-sandal.webp' ],
+		'kano-footwear-co'     => [ 'Kano Footwear Co.', 'Kano', 'Sneakers and everyday shoes', 4.6, 'shoes', 'c/s-sneak.webp' ],
+		'oja-crafts'           => [ 'Ọja Crafts', 'Ibadan', 'Heels and occasion shoes', 4.7, 'shoes', 'c/s-heels.webp' ],
+		'mama-tola-bags'       => [ 'Mama Tola Bags', 'Yaba, Lagos', 'Leather bags and totes', 4.9, 'fashion', 'c/f-bag.webp' ],
+		'computer-village-hub' => [ 'Computer Village Hub', 'Ikeja, Lagos', 'Cameras, earbuds and phone accessories', 4.5, 'gadgets', 'c/e-buds.webp' ],
+		'ikorodu-cane-works'   => [ 'Ikorodu Cane Works', 'Ikorodu, Lagos', 'Cane and wooden furniture', 4.5, 'home', 'c/h-arm.webp' ],
+		'kwara-agro-foods'     => [ 'Kwara Agro Foods', 'Ilorin', 'Cashews, nuts and packed snacks', 4.8, 'food', 'c/d-cashew.webp' ],
 	];
 	$sup = [];
 	foreach ( $suppliers as $slug => [ $name, $city, $what, $rating, $cat, $img ] ) {
@@ -27,17 +31,22 @@ function sib_demo_data(): array {
 	$cats = [
 		'fashion' => [ 'Clothes', 'fashion' ],
 		'shoes'   => [ 'Shoes', 'shoes' ],
+		'home'    => [ 'Home', 'home' ],
 		'gadgets' => [ 'Gadgets', 'gadgets' ],
+		'food'    => [ 'Food', 'food' ],
 	];
+	// The design canvas's products.
 	$p = [
-		[ 'leather-slides', 'Leather slides', 'aba-leatherworks', 'shoes', 6000, 13000, [ [ 10, 5200 ], [ 50, 4600 ] ], 'Ships in 24 hours', 140, 'leather-slides.webp' ],
-		[ 'suede-lace-ups', 'Suede lace-ups', 'aba-leatherworks', 'shoes', 9500, 21000, [ [ 10, 8400 ], [ 50, 7600 ] ], 'Ships in 24 hours', 62, 'suede-lace-ups.webp' ],
-		[ 'linen-two-piece-set', 'Linen two-piece set', 'mama-tola-textiles', 'fashion', 12500, 29500, [ [ 6, 11000 ], [ 30, 9800 ] ], 'Same day in Lagos', 35, 'linen-set.webp' ],
-		[ 'check-blazer', 'Check blazer', 'mama-tola-textiles', 'fashion', 15000, 34000, [ [ 6, 13500 ], [ 30, 12200 ] ], 'Same day in Lagos', 18, 'check-blazer.webp' ],
-		[ 'camel-wrap-coat', 'Camel wrap coat', 'mama-tola-textiles', 'fashion', 17500, 38500, [ [ 6, 15800 ], [ 30, 14500 ] ], 'Same day in Lagos', 22, 'camel-coat.webp' ],
-		[ 'white-linen-shirt', 'White linen shirt', 'mama-tola-textiles', 'fashion', 7500, 18500, [ [ 10, 6700 ], [ 40, 6100 ] ], 'Same day in Lagos', 64, 'linen-shirt.webp' ],
-		[ 'knit-sweater', 'Ribbed knit sweater', 'mama-tola-textiles', 'fashion', 8000, 17500, [ [ 10, 7200 ], [ 40, 6600 ] ], 'Same day in Lagos', 0, 'knit-sweater.webp' ],
-		[ 'wireless-earbuds', 'Wireless earbuds', 'computer-village-hub', 'gadgets', 9000, 17500, [ [ 20, 7900 ], [ 100, 7100 ] ], 'Same day in Lagos', 300, 'earbuds.webp' ],
+		[ 'leather-slides', 'Leather slides', 'aba-leatherworks', 'shoes', 6000, 13000, [ [ 10, 5200 ], [ 50, 4600 ] ], 'Ships in 24 hours', 140, 'c/s-sandal.webp' ],
+		[ 'suede-lace-ups', 'Suede lace-ups', 'aba-leatherworks', 'shoes', 9500, 21000, [ [ 10, 8400 ], [ 50, 7600 ] ], 'Ships in 24 hours', 62, 'c/s-suede.webp' ],
+		[ 'court-sneakers', 'Court sneakers', 'kano-footwear-co', 'shoes', 11000, 24000, [ [ 12, 9800 ], [ 60, 8900 ] ], 'Ships in 48 hours', 210, 'c/s-sneak.webp' ],
+		[ 'nude-block-heels', 'Nude block heels', 'oja-crafts', 'shoes', 8800, 19500, [ [ 10, 7800 ], [ 40, 7100 ] ], 'Ships in 24 hours', 48, 'c/s-heels.webp' ],
+		[ 'leather-tote-bag', 'Leather tote bag', 'mama-tola-bags', 'fashion', 14000, 28000, [ [ 6, 12500 ], [ 30, 11200 ] ], 'Same day in Lagos', 35, 'c/f-bag.webp' ],
+		[ 'instant-camera', 'Instant camera', 'computer-village-hub', 'gadgets', 38000, 55000, [ [ 5, 35000 ], [ 20, 33000 ] ], 'Same day in Lagos', 12, 'c/e-camera.webp' ],
+		[ 'rattan-armchair', 'Rattan armchair', 'ikorodu-cane-works', 'home', 48000, 85000, [ [ 4, 43000 ], [ 10, 39500 ] ], 'Ships in 3 days', 12, 'c/h-arm.webp' ],
+		[ 'low-wooden-stool', 'Low wooden stool', 'ikorodu-cane-works', 'home', 12000, 24000, [ [ 6, 10500 ], [ 20, 9600 ] ], 'Ships in 3 days', 40, 'c/h-stool.webp' ],
+		[ 'wireless-earbuds', 'Wireless earbuds', 'computer-village-hub', 'gadgets', 9000, 17500, [ [ 20, 7900 ], [ 100, 7100 ] ], 'Same day in Lagos', 300, 'c/e-buds.webp' ],
+		[ 'roasted-cashews-500g', 'Roasted cashews, 500g', 'kwara-agro-foods', 'food', 2400, 4500, [ [ 24, 2100 ], [ 120, 1850 ] ], 'Ships in 48 hours', 900, 'c/d-cashew.webp' ],
 	];
 	$products = [];
 	foreach ( $p as $i => [ $slug, $name, $s, $cat, $cost, $sell, $tiers, $ships, $stock, $img ] ) {

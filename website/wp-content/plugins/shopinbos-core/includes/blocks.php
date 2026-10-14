@@ -29,6 +29,9 @@ function sib_block_defs(): array {
 		'help-categories'  => [ __( 'Help categories', 'shopinbos' ), 'sib_render_help_categories', [] ],
 		'help-nav'         => [ __( 'Help sidebar', 'shopinbos' ), 'sib_render_help_nav', [] ],
 		'help-vote'        => [ __( 'Was this helpful?', 'shopinbos' ), 'sib_render_help_vote', [] ],
+		'help-top'         => [ __( 'Help top bar', 'shopinbos' ), 'sib_render_help_top', [] ],
+		'help-topic-nav'   => [ __( 'Help topic sidebar', 'shopinbos' ), 'sib_render_help_topic_nav', [] ],
+		'help-head'        => [ __( 'Help article title', 'shopinbos' ), 'sib_render_help_head', [] ],
 	];
 }
 

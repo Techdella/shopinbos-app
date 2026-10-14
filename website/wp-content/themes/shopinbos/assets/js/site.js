@@ -295,7 +295,11 @@
 			if (!wrap) return;
 			var group = t.closest('[data-pane]:not([data-cv])');
 			var y = group ? group.getBoundingClientRect().top : 0;
-			$$(':scope > [data-pane]', wrap).forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== k; });
+			// Every section in the same group follows the tab (e.g. the trending categories filter the lists below).
+			var name = wrap.getAttribute('data-group');
+			$$('.cv-panes[data-group="' + name + '"]').forEach(function (w) {
+				$$(':scope > [data-pane]', w).forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== k; });
+			});
 			var now = $(':scope > [data-pane="' + k + '"]', wrap);
 			if (now && group) window.scrollBy(0, now.getBoundingClientRect().top - y);
 			track('canvas_tab', { group: wrap.getAttribute('data-group'), tab: k });
@@ -315,6 +319,14 @@
 				if (!on || on === b) return;
 				var s = on.getAttribute('style'); on.setAttribute('style', b.getAttribute('style')); b.setAttribute('style', s);
 				adTotal(b);
+			});
+		});
+
+		// Filters (trending categories): show only the cards and rows of the picked category.
+		$$('[data-filter]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var cat = b.getAttribute('data-filter');
+				$$('[data-cat]').forEach(function (x) { x.hidden = cat !== 'all' && x.getAttribute('data-cat') !== cat; });
 			});
 		});
 

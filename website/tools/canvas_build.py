@@ -37,7 +37,14 @@ URLS = {
     'legalNav.cookies': '/legal/cookies/', 'legalNav.rules': '/legal/seller-rules/',
 }
 # Text-specific overrides, for handlers the canvas reuses for different things.
+HELP_TOPICS = ['Getting started', 'Orders', 'Payments and payouts', 'Delivery and pay on delivery', 'Your store and design',
+               'WhatsApp and social', 'Find stock and dropship', 'Account and security']
+HELP_POP = ['How pay on delivery works, step by step', 'When will I get my money?', 'Connect your own domain name',
+            'Add your WhatsApp Business catalogue', 'A customer refused the parcel at the gate', 'Change your store colours and logo',
+            'Add a staff member', 'Request a quote from a supplier']
 BY_TEXT = {
+    ('mg.help', 'Chat on WhatsApp'): '{{wa}}',
+    ('mg.help', 'Back to Help centre'): '/help/',
     ('mg.delivery', 'Delivery companies'): '/delivery/',
     ('mg.help', 'Talk to us on WhatsApp'): '{{wa}}',
     ('mg.pay', 'Pay on delivery'): '/features/pay-on-delivery/',
@@ -83,6 +90,12 @@ def resolve(btn):
     if key in URLS:
         return URLS[key]
     if key == 'item.open':
+        for title in HELP_POP:
+            if t.startswith(title):
+                return '{{helpurl:' + title + '}}'
+        for name in sorted(HELP_TOPICS, key=len, reverse=True):
+            if t.startswith(name + ' '):
+                return '{{helpcat:' + name + '}}'
         known = {**LAND_URLS, **CMP_URLS}
         for name in sorted(known, key=len, reverse=True):
             if t.startswith(name):
@@ -100,6 +113,9 @@ def resolve(btn):
         return '/templates/' + slug(alt[:-len(' template preview')]) + '/'
     if key in ('item.open', 'prod.open'):
         return '/marketplace/products/' + slug(alt or text(btn)) + '/'
+    named = btn.find_parent(attrs={'data-name': True})
+    if key in ('item.add', 'item.sellIt') and named is not None:
+        return '{{go:add:' + slug(named['data-name']) + '}}'
     if key in ('item.add', 'item.sellIt'):
         return '{{go:add:' + slug(alt or text(btn)) + '}}'
     if key == 'item.use' and alt.endswith(' template preview'):
@@ -187,12 +203,72 @@ def panes(base_sec, variants, group):
     return wrap
 
 
+TREND_CATS = ['Fashion', 'Shoes', 'Beauty', 'Gadgets', 'Home', 'Food']
+
+
+def trend_filters(el):
+    """Trending: the category chips filter the cards and rows on the page (site.js, data-filter)."""
+    for b in el.find_all(attrs={'data-go': 'item.pick'}):
+        label = b.get_text(strip=True)
+        b['data-filter'] = 'all' if label == 'All categories' else label.lower()
+    items = [c for g in el.find_all(class_='g3') for c in g.find_all(class_='card', recursive=False)] + el.find_all(class_='trow')
+    for item in items:
+        words = [t.strip() for t in item.stripped_strings]
+        cat = next((w for w in words if w in TREND_CATS), None)
+        if cat:
+            item['data-cat'] = cat.lower()
+        name = next((w for w in words if len(w) > 3 and w not in TREND_CATS and not re.match(r'^[#+₦▲▼\d]', w)), None)
+        if name:
+            item['data-name'] = name
+
+
+def search_form(el):
+    """The help centre's search box becomes a real search form, and its popular searches links."""
+    inp = el.find('input', attrs={'aria-label': 'Search help articles'})
+    if inp is None:
+        inp = el.find('input', attrs={'aria-label': 'Search help'})
+    if inp is None:
+        for b in el.find_all('button'):
+            url = {'Chat': '{{wa}}', 'Book': '/contact/'}.get(b.get_text(strip=True))
+            if url and not b.get('data-go'):
+                b.name = 'a'
+                b['href'] = url
+                b['class'] = (b.get('class') or []) + ['cv-b']
+        return
+    box = inp.parent
+    box.name = 'form'
+    box['action'] = '/'
+    box['method'] = 'get'
+    box['role'] = 'search'
+    inp['name'] = 's'
+    inp['type'] = 'search'
+    hidden = BeautifulSoup('<input type="hidden" name="post_type" value="sib_help">', 'html.parser').input
+    box.append(hidden)
+    for b in box.find_all('button'):
+        b['type'] = 'submit'
+        b.attrs.pop('data-go', None)
+    for sp in el.find_all('span', class_='tag'):
+        if sp.parent is not None and 'Popular:' in sp.parent.get_text():
+            sp.name = 'a'
+            sp['href'] = '/?post_type=sib_help&s=' + sp.get_text(strip=True).replace(' ', '+')
+            sp['class'] = (sp.get('class') or []) + ['cv-b']
+    # Buttons the canvas left without an action.
+    for b in el.find_all('button'):
+        url = {'Chat': '{{wa}}', 'Book': '/contact/'}.get(b.get_text(strip=True))
+        if url and not b.get('data-go'):
+            b.name = 'a'
+            b['href'] = url
+            b['class'] = (b.get('class') or []) + ['cv-b']
+
+
 def write(name, el, soup):
     clean(el, soup)
     el['class'] = (el.get('class') or []) + ['cv']
     html = str(el)
+    html = re.sub(r'(href="\{\{helpcat:([^}]+)\}\}".*?>)\d+ articles<', lambda m: m.group(1) + '{{helpcount:' + m.group(2) + '}}<', html, flags=re.S)
     for a, b in TEXT.items():
         html = html.replace(a, b)
+    html = re.sub(r'Updated daily · 7:00am, \w+day \d+ \w+ \d{4}', 'Updated daily · 7:00am, {{today}}', html)
     html = re.sub(r'\n\s*\n', '\n', html)
     open(os.path.join(OUT, name + '.html'), 'w').write(html.strip() + '\n')
     print(f'{name:22s} {len(html):7d}')
@@ -220,6 +296,9 @@ def page_parts(prefix, view, variant_groups=None):
             el = panes(sec, diff[i][1], diff[i][0])
         else:
             el = BeautifulSoup(str(sec), 'html.parser').find('section')
+        search_form(el)
+        if prefix == 'trending':
+            trend_filters(el)
         for k, b in enumerate(el.find_all(attrs={'data-go': 'item.toggle'})):
             ans = b.find_next_sibling()
             if ans is not None:
@@ -280,15 +359,19 @@ page_parts('templates', 'templates', {
     'tplcat': ['templates-fashion', 'templates-shoes', 'templates-luxury', 'templates-food', 'templates-home', 'templates-gadgets'],
 })
 
-for slug in sorted(set(LAND_URLS.values())):
-    slug = slug.strip('/').split('/')[-1]
-    if os.path.exists(os.path.join(CDOM, f'land-{slug}.html')):
-        page_parts(f'land-{slug}', f'land-{slug}')
+for land in sorted(set(LAND_URLS.values())):
+    land = land.strip('/').split('/')[-1]
+    if os.path.exists(os.path.join(CDOM, f'land-{land}.html')):
+        page_parts(f'land-{land}', f'land-{land}')
 
 for url in sorted(set(CMP_URLS.values())):
-    slug = url.strip('/').split('/')[-1]
-    if os.path.exists(os.path.join(CDOM, f'cmp-{slug}.html')):
-        page_parts(f'cmp-{slug}', f'cmp-{slug}')
+    cmp_slug = url.strip('/').split('/')[-1]
+    if os.path.exists(os.path.join(CDOM, f'cmp-{cmp_slug}.html')):
+        page_parts(f'cmp-{cmp_slug}', f'cmp-{cmp_slug}')
+
+page_parts('trending', 'trending')
+page_parts('help', 'help')
+page_parts('helpart', 'helpart')
 
 # ---- Stylesheet --------------------------------------------------------------------------------------------
 css = open(os.path.join(CDOM, 'site.css')).read()
@@ -311,6 +394,10 @@ css = """/* Generated from the design canvas by website/tools/canvas_build.py. E
 .admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:32px}
 @media (max-width:782px){.admin-bar .wp-site-blocks>div:has(>.cv-hdr){top:46px}}
 .cv{line-height:normal}
+.help-art{padding:40px 0 72px}
+.help-art-grid{grid-template-columns:260px minmax(0,740px)}
+.help-art-main{display:flex;flex-direction:column;gap:24px;min-width:0}
+.sib .help-art-main>*{margin:0}
 section.cv.ahero,.cv>section.ahero{padding:0}
 .sib>.cv{margin-block:0}
 .mono:has(>.brand-logo){background:#FFFFFF!important;box-shadow:inset 0 0 0 1px #ECEAF2}
@@ -321,6 +408,11 @@ body .wp-block-post-content>*{margin-block:0}
 .navlink.is-on{color:#16141F!important;border-bottom-color:#FF6A2B!important}
 """
 open(os.path.join(THEME, 'assets/css/canvas.css'), 'w').write(css)
+
+# Images the plugin's sample marketplace data uses.
+for h, name in IMGS.items():
+    if name in ('s-suede', 'h-stool', 'e-camera', 's-sneak', 's-heels', 'f-bag', 'h-arm', 'e-buds', 'd-cashew', 's-sandal'):
+        used_imgs.add((h, name, 'webp'))
 
 # ---- Images ------------------------------------------------------------------------------------------------
 for h, name, ext in sorted(used_imgs):
