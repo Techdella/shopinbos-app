@@ -173,6 +173,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "img.logoOn": "Logo gị dị na ya",
   "img.noLogoNote": "Enweghị logo na ngwa akara gị, ya mere Rex dere aha ụlọ ahịa gị. Tinye otu na Brand kit.",
   "img.badLogoNote": "Rex enweghị ike iji faịlụ logo gị (ọ chọrọ PNG, JPG ma ọ bụ WebP), ya mere o dere aha ụlọ ahịa gị.",
+  "img.buyCredits": "Zụta kredit AI",
 };
 
 export default ig;

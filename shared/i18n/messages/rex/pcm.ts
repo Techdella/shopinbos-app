@@ -173,6 +173,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "img.logoOn": "Your logo dey on am",
   "img.noLogoNote": "You never get logo for your brand kit, so Rex write your shop name. Add one for Brand kit.",
   "img.badLogoNote": "Rex no fit use your logo file (e need PNG, JPG or WebP), so e write your shop name.",
+  "img.buyCredits": "Buy AI credits",
 };
 
 export default pcm;

@@ -49,6 +49,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lang.pidgin": "Pidgin",
   "lang.yoruba": "Yorùbá",
   "lang.hausa": "Hausa",
+  "saveMedia": "Chekwaa na media m",
+  "savedMediaShort": "Echekwala",
+  "savedMedia": "Echekwala na media gị. Họrọ ya mgbe ọ bụla site na “Choose from my media”.",
 };
 
 export default ig;

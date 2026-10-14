@@ -63,6 +63,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "time.daysAgo": "{count, plural, one {kwana # da ya wuce} other {kwanaki # da suka wuce}}",
   "count.orders": "{count, plural, =0 {Babu order} other {order #}}",
   "count.products": "{count, plural, =0 {Babu kaya} other {kaya #}}",
+  "chats.history": "Tarihi",
+  "chats.new": "Sabuwar hira",
+  "chats.empty": "Babu hirarraki da aka ajiye tukuna. Suna ajiye kansu yayin da kake ci gaba.",
+  "chats.loading": "Ana buɗewa…",
+  "chats.failed": "An kasa loda hirarrakinka. Sake gwadawa.",
+  "chats.delete": "Share “{title}”",
 };
 
 export default ha;

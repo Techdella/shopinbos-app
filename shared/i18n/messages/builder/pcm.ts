@@ -1477,6 +1477,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.The badge setting couldn't be saved. Try again.": "We no fit save the badge setting. Try again.",
   "rex.ch.videoPrompt": "Use this video make clean product photo with my logo",
   "rex.ch.fromVideo": "Picture from your video",
+  "rex.cd.saveMedia": "Save for media",
+  "rex.cd.savedMedia": "E don save for media",
+  "rex.cd.toProduct": "Add am to product",
+  "rex.cd.pickProduct": "Choose product",
+  "rex.cd.post": "Make post",
+  "rex.cd.ad": "Make ad",
+  "rex.cd.addPick": "Add",
+  "rex.cd.noProducts": "You never get product. Add one first, then come back.",
+  "rex.ch.buyCredits": "Buy AI credits",
 };
 
 export default pcm;

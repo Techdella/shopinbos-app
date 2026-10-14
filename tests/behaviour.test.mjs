@@ -2666,3 +2666,35 @@ test("Rex's progress names the job and never finishes before the answer", async 
   assert.equal(p.rexIsSlow(30_000, 50), false);
   assert.equal(p.rexIsSlow(80_000, 50), true);
 });
+
+test("AI credits: packs, costs and an auto top-up that can't run away", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.creditPack("medium").credits, 200);
+  assert.equal(c.creditPack("nope"), null);
+  assert.equal(c.packKobo(c.creditPack("small")), 200_000);
+  assert.equal(c.creditCost("image"), 5);
+  assert.equal(c.creditCost("text", 3), 3);
+  assert.ok(c.creditCost("build") > c.creditCost("image"), "a store build costs more than a picture");
+  const base = { autoTopUp: true, hasCard: true, packId: "medium", need: 5, balance: 2, autoChargesToday: 0 };
+  assert.equal(c.shouldAutoTopUp(base), true);
+  assert.equal(c.shouldAutoTopUp({ ...base, balance: 10 }), false, "enough credits already");
+  assert.equal(c.shouldAutoTopUp({ ...base, autoTopUp: false }), false);
+  assert.equal(c.shouldAutoTopUp({ ...base, hasCard: false }), false);
+  assert.equal(c.shouldAutoTopUp({ ...base, autoChargesToday: c.AUTO_TOP_UP_PER_DAY }), false, "capped per day");
+  assert.equal(c.shouldAutoTopUp({ ...base, packId: "small", need: 500 }), false, "a pack that can't cover it isn't bought");
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
+});
+
+test("Rex and Peggy chats save with a title from the seller's first words, within limits", async () => {
+  const h = await import("../shared/ai-chats.ts");
+  assert.equal(h.aiChatTitle([{ role: "rex", text: "Hi" }, { role: "seller", text: "Make a banner for my Sallah sale\n[Photos attached: https://x]" }]), "Make a banner for my Sallah sale");
+  assert.equal(h.aiChatTitle([{ role: "user", content: "x".repeat(100) }]).length, 68);
+  assert.equal(h.aiChatTitle([]), "New chat");
+  assert.equal(h.parseAiChatSave({ assistant: "rex", messages: [{ role: "seller", text: "hi" }] }).ok, true);
+  assert.equal(h.parseAiChatSave({ assistant: "chip", messages: [{}] }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: [] }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: Array(h.AI_CHAT_MAX_MESSAGES + 1).fill({}) }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: [{ content: "x".repeat(h.AI_CHAT_MAX_BYTES) }] }).ok, false);
+  const weird = h.parseAiChatSave({ id: "../../etc", assistant: "rex", messages: [{}] });
+  assert.equal(weird.ok && weird.save.id, null, "odd ids start a new chat");
+});

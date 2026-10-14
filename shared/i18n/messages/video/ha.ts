@@ -49,6 +49,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lang.pidgin": "Pidgin",
   "lang.yoruba": "Yarbanci",
   "lang.hausa": "Hausa",
+  "saveMedia": "Ajiye a kafofina",
+  "savedMediaShort": "An ajiye",
+  "savedMedia": "An ajiye a kafofinka. Zaɓe shi kowane lokaci daga “Choose from my media”.",
 };
 
 export default ha;

@@ -14,6 +14,7 @@ import { channelCards } from "@/lib/sales-channels/server";
 import { COMING_SOON_PLATFORMS, PLATFORM_NAME, isOAuthPlatform } from "@/lib/sales-channels/pure";
 import { naira } from "@shared/onboarding";
 import { ConnectCard, SoonCard } from "./ChannelClient";
+import { isOwnImageUrl } from "@/lib/ai/images";
 import { PostComposer } from "./PostComposer";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // once connected, "Connected ✓ · n products showing" and a small Disconnect. Platforms we can't connect yet are
 // "Coming soon" with "Tell me when it's ready". Posting and per-channel results live in the "Post & share" tab.
 
-export default async function ChannelsPage({ searchParams }: { searchParams: Promise<{ tab?: string; problem?: string }> }) {
+export default async function ChannelsPage({ searchParams }: { searchParams: Promise<{ tab?: string; problem?: string; image?: string; product?: string }> }) {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("social", "common");
   const query = await searchParams;
@@ -56,7 +57,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("title")} sub={t("sub")}>
       {tabs}
-      {tab === "post" ? <PostAndShare store={store} /> : <ConnectTab store={store} problem={query.problem} />}
+      {tab === "post" ? <PostAndShare store={store} image={query.image && isOwnImageUrl(query.image) ? query.image : null} productId={query.product} /> : <ConnectTab store={store} problem={query.problem} />}
     </SellerPage>
   );
 }
@@ -109,7 +110,7 @@ async function ConnectTab({ store, problem }: { store: { id: string; name: strin
   );
 }
 
-async function PostAndShare({ store }: { store: { id: string; slug: string; customDomain: string | null } }) {
+async function PostAndShare({ store, image, productId }: { store: { id: string; slug: string; customDomain: string | null }; image: string | null; productId?: string }) {
   const t = await getT("social", "common");
   const locale = await getLocale();
   const now = new Date();
@@ -137,7 +138,7 @@ async function PostAndShare({ store }: { store: { id: string; slug: string; cust
       <Card className="p-5">
         <CardHead title={t("post.title")} sub={t("post.sub")} />
         <div className="mt-4">
-          <PostComposer products={composerProducts} />
+          <PostComposer products={composerProducts} image={image} initialProductId={productId} />
         </div>
       </Card>
 

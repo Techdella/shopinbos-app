@@ -1475,6 +1475,15 @@ const en = {
   "ed.The badge setting couldn't be saved. Try again.": "The badge setting couldn't be saved. Try again.",
   "rex.ch.videoPrompt": "Use this video to make a clean product photo with my logo",
   "rex.ch.fromVideo": "Still from your video",
+  "rex.cd.saveMedia": "Save to media",
+  "rex.cd.savedMedia": "Saved to media",
+  "rex.cd.toProduct": "Add to a product",
+  "rex.cd.pickProduct": "Choose a product",
+  "rex.cd.post": "Create post",
+  "rex.cd.ad": "Create ad",
+  "rex.cd.addPick": "Add",
+  "rex.cd.noProducts": "You have no products yet. Add one first, then come back.",
+  "rex.ch.buyCredits": "Buy AI credits",
 } satisfies Record<string, string>;
 
 export default en;

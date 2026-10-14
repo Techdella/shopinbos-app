@@ -2,8 +2,14 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
+import { creditBalance, spendCredits } from "@/lib/ai/credits.server";
+import { creditCost, outOfCreditsMessage } from "@shared/ai-credits";
 
-// Daily limits for Rex and Peggy so a loop, a bot or one busy user can't run up the AI bill.
+/** Where a seller buys AI credits. */
+export const CREDITS_URL = "/home/credits";
+
+// Daily limits for Rex and Peggy so a loop, a bot or one busy user can't run up the AI bill. Past the day's
+// allowance, bought AI credits pay per request (shared/ai-credits.ts, src/lib/ai/credits.server.ts).
 // aiCredits is the plan tier elsewhere in the app (see plan-limits.ts), so it is read here, never spent.
 
 // "speech" is voice typing (speech to text, POST /api/ai/transcribe): short and frequent, so its own allowance.
@@ -44,10 +50,19 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
     ]);
     const limit = dailyLimit(kind, user?.aiCredits);
     if ((used._sum.units ?? 0) + units > limit) {
-      return NextResponse.json(
-        { error: { code: "AI_LIMIT", message: `You've used today's ${limit} ${KIND_WORD[kind]}. It resets over the next 24 hours, or upgrade your plan for more.` } },
-        { status: 429 },
-      );
+      // Allowance used up: bought credits pay for it (the saved card tops them up when auto top-up is on).
+      const cost = creditCost(kind, units);
+      const left = await spendCredits(userId, cost).catch((error) => {
+        console.error("[ai/usage] credit spend failed", error);
+        return null;
+      });
+      if (left === null) {
+        const balance = await creditBalance(userId);
+        return NextResponse.json(
+          { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(`${limit} ${KIND_WORD[kind]}`, cost, balance), buyUrl: CREDITS_URL, cost, balance } },
+          { status: 402 },
+        );
+      }
     }
     await db.aiUsage.create({ data: { userId, kind, units } });
   } catch (error) {

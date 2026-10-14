@@ -2098,6 +2098,49 @@ model AiUsage {
   @@index([userId, kind, createdAt])
 }
 
+// Bought AI credits: spent when a daily plan allowance runs out (src/lib/ai/credits.server.ts). With autoTopUp the
+// card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
+model AiCreditAccount {
+  userId        String   @id
+  balance       Int      @default(0)
+  autoTopUp     Boolean  @default(false)
+  autoPackId    String?
+  // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
+  authorization Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).
+model AiCreditPurchase {
+  reference  String    @id
+  userId     String
+  packId     String
+  credits    Int
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  auto       Boolean   @default(false)
+  saveCard   Boolean   @default(false)
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, createdAt])
+}
+
+// Saved Rex Studio and Peggy conversations, so a seller can pick one up again (src/lib/ai/chats.server.ts).
+model AiChat {
+  id        String   @id @default(cuid())
+  userId    String
+  assistant String // rex | peggy
+  title     String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, assistant, updatedAt])
+}
+
 // ─── One-minute help videos (Help → "Watch a 1-minute video"; topics in shared/help-videos.ts) ─────
 
 model HelpVideo {

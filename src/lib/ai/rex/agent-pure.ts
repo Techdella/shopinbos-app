@@ -490,6 +490,7 @@ export const RexActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("set_logo"), imageUrl: ownPhoto }).strict(),
   z.object({ action: z.literal("apply_product_copy"), productId: id, description: z.string().trim().min(10, "The description is too short").max(3000, "Keep the description under 3,000 characters") }).strict(),
   z.object({ action: z.literal("activate_automation"), id }).strict(),
+  z.object({ action: z.literal("save_to_media"), url: ownPhoto, kind: z.enum(["image", "video"]).default("image"), name: z.string().trim().max(120).nullable().default(null) }).strict(),
 ]);
 
 export type RexAction = z.infer<typeof RexActionSchema>;

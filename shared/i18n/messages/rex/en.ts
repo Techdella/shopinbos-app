@@ -176,6 +176,7 @@ const en = {
   "img.logoOn": "Your logo is on it",
   "img.noLogoNote": "You don't have a logo in your brand kit yet, so Rex lettered your shop name instead. Add one in Brand kit.",
   "img.badLogoNote": "Your logo file couldn't be used (Rex needs a PNG, JPG or WebP), so Rex lettered your shop name instead.",
+  "img.buyCredits": "Buy AI credits",
 } satisfies Record<string, string>;
 
 export default en;

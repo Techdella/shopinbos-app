@@ -8,6 +8,7 @@ import { AssistantNote, Pill } from "@/components/app-kit";
 import Image from "next/image";
 import { useT } from "@/components/i18n/I18nProvider";
 import { RexProgress } from "@/components/builder/rex/RexProgress";
+import { RexImageActions } from "@/components/builder/rex/RexImageActions";
 import { uploadStudioPhoto } from "@/components/builder/rex/api";
 import { isVideoFile, videoFrames } from "@/components/builder/rex/video-frames";
 import { wantsLogo } from "@shared/brand-context";
@@ -338,20 +339,18 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
                 {image.style ? <Pill>{t.dynamic(`img.${image.style}`, image.style)}</Pill> : null}
                 <Pill>{image.size}</Pill>
               </div>
-              <PillButton tone="white" size="sm" onClick={() => {
-                const a = document.createElement("a");
-                a.href = image.url;
-                a.download = `shopinbos-${Date.now()}.webp`;
-                a.click();
-              }}>
-                <Icon name="download" size={14} /> {t("img.download")}
-              </PillButton>
             </div>
+            <RexImageActions url={image.url} name={prompt.slice(0, 80)} className="mt-3 px-1" />
           </section>
         )}
 
         {note && <Notice>{note}</Notice>}
         {error && <Notice>{error}</Notice>}
+        {error.includes("/home/credits") ? (
+          <Link href="/home/credits" className="inline-flex min-h-[44px] w-fit items-center gap-1.5 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">
+            <Icon name="sparkle" size={15} /> {t("img.buyCredits")}
+          </Link>
+        ) : null}
       </div>
     </div>
   );

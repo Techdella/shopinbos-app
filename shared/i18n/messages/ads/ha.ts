@@ -61,6 +61,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "deleteAd": "Goge ad",
   "payNote": "Kai ne kake biyan Instagram, Facebook ko TikTok kai tsaye da account ɗinka. Shopinbos ba ta kashe maka kuɗi tukuna. Peggy za ta nuna duk ad da ba shi da order zuwa rana ta {days} don ka dakatar da shi.",
   "days": "{count, plural, one {rana #} other {kwanaki #}}",
+  "useRexPicture": "Yi amfani da wannan hoton a tallan",
 };
 
 export default ha;

@@ -63,6 +63,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "time.daysAgo": "{count, plural, other {ụbọchị # gara aga}}",
   "count.orders": "{count, plural, =0 {Enweghị order} other {order #}}",
   "count.products": "{count, plural, =0 {Enweghị ngwaahịa} other {ngwaahịa #}}",
+  "chats.history": "Akụkọ",
+  "chats.new": "Mkparịta ụka ọhụrụ",
+  "chats.empty": "Ọ dịbeghị mkparịta ụka echekwara. Ha na-echekwa onwe ha ka ị na-aga.",
+  "chats.loading": "Ọ na-emepe…",
+  "chats.failed": "Enweghị ike ibuga mkparịta ụka gị. Nwaa ọzọ.",
+  "chats.delete": "Hichapụ “{title}”",
 };
 
 export default ig;

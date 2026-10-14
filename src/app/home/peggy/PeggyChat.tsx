@@ -7,6 +7,7 @@ import { Mascot } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
@@ -64,6 +65,20 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
   const [draft, setDraft] = useState(initialAsk);
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const { chatId, adopt } = useChatAutosave("peggy", turns, !busy, turns.some((turn) => turn.role === "user"));
+
+  function openChat(chat: { id: string; messages: unknown[] }) {
+    const loaded = chat.messages.filter(
+      (entry): entry is Turn => Boolean(entry) && typeof entry === "object" && ((entry as Turn).role === "user" || (entry as Turn).role === "assistant") && typeof (entry as Turn).content === "string",
+    );
+    setTurns(loaded);
+    adopt(chat.id, loaded.length);
+  }
+
+  function newChat() {
+    setTurns([]);
+    adopt(null, 0);
+  }
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -122,10 +137,11 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
             <h1 className="m-0 text-[17px] font-extrabold">Peggy</h1>
             <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
           </div>
+          <ChatHistoryMenu assistant="peggy" currentId={chatId} onOpen={openChat} onNew={newChat} tone="plain" />
           {turns.length > 0 && (
             <button
               type="button"
-              onClick={() => setTurns([])}
+              onClick={newChat}
               disabled={busy}
               className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
             >
@@ -251,7 +267,7 @@ function Bubble({ role, content, failed }: { role: "user" | "assistant"; content
         failed && "bg-app-danger-tint text-app-danger",
       )}
     >
-      {role === "assistant" && !failed ? <LinkedText text={content} /> : content}
+      {role === "assistant" ? <LinkedText text={content} /> : content}
     </div>
   );
 }

@@ -173,6 +173,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "img.logoOn": "Lógò rẹ wà lórí rẹ̀",
   "img.noLogoNote": "Kò sí lógò nínú àmì-ìdánimọ̀ rẹ, nítorí náà Rex kọ orúkọ ṣọ́ọ̀bù rẹ. Fi ọ̀kan kún un ní Brand kit.",
   "img.badLogoNote": "Rex kò lè lo fáìlì lógò rẹ (ó nílò PNG, JPG tàbí WebP), nítorí náà ó kọ orúkọ ṣọ́ọ̀bù rẹ.",
+  "img.buyCredits": "Ra kírẹ́dítì AI",
 };
 
 export default yo;

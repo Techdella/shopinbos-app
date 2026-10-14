@@ -61,6 +61,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "confirmDelete": "Delete this ad? Its link go stop to count.",
   "deleteAd": "Delete ad",
   "payNote": "You go pay Instagram, Facebook or TikTok direct with your own account. Shopinbos no dey spend money for you yet. Peggy go flag any ad wey no get order by day {days} so you fit pause am.",
+  "useRexPicture": "Use this picture for the ad",
 };
 
 export default pcm;

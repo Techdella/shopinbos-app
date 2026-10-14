@@ -15,6 +15,7 @@ import { isPreviewRequest } from "@/lib/ai/rex/starters";
 import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
 import { RexChat } from "./RexChat";
 import { guessRexJob, type RexJob } from "@shared/rex-progress";
+import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
@@ -138,6 +139,24 @@ export function RexStudio(props: RexStudioProps) {
   const chips = useMemo(() => rexSuggestionChips(facts, { hasDraft: draftSaved, exclude: lastSeller ? [lastSeller] : [] }), [facts, draftSaved, lastSeller]);
   const themeName = themeLibraryEntry(draft.templateId)?.name ?? (draft.templateId === props.initialDraft.templateId ? props.themeName : draft.templateName);
   const busyLabel = busy === "build" ? t("rex.st.building") : t("rex.st.working");
+  const { chatId, adopt } = useChatAutosave("rex", messages, busy === null, messages.some((message) => message.role === "seller"));
+
+  /** Reopens a saved chat (Rex carries on from it; undo buttons of old versions still work). */
+  function openChat(chat: { id: string; messages: unknown[] }) {
+    const stamp = Date.now();
+    const loaded = chat.messages
+      .filter((entry): entry is ChatMessage => Boolean(entry) && typeof entry === "object" && ((entry as ChatMessage).role === "seller" || (entry as ChatMessage).role === "rex") && typeof (entry as ChatMessage).text === "string")
+      .map((entry, index) => ({ ...entry, id: entry.id === "hello" ? "hello" : `h${stamp}-${index}` }));
+    if (!loaded.length) return;
+    setMessages(loaded);
+    adopt(chat.id, loaded.length);
+  }
+
+  function newChat() {
+    const fresh = [greeting(t, props.firstName, false, draftSaved)];
+    setMessages(fresh);
+    adopt(null, fresh.length);
+  }
 
   /** The conversation for Rex: his words plus a note of what each card made, and the seller's photo links. */
   function history() {
@@ -379,6 +398,7 @@ export function RexStudio(props: RexStudioProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} />
             <div ref={toolsRef} className="relative hidden sm:block">
               <button
                 type="button"

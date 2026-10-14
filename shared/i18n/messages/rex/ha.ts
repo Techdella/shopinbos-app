@@ -173,6 +173,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "img.logoOn": "Tambarinka yana kai",
   "img.noLogoNote": "Babu tambari a kayan alamarka, don haka Rex ya rubuta sunan shagonka. Ƙara ɗaya a Brand kit.",
   "img.badLogoNote": "Rex bai iya amfani da fayil ɗin tambarinka ba (yana buƙatar PNG, JPG ko WebP), don haka ya rubuta sunan shagonka.",
+  "img.buyCredits": "Sayi kiredit na AI",
 };
 
 export default ha;

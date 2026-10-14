@@ -1477,6 +1477,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.The badge setting couldn't be saved. Try again.": "Enweghị ike ịchekwa ntọala baajị. Nwaa ọzọ.",
   "rex.ch.videoPrompt": "Jiri vidiyo a mee foto ngwaahịa dị ọcha nwere logo m",
   "rex.ch.fromVideo": "Foto si na vidiyo gị",
+  "rex.cd.saveMedia": "Chekwaa na media",
+  "rex.cd.savedMedia": "Echekwala na media",
+  "rex.cd.toProduct": "Tinye na ngwaahịa",
+  "rex.cd.pickProduct": "Họrọ ngwaahịa",
+  "rex.cd.post": "Mepụta post",
+  "rex.cd.ad": "Mepụta mgbasa ozi",
+  "rex.cd.addPick": "Tinye",
+  "rex.cd.noProducts": "Ị nweghị ngwaahịa ọ bụla. Buru ụzọ tinye otu.",
+  "rex.ch.buyCredits": "Zụta kredit AI",
 };
 
 export default ig;

@@ -61,6 +61,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "deleteAd": "Pa ad rẹ́",
   "payNote": "Ìwọ fúnra rẹ ni yóò san owó fún Instagram, Facebook tàbí TikTok pẹ̀lú account rẹ. Shopinbos kò tíì máa ná owó fún ọ. Peggy á sàmì sí ad èyíkéyìí tí kò ní order kankan títí di ọjọ́ {days} kí o lè dá a dúró.",
   "days": "{count, plural, other {ọjọ́ #}}",
+  "useRexPicture": "Lo àwòrán yìí nínú ìpolówó náà",
 };
 
 export default yo;

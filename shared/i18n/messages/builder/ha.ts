@@ -1477,6 +1477,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.The badge setting couldn't be saved. Try again.": "Ba a iya ajiye saitin bajon ba. Sake gwadawa.",
   "rex.ch.videoPrompt": "Yi amfani da wannan bidiyon don yin hoton kaya mai tsabta da tambarina",
   "rex.ch.fromVideo": "Hoto daga bidiyonka",
+  "rex.cd.saveMedia": "Ajiye a kafofin",
+  "rex.cd.savedMedia": "An ajiye a kafofin",
+  "rex.cd.toProduct": "Ƙara wa kaya",
+  "rex.cd.pickProduct": "Zaɓi kaya",
+  "rex.cd.post": "Ƙirƙiri post",
+  "rex.cd.ad": "Ƙirƙiri talla",
+  "rex.cd.addPick": "Ƙara",
+  "rex.cd.noProducts": "Ba ka da kaya tukuna. Ƙara ɗaya tukuna.",
+  "rex.ch.buyCredits": "Sayi kiredit na AI",
 };
 
 export default ha;
