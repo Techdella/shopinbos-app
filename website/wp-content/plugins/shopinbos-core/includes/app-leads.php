@@ -40,16 +40,20 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 	$str     = fn( $k, $max = 300 ) => mb_substr( sanitize_text_field( (string) ( $in[ $k ] ?? '' ) ), 0, $max );
 	$email   = sanitize_email( (string) ( $in['email'] ?? '' ) );
 	$phone   = preg_replace( '/[^0-9+]/', '', (string) ( $in['phone'] ?? '' ) );
+	if ( ! $email && ! $phone && ! empty( $in['contact'] ) ) {
+		$contact = trim( (string) $in['contact'] );
+		is_email( $contact ) ? $email = sanitize_email( $contact ) : $phone = preg_replace( '/[^0-9+]/', '', $contact );
+	}
 	$payload = [];
 	$source  = $kind;
-	if ( 'sunday' === $kind ) {
+	if ( 'sunday' === $kind || 'trending' === $kind ) {
 		$contact = trim( (string) ( $in['contact'] ?? '' ) );
 		if ( is_email( $contact ) ) {
 			$email = sanitize_email( $contact );
 		} else {
 			$phone = preg_replace( '/[^0-9+]/', '', $contact );
 		}
-		$source = 'WhatsApp tips sign-up';
+		$source = 'trending' === $kind ? 'Trending products every Monday' : 'WhatsApp tips sign-up';
 	} elseif ( 'tool' === $kind ) {
 		$tool              = sanitize_key( (string) ( $in['tool'] ?? '' ) );
 		$source            = function_exists( 'sib_tools_list' ) ? ( sib_tools_list()[ $tool ] ?? $tool ) : $tool;
@@ -70,7 +74,7 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		'message' => mb_substr( sanitize_textarea_field( (string) ( $in['message'] ?? '' ) ), 0, 5000 ),
 		'source'  => mb_substr( (string) $source, 0, 190 ),
 		'pageUrl' => esc_url_raw( (string) ( $in['back'] ?? wp_get_referer() ) ),
-		'consent' => ! empty( $in['consent'] ) || 'sunday' === $kind,
+		'consent' => ! empty( $in['consent'] ) || in_array( $kind, [ 'sunday', 'trending' ], true ),
 		'payload' => array_filter( $payload, fn( $v ) => '' !== $v ),
 	] );
 }

@@ -2,7 +2,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
-export const LEAD_KINDS = ["newsletter", "sunday", "download", "tool", "contact", "popup", "signup_start"] as const;
+export const LEAD_KINDS = ["newsletter", "sunday", "trending", "download", "tool", "contact", "popup", "signup_start"] as const;
 export const LEAD_STATUSES = ["new", "contacted", "converted", "closed"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
@@ -59,6 +59,7 @@ export function normalisePhone(value: string | null) {
 export const KIND_LABELS: Record<string, string> = {
   newsletter: "Newsletter",
   sunday: "WhatsApp tips",
+  trending: "Trending every Monday",
   download: "Guide download",
   tool: "Tool result",
   contact: "Contact form",

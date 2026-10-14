@@ -46,6 +46,8 @@ body {{ font-family: 'Plus Jakarta Sans', sans-serif; color: #16141F; -webkit-pr
 
 def style_for(title):
     t = title.lower()
+    if 'seller’s starter kit' in t or "seller's starter kit" in t:
+        return 'guide'
     if 'checklist' in t or 'cheat sheet' in t:
         return 'checklist'
     if 'template' in t or 'swipe' in t or 'pack' in t and 'starter pack' not in t:
@@ -160,6 +162,7 @@ p {{ font-size: 14pt; color: #C9C6D3; max-width: 140mm; line-height: 1.5; margin
 
 
 SLUGS = {
+    'online-sellers-starter-kit': 'online-sellers-starter-kit',
     'Abandoned Cart Email Sequence Templates': 'abandoned-cart-email-templates',
     'Becoming a Social Media Manager without Experience': 'become-a-social-media-manager',
     'Beginner Friendly Product Validation Toolkit (2026)': 'product-validation-toolkit',

@@ -90,6 +90,11 @@ function sib_canvas_part( string $part ): string {
 		$html    = str_replace( '{{checked}}', esc_html( date_i18n( 'j F Y', $checked ? strtotime( $checked ) : time() ) ), $html );
 	}
 	$html = str_replace( '{{today}}', esc_html( wp_date( 'l j F Y', (int) wp_date( 'G' ) < 7 ? time() - DAY_IN_SECONDS : null ) ), $html );
+	if ( str_contains( $html, '{{kit_id}}' ) ) {
+		$kit  = get_page_by_path( 'online-sellers-starter-kit', OBJECT, 'sib_resource' );
+		$html = str_replace( '{{kit_id}}', (string) ( $kit ? $kit->ID : 0 ), $html );
+	}
+	$html = str_replace( '{{leadurl}}', esc_url( admin_url( 'admin-post.php' ) ), $html );
 	$wa   = function_exists( 'sib_whatsapp_url' ) ? sib_whatsapp_url() : 'https://wa.me/';
 	$html = str_replace( '{{wa}}', esc_url( $wa ), $html );
 

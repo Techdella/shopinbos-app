@@ -125,7 +125,7 @@ function sib_theme_render_header( array $attrs ): string {
 function sib_theme_render_footer( array $attrs ): string {
 	$year = wp_date( 'Y' );
 	if ( empty( $attrs['minimal'] ) && ( $html = sib_canvas_part( 'footer' ) ) ) {
-		return $html . sib_canvas_part( 'stickycta' );
+		return $html . sib_canvas_part( 'stickycta' ) . sib_canvas_part( 'popups' );
 	}
 	if ( ! empty( $attrs['minimal'] ) ) {
 		return '<footer class="foot"><div class="wrap foot-base" style="border:0;padding:28px 32px">'

@@ -290,7 +290,9 @@ code.k{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;back
 /* Canvas buttons that became links */
 :where(a.cv-b){display:inline-block;text-decoration:none;cursor:pointer;font-size:13.333px;line-height:normal;text-align:center;color:inherit}
 .site a.cv-b:hover{color:inherit}
-.mega[hidden],.mmenu[hidden],.cv-panes>[hidden],.qa-a[hidden]{display:none!important}
+.mega[hidden],.mmenu[hidden],.cv-panes>[hidden],.qa-a[hidden],.cv-pops>[hidden]{display:none!important}
+form[data-cv-lead].is-busy{opacity:.6;pointer-events:none}
+.cv-lead-err{color:#B42318;font-size:13px;font-weight:600}
 .megab[aria-expanded="true"]{color:#16141F!important;border-bottom-color:#16141F!important}
 .megab[aria-expanded="true"]>span{transform:rotate(180deg)!important}
 .wp-site-blocks>div:has(>.cv-hdr){position:sticky;top:0;z-index:30}

@@ -32,7 +32,8 @@ URLS = {
     'mg.drop': '/features/dropshipping/', 'mg.trending': '/trending/', 'mg.shopify': '/compare/shopify/',
     'mg.woo': '/compare/woocommerce/', 'mg.suppliers': '/for-suppliers/', 'mg.riders': '/delivery/#riders',
     'mg.academy': '/academy/', 'mg.blog': '/blog/', 'mg.pdf': '/resources/', 'mg.pdfdoc': '/resources/',
-    'mg.help': '/help/', 'mg.about': '/about/',
+    'mg.help': '/help/', 'mg.about': '/about/', 'mg.pdf': '/resources/online-sellers-starter-kit/',
+    'mg.pdfdoc': '/resources/online-sellers-starter-kit/',
     'legalNav.terms': '/legal/terms/', 'legalNav.privacy': '/legal/privacy/', 'legalNav.refunds': '/legal/refunds/',
     'legalNav.cookies': '/legal/cookies/', 'legalNav.rules': '/legal/seller-rules/',
 }
@@ -60,6 +61,9 @@ TEXT = {
     'mamaputsnacks.shopinbos.com': 'mamateepantry.shopinbos.com',
     'A smiling baker behind his counter of fresh pastries': 'A smiling food seller with his packed snacks',
     'Last checked 1 October 2026': 'Last checked {{checked}}',
+    '24 pages. We send it to your WhatsApp or email.': 'Free PDF. We send it to your WhatsApp or email.',
+    '24 pages on getting your first 10 orders.': 'Six short chapters on getting your first 10 orders.',
+    '24 pages': '8 pages',  # the real Starter Kit
     'We checked these details on 1 October 2026': 'We checked these details on {{checked}}',
 }
 def _urls(name):
@@ -82,6 +86,8 @@ def text(el):
 
 
 def resolve(btn):
+    if btn.get('data-href-fixed'):
+        return btn.attrs.pop('data-href-fixed')
     key = btn.get('data-go', '')
     t = text(btn)
     for (k, prefix), url in BY_TEXT.items():
@@ -150,6 +156,10 @@ def clean(root, soup):
         name = m.parent.get_text(' ', strip=True).replace(m.get_text(strip=True), '', 1).strip()
         if name:
             m['data-brand'] = ' '.join(name.split())[:60]
+    for b in root.find_all('button'):
+        if not b.get('data-go') and not b.get('data-cv') and 'Download' in b.get_text():
+            b['data-cv'] = 'download'
+            b['type'] = 'button'
     for a in root.find_all('a', href='#'):
         a['href'] = '{{go:signup}}'
     for b in root.find_all(attrs={'data-go': True}):
@@ -220,6 +230,30 @@ def trend_filters(el):
         name = next((w for w in words if len(w) > 3 and w not in TREND_CATS and not re.match(r'^[#+₦▲▼\d]', w)), None)
         if name:
             item['data-name'] = name
+
+
+def lead_form(box, kind, fields, button_text=None):
+    """Turn a canvas box with inputs and a button into a real lead form (plugin leads.php, posted by site.js)."""
+    box.name = 'form'
+    box['method'] = 'post'
+    box['action'] = '{{leadurl}}'
+    box['data-cv-lead'] = kind
+    for inp, name in zip(box.find_all(['input', 'select']), fields):
+        inp['name'] = name
+        if name == 'contact':
+            inp['required'] = ''
+            inp['autocomplete'] = 'email tel'
+    hidden = '<input type="hidden" name="action" value="sib_lead"><input type="hidden" name="kind" value="%s">' % kind
+    if kind == 'download':
+        hidden += '<input type="hidden" name="resource" value="{{kit_id}}"><input type="hidden" name="consent" value="1">'
+    hidden += '<input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">'
+    for h in BeautifulSoup(hidden, 'html.parser').find_all('input'):
+        box.append(h)
+    for b in box.find_all('button'):
+        if b.get('data-go', '').startswith('pop.'):
+            continue
+        b['type'] = 'submit'
+        b.attrs.pop('data-go', None)
 
 
 def search_form(el):
@@ -373,6 +407,47 @@ page_parts('trending', 'trending')
 page_parts('help', 'help')
 page_parts('helpart', 'helpart')
 
+PDF_URLS = _urls('pdf-urls.json')
+
+
+def pdf_page():
+    """The Starter Kit page: canvas pdf view, with the hero form and its sent state as two panes."""
+    base = sections(load('pdf-kit'))
+    done = sections(load('pdf-kit-done'))
+    for i, sec in enumerate(base):
+        if str(sec) != str(done[i]):
+            el = panes(sec, [done[i]], 'pdfdone')
+        else:
+            el = BeautifulSoup(str(sec), 'html.parser').find('section')
+        form_box = el.find('input', attrs={'aria-label': 'Your first name'})
+        if form_box is not None:
+            lead_form(form_box.parent, 'download', ['name', 'contact', 'sells'])
+        for b in el.find_all(attrs={'data-go': 'item.open'}):
+            t = text(b)
+            for title, url in PDF_URLS.items():
+                if title in t:
+                    b['data-go'] = 'nav.home'
+                    b['data-href-fixed'] = url
+        write(f'pdf-{i + 1:02d}', el, None)
+
+
+def popups():
+    """All pop-ups in one part, each hidden until site.js opens it."""
+    wrap = BeautifulSoup('<div class="cv-pops"></div>', 'html.parser').div
+    for name, view in [('pdf', 'pop-pdf'), ('pdf-done', 'pop-pdf-done'), ('exit', 'pop-exit'), ('news', 'pop-news')]:
+        el = BeautifulSoup(str(load(view).find(class_='site').find_all(recursive=False)[-1]), 'html.parser').find('div')
+        el['data-pop'] = name
+        el['hidden'] = ''
+        inp = el.find('input')
+        if inp is not None:
+            lead_form(inp.parent, 'trending' if name == 'news' else 'download', ['contact'])
+        wrap.append(el)
+    write('popups', wrap, None)
+
+
+pdf_page()
+popups()
+
 # ---- Stylesheet --------------------------------------------------------------------------------------------
 css = open(os.path.join(CDOM, 'site.css')).read()
 css = css[css.find('x-dc{display'):]
@@ -387,7 +462,9 @@ css = """/* Generated from the design canvas by website/tools/canvas_build.py. E
 /* Canvas buttons that became links */
 :where(a.cv-b){display:inline-block;text-decoration:none;cursor:pointer;font-size:13.333px;line-height:normal;text-align:center;color:inherit}
 .site a.cv-b:hover{color:inherit}
-.mega[hidden],.mmenu[hidden],.cv-panes>[hidden],.qa-a[hidden]{display:none!important}
+.mega[hidden],.mmenu[hidden],.cv-panes>[hidden],.qa-a[hidden],.cv-pops>[hidden]{display:none!important}
+form[data-cv-lead].is-busy{opacity:.6;pointer-events:none}
+.cv-lead-err{color:#B42318;font-size:13px;font-weight:600}
 .megab[aria-expanded="true"]{color:#16141F!important;border-bottom-color:#16141F!important}
 .megab[aria-expanded="true"]>span{transform:rotate(180deg)!important}
 .wp-site-blocks>div:has(>.cv-hdr){position:sticky;top:0;z-index:30}

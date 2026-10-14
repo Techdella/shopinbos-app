@@ -32,9 +32,12 @@ add_action( 'wp_footer', function () {
 		return;
 	}
 	?>
-	<div id="sib-consent" class="card" hidden role="dialog" aria-label="<?php esc_attr_e( 'Cookies', 'shopinbos' ); ?>" style="position:fixed;left:16px;right:16px;bottom:16px;max-width:520px;margin:0 auto;padding:18px;z-index:50;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 40px -20px rgba(0,0,0,.4)">
-		<p class="p" style="color:#16141F"><?php esc_html_e( 'We use cookies from Meta and TikTok to see which ads work. Is that okay?', 'shopinbos' ); ?> <a href="<?php echo esc_url( home_url( '/legal/privacy/' ) ); ?>"><?php esc_html_e( 'Privacy policy', 'shopinbos' ); ?></a></p>
-		<div class="row"><button type="button" class="btn btn-ink btn-s" data-consent="yes"><?php esc_html_e( 'Yes, that’s fine', 'shopinbos' ); ?></button><button type="button" class="btn btn-ghost btn-s" data-consent="no"><?php esc_html_e( 'No thanks', 'shopinbos' ); ?></button></div>
+	<div id="sib-consent" hidden role="dialog" aria-label="<?php esc_attr_e( 'Cookies', 'shopinbos' ); ?>" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:60;justify-content:center">
+		<div class="modal" style="width:100%;max-width:860px;padding:18px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-radius:22px">
+			<span class="av" style="background:#FDF0D5"><?php echo sib_icon( 'shield', 20, '#8A5A08' ); // phpcs:ignore ?></span>
+			<span style="flex:1 1 0%;min-width:240px;font-size:14px;line-height:1.5"><?php esc_html_e( 'We use cookies from Meta and TikTok, if you agree, to see which ads work.', 'shopinbos' ); ?> <a class="lnk" style="font-size:14px;display:inline" href="<?php echo esc_url( home_url( '/legal/cookies/' ) ); ?>"><?php esc_html_e( 'Read our cookie policy', 'shopinbos' ); ?></a></span>
+			<div class="row" style="gap:8px"><button type="button" class="btn btn-ghost btn-s" data-consent="no"><?php esc_html_e( 'Only essential', 'shopinbos' ); ?></button><button type="button" class="btn btn-ink btn-s" data-consent="yes"><?php esc_html_e( 'Accept all', 'shopinbos' ); ?></button></div>
+		</div>
 	</div>
 	<script>
 	(function () {
@@ -46,12 +49,12 @@ add_action( 'wp_footer', function () {
 		var saved = null; try { saved = localStorage.getItem('sib_ads_consent'); } catch (e) {}
 		if (saved === 'yes') { load(); return; }
 		if (saved === 'no') return;
-		box.hidden = false;
+		box.hidden = false; box.style.display = 'flex';
 		box.addEventListener('click', function (e) {
 			var v = e.target.getAttribute && e.target.getAttribute('data-consent');
 			if (!v) return;
 			try { localStorage.setItem('sib_ads_consent', v); } catch (err) {}
-			box.hidden = true;
+			box.hidden = true; box.style.display = 'none';
 			if (v === 'yes') load();
 		});
 	})();

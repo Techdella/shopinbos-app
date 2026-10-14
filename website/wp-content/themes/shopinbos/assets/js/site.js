@@ -361,5 +361,83 @@
 				if (sign) sign.textContent = open ? '+' : '−';
 			});
 		});
+
+		// Pop-ups (canvas/popups.html): opened by [data-cv="pop.open…"] buttons and, once per visit, on exit.
+		var pops = $('.cv-pops');
+		function openPop(name) {
+			if (!pops) return;
+			$$(':scope > [data-pop]', pops).forEach(function (p) { p.hidden = p.getAttribute('data-pop') !== name; });
+			var input = $('[data-pop="' + name + '"] input:not([type=hidden]):not([name=website])', pops);
+			if (input) setTimeout(function () { input.focus(); }, 50);
+			track('popup_open', { name: name, path: location.pathname });
+		}
+		function closePops() { if (pops) $$(':scope > [data-pop]', pops).forEach(function (p) { p.hidden = true; }); }
+		document.addEventListener('click', function (e) {
+			if (e.target.closest('[data-cv="pop.close"]') || (e.target.classList && e.target.classList.contains('ovl'))) { closePops(); return; }
+			var o = e.target.closest('[data-cv^="pop.open"]');
+			if (o) { e.preventDefault(); openPop(o.getAttribute('data-cv').slice(8).toLowerCase()); }
+			var d = e.target.closest('[data-cv="download"]');
+			if (d && d.getAttribute('data-url')) window.open(d.getAttribute('data-url'), '_blank', 'noopener');
+		});
+		document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePops(); });
+
+		var leadDone = function () { try { return localStorage.getItem('sib-lead-done') === '1'; } catch (e) { return false; } };
+		if (pops && !leadDone() && window.matchMedia && matchMedia('(pointer: fine)').matches && location.pathname.indexOf('/resources/online-sellers-starter-kit') !== 0) {
+			var armed = false;
+			setTimeout(function () { armed = true; }, 20000);
+			document.addEventListener('mouseout', function (e) {
+				if (!armed || e.relatedTarget || e.clientY > 0) return;
+				try { if (sessionStorage.getItem('sib-exit')) return; sessionStorage.setItem('sib-exit', '1'); } catch (err) {}
+				if (!leadDone()) openPop('exit');
+			});
+		}
+
+		// Lead forms (Starter Kit, exit, weekly trending): sent without leaving the page.
+		document.addEventListener('submit', function (e) {
+			var f = e.target.closest('form[data-cv-lead]');
+			if (!f) return;
+			e.preventDefault();
+			var err = $('.cv-lead-err', f);
+			if (err) err.remove();
+			f.classList.add('is-busy');
+			var contact = (f.querySelector('[name=contact]') || {}).value || '';
+			fetch(f.getAttribute('action'), { method: 'POST', body: new FormData(f), headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+				.then(function (r) { return r.json(); })
+				.catch(function () { return null; })
+				.then(function (res) {
+					f.classList.remove('is-busy');
+					if (!res || !res.ok) {
+						var m = document.createElement('span');
+						m.className = 'cv-lead-err'; m.setAttribute('role', 'alert');
+						m.textContent = (res && res.message) || 'That didn’t go through. Check the details and try again.';
+						f.appendChild(m);
+						return;
+					}
+					try { localStorage.setItem('sib-lead-done', '1'); } catch (x) {}
+					track('lead_submit', { kind: f.getAttribute('data-cv-lead'), path: location.pathname });
+					var done;
+					if (f.closest('[data-pop="news"]')) {
+						var p = document.createElement('p');
+						p.className = 'p'; p.setAttribute('role', 'status'); p.textContent = res.message;
+						f.replaceWith(p);
+						return;
+					}
+					if (f.closest('.cv-pops')) {
+						openPop('pdf-done');
+						done = $('[data-pop="pdf-done"]', pops);
+					} else {
+						var wrap = f.closest('.cv-panes');
+						if (wrap) {
+							$$('.cv-panes[data-group="' + wrap.getAttribute('data-group') + '"] > [data-pane]').forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== '1'; });
+							done = $(':scope > [data-pane="1"]', wrap);
+						}
+					}
+					if (!done) return;
+					$$('[data-cv="download"]', done).forEach(function (b) { if (res.download) b.setAttribute('data-url', res.download); else b.hidden = true; });
+					if (contact.indexOf('@') > -1) {
+						$$('.p, span', done).forEach(function (el) { if (el.children.length === 0) el.textContent = el.textContent.replace('Check your WhatsApp', 'Check your email').replace('Check WhatsApp', 'Check your email'); });
+					}
+				});
+		});
 	})();
 })();

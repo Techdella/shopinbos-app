@@ -447,15 +447,17 @@ class Sib_CLI {
 		foreach ( (array) $list as $i => $r ) {
 			$existing = get_page_by_path( $r['slug'], OBJECT, 'sib_resource' );
 			$items   = implode( "\n", array_map( fn( $c ) => "<!-- wp:list-item -->\n<li>" . esc_html( $c ) . "</li>\n<!-- /wp:list-item -->", $r['chapters'] ) );
-			$content = sib_block_p( esc_html( $r['sub'] ) )
+			// The Starter Kit has its own page from the design canvas (theme canvas/pdf-NN.html).
+			$canvas  = 'online-sellers-starter-kit' === $r['slug'] && function_exists( 'sib_canvas_blocks' ) ? sib_canvas_blocks( 'pdf' ) : '';
+			$content = $canvas ?: sib_block_p( esc_html( $r['sub'] ) )
 				. sib_block_h( 2, 'What’s inside', '' )
 				. ( $items ? "<!-- wp:list -->\n<ul class=\"wp-block-list\">" . $items . "</ul>\n<!-- /wp:list -->\n\n" : '' )
 				. sib_block_p( esc_html( sprintf( 'A free %1$s from Shopinbos. %2$d pages, PDF. Fill in the form and it opens straight away; we also send you the link.', $kind[ $r['style'] ] ?? 'guide', $r['pages'] ) ) );
 			if ( $existing && 'sib_resource' === $existing->post_type ) {
-				$id = $this->refresh_post( $existing, $r['title'], $content, $r['sub'], '', $i + 10 );
+				$id = $this->refresh_post( $existing, $r['title'], $content, $r['sub'], $canvas ? 'page-canvas' : '', $i + 10 );
 			} else {
 				// Create the guide first: media items get slugs too, and must not take the guide's URL.
-				$id = $this->cpt( 'sib_resource', $r['slug'], $r['title'], $content, $r['sub'], [ 'sib_gated' => true, 'sib_list_tag' => $r['slug'] ], '', $i + 10 );
+				$id = $this->cpt( 'sib_resource', $r['slug'], $r['title'], $content, $r['sub'], array_filter( [ 'sib_gated' => true, 'sib_list_tag' => $r['slug'], '_wp_page_template' => $canvas ? 'page-canvas' : '' ] ), '', $i + 10 );
 				update_post_meta( $id, '_sib_seed_src', md5( $content ) );
 				$this->fingerprint( $id );
 			}

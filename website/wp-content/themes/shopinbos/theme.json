@@ -184,7 +184,7 @@
 		{ "name": "header-minimal", "title": "Header (campaign pages)", "area": "header" }
 	],
 	"customTemplates": [
-		{ "name": "page-canvas", "title": "Designed page (full width, no title)", "postTypes": [ "page", "sib_landing" ] },
+		{ "name": "page-canvas", "title": "Designed page (full width, no title)", "postTypes": [ "page", "sib_landing", "sib_resource" ] },
 		{ "name": "page-article", "title": "Text page", "postTypes": [ "page" ] },
 		{ "name": "page-legal", "title": "Legal document", "postTypes": [ "page" ] }
 	]
