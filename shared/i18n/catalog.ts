@@ -72,6 +72,7 @@ import orders from "./messages/orders/index.ts";
 import home from "./messages/home/index.ts";
 import onboarding from "./messages/onboarding/index.ts";
 import media from "./messages/media/index.ts";
+import productTypes from "./messages/productTypes/index.ts";
 
 export const CATALOGS = {
   common,
@@ -144,6 +145,7 @@ export const CATALOGS = {
   home,
   onboarding,
   media,
+  productTypes,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

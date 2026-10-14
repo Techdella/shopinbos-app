@@ -4,6 +4,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { boutiqueSnapshotFor, type ProductPageData } from "@/lib/storefront/product-page.server";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { scriptSafeJson } from "@/lib/security/html";
+import { normalizeVariants, priceRange } from "@shared/product-variants";
 
 // Shared by /s/[slug]/product/[productId] and custom-domain product pages.
 
@@ -35,9 +36,10 @@ export function canonicalProductUrl(data: ProductPageData, customDomain?: string
 
 function productJsonLd(data: ProductPageData, url: string) {
   const { product, store } = data;
-  const variants = Array.isArray(product.variants) ? (product.variants as Array<Record<string, unknown>>) : [];
-  const tracked = variants.filter((variant) => typeof variant.stock === "number");
-  const inStock = tracked.length ? tracked.some((variant) => (variant.stock as number) > 0) : true;
+  const variants = normalizeVariants(product.variants).filter((variant) => variant.enabled);
+  const tracked = variants.filter((variant) => variant.stock !== null);
+  const inStock = tracked.length ? tracked.some((variant) => (variant.stock ?? 0) > 0) : true;
+  const range = priceRange(variants, product.retailPrice);
   return {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -61,7 +63,8 @@ function productJsonLd(data: ProductPageData, url: string) {
       : {}),
     offers: {
       "@type": "Offer",
-      price: product.retailPrice,
+      price: range.min,
+      ...(range.max > range.min ? { highPrice: range.max } : {}),
       priceCurrency: product.currency,
       availability: inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       url,
@@ -111,6 +114,7 @@ export function ProductPageView({ data, storeBasePath, canonical }: { data: Prod
         ratingCounts={data.ratingCounts}
         storeBasePath={storeBasePath}
         catalog={data.catalog}
+        related={data.related}
       />
     </>
   );

@@ -20,6 +20,7 @@ import { COMMERCE_TOOL_RUNNERS } from "./commerce-tools";
 import { CMS_TOOL_RUNNERS } from "./cms-tools";
 import { EMAIL_TOOL_RUNNERS } from "./email-tools";
 import { LEGAL_TOOL_RUNNERS } from "./legal-tools";
+import { PRODUCTS_TOOL_RUNNERS } from "./products-tools";
 import { saveMarkdownPost } from "@/lib/cms/server";
 import {
   aggregateCustomers,
@@ -66,7 +67,7 @@ const PAID_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"] a
 const money = (amount: number) => naira(Number(amount) || 0);
 const dateOnly = (date: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", year: "numeric" }).format(date);
 
-async function recordActivity(ctx: PeggyToolContext, event: { type: string; title: string; description?: string; tool: string; link?: string; data?: Record<string, unknown> }) {
+export async function recordActivity(ctx: PeggyToolContext, event: { type: string; title: string; description?: string; tool: string; link?: string; data?: Record<string, unknown> }) {
   await db.activityEvent
     .create({
       data: {
@@ -101,7 +102,7 @@ async function storeProducts(ctx: PeggyToolContext) {
   });
 }
 
-async function findProduct(ctx: PeggyToolContext, query: string) {
+export async function findProduct(ctx: PeggyToolContext, query: string) {
   const matches = matchProducts(await storeProducts(ctx), query);
   if (!matches.length) throw new ToolError(`No product matches "${query}". Use list_products to find it.`);
   if (matches.length > 1) {
@@ -482,6 +483,7 @@ export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
   ...CMS_TOOL_RUNNERS,
   ...EMAIL_TOOL_RUNNERS,
   ...LEGAL_TOOL_RUNNERS,
+  ...PRODUCTS_TOOL_RUNNERS,
 };
 
 export const isWriteTool = (name: string) => name in PEGGY_TOOL_SPECS && PEGGY_TOOL_SPECS[name as PeggyToolName].write;

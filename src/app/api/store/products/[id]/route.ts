@@ -5,6 +5,7 @@ import { ok, apiError, noContent } from "@/lib/api/response";
 import { StoreProductUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
+import { productFieldsData } from "@/lib/products/save-fields.server";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const store = await db.store.findUnique({ where: { userId } });
@@ -39,9 +40,17 @@ export const PATCH = withSeller(async (
   // The update schema is the create schema made partial, and Zod still fills in defaults (images: [],
   // faqs: []...) for missing keys. Only apply the fields the client actually sent.
   const sent = new Set(body && typeof body === "object" ? Object.keys(body) : []);
-  const { costPrice, retailPrice, ...rest } = Object.fromEntries(
+  const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, variantUpdates, ...rest } = Object.fromEntries(
     Object.entries(parsed.data).filter(([key]) => sent.has(key)),
   ) as typeof parsed.data;
+
+  // Type, details, versions (checked and normalized; the phone sends price/stock updates) and related products.
+  const fields = await productFieldsData(
+    product.storeId,
+    { productType, productDetails, relatedProductIds, variants, variantOptions, variantUpdates },
+    { id: product.id, variants: product.variants, variantOptions: product.variantOptions, inventoryType: rest.inventoryType ?? product.inventoryType },
+  );
+  if (!fields.ok) return apiError("BAD_REQUEST", fields.error);
 
   const effectiveCost = costPrice ?? product.costPrice;
   const effectivePrice = retailPrice ?? product.retailPrice;
@@ -55,6 +64,7 @@ export const PATCH = withSeller(async (
     where: { id: params.id },
     data: {
       ...rest,
+      ...fields.data,
       ...(costPrice !== undefined ? { costPrice } : {}),
       ...(retailPrice !== undefined ? { retailPrice } : {}),
       ...(margin !== undefined ? { margin } : {}),

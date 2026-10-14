@@ -13,7 +13,9 @@ import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { CartDrawer } from "../../CartDrawer";
 import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
 import { StoreFootnote } from "@/components/storefront/shopper/StoreFooterBadges";
-import type { ShopperProduct } from "@/components/storefront/shopper/catalog";
+import { colourHex, type ShopperProduct } from "@/components/storefront/shopper/catalog";
+import { useVariantPicker } from "@/components/storefront/shopper/useVariantPicker";
+import { productDetailRows } from "@shared/product-types";
 import { ProductReviewForm } from "@/components/storefront/reviews/ProductReviewForm";
 
 interface Review {
@@ -47,10 +49,17 @@ interface ProductDetailClientProps {
     description?: string | null;
     images: string[];
     retailPrice: number;
+    compareAtPrice?: number | null;
     currency: string;
     sku?: string | null;
     category?: { id: string; name: string; slug: string } | null;
-    variants?: any;
+    variants?: unknown;
+    variantOptions?: unknown;
+    productType?: string | null;
+    productDetails?: unknown;
+    specifications?: unknown;
+    careInstructions?: string | null;
+    warranty?: string | null;
   };
   reviews: Review[];
   avgRating: number;
@@ -59,6 +68,8 @@ interface ProductDetailClientProps {
   storeBasePath: string;
   /** The store's published products, for the phone bottom nav's search and wishlist. */
   catalog?: ShopperProduct[];
+  /** "Customers also like" (the seller's picks, else similar products). */
+  related?: ShopperProduct[];
 }
 
 function money(value: number, currency: string) {
@@ -83,31 +94,6 @@ function formatDate(iso: string) {
   });
 }
 
-type ProductVariant = {
-  id?: string;
-  name?: string;
-  sku?: string;
-  price?: number;
-  color?: string;
-  size?: string;
-  imageUrl?: string;
-  images?: string[];
-  customFields?: Array<{ name?: string; value?: string }>;
-  stock?: number;
-};
-
-function readVariants(value: unknown): ProductVariant[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is ProductVariant => !!item && typeof item === "object")
-    .map((item) => item as ProductVariant)
-    .filter((item) => item.name || item.color || item.size || item.sku);
-}
-
-function variantLabel(variant: ProductVariant) {
-  return [variant.name, variant.color, variant.size].filter(Boolean).join(" / ") || variant.sku || "Variant";
-}
-
 const CART_LABELS: Record<string, string> = {
   add_to_cart: "Add to Cart",
   bag: "Add to Bag",
@@ -117,7 +103,7 @@ const CART_LABELS: Record<string, string> = {
 };
 
 export function ProductDetailClient({
-  store, product, reviews, avgRating, reviewCount, ratingCounts, storeBasePath, catalog = [],
+  store, product, reviews, avgRating, reviewCount, ratingCounts, storeBasePath, catalog = [], related = [],
 }: ProductDetailClientProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const router = useRouter();
@@ -127,16 +113,16 @@ export function ProductDetailClient({
   useStoreProductView(store.slug, product.id);
   const wishlist = useWishlist(store.slug);
   const [selectedImage, setSelectedImage] = useState(0);
-  const variants = readVariants(product.variants);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const picker = useVariantPicker(product);
   const [added, setAdded] = useState(false);
-  const selectedVariant = variants[selectedVariantIndex] ?? null;
-  const currentPrice = selectedVariant?.price ?? product.retailPrice;
+  const selectedVariant = picker.selected;
+  const currentPrice = picker.price;
   const currentSku = selectedVariant?.sku ?? product.sku;
   const variantImages = selectedVariant?.images?.filter(Boolean) ?? [];
-  const currentImage = selectedVariant?.imageUrl ?? variantImages[0];
+  const currentImage = picker.image ?? variantImages[0];
   const isWished = wishlist.productIds.includes(product.id);
   const selectedVariantFields = selectedVariant?.customFields?.filter((field) => field.name || field.value) ?? [];
+  const details = productDetailRows(product, { includeColumns: true });
 
   const cartConfig = store.brandSettings?.cartConfig && typeof store.brandSettings?.cartConfig === "object"
     ? store.brandSettings.cartConfig as Record<string, string | boolean>
@@ -145,16 +131,17 @@ export function ProductDetailClient({
   const enableWishlist = cartConfig.enableWishlist !== false;
   const buttonLabel = CART_LABELS[addToCartLabel] ?? "Add to Cart";
 
-  const selectedStock = typeof selectedVariant?.stock === "number" ? selectedVariant.stock : null;
+  const selectedStock = picker.stock;
+  const blocked = picker.soldOut || (selectedStock !== null && selectedStock <= 0);
 
   function handleAdd() {
-    if (selectedStock !== null && selectedStock <= 0) return;
+    if (blocked) return;
     cart.add({
       productId: product.id,
-      name: selectedVariant ? `${product.name} - ${variantLabel(selectedVariant)}` : product.name,
+      name: selectedVariant ? `${product.name} · ${selectedVariant.name}` : product.name,
       price: currentPrice,
       image: currentImage ?? product.images[0],
-      variant: selectedVariant ? variantLabel(selectedVariant) : undefined,
+      ...picker.line,
       maxQuantity: selectedStock ?? undefined,
     });
     setAdded(true);
@@ -165,14 +152,14 @@ export function ProductDetailClient({
   }
 
   function handleBuyNow() {
-    if (selectedStock !== null && selectedStock <= 0) return;
+    if (blocked) return;
     cart.clear();
     cart.add({
       productId: product.id,
-      name: selectedVariant ? `${product.name} - ${variantLabel(selectedVariant)}` : product.name,
+      name: selectedVariant ? `${product.name} · ${selectedVariant.name}` : product.name,
       price: currentPrice,
       image: currentImage ?? product.images[0],
-      variant: selectedVariant ? variantLabel(selectedVariant) : undefined,
+      ...picker.line,
       maxQuantity: selectedStock ?? undefined,
       quantity: 1,
     });
@@ -256,49 +243,66 @@ export function ProductDetailClient({
               )}
             </div>
 
-            <div style={{ fontSize: 28, fontWeight: 700, color: ink, marginBottom: 24 }}>
-              {money(currentPrice, product.currency)}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 24 }}>
+              <span style={{ fontSize: 28, fontWeight: 700, color: ink }}>{money(currentPrice, product.currency)}</span>
+              {picker.compareAt ? (
+                <span style={{ fontSize: 16, color: "#8a8a8a", textDecoration: "line-through" }}>
+                  <span className="sr-only">Was </span>
+                  {money(picker.compareAt, product.currency)}
+                </span>
+              ) : null}
             </div>
 
             <p style={{ margin: "0 0 28px", fontSize: 14, lineHeight: 1.7, color: "#4a4a4a" }}>
               {product.description || "No description available."}
             </p>
 
-            {variants.length > 0 ? (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 12, color: "#6a6a6a", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 10 }}>Options</div>
+            {picker.options.map((option) => (
+              <fieldset key={option.name} style={{ border: 0, padding: 0, margin: "0 0 18px" }}>
+                <legend style={{ fontSize: 13, color: "#6a6a6a", fontWeight: 700, marginBottom: 10, padding: 0 }}>
+                  {option.name}: <span style={{ color: ink }}>{picker.selection[option.name] ?? "Choose"}</span>
+                </legend>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {variants.map((variant, index) => {
-                    const selected = index === selectedVariantIndex;
-                    const disabled = typeof variant.stock === "number" && variant.stock <= 0;
+                  {option.values.map((value) => {
+                    const selected = picker.selection[option.name] === value;
+                    const available = picker.available(option.name, value);
+                    const hex = option.colour ? colourHex(value) : null;
                     return (
                       <button
-                        key={`${variant.id ?? variant.sku ?? variantLabel(variant)}-${index}`}
+                        key={value}
                         type="button"
+                        aria-pressed={selected}
+                        aria-label={`${option.name} ${value}${available ? "" : ", sold out"}`}
                         onClick={() => {
-                          setSelectedVariantIndex(index);
+                          picker.pick(option.name, value);
                           setSelectedImage(0);
                         }}
-                        disabled={disabled}
                         style={{
-                          border: selected ? `1.5px solid ${accent}` : `1px solid ${border}`,
-                          color: selected ? ink : "#6a6a6a",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          minHeight: 44,
+                          minWidth: 44,
+                          border: selected ? `2px solid ${ink}` : `1px solid ${border}`,
+                          color: ink,
                           background: selected ? `${accent}18` : "#fff",
                           borderRadius: 999,
-                          padding: "9px 13px",
-                          fontSize: 12.5,
+                          padding: "8px 14px",
+                          fontSize: 13.5,
                           fontWeight: 700,
-                          cursor: disabled ? "not-allowed" : "pointer",
-                          opacity: disabled ? 0.45 : 1,
+                          cursor: "pointer",
+                          opacity: available ? 1 : 0.4,
+                          textDecoration: available ? "none" : "line-through",
                         }}
                       >
-                        {variantLabel(variant)}
+                        {hex ? <span aria-hidden style={{ width: 18, height: 18, borderRadius: "50%", background: hex, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.15)" }} /> : null}
+                        {value}
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            ) : null}
+              </fieldset>
+            ))}
 
             {currentSku ? (
               <div style={{ fontSize: 12, color: "#a8a8a8", marginBottom: 16 }}>SKU: {currentSku}</div>
@@ -320,9 +324,9 @@ export function ProductDetailClient({
               </div>
             ) : null}
 
-            {selectedStock !== null && selectedStock <= 0 ? (
-              <div style={{ padding: "12px 18px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 8, color: "#991b1b", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
-                Out of stock
+            {blocked ? (
+              <div role="status" style={{ padding: "12px 18px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 8, color: "#991b1b", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
+                Sold out{picker.options.length ? ". Try another option." : ""}
               </div>
             ) : selectedStock !== null && selectedStock <= 5 ? (
               <div style={{ fontSize: 12, color: "#d97706", fontWeight: 600, margin: "0 0 8px" }}>
@@ -332,15 +336,15 @@ export function ProductDetailClient({
 
             {addToCartLabel === "buy_now" ? (
               <button onClick={handleBuyNow}
-                disabled={selectedStock !== null && selectedStock <= 0}
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 36px", borderRadius: 8, background: accent, color: "white", border: "none", fontSize: 14, fontWeight: 700, cursor: selectedStock !== null && selectedStock <= 0 ? "not-allowed" : "pointer", opacity: selectedStock !== null && selectedStock <= 0 ? 0.6 : 1, transition: "background .2s", width: "100%" }}>
+                disabled={blocked}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 36px", borderRadius: 8, background: accent, color: "white", border: "none", fontSize: 14, fontWeight: 700, cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.6 : 1, transition: "background .2s", width: "100%" }}>
                 {buttonLabel}
               </button>
             ) : (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 <button onClick={handleAdd}
-                  disabled={selectedStock !== null && selectedStock <= 0}
-                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 36px", borderRadius: 8, background: added ? "#2d7a4f" : accent, color: "white", border: "none", fontSize: 14, fontWeight: 700, cursor: selectedStock !== null && selectedStock <= 0 ? "not-allowed" : "pointer", opacity: selectedStock !== null && selectedStock <= 0 ? 0.5 : 1, transition: "background .2s" }}>
+                  disabled={blocked}
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 36px", borderRadius: 8, background: added ? "#2d7a4f" : accent, color: "white", border: "none", fontSize: 14, fontWeight: 700, cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.5 : 1, transition: "background .2s" }}>
                   {added ? "Added" : buttonLabel}
                 </button>
                 {enableWishlist ? (
@@ -350,8 +354,8 @@ export function ProductDetailClient({
                   </button>
                 ) : null}
                 <button onClick={handleBuyNow}
-                  disabled={selectedStock !== null && selectedStock <= 0}
-                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 26px", borderRadius: 8, background: "#fff", color: ink, border: `1px solid ${border}`, fontSize: 14, fontWeight: 700, cursor: selectedStock !== null && selectedStock <= 0 ? "not-allowed" : "pointer", opacity: selectedStock !== null && selectedStock <= 0 ? 0.5 : 1 }}>
+                  disabled={blocked}
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 26px", borderRadius: 8, background: "#fff", color: ink, border: `1px solid ${border}`, fontSize: 14, fontWeight: 700, cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.5 : 1 }}>
                   Buy Now
                 </button>
               </div>
@@ -364,6 +368,37 @@ export function ProductDetailClient({
             </div>
           </div>
         </div>
+
+        {details.length ? (
+          <section style={{ marginBottom: 48 }} aria-labelledby="pd-details">
+            <h2 id="pd-details" style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px" }}>Details</h2>
+            <dl style={{ margin: 0, border: `1px solid ${border}`, borderRadius: 10, background: "#fff", overflow: "hidden" }}>
+              {details.map((row, index) => (
+                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "12px 16px", borderTop: index ? `1px solid ${border}` : "none", fontSize: 14 }}>
+                  <dt style={{ fontWeight: 700 }}>{row.label}</dt>
+                  <dd style={{ margin: 0, color: "#4a4a4a", textAlign: "right", whiteSpace: "pre-line" }}>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
+
+        {related.length ? (
+          <section style={{ marginBottom: 48 }} aria-labelledby="pd-related">
+            <h2 id="pd-related" style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px" }}>Customers also like</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 14 }}>
+              {related.slice(0, 8).map((entry) => (
+                <Link key={entry.id} href={getPublicStorefrontPath(storeBasePath, `/product/${entry.id}`)} style={{ textDecoration: "none", color: ink }}>
+                  <div style={{ aspectRatio: "1 / 1", borderRadius: 10, overflow: "hidden", background: "#f3efe9" }}>
+                    {entry.images[0] ? <img src={entry.images[0]} alt={entry.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : null}
+                  </div>
+                  <div style={{ fontSize: 14, marginTop: 8, lineHeight: 1.35 }}>{entry.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{money(entry.retailPrice, entry.currency)}</div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {reviewCount > 0 ? (
           <section>

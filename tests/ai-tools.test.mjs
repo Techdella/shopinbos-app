@@ -427,6 +427,7 @@ const PEGGY_VALID = {
   draft_email_template: { brief: "A Sallah sale email with 10% off", name: null, kind: null },
   improve_email_copy: { template: "Welcome", instruction: "Make it shorter" },
   legal_draft_page: { page: "refund-policy", brief: null, confirmCode: null },
+  set_product_variants: { product: "Ankara tote", options: [{ name: "Size", values: ["S", "M", "L"] }], basePrice: null, priceAdjustments: [{ option: "Size", value: "L", amount: 2000 }], exactPrices: null, confirmCode: null },
 };
 
 const REX_VALID = {
@@ -474,7 +475,7 @@ test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggl
 });
 
 test("Peggy and Rex tools that send or replace things are marked as writes", () => {
-  for (const name of ["create_discount", "update_product", "mark_order", "inbox_send_reply", "reviews_request", "marketing_send_campaign", "marketing_create_automation", "legal_draft_page", "commerce_update_settings", "setup_payment_methods"]) {
+  for (const name of ["create_discount", "update_product", "mark_order", "inbox_send_reply", "reviews_request", "marketing_send_campaign", "marketing_create_automation", "legal_draft_page", "commerce_update_settings", "setup_payment_methods", "set_product_variants"]) {
     assert.equal(isWriteTool(name), true, name);
   }
   for (const name of ["edit_store_section", "rebuild_section", "switch_theme", "create_campaign", "create_automation"]) assert.equal(rexPure.isRexWriteTool(name), true, name);

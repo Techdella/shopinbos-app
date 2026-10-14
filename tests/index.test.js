@@ -763,8 +763,11 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(goals, /mentioned\(kr\.title, viewer\)/);
   assert.match(goals, /mentioned\(kr\.description, viewer\)/);
 
-  assert.match(schemas, /customFields: z\.array/);
-  assert.match(schemas, /images: z\.array\(z\.string\(\)\)\.default\(\[\]\)/);
+  // Variant rows (with their own photos and custom fields) are checked by the shared schema the product API uses.
+  const variantSchema = read("shared/product-variants-schema.ts");
+  assert.match(schemas, /variants: VariantRowsSchema/);
+  assert.match(variantSchema, /customFields: z\.array/);
+  assert.match(variantSchema, /images: z\.array\(z\.string\(\)/);
   assert.match(productForm, /uploadVariantImages/);
   assert.match(productForm, /Create category/);
   assert.match(productForm, /<Mascot who="peggy"/);

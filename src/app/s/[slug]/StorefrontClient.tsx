@@ -15,6 +15,7 @@ import { freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/sh
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { needsOptions } from "@/components/storefront/shopper/catalog";
 import { readCartSettings } from "@shared/cart-checkout";
 import {
   createSnapshotFromTemplate,
@@ -608,6 +609,11 @@ export function StorefrontClient({
   function handleAdd(productId: string) {
     const product = store.storeProducts.find((entry) => entry.id === productId);
     if (!product) return;
+    // Sizes or colours to choose: the product page picks them (the checkout needs one).
+    if (needsOptions(product)) {
+      window.location.assign(getPublicStorefrontPath(storeBasePath, `/product/${product.id}`));
+      return;
+    }
     cart.add({
       productId: product.id,
       name: product.name,

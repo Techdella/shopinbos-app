@@ -4,7 +4,22 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { naira } from "@shared/onboarding";
-import { formFromProduct, makeMainPhoto, movePhoto, parseNaira, productPatch, removePhoto, type ProductEditForm, type ProductEditProblem } from "@shared/product-edit";
+import {
+  detailsPatch,
+  formFromProduct,
+  makeMainPhoto,
+  movePhoto,
+  parseNaira,
+  parseWholeNumber,
+  productPatch,
+  removePhoto,
+  variantEditsFrom,
+  variantUpdatesFrom,
+  type ProductEditForm,
+  type ProductEditProblem,
+  type VariantEdits,
+} from "@shared/product-edit";
+import { productTypeDef } from "@shared/product-types";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -19,7 +34,9 @@ import { colors, radii } from "@/theme";
 
 // Edit product (web /products/[id]): name, price, old price, stock, description, photos and whether customers see
 // it. Saves with PATCH /api/store/products/[id], the web form's route and rules. Dropship products show the
-// supplier and what each sale leaves; their stock is the supplier's. Variants are shown, not edited.
+// supplier and what each sale leaves; their stock is the supplier's. Versions (sizes, colours…) have their price and
+// stock edited here (sent as variantUpdates); adding or removing options is done on the web form. The product
+// type's details (Material, Skin type…) are edited too.
 
 type Visible = "live" | "hidden";
 
@@ -38,7 +55,7 @@ function isLive(product: EditProduct): boolean {
 }
 
 export default function EditProductScreen() {
-  const t = useT("m_productedit", "m_products", "common");
+  const t = useT("m_productedit", "m_products", "common", "productTypes");
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<EditProduct | null>(null);
   const [form, setForm] = useState<ProductEditForm | null>(null);
@@ -50,12 +67,18 @@ export default function EditProductScreen() {
   const [uploading, setUploading] = useState(0);
   const [photo, setPhoto] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [variantEdits, setVariantEdits] = useState<VariantEdits>({});
+  const [details, setDetails] = useState<Record<string, string>>({});
+  const [columns, setColumns] = useState({ careInstructions: "", warranty: "" });
 
   const load = useCallback(async () => {
     try {
       const next = await fetchEditProduct(id);
       setProduct(next);
       setForm(formFromProduct(next));
+      setVariantEdits(variantEditsFrom(next.variants));
+      setDetails({ ...next.productDetails });
+      setColumns({ careInstructions: next.careInstructions ?? "", warranty: next.warranty ?? "" });
       setVisible(isLive(next) ? "live" : "hidden");
       setLoadError(null);
     } catch (e) {
@@ -104,12 +127,22 @@ export default function EditProductScreen() {
     setError(null);
     const result = productPatch(product, form);
     if (!result.ok) return setError(t(PROBLEM_WORDS[result.problem]));
+    const versions = variantUpdatesFrom(product.variants, variantEdits);
+    if (!versions.ok) return setError(t(versions.problem === "variantPrice" ? "edit.problem.variantPrice" : "edit.problem.variantStock", { name: versions.name }));
+    const changedDetails = detailsPatch(product.productDetails, details);
+    const extra: Record<string, unknown> = {
+      ...(versions.updates.length ? { variantUpdates: versions.updates } : {}),
+      ...(changedDetails ? { productDetails: changedDetails } : {}),
+      ...(columns.careInstructions.trim() !== (product.careInstructions ?? "").trim() ? { careInstructions: columns.careInstructions.trim() } : {}),
+      ...(columns.warranty.trim() !== (product.warranty ?? "").trim() ? { warranty: columns.warranty.trim() } : {}),
+    };
     const wantLive = visible === "live";
     const statusChanged = wantLive !== isLive(product);
     setBusy("save");
     try {
       // Dropship products are paused and sold again like on the Dropship screen (that also hides / shows them).
-      const patch = statusChanged && !product.dropship ? { ...result.patch, status: wantLive ? "published" : "draft" } : result.patch;
+      const base = { ...result.patch, ...extra };
+      const patch = statusChanged && !product.dropship ? { ...base, status: wantLive ? "published" : "draft" } : base;
       if (Object.keys(patch).length) await saveProduct(product.id, patch);
       if (statusChanged && product.dropship) await setPaused(product.dropship.relationshipId, !wantLive);
       await load();
@@ -153,6 +186,10 @@ export default function EditProductScreen() {
   }
 
   const dropship = product.dropship;
+  const type = productTypeDef(product.productType);
+  // Stock counted per version: the product's own stock is their total (the server adds it up).
+  const countedVersions = product.tracksStock ? product.variants.filter((variant) => variant.enabled && (variantEdits[variant.id]?.stock ?? "").trim() !== "") : [];
+  const versionTotal = countedVersions.reduce((sum, variant) => sum + (parseWholeNumber(variantEdits[variant.id]?.stock ?? "") ?? 0), 0);
   const typedPrice = parseNaira(form.price);
   const sale = dropship ? saleBreakdown(typedPrice ?? 0, dropship.cost) : null;
 
@@ -243,7 +280,10 @@ export default function EditProductScreen() {
         <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("edit.compareAtHint")}</T>
       </View>
 
-      {product.tracksStock ? (
+      {product.tracksStock && countedVersions.length ? (
+        <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("edit.variantTotal", { count: versionTotal })}</T>
+      ) : null}
+      {product.tracksStock && !countedVersions.length ? (
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}>
             <Label>{t("edit.stock")}</Label>
@@ -280,17 +320,66 @@ export default function EditProductScreen() {
       </View>
 
       {product.variants.length ? (
-        <Card style={{ gap: 4 }}>
+        <Card style={{ gap: 8 }}>
           <T weight="extrabold" style={{ fontSize: 18 }}>{t("edit.variants")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginBottom: 4 }}>{t("edit.variantsSub")}</T>
-          {product.variants.map((variant, index) => (
-            <View key={`${variant.name}-${index}`} style={{ flexDirection: "row", justifyContent: "space-between", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line }}>
-              <T weight="bold" style={{ flex: 1 }} numberOfLines={1}>{variant.name}</T>
-              <T style={{ color: colors.inkSoft }}>
-                {[variant.price != null ? naira(variant.price) : null, variant.stock != null ? t("edit.variantStock", { count: variant.stock }) : null].filter(Boolean).join(" · ")}
-              </T>
-            </View>
-          ))}
+          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("edit.variantsSub")}</T>
+          {product.variants.map((variant) => {
+            const edit = variantEdits[variant.id] ?? { price: "", stock: "" };
+            const setEdit = (patch: Partial<typeof edit>) => {
+              setVariantEdits((current) => ({ ...current, [variant.id]: { ...edit, ...patch } }));
+              setSaved(false);
+            };
+            return (
+              <View key={variant.id} style={{ gap: 6, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line }}>
+                <T weight="bold" numberOfLines={1}>
+                  {variant.name}
+                  {variant.enabled ? "" : ` · ${t("edit.variantOff")}`}
+                </T>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Label>{t("edit.variantPrice")}</Label>
+                    <Field value={edit.price} onChangeText={(price) => setEdit({ price })} keyboardType="decimal-pad" placeholder={form.price} accessibilityLabel={`${variant.name} ${t("edit.variantPrice")}`} />
+                  </View>
+                  {product.tracksStock ? (
+                    <View style={{ flex: 1 }}>
+                      <Label>{t("edit.variantStockLabel")}</Label>
+                      <Field value={edit.stock} onChangeText={(stock) => setEdit({ stock })} keyboardType="number-pad" placeholder="—" accessibilityLabel={`${variant.name} ${t("edit.variantStockLabel")}`} />
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })}
+        </Card>
+      ) : null}
+
+      {type.fields.length ? (
+        <Card style={{ gap: 10 }}>
+          <T weight="extrabold" style={{ fontSize: 18 }}>{t("edit.details")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("edit.detailsSub")}</T>
+          {type.fields.map((entry) => {
+            const label = t.dynamic(`field.${entry.key}`, entry.label);
+            const value = entry.column ? columns[entry.column] : details[entry.key] ?? "";
+            const change = (text: string) => {
+              if (entry.column) setColumns((current) => ({ ...current, [entry.column!]: text }));
+              else setDetails((current) => ({ ...current, [entry.key]: text }));
+              setSaved(false);
+            };
+            return (
+              <View key={entry.key}>
+                <Label>{label}</Label>
+                <Field
+                  value={value}
+                  onChangeText={change}
+                  maxLength={1000}
+                  multiline={entry.kind === "longtext"}
+                  placeholder={entry.placeholder ?? entry.choices?.join(", ")}
+                  accessibilityLabel={label}
+                  style={entry.kind === "longtext" ? { height: 100, paddingTop: 14, textAlignVertical: "top" } : undefined}
+                />
+              </View>
+            );
+          })}
         </Card>
       ) : null}
 

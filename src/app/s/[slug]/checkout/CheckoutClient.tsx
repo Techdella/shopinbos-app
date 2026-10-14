@@ -51,7 +51,7 @@ import {
 } from "@/components/storefront/shopper/checkout-storage";
 import { Banner, TrustLine } from "@/components/storefront/shopper/CartPage";
 import { ItemThumb, Money, Panel, PrimaryButton, SecondaryButton, ShopperShell, fieldClass } from "@/components/storefront/shopper/ShopperShell";
-import { readVariants } from "@/components/storefront/shopper/catalog";
+import { needsOptions, readVariants } from "@/components/storefront/shopper/catalog";
 import { WeAccept } from "@/components/storefront/shopper/StoreFooterBadges";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import type { ShopperCommerce, ShopperStore } from "@/components/storefront/shopper/types";
@@ -212,7 +212,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          items: cart.items.map((line) => ({ productId: line.productId, quantity: line.quantity, variant: line.variant })),
+          items: cart.items.map((line) => ({ productId: line.productId, quantity: line.quantity, variant: line.variant, variantId: line.variantId })),
           address: { city: details.city, state: details.state },
           deliveryOptionId: delivery.option?.id,
           discountCode: code?.code,
@@ -345,7 +345,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             country: details.country.trim() || undefined,
             landmark: details.landmark.trim() || undefined,
           },
-          items: cart.items.map(({ productId, name, price, quantity, image, variant }) => ({ productId, name, price, quantity, image, variant })),
+          items: cart.items.map(({ productId, name, price, quantity, image, variant, variantId }) => ({ productId, name, price, quantity, image, variant, variantId })),
           paymentMethod: isPaystack ? "inline" : paymentMethod,
           deliveryOptionId: delivery.option?.id,
           discountCode: code?.code || undefined,
@@ -708,7 +708,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
                             <span className="block truncate text-[14px] font-medium">{product.name}</span>
                             <span className="block text-[13px]" style={{ color: theme.muted }}>{formatStoreMoney(product.retailPrice, store.currency)}</span>
                           </span>
-                          <SecondaryButton theme={theme} type="button" onClick={() => cart.add({ productId: product.id, name: product.name, price: product.retailPrice, image: product.images[0] })} aria-label={`Add ${product.name} to your order`}>
+                          <SecondaryButton theme={theme} type="button" onClick={() => (needsOptions(product) ? router.push(getPublicStorefrontPath(storeBasePath, `/product/${product.id}`)) : cart.add({ productId: product.id, name: product.name, price: product.retailPrice, image: product.images[0] }))} aria-label={`Add ${product.name} to your order`}>
                             <Icon name="plus" size={14} /> Add
                           </SecondaryButton>
                         </li>

@@ -3,6 +3,8 @@
 // (src/app/components/ProductForm.tsx → PATCH /api/store/products/[id], StoreProductUpdateSchema): this file only
 // turns what the seller typed into that request, and sends just the fields that changed.
 
+import { normalizeVariants } from "./product-variants.ts";
+
 /** Where a product comes from: the seller's own stock, a supplier (dropship), or something else (digital…). */
 export type ProductKind = "own" | "dropship" | "other";
 
@@ -156,4 +158,59 @@ export function variantRows(variants: unknown): VariantRow[] {
     const stock = typeof v.stock === "number" && Number.isFinite(v.stock) ? v.stock : null;
     return [{ name: name.trim(), price, stock }];
   });
+}
+
+// ─── Versions (sizes, colours…) and details on the phone ──────────────────────
+
+export interface EditableVariantRow {
+  id: string;
+  name: string;
+  price: number | null;
+  stock: number | null;
+  enabled: boolean;
+}
+
+/** Versions with their ids, for editing price and stock on the phone (shared/product-variants.ts reads any shape). */
+export function editableVariantRows(variants: unknown): EditableVariantRow[] {
+  return normalizeVariants(variants).map((variant) => ({ id: variant.id, name: variant.name, price: variant.price, stock: variant.stock, enabled: variant.enabled }));
+}
+
+/** What the seller typed per version: price and stock boxes as text ("" = the product's price / not counted). */
+export type VariantEdits = Record<string, { price: string; stock: string }>;
+
+export function variantEditsFrom(rows: EditableVariantRow[]): VariantEdits {
+  return Object.fromEntries(rows.map((row) => [row.id, { price: amountText(row.price), stock: row.stock === null ? "" : String(row.stock) }]));
+}
+
+/**
+ * The PATCH `variantUpdates` for the versions whose price or stock changed, or the version whose box needs fixing.
+ * An empty price box means "the product's price"; an empty stock box means "not counted".
+ */
+export function variantUpdatesFrom(rows: EditableVariantRow[], edits: VariantEdits):
+  | { ok: true; updates: Array<{ id: string; price?: number | null; stock?: number | null }> }
+  | { ok: false; problem: "variantPrice" | "variantStock"; name: string } {
+  const updates: Array<{ id: string; price?: number | null; stock?: number | null }> = [];
+  for (const row of rows) {
+    const edit = edits[row.id];
+    if (!edit) continue;
+    const priceText = edit.price.trim();
+    const price = priceText ? parseNaira(priceText) : null;
+    if (priceText && price === null) return { ok: false, problem: "variantPrice", name: row.name };
+    const stockText = edit.stock.trim();
+    const stock = stockText ? parseWholeNumber(stockText) : null;
+    if (stockText && stock === null) return { ok: false, problem: "variantStock", name: row.name };
+    const update: { id: string; price?: number | null; stock?: number | null } = { id: row.id };
+    if (price !== row.price) update.price = price;
+    if (stock !== row.stock) update.stock = stock;
+    if ("price" in update || "stock" in update) updates.push(update);
+  }
+  return { ok: true, updates };
+}
+
+/** The type's details that changed, as the PATCH `productDetails` (all values, so cleared ones go). Null: none changed. */
+export function detailsPatch(stored: Record<string, string>, edited: Record<string, string>): Record<string, string> | null {
+  const clean = Object.fromEntries(Object.entries({ ...stored, ...edited }).map(([key, value]) => [key, value.trim()]).filter(([, value]) => value));
+  const before = JSON.stringify(Object.entries(stored).sort());
+  const after = JSON.stringify(Object.entries(clean).sort());
+  return before === after ? null : clean;
 }
