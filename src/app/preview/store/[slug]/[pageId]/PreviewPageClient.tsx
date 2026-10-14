@@ -144,6 +144,9 @@ export function PreviewPageClient({ slug, pageId }: Props) {
         <a href={page.slug ? `/s/${slug}/${page.slug as string}` : `/s/${slug}`} style={{ color: "rgba(255,255,255,.7)", marginLeft: 8, textDecoration: "underline", fontSize: 11 }}>
           View published
         </a>
+        <a href="/home" style={{ color: "#fff", marginLeft: 8, padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,.35)", textDecoration: "none", fontSize: 11 }}>
+          Exit preview
+        </a>
       </div>
       <div style={{ flex: 1, width: "100%", minWidth: 0 }}>
         <StorefrontClient

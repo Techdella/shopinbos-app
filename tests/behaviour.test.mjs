@@ -2614,3 +2614,13 @@ test("legal pages: footer links, public summary and templates", async () => {
   assert.equal(legal.legalTemplate("warranty", { storeName: "x" }), null, "custom pages have no template");
   for (const page of legal.STANDARD_LEGAL_PAGES) assert.ok(!legal.isDocEmpty(legal.legalTemplate(page.key, { storeName: "Shop" })));
 });
+
+test("every store preview bar has an Exit preview button back to the dashboard", () => {
+  const bar = readFileSync(new URL("../src/components/storefront/shopper/PreviewBar.tsx", import.meta.url), "utf8");
+  assert.match(bar, /PREVIEW_EXIT_HREF = "\/home"/);
+  assert.match(bar, /href=\{PREVIEW_EXIT_HREF\}/);
+  assert.match(bar, /Exit preview/);
+  for (const file of ["../src/app/preview/store/[slug]/[pageId]/PreviewPageClient.tsx", "../src/app/s/[slug]/preview/PreviewFallbackClient.tsx"]) {
+    assert.match(readFileSync(new URL(file, import.meta.url), "utf8"), /<a href="\/home"[^>]*>\s*Exit preview/, file);
+  }
+});
