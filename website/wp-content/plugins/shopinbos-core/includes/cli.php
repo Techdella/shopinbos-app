@@ -58,6 +58,7 @@ class Sib_CLI {
 
 		$this->blog();
 		$this->articles();
+		$this->resources();
 		// Make "Selling on WhatsApp" the default category and drop WordPress's sample content.
 		$start = get_term_by( 'slug', 'selling-on-whatsapp', 'category' );
 		if ( $start ) {
@@ -218,7 +219,7 @@ class Sib_CLI {
 
 	private function cpt( string $type, string $slug, string $title, string $content, string $excerpt, array $meta = [], string $image = '', int $order = 0, array $terms = [] ): int {
 		$existing = get_page_by_path( $slug, OBJECT, $type );
-		if ( $existing ) {
+		if ( $existing && $existing->post_type === $type ) {
 			return $existing->ID;
 		}
 		$id = wp_insert_post( wp_slash( [ 'post_type' => $type, 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] ) );
@@ -360,6 +361,66 @@ class Sib_CLI {
 			}
 			WP_CLI::log( "Created post {$a['slug']}" );
 		}
+	}
+
+	/**
+	 * Free PDFs (lead magnets) from seed/resources.json: one gated guide page each. The PDF goes to the private
+	 * folder and is only sent by signed link after the form. Existing guides are left alone.
+	 */
+	private function resources(): void {
+		$file = SIB_CORE_DIR . '/includes/seed/resources.json';
+		$list = file_exists( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : [];
+		$kind = [ 'guide' => 'guide', 'workbook' => 'workbook', 'template' => 'template pack', 'checklist' => 'checklist' ];
+		foreach ( (array) $list as $i => $r ) {
+			$existing = get_page_by_path( $r['slug'], OBJECT, 'sib_resource' );
+			if ( $existing && 'sib_resource' === $existing->post_type ) {
+				continue;
+			}
+			$items   = implode( "\n", array_map( fn( $c ) => "<!-- wp:list-item -->\n<li>" . esc_html( $c ) . "</li>\n<!-- /wp:list-item -->", $r['chapters'] ) );
+			$content = sib_block_p( esc_html( $r['sub'] ) )
+				. sib_block_h( 2, 'What’s inside', '' )
+				. ( $items ? "<!-- wp:list -->\n<ul class=\"wp-block-list\">" . $items . "</ul>\n<!-- /wp:list -->\n\n" : '' )
+				. sib_block_p( esc_html( sprintf( 'A free %1$s from Shopinbos. %2$d pages, PDF. Fill in the form and it opens straight away; we also send you the link.', $kind[ $r['style'] ] ?? 'guide', $r['pages'] ) ) );
+			// Create the guide first: media items get slugs too, and must not take the guide's URL.
+			$id  = $this->cpt( 'sib_resource', $r['slug'], $r['title'], $content, $r['sub'], [ 'sib_gated' => true, 'sib_list_tag' => $r['slug'] ], '', $i + 10 );
+			$pdf = $this->media_from( SIB_CORE_DIR . '/includes/seed/pdfs/' . $r['slug'] . '.pdf', $r['title'] . ' (PDF)' );
+			update_post_meta( $id, 'sib_file_id', $pdf );
+			if ( $cover = $this->media_from( SIB_CORE_DIR . '/includes/seed/pdfs/' . $r['slug'] . '.webp', $r['title'] . ' cover' ) ) {
+				set_post_thumbnail( $id, $cover );
+			}
+			if ( $pdf ) {
+				sib_secure_resource_file( $id );
+			}
+			foreach ( [ 'rank_math_title' => $r['meta_title'], 'rank_math_description' => $r['sub'], 'rank_math_focus_keyword' => $r['keyword'] ] as $k => $v ) {
+				if ( $v ) {
+					update_post_meta( $id, $k, $v );
+				}
+			}
+		}
+	}
+
+	/** Copy any file into the media library once (keyed by its path inside the plugin). */
+	private function media_from( string $path, string $title ): int {
+		if ( ! file_exists( $path ) ) {
+			return 0;
+		}
+		$key   = 'plugin:' . basename( $path );
+		$found = get_posts( [ 'post_type' => 'attachment', 'post_status' => 'any', 'meta_key' => '_sib_source', 'meta_value' => $key, 'numberposts' => 1, 'fields' => 'ids' ] );
+		if ( $found ) {
+			return (int) $found[0];
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		$tmp = wp_tempnam( basename( $path ) );
+		copy( $path, $tmp );
+		$id = media_handle_sideload( [ 'name' => basename( $path ), 'tmp_name' => $tmp ], 0, $title );
+		if ( is_wp_error( $id ) ) {
+			WP_CLI::warning( $id->get_error_message() );
+			return 0;
+		}
+		update_post_meta( $id, '_sib_source', $key );
+		return (int) $id;
 	}
 
 	/** "Shopinbos team" author for posts written by the team. */

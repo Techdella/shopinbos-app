@@ -82,6 +82,20 @@ DNS: `shopinbos.com` and `www` → Hostinger; `app.` and `*.shopinbos.com` store
 `wp shopinbos setup` creates all of this on a fresh site and replaces the first-install placeholder pages
 (About, Careers, Press, Legal, the old Academy page) on an existing one. Pages someone has edited are left alone.
 
+### Content from Google Docs
+
+`tools/` turns the team's Google Docs into site content (needs pandoc, python3 with bs4 and Pillow, and Playwright):
+
+- `python3 tools/convert.py article.docx` gives block markup plus meta title, description, slug and keyword. SEO briefs,
+  keyword lists, internal-link notes and social posts are dropped from the body; FAQ sections become FAQ blocks;
+  "Shopping Boss" becomes Shopinbos. Add the result to `plugins/shopinbos-core/includes/seed/articles.json`.
+- `python3 tools/make_pdfs.py <folder of .docx> wp-content/themes/shopinbos <work>` then
+  `node tools/print_pdfs.js <work>` prints branded PDFs (cover, contents, pages with header and page numbers, back
+  page). Copy `<work>/pdf/*.pdf` and the cover images into `includes/seed/pdfs/` and the manifest into `seed/resources.json`.
+
+`wp shopinbos setup` imports both, skipping any slug that already exists, so posts already on the live site are
+never duplicated or overwritten. PDFs move to the private uploads folder and are only sent by signed link after the form.
+
 ### Marketplace data
 - Reads `/products`, `/products/{slug}`, `/categories`, `/suppliers`, `/suppliers/{slug}`,
   `/logistics/partners`, `/logistics/partners/{slug}` from the app's public API.
