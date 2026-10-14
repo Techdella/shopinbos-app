@@ -17,6 +17,10 @@ on:
         type: choice
         options: [ staging, production ]
         default: staging
+      setup:
+        description: Run "wp shopinbos setup" after uploading (builds pages, help, guides)
+        type: boolean
+        default: true
 
 concurrency:
   group: website-deploy-${{ inputs.target }}
@@ -52,4 +56,5 @@ jobs:
           SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
           WP_PATH: ${{ secrets.HOSTINGER_WP_PATH }}
           SSH_KEY_FILE: ~/.ssh/id_hostinger
+          RUN_SETUP: ${{ inputs.setup && '1' || '' }}
         run: website/bin/deploy.sh
