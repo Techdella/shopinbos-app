@@ -211,6 +211,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "move.helpTitle": "Gbé domain mi lọ sí ilé-iṣẹ́ míì",
   "move.helpDesc": "A kò lè gba kóòdù ìgbéyípadà báyìí. A ó gbà á, a ó sì fi ránṣẹ́ sí ọ.",
   "move.which": "Domain wo?",
+  // Free domain with an annual Growth or Pro plan.
+  "free.badge": "Ọ̀fẹ́ pẹ̀lú plan ọdọọdún rẹ",
+  "free.upsell": "Ọ̀fẹ́ ni tí o bá ń san Growth tàbí Pro lọ́dọọdún.",
+  "free.upsellLink": "Wo àwọn plan",
+  "free.renews": "Ó máa tún ara rẹ̀ ṣe lọ́fẹ̀ẹ́ lọ́dọọdún níwọ̀n ìgbà tí o bá wà lórí plan ọdọọdún. Bí o bá yí padà sí oṣooṣù tàbí dá dúró, ó máa tún ara rẹ̀ ṣe ní nǹkan bíi {price} lọ́dún.",
+  "free.get": "Gbà á lọ́fẹ̀ẹ́",
+  "free.renewsCard": "Ó ń tún ara rẹ̀ ṣe lọ́fẹ̀ẹ́ pẹ̀lú plan ọdọọdún rẹ",
+  "free.failed": "A kò lè gba {domain} fún ọ. A kò gba owó kankan. Yan orúkọ míì, tàbí tẹ Ìrànlọ́wọ́.",
+  "free.notFree": "Plan rẹ kò bo domain ọ̀fẹ́ báyìí. Ó jẹ́ {price} fún ọdún kan. Ṣàyẹ̀wò rẹ̀, lẹ́yìn náà sanwó.",
 };
 
 export default yo;

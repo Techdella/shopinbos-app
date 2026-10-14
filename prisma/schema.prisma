@@ -165,6 +165,13 @@ model User {
   aiCredits          Int                @default(5)
   verificationStatus VerificationStatus @default(unverified)
   preferences        Json               @default("{}") // menu items switched off, walkthrough progress (shared/preferences.ts)
+  // The paid plan as Paystack's subscription webhooks report it (src/lib/seller-plan.ts). An active annual seller
+  // plan paid up past now makes a domain free (src/lib/domains/billing.server.ts).
+  planCode           String?
+  planInterval       String? // monthly | annual
+  planStatus         String? // active | non_renewing | cancelled
+  planPaidUntil      DateTime?
+  subscriptionCode   String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -3069,6 +3076,7 @@ model DomainPurchase {
   years                 Int       @default(1)
   costUsd               Float // the registrar price we quoted from (Vercel, USD)
   amountNgn             Int // what the seller pays
+  coveredByPlan         Boolean   @default(false) // free with an annual plan: no Paystack payment, nothing to refund
   reference             String    @unique // Paystack reference (domain-<uuid>)
   status                String    @default("pending_payment") // pending_payment | payment_failed | paid | buying | bought | failed | refunded | refund_failed | expired
   payerEmail            String? // the email Paystack charged (billingEmail, or the saved card's email)

@@ -21,6 +21,7 @@ interface PurchaseRow {
   kind: "new" | "renewal";
   status: string;
   amountNgn: number;
+  coveredByPlan: boolean;
   expiresAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -30,11 +31,15 @@ interface PurchaseRow {
 const IN_PROGRESS = new Set(["paid", "buying"]);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-async function loadPurchases(): Promise<PurchaseRow[]> {
+async function loadPurchaseState(): Promise<{ rows: PurchaseRow[]; freeDomain: boolean }> {
   const response = await fetch("/api/domains/purchase", { cache: "no-store" });
-  const payload = (await response.json().catch(() => null)) as { data?: PurchaseRow[] } | null;
+  const payload = (await response.json().catch(() => null)) as { data?: PurchaseRow[]; meta?: { freeDomain?: boolean } } | null;
   if (!response.ok || !payload?.data) throw new Error("load failed");
-  return payload.data;
+  return { rows: payload.data, freeDomain: payload.meta?.freeDomain === true };
+}
+
+async function loadPurchases(): Promise<PurchaseRow[]> {
+  return (await loadPurchaseState()).rows;
 }
 
 function bareDomain(host: string) {
@@ -119,6 +124,9 @@ export function DomainPurchaseBanner({ result }: { result: string | null }) {
     );
   }
 
+  if (latest.coveredByPlan && (latest.status === "failed" || latest.status === "refund_failed")) {
+    return <Notice>{t("free.failed", { domain })}</Notice>;
+  }
   if (latest.status === "refunded") return <Notice tone="info">{t("bought.refunded", { domain, price })}</Notice>;
   if (latest.status === "refund_failed" || latest.status === "failed") return <Notice>{t("bought.refundFailed", { domain, price })}</Notice>;
   return null;
@@ -135,6 +143,9 @@ export function BoughtDomainPanel({ domain }: { domain: string }) {
   const t = useT("domain");
   const locale = useLocale();
   const [rows, setRows] = useState<PurchaseRow[] | null>(null);
+  // The seller's annual plan pays for the domain now: it renews free (the cron checks the plan again, and that it
+  // is paid past the domain's expiry, before renewing).
+  const [planCovers, setPlanCovers] = useState(false);
   const [renewPrice, setRenewPrice] = useState<number | null>(null);
   const [renewing, setRenewing] = useState(false);
   const [renewError, setRenewError] = useState<string | null>(null);
@@ -142,7 +153,12 @@ export function BoughtDomainPanel({ domain }: { domain: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    loadPurchases().then(setRows).catch(() => setRows([]));
+    loadPurchaseState()
+      .then((state) => {
+        setRows(state.rows);
+        setPlanCovers(state.freeDomain);
+      })
+      .catch(() => setRows([]));
   }, []);
 
   const key = bareDomain(domain);
@@ -154,12 +170,12 @@ export function BoughtDomainPanel({ domain }: { domain: string }) {
   const renewingNow = (rows ?? []).some((row) => row.kind === "renewal" && IN_PROGRESS.has(row.status) && bareDomain(row.domain) === key);
 
   useEffect(() => {
-    if (!current || !renewDue) return;
+    if (!current || !renewDue || planCovers) return;
     fetch(`/api/domains/renew?domain=${encodeURIComponent(current.domain)}`, { cache: "no-store" })
       .then((response) => response.json())
       .then((payload: { data?: { amountNgn?: number } }) => setRenewPrice(payload?.data?.amountNgn ?? null))
       .catch(() => setRenewPrice(null));
-  }, [current, renewDue]);
+  }, [current, renewDue, planCovers]);
 
   if (!current) return null;
 
@@ -223,6 +239,8 @@ export function BoughtDomainPanel({ domain }: { domain: string }) {
 
       {renewingNow ? (
         <Notice tone="info">{t("bought.renewing", { domain: current.domain })}</Notice>
+      ) : planCovers ? (
+        <p className="m-0 flex items-center gap-2 text-[14px] font-semibold text-app-success"><Icon name="checkCircle" size={16} />{t("free.renewsCard")}</p>
       ) : renewDue ? (
         <div className="grid gap-2">
           <p className="m-0 text-[14px] font-semibold">{daysLeft !== null && daysLeft > 0 ? t("mine.endsIn", { count: daysLeft }) : t("mine.ended")}</p>

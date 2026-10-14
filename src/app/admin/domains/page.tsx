@@ -44,7 +44,7 @@ export default async function AdminDomainPurchasesPage({ searchParams }: { searc
         : {};
   const [rows, attention] = await Promise.all([
     db.domainPurchase.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 }),
-    db.domainPurchase.count({ where: { status: { in: [...NEEDS_ATTENTION_STATUSES] } } }),
+    db.domainPurchase.count({ where: { status: { in: [...NEEDS_ATTENTION_STATUSES] }, coveredByPlan: false } }),
   ]);
   const stores = await db.store.findMany({ where: { id: { in: [...new Set(rows.map((row) => row.storeId))] } }, select: { id: true, name: true, slug: true } });
   const storeById = new Map(stores.map((store) => [store.id, store]));
@@ -75,8 +75,11 @@ export default async function AdminDomainPurchasesPage({ searchParams }: { searc
             {rows.map((row) => {
               const store = storeById.get(row.storeId);
               const stuck = (row.status === "buying" || row.status === "paid") && now - row.updatedAt.getTime() > HOUR_MS;
-              const highlight = NEEDS_ATTENTION_STATUSES.includes(row.status) || stuck;
-              const status = STATUS[row.status] ?? { label: row.status, tone: "muted" as Tone };
+              // A free (annual plan) purchase that failed charged nothing: no refund to chase.
+              const highlight = (NEEDS_ATTENTION_STATUSES.includes(row.status) && !row.coveredByPlan) || stuck;
+              const status = row.coveredByPlan && row.status === "failed"
+                ? { label: "Failed (free, nothing charged)", tone: "warning" as Tone }
+                : STATUS[row.status] ?? { label: row.status, tone: "muted" as Tone };
               return (
                 <li key={row.id} className={`grid gap-2 px-5 py-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] md:items-center ${highlight ? "bg-app-danger-tint" : ""}`}>
                   <div className="min-w-0">
@@ -84,6 +87,7 @@ export default async function AdminDomainPurchasesPage({ searchParams }: { searc
                       <span className="break-all text-[15px] font-extrabold">{row.domain}</span>
                       <Pill tone={stuck ? "danger" : status.tone} dot>{stuck ? `${status.label} (over an hour)` : status.label}</Pill>
                       {row.kind === "renewal" && <Pill tone="muted">Renewal</Pill>}
+                      {row.coveredByPlan && <Pill tone="accent">Free (annual plan)</Pill>}
                     </div>
                     <div className="mt-1 text-[13.5px] text-app-ink-soft">
                       {store ? `${store.name} (${store.slug})` : row.storeId} · ref <span className="font-mono">{row.reference}</span>
@@ -92,7 +96,7 @@ export default async function AdminDomainPurchasesPage({ searchParams }: { searc
                     {row.error && <div className="mt-1 text-[13.5px] text-app-danger">{row.error}</div>}
                   </div>
                   <div className="text-[14px]">
-                    <div className="font-bold">{formatMoney(row.amountNgn)}</div>
+                    <div className="font-bold">{row.coveredByPlan ? "Free (annual plan)" : formatMoney(row.amountNgn)}</div>
                     <div className="text-[13px] text-app-ink-soft">${row.costUsd.toFixed(2)} cost · {formatDate(row.createdAt)}</div>
                   </div>
                   <div className="text-[13.5px] md:text-right">

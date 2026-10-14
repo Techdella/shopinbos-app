@@ -5,16 +5,29 @@ import { db } from "@/lib/db/client";
 import { getDomainAvailabilityOnVercel } from "@/lib/domains/vercel";
 import { normalizeDomain } from "@/lib/domains/storefront";
 import { storeHasDomainPurchase } from "@/lib/domains/billing-pure";
-import { DomainBillingError, publicPurchase, quoteDomain, settleDomainOrder, startDomainCheckout } from "@/lib/domains/billing.server";
+import {
+  DomainBillingError,
+  publicPurchase,
+  quoteDomain,
+  sellerGetsFreeDomain,
+  settleDomainOrder,
+  startDomainCheckout,
+  startPlanCoveredDomain,
+} from "@/lib/domains/billing.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// A free (annual plan) purchase is bought right away and waits up to ~10 seconds for the registrar order.
+export const maxDuration = 60;
 
 const PurchaseDomainSchema = z.object({
   domain: z.string().min(3),
   years: z.literal(1).default(1),
   // The naira price the seller saw on the confirm step. If the live price differs we say so instead of charging.
   expectedAmountNgn: z.number().int().positive().optional(),
+  // The seller saw "Free with your annual plan". Only a hint: the server decides from the stored plan. If the plan
+  // no longer covers it we answer not_free (with the price) instead of sending them to a payment they didn't see.
+  expectFree: z.boolean().optional(),
   contactInformation: z.object({
     firstName: z.string().trim().min(1),
     lastName: z.string().trim().min(1),
@@ -65,6 +78,22 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     if (!availability.available) return failure("domain_taken", "Someone already has this domain. Pick another name.", 409);
 
     const quote = await quoteDomain(domain, "new");
+    const { country, ...contact } = parsed.data.contactInformation;
+    const contactInformation = { ...contact, country: country.toUpperCase() } as Parameters<typeof startDomainCheckout>[0]["contactInformation"];
+
+    // Free with an active, paid-up annual Growth or Pro plan (checked here from the stored plan, never the client),
+    // within DOMAIN_PURCHASE_MAX_USD (quoteDomain refuses dearer names). No Paystack: bought straight away.
+    if (await sellerGetsFreeDomain(user.id)) {
+      const row = await startPlanCoveredDomain({ userId: user.id, storeId: store.id, domain, kind: "new", costUsd: quote.costUsd, contactInformation });
+      return NextResponse.json({ data: { free: true, domain, status: row.status, purchase: publicPurchase(row) } });
+    }
+    if (parsed.data.expectFree) {
+      return NextResponse.json(
+        { error: { code: "not_free", message: "Your plan doesn't cover a free domain right now. Check the price, then pay." }, data: { amountNgn: quote.amountNgn, renewalNgn: quote.renewalNgn } },
+        { status: 409 },
+      );
+    }
+
     if (parsed.data.expectedAmountNgn !== undefined && parsed.data.expectedAmountNgn !== quote.amountNgn) {
       return NextResponse.json(
         { error: { code: "price_changed", message: "The price changed. Check the new price, then pay." }, data: { amountNgn: quote.amountNgn, renewalNgn: quote.renewalNgn } },
@@ -73,7 +102,6 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     }
 
     const callbackUrl = new URL("/api/billing/domain/callback", req.nextUrl.origin).toString();
-    const { country, ...contact } = parsed.data.contactInformation;
     const checkout = await startDomainCheckout({
       user,
       storeId: store.id,
@@ -81,10 +109,10 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       kind: "new",
       costUsd: quote.costUsd,
       amountNgn: quote.amountNgn,
-      contactInformation: { ...contact, country: country.toUpperCase() } as Parameters<typeof startDomainCheckout>[0]["contactInformation"],
+      contactInformation,
       callbackUrl,
     });
-    return NextResponse.json({ data: { authorizationUrl: checkout.authorizationUrl, amountNgn: checkout.amountNgn } });
+    return NextResponse.json({ data: { free: false, authorizationUrl: checkout.authorizationUrl, amountNgn: checkout.amountNgn } });
   } catch (error) {
     if (error instanceof DomainBillingError) return failure(error.code, error.message, error.status);
     console.error("[domains] purchase checkout failed", error);
@@ -102,5 +130,6 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
     await settleDomainOrder(inProgress.id, 0).catch(() => null);
     rows = await db.domainPurchase.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 20 });
   }
-  return NextResponse.json({ data: rows.map(publicPurchase) });
+  // meta.freeDomain: the seller's annual plan covers a domain right now (the connected card says "Renews free").
+  return NextResponse.json({ data: rows.map(publicPurchase), meta: { freeDomain: await sellerGetsFreeDomain(user.id) } });
 });

@@ -209,6 +209,15 @@ const en = {
   "move.helpTitle": "Move my domain to another company",
   "move.helpDesc": "We couldn't get the transfer code just now. We'll get it and send it to you.",
   "move.which": "Which domain?",
+  // Free domain with an annual Growth or Pro plan.
+  "free.badge": "Free with your annual plan",
+  "free.upsell": "Free if you pay for Growth or Pro yearly.",
+  "free.upsellLink": "See plans",
+  "free.renews": "Renews free each year while you stay on an annual plan. If you switch to monthly or stop, it renews at about {price} a year.",
+  "free.get": "Get it free",
+  "free.renewsCard": "Renews free with your annual plan",
+  "free.failed": "We couldn't get {domain} for you. Nothing was charged. Pick another name, or tap Help.",
+  "free.notFree": "Your plan doesn't cover a free domain right now. It costs {price} for 1 year. Check it, then pay.",
 } satisfies Record<string, string>;
 
 export default en;

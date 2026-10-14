@@ -211,6 +211,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "move.helpTitle": "Move my domain go another company",
   "move.helpDesc": "We no fit get the transfer code now. We go get am send am give you.",
   "move.which": "Which domain?",
+  // Free domain with an annual Growth or Pro plan.
+  "free.badge": "Free with your yearly plan",
+  "free.upsell": "E dey free if you pay for Growth or Pro every year.",
+  "free.upsellLink": "See plans",
+  "free.renews": "E go dey renew free every year as long as you dey for yearly plan. If you change to monthly or stop, e go renew for about {price} a year.",
+  "free.get": "Collect am free",
+  "free.renewsCard": "E dey renew free with your yearly plan",
+  "free.failed": "We no fit get {domain} for you. We no charge you anything. Pick another name, or tap Help.",
+  "free.notFree": "Your plan no cover free domain now. E cost {price} for 1 year. Check am, then pay.",
 };
 
 export default pcm;

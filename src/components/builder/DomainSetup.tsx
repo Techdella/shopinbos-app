@@ -7,6 +7,10 @@ import { DomainOwnership } from "@/components/domains/DomainOwnership";
 import { buildStorefrontOrigin, getPlatformRootDomain } from "@/lib/domains/storefront";
 import { useT } from "@/components/i18n/I18nProvider";
 import { naira } from "@shared/onboarding";
+import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
+
+/** Where sellers pick a yearly Growth or Pro plan (SellerBillingSection). */
+const PLANS_HREF = "/home/settings?tab=Billing";
 
 /** A search result, priced in naira by the server (/api/domains/search). */
 interface DomainResult {
@@ -19,6 +23,8 @@ interface DomainResult {
   renewalPrice: number | null;
   currency: string;
   tooExpensive?: boolean;
+  /** The seller's annual plan pays for it (the purchase route checks again on the server). */
+  free?: boolean;
 }
 
 interface RegistrarContactSchemaProperty {
@@ -151,6 +157,8 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
   const [priceNotice, setPriceNotice] = useState<string | null>(null);
   // Contact details first, then "Check before you pay" (spelling, yearly price, renewal, no refunds), then Paystack.
   const [confirming, setConfirming] = useState(false);
+  // A free (annual plan) domain is bought in place: no Paystack, the progress banner shows the result.
+  const [freeStarted, setFreeStarted] = useState(false);
 
   const rootDomain = getPlatformRootDomain();
   const freeDomain = `${storeSlug}.${rootDomain}`;
@@ -324,19 +332,25 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         body: JSON.stringify({
           domain: selectedPurchaseDomain.domain,
           years: 1,
-          expectedAmountNgn: selectedPurchaseDomain.price ?? undefined,
+          ...(selectedPurchaseDomain.free ? { expectFree: true } : { expectedAmountNgn: selectedPurchaseDomain.price ?? undefined }),
           contactInformation: contactPayload(),
         }),
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { data?: { authorizationUrl?: string; amountNgn?: number; renewalNgn?: number }; error?: { code?: string; message?: string } }
+        | { data?: { free?: boolean; authorizationUrl?: string; amountNgn?: number; renewalNgn?: number }; error?: { code?: string; message?: string } }
         | null;
 
-      if (payload?.error?.code === "price_changed" && payload.data?.amountNgn) {
+      if ((payload?.error?.code === "price_changed" || payload?.error?.code === "not_free") && payload.data?.amountNgn) {
         const amount = payload.data.amountNgn;
-        setSelectedPurchaseDomain((current) => current ? { ...current, price: amount, renewalPrice: payload.data?.renewalNgn ?? current.renewalPrice } : current);
-        setPriceNotice(t("confirm.priceChanged", { price: naira(amount) }));
+        setSelectedPurchaseDomain((current) => current ? { ...current, free: false, price: amount, renewalPrice: payload.data?.renewalNgn ?? current.renewalPrice } : current);
+        setPriceNotice(payload.error.code === "not_free" ? t("free.notFree", { price: naira(amount) }) : t("confirm.priceChanged", { price: naira(amount) }));
+        setIsPurchasing(false);
+        return;
+      }
+
+      if (response.ok && payload?.data?.free) {
+        setFreeStarted(true);
         setIsPurchasing(false);
         return;
       }
@@ -440,7 +454,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                     <div className={cx("mt-0.5 text-[13px]", result.available && result.price !== null ? "text-app-success" : "text-app-ink-soft")}>
                       {result.available
                         ? result.price !== null
-                          ? t("setup.firstYear", { price: naira(result.price) })
+                          ? result.free ? <strong>{t("free.badge")}</strong> : t("setup.firstYear", { price: naira(result.price) })
                           : result.tooExpensive ? t("setup.notSold") : t("setup.available")
                         : t("setup.taken")}
                     </div>
@@ -457,9 +471,18 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
               ))}
             </ul>
           )}
+          {searchResults.length > 0 && !selectedPurchaseDomain && searchResults.some((result) => result.available && result.price !== null && !result.free) && (
+            <p className="mb-0 mt-2.5 text-[13px] leading-[1.5] text-app-ink-soft">
+              {t("free.upsell")}{" "}
+              <a href={PLANS_HREF} className="font-bold text-app-accent-ink no-underline hover:underline">{t("free.upsellLink")}</a>
+            </p>
+          )}
 
-          {selectedPurchaseDomain && confirming && (
+          {freeStarted && <div className="mt-4"><DomainPurchaseBanner result="processing" /></div>}
+
+          {selectedPurchaseDomain && confirming && !freeStarted && (
             <ConfirmPurchase
+              free={Boolean(selectedPurchaseDomain.free)}
               domain={selectedPurchaseDomain.domain}
               price={selectedPurchaseDomain.price ?? 0}
               renewalPrice={selectedPurchaseDomain.renewalPrice ?? selectedPurchaseDomain.price ?? 0}
@@ -481,9 +504,11 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                 <p className="m-0 text-[13px] font-bold text-app-ink-soft">{t("setup.buying")}</p>
                 <div className="mt-0.5 break-all text-[20px] font-extrabold">{selectedPurchaseDomain.domain}</div>
                 <div className="mt-0.5 text-[13px] text-app-ink-soft">
-                  {selectedPurchaseDomain.price !== null
-                    ? t("setup.oneYear", { price: naira(selectedPurchaseDomain.price) })
-                    : t("setup.priceOnPay")}
+                  {selectedPurchaseDomain.free
+                    ? t("free.badge")
+                    : selectedPurchaseDomain.price !== null
+                      ? t("setup.oneYear", { price: naira(selectedPurchaseDomain.price) })
+                      : t("setup.priceOnPay")}
                 </div>
               </div>
 
@@ -587,6 +612,7 @@ function Panel({ children }: { children: ReactNode }) {
 
 /** "Check before you pay": the name in big letters, the yearly price, the renewal and the no-refund rule. */
 function ConfirmPurchase({
+  free,
   domain,
   price,
   renewalPrice,
@@ -596,6 +622,8 @@ function ConfirmPurchase({
   onPay,
   onBack,
 }: {
+  /** Free with the annual plan: no price to pay, "Get it free" instead of Pay. */
+  free: boolean;
   domain: string;
   price: number;
   renewalPrice: number;
@@ -614,28 +642,30 @@ function ConfirmPurchase({
       <ul className="m-0 mt-4 grid list-none gap-2.5 p-0 text-[15px] leading-[1.45]">
         <li className="flex items-start gap-2.5">
           <Icon name="check" size={16} className="mt-1 shrink-0 text-app-success" />
-          <span><strong>{t("confirm.price", { price: naira(price) })}</strong></span>
+          <span><strong>{free ? t("free.badge") : t("confirm.price", { price: naira(price) })}</strong></span>
         </li>
         <li className="flex items-start gap-2.5">
           <Icon name="clock" size={16} className="mt-1 shrink-0 text-app-ink-soft" />
-          <span>{t("confirm.renews", { price: naira(renewalPrice) })}</span>
+          <span>{free ? t("free.renews", { price: naira(renewalPrice) }) : t("confirm.renews", { price: naira(renewalPrice) })}</span>
         </li>
-        <li className="flex items-start gap-2.5">
-          <Icon name="warn" size={16} className="mt-1 shrink-0 text-app-danger" />
-          <span>{t("confirm.noRefund")}</span>
-        </li>
+        {!free && (
+          <li className="flex items-start gap-2.5">
+            <Icon name="warn" size={16} className="mt-1 shrink-0 text-app-danger" />
+            <span>{t("confirm.noRefund")}</span>
+          </li>
+        )}
       </ul>
       {notice && <div className="mt-4"><Notice tone="info">{notice}</Notice></div>}
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
         <PillButton size="lg" tone="accent" busy={busy} onClick={onPay} className="w-full sm:w-auto">
-          {t("confirm.pay", { price: naira(price) })}
+          {free ? t("free.get") : t("confirm.pay", { price: naira(price) })}
         </PillButton>
         <button type="button" onClick={onBack} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink">
           {t("confirm.back")}
         </button>
       </div>
-      <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{t("confirm.paystack")}</p>
+      {!free && <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{t("confirm.paystack")}</p>}
     </section>
   );
 }

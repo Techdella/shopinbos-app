@@ -11,6 +11,7 @@ import {
   verifyPaystackTransaction,
 } from "@/lib/paystack";
 import { naira } from "@shared/onboarding";
+import { freeDomainEligible } from "@/lib/seller-plan";
 import { domainOrdersOf } from "./orders";
 import { markPurchasedDomainVerified, releaseStoreDomain } from "./ownership.server";
 import { normalizeDomain } from "./storefront";
@@ -56,6 +57,8 @@ import {
 // the saved card 7 days before, and takes an unrenewed domain off the store 3 days after it expires.
 
 export const DOMAIN_REFERENCE_PREFIX = "domain-";
+/** Free rows (annual plan) get their own prefix: no Paystack transaction ever has it, so no webhook reaches them. */
+export const PLAN_REFERENCE_PREFIX = "plan-";
 const PURPOSE: Record<DomainPurchaseKind, string> = { new: "domain_purchase", renewal: "domain_renewal" };
 
 export class DomainBillingError extends Error {
@@ -108,6 +111,51 @@ function asJson(value: unknown) {
 
 function plainError(error: unknown) {
   return (error instanceof Error ? error.message : String(error ?? "unknown error")).slice(0, 400);
+}
+
+/** A row the seller's annual plan paid for: there is no Paystack payment behind it, so nothing to verify or refund. */
+export function isPlanCovered(row: Pick<DomainPurchase, "coveredByPlan" | "amountNgn">) {
+  return row.coveredByPlan || row.amountNgn <= 0;
+}
+
+const PLAN_SELECT = { planCode: true, planInterval: true, planStatus: true, planPaidUntil: true } as const;
+
+/** Whether the seller's plan pays for a domain now (renewalStartsAt: the domain's current expiry, for a renewal). */
+export async function sellerGetsFreeDomain(userId: string, now = new Date(), renewalStartsAt?: Date | null) {
+  const user = await db.user.findUnique({ where: { id: userId }, select: PLAN_SELECT });
+  return renewalStartsAt === undefined ? freeDomainEligible(user, now) : freeDomainEligible(user, now, renewalStartsAt);
+}
+
+/**
+ * A domain (or renewal) the seller's annual plan pays for: recorded as paid with amountNgn 0 and coveredByPlan, no
+ * Paystack, then bought through the same buyOrRenew path. Callers check eligibility on the server first.
+ */
+export async function startPlanCoveredDomain(input: {
+  userId: string;
+  storeId: string;
+  domain: string;
+  kind: DomainPurchaseKind;
+  costUsd: number;
+  contactInformation: VercelContactInformation | null;
+}) {
+  const row = await db.domainPurchase.create({
+    data: {
+      storeId: input.storeId,
+      userId: input.userId,
+      domain: input.domain,
+      kind: input.kind,
+      years: 1,
+      costUsd: input.costUsd,
+      amountNgn: 0,
+      coveredByPlan: true,
+      reference: `${PLAN_REFERENCE_PREFIX}${crypto.randomUUID()}`,
+      status: "paid",
+      paidAt: new Date(),
+      ...(input.contactInformation ? { contactInformation: asJson(input.contactInformation) } : {}),
+    },
+  });
+  await buyOrRenew(row);
+  return (await db.domainPurchase.findUnique({ where: { id: row.id } }))!;
 }
 
 /**
@@ -163,6 +211,7 @@ export async function startDomainCheckout(input: {
 
 /** Checks Paystack's record of the payment against the row, exactly like the store launch payment, then marks it paid. */
 async function recordVerifiedPayment(row: DomainPurchase) {
+  if (isPlanCovered(row)) throw new DomainBillingError("not_found", "Payment record was not found.", 404);
   const verified = await verifyPaystackTransaction(row.reference);
   if (verified.status !== "success") {
     throw new DomainBillingError("not_paid", "Paystack hasn't confirmed this payment.");
@@ -200,7 +249,8 @@ async function recordVerifiedPayment(row: DomainPurchase) {
  */
 export async function completeDomainPayment(ref: string) {
   let row = await db.domainPurchase.findUnique({ where: { reference: ref } });
-  if (!row) throw new DomainBillingError("not_found", "Payment record was not found.", 404);
+  // Plan-covered rows have no Paystack payment: a callback or webhook naming one (a made-up reference) does nothing.
+  if (!row || isPlanCovered(row)) throw new DomainBillingError("not_found", "Payment record was not found.", 404);
   if (row.status === "pending_payment" || row.status === "payment_failed") {
     await recordVerifiedPayment(row);
     row = (await db.domainPurchase.findUnique({ where: { id: row.id } }))!;
@@ -327,6 +377,10 @@ async function finishBought(row: DomainPurchase) {
 
   const when = expiresAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   if (row.kind === "renewal") {
+    if (row.coveredByPlan) {
+      await tellSeller(row, `renewed:${row.id}`, "info", `${row.domain} renewed free with your annual plan`, `Your domain now runs until ${when}. Nothing to pay.`);
+      return;
+    }
     await tellSeller(row, `renewed:${row.id}`, "success", `${row.domain} is renewed`, `Your domain now runs until ${when}. Nothing else to do.`);
     return;
   }
@@ -347,7 +401,7 @@ async function finishBought(row: DomainPurchase) {
     `bought:${row.id}`,
     "success",
     `${row.domain} is yours`,
-    `Your shop will open at ${row.domain} in a few minutes. It runs until ${when}; we remind you before it's due. Check your email in the next 15 days: the domain company sends a message to confirm your email. If you don't confirm, the domain is paused.`,
+    `Your shop will open at ${row.domain} in a few minutes. It runs until ${when}; ${row.coveredByPlan ? "it renews free while you stay on an annual plan" : "we remind you before it's due"}. Check your email in the next 15 days: the domain company sends a message to confirm your email. If you don't confirm, the domain is paused.`,
   );
 }
 
@@ -358,6 +412,19 @@ async function refundPurchase(id: string, reason: string) {
   const row = (await db.domainPurchase.findUnique({ where: { id } }))!;
   const amount = naira(row.amountNgn);
   const what = row.kind === "renewal" ? `renew ${row.domain}` : `buy ${row.domain}`;
+  if (isPlanCovered(row)) {
+    // Free with the annual plan: nothing was charged, so nothing goes to Paystack. It stays "failed".
+    await tellSeller(
+      row,
+      `free_failed:${id}`,
+      "warning",
+      `We couldn't ${what}`,
+      row.kind === "renewal"
+        ? `${reason} Nothing was charged. We'll remind you before it ends so you can renew it.`
+        : `${reason} Nothing was charged. Pick another name, or tap Help and we'll sort it out.`,
+    );
+    return;
+  }
   try {
     await refundPaystackTransaction(row.reference);
     await db.domainPurchase.update({ where: { id }, data: { status: "refunded" } });
@@ -498,6 +565,32 @@ async function tryCard(row: DomainPurchase, card: SavedAuthorization) {
   return false;
 }
 
+/** How early (days before expiry) a plan-covered renewal is tried, and the mark that it was. */
+const FREE_RENEWAL_DAYS = 30;
+const FREE_TRIED_MARK = "free";
+
+async function renewFreeWithPlan(row: DomainPurchase) {
+  // Recorded first, so a crash halfway never renews twice on our bill.
+  await markReminders(row.id, row.remindersSent, [FREE_TRIED_MARK]);
+  let costUsd: number;
+  try {
+    costUsd = (await quoteDomain(row.domain, "renewal")).costUsd;
+  } catch (error) {
+    console.warn(`[domain renewals] no free renewal for ${row.domain}`, plainError(error));
+    return false;
+  }
+  const renewal = await startPlanCoveredDomain({
+    userId: row.userId,
+    storeId: row.storeId,
+    domain: row.domain,
+    kind: "renewal",
+    costUsd,
+    contactInformation: (row.contactInformation ?? null) as VercelContactInformation | null,
+  });
+  // "buying"/"paid" finish later (cron); the renewal row then carries the new expiry.
+  return renewal.status === "bought" || renewal.status === "buying" || renewal.status === "paid";
+}
+
 function renewLink(domain: string) {
   return `/home/domain?renew=${encodeURIComponent(domain)}`;
 }
@@ -521,7 +614,7 @@ async function sendReminder(row: DomainPurchase, key: string, now: Date) {
 }
 
 export async function runDomainRenewals(now = new Date()) {
-  const summary = { retried: 0, settled: 0, reminded: 0, charged: 0, expired: 0, errors: 0 };
+  const summary = { retried: 0, settled: 0, reminded: 0, charged: 0, renewedFree: 0, expired: 0, errors: 0 };
   const stale = new Date(now.getTime() - STALE_MS);
 
   // 1. Paid but not sent to the registrar (a network error last time): try again.
@@ -576,6 +669,14 @@ export async function runDomainRenewals(now = new Date()) {
       if (decision !== "active") continue;
 
       const sent = remindersOf(row.remindersSent);
+      // Annual plan, paid up past the date the domain's next year starts: renew free (once tried, the normal
+      // reminders and the saved card take over if it didn't work).
+      if (daysLeft(row.expiresAt!, now) <= FREE_RENEWAL_DAYS && !sent.includes(FREE_TRIED_MARK) && (await sellerGetsFreeDomain(row.userId, now, row.expiresAt))) {
+        if (await renewFreeWithPlan(row)) {
+          summary.renewedFree++;
+          continue;
+        }
+      }
       const card = await savedCardFor(row.storeId, row.domain);
       if (shouldAutoCharge(row.expiresAt!, sent, now, Boolean(card?.reusable))) {
         if (await tryCard(row, card!)) {
@@ -607,6 +708,7 @@ export function publicPurchase(row: DomainPurchase) {
     kind: row.kind,
     status: row.status,
     amountNgn: row.amountNgn,
+    coveredByPlan: row.coveredByPlan,
     expiresAt: row.expiresAt?.toISOString() ?? null,
     paidAt: row.paidAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),

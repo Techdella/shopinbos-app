@@ -211,6 +211,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "move.helpTitle": "Kai domain ɗina zuwa wani kamfani",
   "move.helpDesc": "Ba mu iya samun lambar canja wuri yanzu ba. Za mu samo ta mu aiko maka.",
   "move.which": "Wane domain?",
+  // Free domain with an annual Growth or Pro plan.
+  "free.badge": "Kyauta da tsarinka na shekara",
+  "free.upsell": "Kyauta ne idan ka biya Growth ko Pro na shekara.",
+  "free.upsellLink": "Duba tsare-tsare",
+  "free.renews": "Ana sabunta shi kyauta kowace shekara muddin kana kan tsarin shekara. Idan ka koma na wata ko ka daina, za a sabunta shi kan kusan {price} a shekara.",
+  "free.get": "Karɓe shi kyauta",
+  "free.renewsCard": "Ana sabunta shi kyauta da tsarinka na shekara",
+  "free.failed": "Ba mu iya samo maka {domain} ba. Ba a caje ka komai ba. Zaɓi wani suna, ko danna Taimako.",
+  "free.notFree": "Tsarinka bai ƙunshi domain kyauta yanzu ba. Kuɗinsa {price} na shekara 1. Duba shi, sannan ka biya.",
 };
 
 export default ha;

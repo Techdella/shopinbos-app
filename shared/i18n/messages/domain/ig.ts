@@ -211,6 +211,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "move.helpTitle": "Bugaa domain m n'ụlọ ọrụ ọzọ",
   "move.helpDesc": "Anyị enweghị ike inweta koodu mbufe ugbu a. Anyị ga-enweta ya ziga gị.",
   "move.which": "Kedu domain?",
+  // Free domain with an annual Growth or Pro plan.
+  "free.badge": "N'efu site na atụmatụ afọ gị",
+  "free.upsell": "Ọ bụ n'efu ma ị kwụọ ụgwọ Growth ma ọ bụ Pro kwa afọ.",
+  "free.upsellLink": "Lee atụmatụ",
+  "free.renews": "Ọ na-emegharị n'efu kwa afọ ma ọ bụrụhaala na ị nọ na atụmatụ afọ. Ọ bụrụ na ị gbanwere gaa kwa ọnwa ma ọ bụ kwụsị, ọ ga-emegharị maka ihe dịka {price} n'afọ.",
+  "free.get": "Nweta ya n'efu",
+  "free.renewsCard": "Ọ na-emegharị n'efu site na atụmatụ afọ gị",
+  "free.failed": "Anyị enweghị ike inweta {domain} maka gị. Anaghị ana gị ego ọ bụla. Họrọ aha ọzọ, ma ọ bụ pịa Enyemaka.",
+  "free.notFree": "Atụmatụ gị anaghị ekpuchi domain n'efu ugbu a. Ọ na-efu {price} maka afọ 1. Lelee ya, wee kwụọ ụgwọ.",
 };
 
 export default ig;
