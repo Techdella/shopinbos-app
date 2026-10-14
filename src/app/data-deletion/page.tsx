@@ -21,7 +21,8 @@ export default function DataDeletionPage() {
         <h2 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 600 }}>If you run a shop on Shopinbos</h2>
         <ol style={{ margin: "0 0 20px", paddingLeft: 20, fontSize: 15, lineHeight: 1.6 }}>
           <li>Log in and open <a href="/home/inbox/channels" style={{ color: "#195754", fontWeight: 600 }}>Inbox channels</a>.</li>
-          <li>Choose <strong>Disconnect</strong> on WhatsApp, Messenger or Instagram. We delete that account&apos;s access tokens and keys straight away.</li>
+          <li>Choose <strong>Disconnect</strong> on WhatsApp, Messenger or Instagram. If you schedule posts, also remove your Page and Instagram account (the ✕ next to each) under
+            Schedule posts on <a href="/channels" style={{ color: "#195754", fontWeight: 600 }}>Sell everywhere</a>. We delete that account&apos;s access tokens and keys straight away.</li>
           <li>
             To also delete your conversations, catalog and account, email <a href={`mailto:${PRIVACY_EMAIL}`} style={{ color: "#195754", fontWeight: 600 }}>{PRIVACY_EMAIL}</a> from
             the email on your account. We confirm and finish within 30 days.

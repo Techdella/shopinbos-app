@@ -2614,3 +2614,30 @@ test("legal pages: footer links, public summary and templates", async () => {
   assert.equal(legal.legalTemplate("warranty", { storeName: "x" }), null, "custom pages have no template");
   for (const page of legal.STANDARD_LEGAL_PAGES) assert.ok(!legal.isDocEmpty(legal.legalTemplate(page.key, { storeName: "Shop" })));
 });
+
+test("scheduled posts need a connected platform, a caption, a picture for Instagram and a time ahead", async () => {
+  const { checkScheduledPost, captionFor, overallStatus } = await import("../src/lib/social/schedule.ts");
+  const now = new Date("2026-10-14T10:00:00Z");
+  const base = { platforms: ["facebook"], caption: "New ankara bags in", imageUrl: null, link: "https://ada.shopinbos.com/p/1", scheduledAt: "2026-10-14T12:00:00Z" };
+
+  const okPost = checkScheduledPost(base, ["facebook"], now);
+  assert.equal(okPost.ok, true);
+  assert.deepEqual(okPost.value.platforms, ["facebook"]);
+  assert.match(checkScheduledPost({ ...base, platforms: [] }, ["facebook"], now).error, /Choose Facebook/);
+  assert.match(checkScheduledPost({ ...base, platforms: ["instagram"] }, ["facebook"], now).error, /Connect your Instagram/);
+  assert.match(checkScheduledPost({ ...base, platforms: ["instagram"] }, ["instagram"], now).error, /need a picture/);
+  assert.match(checkScheduledPost({ ...base, caption: "   " }, ["facebook"], now).error, /caption/);
+  assert.match(checkScheduledPost({ ...base, imageUrl: "http://insecure.example/a.jpg" }, ["facebook"], now).error, /https/);
+  assert.match(checkScheduledPost({ ...base, scheduledAt: "2026-10-14T10:02:00Z" }, ["facebook"], now).error, /minutes from now/);
+  assert.match(checkScheduledPost({ ...base, scheduledAt: "2027-03-01T10:00:00Z" }, ["facebook"], now).error, /within the next/);
+  assert.equal(checkScheduledPost({ ...base, platforms: ["facebook", "instagram", "x"], imageUrl: "https://cdn.example/a.jpg" }, ["facebook", "instagram"], now).ok, true);
+
+  // Instagram captions carry the link as text; Facebook text posts use it as the preview card.
+  assert.equal(captionFor("instagram", "Hi", "https://x.example"), "Hi\n\nhttps://x.example");
+  assert.equal(captionFor("facebook", "Hi", "https://x.example"), "Hi");
+  assert.equal(captionFor("instagram", "Hi https://x.example", "https://x.example"), "Hi https://x.example");
+
+  assert.equal(overallStatus({ facebook: { ok: true, id: "1" }, instagram: { ok: true, id: "2" } }, ["facebook", "instagram"]), "published");
+  assert.equal(overallStatus({ facebook: { ok: true, id: "1" }, instagram: { ok: false, error: "x" } }, ["facebook", "instagram"]), "partial");
+  assert.equal(overallStatus({ facebook: { ok: false, error: "x" } }, ["facebook"]), "failed");
+});

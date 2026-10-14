@@ -653,6 +653,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cat.emptyBefore": "Duk abin da za a gyara zai bayyana a nan idan kayayyakinka sun kasance a WhatsApp.",
   "wa.optional": "(in ka so)",
   "wa.verifyAfter": "Verify token zai bayyana bayan ka haɗa.",
+  "ch.fbTitle": "Facebook & Instagram",
+  "ch.fbBlurb": "Shiga da Facebook ka zaɓi Page ɗinka. Messenger da Instagram DMs za su shigo wannan inbox, kuma kana iya schedule na posts.",
 };
 
 export default ha;

@@ -668,6 +668,8 @@ const en = {
   "cat.emptyBefore": "Anything to fix shows here once your products are on WhatsApp.",
   "wa.optional": "(optional)",
   "wa.verifyAfter": "The verify token appears after you connect.",
+  "ch.fbTitle": "Facebook & Instagram",
+  "ch.fbBlurb": "Sign in with Facebook and pick your Page. Messenger and Instagram DMs come into this inbox, and you can schedule posts too.",
 } satisfies Record<string, string>;
 
 export default en;

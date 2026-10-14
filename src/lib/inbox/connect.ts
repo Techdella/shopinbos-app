@@ -165,17 +165,7 @@ export async function connectChannel(store: { id: string; slug: string }, channe
     return saveWhatsApp(store.id, credentials, "manual");
   }
 
-  if (channel === "messenger" || channel === "instagram") {
-    const check = await verifyMetaPage({ pageAccessToken: input.pageAccessToken! }, channel === "instagram");
-    if (!check.ok) return check;
-    const externalId = channel === "instagram" ? check.igAccountId! : check.pageId;
-    if (await claimedElsewhere(store.id, channel, externalId)) return { ok: false, error: "This account is already connected to another store." };
-    const subscribed = await subscribePage(check.pageId, input.pageAccessToken!);
-    const credentials = { pageAccessToken: input.pageAccessToken!, pageId: check.pageId, ...(input.appSecret ? { appSecret: input.appSecret } : {}) };
-    const row = await save(store.id, channel, { externalId, displayName: check.displayName, credentials, webhookSecret: randomSecret() });
-    if (!subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
-    return { ok: true, view: await viewOf(store.id, channel) };
-  }
+  if (channel === "messenger" || channel === "instagram") return connectMetaPage(store, channel, input.pageAccessToken!, input.appSecret);
 
   if (channel === "sms") return connectSms(store, input);
   if (channel === "voice") return connectVoice(store, input);
@@ -233,6 +223,23 @@ const EmbeddedSignupSchema = z.object({ code: z.string().trim().min(10).max(2000
  * subscribe our app to their WhatsApp account, register the number with a random two-step PIN, and save.
  * Webhooks then arrive signed with the platform's META_APP_SECRET.
  */
+/**
+ * Messenger or Instagram DMs from a Page access token: pasted by the seller, or picked after "Connect with Facebook"
+ * (src/lib/meta/pages-login.server.ts). Checks the token, subscribes the Page to messages and saves it encrypted.
+ */
+export async function connectMetaPage(store: { id: string }, channel: "messenger" | "instagram", pageAccessToken: string, appSecret?: string): Promise<Result> {
+  if (!hasCredentialKey()) return { ok: false, error: "This server can't store channel keys safely yet (INBOX_ENCRYPTION_KEY isn't set). Ask your Shopinbos admin." };
+  const check = await verifyMetaPage({ pageAccessToken }, channel === "instagram");
+  if (!check.ok) return check;
+  const externalId = channel === "instagram" ? check.igAccountId! : check.pageId;
+  if (await claimedElsewhere(store.id, channel, externalId)) return { ok: false, error: "This account is already connected to another store." };
+  const subscribed = await subscribePage(check.pageId, pageAccessToken);
+  const credentials = { pageAccessToken, pageId: check.pageId, ...(appSecret ? { appSecret } : {}) };
+  const row = await save(store.id, channel, { externalId, displayName: check.displayName, credentials, webhookSecret: randomSecret() });
+  if (!subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
+  return { ok: true, view: await viewOf(store.id, channel) };
+}
+
 export async function connectWhatsAppEmbedded(store: { id: string }, raw: unknown): Promise<Result> {
   const parsed = EmbeddedSignupSchema.safeParse(raw ?? {});
   if (!parsed.success) return { ok: false, error: "WhatsApp sign-up didn't send back your number. Start again." };

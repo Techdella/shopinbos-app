@@ -653,6 +653,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cat.emptyBefore": "Ohunkóhun tó nílò àtúnṣe á hàn níbí nígbà tí ọjà rẹ bá ti wà lórí WhatsApp.",
   "wa.optional": "(tí o bá fẹ́)",
   "wa.verifyAfter": "Verify token á hàn lẹ́yìn tí o bá so pọ̀.",
+  "ch.fbTitle": "Facebook & Instagram",
+  "ch.fbBlurb": "Wọlé pẹ̀lú Facebook kí o yan Page rẹ. Messenger àti Instagram DMs á wọ inbox yìí, o sì lè schedule àwọn post pẹ̀lú.",
 };
 
 export default yo;

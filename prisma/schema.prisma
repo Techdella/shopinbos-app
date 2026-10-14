@@ -2511,6 +2511,46 @@ model SocialChannelConnection {
   @@unique([storeId, channel])
   @@index([storeId])
 }
+// A Facebook Page or Instagram professional account a store publishes to (the post scheduler), connected with
+// "Connect with Facebook" (src/lib/meta/pages-login.server.ts). One of each per store.
+model SocialAccount {
+  id          String   @id @default(cuid())
+  storeId     String
+  platform    String // facebook | instagram
+  externalId  String // Page id, or Instagram professional account id
+  pageId      String // the Facebook Page (Instagram publishing goes through its Page token)
+  name        String // Page name or @username
+  tokenEnc    String // encrypted Page access token (src/lib/inbox/crypto.ts); never sent to the browser
+  status      String   @default("connected") // connected | error
+  lastError   String?
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([storeId, platform])
+  @@index([storeId])
+}
+
+// A post the seller scheduled for Facebook and/or Instagram. /api/cron/marketing publishes the due ones
+// (src/lib/social/publish.server.ts); results holds each platform's outcome.
+model ScheduledPost {
+  id          String    @id @default(cuid())
+  storeId     String
+  platforms   String[] // facebook | instagram
+  caption     String
+  imageUrl    String?
+  link        String?
+  productId   String?
+  scheduledAt DateTime
+  status      String    @default("scheduled") // scheduled | publishing | published | partial | failed | canceled
+  attempts    Int       @default(0)
+  results     Json      @default("{}") // { facebook?: { ok, id?, url?, error? }, instagram?: … }
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, scheduledAt])
+  @@index([status, scheduledAt])
+}
 // ---- end analytics + social selling (agent G) ----
 
 // ---- marketing (agent A) ----

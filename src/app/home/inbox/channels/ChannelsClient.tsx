@@ -13,6 +13,7 @@ import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
+import { ConnectFacebookPages, type PagesLoginConfig } from "@/components/meta/ConnectFacebookPages";
 
 // Connect screens for every inbox channel: status, what you need, step-by-step setup, and the form.
 // Keys go to the server once, are checked with the provider and stored encrypted; they never come back here.
@@ -359,7 +360,9 @@ export function ChannelsClient({
   inboxAddress,
   liveChat,
   forwardCallsTo,
+  pagesLogin,
 }: {
+  pagesLogin: PagesLoginConfig | null;
   initial: ChannelView[];
   platform: { encryption: boolean; resend: boolean; resendInbound: boolean; emailDomain: string | null; metaAppSecret: boolean; metaVerifyToken: boolean };
   inboxAddress: string | null;
@@ -410,6 +413,20 @@ export function ChannelsClient({
           </div>
         </Card>
       </section>
+
+      {pagesLogin && views.some((v) => (v.channel === "messenger" || v.channel === "instagram") && v.status !== "connected") && (
+        <Card className="grid content-start gap-3 p-5">
+          <div className="flex items-start gap-3">
+            <ChannelMark channel="messenger" size={44} />
+            <div className="min-w-0 flex-1">
+              <h2 className="m-0 text-[16px] font-extrabold">{t("ch.fbTitle")}</h2>
+              <p className="mb-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("ch.fbBlurb")}</p>
+            </div>
+          </div>
+          {/* The new channels come back from the server with their webhook details, so reload. */}
+          <ConnectFacebookPages config={pagesLogin} defaults={{ messenger: true, instagramDms: true, publishing: true }} onConnected={() => window.setTimeout(() => window.location.reload(), 1200)} />
+        </Card>
+      )}
 
       <h2 className="m-0 text-[17px] font-extrabold">{t("ch.connectYours")} <span className="font-semibold text-app-ink-soft">· {t("ch.connectedCount", { count: connectedCount })}</span></h2>
       <section aria-label={t("ch.toConnect")} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">

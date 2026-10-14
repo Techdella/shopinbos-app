@@ -14,6 +14,7 @@ import { plainMetaError } from "@/components/simple/plain";
 import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, type Locale, type TFunction } from "@shared/i18n";
+import { facebookLoginCode } from "@/components/meta/facebook-sdk";
 import type { MessageKey } from "@shared/i18n/catalog";
 
 type InboxT = TFunction<MessageKey<"inbox"> | MessageKey<"common">>;
@@ -24,17 +25,6 @@ type InboxT = TFunction<MessageKey<"inbox"> | MessageKey<"common">>;
 
 const input = "h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[15px] outline-none focus:border-app-ink";
 const area = "w-full rounded-[14px] border border-app-line bg-white px-3 py-2.5 text-[15px] leading-[1.5] outline-none focus:border-app-ink";
-const GRAPH_VERSION = "v21.0";
-
-declare global {
-  interface Window {
-    FB?: {
-      init: (options: Record<string, unknown>) => void;
-      login: (callback: (response: { authResponse?: { code?: string } | null; status?: string }) => void, options: Record<string, unknown>) => void;
-    };
-    fbAsyncInit?: () => void;
-  }
-}
 
 function Switch({ label, sub, on, onChange }: { label: string; sub?: ReactNode; on: boolean; onChange: (on: boolean) => void }) {
   return (
@@ -96,22 +86,7 @@ function tokenText(value: string | null, t: InboxT, locale: Locale) {
   return t("wa.expires", { date: locale === "en" ? date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : formatDate(date, locale) });
 }
 
-function loadFacebookSdk(appId: string): Promise<NonNullable<Window["FB"]>> {
-  return new Promise((resolve, reject) => {
-    if (window.FB) return resolve(window.FB);
-    window.fbAsyncInit = () => {
-      window.FB!.init({ appId, autoLogAppEvents: true, xfbml: false, version: GRAPH_VERSION });
-      resolve(window.FB!);
-    };
-    const script = document.createElement("script");
-    script.src = "https://connect.facebook.net/en_US/sdk.js";
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.onerror = () => reject(new Error("Facebook sign-up couldn't load here. Use the manual connect below."));
-    document.body.appendChild(script);
-    window.setTimeout(() => reject(new Error("Facebook sign-up took too long to load. Use the manual connect below.")), 15_000);
-  });
-}
+const SDK_ERRORS = { failed: "Facebook sign-up couldn't load here. Use the manual connect below.", slow: "Facebook sign-up took too long to load. Use the manual connect below." };
 
 export function WhatsAppPeggyClient({
   initialBot,
@@ -202,10 +177,7 @@ export function WhatsAppPeggyClient({
     };
     window.addEventListener("message", onMessage);
     try {
-      const FB = await loadFacebookSdk(signup.appId);
-      const code = await new Promise<string | null>((resolve) => {
-        FB.login((response) => resolve(response.authResponse?.code ?? null), { config_id: signup.configId, response_type: "code", override_default_response_type: true, extras: { setup: {}, sessionInfoVersion: "3" } });
-      });
+      const code = await facebookLoginCode(signup.appId, signup.configId, SDK_ERRORS, { setup: {}, sessionInfoVersion: "3" });
       if (!code) throw new Error(t("wa.signupClosed"));
       // The number and account ids arrive in a separate message from Facebook; give it a moment.
       for (let i = 0; i < 20 && !session; i++) await new Promise((r) => window.setTimeout(r, 150));

@@ -7,6 +7,7 @@ import { channelViews, platformReadiness } from "@/lib/inbox/connect";
 import { inboxAddress } from "@/lib/inbox/channels/email";
 import { requireRole } from "@/lib/server-auth";
 import { ChannelsClient } from "./ChannelsClient";
+import { pagesLoginConfig } from "@/lib/meta/pages-login.server";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,7 @@ export default async function InboxChannelsPage() {
         inboxAddress={inboxAddress(store.slug)}
         liveChat={{ on: Boolean(chat) && chatMode !== "whatsapp", mode: chatMode }}
         forwardCallsTo={settings?.forwardCallsTo ?? ""}
+        pagesLogin={pagesLoginConfig()}
       />
     </SellerPage>
   );

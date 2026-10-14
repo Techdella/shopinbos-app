@@ -24,6 +24,9 @@ import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { Fold, TechFold } from "@/components/simple/Fold";
 import { plainMetaError } from "@/components/simple/plain";
 import { PostComposer } from "./PostComposer";
+import { PostScheduler } from "./PostScheduler";
+import { pagesLoginConfig } from "@/lib/meta/pages-login.server";
+import { scheduledPosts, socialAccounts } from "@/lib/social/publish.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -131,7 +134,7 @@ export default async function ChannelsPage() {
 
   const now = new Date();
   const range = resolveRange({ range: "30d" }, now);
-  const [health, connections, products, { report }, feedKey] = await Promise.all([
+  const [health, connections, products, { report }, feedKey, schedulerAccounts, schedulerPosts] = await Promise.all([
     feedHealth(store),
     getConnections(store.id),
     db.storeProduct.findMany({
@@ -143,6 +146,9 @@ export default async function ChannelsPage() {
     loadAnalytics(store.id, range, now),
     // The store's private feed key (shared with the WhatsApp catalog feed; rotated there). Created on first view.
     ensureCatalogRow(store.id).then((row) => row.feedToken).catch(() => null),
+    // The post scheduler's tables arrive with docs/migrations/2026-10-22-social-scheduler.sql.
+    socialAccounts(store.id).catch(() => []),
+    scheduledPosts(store.id).catch(() => []),
   ]);
   // WhatsApp gets the catalog feed in Meta's format; the other channels their own file. All carry the key.
   const channelFeedUrl = (channel: FeedChannel, file: string) => (feedKey ? (channel === "whatsapp" ? catalogFeedUrl(store.slug, feedKey) : feedUrl(store.slug, file, feedKey)) : null);
@@ -317,6 +323,13 @@ export default async function ChannelsPage() {
           ) : (
             <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{health.listed ? t("health.allGood") : t("health.empty")}</p>
           )}
+        </Card>
+
+        <Card className="p-5">
+          <CardHead title={t("sched.title")} sub={t("sched.sub")} />
+          <div className="mt-4">
+            <PostScheduler config={pagesLoginConfig()} products={composerProducts} initialAccounts={schedulerAccounts} initialPosts={schedulerPosts} />
+          </div>
         </Card>
 
         <Card className="p-5">

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { cronAuthorization } from "@/lib/auth/cron";
 import { sendDueCampaigns } from "@/lib/campaigns/send";
 import { sweepAbandonedCartMessages } from "@/lib/notifications/customer-messages";
+import { publishDuePosts } from "@/lib/social/publish.server";
 import { processDueEnrollments, sweepAbandonedCarts, sweepBirthdays, sweepBrowseAbandonment, sweepWinBack } from "@/lib/automations/flow-engine";
 
 export const maxDuration = 300;
 
 // The marketing scheduler: sends scheduled campaigns, enrolls contacts in flows (abandoned carts,
-// saved-but-didn't-buy, win-back, birthdays), sends WhatsApp/SMS cart reminders, and runs every flow step whose wait is over.
+// saved-but-didn't-buy, win-back, birthdays), sends WhatsApp/SMS cart reminders, runs every flow step whose wait is over,
+// and publishes scheduled Facebook and Instagram posts.
 // Called every 10 minutes by Supabase pg_cron (docs/migrations/2026-10-12-marketing.sql) with
 // `Authorization: Bearer $CRON_SECRET`.
 export async function GET(req: NextRequest) {
@@ -35,5 +37,6 @@ export async function GET(req: NextRequest) {
   // Order messages: the one WhatsApp/SMS cart reminder stores switched on in Marketing › Order messages.
   const cartMessages = await safely("cart messages", () => sweepAbandonedCartMessages(now));
   const steps = await safely("steps", () => processDueEnrollments(new Date()));
-  return NextResponse.json({ data: { campaigns, enrolled, cartMessages, steps } });
+  const socialPosts = await safely("social posts", () => publishDuePosts(new Date()));
+  return NextResponse.json({ data: { campaigns, enrolled, cartMessages, steps, socialPosts } });
 }

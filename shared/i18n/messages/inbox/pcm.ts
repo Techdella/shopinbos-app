@@ -653,6 +653,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cat.emptyBefore": "Anything to fix go show here once your products dey WhatsApp.",
   "wa.optional": "(if you like)",
   "wa.verifyAfter": "The verify token go show after you connect.",
+  "ch.fbTitle": "Facebook & Instagram",
+  "ch.fbBlurb": "Sign in with Facebook, pick your Page. Messenger and Instagram DMs go enter this inbox, and you fit schedule posts too.",
 };
 
 export default pcm;

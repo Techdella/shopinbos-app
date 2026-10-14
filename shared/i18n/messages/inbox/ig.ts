@@ -653,6 +653,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cat.emptyBefore": "Ihe ọ bụla chọrọ ndozi ga-apụta ebe a ozugbo ngwaahịa gị nọ na WhatsApp.",
   "wa.optional": "(ọ bụrụ na ị chọrọ)",
   "wa.verifyAfter": "Verify token ga-apụta mgbe i jikọchara.",
+  "ch.fbTitle": "Facebook & Instagram",
+  "ch.fbBlurb": "Banye na Facebook ma họrọ Page gị. Messenger na Instagram DMs ga-abata n'inbox a, ị nwekwara ike ịhazi posts.",
 };
 
 export default ig;
