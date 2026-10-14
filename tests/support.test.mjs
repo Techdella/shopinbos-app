@@ -120,7 +120,12 @@ test("agent and bulk updates validate; ticket text is cleaned and capped", () =>
 
 test("wiring: Stuck? opens the panel, the migration enables RLS, admins get a Support link", () => {
   const auth = readFileSync(new URL("../src/components/auth/app/AppAuth.tsx", import.meta.url), "utf8");
-  const card = auth.slice(auth.indexOf("function HelpCard"));
+  // "Need help?" in the sign-in header opens the support panel when no WhatsApp line is set; the password
+  // screens' "Stuck?" card does too, with the small email fallback link.
+  const help = auth.slice(auth.indexOf("function HelpLink"), auth.indexOf("export function StuckLink"));
+  assert.match(help, /SupportRequestPanel/);
+  assert.match(help, /<button/);
+  const card = auth.slice(auth.indexOf("export function StuckLink"));
   assert.match(card, /SupportRequestPanel/);
   assert.match(card, /<button/);
   assert.match(card, /mailto:support@shopinbos\.com/, "keeps the small email fallback link");

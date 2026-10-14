@@ -365,12 +365,18 @@ test("auth experience keeps each portal focused and conversational", () => {
   const portalRoutes = read("src/lib/portal-routes.ts");
   const onboardingPage = read("src/app/onboarding/page.tsx");
 
-  // Redesigned sign-in: phone (SMS) code, email code, password, Google; role tabs on sign up.
-  assert.match(auth, /Your shop, live in 10 minutes/);
+  // Prototype 10 sign-in: phone code (WhatsApp when the server has it, else SMS), email code, password, Google;
+  // role tabs on sign up; name after the code; "Welcome to Shopinbos" before Rex's first run.
+  assert.match(auth, /Start your shop/);
   assert.match(auth, /Start with my phone number/);
-  // Phone codes go by SMS only (the Send SMS hook has no WhatsApp path), so nothing promises WhatsApp.
   assert.match(auth, /Send me a code by SMS/);
-  assert.doesNotMatch(auth, /code on WhatsApp/);
+  // WhatsApp wording only when the server says WhatsApp codes are on, and the code screen follows the channel used.
+  assert.match(auth, /whatsapp \? t\("send\.whatsapp"\) : t\("sendSms"\)/);
+  assert.match(auth, /channel === "whatsapp" \? t\("code\.titleWhatsapp"\)/);
+  assert.match(auth, /No WhatsApp on this number\?/);
+  assert.match(auth, /What should we call you\?/);
+  assert.match(auth, /result\.needsName/);
+  assert.match(auth, /Welcome to Shopinbos, \{name\}/);
   assert.match(auth, /Email me a code instead/);
   assert.match(auth, /current-password/);
   assert.match(auth, /Forgot password\?/);

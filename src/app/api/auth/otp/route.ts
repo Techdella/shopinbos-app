@@ -60,8 +60,9 @@ export async function GET() {
 async function needsName(user: { id: string; user_metadata?: Record<string, unknown> | null }) {
   const meta = user.user_metadata ?? {};
   if ([meta.full_name, meta.fullName, meta.name].some((value) => typeof value === "string" && value.trim())) return false;
-  const existing = await db.user.findUnique({ where: { supabaseId: user.id }, select: { id: true } }).catch(() => ({ id: "unknown" }));
-  return !existing;
+  const existing = await db.user.findUnique({ where: { supabaseId: user.id }, select: { name: true } }).catch(() => ({ name: "unknown" }));
+  // "Shopinbos User" is the stand-in name when someone left at the name screen and the account row was made later.
+  return !existing || existing.name.trim() === "Shopinbos User";
 }
 
 export async function POST(request: NextRequest) {

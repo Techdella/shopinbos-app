@@ -294,10 +294,17 @@ test("the public storefront APIs that write are rate limited", () => {
   }
 });
 
-test("phone sign-in codes go by SMS only (the Send SMS hook has no WhatsApp path)", () => {
+test("phone sign-in codes: Supabase is only asked for SMS; WhatsApp is ours (env-gated) and the screens say what was used", () => {
   assert.match(read("src/app/api/auth/otp/route.ts"), /channel: "sms", data/);
-  assert.doesNotMatch(read("src/components/auth/app/AppAuth.tsx"), /code on WhatsApp/);
-  assert.doesNotMatch(read("apps/mobile/src/components/AuthForm.tsx"), /code on WhatsApp/);
+  assert.match(read("apps/mobile/src/lib/auth.ts"), /channel: "sms", data/, "the phone app never asks Supabase for WhatsApp (that needs Twilio)");
+  // The WhatsApp button only shows when GET /api/auth/otp says it is on, and the code screen follows the channel used.
+  const web = read("src/components/auth/app/AppAuth.tsx");
+  assert.match(web, /fetchWhatsAppCodes/);
+  assert.match(web, /setChannel\(used\)/);
+  const mobile = read("apps/mobile/src/components/AuthForm.tsx");
+  assert.match(mobile, /fetchWhatsAppCodes/);
+  assert.match(mobile, /method === "phone" && whatsapp/);
+  assert.match(read("apps/mobile/src/app/verify.tsx"), /setChannel\(used\)/);
 });
 
 test("a migration turns RLS on for every public table and adds a private bucket", () => {
