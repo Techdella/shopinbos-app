@@ -39,10 +39,10 @@ class Sib_CLI {
 		$this->page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
 		$this->page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
 		$this->page( 'pricing', 'Pricing', $this->pattern( 'shopinbos/page-pricing' ), 'page-canvas', 'Shopinbos plans in naira, VAT included. Every plan has your store, Rex, pay on delivery and riders.' );
-		$this->page( 'about', 'About Shopinbos', $this->text_page( 'Shopinbos is the commerce app for Nigerian businesses, made in Lagos. [Write the company story here.]' ), 'page-article' );
+		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We build for people who sell on WhatsApp. Shopinbos gives Nigerian sellers a store, payments, delivery and two helpers, in words they already use.' );
 		$this->page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
-		$this->page( 'careers', 'Careers', $this->text_page( '[List open roles here.]' ), 'page-article' );
-		$this->page( 'press', 'Press', $this->text_page( '[Press kit, logos and contact for journalists.]' ), 'page-article' );
+		$this->refresh_page( 'careers', 'Careers', $this->careers_text(), 'page-article', 'Work on the app that helps Nigerian sellers run their shops from a phone.' );
+		$this->refresh_page( 'press', 'Press', $this->press_text(), 'page-article', 'Facts, logos and contacts for journalists writing about Shopinbos.' );
 		$this->academy();
 		$thanks = $this->page( 'thanks', 'You’re in', $this->text_page( 'Thanks for confirming. Your first tip is on its way.' ), 'page-article' );
 		update_post_meta( $thanks, 'sib_noindex', true );
@@ -129,7 +129,7 @@ class Sib_CLI {
 			wp_update_post( [ 'ID' => $id, 'menu_order' => $order ] );
 			return $id;
 		}
-		if ( preg_match( '/\[(Legal to supply|Write the company|List open roles|Press kit)|^\s*<!-- wp:paragraph -->\s*<p>Our policies\.<\/p>|is coming soon/', $existing->post_content ) ) {
+		if ( '' !== trim( $content ) && preg_match( '/\[(Legal to supply|Write the company|List open roles|Press kit)|^\s*<!-- wp:paragraph -->\s*<p>Our policies\.<\/p>|is coming soon/', $existing->post_content ) ) {
 			wp_update_post( wp_slash( [ 'ID' => $existing->ID, 'post_title' => $title, 'post_content' => $content, 'post_excerpt' => $excerpt, 'menu_order' => $order ] ) );
 			update_post_meta( $existing->ID, '_wp_page_template', $template );
 			WP_CLI::log( "Replaced placeholder page /{$slug}/" );
@@ -161,6 +161,12 @@ class Sib_CLI {
 	/** A registered pattern's markup with nested pattern blocks expanded, so writers can edit everything. */
 	private function pattern( string $slug, int $depth = 0 ): string {
 		$p = WP_Block_Patterns_Registry::get_instance()->get_registered( $slug );
+		if ( ! $p && function_exists( '_register_theme_block_patterns' ) ) {
+			// WordPress caches the theme's pattern list; a newly deployed pattern needs a fresh read.
+			wp_get_theme()->delete_pattern_cache();
+			_register_theme_block_patterns();
+			$p = WP_Block_Patterns_Registry::get_instance()->get_registered( $slug );
+		}
 		if ( ! $p ) {
 			WP_CLI::warning( "Pattern {$slug} is not registered. Is the Shopinbos theme active?" );
 			return '';
@@ -226,6 +232,26 @@ class Sib_CLI {
 		}
 		WP_CLI::log( "Created {$type} {$slug}" );
 		return $id;
+	}
+
+	private function careers_text(): string {
+		$h = fn( $t ) => sib_block_h( 2, $t, '' );
+		return sib_block_p( 'We are a small team in Lagos building the app that lets people run a real shop from their phone. We hire people who listen to sellers, write in plain words and like to ship.' )
+			. $h( 'How we work' )
+			. "<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>We talk to sellers every week, and everyone on the team does it.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>We work from Lagos, with some roles open to people anywhere in Nigeria.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>We use plain words in our product, our docs and with each other.</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n"
+			. $h( 'Open roles' )
+			. sib_block_p( 'We post new roles here and on our LinkedIn page. If nothing fits right now, send a short note about what you would like to work on and one thing you have built or sold to <a href="mailto:careers@shopinbos.com">careers@shopinbos.com</a>. We read every message.' );
+	}
+
+	private function press_text(): string {
+		$h = fn( $t ) => sib_block_h( 2, $t, '' );
+		return sib_block_p( 'For interviews, comments and images, email <a href="mailto:press@shopinbos.com">press@shopinbos.com</a>. We reply within one working day.' )
+			. $h( 'About Shopinbos' )
+			. sib_block_p( 'Shopinbos is an AI commerce app for Nigerian businesses, made in Lagos by Shopinbos Technologies Limited. Sellers build an online store in minutes with Rex, take card, transfer and pay on delivery payments, book riders, and let Peggy answer customers on WhatsApp. Sellers can also find stock from verified Nigerian suppliers and sell it without holding inventory.' )
+			. $h( 'Quick facts' )
+			. "<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Company: Shopinbos Technologies Limited, Lagos, Nigeria</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>What it does: online stores, payments, delivery and AI helpers for small businesses</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Plans: free Starter plan; paid plans in naira, VAT included</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Languages: English and Pidgin, with Yorùbá, Hausa and Igbo planned</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n"
+			. $h( 'Logos' )
+			. sib_block_p( 'Download the <a href="' . esc_url( sib_theme_img( 'logo-dark.png' ) ) . '" download>dark logo</a> for light backgrounds or the <a href="' . esc_url( sib_theme_img( 'logo-light.png' ) ) . '" download>light logo</a> for dark backgrounds. Please don’t stretch, recolour or add effects to the logo.' );
 	}
 
 	/** Blog categories with their colours, and the launch posts. */

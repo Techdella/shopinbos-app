@@ -675,3 +675,13 @@ select.input { appearance: auto; }
 @media (max-width: 640px) { .les-h1 { font-size: 34px; } .stats-strip { padding: 22px; } .stats-strip .bigstat { font-size: 32px !important; } .les-video b.disp { display: none; } .les-video > img { opacity: .9; } }
 @media print { .hdr, .foot, .les-side, .ctaband-wrap, .les-video, [data-lesson-done], .quiz-opt { display: none !important; } [data-lang][hidden] { display: none !important; } }
 .tag { white-space: nowrap; }
+.mw-900 { max-width: 900px; }
+.col-32 { display: flex; flex-direction: column; gap: 32px; }
+.about-mosaic { padding: 8px 0 80px; }
+.about-card { padding: 26px; display: flex; flex-direction: column; gap: 10px; }
+.about-card > * { margin: 0; }
+.about-card a { color: var(--accent-text); }
+.about-text p { font-size: 18px; line-height: 1.75; color: #2B2836; margin: 0 0 16px; }
+.ahero-in > * { margin: 0; }
+.mosaic .tile.txt img { width: 72px !important; height: 72px !important; position: static; object-fit: contain; }
+@media (max-width: 640px) { .mosaic .tile.txt { padding: 16px; } .mosaic .tile.txt b { font-size: 18px !important; } .mosaic .tile.txt img { width: 48px !important; height: 48px !important; } }

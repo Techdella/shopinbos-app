@@ -41,7 +41,7 @@ Delete `website/.dev` to start over. Local installs show sample marketplace data
    app store links, plan prices, Resend and PostHog keys. Secrets are better as constants in `wp-config.php`:
    `define( 'SIB_RESEND_API_KEY', '…' );` (any setting works as `SIB_` + its key in capitals).
 7. Plugins from the plan: Rank Math (SEO, redirects), LiteSpeed Cache, Wordfence or Solid Security (two-step
-   login), Tutor LMS (academy). Nothing else.
+   login). Nothing else. The Academy is built in (no LMS plugin needed).
 8. Search Console and Bing: submit `/sitemap_index.xml` (Rank Math) and `/sitemap-marketplace.xml`.
 
 DNS: `shopinbos.com` and `www` → Hostinger; `app.` and `*.shopinbos.com` store subdomains → Vercel.
@@ -57,9 +57,30 @@ DNS: `shopinbos.com` and `www` → Hostinger; `app.` and `*.shopinbos.com` store
 | `/tools/{tool}/` | Tool content type; pick the tool in the Shopinbos box |
 | `/resources/{guide}/` | Guides; gated PDFs move to `uploads/sib-private` and go out by signed 7-day links |
 | `/help/`, `/help/{category}/{article}/` | Help centre with instant search, votes, WhatsApp chat button |
-| `/blog/` | Posts (`/blog/%postname%/`, categories under `/blog/category/`) |
+| `/blog/` | Blog home and posts (`/blog/%postname%/`, categories under `/blog/category/`). Posts use the article blocks |
+| `/academy/`, `/academy/{track}/`, `/academy/{track}/{lesson}/` | Academy: tracks (`sib_track`) and lessons (`sib_lesson`), progress saved on the visitor's phone |
+| `/legal/` and `/legal/{document}/` | Legal documents (child pages of Legal, "Legal document" template) |
+| `/about/` `/careers/` `/press/` | About (pattern `page-about`), careers and press text pages |
 | `/lp/{campaign}/` | Campaign pages: minimal header, `noindex`, Meta/TikTok pixels after cookie consent |
 | `/go/signup?intent=…` | Redirect into the app with intent, `source=website` and first-touch UTMs |
+
+### Writing content
+
+- **Blog posts:** use the blocks in **Shopinbos · Article** (callout, did you know, stats, checklist, steps, inline CTA,
+  quote, do and don't, FAQ, takeaways). FAQ and Steps blocks also add FAQ/HowTo schema. In the post's custom fields,
+  `sib_featured` = 1 makes it the lead story, `sib_lesson` (a lesson slug) shows the "Free lesson" card, and
+  `sib_cover_fit` = contain suits cut-out photos. Category colours are term meta `sib_bg` / `sib_fg`.
+- **Academy lessons:** each lesson is one **Lesson** block. Fill it in from the block sidebar: English and Pidgin intro,
+  what you'll learn, steps (`heading | description`), try it, checklist, quick check, optional YouTube video. Order
+  lessons with *Order* (page attributes). Track colours and icon are term meta (`sib_bg`, `sib_fg`, `sib_icon`, `sib_order`).
+- **Legal:** each document has an "In plain words" block, then one group per section (class `lgl-sec`) with an H2,
+  paragraphs and an "In short" paragraph (class `in-short`). Sections number themselves. Dates are page custom fields
+  `sib_updated` and `sib_effective`.
+- **Prices and fees** come from Settings > Shopinbos. Use `[sib_price key="price_grow_month"]` (or `fee_commission`,
+  `fee_supplier`, `fee_partner`, `fee_broadcast`, `fee_video`, `starter_products`) in any text.
+
+`wp shopinbos setup` creates all of this on a fresh site and replaces the first-install placeholder pages
+(About, Careers, Press, Legal, the old Academy page) on an existing one. Pages someone has edited are left alone.
 
 ### Marketplace data
 - Reads `/products`, `/products/{slug}`, `/categories`, `/suppliers`, `/suppliers/{slug}`,
@@ -103,9 +124,11 @@ Sign-up prefills the phone number from the website's `#phone=` fragment and show
 visitor picked. Delivery partners show "Pay on delivery" when `deliveryTypes` contains `cod`.
 
 ## Still open (from the plan)
-Plan prices and fees are placeholders (`[PRICE]`, `[FEE]`) until agreed; legal pages need real text; which
-delivery and channel partners can be named publicly; Tutor LMS vs own course type (default Tutor LMS, not
-installed here); Resend tags per guide (today confirmed contacts go to one audience; hook `sib_list_added`).
+Legal documents are the canvas drafts and need a lawyer's review before launch. The Pidgin in Academy lessons
+should be read by a native speaker. No lesson videos exist yet (lessons show "Read in a few minutes" until a
+YouTube ID is added). Which delivery and channel partners can be named publicly; Resend tags per guide (today
+confirmed contacts go to one audience; hook `sib_list_added`); Sunday WhatsApp sign-ups fire `sib_lead_whatsapp`
+until the app's `/api/public/leads` exists.
 
 ## Checks
 `find website/wp-content -name '*.php' -print0 | xargs -0 -n1 php -l` runs in CI (`.github/workflows/website.yml`).
