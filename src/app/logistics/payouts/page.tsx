@@ -5,14 +5,18 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { EmptyState, ListCard, ListRow, StatGrid, StatTile } from "@/components/app-kit";
 import { PayoutBankSection } from "@/components/payments/PayoutBankSection";
 import { ACTIVE_STATUSES, PartnerPage, Route, bookingNet, jobId, lagosDate, lagosStartOfToday, naira } from "@/components/logistics/kit";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Earnings" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("earnings.title") };
+}
 
 export default async function LogisticsPayoutsPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const t = await getT("logistics", "common");
 
   const startOfToday = lagosStartOfToday();
   const thirtyDaysAgo = new Date(startOfToday.getTime() - 29 * 24 * 60 * 60 * 1000);
@@ -47,31 +51,31 @@ export default async function LogisticsPayoutsPage() {
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Earnings"
-      sub={payoutBank ? `Paid to ${payoutBank.bankName} · ${payoutBank.accountNumber}` : "Add your bank account so we can pay you for delivered jobs."}
+      title={t("earnings.title")}
+      sub={payoutBank ? t("earnings.paidTo", { bank: payoutBank.bankName, account: payoutBank.accountNumber }) : t("earnings.addBank")}
     >
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Earned today" value={naira(sumNet(today))} hint={`${today.length} delivered`} />
-        <StatTile tone="card" label="Last 30 days" value={naira(sumNet(lastThirty))} hint={`${lastThirty.length} delivered`} />
-        <StatTile tone="card" label="On the road now" value={naira(inProgress._sum.deliveryFee ?? 0)} hint={`${inProgress._count._all} active jobs, paid once delivered`} />
-        <StatTile tone="card" label="Shopinbos fees" value={naira(lifetimeFees)} hint={delivered.length >= 200 ? "Last 200 deliveries" : "All delivered jobs"} />
+        <StatTile tone="card" label={t("today.earnedToday")} value={naira(sumNet(today))} hint={t("earnings.delivered", { count: today.length })} />
+        <StatTile tone="card" label={t("earnings.last30")} value={naira(sumNet(lastThirty))} hint={t("earnings.delivered", { count: lastThirty.length })} />
+        <StatTile tone="card" label={t("earnings.onRoad")} value={naira(inProgress._sum.deliveryFee ?? 0)} hint={t("earnings.onRoadHint", { count: inProgress._count._all })} />
+        <StatTile tone="card" label={t("earnings.fees")} value={naira(lifetimeFees)} hint={delivered.length >= 200 ? t("earnings.last200") : t("earnings.allDelivered")} />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
         <section aria-labelledby="delivered-jobs" className="min-w-0">
-          <h2 id="delivered-jobs" className="m-0 mb-3 text-[18px] font-extrabold">Delivered jobs</h2>
+          <h2 id="delivered-jobs" className="m-0 mb-3 text-[18px] font-extrabold">{t("earnings.deliveredJobs")}</h2>
           {delivered.length === 0 ? (
-            <EmptyState icon="coin" title="Nothing earned yet">Your earnings show here once your first job is delivered.</EmptyState>
+            <EmptyState icon="coin" title={t("earnings.emptyTitle")}>{t("earnings.emptyBody")}</EmptyState>
           ) : (
             <ListCard>
               {delivered.slice(0, 50).map((booking) => (
                 <ListRow key={booking.id}>
                   <div className="min-w-0 flex-1 basis-[200px]">
-                    <Route from={booking.pickupLocation} to={booking.destination} className="block truncate text-[15px]" />
-                    <div className="truncate text-[15px] text-app-ink-soft">{jobId(booking.id)} · {booking.seller.name} · {lagosDate(doneAt(booking))}</div>
+                    <Route from={booking.pickupLocation} to={booking.destination} className="block truncate text-[15px]" toLabel={t("kit.to")} />
+                    <div className="truncate text-[15px] text-app-ink-soft">{jobId(booking.id)} · {booking.seller.name} · {lagosDate(doneAt(booking), undefined, new Date(), t)}</div>
                   </div>
                   <div className="text-[15px] text-app-ink-soft">
-                    {naira(booking.deliveryFee)}{booking.platformFee ? ` − ${naira(booking.platformFee)} fee` : ""}
+                    {naira(booking.deliveryFee)}{booking.platformFee ? ` − ${t("earnings.fee", { amount: naira(booking.platformFee) })}` : ""}
                   </div>
                   <div className="ml-auto text-[15px] font-extrabold">{naira(bookingNet(booking))}</div>
                 </ListRow>

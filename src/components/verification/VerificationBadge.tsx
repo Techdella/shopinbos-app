@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { intlLocale } from "@shared/i18n";
 
 interface VerificationBadgeProps {
   tier: string;
@@ -22,7 +24,10 @@ const tierConfig: Record<string, { label: string; color: string; icon: string }>
 
 export function VerificationBadge({ tier, trustScore, verificationStatus, details, reviewedAt, size = "md" }: VerificationBadgeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
-  const cfg = tierConfig[tier] ?? tierConfig.none;
+  const t = useT("verification");
+  const locale = useLocale();
+  const tierKey = tierConfig[tier] ? tier : "none";
+  const cfg = { ...tierConfig[tierKey], label: t.dynamic(`badge.tier.${tierKey}`, tierConfig[tierKey].label) };
   const isVerified = verificationStatus === "verified";
 
   const sizeMap = { sm: 18, md: 22, lg: 28 };
@@ -33,9 +38,9 @@ export function VerificationBadge({ tier, trustScore, verificationStatus, detail
     return (
       <span
         style={{ fontSize: fontSizeMap[size], color: cfg.color, display: "inline-flex", alignItems: "center", gap: 4, cursor: "default" }}
-        title="Account not yet verified"
+        title={t("badge.notYetVerified")}
       >
-        <Icon name="lock" size={iconSize} /> Unverified
+        <Icon name="lock" size={iconSize} /> {t("badge.tier.none")}
       </span>
     );
   }
@@ -84,12 +89,12 @@ export function VerificationBadge({ tier, trustScore, verificationStatus, detail
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderTop: "1px solid #F3F4F6", marginTop: 4 }}>
-            <span style={{ color: "#6B7280" }}>Trust Score</span>
+            <span style={{ color: "#6B7280" }}>{t("badge.trustScore")}</span>
             <span style={{ fontWeight: 700 }}>{trustScore}/100</span>
           </div>
           {reviewedAt && (
             <div style={{ color: "#9CA3AF", fontSize: 11, marginTop: 8 }}>
-              Last reviewed: {new Date(reviewedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              {t("badge.lastReviewed", { date: new Date(reviewedAt).toLocaleDateString(locale === "en" ? "en-US" : intlLocale(locale), { month: "long", year: "numeric" }) })}
             </div>
           )}
           <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #F3F4F6" }}>

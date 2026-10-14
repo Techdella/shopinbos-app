@@ -11,6 +11,8 @@ import { mainRichField, slugError, slugify, type CmsField, type RichValue } from
 import { docImages, firstParagraphText, plainText, summarize } from "@/lib/cms/richtext";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 import { FieldInput } from "./FieldInput";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatDate } from "@shared/i18n";
 
 // The item editor: Content | SEO | Settings tabs, like WordPress. Saves through /api/app/cms; the server
 // validates every field and rebuilds rich text HTML.
@@ -50,6 +52,8 @@ export function ItemEditor(props: {
   collections: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
+  const t = useT("cms");
+  const locale = useLocale();
   const label = props.collection.itemLabel.toLowerCase();
   const [tab, setTab] = useState<"content" | "seo" | "settings">("content");
   const [item, setItem] = useState<EditorItem>(props.item);
@@ -88,12 +92,12 @@ export function ItemEditor(props: {
   async function save(nextStatus: "draft" | "published" | "scheduled") {
     if (!item.title.trim()) {
       setTab("content");
-      setErrors({ title: "Add a title" });
+      setErrors({ title: t("ed.addTitle") });
       return;
     }
     if (nextStatus === "scheduled" && !item.publishAt) {
       setTab("settings");
-      setErrors({ publishAt: "Pick when to publish" });
+      setErrors({ publishAt: t("ed.pickWhen") });
       return;
     }
     setBusy(nextStatus === "draft" ? "draft" : "publish");
@@ -122,7 +126,7 @@ export function ItemEditor(props: {
         setErrors(json?.error?.fields ?? {});
         if (json?.error?.fields && Object.keys(json.error.fields).some((key) => props.fields.some((field) => field.key === key) || key === "title")) setTab("content");
         else if (json?.error?.fields?.slug || json?.error?.fields?.publishAt || json?.error?.fields?.featuredImage) setTab(json.error.fields.slug ? "seo" : "settings");
-        setNotice({ tone: "error", text: json?.error?.message ?? "Couldn't save. Try again." });
+        setNotice({ tone: "error", text: json?.error?.message ?? t("ed.saveError") });
         return;
       }
       // Keep the local field values (the editor's own document) so the cursor doesn't jump after saving.
@@ -134,12 +138,12 @@ export function ItemEditor(props: {
       saved.current = JSON.stringify({ item: next, seo: nextSeo });
       setNotice({
         tone: "success",
-        text: nextStatus === "published" ? `Published. Shoppers can read it now.` : nextStatus === "scheduled" ? `Scheduled for ${new Date(item.publishAt!).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.` : "Saved as a draft. Shoppers can't see it.",
+        text: nextStatus === "published" ? t("ed.published") : nextStatus === "scheduled" ? t("ed.scheduledFor", { date: formatDate(item.publishAt!, locale, { dateStyle: "medium", timeStyle: "short" }) }) : t("ed.savedDraft"),
       });
       if (!item.id) router.replace(`/home/cms/${props.collection.id}/${json.data.id}`);
       else router.refresh();
     } catch {
-      setNotice({ tone: "error", text: "Couldn't reach the server. Check your connection and try again." });
+      setNotice({ tone: "error", text: t("ed.network") });
     } finally {
       setBusy("");
     }
@@ -152,23 +156,23 @@ export function ItemEditor(props: {
       const uploaded = await uploadCmsFile(file);
       set({ featuredImage: uploaded.url });
     } catch (e) {
-      setNotice({ tone: "error", text: e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again." });
+      setNotice({ tone: "error", text: e instanceof Error ? e.message : t("ed.uploadError") });
     } finally {
       setUploading(false);
     }
   }
 
-  const primaryLabel = item.status === "scheduled" ? "Schedule" : item.id && item.status === "published" ? "Update" : "Publish";
+  const primaryLabel = item.status === "scheduled" ? t("ed.schedule") : item.id && item.status === "published" ? t("ed.update") : t("ia.publish");
   const tabs = [
-    { key: "content" as const, label: "Content" },
-    { key: "seo" as const, label: "SEO" },
-    { key: "settings" as const, label: "Settings" },
+    { key: "content" as const, label: t("ed.tab.content") },
+    { key: "seo" as const, label: t("ed.tab.seo") },
+    { key: "settings" as const, label: t("ed.tab.settings") },
   ];
 
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div role="tablist" aria-label="Editor sections" className="flex gap-2 overflow-x-auto">
+        <div role="tablist" aria-label={t("ed.sections")} className="flex gap-2 overflow-x-auto">
           {tabs.map((entry) => (
             <button
               key={entry.key}
@@ -186,35 +190,35 @@ export function ItemEditor(props: {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Pill tone={live ? "success" : item.status === "scheduled" ? "info" : "muted"} dot>{live ? "Live" : item.status === "scheduled" ? "Scheduled" : "Draft"}</Pill>
+          <Pill tone={live ? "success" : item.status === "scheduled" ? "info" : "muted"} dot>{live ? t("status.live") : item.status === "scheduled" ? t("status.scheduled") : t("status.draft")}</Pill>
           {item.id && live && props.collection.isPublished && (
-            <a href={viewHref} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong"><Icon name="eye" size={15} /> View</a>
+            <a href={viewHref} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong"><Icon name="eye" size={15} /> {t("view")}</a>
           )}
-          <PillButton tone="white" size="md" busy={busy === "draft"} disabled={Boolean(busy)} onClick={() => void save("draft")}>{item.status === "draft" || !item.id ? "Save draft" : "Switch to draft"}</PillButton>
+          <PillButton tone="white" size="md" busy={busy === "draft"} disabled={Boolean(busy)} onClick={() => void save("draft")}>{item.status === "draft" || !item.id ? t("ed.saveDraft") : t("ed.toDraft")}</PillButton>
           <PillButton tone="accent" size="md" busy={busy === "publish"} disabled={Boolean(busy) || Boolean(slugProblem)} onClick={() => void save(item.status === "scheduled" ? "scheduled" : "published")}>{primaryLabel}</PillButton>
         </div>
       </div>
 
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-      {dirty && !busy && <p className="m-0 -mt-2 text-[13px] text-app-ink-soft" aria-live="polite">Unsaved changes</p>}
+      {dirty && !busy && <p className="m-0 -mt-2 text-[13px] text-app-ink-soft" aria-live="polite">{t("fe.unsaved")}</p>}
 
       <div id="panel-content" role="tabpanel" aria-labelledby="tab-content" hidden={tab !== "content"} className="grid gap-5">
         <section className="grid gap-5 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
           <div>
-            <label htmlFor="item-title" className="mb-1.5 block text-[14px] font-extrabold">Title</label>
+            <label htmlFor="item-title" className="mb-1.5 block text-[14px] font-extrabold">{t("ed.titleLabel")}</label>
             <input
               id="item-title"
               className={cx(input, "min-h-[52px] text-[20px] font-extrabold")}
               value={item.title}
               maxLength={200}
-              placeholder={`${props.collection.itemLabel} title`}
+              placeholder={t("ed.titlePh", { label: props.collection.itemLabel })}
               onChange={(e) => set({ title: e.target.value, ...(slugTouched ? {} : { slug: "" }) })}
               aria-invalid={Boolean(errors.title)}
             />
             {errors.title && <p className="m-0 mt-1.5 text-[13px] text-app-danger" role="alert">{errors.title}</p>}
             <p className="m-0 mt-1.5 truncate text-[12.5px] text-app-ink-soft">{props.storeOrigin.replace(/^https?:\/\//, "")}/{props.collection.slug}/{slug || "…"}</p>
           </div>
-          {props.fields.length === 0 && <p className="m-0 text-[14px] text-app-ink-soft">This collection has no fields yet. Add some in the Fields tab.</p>}
+          {props.fields.length === 0 && <p className="m-0 text-[14px] text-app-ink-soft">{t("ed.noFields")}</p>}
           {props.fields.map((field) => (
             <FieldInput key={field.id} field={field} value={item.data[field.key]} onChange={(value) => setValue(field.key, value)} error={errors[field.key]} collections={props.collections} />
           ))}
@@ -225,7 +229,7 @@ export function ItemEditor(props: {
         <SeoTab
           value={seo}
           onChange={setSeo}
-          title={item.title || `New ${label}`}
+          title={item.title || t("newItem", { label })}
           fallbackDescription={item.excerpt || (mainDoc ? summarize(mainDoc, 155) : "")}
           slug={slug}
           onSlugChange={(next) => { setSlugTouched(true); set({ slug: next }); }}
@@ -239,60 +243,60 @@ export function ItemEditor(props: {
 
       <div id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden={tab !== "settings"} className="grid gap-5 lg:grid-cols-2">
         <section className="grid content-start gap-4 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
-          <h2 className="m-0 text-[16px] font-extrabold">Publishing</h2>
+          <h2 className="m-0 text-[16px] font-extrabold">{t("ed.publishing")}</h2>
           <div>
-            <span className="mb-1.5 block text-[13.5px] font-bold">Status</span>
+            <span className="mb-1.5 block text-[13.5px] font-bold">{t("ed.status")}</span>
             <Segmented
-              options={[{ value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "scheduled", label: "Scheduled" }]}
+              options={[{ value: "draft", label: t("status.draft") }, { value: "published", label: t("status.published") }, { value: "scheduled", label: t("status.scheduled") }]}
               value={item.status}
               onChange={(status) => set({ status })}
             />
-            <p className="m-0 mt-1.5 text-[12.5px] text-app-ink-soft">Takes effect when you press {primaryLabel} or Save draft.</p>
+            <p className="m-0 mt-1.5 text-[12.5px] text-app-ink-soft">{t("ed.takesEffect", { primary: primaryLabel })}</p>
           </div>
           {item.status === "scheduled" && (
             <div>
-              <label htmlFor="item-when" className="mb-1.5 block text-[13.5px] font-bold">Publish on</label>
+              <label htmlFor="item-when" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.publishOn")}</label>
               <input id="item-when" type="datetime-local" className={cx(input, "sm:max-w-[280px]")} value={toLocalInput(item.publishAt)} onChange={(e) => set({ publishAt: e.target.value ? new Date(e.target.value).toISOString() : null })} aria-invalid={Boolean(errors.publishAt)} />
               {errors.publishAt && <p className="m-0 mt-1.5 text-[13px] text-app-danger" role="alert">{errors.publishAt}</p>}
-              <p className="m-0 mt-1.5 text-[12.5px] text-app-ink-soft">It goes live by itself at this time (your device&apos;s time zone).</p>
+              <p className="m-0 mt-1.5 text-[12.5px] text-app-ink-soft">{t("ed.goesLive")}</p>
             </div>
           )}
           <div>
-            <label htmlFor="item-author" className="mb-1.5 block text-[13.5px] font-bold">Author</label>
+            <label htmlFor="item-author" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.author")}</label>
             <div className="flex flex-wrap gap-2">
-              <input id="item-author" className={cx(input, "min-w-0 flex-1 basis-[200px]")} value={item.author} maxLength={80} placeholder="Who wrote it" onChange={(e) => set({ author: e.target.value })} />
-              {!item.author && props.authorName && <button type="button" onClick={() => set({ author: props.authorName })} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-4 text-[13.5px] font-bold">Use {props.authorName}</button>}
+              <input id="item-author" className={cx(input, "min-w-0 flex-1 basis-[200px]")} value={item.author} maxLength={80} placeholder={t("ed.authorPh")} onChange={(e) => set({ author: e.target.value })} />
+              {!item.author && props.authorName && <button type="button" onClick={() => set({ author: props.authorName })} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-4 text-[13.5px] font-bold">{t("ed.use", { name: props.authorName })}</button>}
             </div>
           </div>
           <div>
-            <label htmlFor="item-excerpt" className="mb-1.5 block text-[13.5px] font-bold">Summary <span className="block text-[12.5px] font-normal text-app-ink-soft">Shown on the list page. Leave empty to use the opening lines.</span></label>
+            <label htmlFor="item-excerpt" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.summary")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("ed.summaryHelp")}</span></label>
             <textarea id="item-excerpt" rows={3} className={cx(input, "resize-y py-2.5")} value={item.excerpt} maxLength={500} onChange={(e) => set({ excerpt: e.target.value })} />
           </div>
           <div>
-            <label htmlFor="item-order" className="mb-1.5 block text-[13.5px] font-bold">Position <span className="block text-[12.5px] font-normal text-app-ink-soft">Used when the collection is set to &ldquo;Your order&rdquo;. Lower comes first.</span></label>
+            <label htmlFor="item-order" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.position")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("ed.positionHelp")}</span></label>
             <input id="item-order" type="number" min={0} className={cx(input, "sm:max-w-[160px]")} value={item.sortOrder} onChange={(e) => set({ sortOrder: Math.max(0, Number(e.target.value) || 0) })} />
           </div>
         </section>
 
         <section className="grid content-start gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
-          <h2 className="m-0 text-[16px] font-extrabold">Featured image</h2>
-          <p className="m-0 text-[13px] text-app-ink-soft">Shown on the list page, at the top of the {label} and when it&apos;s shared.</p>
+          <h2 className="m-0 text-[16px] font-extrabold">{t("ed.featured")}</h2>
+          <p className="m-0 text-[13px] text-app-ink-soft">{t("ed.featuredHelp", { label })}</p>
           {item.featuredImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.featuredImage} alt="" className="aspect-[16/9] w-full rounded-[16px] border border-app-line object-cover" />
           ) : (
-            <div className="grid aspect-[16/9] w-full place-items-center rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas text-[13.5px] text-app-ink-soft">No picture yet</div>
+            <div className="grid aspect-[16/9] w-full place-items-center rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas text-[13.5px] text-app-ink-soft">{t("ed.noPicture")}</div>
           )}
           <div className="flex flex-wrap gap-2">
             <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong focus-within:border-app-ink">
-              {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={15} />} {item.featuredImage ? "Replace" : "Upload"}
+              {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={15} />} {item.featuredImage ? t("ed.replace") : t("ed.upload")}
               <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(e) => void uploadFeatured(e.target.files?.[0])} />
             </label>
-            {item.featuredImage && <button type="button" onClick={() => set({ featuredImage: null })} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"><Icon name="trash" size={15} /> Remove</button>}
+            {item.featuredImage && <button type="button" onClick={() => set({ featuredImage: null })} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"><Icon name="trash" size={15} /> {t("ed.remove")}</button>}
           </div>
           {errors.featuredImage && <p className="m-0 text-[13px] text-app-danger" role="alert">{errors.featuredImage}</p>}
           {item.createdBy === "peggy" || item.createdBy === "rex" || item.createdBy === "import" ? (
-            <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{item.createdBy === "import" ? "Copied from your old blog." : `Drafted by ${item.createdBy === "peggy" ? "Peggy" : "Rex"}. Check it before you publish.`}</p>
+            <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{item.createdBy === "import" ? t("ed.fromOldBlog") : t("ed.draftedBy", { who: item.createdBy === "peggy" ? "Peggy" : "Rex" })}</p>
           ) : null}
         </section>
       </div>

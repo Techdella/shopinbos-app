@@ -1,0 +1,42 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const yo: Partial<Record<keyof typeof en, string>> = {
+  "metaTitle": "Affiliates",
+  "title": "Àwọn creator àti affiliates",
+  "sub": "Fún creator ní link tirẹ̀. Tí ẹnìkan bá rà nípasẹ̀ rẹ̀ tí order náà sì dé, wọ́n á gba ìpín. Ìwọ lo máa san án fún wọn, àwa á máa ka iye rẹ̀.",
+  "myShop": "ṣọ́ọ̀bù mi",
+  "err.add": "A kò lè fi creator yìí kún un.",
+  "err.update": "A kò lè ṣàtúnṣe creator yìí.",
+  "err.copy": "Kò lè daakọ. Yan link náà kí o daakọ rẹ̀.",
+  "add.title": "Fi creator kún un",
+  "add.name": "Orúkọ",
+  "add.namePlaceholder": "bí àpẹẹrẹ Tolu Styles",
+  "add.whatsapp": "WhatsApp (tí o bá fẹ́)",
+  "add.rate": "Ohun tí wọ́n á gbà (%)",
+  "add.create": "Ṣe link",
+  "invite": "Báwo {name}! Link {store} rẹ nìyí: {link}\nO máa gba {rate}% lórí gbogbo order tó bá wá láti ibẹ̀ tí ó bá ti dé. A máa ń sanwó ní ọjọ́ Ẹtì.",
+  "rateCode": "{rate}% lórí order kọ̀ọ̀kan tó dé · code {code}",
+  "linkOn": "Link wà ní títàn",
+  "linkOff": "Link ti pa",
+  "linkIsOn": "Link {name} wà ní títàn",
+  "linkIsOff": "Link {name} ti pa",
+  "sendWhatsApp": "Fi ránṣẹ́ lórí WhatsApp",
+  "stat.orders": "Àwọn order",
+  "stat.sales": "Ọjà tí a tà tó ti dé",
+  "stat.pending": "Ń dúró de ìfijíṣẹ́",
+  "stat.paid": "Iye tí o ti san",
+  "youOwe": "O jẹ {amount}",
+  "payBy": "San owó {name} kí {date} tó dé, lẹ́yìn náà sàmì sí i pé o ti san.",
+  "markPaid": "Sàmì sí i pé o ti san",
+  "order.paid": "ti san",
+  "order.owed": "o jẹ",
+  "order.none": "kò sí commission",
+  "order.after": "lẹ́yìn ìfijíṣẹ́",
+  "confirmRemove": "Yọ {name} kúrò? Link wọn á dúró. Àwọn order tí wọ́n mú wá á ṣì wà nínú ìtàn rẹ.",
+  "removeCreator": "Yọ creator kúrò",
+  "owedTotal": "O jẹ àwọn creator {amount} lápapọ̀ fún àwọn order tó ti dé. Ọjọ́ ìsanwó ni {date}.",
+  "emptyBody": "Fi creator kún un lókè láti gba link wọn. Ẹnikẹ́ni tó bá rà nípasẹ̀ rẹ̀ láàárín ọjọ́ 30 á kà, wọ́n á sì gba owó nígbà tí order bá dé.",
+};
+
+export default yo;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySvixSignature } from "@/lib/inbox/pure";
 import { e164 } from "@/lib/sms/pure";
-import { sendPlatformSms } from "@/lib/sms";
+import { deliverSignInCode } from "@/lib/auth/otp-delivery.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
 // own, and we send it with the platform's Termii / Africa's Talking / Sendchamp account (SMS_PROVIDER order, with
 // failover). Requests are signed the Standard Webhooks way (webhook-id, webhook-timestamp, webhook-signature)
 // with SUPABASE_SEND_SMS_HOOK_SECRET ("v1,whsec_…" from Auth → Hooks). scripts/configure-supabase-auth.mjs
-// switches the hook on. Codes go by SMS whichever channel was asked for; none of these providers sends
-// WhatsApp sign-in codes through this hook.
+// switches the hook on. Supabase always asks for SMS; the channel the person chose is noted by /api/auth/otp, and
+// deliverSignInCode sends on WhatsApp (Termii or Sendchamp, when AUTH_OTP_WHATSAPP=1) with SMS as the fallback
+// (src/lib/auth/otp-channel.ts). Twilio is never used.
 
 function hookError(status: number, message: string) {
   return NextResponse.json({ error: { http_code: status, message } }, { status });
@@ -38,10 +39,10 @@ export async function POST(req: NextRequest) {
   const otp = payload.sms?.otp?.replace(/\D/g, "");
   if (!phone || !otp) return hookError(400, "No phone number or code in the request.");
 
-  const sent = await sendPlatformSms({ to: [phone], body: `Your Shopinbos code is ${otp}. Don't share it with anyone.` });
+  const sent = await deliverSignInCode(phone, otp);
   if (!sent.ok) {
     console.error("[supabase-sms] couldn't send a sign-in code", sent.error);
-    return hookError(502, "We couldn't send the code by SMS. Try again or use email.");
+    return hookError(502, "We couldn't send the code. Try again or use email.");
   }
   return NextResponse.json({}, { status: 200 });
 }

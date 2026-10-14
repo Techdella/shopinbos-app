@@ -1,4 +1,5 @@
 import "expo-sqlite/localStorage/install";
+import type { TFunction } from "@shared/i18n";
 import type { Dashboard } from "./dashboard";
 
 // What the app remembers between launches on this phone, per signed-in seller:
@@ -72,18 +73,19 @@ export function clearLaunchCache() {
   }
 }
 
-/** "just now", "2 min ago", "3 hours ago", "yesterday", "4 days ago". */
-export function timeAgo(since: number, now = Date.now()) {
+/** "just now", "2 min ago", "3 hours ago", "yesterday", "4 days ago" (m_home "ago.*" in the app language when `t` is given). */
+export function timeAgo(since: number, now = Date.now(), t?: Pick<TFunction, "dynamic">) {
+  const say = (key: string, english: string, count?: number) => (t ? t.dynamic(key, english, { count }) : english);
   const minutes = Math.max(0, Math.floor((now - since) / 60_000));
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return say("ago.justNow", "just now");
+  if (minutes < 60) return say("ago.minutes", `${minutes} min ago`, minutes);
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  if (hours < 24) return say("ago.hours", `${hours} hour${hours === 1 ? "" : "s"} ago`, hours);
   const days = Math.floor(hours / 24);
-  return days === 1 ? "yesterday" : `${days} days ago`;
+  return days === 1 ? say("ago.yesterday", "yesterday") : say("ago.days", `${days} days ago`, days);
 }
 
-/** Short, practical tips Peggy shows while the shop opens. */
+/** Short, practical tips Peggy shows while the shop opens (translated as m_home "tip.1"… "tip.6", in this order). */
 export const PEGGY_TIPS = [
   "Reply to WhatsApp chats within the hour. Quick replies turn more questions into orders.",
   "Put a price on every product. Buyers scroll past “DM for price”.",

@@ -2,8 +2,12 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { ResetPasswordScreen } from "@/components/auth/app/PasswordScreens";
 import { currentSession, getAuthRouteClient, isRecoverySession } from "@/lib/auth/session.server";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Choose a new password" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("auth");
+  return { title: t("reset.metaTitle") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

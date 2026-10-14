@@ -175,6 +175,8 @@ async function notifySeller(storeId: string, conversationId: string, channel: In
     actionLabel: "Reply",
     actionUrl: `/home/messages?c=${conversationId}`,
     metadata: { source: "inbox", channel, conversationId },
+    event: "customer.message",
+    dedupeKey: false,
   }).catch((error) => console.error("[inbox] notification failed", error));
 }
 
@@ -507,6 +509,7 @@ async function maybeWhatsAppBot(
         actionLabel: "Reply",
         actionUrl: `/home/messages?c=${conversation.id}`,
         metadata: { source: "whatsapp-bot", conversationId: conversation.id },
+        event: "customer.message",
       }).catch((error) => console.error("[inbox] order request notification failed", error));
     }
   }
@@ -529,6 +532,8 @@ async function handOff(storeId: string, conversationId: string, tags: string[], 
     actionLabel: "Reply",
     actionUrl: `/home/messages?c=${conversationId}`,
     metadata: { source: "chatbot", conversationId },
+    event: "customer.message",
+    urgent: false,
   }).catch((error) => console.error("[inbox] hand-off notification failed", error));
 }
 

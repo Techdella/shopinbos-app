@@ -4,6 +4,7 @@ import { withAdmin } from "@/lib/auth/middleware";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { notifyVerificationDecision } from "@/lib/notifications/events.server";
 
 const SupplierModerationSchema = z.object({
   action: z.enum(["approve", "reject", "suspend", "activate"]),
@@ -40,11 +41,13 @@ export const PATCH = withAdmin(async (req: NextRequest, { params }) => {
       status: true,
       trustScore: true,
       updatedAt: true,
+      userId: true,
     },
   }).catch(() => null);
 
   if (!supplier) return apiError("NOT_FOUND", "Supplier not found", 404);
 
   invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+  if ("verificationStatus" in data) await notifyVerificationDecision({ userId: supplier.userId, status: supplier.verificationStatus, portal: "supplier" });
   return ok(supplier);
 });

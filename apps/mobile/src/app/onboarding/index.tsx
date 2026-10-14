@@ -5,10 +5,13 @@ import Svg, { Path } from "react-native-svg";
 import { ONBOARDING_LANGUAGES, REX_GREETING, SELL_EXAMPLES, START_PATHS, type StartPath } from "@shared/onboarding";
 import { Chip, Mascot, T } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
+import { OnboardingWelcome, onboardingWelcomeSeen } from "@/components/OnboardingWelcome";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { askRex, saveMemory } from "@/lib/onboarding";
 import { colors, fonts, radii } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
+import { localeFromName } from "@shared/i18n";
+import { useLocale, useSetLocale, useT } from "@/lib/i18n";
 
 interface Turn {
   from: "rex" | "me";
@@ -16,12 +19,26 @@ interface Turn {
 }
 
 export default function Chat() {
-  const { status, lang, setLang, description, setDescription } = useOnboarding();
+  const { status, lang, setLang: setRexLang, description, setDescription } = useOnboarding();
+  // One choice for Rex's chat language and the app language (shared/i18n).
+  const appLocale = useLocale();
+  const setAppLocale = useSetLocale();
+  const tSettings = useT("settings");
+  const t = useT("m_onboarding", "common");
+  const setLang = (item: (typeof ONBOARDING_LANGUAGES)[number]) => {
+    setRexLang(item);
+    const locale = localeFromName(item);
+    if (locale && locale !== appLocale) void setAppLocale(locale);
+  };
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>(() => (description ? [{ from: "me", text: description }] : []));
   const [thinking, setThinking] = useState(false);
-  const name = status?.ownerName.split(/\s+/)[0] || "there";
+  const name = status?.ownerName.split(/\s+/)[0] || t("chat.there");
   const answered = turns.some((turn) => turn.from === "rex") || (turns.length > 0 && !thinking);
+  // First visit: "Welcome to Shopinbos, {name}" with Rex's hello clip, then the chat (Prototype 10).
+  const [intro, setIntro] = useState(() => !description && !onboardingWelcomeSeen());
+
+  if (intro) return <OnboardingWelcome name={status?.ownerName} onDone={() => setIntro(false)} />;
 
   async function send() {
     const message = draft.trim();
@@ -32,9 +49,9 @@ export default function Chat() {
     setThinking(true);
     try {
       const result = await askRex(message, { businessDescription: message, languages: [lang], preferredName: status?.ownerName });
-      setTurns((current) => [...current, { from: "rex", text: `${result.reply ?? "Love it."} Where are you starting from?` }]);
+      setTurns((current) => [...current, { from: "rex", text: `${result.reply ?? t("chat.loveIt")} ${t("chat.whereFrom")}` }]);
     } catch {
-      setTurns((current) => [...current, { from: "rex", text: "Got it. Where are you starting from?" }]);
+      setTurns((current) => [...current, { from: "rex", text: `${t("chat.gotIt")} ${t("chat.whereFrom")}` }]);
     } finally {
       setThinking(false);
     }
@@ -56,9 +73,9 @@ export default function Chat() {
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Type what you sell"
+            placeholder={t("chat.placeholder")}
             placeholderTextColor={colors.inkFaint}
-            accessibilityLabel="Tell Rex what you sell"
+            accessibilityLabel={t("chat.label")}
             onSubmitEditing={() => void send()}
             returnKeyType="send"
             style={{ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 20, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
@@ -66,7 +83,7 @@ export default function Chat() {
           <VoiceInput variant="icon" value={draft} onChange={setDraft} language={lang} context="what their shop sells" />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Send"
+            accessibilityLabel={t("send")}
             disabled={!draft.trim() || thinking}
             onPress={() => void send()}
             style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || thinking ? 0.5 : 1 }}
@@ -87,6 +104,7 @@ export default function Chat() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
         {ONBOARDING_LANGUAGES.map((item) => <Chip key={item} label={item} on={lang === item} onPress={() => setLang(item)} />)}
       </View>
+      <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 8 }}>{tSettings("language.onboarding")}</T>
       <View style={{ gap: 12, marginTop: 18 }}>
         {turns.map((turn, index) =>
           turn.from === "me" ? (
@@ -102,11 +120,11 @@ export default function Chat() {
             </View>
           ),
         )}
-        {thinking && <T style={{ color: colors.inkSoft }}>Rex is thinking…</T>}
+        {thinking && <T style={{ color: colors.inkSoft }}>{t("chat.thinking")}</T>}
       </View>
       {!turns.length && (
         <Pressable onPress={() => setDraft(SELL_EXAMPLES[lang])} style={{ marginTop: 14 }}>
-          <T style={{ color: colors.inkSoft, fontSize: 14, textDecorationLine: "underline" }}>Example: {SELL_EXAMPLES[lang]}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14, textDecorationLine: "underline" }}>{t("chat.example", { example: SELL_EXAMPLES[lang] })}</T>
         </Pressable>
       )}
       {answered && (
@@ -117,8 +135,8 @@ export default function Chat() {
                 <T style={{ fontSize: 16 }}>{index + 1}</T>
               </View>
               <View>
-                <T weight="extrabold" style={{ fontSize: 15 }}>{path.label}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{path.hint}</T>
+                <T weight="extrabold" style={{ fontSize: 15 }}>{t.dynamic(`path.${path.key}.label`, path.label)}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t.dynamic(`path.${path.key}.hint`, path.hint)}</T>
               </View>
             </Pressable>
           ))}

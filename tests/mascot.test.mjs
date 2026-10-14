@@ -81,13 +81,14 @@ test("reduce motion and low-end Android fall back to the still", () => {
 
   const web = readFileSync(WEB_COMPONENT, "utf8");
   assert.match(web, /prefers-reduced-motion: reduce/);
-  assert.match(web, /shouldAnimate\(source, \{ reducedMotion \}\)/);
+  assert.match(web, /shouldAnimate\(source, \{ reducedMotion, size: renderedSize \}\)/);
+  assert.match(web, /ResizeObserver/, "web: className-sized mascots are measured for the sticker size gate");
   assert.match(readFileSync("src/components/brand/mascot.css", "utf8"), /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation: none/);
   const native = readFileSync(NATIVE_COMPONENT, "utf8");
   assert.match(native, /AccessibilityInfo\.isReduceMotionEnabled\(\)/);
   assert.match(native, /reduceMotionChanged/);
   assert.match(native, /isLowEndAndroid\(Platform\.OS, Device\.totalMemory\)/);
-  assert.match(native, /shouldAnimate\(source, \{ reducedMotion, lowEndDevice: LOW_END \}\)/);
+  assert.match(native, /shouldAnimate\(source, \{ reducedMotion, lowEndDevice: LOW_END, size \}\)/);
 });
 
 test("the manifest gate: a file that is not listed (or has no renderer) falls back to the still", () => {
@@ -127,8 +128,10 @@ test("the old Mascot exports keep working and map onto the shared component", ()
 
 test("moods follow the spec where the app knows the state", () => {
   const read = (file) => readFileSync(file, "utf8");
-  assert.match(read("src/components/auth/app/AppAuth.tsx"), /<Mascot name="rex" mood="wave"/, "Welcome: Rex waves");
-  assert.match(read("apps/mobile/src/app/welcome.tsx"), /<Mascot name="rex" mood="wave"/);
+  assert.match(read("src/components/auth/app/AppAuth.tsx"), /<MascotVideo clip="peggy-hello"/, "Welcome: Peggy's hello clip (Prototype 10)");
+  assert.match(read("src/components/auth/app/AppAuth.tsx"), /<MascotVideo clip="rex-hello"/, "Welcome to Shopinbos: Rex's hello clip");
+  assert.match(read("src/components/auth/app/AuthShowcasePanel.tsx"), /mood=\{who === "rex" \? "celebrate" : "wave"\} size=\{190\}/, "the panel's sticker: Rex cheers on sign-up, Peggy waves on sign-in");
+  assert.match(read("apps/mobile/src/app/welcome.tsx"), /<MascotVideo clip="peggy-hello"/, "phone welcome: Peggy's hello clip (Prototype 10)");
   assert.match(read("src/components/shell/SupportChatModal.tsx"), /<Mascot name="peggy" mood="wave"/, "Help sheet: Peggy waves");
   assert.match(read("src/app/home/page.tsx"), /mood=\{isPeggyNight\(\) \? "sleep" : "idle"\}/, "night-time Home: Peggy sleeps");
   assert.match(read("apps/mobile/src/app/(tabs)/home.tsx"), /mood=\{isPeggyNight\(\) \? "sleep" : "idle"\}/);
@@ -140,4 +143,80 @@ test("moods follow the spec where the app knows the state", () => {
   assert.equal(m.isPeggyNight(new Date("2026-10-12T04:59:00Z")), true, "5:59am Lagos");
   assert.equal(m.isPeggyNight(new Date("2026-10-12T05:00:00Z")), false, "6am Lagos");
   assert.equal(m.isPeggyNight(new Date("2026-10-12T12:00:00Z")), false, "1pm Lagos");
+});
+
+test("animated WebP stickers: an 'image' kind, only at 96 px and up, never under reduced motion, and they loop", () => {
+  const files = { files: ["peggy-wave.webp", "rex-celebrate.webp"] };
+  assert.deepEqual(m.mascotAnimation("peggy", "wave", files, { image: true }), { kind: "image", file: "peggy-wave.webp" });
+  assert.deepEqual(m.mascotAnimation("rex", "celebrate", files, { image: true, lottie: true }), { kind: "image", file: "rex-celebrate.webp" });
+  assert.equal(m.mascotAnimation("rex", "wave", files, { image: true }), null, "no rex-wave.webp: the still");
+  assert.equal(m.mascotAnimation("peggy", "wave", files, { lottie: true }), null, "no image renderer: the still");
+  assert.deepEqual(m.mascotAnimation("peggy", "wave", { files: ["peggy-wave.json", "peggy-wave.webp"] }, { image: true, lottie: true }), { kind: "lottie", file: "peggy-wave.json" }, "Lottie before WebP");
+
+  const sticker = { kind: "image", file: "peggy-wave.webp" };
+  assert.equal(m.MASCOT_IMAGE_MIN_SIZE, 96);
+  assert.equal(m.shouldAnimate(sticker, { reducedMotion: false, size: 96 }), true);
+  assert.equal(m.shouldAnimate(sticker, { reducedMotion: false, size: 150 }), true);
+  assert.equal(m.shouldAnimate(sticker, { reducedMotion: false, size: 56 }), false, "small avatars keep the still");
+  assert.equal(m.shouldAnimate(sticker, { reducedMotion: false }), false, "unknown size keeps the still");
+  assert.equal(m.shouldAnimate(sticker, { reducedMotion: true, size: 150 }), false, "reduce motion: the still");
+  assert.equal(m.shouldAnimate(sticker, { reducedMotion: false, lowEndDevice: true, size: 150 }), false, "low-end phone: the still");
+  assert.equal(m.shouldAnimate({ kind: "lottie", file: "rex-idle.json" }, { reducedMotion: false, size: 20 }), true, "the size gate is only for stickers");
+  assert.equal(m.loopsForever(sticker), true);
+  assert.equal(m.loopsForever({ kind: "lottie", file: "rex-celebrate.json" }), false);
+  assert.equal(m.loopsForever(null), false);
+
+  // Both stickers are listed for web and mobile, and the script accepts .webp (and skips the -poster.png files).
+  for (const dir of ["public/brand/mascots/anim", "apps/mobile/assets/mascots"]) {
+    const listed = JSON.parse(readFileSync(`${dir}/mascots.json`, "utf8")).files;
+    assert.ok(listed.includes("peggy-wave.webp") && listed.includes("rex-celebrate.webp"), `${dir} lists the stickers`);
+    assert.ok(!listed.some((file) => file.includes("poster")), "posters are not animations");
+  }
+  assert.match(readFileSync("scripts/mascots-manifest.mjs", "utf8"), /\(json\|webp\)/);
+
+  // Web: the image renderer is on and draws a plain <img>; Lottie stays in its own lazy chunk.
+  const web = readFileSync(WEB_COMPONENT, "utf8");
+  assert.match(web, /image: true/);
+  assert.match(web, /loopsForever\(source\)/);
+  const anim = readFileSync("src/components/brand/MascotAnimation.tsx", "utf8");
+  assert.match(anim, /source\.kind === "image"/);
+  assert.match(anim, /lazy\(\(\) => import\("lottie-react"\)/);
+  // Native: expo-image renders the sticker and is registered as the image renderer.
+  const native = readFileSync(NATIVE_COMPONENT, "utf8");
+  assert.match(native, /\{ image: MascotImage \}/);
+  assert.match(native, /loopsForever\(source\)/);
+});
+
+test("<MascotVideo>: three studio clips in a fading spotlight, poster first, muted, looped, still under reduced motion", () => {
+  assert.deepEqual([...m.MASCOT_CLIPS], ["peggy-hello", "rex-hello", "rex-thumbs"]);
+  for (const clip of m.MASCOT_CLIPS) {
+    assert.match(m.MASCOT_CLIP_INFO[clip].backdrop, /^#[0-9A-F]{6}$/i, `${clip} backdrop`);
+    assert.equal(m.mascotClipLabel(clip), clip.startsWith("peggy") ? "Peggy" : "Rex");
+    for (const ext of ["mp4", "webm"]) assert.ok(existsSync(`public/brand/mascots/video/${clip}.${ext}`), `web ${clip}.${ext}`);
+    assert.ok(existsSync(`public/brand/mascots/video/${clip}-poster.jpg`), `web ${clip} poster`);
+    assert.ok(existsSync(`apps/mobile/assets/mascots/video/${clip}.mp4`), `mobile ${clip}.mp4`);
+    assert.ok(existsSync(`apps/mobile/assets/mascots/video/${clip}-poster.jpg`), `mobile ${clip} poster`);
+  }
+  const web = readFileSync("src/components/brand/MascotVideo.tsx", "utf8");
+  assert.match(web, /maskImage/, "web: the grey studio background fades into the page");
+  assert.match(web, /radial-gradient/);
+  for (const attr of [/\bmuted\b/, /\bloop\b/, /\bplaysInline\b/, /poster=\{poster\}/]) assert.match(web, attr);
+  assert.match(web, /usePrefersReducedMotion\(\)/, "web: reduced motion shows the poster");
+  assert.match(web, /IntersectionObserver/, "web: lazy, and pauses offscreen");
+  assert.match(web, /visibilitychange/, "web: pauses in a hidden tab");
+  const native = readFileSync("apps/mobile/src/components/MascotVideo.tsx", "utf8");
+  assert.match(native, /from "expo-video"/);
+  assert.match(native, /\.loop = true/);
+  assert.match(native, /\.muted = true/);
+  assert.match(native, /useReduceMotion\(\)/, "phone: Reduce Motion shows the poster");
+  assert.match(native, /useFocusEffect/, "phone: pauses when the screen loses focus");
+  assert.match(native, /AppState/, "phone: pauses in the background");
+  assert.match(native, /RadialGradient/, "phone: the spotlight rim");
+  assert.match(native, /surfaceType="textureView"/, "Android: the round clip only works on a texture view");
+
+  // Where the clips play on the phone (Prototype 10).
+  assert.match(readFileSync("apps/mobile/src/components/AuthForm.tsx", "utf8"), /mode === "login" && <MascotVideo clip="peggy-hello"/, "Welcome back: Peggy");
+  assert.match(readFileSync("apps/mobile/src/components/OnboardingWelcome.tsx", "utf8"), /<MascotVideo clip="rex-hello"/, "onboarding welcome: Rex");
+  assert.match(readFileSync("apps/mobile/src/app/onboarding/index.tsx", "utf8"), /<OnboardingWelcome /);
+  assert.match(readFileSync("apps/mobile/src/app/onboarding/live.tsx", "utf8"), /<MascotVideo clip="rex-thumbs"/, "shop ready: Rex thumbs up");
 });

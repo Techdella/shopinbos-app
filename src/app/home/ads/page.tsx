@@ -4,12 +4,17 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { getSellerAds, sellerWhatsapp } from "@/lib/ads";
 import { AdsManager } from "./AdsManager";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Ads" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("ads");
+  return { title: t("title") };
+}
 
 export default async function AdsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("ads");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const [ads, products, whatsapp] = store
     ? await Promise.all([
@@ -28,8 +33,8 @@ export default async function AdsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Ads"
-      sub="Pick a product and Peggy writes the ad. You run it on Instagram, Facebook or TikTok with its tracking link, and we count the taps and orders so you know when to stop or spend more."
+      title={t("title")}
+      sub={t("sub")}
     >
       <AdsManager
         storeName={store?.name ?? ""}

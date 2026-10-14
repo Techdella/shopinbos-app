@@ -5,12 +5,17 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote } from "@/components/app-kit";
 import { listSegments } from "@/lib/marketing/segments";
 import { SegmentsManager } from "./SegmentsManager";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Groups of customers" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("hub.tool.segments") };
+}
 
 export default async function SegmentsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const [segments, products, tagRows] = store
     ? await Promise.all([
@@ -22,14 +27,14 @@ export default async function SegmentsPage() {
   const tags = [...new Set(tagRows.flatMap((row) => row.tags))].sort();
 
   return (
-    <SellerPage user={user} store={storeSummary(store)} title="Groups of customers" sub="Customers grouped by what they spend, buy, where they live and how they joined. Counts are live.">
+    <SellerPage user={user} store={storeSummary(store)} title={t("hub.tool.segments")} sub={t("seg.sub")}>
       <div className="grid gap-5">
         <SegmentsManager
           segments={segments.map((s) => ({ id: s.id, name: s.name, description: s.description, rules: s.rules, summary: s.summary, count: s.count }))}
           products={products}
           tags={tags}
         />
-        <AssistantNote>Ask Peggy “make a group of people in Lagos who spent over ₦50,000” and she'll build it for you.</AssistantNote>
+        <AssistantNote>{t("seg.peggyNote")}</AssistantNote>
       </div>
     </SellerPage>
   );

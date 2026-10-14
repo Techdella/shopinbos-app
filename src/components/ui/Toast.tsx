@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 type ToastVariant = "success" | "error" | "info" | "warning";
 
@@ -33,6 +34,7 @@ const variantStyles: Record<ToastVariant, { bg: string; icon: IconName; border: 
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const t = useT("ui", "common");
 
   const addToast = useCallback((message: string, variant: ToastVariant = "info") => {
     const id = Math.random().toString(36).slice(2);
@@ -49,12 +51,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function handleToast(event: Event) {
       const custom = event as CustomEvent<{ message?: string; variant?: ToastVariant }>;
-      addToast(custom.detail?.message ?? "Done", custom.detail?.variant ?? "info");
+      addToast(custom.detail?.message ?? t("done"), custom.detail?.variant ?? "info");
     }
 
     window.addEventListener("shopinbos:toast", handleToast);
     return () => window.removeEventListener("shopinbos:toast", handleToast);
-  }, [addToast]);
+  }, [addToast, t]);
 
   return (
     <ToastContext.Provider value={{ toast: addToast }}>
@@ -63,10 +65,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         position: "fixed", bottom: 20, right: 20, zIndex: 9999,
         display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none",
       }}>
-        {toasts.map((t) => {
-          const s = variantStyles[t.variant];
+        {toasts.map((toast) => {
+          const s = variantStyles[toast.variant];
           return (
-            <div key={t.id} style={{
+            <div key={toast.id} style={{
               background: s.bg, border: `1px solid ${s.border}`,
               borderRadius: 10, padding: "10px 14px", maxWidth: 360,
               display: "flex", alignItems: "center", gap: 10,
@@ -75,8 +77,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animation: "toast-in 0.2s ease-out",
             }}>
               <Icon name={s.icon} size={16} color={s.border} />
-              <span style={{ fontSize: 13, lineHeight: 1.4, flex: 1 }}>{t.message}</span>
-              <button onClick={() => removeToast(t.id)} style={{
+              <span style={{ fontSize: 13, lineHeight: 1.4, flex: 1 }}>{toast.message}</span>
+              <button type="button" aria-label={t("dismiss")} onClick={() => removeToast(toast.id)} style={{
                 background: "none", border: "none", cursor: "pointer", padding: 2,
               }}>
                 <Icon name="x" size={14} color="var(--ink-500)" />

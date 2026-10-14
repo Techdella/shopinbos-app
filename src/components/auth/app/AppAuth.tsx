@@ -1,31 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+// Sign up and sign in (Prototype 10). One page for phones and computers: a white column with the form, and on wide
+// screens the dark green AuthShowcasePanel beside it.
+//
+// Screens: welcome (phone-only front door with Peggy's hello clip) → details (role, phone or email) → code
+// ("Check your WhatsApp" / "Check your messages" / "Check your email", from the channel the server really used) →
+// name (brand-new accounts only: "Number confirmed · What should we call you?") → ready (new sellers: "Welcome to
+// Shopinbos, {name}" with Rex's hello clip and a filling bar, then Rex's first run at /onboarding).
+//
+// Phone codes go on WhatsApp when the server has it switched on (GET /api/auth/otp → { whatsapp }), with SMS as the
+// fallback; "No WhatsApp on this number? Send it by SMS" forces SMS. The wording only promises WhatsApp when it is
+// available, and the code screen follows the channel the server reports.
+
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { LanguagePicker } from "@/components/i18n/LanguagePicker";
+import { useT } from "@/components/i18n/I18nProvider";
 import { SupportRequestPanel } from "@/components/support/SupportRequestPanel";
-import { roleDestination, roleLabel, type AuthRole } from "@/lib/brand";
-import { getPublicEnv } from "@/lib/env";
+import { MascotVideo } from "@/components/brand/MascotVideo";
+import { roleDestination, type AuthRole } from "@/lib/brand";
 import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
 import intentRouting from "@/lib/intent-routing";
 import { safeNextPath } from "@/lib/auth/route-access";
-import { DEFAULT_DIAL_COUNTRY, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
+import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
+import { CodeInput, cx, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/components/app-ui";
+import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import {
-  BackButton,
-  CodeInput,
-  cx,
-  FieldLabel,
-  GoogleMark,
-  Mascot,
-  Notice,
-  PhoneInput,
-  PillButton,
-  Segmented,
-  TextInput,
-  Wordmark,
-} from "@/components/app-ui";
-import {
+  fetchWhatsAppCodes,
   friendlyNetworkError,
   navigateAfterAuth,
   sendCode,
@@ -33,50 +36,22 @@ import {
   signInWithPassword,
   syncSession,
   verifyCode,
+  type CodeChannel,
   type CodeTarget,
   type SignupRole,
 } from "./auth-api";
+import "./auth-showcase.css";
 
 const { extractIntentParams, getContinuationPath } = intentRouting;
 
 type Mode = "login" | "signup";
-type Screen = "welcome" | "details" | "code";
+type Screen = "welcome" | "details" | "code" | "name" | "ready";
 type Method = "phone" | "email";
 
-interface RoleCopy {
-  tab: string;
-  title: string;
-  sub: string;
-  next: string[];
-}
-
-const ROLE_COPY: Record<SignupRole, RoleCopy> = {
-  seller: {
-    tab: "I sell",
-    title: "Start your shop",
-    sub: "Rex will have your store ready in a few minutes. You can go live before you add a bank account.",
-    next: [
-      "Rex asks what you sell and how it should feel",
-      "You pick a logo, colours and a template",
-      "Add your first products from photos",
-      "Share your link and take orders",
-    ],
-  },
-  supplier: {
-    tab: "I supply shops",
-    title: "Supply shops across Nigeria",
-    sub: "List your stock once. Sellers order wholesale or dropship, and you ship straight to their customers.",
-    next: ["Tell us what you supply and where", "Add products with photos and prices", "Get verified so shops trust you", "Take wholesale and dropship orders"],
-  },
-  logistics_partner: {
-    tab: "I deliver",
-    title: "Deliver for Shopinbos shops",
-    sub: "Get delivery jobs from shops near you. Set your areas and prices; we send you the bookings.",
-    next: ["Tell us where you deliver", "Set your prices and vehicles", "Get verified", "Accept bookings and get paid"],
-  },
-};
-
 const SIGNUP_ROLES: SignupRole[] = ["seller", "supplier", "logistics_partner"];
+
+/** How long "Welcome to Shopinbos, {name}" shows before Rex's first run. */
+const READY_MS = 3200;
 
 function buildNextUrl(role: AuthRole, mode: Mode, searchParams: URLSearchParams) {
   // Same-site paths only, so a crafted ?next= can't bounce someone to another site after they sign in.
@@ -149,24 +124,54 @@ function useIntentProduct(productSlug: string | null) {
   return product;
 }
 
+/** Can phone codes go by WhatsApp? null while asking the server. */
+function useWhatsAppCodes(enabled: boolean) {
+  const [available, setAvailable] = useState<boolean | null>(enabled ? null : false);
+  useEffect(() => {
+    if (!enabled) return;
+    let live = true;
+    void fetchWhatsAppCodes().then((value) => live && setAvailable(value));
+    return () => {
+      live = false;
+    };
+  }, [enabled]);
+  return available;
+}
+
+/** 🇳🇬 from "NG". */
+function flagOf(code: string) {
+  return code.toUpperCase().replace(/[A-Z]/g, (letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)));
+}
+
+/** +234 803 ••• 790: enough to recognise the number, not enough to read it over a shoulder. */
+function maskedPhone(e164: string) {
+  const pretty = formatE164(e164);
+  const parts = pretty.split(" ");
+  if (parts.length < 4) return pretty;
+  return [...parts.slice(0, 2), "•••", ...parts.slice(3)].join(" ");
+}
+
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] ?? "";
+}
+
 export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
+  const t = useT("auth", "common");
   const searchParams = useSearchParams();
   const desktop = useIsDesktop();
   const params = useMemo(() => new URLSearchParams(searchParams.toString()), [searchParams]);
   const nextUrl = useMemo(() => buildNextUrl(role, mode, params), [role, mode, params]);
   const isAdmin = role === "admin";
   const signupRole: SignupRole = isAdmin ? "seller" : role;
-  const copy = ROLE_COPY[signupRole];
   const productSlug = params.get("productSlug");
   const intentProduct = useIntentProduct(productSlug);
   const hasIntent = Boolean(params.get("intent") || productSlug || params.get("supplierSlug") || params.get("logisticsSlug"));
   const callbackError = params.get("error");
+  const whatsapp = useWhatsAppCodes(!isAdmin);
 
   const [screen, setScreen] = useState<Screen>(mode === "signup" && !hasIntent ? "welcome" : "details");
   const [method, setMethod] = useState<Method>(isAdmin || params.get("method") === "email" ? "email" : "phone");
   const [emailMode, setEmailMode] = useState<"code" | "password">(isAdmin ? "password" : "code");
-  // Phone codes go by SMS (the Supabase Send SMS hook, /api/webhooks/supabase-sms); there is no WhatsApp code path.
-  const via = "sms" as const;
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
   const [phone, setPhone] = useState("");
@@ -174,20 +179,23 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [target, setTarget] = useState<CodeTarget | null>(null);
-  const [busy, setBusy] = useState<null | "send" | "verify" | "password" | "google">(null);
+  const [channel, setChannel] = useState<CodeChannel>("sms");
+  // After a code is accepted for a brand-new account: the session waits here while they type their name.
+  const [pending, setPending] = useState<{ accessToken: string | null; phone?: string } | null>(null);
+  const [busy, setBusy] = useState<null | "send" | "sms" | "verify" | "password" | "google" | "name">(null);
   const [error, setError] = useState<string | null>(
-    callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code" ? "That sign-in link has expired. Please try again." : null,
+    callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code" ? t("error.linkExpired") : null,
   );
   const [info, setInfo] = useState<string | null>(
     params.get("reason") === "expired"
-      ? "For your security, you've been logged out after a while. Log in again to carry on."
+      ? t("info.expired")
       : params.get("signedOut") === "all"
-        ? "You've been logged out on all your devices."
+        ? t("info.signedOutAll")
         : null,
   );
   const countdown = useCountdown();
 
-  // Desktop has room for the form straight away; the welcome screen is the phone-sized front door.
+  // Computers have room for the form straight away; the welcome screen is the phone-sized front door.
   const activeScreen = desktop && screen === "welcome" ? "details" : screen;
 
   function resetMessages() {
@@ -205,43 +213,44 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     setMethod(next);
   }
 
-  async function finishWithToken(accessToken: string | null, signedUpPhone?: string) {
+  async function finishWithToken(accessToken: string | null, signedUpPhone?: string, name = fullName) {
     const syncedRole = accessToken
       ? await syncSession(accessToken, {
           role,
-          fullName: fullName.trim() || undefined,
+          fullName: name.trim() || undefined,
           phone: signedUpPhone,
           source: mode === "signup" ? "signup" : undefined,
         })
       : null;
     if (mode === "signup" && syncedRole && syncedRole !== role && !isAdmin) {
-      setError(`This account already belongs to a ${roleLabel(syncedRole).toLowerCase()}. Log in to that portal instead.`);
+      setError(t(`error.otherRole.${syncedRole}`));
       setBusy(null);
       return;
     }
     const explicitNext = safeNextPath(params.get("next") ?? params.get("redirect"));
     const destination = syncedRole && syncedRole !== role && !explicitNext ? roleDestination(syncedRole) : nextUrl || roleDestination(role);
+    // A new seller sees "Welcome to Shopinbos, {name}" while Rex gets ready, then Rex's first run.
+    if (mode === "signup" && role === "seller" && destination.startsWith("/onboarding")) {
+      setScreen("ready");
+      await new Promise((resolve) => setTimeout(resolve, READY_MS));
+    }
     await navigateAfterAuth(destination);
   }
 
   async function requestCode(event?: FormEvent) {
     event?.preventDefault();
     resetMessages();
-    if (mode === "signup" && !fullName.trim()) {
-      setError("Tell us your name so Rex knows what to call you.");
-      return;
-    }
     let nextTarget: CodeTarget;
     if (method === "phone") {
       const e164 = toE164(phone, country);
       if (!e164) {
-        setError(`Enter your ${country.name} phone number, like ${country.example}.`);
+        setError(t("error.phone", { country: country.name, example: country.example }));
         return;
       }
-      nextTarget = { kind: "phone", phone: e164, via };
+      nextTarget = { kind: "phone", phone: e164, via: whatsapp ? "whatsapp" : "sms" };
     } else {
       if (!isValidEmail(email)) {
-        setError("Enter a valid email address.");
+        setError(t("error.email"));
         return;
       }
       nextTarget = { kind: "email", email: email.trim().toLowerCase() };
@@ -249,14 +258,16 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     await deliverCode(nextTarget);
   }
 
-  async function deliverCode(nextTarget: CodeTarget) {
-    setBusy("send");
+  async function deliverCode(nextTarget: CodeTarget, kind: "send" | "sms" = "send") {
+    setBusy(kind);
+    resetMessages();
     try {
-      await sendCode(nextTarget, {
+      const used = await sendCode(nextTarget, {
         create: mode === "signup",
-        profile: mode === "signup" ? { fullName: fullName.trim(), role: signupRole } : undefined,
+        profile: mode === "signup" ? { role: signupRole } : undefined,
       });
       setTarget(nextTarget);
+      setChannel(used);
       setCode("");
       setScreen("code");
       countdown.start();
@@ -272,10 +283,34 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     resetMessages();
     setBusy("verify");
     try {
-      const accessToken = await verifyCode(target, value);
-      await finishWithToken(accessToken, target.kind === "phone" ? target.phone : undefined);
+      const result = await verifyCode(target, value);
+      const signedUpPhone = target.kind === "phone" ? target.phone : undefined;
+      if (result.needsName) {
+        // Brand-new account: ask what to call them before the account row (and shop) is made with their name.
+        setPending({ accessToken: result.accessToken, phone: signedUpPhone });
+        setBusy(null);
+        setScreen("name");
+        return;
+      }
+      await finishWithToken(result.accessToken, signedUpPhone);
     } catch (verifyError) {
       setError(friendlyNetworkError(verifyError));
+      setBusy(null);
+    }
+  }
+
+  async function submitName(event: FormEvent) {
+    event.preventDefault();
+    resetMessages();
+    if (!fullName.trim()) {
+      setError(t("error.needName"));
+      return;
+    }
+    setBusy("name");
+    try {
+      await finishWithToken(pending?.accessToken ?? null, pending?.phone, fullName);
+    } catch (nameError) {
+      setError(friendlyNetworkError(nameError));
       setBusy(null);
     }
   }
@@ -284,7 +319,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     event.preventDefault();
     resetMessages();
     if (!isValidEmail(email) || !password) {
-      setError("Enter your email and password.");
+      setError(t("error.emailPassword"));
       return;
     }
     setBusy("password");
@@ -308,53 +343,34 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     }
   }
 
+  const intentQuery = new URLSearchParams(extractIntentParams(params) as Record<string, string>).toString();
   const switchHref = (() => {
-    const query = new URLSearchParams(extractIntentParams(params) as Record<string, string>).toString();
     const path = mode === "login" ? portalSignupPath(role) : portalLoginPath(role);
-    return query ? `${path}?${query}` : path;
+    return intentQuery ? `${path}?${intentQuery}` : path;
   })();
 
-  // ── Screens ────────────────────────────────────────────────────────────────
-
-  const welcome = (
-    <div className="app-wash flex min-h-dvh flex-col px-[22px] pb-[30px] pt-[22px]">
-      <Wordmark />
-      <div className="relative flex flex-1 items-center justify-center">
-        <Mascot name="rex" mood="wave" className="h-[260px] w-[260px]" />
-        <span className="absolute right-0 top-10 rounded-[20px_20px_4px_20px] bg-white px-3.5 py-2.5 text-[14px] font-bold shadow-[0_10px_30px_-12px_rgba(22,20,31,0.3)]">
-          Hi, I&apos;m Rex. I build shops.
-        </span>
-      </div>
-      <h1 className="m-0 text-[38px] font-extrabold leading-[1.02] tracking-[-1px]">Your shop, live in 10 minutes</h1>
-      <p className="mb-[22px] mt-2.5 leading-[1.5] text-app-ink-soft">Tell Rex what you sell. Sell on your own link, WhatsApp and Instagram. Free to start.</p>
-      <PillButton onClick={() => { chooseMethod("phone"); goTo("details"); }}>Start with my phone number</PillButton>
-      <PillButton tone="white" size="md" className="mt-2.5" onClick={() => { chooseMethod("email"); goTo("details"); }}>
-        Use email instead
-      </PillButton>
-      <Link href={switchHref} className="mt-1.5 grid min-h-[44px] place-items-center text-[15px] font-bold text-app-ink no-underline">
-        I already have a shop
-      </Link>
-    </div>
-  );
+  // ── Pieces ─────────────────────────────────────────────────────────────────
 
   const roleTabs = mode === "signup" && !isAdmin && (
-    <div className="mb-6 flex flex-wrap gap-1 rounded-full bg-app-canvas p-1">
+    <nav aria-label={t("roles.aria")} className="mt-7 grid grid-cols-3 gap-1 rounded-full bg-app-canvas p-1">
       {SIGNUP_ROLES.map((item) => {
-        const query = new URLSearchParams(extractIntentParams(params) as Record<string, string>).toString();
-        const href = query ? `${portalSignupPath(item)}?${query}` : portalSignupPath(item);
+        const href = intentQuery ? `${portalSignupPath(item)}?${intentQuery}` : portalSignupPath(item);
         const on = item === role;
         return (
           <Link
             key={item}
             href={href}
             aria-current={on ? "page" : undefined}
-            className={cx("rounded-full px-4 py-2.5 text-[14px] font-bold no-underline transition", on ? "bg-app-ink text-white" : "text-app-ink hover:bg-white")}
+            className={cx(
+              "grid min-h-[44px] place-items-center rounded-full px-1.5 text-center text-[13.5px] font-bold leading-tight no-underline transition sm:px-2 sm:text-[14px]",
+              on ? "bg-white text-app-ink shadow-[0_1px_3px_rgba(22,20,31,0.12)]" : "text-app-ink-soft hover:text-app-ink",
+            )}
           >
-            {ROLE_COPY[item].tab}
+            {t(`role.${item}.tab`)}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 
   const intentBanner = hasIntent && (
@@ -374,156 +390,169 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
               {intentProduct.name}
               {intentProduct.price ? ` · ₦${intentProduct.price.toLocaleString("en-NG")}` : ""}
             </div>
-            {mode === "signup" ? "After you sign up, Rex adds this to your store. You don't need to buy stock." : "After you log in, we'll take you straight back to this product."}
+            {mode === "signup" ? t("intent.signupProduct") : t("intent.loginProduct")}
           </>
         ) : (
           <>
-            <div className="text-[15px] font-bold text-app-ink">We saved where you were</div>
-            After you {mode === "signup" ? "sign up" : "log in"}, we&apos;ll take you right back to it.
+            <div className="text-[15px] font-bold text-app-ink">{t("intent.saved")}</div>
+            {mode === "signup" ? t("intent.backSignup") : t("intent.backLogin")}
           </>
         )}
       </div>
     </div>
   );
 
-  const methodTabs = !isAdmin && (
-    <Segmented
-      className={cx("mb-6", desktop && "bg-app-canvas")}
-      value={method}
-      onChange={chooseMethod}
-      options={[
-        { value: "phone", label: "Phone" },
-        { value: "email", label: "Email" },
-      ]}
-    />
-  );
-
-  const nameField = mode === "signup" && (
-    <div className="mb-5">
-      <FieldLabel htmlFor="auth-name">Your name</FieldLabel>
-      <TextInput id="auth-name" autoComplete="name" placeholder="Adaeze Okafor" value={fullName} onChange={(event) => setFullName(event.target.value)} />
-    </div>
-  );
-
   const phoneFields = (
     <>
-      <FieldLabel htmlFor="auth-phone">{mode === "signup" ? "Phone number" : "Your phone number"}</FieldLabel>
-      <PhoneInput id="auth-phone" country={country} onCountry={setCountry} value={phone} onChange={setPhone} autoFocus={desktop && mode === "login"} />
-      <p className="mt-3 flex items-start gap-2 text-[13px] leading-[1.45] text-app-ink-soft">
-        <span className="mt-0.5 text-app-success"><Icon name="message" size={15} /></span>
-        We&apos;ll send a 6-digit code by SMS.
-      </p>
+      <label htmlFor="auth-phone" className="mb-2 block text-[14px] font-bold">{t("field.yourPhone")}</label>
+      <div className="flex h-[56px] items-center rounded-[14px] border border-app-line-strong/70 bg-white focus-within:border-app-ink focus-within:ring-2 focus-within:ring-app-ink/10">
+        <div className="relative flex h-full shrink-0 items-center gap-2 border-r border-app-line pl-4 pr-3 text-[15px] font-bold">
+          <select
+            aria-label={t("field.country")}
+            value={country.code}
+            onChange={(event) => setCountry(DIAL_COUNTRIES.find((item) => item.code === event.target.value) ?? country)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          >
+            {DIAL_COUNTRIES.map((item) => (
+              <option key={item.code} value={item.code}>{item.name} ({item.dial})</option>
+            ))}
+          </select>
+          <span aria-hidden>{flagOf(country.code)}</span>
+          {country.dial}
+        </div>
+        <input
+          id="auth-phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          autoFocus={desktop}
+          placeholder={country.example}
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+          className="h-full min-w-0 flex-1 rounded-r-[14px] bg-transparent px-4 text-[17px] outline-none placeholder:text-app-ink-faint"
+        />
+      </div>
+      <p className="mb-0 mt-2.5 text-[13px] leading-[1.45] text-app-ink-soft">{whatsapp ? t("field.whatsappNote") : t("field.smsNote")}</p>
     </>
   );
 
   const emailFields = (
     <>
-      <FieldLabel htmlFor="auth-email">Email</FieldLabel>
-      <TextInput id="auth-email" type="email" autoComplete="email" placeholder="you@yourshop.com" value={email} onChange={(event) => setEmail(event.target.value)} />
-      {mode === "login" && emailMode === "password" && (
+      <label htmlFor="auth-email" className="mb-2 block text-[14px] font-bold">{t("field.yourEmail")}</label>
+      <TextInput id="auth-email" type="email" autoComplete="email" autoFocus={desktop} placeholder="you@yourshop.com" value={email} onChange={(event) => setEmail(event.target.value)} />
+      {usingPasswordFor(mode, method, emailMode) && (
         <div className="mt-5">
           <div className="flex items-center justify-between">
-            <FieldLabel htmlFor="auth-password">Password</FieldLabel>
+            <label htmlFor="auth-password" className="mb-2 block text-[14px] font-bold">{t("field.password")}</label>
             <Link href={`/forgot-password?role=${role}`} className="mb-2 text-[13px] font-bold text-app-ink-soft no-underline hover:text-app-ink">
-              Forgot password?
+              {t("field.forgot")}
             </Link>
           </div>
-          <TextInput id="auth-password" type="password" autoComplete="current-password" placeholder="Your password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <TextInput id="auth-password" type="password" autoComplete="current-password" placeholder={t("field.passwordPlaceholder")} value={password} onChange={(event) => setPassword(event.target.value)} />
         </div>
       )}
-      {mode === "signup" && <p className="mt-3 text-[13px] leading-[1.45] text-app-ink-soft">We&apos;ll email you a 6-digit code. No password needed.</p>}
+      <p className="mb-0 mt-2.5 text-[13px] leading-[1.45] text-app-ink-soft">{t("field.emailNote")}</p>
     </>
   );
 
-  const usingPassword = mode === "login" && method === "email" && emailMode === "password";
+  const usingPassword = usingPasswordFor(mode, method, emailMode);
+  const fieldEmpty = method === "phone" ? !phone.trim() : !email.trim() || (usingPassword && !password);
   const primaryLabel = usingPassword
-    ? "Log in"
+    ? t("logIn")
     : method === "phone"
-      ? "Send me a code by SMS"
-      : "Email me a code";
+      ? whatsapp === null ? t("sendCode") : whatsapp ? t("send.whatsapp") : t("sendSms")
+      : t("emailCode");
 
-  const secondaryLinks = (
-    <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[14px] font-bold text-app-ink-soft">
-      {method === "phone" ? (
-        <>
-          <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("email")}>Use email instead</button>
-        </>
-      ) : (
-        <>
-          {!isAdmin && <button type="button" className="hover:text-app-ink" onClick={() => chooseMethod("phone")}>Use my phone instead</button>}
-          {mode === "login" && (
-            <>
-              {!isAdmin && <span className="h-4 w-px bg-app-line" aria-hidden />}
-              <button type="button" className="hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
-                {emailMode === "code" ? "Use my password" : "Email me a code instead"}
-              </button>
-            </>
-          )}
-        </>
-      )}
+  const errorBox = error && (
+    <div className="mt-5">
+      <Notice>
+        {error}
+        {/couldn't find an account/i.test(error) && mode === "login" && <> <Link href={switchHref} className="font-bold text-app-danger underline">{t("createShop")}</Link></>}
+      </Notice>
     </div>
   );
+  const infoBox = info && <div className="mt-5"><Notice tone="info">{info}</Notice></div>;
 
-  const googleButton = !isAdmin && (
-    <>
-      <div className="my-5 flex items-center gap-3 text-[12px] font-bold uppercase tracking-[0.12em] text-app-ink-faint">
-        <span className="h-px flex-1 bg-app-line" /> or <span className="h-px flex-1 bg-app-line" />
-      </div>
-      <PillButton tone="white" size="md" className="w-full" onClick={() => void google()} busy={busy === "google"} disabled={Boolean(busy)}>
-        <GoogleMark /> Continue with Google
-      </PillButton>
-    </>
-  );
-
-  const terms = mode === "signup" && (
-    <p className="mt-5 text-center text-[12px] leading-[1.5] text-app-ink-soft">
-      By continuing you agree to the Shopinbos{" "}
-      <a href="https://shopinbos.com/terms" className="text-app-ink-soft underline">terms</a> and{" "}
-      <a href="https://shopinbos.com/privacy" className="text-app-ink-soft underline">privacy policy</a>, including how we handle your data under the NDPA.
-    </p>
-  );
-
-  const heading = mode === "signup" ? (desktop ? copy.title : role === "seller" ? "Create your account" : `Create your ${roleLabel(role).toLowerCase()} account`) : isAdmin ? "Admin sign in" : "Welcome back";
+  const heading = mode === "signup" ? t(`role.${signupRole}.title`) : isAdmin ? t("heading.admin") : t("heading.welcomeBack");
   const subheading = mode === "signup"
-    ? desktop ? copy.sub : null
-    : isAdmin ? "Use your approved admin account." : `Log in to your ${role === "seller" ? "shop" : `${roleLabel(role).toLowerCase()} portal`} with the phone or email you signed up with.`;
+    ? signupRole === "seller" ? t("start.sub") : t(`role.${signupRole}.sub`)
+    : isAdmin ? t("sub.admin") : t(`sub.login.${signupRole}`);
 
   const detailsForm = (
     <form onSubmit={usingPassword ? submitPassword : requestCode} noValidate>
-      {desktop && roleTabs}
       {intentBanner}
-      <h1 className={cx("m-0 font-extrabold tracking-[-0.6px]", desktop ? "text-[32px] leading-[1.1]" : "text-[30px] leading-[1.1]")}>{heading}</h1>
-      {subheading && <p className="mb-0 mt-2 leading-[1.55] text-app-ink-soft">{subheading}</p>}
-      <div className="mt-6">
-        {methodTabs}
-        {nameField}
-        {method === "phone" ? phoneFields : emailFields}
-      </div>
-      {error && <div className="mt-5"><Notice>{error}{/couldn't find an account/i.test(error) && mode === "login" && <> <Link href={switchHref} className="font-bold text-app-danger underline">Create a shop</Link></>}</Notice></div>}
-      {info && <div className="mt-5"><Notice tone="info">{info}</Notice></div>}
-      {desktop && (
-        <>
-          <PillButton type="submit" tone="accent" size="md" className="mt-6 w-full" busy={busy === "send" || busy === "password"}>{primaryLabel}</PillButton>
-          {secondaryLinks}
-          {googleButton}
-          {terms}
-        </>
+      {mode === "login" && !isAdmin && !desktop && (
+        // Returning sellers: Peggy waves hello (on computers she waves from the panel instead).
+        <MascotVideo clip="peggy-hello" size={124} decorative className="-ml-3 mb-2" />
       )}
-      {!desktop && (
+      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{heading}</h1>
+      <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{subheading}</p>
+      {roleTabs}
+      <div className="mt-7">{method === "phone" ? phoneFields : emailFields}</div>
+      {errorBox}
+      {infoBox}
+      <PillButton
+        type="submit"
+        tone="accent"
+        className="mt-6 w-full"
+        busy={busy === "send" || busy === "password"}
+        disabled={Boolean(busy) || fieldEmpty}
+      >
+        {method === "phone" && whatsapp ? <Icon name="whatsapp" size={19} /> : null}
+        {primaryLabel}
+      </PillButton>
+
+      {!isAdmin && (
         <>
-          {secondaryLinks}
-          {googleButton}
-          <div className="h-28" aria-hidden />
-          <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-app-canvas via-app-canvas to-transparent px-[22px] pb-[22px] pt-6">
-            {terms && <div className="mb-3 [&>p]:mt-0 [&>p]:text-left">{terms}</div>}
-            <PillButton type="submit" className="w-full" busy={busy === "send" || busy === "password"}>{mode === "signup" ? "Send code" : primaryLabel}</PillButton>
+          <div className="my-5 flex items-center gap-3 text-[13px] text-app-ink-faint">
+            <span className="h-px flex-1 bg-app-line" /> {t("or")} <span className="h-px flex-1 bg-app-line" />
+          </div>
+          <PillButton tone="white" size="md" className="w-full" onClick={() => chooseMethod(method === "phone" ? "email" : "phone")}>
+            {method === "phone" ? t("useEmail") : t("usePhone")}
+          </PillButton>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[14px] font-bold text-app-ink-soft">
+            {method === "email" && mode === "login" && (
+              <button type="button" className="min-h-[40px] hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
+                {emailMode === "code" ? t("usePassword") : t("emailCodeInstead")}
+              </button>
+            )}
+            <button type="button" className="inline-flex min-h-[40px] items-center gap-2 hover:text-app-ink disabled:opacity-60" onClick={() => void google()} disabled={Boolean(busy)}>
+              <GoogleMark /> {t("google")}
+            </button>
           </div>
         </>
+      )}
+      {isAdmin && method === "email" && (
+        <div className="mt-4 text-center text-[14px] font-bold text-app-ink-soft">
+          <button type="button" className="min-h-[40px] hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
+            {emailMode === "code" ? t("usePassword") : t("emailCodeInstead")}
+          </button>
+        </div>
+      )}
+
+      <p className="mb-0 mt-6 text-center text-[15px] text-app-ink-soft">
+        {mode === "signup" ? t("header.haveShop") : isAdmin ? null : t("header.new")}{" "}
+        <Link href={switchHref} className="font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink">
+          {mode === "signup" ? t("logIn") : isAdmin ? t("header.backToApp") : t("header.startShop")}
+        </Link>
+      </p>
+      {!usingPassword && (
+        <p className="mb-0 mt-3 text-balance text-center text-[13px] leading-[1.5] text-app-ink-faint">
+          <span className="mr-1.5 inline-block align-[-2px]"><Icon name="lock" size={13} /></span>{t("lockLine")}
+        </p>
       )}
     </form>
   );
 
-  const destinationLabel = target?.kind === "phone" ? `SMS on ${formatE164(target.phone)}` : target?.email ?? "";
+  const destination = target?.kind === "phone" ? maskedPhone(target.phone) : target?.email ?? "";
+  const codeTitle = channel === "whatsapp" ? t("code.titleWhatsapp") : channel === "email" ? t("code.titleEmail") : t("code.titleSms");
+  const codeSent = channel === "whatsapp"
+    ? t("code.sentWhatsapp", { length: OTP_LENGTH, destination })
+    : channel === "email"
+      ? t("code.sentEmail", { length: OTP_LENGTH, destination })
+      : t("code.sentSms", { length: OTP_LENGTH, destination });
+  const minutes = Math.floor(countdown.seconds / 60);
+  const askAgainIn = `${minutes}:${String(countdown.seconds % 60).padStart(2, "0")}`;
 
   const codeForm = (
     <form
@@ -532,126 +561,172 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         void submitCode();
       }}
     >
-      <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.6px]">Enter the code</h1>
-      <p className="mb-6 mt-2 text-app-ink-soft">
-        We sent it to {destinationLabel}.{mode === "login" ? " No code? Check it's the one you signed up with." : ""}
+      <button type="button" onClick={() => goTo("details")} className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[15px] font-bold text-app-ink-soft hover:text-app-ink">
+        <Icon name="arrowLeft" size={16} /> {t("code.change")}
+      </button>
+      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{codeTitle}</h1>
+      <p className="mb-7 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">
+        {codeSent}{mode === "login" ? ` ${t("code.checkSame")}` : ""}
       </p>
-      <CodeInput value={code} onChange={setCode} onComplete={(value) => void submitCode(value)} disabled={busy === "verify"} />
-      <div className="mt-4 text-[14px] text-app-ink-soft">
+      <div className="max-w-[400px]">
+        <CodeInput value={code} onChange={setCode} onComplete={(value) => void submitCode(value)} disabled={busy === "verify"} />
+      </div>
+      {errorBox}
+      <PillButton type="submit" tone="accent" className="mt-6 w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH || Boolean(busy)}>
+        {t("code.continue")} <Icon name="arrow" size={18} />
+      </PillButton>
+      <div className="mt-5 grid gap-2 text-[14.5px] text-app-ink-soft">
         {countdown.seconds > 0 ? (
-          <>Didn&apos;t get it? Resend in 0:{String(countdown.seconds).padStart(2, "0")}</>
+          <p className="m-0">{t("code.askAgainIn")} <strong className="text-app-ink">{askAgainIn}</strong>.</p>
         ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-2 font-bold">
-            <button type="button" className="text-app-ink" onClick={() => target && void deliverCode(target)} disabled={Boolean(busy)}>Resend code</button>
-          </div>
+          <p className="m-0">
+            <button type="button" className="min-h-[36px] font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4" onClick={() => target && void deliverCode(target)} disabled={Boolean(busy)}>
+              {t("code.sendNew")}
+            </button>
+          </p>
+        )}
+        {target?.kind === "phone" && channel === "whatsapp" && (
+          <p className="m-0">
+            {t("code.noWhatsapp")}{" "}
+            <button
+              type="button"
+              className="min-h-[36px] font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 disabled:opacity-60"
+              disabled={Boolean(busy)}
+              onClick={() => void deliverCode({ kind: "phone", phone: target.phone, via: "sms" }, "sms")}
+            >
+              {busy === "sms" ? t("code.sending") : t("code.sendSms")}
+            </button>
+          </p>
         )}
       </div>
-      {error && <div className="mt-5"><Notice>{error}</Notice></div>}
-      {desktop ? (
-        <PillButton type="submit" tone="accent" size="md" className="mt-8 w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH}>Verify</PillButton>
-      ) : (
-        <div className="fixed inset-x-0 bottom-0 px-[22px] pb-[22px]">
-          <PillButton type="submit" className="w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH}>Verify</PillButton>
-        </div>
-      )}
     </form>
   );
 
-  // ── Layouts ────────────────────────────────────────────────────────────────
+  const nameForm = (
+    <form onSubmit={submitName} noValidate>
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-app-success-tint px-3 py-1.5 text-[13px] font-bold text-app-success">
+        <Icon name="check" size={14} strokeWidth={2.4} /> {target?.kind === "email" ? t("name.confirmedEmail") : t("name.confirmedPhone")}
+      </span>
+      <h1 className="m-0 mt-3 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{t("name.title")}</h1>
+      <p className="mb-7 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{t("name.sub")}</p>
+      <label htmlFor="auth-name" className="mb-2 block text-[14px] font-bold">{t("field.name")}</label>
+      <TextInput id="auth-name" autoComplete="given-name" autoFocus placeholder="Adaeze" value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={80} />
+      {errorBox}
+      <PillButton type="submit" tone="accent" className="mt-6 w-full" busy={busy === "name"} disabled={Boolean(busy) || !fullName.trim()}>
+        {t("name.go")} <Icon name="arrow" size={18} />
+      </PillButton>
+      <p className="mb-0 mt-5 text-[12.5px] leading-[1.55] text-app-ink-faint">
+        {t("terms.before")}{" "}
+        <a href="https://shopinbos.com/terms" className="text-app-ink-soft underline">{t("terms.terms")}</a> {t("terms.and")}{" "}
+        <a href="https://shopinbos.com/privacy" className="text-app-ink-soft underline">{t("terms.privacy")}</a>{t("name.termsAfter")}
+      </p>
+    </form>
+  );
 
-  if (!desktop) {
-    if (activeScreen === "welcome") return <div className="font-app text-app-ink">{welcome}</div>;
+  const readyName = firstName(fullName);
+  const ready = (
+    <div aria-live="polite">
+      <MascotVideo clip="rex-hello" size={desktop ? 150 : 132} decorative className="-ml-3 mb-4" />
+      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">
+        {readyName ? t("ready.title", { name: readyName }) : t("ready.titleNoName")}
+      </h1>
+      <p className="mb-7 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{t("ready.sub")}</p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-app-line" role="progressbar" aria-label={t("ready.progress")}>
+        <div className="sb-auth-fill h-full w-full rounded-full bg-app-ink" style={{ "--sb-fill-ms": `${READY_MS}ms` } as CSSProperties} />
+      </div>
+    </div>
+  );
+
+  // ── Phone front door ───────────────────────────────────────────────────────
+
+  if (activeScreen === "welcome") {
     return (
-      <div className="min-h-dvh bg-app-canvas px-[22px] pb-6 pt-[22px] font-app text-app-ink">
-        <div className="mb-6 flex items-center justify-between">
-          <BackButton
-            onClick={() => {
-              if (activeScreen === "code") goTo("details");
-              else if (mode === "signup" && !hasIntent) goTo("welcome");
-              else window.history.length > 1 ? window.history.back() : (window.location.href = getPublicEnv().appUrl);
-            }}
-          />
-          {activeScreen === "details" && (
-            <Link href={switchHref} className="text-[14px] font-bold text-app-ink no-underline">
-              {mode === "signup" ? "Log in" : "Create a shop"}
-            </Link>
-          )}
+      <div className="app-wash flex min-h-dvh flex-col px-[22px] pb-[30px] pt-[22px] font-app text-app-ink">
+        <div className="flex items-center justify-between gap-3">
+          <Wordmark />
+          <LanguagePicker variant="globe" />
         </div>
-        {activeScreen === "code" ? codeForm : detailsForm}
-        {activeScreen === "details" && <StuckLink className="mt-8 pb-24" />}
+        <div className="relative flex flex-1 items-center justify-center py-4">
+          <MascotVideo clip="peggy-hello" size={230} decorative className="max-h-[38dvh] max-w-[38dvh]" />
+          <span className="absolute right-0 top-4 max-w-[200px] rounded-[20px_20px_4px_20px] bg-white px-3.5 py-2.5 text-[14px] font-bold shadow-[0_10px_30px_-12px_rgba(22,20,31,0.3)]">
+            {t("welcome.peggyBubble")}
+          </span>
+        </div>
+        <h1 className="m-0 text-[36px] font-extrabold leading-[1.04] tracking-[-1px]">{heading}</h1>
+        <p className="mb-[22px] mt-2.5 leading-[1.5] text-app-ink-soft">{subheading}</p>
+        <PillButton tone="accent" onClick={() => { chooseMethod("phone"); goTo("details"); }}>{t("welcome.startPhone")}</PillButton>
+        <PillButton tone="white" size="md" className="mt-2.5" onClick={() => { chooseMethod("email"); goTo("details"); }}>
+          {t("useEmail")}
+        </PillButton>
+        <Link href={switchHref} className="mt-1.5 grid min-h-[44px] place-items-center text-[15px] font-bold text-app-ink no-underline">
+          {t("welcome.haveShop")}
+        </Link>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-dvh bg-app-canvas font-app text-app-ink">
-      <header className="border-b border-app-line bg-white">
-        <div className="mx-auto flex h-[72px] max-w-[1136px] items-center justify-between px-6">
-          <a href="https://shopinbos.com" aria-label="Shopinbos home"><Wordmark className="h-[20px]" /></a>
-          <div className="flex items-center gap-5">
-            <span className="text-[14px] text-app-ink-soft">{mode === "signup" ? "Already have a shop?" : "New to Shopinbos?"}</span>
-            <Link href={switchHref} className="rounded-full bg-app-accent px-4 py-2.5 text-[14px] font-bold text-white no-underline hover:brightness-95">
-              {mode === "signup" ? "Log in" : isAdmin ? "Back to app" : "Start your shop"}
-            </Link>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto grid max-w-[1136px] grid-cols-[minmax(0,552px)_minmax(0,1fr)] gap-14 px-6 py-14">
-        <section className="rounded-[28px] border border-app-line bg-white p-8">
-          {activeScreen === "code" && (
-            <div className="mb-6">
-              <BackButton onClick={() => goTo("details")} />
-            </div>
-          )}
-          {activeScreen === "code" ? codeForm : detailsForm}
-        </section>
-        <aside className="pt-4">
-          {mode === "signup" ? <WhatHappensNext steps={copy.next} /> : <LoginAside role={role} />}
-          <HelpCard />
-        </aside>
-      </main>
-    </div>
-  );
-}
+  // ── Page ───────────────────────────────────────────────────────────────────
 
-function WhatHappensNext({ steps }: { steps: string[] }) {
-  return (
-    <>
-      <div className="mb-6 text-[13px] font-extrabold uppercase tracking-[0.08em]">What happens next</div>
-      <ol className="m-0 grid list-none gap-5 p-0">
-        {steps.map((step, index) => (
-          <li key={step} className="flex items-center gap-4 text-[17px] font-semibold">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-app-line bg-white text-[14px] font-extrabold">{index + 1}</span>
-            {step}
-          </li>
-        ))}
-      </ol>
-    </>
-  );
-}
+  let body: ReactNode = detailsForm;
+  if (activeScreen === "code") body = codeForm;
+  if (activeScreen === "name") body = nameForm;
+  if (activeScreen === "ready") body = ready;
 
-function LoginAside({ role }: { role: AuthRole }) {
-  const lines: Record<AuthRole, ReactNode> = {
-    seller: "Peggy kept an eye on your shop while you were away. Your orders, chats and payouts are waiting.",
-    supplier: "Your products, quote requests and wholesale orders are where you left them.",
-    logistics_partner: "Your bookings, coverage and payouts are where you left them.",
-    admin: "Approvals, reviews and marketplace operations.",
-  };
   return (
-    <div className="flex items-center gap-5">
-      <Mascot name="peggy-wave" className="h-[120px] w-[120px]" />
-      <div>
-        <div className="text-[22px] font-extrabold tracking-[-0.3px]">Good to see you again</div>
-        <p className="mb-0 mt-2 max-w-[400px] leading-[1.55] text-app-ink-soft">{lines[role]}</p>
+    <div className="min-h-dvh bg-white font-app text-app-ink lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-4 lg:p-4">
+      <div className="flex min-h-dvh flex-col px-5 pb-6 pt-5 sm:px-10 lg:min-h-[calc(100dvh-32px)] lg:px-12 lg:pt-7 xl:px-16">
+        <header className="flex items-center justify-between gap-3">
+          <a href="https://shopinbos.com" aria-label={t("homeAria")} className="shrink-0"><Wordmark className="h-[18px] lg:h-[20px]" /></a>
+          <HelpLink />
+        </header>
+        <main className="flex flex-1 items-start pb-10 pt-8 sm:pt-12 lg:items-center lg:py-10">
+          <div className="w-full max-w-[440px]">{body}</div>
+        </main>
+        <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[13px] text-app-ink-faint">
+          <span>{t("footer.copyright", { year: String(new Date().getFullYear()) })}</span>
+          <span className="flex items-center gap-4">
+            <a href="https://shopinbos.com/privacy" className="underline underline-offset-2 hover:text-app-ink">{t("footer.privacy")}</a>
+            <a href="https://shopinbos.com/terms" className="underline underline-offset-2 hover:text-app-ink">{t("footer.terms")}</a>
+            <LanguagePicker variant="globe" />
+          </span>
+        </footer>
       </div>
+      <AuthShowcasePanel who={mode === "login" ? "peggy" : "rex"} />
     </div>
   );
+}
+
+function usingPasswordFor(mode: Mode, method: Method, emailMode: "code" | "password") {
+  return mode === "login" && method === "email" && emailMode === "password";
 }
 
 const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
 
-/** Compact "Stuck? Talk to us" for phone layouts and the password screens; opens the same support panel. */
+/** "Need help? Chat on WhatsApp" (or "Talk to us", which opens the support panel when no WhatsApp line is set). */
+function HelpLink() {
+  const t = useT("auth");
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex min-w-0 items-center gap-1.5 text-[14px] text-app-ink-soft">
+      <Icon name="info" size={16} />
+      <span className="hidden sm:inline">{t("help.need")}</span>
+      {SUPPORT_WHATSAPP ? (
+        <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="font-bold text-app-ink underline underline-offset-4">
+          {t("help.whatsapp")}
+        </a>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className="min-h-[40px] font-bold text-app-ink underline underline-offset-4">
+          {t("help.talk")}
+        </button>
+      )}
+      <SupportRequestPanel open={open} onClose={() => setOpen(false)} />
+    </div>
+  );
+}
+
+/** Compact "Stuck? Talk to us" for the password screens; opens the same support panel (email as a fallback). */
 export function StuckLink({ className = "" }: { className?: string }) {
+  const t = useT("auth");
   const [open, setOpen] = useState(false);
   return (
     <div className={className}>
@@ -662,41 +737,12 @@ export function StuckLink({ className = "" }: { className?: string }) {
         className="flex w-full items-center gap-3 rounded-[18px] border border-app-line bg-white px-4 py-3 text-left text-[14px] leading-[1.45] text-app-ink hover:border-app-line-strong"
       >
         <Mascot name="peggy" className="h-10 w-10 shrink-0" alt="" />
-        <span className="min-w-0 flex-1"><span className="font-extrabold">Stuck? Talk to us.</span> A real person replies, in English or Pidgin.</span>
+        <span className="min-w-0 flex-1"><span className="font-extrabold">{t("stuck.title")}</span> {t("stuck.sub")}</span>
         <Icon name="arrow" size={16} />
       </button>
-      <SupportRequestPanel open={open} onClose={() => setOpen(false)} />
-    </div>
-  );
-}
-
-// "Stuck?" opens the support panel (a real ticket with the team), with email/WhatsApp kept as a fallback link.
-function HelpCard() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-10">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        className="flex w-full items-center gap-4 rounded-[24px] bg-app-forest px-6 py-6 text-left text-[15px] leading-[1.5] text-white transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-app-forest/30"
-      >
-        <Mascot name="peggy" className="h-14 w-14 shrink-0" alt="" />
-        <span className="min-w-0 flex-1">
-          <span className="block font-extrabold">Stuck? Talk to us.</span>
-          A real person replies, in English or Pidgin.
-        </span>
-        <Icon name="arrow" size={18} />
-      </button>
-      <p className="m-0 mt-3 px-2 text-[13px] text-app-ink-soft">
-        or email{" "}
+      <p className="m-0 mt-2 px-2 text-[13px] text-app-ink-soft">
+        {t("stuck.orEmail")}{" "}
         <a href="mailto:support@shopinbos.com" className="font-semibold text-app-ink underline-offset-2 hover:underline">support@shopinbos.com</a>
-        {SUPPORT_WHATSAPP ? (
-          <>
-            {" "}·{" "}
-            <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-app-ink underline-offset-2 hover:underline">WhatsApp</a>
-          </>
-        ) : null}
       </p>
       <SupportRequestPanel open={open} onClose={() => setOpen(false)} />
     </div>

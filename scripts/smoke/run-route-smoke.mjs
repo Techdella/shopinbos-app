@@ -114,7 +114,10 @@ async function check(url, role, results, requireOk = false) {
     const res = await fetch(`${BASE_URL}${url}`, { headers, redirect: "manual" });
     const body = res.status >= 300 && res.status < 400 ? "" : await res.text();
     // Production builds stream server render errors as an error digest and render the boundary client-side.
-    const marker = ERROR_MARKERS.find((m) => body.includes(m)) ?? (/digest\\?":\\?"\d+/.test(body) ? "server render error (digest)" : undefined);
+    // Error words count only where people would see them: pages carry their translations (which include
+    // "Something went wrong" for failures) as data inside <script> tags. Server render errors still show as a digest.
+    const visible = body.replace(/<script\b[\s\S]*?<\/script>/gi, "");
+    const marker = ERROR_MARKERS.find((m) => visible.includes(m)) ?? (/digest\\?":\\?"\d+/.test(body) ? "server render error (digest)" : undefined);
     const ok = res.status < 500 && !marker && (!requireOk || res.status === 200);
     results.push({ url, role: role ?? "guest", status: res.status, ok, note: marker ?? (res.headers.get("location") ? `→ ${res.headers.get("location")}` : "") });
   } catch (error) {

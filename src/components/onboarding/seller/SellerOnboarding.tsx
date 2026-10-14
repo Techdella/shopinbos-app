@@ -17,6 +17,8 @@ import {
   type OnboardingLanguage,
   type StartPath,
 } from "@shared/onboarding";
+import { localeFromName } from "@shared/i18n";
+import { useLocale, useSetLocale, useT } from "@/components/i18n/I18nProvider";
 import { askRex, buildStore, finishOnboarding, saveMemory, saveStoreName, transcribe, type OnboardingStatus } from "./api";
 
 // Seller onboarding, cut to the two steps that need the seller: tell Rex what you sell, then pick a name and
@@ -35,7 +37,7 @@ interface ChatTurn {
 }
 
 function firstName(name: string) {
-  return name.trim().split(/\s+/)[0] || "there";
+  return name.trim().split(/\s+/)[0] || "";
 }
 
 function isLanguage(value: unknown): value is OnboardingLanguage {
@@ -45,15 +47,26 @@ function isLanguage(value: unknown): value is OnboardingLanguage {
 export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingStatus }) {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useT("onboarding", "common");
   const status = initialStatus;
   const memory = initialStatus.memory;
-  const name = firstName(status.ownerName);
+  const name = firstName(status.ownerName) || t("seller.thereName");
 
   const [step, setStep] = useState<Step>(memory?.screen === "brand" && memory.businessDescription ? "brand" : "chat");
   const [error, setError] = useState<string | null>(null);
 
-  // Chat
-  const [lang, setLang] = useState<OnboardingLanguage>(isLanguage(memory?.languages?.[0]) ? (memory?.languages?.[0] as OnboardingLanguage) : "English");
+  // Chat. The language chips set both the language Rex chats in and the app language (shared/i18n), so a
+  // first-time seller picks it once; it starts from the language they already chose (or their browser's).
+  const appLocale = useLocale();
+  const setAppLocale = useSetLocale();
+  const tSettings = useT("settings");
+  const appLanguage = ONBOARDING_LANGUAGES.find((item) => localeFromName(item) === appLocale);
+  const [lang, setLangState] = useState<OnboardingLanguage>(isLanguage(memory?.languages?.[0]) ? (memory?.languages?.[0] as OnboardingLanguage) : appLanguage ?? "English");
+  const setLang = (item: OnboardingLanguage) => {
+    setLangState(item);
+    const locale = localeFromName(item);
+    if (locale && locale !== appLocale) void setAppLocale(locale);
+  };
   const [draft, setDraft] = useState("");
   const [description, setDescription] = useState(memory?.businessDescription ?? "");
   const [turns, setTurns] = useState<ChatTurn[]>(memory?.businessDescription ? [{ from: "me", text: memory.businessDescription }] : []);
@@ -73,7 +86,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const [lookKey, setLookKey] = useState(BRAND_LOOKS.find((item) => item.templateId === memory?.templateId)?.key ?? BRAND_LOOKS[0].key);
   const [tweak, setTweak] = useState("");
   const [buildNote, setBuildNote] = useState<string | null>(null);
-  const resolvedName = shopName.trim() || nameIdeas[0] || `${name}'s Shop`;
+  const resolvedName = shopName.trim() || nameIdeas[0] || t("seller.defaultShopName", { name });
 
   const [busy, setBusy] = useState(false);
 
@@ -110,10 +123,10 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     setRexThinking(true);
     try {
       const result = await askRex(message, { businessDescription: message, languages: [lang], preferredName: status.ownerName });
-      setTurns((current) => [...current, { from: "rex", text: `${result.reply ?? "Love it."} Where are you starting from?` }]);
+      setTurns((current) => [...current, { from: "rex", text: t("seller.whereStart", { reply: result.reply ?? t("seller.loveIt") }) }]);
       if (result.memoryPatch?.storeName && !shopName) setShopName(result.memoryPatch.storeName);
     } catch {
-      setTurns((current) => [...current, { from: "rex", text: "Got it. Where are you starting from?" }]);
+      setTurns((current) => [...current, { from: "rex", text: t("seller.gotIt") }]);
     } finally {
       setRexThinking(false);
     }
@@ -126,7 +139,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setError("Voice notes don't work in this browser. Type it instead.");
+      setError(t("seller.voiceUnsupported"));
       return;
     }
     try {
@@ -140,14 +153,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           const text = await transcribe(new Blob(chunks, { type: "audio/webm" }));
           if (text) await send(text);
         } catch (micError) {
-          setError(micError instanceof Error ? micError.message : "Rex couldn't hear that.");
+          setError(micError instanceof Error ? micError.message : t("seller.cantHear"));
         }
       };
       recorderRef.current = recorder;
       recorder.start();
       setRecording(true);
     } catch {
-      setError("Allow the microphone to send a voice note, or type it instead.");
+      setError(t("seller.allowMic"));
     }
   }
 
@@ -176,16 +189,16 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
         templateId: look.templateId,
         palette: { id: palette.key, name: palette.label, colors: { primary, accent, background } },
       }).catch(() => null);
-      setBuildNote("Rex is building your shop…");
+      setBuildNote(t("seller.building"));
       // buildStore always saves a design: Rex's, or the plain name, colours and look if Rex is unavailable.
       await buildStore(
         { storeName: resolvedName, slug: shopSlug(resolvedName), description, category: memory?.category, palette, look, tweak: tweak.trim() || undefined },
         (text) => setBuildNote(text.slice(-120)),
       );
-      setBuildNote("Your shop is ready. Opening Start here…");
+      setBuildNote(t("seller.ready"));
       await finish();
     } catch (brandError) {
-      setError(brandError instanceof Error ? brandError.message : "Couldn't save your shop name.");
+      setError(brandError instanceof Error ? brandError.message : t("seller.cantSaveName"));
       setBusy(false);
     }
   }
@@ -202,7 +215,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
       />
       <ProgressBars total={STEPS.length} current={progressIndex} />
       <button type="button" onClick={() => void exit()} className="text-[14px] font-bold text-app-ink-soft hover:text-app-ink" disabled={busy}>
-        Skip
+        {t("skip")}
       </button>
     </div>
   );
@@ -229,12 +242,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
               key={item}
               type="button"
               onClick={() => setLang(item)}
+              lang={localeFromName(item) ?? undefined}
               className={cx("rounded-full border px-4 py-2 text-[14px] font-bold transition", lang === item ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong")}
             >
               {item}
             </button>
           ))}
         </div>
+        <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{tSettings("language.onboarding")}</p>
         <div className="mt-5 grid gap-3">
           {turns.map((turn, index) =>
             turn.from === "me" ? (
@@ -247,12 +262,12 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             ),
           )}
           {rexThinking && (
-            <div className="flex items-center gap-2 text-[14px] text-app-ink-soft"><Mascot name="rex" mood="thinking" className="h-8 w-8" alt="" /> Rex is thinking…</div>
+            <div className="flex items-center gap-2 text-[14px] text-app-ink-soft"><Mascot name="rex" mood="thinking" className="h-8 w-8" alt="" /> {t("seller.thinking")}</div>
           )}
         </div>
         {!turns.length && (
           <button type="button" onClick={() => setDraft(SELL_EXAMPLES[lang])} className="mt-4 text-left text-[13px] text-app-ink-soft underline decoration-dotted underline-offset-4">
-            Example: {SELL_EXAMPLES[lang]}
+            {t("seller.example", { text: SELL_EXAMPLES[lang] })}
           </button>
         )}
         {(started || (description && !rexThinking && turns.length > 0)) && (
@@ -266,8 +281,8 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
               >
                 <span className="grid h-11 w-11 place-items-center rounded-[12px] text-[16px]" style={{ background: path.tint }}>{index + 1}</span>
                 <span>
-                  <span className="block text-[15px] font-extrabold">{path.label}</span>
-                  <span className="block text-[13px] text-app-ink-soft">{path.hint}</span>
+                  <span className="block text-[15px] font-extrabold">{t.dynamic(`start.${path.key}.label`, path.label)}</span>
+                  <span className="block text-[13px] text-app-ink-soft">{t.dynamic(`start.${path.key}.hint`, path.hint)}</span>
                 </span>
               </button>
             ))}
@@ -285,14 +300,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Type, or tap the mic"
-              aria-label="Tell Rex what you sell"
+              placeholder={t("seller.inputPlaceholder")}
+              aria-label={t("seller.inputAria")}
               className="h-[54px] min-w-0 flex-1 rounded-full bg-white px-5 text-[16px] outline-none placeholder:text-app-ink-faint focus:ring-2 focus:ring-app-ink/15"
             />
-            <button type="button" onClick={() => void toggleMic()} aria-label={recording ? "Stop recording" : "Record a voice note"} className={cx("grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full", recording ? "bg-app-accent text-white" : "bg-white text-app-ink")}>
+            <button type="button" onClick={() => void toggleMic()} aria-label={recording ? t("seller.stopRecording") : t("seller.recordVoice")} className={cx("grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full", recording ? "bg-app-accent text-white" : "bg-white text-app-ink")}>
               <MicIcon />
             </button>
-            <button type="submit" aria-label="Send" disabled={!draft.trim() || rexThinking} className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-50">
+            <button type="submit" aria-label={t("send")} disabled={!draft.trim() || rexThinking} className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-50">
               <Icon name="arrow" size={20} strokeWidth={2.2} />
             </button>
           </form>,
@@ -306,9 +321,9 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
       <>
         <div className="flex items-center gap-3">
           <Mascot name="rex" className="h-14 w-14 shrink-0" alt="Rex" />
-          <h1 className="m-0 text-[26px] font-extrabold leading-[1.1] tracking-[-0.5px]">I made a brand for you. Change anything.</h1>
+          <h1 className="m-0 text-[26px] font-extrabold leading-[1.1] tracking-[-0.5px]">{t("seller.brandTitle")}</h1>
         </div>
-        <h2 className="mb-2.5 mt-6 text-[15px] font-bold">Shop name</h2>
+        <h2 className="mb-2.5 mt-6 text-[15px] font-bold">{t("seller.shopName")}</h2>
         <div className="flex flex-wrap gap-2">
           {nameIdeas.map((idea) => (
             <button
@@ -324,17 +339,17 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             </button>
           ))}
           <button type="button" onClick={() => setCustomName(true)} className={cx("rounded-full px-4 py-3 text-[14px] font-bold", customName ? "bg-app-ink text-white" : "bg-white text-app-ink-soft hover:bg-app-lilac")}>
-            <Icon name="edit" size={14} /> Type my own
+            <Icon name="edit" size={14} /> {t("seller.typeOwn")}
           </button>
         </div>
-        {customName && <TextInput className="mt-3" autoFocus placeholder="Your shop name" value={shopName} onChange={(event) => setShopName(event.target.value)} maxLength={60} />}
-        <h2 className="mb-2.5 mt-6 text-[15px] font-bold">Colours</h2>
+        {customName && <TextInput className="mt-3" autoFocus placeholder={t("seller.shopNamePlaceholder")} value={shopName} onChange={(event) => setShopName(event.target.value)} maxLength={60} />}
+        <h2 className="mb-2.5 mt-6 text-[15px] font-bold">{t("seller.colours")}</h2>
         <div className="grid grid-cols-3 gap-2.5">
           {BRAND_PALETTES.map((item) => (
             <button
               key={item.key}
               type="button"
-              aria-label={item.label}
+              aria-label={t.dynamic(`palette.${item.key}`, item.label)}
               aria-pressed={paletteKey === item.key}
               onClick={() => setPaletteKey(item.key)}
               className={cx("flex gap-1.5 rounded-[18px] border-2 bg-white p-2", paletteKey === item.key ? "border-app-accent" : "border-transparent")}
@@ -345,7 +360,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             </button>
           ))}
         </div>
-        <h2 className="mb-2.5 mt-6 text-[15px] font-bold">Look</h2>
+        <h2 className="mb-2.5 mt-6 text-[15px] font-bold">{t("seller.look")}</h2>
         <div className="grid grid-cols-3 gap-2.5">
           {BRAND_LOOKS.map((item) => (
             <button
@@ -372,18 +387,18 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           <input
             value={tweak}
             onChange={(event) => setTweak(event.target.value)}
-            placeholder="Make it warmer, use green…"
-            aria-label="Ask Rex to change the design"
+            placeholder={t("seller.tweakPlaceholder")}
+            aria-label={t("seller.tweakAria")}
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-app-ink-faint"
           />
           <span className="grid h-10 w-10 place-items-center rounded-full bg-app-forest text-white" aria-hidden><Icon name="arrow" size={18} /></span>
         </div>
-        <p className="mt-2 px-1 text-[12px] text-app-ink-soft">Rex applies this when he builds your shop. Products, payments and delivery come next, on your Start here page.</p>
+        <p className="mt-2 px-1 text-[12px] text-app-ink-soft">{t("seller.tweakNote")}</p>
         {footer(
           <>
             {errorBox}
             {busy && buildNote && <p className="mb-3 text-center text-[13px] text-app-ink-soft" aria-live="polite">{buildNote}</p>}
-            <PillButton className="w-full" busy={busy} onClick={() => void confirmBrand()}>{busy ? "Rex is building your shop…" : "Build my shop"}</PillButton>
+            <PillButton className="w-full" busy={busy} onClick={() => void confirmBrand()}>{busy ? t("seller.building") : t("seller.build")}</PillButton>
           </>,
         )}
       </>

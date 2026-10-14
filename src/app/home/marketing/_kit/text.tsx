@@ -14,6 +14,8 @@ import {
   type TemplateVariable,
 } from "@/lib/marketing/text-channels";
 import { DETAIL_LABEL } from "./friendly";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatMoney, formatNumber } from "@shared/i18n";
 
 // Client pieces for SMS and WhatsApp: the SMS segment counter, WhatsApp template status pills (plain words), the
 // mapper for what fills each {{1}}..{{n}} ("Customer detail 1 is …"), and a WhatsApp-style preview bubble.
@@ -41,30 +43,45 @@ export const TEMPLATE_STATUS: Record<string, { tone: Tone; label: string }> = {
   LOCAL_ERROR: { tone: "danger", label: "Didn't reach WhatsApp: try again" },
 };
 
-export function TemplateStatusPill({ status }: { status: string }) {
-  const s = TEMPLATE_STATUS[status] ?? { tone: "muted" as Tone, label: status.toLowerCase() };
-  return <Pill tone={s.tone}>{s.label}</Pill>;
+/** The status words above in the person's language (English from TEMPLATE_STATUS when a status is unknown). */
+export function useTemplateStatusLabel() {
+  const t = useT("emailBuilder");
+  return (status: string) => {
+    const s = TEMPLATE_STATUS[status];
+    return s ? t.dynamic(`templateStatus.${status}`, s.label) : status.toLowerCase();
+  };
 }
 
-const money = (amount: number, currency = "NGN") => new Intl.NumberFormat("en-NG", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
+export function TemplateStatusPill({ status }: { status: string }) {
+  const label = useTemplateStatusLabel();
+  return <Pill tone={TEMPLATE_STATUS[status]?.tone ?? "muted"}>{label(status)}</Pill>;
+}
+
+/** Chip/select label for a customer detail, in the person's language. */
+export function useDetailLabel() {
+  const t = useT("emailBuilder");
+  return (key: string) => t.dynamic(`detail.${key}`, DETAIL_LABEL[key as keyof typeof DETAIL_LABEL] ?? key);
+}
 
 /** Characters, encoding, parts per person and (when the price is known) the cost of the send. */
 export function SmsCounter({ text, recipients, costPerSegment, currency }: { text: string; recipients?: number | null; costPerSegment?: number | null; currency?: string }) {
+  const t = useT("emailBuilder");
+  const locale = useLocale();
   const count = smsSegments(text);
   const cost = recipients != null ? estimateSmsCost(count.segments, recipients, costPerSegment) : null;
   return (
     <div className="grid gap-1 text-[12.5px] text-app-ink-soft" aria-live="polite">
       <p className="m-0">
-        <strong className="text-app-ink">{count.segments}</strong> SMS part{count.segments === 1 ? "" : "s"} per person · {count.units} of {count.segments > 1 ? `${count.segments} × ${count.perSegment}` : count.perSegment} letters · {count.remaining} left in this part
+        <strong className="text-app-ink">{count.segments}</strong> {t("sms.partsPerPerson", { count: count.segments })} · {t("sms.letters", { used: count.units, of: count.segments > 1 ? `${count.segments} × ${count.perSegment}` : String(count.perSegment) })} · {t("sms.left", { count: count.remaining })}
         {cost != null && recipients ? (
           <>
-            {" "}· about <strong className="text-app-ink">{money(cost, currency)}</strong> for {recipients.toLocaleString("en-NG")} {recipients === 1 ? "person" : "people"}
+            {" "}· {t("sms.about")} <strong className="text-app-ink">{formatMoney(cost, locale, { currency: currency ?? "NGN", decimals: 2 })}</strong> {t("sms.forPeople", { count: recipients, people: formatNumber(recipients, locale) })}
           </>
         ) : null}
       </p>
       {count.unicodeChars.length ? (
         <p className="m-0 text-app-accent-ink">
-          {count.unicodeChars.slice(0, 6).join(" ")} {count.unicodeChars.length === 1 ? "isn't" : "aren't"} plain SMS characters, so each part holds 70 instead of 160. Swap {count.unicodeChars.length === 1 ? "it" : "them"} for plain letters to pay less.
+          {t("sms.unicode", { chars: count.unicodeChars.slice(0, 6).join(" "), count: count.unicodeChars.length })}
         </p>
       ) : null}
     </div>
@@ -73,14 +90,16 @@ export function SmsCounter({ text, recipients, costPerSegment, currency }: { tex
 
 /** One select per {{n}}: what fills it. */
 export function VariableMapper({ template, value, onChange }: { template: TemplateOption; value: string[]; onChange: (next: string[]) => void }) {
+  const t = useT("emailBuilder");
+  const detailLabel = useDetailLabel();
   const count = variableCount(template.content);
-  if (!count) return <p className="m-0 text-[13px] text-app-ink-soft">This message has no customer details to fill in.</p>;
+  if (!count) return <p className="m-0 text-[13px] text-app-ink-soft">{t("vars.none")}</p>;
   const mapping = value.some(Boolean) ? value : template.variables;
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {Array.from({ length: count }, (_, i) => (
         <label key={i} className="grid gap-1 text-[13px] font-bold">
-          <span>Customer detail {i + 1} is</span>
+          <span>{t("vars.detailIs", { n: i + 1 })}</span>
           <select
             className={selectClass}
             value={mapping[i] ?? ""}
@@ -90,9 +109,9 @@ export function VariableMapper({ template, value, onChange }: { template: Templa
               onChange(next);
             }}
           >
-            <option value="">Choose…</option>
+            <option value="">{t("vars.choose")}</option>
             {TEMPLATE_VARIABLE_KEYS.map((key) => (
-              <option key={key} value={key}>{DETAIL_LABEL[key]}</option>
+              <option key={key} value={key}>{detailLabel(key)}</option>
             ))}
           </select>
         </label>
@@ -103,6 +122,7 @@ export function VariableMapper({ template, value, onChange }: { template: Templa
 
 /** The message as the customer sees it on WhatsApp, with sample values. */
 export function WhatsAppBubble({ content, mapping, values, headerImageUrl }: { content: TemplateContent; mapping: string[]; values?: Partial<Record<TemplateVariable, string>>; headerImageUrl?: string | null }) {
+  const t = useT("emailBuilder");
   const samples = Object.fromEntries(TEMPLATE_VARIABLE_KEYS.map((key) => [key, TEMPLATE_VARIABLES[key].sample])) as Record<TemplateVariable, string>;
   const { params } = fillTemplateVariables(mapping, variableCount(content), { ...samples, ...values });
   const text = renderTemplateText({ ...content, header: content.header.format === "TEXT" ? content.header : { format: "NONE" } }, params);
@@ -114,10 +134,10 @@ export function WhatsAppBubble({ content, mapping, values, headerImageUrl }: { c
             // eslint-disable-next-line @next/next/no-img-element
             <img src={headerImageUrl} alt="" className="block h-[150px] w-full object-cover" />
           ) : (
-            <div className="grid h-[120px] place-items-center bg-app-canvas text-[12.5px] text-app-ink-soft">Picture</div>
+            <div className="grid h-[120px] place-items-center bg-app-canvas text-[12.5px] text-app-ink-soft">{t("bubble.picture")}</div>
           )
         ) : null}
-        <p className="m-0 whitespace-pre-wrap break-words px-3 py-2.5 text-[14px] leading-[1.45]">{text || "Your message will show here."}</p>
+        <p className="m-0 whitespace-pre-wrap break-words px-3 py-2.5 text-[14px] leading-[1.45]">{text || t("bubble.empty")}</p>
         {content.buttons.length ? (
           <div className="border-t border-app-line">
             {content.buttons.map((b, i) => (
@@ -132,12 +152,13 @@ export function WhatsAppBubble({ content, mapping, values, headerImageUrl }: { c
 
 /** Where to go when a channel isn't ready. */
 export function ChannelHelp({ label, howTo, href, linkLabel }: { label: string; howTo: string; href: string | null; linkLabel: string | null }) {
+  const t = useT("emailBuilder");
   return (
     <span>
       <strong>{label}:</strong> {howTo}{" "}
       {href ? (
         <a href={href} className="font-bold text-app-accent-ink underline">
-          {linkLabel ?? "Set it up"}
+          {linkLabel ?? t("channelHelp.setUp")}
         </a>
       ) : null}
     </span>

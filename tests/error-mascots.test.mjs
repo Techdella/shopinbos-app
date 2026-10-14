@@ -44,7 +44,8 @@ test("the deploy recovery hook guards with sessionStorage and the app, portal an
   assert.match(hook, /sessionStorage\.setItem\(CHUNK_RELOAD_KEY/);
   const pages = readFileSync("src/components/errors/AppErrorPages.tsx", "utf8");
   assert.match(pages, /useDeployRecovery\(error\)/);
-  assert.match(pages, /Shopinbos just got an update — reloading…/);
+  assert.match(pages, /title=\{t\("update\.title"\)\}/);
+  assert.match(readFileSync("shared/i18n/messages/errors/en.ts", "utf8"), /"update\.title": "Shopinbos just got an update — reloading…"/);
   assert.match(readFileSync("src/components/errors/PortalErrorPages.tsx", "utf8"), /ErrorSceneFor/);
   assert.match(readFileSync("src/app/global-error.tsx", "utf8"), /GlobalAppError/);
 });

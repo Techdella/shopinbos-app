@@ -7,6 +7,7 @@ import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { Chip, Mascot, PillButton, T } from "@/components/ui";
 import { askRex, cardNote, REX_STARTERS, type RexCard } from "@/lib/rex";
 import { openPath, openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Rex Studio chat (web /studio), like Peggy's screen: Rex changes the draft store, makes pictures, logos,
@@ -31,6 +32,7 @@ function CardAction({ label, onPress }: { label: string; onPress: () => void }) 
 }
 
 function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void }) {
+  const t = useT("m_rex", "common");
   const frame = { backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 8 } as const;
   switch (card.type) {
     case "image":
@@ -38,13 +40,13 @@ function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void })
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{card.title}{card.product ? ` · ${card.product.name}` : ""}</T>
           <Image source={{ uri: card.after }} style={{ width: "100%", aspectRatio: 1, borderRadius: 12, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={card.title} />
-          <CardAction label="Save it in Rex Studio" onPress={() => void openWeb("/studio")} />
+          <CardAction label={t("card.save")} onPress={() => void openWeb("/studio")} />
         </View>
       );
     case "logos":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>Logo ideas</T>
+          <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.logos")}</T>
           <View style={{ flexDirection: "row", gap: 8 }}>
             {card.options.map((option) => (
               <View key={option.url} style={{ flex: 1, gap: 4 }}>
@@ -53,40 +55,40 @@ function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void })
               </View>
             ))}
           </View>
-          <CardAction label="Pick one in Rex Studio" onPress={() => void openWeb("/studio")} />
+          <CardAction label={t("card.pickLogo")} onPress={() => void openWeb("/studio")} />
         </View>
       );
     case "store":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>Changed your draft{card.version ? ` · version ${card.version.n}` : ""}</T>
+          <T weight="extrabold" style={{ fontSize: 14.5 }}>{card.version ? t("card.changedVersion", { n: card.version.n }) : t("card.changed")}</T>
           {card.changes.map((change, index) => <T key={index} style={{ fontSize: 14, color: colors.inkSoft }}>• {change}</T>)}
-          <CardAction label="Preview and publish" onPress={() => void openWeb("/studio")} />
+          <CardAction label={t("card.preview")} onPress={() => void openWeb("/studio")} />
         </View>
       );
     case "themes":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 15 }}>Looks for your shop</T>
+          <T weight="extrabold" style={{ fontSize: 15 }}>{t("card.themes")}</T>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {card.themes.map((theme) => <Chip key={theme.id} label={theme.name} on={theme.id === card.current} onPress={() => ask(`Change my shop to the ${theme.name} look.`)} />)}
+            {card.themes.map((theme) => <Chip key={theme.id} label={theme.name} on={theme.id === card.current} onPress={() => ask(t("card.switchTheme", { name: theme.name }))} />)}
           </View>
         </View>
       );
     case "copy":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>New description · {card.product.name}</T>
+          <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.description", { name: card.product.name })}</T>
           <T style={{ fontSize: 14.5, lineHeight: 19 }}>{card.after}</T>
-          <CardAction label="Use it in Rex Studio" onPress={() => void openWeb("/studio")} />
+          <CardAction label={t("card.use")} onPress={() => void openWeb("/studio")} />
         </View>
       );
     case "video":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>Reel script · {card.product.name}</T>
+          <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.reel", { name: card.product.name })}</T>
           {card.script.captions.map((caption, index) => <T key={index} style={{ fontSize: 14, color: colors.inkSoft }}>{index + 1}. {caption}</T>)}
-          <CardAction label="Make the video" onPress={() => void openWeb("/home/video")} />
+          <CardAction label={t("card.makeVideo")} onPress={() => void openWeb("/home/video")} />
         </View>
       );
     case "marketing":
@@ -103,23 +105,24 @@ function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void })
     case "health":
       return (
         <View style={frame}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>Store health {card.score}/100</T>
+          <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.health", { score: card.score })}</T>
           {card.missing.map((item, index) => (
             <Pressable key={index} disabled={!item.rexPrompt && !item.href} onPress={() => (item.rexPrompt ? ask(item.rexPrompt) : item.href ? void openPath(item.href) : undefined)} style={{ flexDirection: "row", gap: 8, alignItems: "center", paddingVertical: 4 }}>
               <T style={{ flex: 1, fontSize: 14 }}>• {item.label}</T>
-              {item.rexPrompt || item.href ? <T weight="bold" style={{ fontSize: 14, color: colors.accentInk }}>{item.rexPrompt ? "Fix it" : "Open"}</T> : null}
+              {item.rexPrompt || item.href ? <T weight="bold" style={{ fontSize: 14, color: colors.accentInk }}>{item.rexPrompt ? t("card.fix") : t("open")}</T> : null}
             </Pressable>
           ))}
         </View>
       );
     case "preview":
-      return <CardAction label="Open the preview" onPress={() => void openWeb("/studio")} />;
+      return <CardAction label={t("card.openPreview")} onPress={() => void openWeb("/studio")} />;
     default:
       return null;
   }
 }
 
 export default function Rex() {
+  const t = useT("m_rex");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -145,7 +148,7 @@ export default function Rex() {
       const reply = await askRex(messages);
       setTurns((current) => [...current, { from: "rex", text: reply.text, cards: reply.cards ?? [] }]);
     } catch (askError) {
-      setTurns((current) => [...current, { from: "rex", failed: true, text: askError instanceof Error ? askError.message : "I couldn't answer just now. Try again in a moment." }]);
+      setTurns((current) => [...current, { from: "rex", failed: true, text: askError instanceof Error ? askError.message : t("failed") }]);
     } finally {
       setThinking(false);
     }
@@ -165,24 +168,24 @@ export default function Rex() {
           <Mascot name="rex" size={40} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 16 }}>Rex Studio</T>
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>Makes your shop look good: pictures, logo and words</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("tagline")}</T>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open Rex Studio on the web" onPress={() => void openWeb("/studio")} hitSlop={6} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.surface }}>
-            <T weight="bold" style={{ fontSize: 14 }}>Preview</T>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("openWeb")} onPress={() => void openWeb("/studio")} hitSlop={6} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.surface }}>
+            <T weight="bold" style={{ fontSize: 14 }}>{t("previewButton")}</T>
           </Pressable>
         </>
       }
       scrollKey={turns.length + (thinking ? 1 : 0)}
-      composer={<Composer value={draft} onChange={setDraft} onSend={() => void ask()} busy={thinking} placeholder="Tell Rex what to make or change" />}
+      composer={<Composer value={draft} onChange={setDraft} onSend={() => void ask()} busy={thinking} placeholder={t("placeholder")} />}
     >
       {!turns.length ? (
         <>
-          <Bubble mine={false}>Hi! I&apos;m Rex. I can change your store&apos;s look and words, edit product photos, make logos, videos and descriptions, and write messages to your customers. What shall we make?</Bubble>
+          <Bubble mine={false}>{t("hello")}</Bubble>
           <View style={{ gap: 8 }}>
-            {REX_STARTERS.map((starter) => (
-              <Pressable key={starter.title} accessibilityRole="button" onPress={() => void ask(starter.prompt)} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 }}>
+            {REX_STARTERS.map((starter, index) => (
+              <Pressable key={starter.title} accessibilityRole="button" onPress={() => void ask(t.dynamic(`starter.${index + 1}.prompt`, starter.prompt))} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 }}>
                 <AppIcon name="sparkle" size={18} />
-                <T weight="semibold" style={{ flex: 1, fontSize: 14 }}>{starter.title}</T>
+                <T weight="semibold" style={{ flex: 1, fontSize: 14 }}>{t.dynamic(`starter.${index + 1}.title`, starter.title)}</T>
                 <AppIcon name="chevron" size={16} color={colors.inkSoft} />
               </Pressable>
             ))}
@@ -199,8 +202,8 @@ export default function Rex() {
           </View>
         ),
       )}
-      {thinking ? <T style={{ color: colors.inkSoft }}>Rex is working… pictures can take a minute.</T> : null}
-      {turns.length ? <PillButton title="Open Rex Studio on the web" tone="white" size="sm" style={{ alignSelf: "center", marginTop: 6 }} onPress={() => void openWeb("/studio")} /> : null}
+      {thinking ? <T style={{ color: colors.inkSoft }}>{t("working")}</T> : null}
+      {turns.length ? <PillButton title={t("openWeb")} tone="white" size="sm" style={{ alignSelf: "center", marginTop: 6 }} onPress={() => void openWeb("/studio")} /> : null}
     </ChatScreen>
   );
 }

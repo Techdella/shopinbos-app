@@ -67,6 +67,14 @@
           "isAndroidBackgroundLocationEnabled": false,
           "isIosBackgroundLocationEnabled": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#FF6A2B",
+          "defaultChannel": "orders"
+        }
       ]
     ]
   }

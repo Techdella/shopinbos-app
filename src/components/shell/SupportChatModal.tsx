@@ -6,9 +6,12 @@ import { Icon } from "@/components/ui";
 import { Mascot, Notice, cx } from "@/components/app-ui";
 import { SupportThread } from "@/components/support/SupportThread";
 import { HelpVideosSection } from "@/components/help/HelpVideos";
-import { supportFetch, timeLabel, type ChatTicket, type ChatTicketSummary } from "@/components/support/client";
-import { MAX_ATTACHMENTS, STATUS_LABEL, SUPPORT_EMAIL, TOPICS, attachmentProblem, formatTicketNumber, parseTicketNumber, type SupportTopic } from "@/lib/support/pure";
+import { attachmentProblemKey, customerStatusLabel, localTimeLabel, supportErrorText, supportFetch, type ChatTicket, type ChatTicketSummary, type SupportT } from "@/components/support/client";
+import { MAX_ATTACHMENTS, SUPPORT_EMAIL, TOPICS, formatTicketNumber, parseTicketNumber, type SupportTopic } from "@/lib/support/pure";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import type { TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
 
 const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
 
@@ -24,7 +27,9 @@ interface SupportChatModalProps {
 type View = "home" | "peggy" | "person" | "thread";
 type PeggyLine = { role: "agent" | "user"; text: string };
 
-const GREETING: PeggyLine = { role: "agent", text: "Hi! Ask me how to do anything in Shopinbos: building your store, products, orders, payments or delivery. For account problems, tap \"Talk to a person\"." };
+// Peggy's opening line is filled in from the "help" catalog when the panel renders (see greetingLine).
+const GREETING: PeggyLine = { role: "agent", text: "" };
+type HelpT = TFunction<KeysOf<["help", "support", "common"]>>;
 const UNREAD_POLL_MS = 60_000;
 
 export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
@@ -43,6 +48,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
   const [aiOff, setAiOff] = useState(false);
   const [peggy, setPeggy] = useState<PeggyLine[]>([GREETING]);
   const panelRef = useRef<HTMLDivElement>(null);
+  const t = useT("help", "support", "common");
 
   const close = useCallback(() => {
     setSelfOpen(false);
@@ -59,9 +65,9 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
       setLoadError(null);
     } catch (error) {
       setTickets((current) => current ?? []);
-      setLoadError(error instanceof Error ? error.message : "We couldn't load your conversations.");
+      setLoadError(error instanceof Error && error.message ? supportErrorText(error, t) : t("loadFailed"));
     }
-  }, []);
+  }, [t]);
 
   const openTicket = useCallback(async (number: number) => {
     setLoadError(null);
@@ -71,10 +77,10 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
       setView("thread");
       setTickets((current) => current?.map((row) => (row.number === number ? { ...row, unread: false } : row)) ?? current);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "We couldn't open that conversation.");
+      setLoadError(error instanceof Error && error.message ? supportErrorText(error, t) : t("openFailed"));
       setView("home");
     }
-  }, []);
+  }, [t]);
 
   // ?support=1042 (from a reply email or notification) opens that conversation once.
   useEffect(() => {
@@ -157,18 +163,18 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
           <Mascot name="peggy" className="h-8 w-8" alt="" />
           <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-app-accent px-1 text-[11px] font-extrabold">{unread}</span>
         </span>
-        Support replied
+        {t("supportReplied")}
       </button>
     ) : null;
   }
 
-  const title = view === "thread" && active ? active.subject : view === "peggy" ? "Ask Peggy" : view === "person" ? "Talk to a person" : "Need help?";
+  const title = view === "thread" && active ? active.subject : view === "peggy" ? t("askPeggy") : view === "person" ? t("talkToPerson") : t("needHelp");
   const subtitle =
     view === "thread" && active
-      ? `${formatTicketNumber(active.number)} · ${STATUS_LABEL[active.status]}`
+      ? `${formatTicketNumber(active.number)} · ${t(`status.${active.status}` as const)}`
       : view === "peggy"
-        ? "AI help assistant · a person is one tap away"
-        : "A real person replies, in English or Pidgin";
+        ? t("peggySubtitle")
+        : t("personSubtitle");
 
   return (
     <div className="fixed inset-0 z-50 font-app text-app-ink">
@@ -189,7 +195,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-app-line px-4 py-3.5">
           {view !== "home" ? (
-            <button type="button" onClick={goHome} aria-label="Back to help" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas text-app-ink hover:bg-app-lilac">
+            <button type="button" onClick={goHome} aria-label={t("backToHelp")} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas text-app-ink hover:bg-app-lilac">
               <Icon name="arrowLeft" size={16} />
             </button>
           ) : (
@@ -199,13 +205,14 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
             <h2 className="m-0 truncate text-[15px] font-extrabold">{title}</h2>
             <div className="truncate text-[12px] text-app-ink-soft">{subtitle}</div>
           </div>
-          <button type="button" onClick={close} aria-label="Close help" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas text-app-ink-soft hover:text-app-ink">
+          <button type="button" onClick={close} aria-label={t("closeHelp")} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas text-app-ink-soft hover:text-app-ink">
             <Icon name="x" size={14} />
           </button>
         </div>
 
         {view === "home" && (
           <Home
+            t={t}
             tickets={tickets}
             ready={ready}
             role={role}
@@ -218,6 +225,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
         )}
         {view === "peggy" && (
           <Peggy
+            t={t}
             lines={peggy}
             setLines={setPeggy}
             onAiOff={() => {
@@ -230,6 +238,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
         {view === "person" && (
           ready ? (
             <NewTicket
+              t={t}
               peggy={peggy}
               onCreated={(ticket) => {
                 setActive(ticket);
@@ -238,7 +247,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
               }}
             />
           ) : (
-            <Fallback />
+            <Fallback t={t} />
           )
         )}
         {view === "thread" && active && <SupportThread initial={active} onChange={onThreadChange} />}
@@ -248,6 +257,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
 }
 
 function Home({
+  t,
   tickets,
   ready,
   role,
@@ -257,6 +267,7 @@ function Home({
   onPerson,
   onOpen,
 }: {
+  t: HelpT;
   tickets: ChatTicketSummary[] | null;
   ready: boolean;
   role: string | null;
@@ -266,13 +277,14 @@ function Home({
   onPerson: () => void;
   onOpen: (number: number) => void;
 }) {
+  const locale = useLocale();
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
       {role === "admin" && (
         <div className="mb-4 rounded-[16px] bg-app-lilac px-4 py-3 text-[13.5px] leading-[1.45]">
-          You&apos;re on the support team.{" "}
+          {t("supportTeam")}{" "}
           <Link href="/admin/support" className="font-bold text-app-ink underline">
-            Open the support desk
+            {t("openDesk")}
           </Link>
         </div>
       )}
@@ -281,8 +293,8 @@ function Home({
           <button type="button" onClick={onPeggy} className="flex items-center gap-3 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-left transition hover:border-app-line-strong">
             <Mascot name="peggy" className="h-10 w-10 shrink-0" alt="" />
             <span className="min-w-0 flex-1">
-              <span className="block text-[14.5px] font-extrabold">Ask Peggy</span>
-              <span className="block text-[12.5px] text-app-ink-soft">Instant answers on how to do things in Shopinbos</span>
+              <span className="block text-[14.5px] font-extrabold">{t("askPeggy")}</span>
+              <span className="block text-[12.5px] text-app-ink-soft">{t("peggyHint")}</span>
             </span>
             <Icon name="chevron" size={14} />
           </button>
@@ -292,8 +304,8 @@ function Home({
             <Icon name="chat" size={18} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-extrabold">Talk to a person</span>
-            <span className="block text-[12.5px] text-white/75">{ready ? "Usually replies within an hour" : "WhatsApp or email the team"}</span>
+            <span className="block text-[14.5px] font-extrabold">{t("talkToPerson")}</span>
+            <span className="block text-[12.5px] text-white/75">{ready ? t("repliesWithinHour") : t("whatsappOrEmail")}</span>
           </span>
           <Icon name="chevron" size={14} />
         </button>
@@ -304,14 +316,14 @@ function Home({
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
 
       {ready && (
-        <section aria-label="Your conversations" className="mt-6">
-          <h3 className="m-0 mb-2 text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">Your conversations</h3>
+        <section aria-label={t("yourConversations")} className="mt-6">
+          <h3 className="m-0 mb-2 text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">{t("yourConversations")}</h3>
           {tickets === null ? (
             <div className="grid gap-2">
               {[0, 1].map((key) => <div key={key} className="h-[62px] animate-pulse rounded-[14px] bg-app-canvas" />)}
             </div>
           ) : tickets.length === 0 ? (
-            <p className="m-0 rounded-[14px] bg-app-canvas px-4 py-3 text-[13px] text-app-ink-soft">No conversations yet. When you talk to the team, they&apos;ll show up here.</p>
+            <p className="m-0 rounded-[14px] bg-app-canvas px-4 py-3 text-[13px] text-app-ink-soft">{t("noConversations")}</p>
           ) : (
             <ul className="m-0 grid list-none gap-1.5 p-0">
               {tickets.map((ticket) => (
@@ -321,12 +333,12 @@ function Home({
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline gap-2">
                         <span className={cx("min-w-0 flex-1 truncate text-[14px]", ticket.unread ? "font-extrabold" : "font-bold")}>{ticket.subject}</span>
-                        <span className="shrink-0 text-[11px] text-app-ink-faint">{timeLabel(ticket.lastMessageAt)}</span>
+                        <span className="shrink-0 text-[11px] text-app-ink-faint">{localTimeLabel(ticket.lastMessageAt, locale, t)}</span>
                       </span>
                       <span className="block truncate text-[12.5px] text-app-ink-soft">{ticket.preview}</span>
                       <span className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-app-ink-faint">
-                        {formatTicketNumber(ticket.number)} · <StatusText status={ticket.status} />
-                        {ticket.unread && <span className="sr-only">, new reply</span>}
+                        {formatTicketNumber(ticket.number)} · <StatusText status={ticket.status} t={t} />
+                        {ticket.unread && <span className="sr-only">{t("newReply")}</span>}
                       </span>
                     </span>
                   </button>
@@ -338,7 +350,7 @@ function Home({
       )}
 
       <p className="m-0 mt-6 text-center text-[12.5px] text-app-ink-soft">
-        or email{" "}
+        {t("orEmail")}{" "}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-app-ink">{SUPPORT_EMAIL}</a>
         {SUPPORT_WHATSAPP ? (
           <>
@@ -351,14 +363,14 @@ function Home({
   );
 }
 
-function StatusText({ status }: { status: ChatTicketSummary["status"] }) {
+function StatusText({ status, t }: { status: ChatTicketSummary["status"]; t: HelpT }) {
   const tone = status === "open" ? "text-[#8A5A00]" : status === "pending" ? "text-[#3D4FB8]" : "text-app-success";
   // From the customer's side "pending" means the team replied and is waiting on them.
-  const label = status === "open" ? "Waiting for the team" : status === "pending" ? "Team replied" : STATUS_LABEL[status];
+  const label = customerStatusLabel(status, t);
   return <span className={tone}>{label}</span>;
 }
 
-function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; setLines: (update: (lines: PeggyLine[]) => PeggyLine[]) => void; onAiOff: () => void; onPerson: () => void }) {
+function Peggy({ t, lines, setLines, onAiOff, onPerson }: { t: HelpT; lines: PeggyLine[]; setLines: (update: (lines: PeggyLine[]) => PeggyLine[]) => void; onAiOff: () => void; onPerson: () => void }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -387,10 +399,10 @@ function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; set
       const json = (await response.json().catch(() => null)) as { data?: { text?: string }; error?: { code?: string; message?: string } } | null;
       // No AI configured: go straight to a person, keeping what they typed.
       if (json?.error?.code === "AI_OFF") return onAiOff();
-      const reply = json?.data?.text ?? json?.error?.message ?? "I couldn't answer just now. Tap \"Talk to a person\" and the team will reply.";
+      const reply = json?.data?.text ?? json?.error?.message ?? t("peggyCouldntAnswer");
       setLines((prev) => [...prev, { role: "agent", text: reply }]);
     } catch {
-      setLines((prev) => [...prev, { role: "agent", text: "I couldn't reach the help assistant. Check your connection, or tap \"Talk to a person\"." }]);
+      setLines((prev) => [...prev, { role: "agent", text: t("peggyUnreachable") }]);
     } finally {
       setSending(false);
     }
@@ -403,24 +415,24 @@ function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; set
           <div key={index} className={cx("mb-3.5 flex gap-2.5", line.role === "user" ? "flex-row-reverse" : "flex-row")}>
             {line.role === "agent" && <Mascot name="peggy" className="h-8 w-8 shrink-0" alt="" />}
             <div className={cx("max-w-[78%] whitespace-pre-wrap px-3.5 py-2.5 text-[14px] leading-[1.5]", line.role === "user" ? "rounded-[16px_16px_4px_16px] bg-app-ink text-white" : "rounded-[16px_16px_16px_4px] bg-app-canvas text-app-ink")}>
-              {line.text}
+              {line.text || t("greeting")}
             </div>
           </div>
         ))}
         {sending && (
           <div className="mb-3.5 flex gap-2.5">
             <Mascot name="peggy" mood="thinking" className="h-8 w-8 shrink-0" alt="" />
-            <div className="rounded-[16px_16px_16px_4px] bg-app-canvas px-3.5 py-2.5 text-[14px] text-app-ink-soft">Thinking…</div>
+            <div className="rounded-[16px_16px_16px_4px] bg-app-canvas px-3.5 py-2.5 text-[14px] text-app-ink-soft">{t("thinking")}</div>
           </div>
         )}
         <div ref={endRef} />
       </div>
       <div className="border-t border-app-line px-3 pb-3 pt-2.5">
         <button type="button" onClick={onPerson} className="mb-2.5 flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full border border-app-line bg-white text-[13.5px] font-bold text-app-ink hover:border-app-line-strong">
-          <Icon name="chat" size={15} /> Talk to a person
+          <Icon name="chat" size={15} /> {t("talkToPerson")}
         </button>
         <div className="flex items-center gap-2">
-          <label htmlFor="peggy-question" className="sr-only">Ask Peggy</label>
+          <label htmlFor="peggy-question" className="sr-only">{t("askPeggy")}</label>
           <input
             id="peggy-question"
             value={message}
@@ -428,12 +440,12 @@ function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; set
             onKeyDown={(e) => {
               if (e.key === "Enter") void handleSend();
             }}
-            placeholder="How do I…"
+            placeholder={t("howDoI")}
             maxLength={4000}
             className="h-11 min-w-0 flex-1 rounded-full border border-app-line bg-white px-4 text-[15px] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
           />
           <VoiceInputButton variant="icon" value={message} onChange={setMessage} maxLength={4000} context="a question for Peggy" disabled={sending} />
-          <button type="button" onClick={() => void handleSend()} disabled={!message.trim() || sending} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-ink text-white hover:bg-black disabled:opacity-40">
+          <button type="button" onClick={() => void handleSend()} disabled={!message.trim() || sending} aria-label={t("send")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-ink text-white hover:bg-black disabled:opacity-40">
             <Icon name="arrow" size={15} />
           </button>
         </div>
@@ -442,7 +454,7 @@ function Peggy({ lines, setLines, onAiOff, onPerson }: { lines: PeggyLine[]; set
   );
 }
 
-function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticket: ChatTicket) => void }) {
+function NewTicket({ t, peggy, onCreated }: { t: HelpT; peggy: PeggyLine[]; onCreated: (ticket: ChatTicket) => void }) {
   const asked = peggy.filter((line) => line.role === "user");
   const [topic, setTopic] = useState<SupportTopic>("other");
   const [message, setMessage] = useState(asked[asked.length - 1]?.text ?? "");
@@ -454,9 +466,9 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
     setError(null);
     const next = [...files];
     for (const file of Array.from(picked ?? [])) {
-      const problem = attachmentProblem(file);
-      if (problem) return setError(problem);
-      if (next.length >= MAX_ATTACHMENTS) return setError(`Attach up to ${MAX_ATTACHMENTS} files.`);
+      const problem = attachmentProblemKey(file);
+      if (problem) return setError(t(problem));
+      if (next.length >= MAX_ATTACHMENTS) return setError(t("attachUpTo", { count: MAX_ATTACHMENTS }));
       next.push(file);
     }
     setFiles(next);
@@ -464,7 +476,7 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
 
   const submit = async () => {
     if (busy) return;
-    if (!message.trim()) return setError("Tell us what's going on.");
+    if (!message.trim()) return setError(t("tellUs"));
     setBusy(true);
     setError(null);
     try {
@@ -476,7 +488,7 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
       for (const file of files) form.append("files", file);
       onCreated(await supportFetch<ChatTicket>("/api/support/tickets", { method: "POST", body: form }));
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "We couldn't send that. Try again.");
+      setError(supportErrorText(problem, t));
     } finally {
       setBusy(false);
     }
@@ -486,11 +498,11 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5">
         <p className="m-0 text-[14px] leading-[1.5] text-app-ink-soft">
-          A person from the Shopinbos team will reply here, usually within an hour. We&apos;ll email you too.
-          {asked.length ? " We'll include your chat with Peggy so you don't have to repeat yourself." : ""}
+          {t("personIntro")}
+          {asked.length ? t("includePeggy") : ""}
         </p>
         <fieldset className="m-0 border-0 p-0">
-          <legend className="mb-2 p-0 text-[13.5px] font-bold">What&apos;s it about?</legend>
+          <legend className="mb-2 p-0 text-[13.5px] font-bold">{t("whatAbout")}</legend>
           <div className="flex flex-wrap gap-1.5">
             {TOPICS.map((item) => (
               <label
@@ -501,27 +513,27 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
                 )}
               >
                 <input type="radio" name="support-topic" value={item.value} checked={topic === item.value} onChange={() => setTopic(item.value)} className="sr-only" />
-                {item.label}
+                {t(`topic.${item.value}` as const)}
               </label>
             ))}
           </div>
         </fieldset>
         <div>
-          <label htmlFor="support-new-message" className="mb-2 block text-[13.5px] font-bold">Your message</label>
+          <label htmlFor="support-new-message" className="mb-2 block text-[13.5px] font-bold">{t("yourMessage")}</label>
           <textarea
             id="support-new-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
             maxLength={5000}
-            placeholder="What happened, and what you were trying to do. Order numbers help."
+            placeholder={t("messagePlaceholder")}
             className="w-full resize-y rounded-[16px] border border-app-line bg-white px-3.5 py-3 text-[15px] leading-[1.5] outline-none placeholder:text-app-ink-faint focus:border-app-ink"
           />
           <VoiceInputButton value={message} onChange={setMessage} maxLength={5000} context="a message to the support team" className="mt-2" />
         </div>
         <div>
           <label className="inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-full border border-dashed border-app-line-strong px-3.5 text-[13px] font-bold hover:bg-app-canvas focus-within:ring-2 focus-within:ring-app-ink/30">
-            <Icon name="paperclip" size={14} /> Add screenshots
+            <Icon name="paperclip" size={14} /> {t("addScreenshots")}
             <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
           </label>
           {files.length > 0 && (
@@ -529,7 +541,7 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
               {files.map((file, index) => (
                 <li key={`${file.name}-${index}`} className="flex items-center gap-2">
                   <span className="min-w-0 truncate">{file.name}</span>
-                  <button type="button" onClick={() => setFiles(files.filter((_, i) => i !== index))} className="font-bold text-app-ink underline">Remove</button>
+                  <button type="button" onClick={() => setFiles(files.filter((_, i) => i !== index))} className="font-bold text-app-ink underline">{t("remove")}</button>
                 </li>
               ))}
             </ul>
@@ -540,7 +552,7 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
       <div className="border-t border-app-line px-4 py-3">
         <button type="button" onClick={() => void submit()} disabled={busy} className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full bg-app-accent text-[15px] font-bold text-white hover:brightness-95 disabled:opacity-55">
           {busy ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" /> : <Icon name="send" size={15} />}
-          Send to the team
+          {t("sendToTeam")}
         </button>
       </div>
     </div>
@@ -548,13 +560,13 @@ function NewTicket({ peggy, onCreated }: { peggy: PeggyLine[]; onCreated: (ticke
 }
 
 /** Before the support tables exist: the old WhatsApp/email route, so nobody hits a dead end. */
-function Fallback() {
+function Fallback({ t }: { t: HelpT }) {
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-5 text-[14px] leading-[1.5]">
-      <p className="m-0 text-app-ink-soft">Message the team and a real person will reply, in English or Pidgin.</p>
+      <p className="m-0 text-app-ink-soft">{t("fallbackIntro")}</p>
       {SUPPORT_WHATSAPP && (
         <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="flex min-h-[46px] items-center justify-center gap-2 rounded-full bg-app-forest font-bold text-white no-underline">
-          <Icon name="whatsapp" size={16} /> WhatsApp the team
+          <Icon name="whatsapp" size={16} /> {t("whatsappTeam")}
         </a>
       )}
       <a href={`mailto:${SUPPORT_EMAIL}`} className="flex min-h-[46px] items-center justify-center gap-2 rounded-full border border-app-line font-bold text-app-ink no-underline">

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
+import { notifyProductDecision, notifyVerificationDecision } from "@/lib/notifications/events.server";
 
 const VerificationStatusSchema = z.enum(["unverified", "pending", "verified", "rejected", "suspended"]);
 const ProductStatusSchema = z.enum(["draft", "pending_review", "published", "unpublished", "rejected"]);
@@ -62,10 +63,11 @@ export async function updateSupplierVerification(formData: FormData) {
       status: parsed.data.status === "suspended" ? "suspended" : "active",
       ...(parsedTrustScore.success ? { trustScore: parsedTrustScore.data } : {}),
     },
-    select: { slug: true },
+    select: { slug: true, userId: true },
   }).catch(() => null);
 
   if (supplier) {
+    await notifyVerificationDecision({ userId: supplier.userId, status: parsed.data.status, portal: "supplier" });
     invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
     revalidateAdminPaths("/admin/suppliers", "/admin/marketplace");
   }
@@ -95,10 +97,11 @@ export async function updateLogisticsVerification(formData: FormData) {
       status: parsed.data.status === "suspended" ? "suspended" : "active",
       ...(parsedScore.success ? { reliabilityScore: parsedScore.data } : {}),
     },
-    select: { slug: true },
+    select: { slug: true, userId: true },
   }).catch(() => null);
 
   if (partner) {
+    await notifyVerificationDecision({ userId: partner.userId, status: parsed.data.status, portal: "logistics" });
     invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
     revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");
   }
@@ -134,6 +137,7 @@ export async function updateSupplierProductStatus(formData: FormData) {
       supplierSlug: product.supplier.slug,
       categorySlug: product.category.slug,
     });
+    await notifyProductDecision(parsed.data.productId, parsed.data.status);
     revalidateAdminPaths("/admin/supplier-products", "/admin/marketplace");
   }
 
@@ -253,10 +257,12 @@ export async function updateUserVerification(formData: FormData) {
 
   if (!parsed.success) redirect(getRedirectPath(formData, "/admin/dashboard"));
 
-  await db.user.update({
+  const changed = await db.user.update({
     where: { id: parsed.data.userId },
     data: { verificationStatus: parsed.data.status },
+    select: { id: true, role: true },
   }).catch(() => null);
+  if (changed) await notifyVerificationDecision({ userId: changed.id, status: parsed.data.status, portal: changed.role === "supplier" ? "supplier" : changed.role === "logistics_partner" ? "logistics" : "seller" });
 
   revalidateAdminPaths("/admin/dashboard");
   redirect(getRedirectPath(formData, "/admin/dashboard"));
@@ -279,7 +285,7 @@ export async function bulkUpdateSupplierProductStatus(formData: FormData) {
 
   const updated = await db.supplierProduct.findMany({
     where: { id: { in: ids } },
-    select: { slug: true, supplier: { select: { slug: true } }, category: { select: { slug: true } } },
+    select: { id: true, slug: true, supplier: { select: { slug: true } }, category: { select: { slug: true } } },
   });
 
   for (const product of updated) {
@@ -288,6 +294,7 @@ export async function bulkUpdateSupplierProductStatus(formData: FormData) {
       supplierSlug: product.supplier.slug,
       categorySlug: product.category.slug,
     });
+    await notifyProductDecision(product.id, parsedStatus.data);
   }
 
   revalidateAdminPaths("/admin/supplier-products", "/admin/marketplace");
@@ -312,11 +319,12 @@ export async function bulkUpdateSupplierVerification(formData: FormData) {
 
   const updated = await db.supplier.findMany({
     where: { id: { in: ids } },
-    select: { slug: true },
+    select: { slug: true, userId: true },
   });
 
   for (const supplier of updated) {
     invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+    await notifyVerificationDecision({ userId: supplier.userId, status: parsedStatus.data, portal: "supplier" });
   }
 
   revalidateAdminPaths("/admin/suppliers", "/admin/marketplace");
@@ -341,11 +349,12 @@ export async function bulkUpdateLogisticsVerification(formData: FormData) {
 
   const updated = await db.logisticsPartner.findMany({
     where: { id: { in: ids } },
-    select: { slug: true },
+    select: { slug: true, userId: true },
   });
 
   for (const partner of updated) {
     invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
+    await notifyVerificationDecision({ userId: partner.userId, status: parsedStatus.data, portal: "logistics" });
   }
 
   revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");

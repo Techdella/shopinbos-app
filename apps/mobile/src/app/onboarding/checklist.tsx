@@ -7,10 +7,12 @@ import { PillButton, T } from "@/components/ui";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { API_URL } from "@/lib/api";
 import { finishOnboarding, tickChecklist } from "@/lib/onboarding";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
 
 export default function Checklist() {
+  const t = useT("m_onboarding", "m_shop");
   const { status, setStatus } = useOnboarding();
   const [busy, setBusy] = useState(false);
   if (!status) return null;
@@ -31,15 +33,15 @@ export default function Checklist() {
             <T weight="extrabold" style={{ fontSize: 18, color: colors.accentInk }}>{initial}</T>
           </View>
           <View style={{ flex: 1 }}>
-            <T style={{ color: colors.inkSoft }}>Welcome to your shop</T>
+            <T style={{ color: colors.inkSoft }}>{t("checklist.welcome")}</T>
             <T weight="extrabold" style={{ fontSize: 17 }}>{status.store.name}</T>
           </View>
           <HelpButton />
         </View>
         <View style={{ backgroundColor: colors.surface, borderRadius: 24, padding: 16 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <T weight="extrabold" style={{ fontSize: 18 }} accessibilityRole="header">Finish setting up</T>
-            <T weight="bold">{done} of {status.checklist.length}</T>
+            <T weight="extrabold" style={{ fontSize: 18 }} accessibilityRole="header">{t("finish")}</T>
+            <T weight="bold">{t("checklist.count", { done, total: status.checklist.length })}</T>
           </View>
           <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.lilac, marginTop: 12, overflow: "hidden" }}>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.accent, width: `${(done / status.checklist.length) * 100}%` }} />
@@ -49,7 +51,7 @@ export default function Checklist() {
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: item.done, disabled: !item.manual }}
-                accessibilityLabel={item.label}
+                accessibilityLabel={t.dynamic(`checklist.${item.key}.label`, item.label)}
                 disabled={!item.manual}
                 onPress={() => void tickChecklist(item.key, !item.done).then(setStatus).catch(() => null)}
                 style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: item.done ? colors.success : colors.toggleOff, backgroundColor: item.done ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}
@@ -57,13 +59,13 @@ export default function Checklist() {
                 {item.done && <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 14 }}>✓</T>}
               </Pressable>
               <Pressable style={{ flex: 1 }} onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}${item.href}`)}>
-                <T weight="bold" style={{ fontSize: 15, textDecorationLine: item.done ? "line-through" : "none" }}>{item.label}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{item.hint}</T>
+                <T weight="bold" style={{ fontSize: 15, textDecorationLine: item.done ? "line-through" : "none" }}>{t.dynamic(`checklist.${item.key}.label`, item.label)}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t.dynamic(`checklist.${item.key}.hint`, item.hint)}</T>
               </Pressable>
             </View>
           ))}
         </View>
-        <PillButton title="Go to my shop" busy={busy} style={{ marginTop: 16, borderRadius: radii.pill }} onPress={() => void finish()} />
+        <PillButton title={t("live.goToShop")} busy={busy} style={{ marginTop: 16, borderRadius: radii.pill }} onPress={() => void finish()} />
       </ScrollView>
     </SafeAreaView>
   );

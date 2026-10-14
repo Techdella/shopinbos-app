@@ -5,6 +5,7 @@ import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
 import { transcribeRecording } from "@/lib/voice";
 import { VOICE_COPY, VOICE_MAX_SECONDS, mergeVoiceText, voiceTimer } from "@shared/voice-input";
+import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
 // Voice typing for long text fields (build spec 8A): "Tap and speak", "Listening… tap to stop" with a timer,
@@ -41,6 +42,13 @@ export function VoiceInput({
   disabled?: boolean;
   testID?: string;
 }) {
+  const t = useT("m_ui");
+  /** VOICE_COPY in the app language (m_ui "voice.*"); other text (the server's own words) as it is. */
+  const copy = (key: keyof typeof VOICE_COPY) => t(`voice.${key}`);
+  const translated = (text: string) => {
+    const key = (Object.keys(VOICE_COPY) as Array<keyof typeof VOICE_COPY>).find((name) => VOICE_COPY[name] === text);
+    return key ? copy(key) : text;
+  };
   const recorder = useAudioRecorder(SPEECH_PRESET);
   const state = useAudioRecorderState(recorder, 250);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -59,27 +67,27 @@ export function VoiceInput({
     // The web build has no native alerts: the browser's own prompt asks, and a refusal shows the plain line.
     if (Platform.OS === "web") {
       const asked = await requestRecordingPermissionsAsync().catch(() => null);
-      if (!asked?.granted) setMessage(VOICE_COPY.deniedWeb);
+      if (!asked?.granted) setMessage(copy("deniedWeb"));
       return Boolean(asked?.granted);
     }
     if (!current.canAskAgain) {
-      setMessage(VOICE_COPY.deniedPhone);
-      Alert.alert("Allow the microphone", VOICE_COPY.deniedPhone, [
-        { text: "Not now", style: "cancel" },
-        { text: "Open Settings", onPress: () => void Linking.openSettings() },
+      setMessage(copy("deniedPhone"));
+      Alert.alert(t("voice.allowTitle"), copy("deniedPhone"), [
+        { text: t("voice.notNow"), style: "cancel" },
+        { text: t("voice.openSettings"), onPress: () => void Linking.openSettings() },
       ]);
       return false;
     }
     // Say why before the system asks, in plain words.
     const go = await new Promise<boolean>((resolve) =>
-      Alert.alert("Speak instead of typing", VOICE_COPY.permissionWhy, [
-        { text: "Not now", style: "cancel", onPress: () => resolve(false) },
-        { text: "Allow", onPress: () => resolve(true) },
+      Alert.alert(t("voice.whyTitle"), t.dynamic("voice.permissionWhy", VOICE_COPY.permissionWhy), [
+        { text: t("voice.notNow"), style: "cancel", onPress: () => resolve(false) },
+        { text: t("voice.allow"), onPress: () => resolve(true) },
       ]),
     );
     if (!go) return false;
     const asked = await requestRecordingPermissionsAsync();
-    if (!asked.granted) setMessage(VOICE_COPY.deniedPhone);
+    if (!asked.granted) setMessage(copy("deniedPhone"));
     return asked.granted;
   }
 
@@ -94,7 +102,7 @@ export function VoiceInput({
       setPhase("listening");
     } catch {
       setPhase("idle");
-      setMessage(VOICE_COPY.noMic.replace("This browser", "This phone"));
+      setMessage(t("voice.noMicPhone"));
     }
   }
 
@@ -106,14 +114,14 @@ export function VoiceInput({
       await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
       const uri = recorder.uri;
       if (!uri || durationMs < 400) {
-        setMessage(VOICE_COPY.nothingHeard);
+        setMessage(copy("nothingHeard"));
         return;
       }
       const text = await transcribeRecording({ uri, durationMs, language, context });
-      if (!text) setMessage(VOICE_COPY.nothingHeard);
+      if (!text) setMessage(copy("nothingHeard"));
       else onChange(mergeVoiceText(latest.current, text, mode, maxLength));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : VOICE_COPY.failed);
+      setMessage(error instanceof Error ? translated(error.message) : copy("failed"));
     } finally {
       setPhase("idle");
     }
@@ -131,14 +139,14 @@ export function VoiceInput({
   }
 
   const listening = phase === "listening";
-  const label = listening ? VOICE_COPY.listening : phase === "working" ? VOICE_COPY.working : VOICE_COPY.idle;
+  const label = listening ? copy("listening") : phase === "working" ? copy("working") : copy("idle");
 
   if (variant === "icon") {
     return (
       <View style={style}>
         {/* Next to a chat box there's no room for a line under the button: the message floats above it. */}
         {message && phase === "idle" ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={`${message} Tap to close.`} onPress={() => setMessage(null)} style={{ position: "absolute", bottom: 58, right: 0, width: 240, backgroundColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, zIndex: 10 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("voice.tapToClose", { message })} onPress={() => setMessage(null)} style={{ position: "absolute", bottom: 58, right: 0, width: 240, backgroundColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, zIndex: 10 }}>
             <T accessibilityLiveRegion="polite" style={{ color: "#FFFFFF", fontSize: 13.5, lineHeight: 18 }}>{message}</T>
           </Pressable>
         ) : null}

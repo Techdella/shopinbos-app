@@ -12,6 +12,7 @@ import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { TONE_COLORS } from "@/lib/dashboard";
 import { cancelAndRefund, fetchOrder, undoSupplierSwitch, updateOrder, type OrderDetail, type OrderPart, type OrderParts } from "@/lib/orders";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 type PaidWith = "transfer" | "cash" | "pos";
@@ -37,17 +38,18 @@ const PART_TONE: Record<OrderPart["state"], keyof typeof TONE_COLORS> = { waitin
 
 /** "2 of 3 parcels sent" and where each parcel is. */
 function Parcels({ parts }: { parts: OrderParts }) {
+  const t = useT("m_orders");
   return (
     <Card style={{ gap: 8 }}>
-      <T weight="extrabold" style={{ fontSize: 22 }}>{parts.line ?? "Sent by the supplier"}</T>
+      <T weight="extrabold" style={{ fontSize: 22 }}>{parts.line ?? t("order.sentBySupplier")}</T>
       {parts.parts.map((part) => (
         <View key={part.key} style={{ gap: 4, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.line }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-            <T weight="bold">{part.kind === "own" ? "Your part" : part.name}</T>
+            <T weight="bold">{part.kind === "own" ? t("order.yourPart") : part.name}</T>
             <Badge label={part.label} tone={PART_TONE[part.state] ?? "muted"} />
           </View>
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{part.items}</T>
-          {part.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>Rider&apos;s code: {part.trackingCode}</T> : null}
+          {part.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.riderCode", { code: part.trackingCode })}</T> : null}
         </View>
       ))}
     </Card>
@@ -61,6 +63,7 @@ function whatsappNumber(phone: string) {
 }
 
 export default function OrderScreen() {
+  const t = useT("m_orders", "m_ui", "common");
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +78,7 @@ export default function OrderScreen() {
       setOrder(await fetchOrder(id));
       setError(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "This order didn't load. Pull down to try again.");
+      setError(loadError instanceof Error ? loadError.message : t("order.loadFailed"));
     }
   }, [id]);
 
@@ -89,7 +92,7 @@ export default function OrderScreen() {
     try {
       setOrder(await updateOrder(id, { status, ...extra }));
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "That didn't save. Check your connection and try again.");
+      setError(updateError instanceof Error ? updateError.message : t("saveFailed"));
     } finally {
       setBusy(null);
     }
@@ -100,9 +103,9 @@ export default function OrderScreen() {
     setError(null);
     try {
       setOrder(await undoSupplierSwitch(id, supplierOrderId));
-      setSaved("Undone. The order is back with you. Choose what to do below.");
+      setSaved(t("order.undone"));
     } catch (undoError) {
-      setError(undoError instanceof Error ? undoError.message : "That didn't save. Check your connection and try again.");
+      setError(undoError instanceof Error ? undoError.message : t("saveFailed"));
     } finally {
       setBusy(null);
     }
@@ -117,7 +120,7 @@ export default function OrderScreen() {
       setSaved(result.message);
       setConfirmRefund(false);
     } catch (refundError) {
-      setError(refundError instanceof Error ? refundError.message : "That didn't save. Check your connection and try again.");
+      setError(refundError instanceof Error ? refundError.message : t("saveFailed"));
       setConfirmRefund(false);
     } finally {
       setBusy(null);
@@ -125,16 +128,16 @@ export default function OrderScreen() {
   }
 
   function confirmCancel() {
-    Alert.alert("Cancel this order?", "The customer won't be charged and the order moves to Cancelled.", [
-      { text: "Keep it", style: "cancel" },
-      { text: "Cancel order", style: "destructive", onPress: () => void change("cancelled") },
+    Alert.alert(t("order.cancelTitle"), t("order.cancelBody"), [
+      { text: t("order.keepIt"), style: "cancel" },
+      { text: t("order.cancelOrder"), style: "destructive", onPress: () => void change("cancelled") },
     ]);
   }
 
   if (!order) {
     return (
-      <Screen title="Order">
-        {error ? <Notice>{error}</Notice> : <T style={{ color: colors.inkSoft }}>Loading…</T>}
+      <Screen title={t("order.title")}>
+        {error ? <Notice>{error}</Notice> : <T style={{ color: colors.inkSoft }}>{t("loading")}</T>}
       </Screen>
     );
   }
@@ -149,21 +152,22 @@ export default function OrderScreen() {
   const switches = parts?.problems.filter((problem) => problem.switched) ?? [];
   const address = order.deliveryAddress && order.deliveryAddress.street ? [order.deliveryAddress.street, order.deliveryAddress.city, order.deliveryAddress.state].filter(Boolean).join(", ") : null;
   const phone = order.buyerPhone;
-  const reminder = `Hi ${order.buyerName.split(" ")[0]}, a reminder about your order ${order.orderNumber}: ${naira(order.total)}. Let me know once you've paid. Thank you!`;
+  const firstName = order.buyerName.split(" ")[0];
+  const reminder = t("order.reminder", { name: firstName, number: order.orderNumber, total: naira(order.total) });
 
   // One main button at the bottom: the next thing to do with this order (build spec 8A). Everything else is a link.
   const footer = deciding ? null : unpaid ? (
-    <PillButton title="They paid. Mark as paid" busy={busy === "paid"} onPress={() => void change("paid", { paymentMethod: paidWith })} />
+    <PillButton title={t("order.markPaid")} busy={busy === "paid"} onPress={() => void change("paid", { paymentMethod: paidWith })} />
   ) : toSend ? (
-    <PillButton title="Get a rider" onPress={() => void openWeb(`/home/orders/${order.id}`)} />
+    <PillButton title={t("order.getRider")} onPress={() => void openWeb(`/home/orders/${order.id}`)} />
   ) : order.status === "shipped" && (!ownPart || ownPart.state !== "delivered") ? (
-    <PillButton title="It was delivered" busy={busy === "delivered"} onPress={() => void change("delivered")} />
+    <PillButton title={t("order.delivered")} busy={busy === "delivered"} onPress={() => void change("delivered")} />
   ) : null;
 
   return (
     <Screen
       title={order.buyerName}
-      sub={`${order.orderNumber} · ${capitalise(friendlyTime(order.createdAt))}`}
+      sub={`${order.orderNumber} · ${capitalise(friendlyTime(order.createdAt, new Date(), t))}`}
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
       footer={footer}
@@ -178,13 +182,13 @@ export default function OrderScreen() {
       {/* A supplier didn't accept in time: we sent it to someone else (Undo until they accept)… */}
       {switches.map((problem) => (
         <Card key={problem.supplierOrderId} style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{problem.supplierName} didn&apos;t accept in time.</T>
-          <T style={{ fontSize: 15, lineHeight: 22 }}>We sent it to {problem.switched!.toName}. {problem.switched!.costWords}</T>
+          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.notAccepted", { name: problem.supplierName })}</T>
+          <T style={{ fontSize: 15, lineHeight: 22 }}>{t("order.sentTo", { name: problem.switched!.toName })} {problem.switched!.costWords}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{problem.items}</T>
           {problem.switched!.canUndo ? (
-            <LinkButton title={busy === "undo" ? "Undoing…" : "Undo"} color={colors.danger} onPress={() => void undo(problem.switched!.toSupplierOrderId)} />
+            <LinkButton title={busy === "undo" ? t("order.undoing") : t("order.undo")} color={colors.danger} onPress={() => void undo(problem.switched!.toSupplierOrderId)} />
           ) : problem.switched!.accepted ? (
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{problem.switched!.toName} accepted it.</T>
+            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.accepted", { name: problem.switched!.toName })}</T>
           ) : null}
         </Card>
       ))}
@@ -192,17 +196,17 @@ export default function OrderScreen() {
       {/* …or the seller chooses: find another supplier, or cancel and refund the customer. */}
       {deciding && (
         <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{deciding.supplierName} didn&apos;t accept in time.</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{deciding.items}. Your customer hasn&apos;t been told. What do you want to do?</T>
+          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.notAccepted", { name: deciding.supplierName })}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.decide", { items: deciding.items })}</T>
           <ChoiceRow
             icon="search"
-            title="Find another supplier"
-            sub="See who else sells it"
+            title={t("order.findAnother")}
+            sub={t("order.findAnotherSub")}
             tint={colors.successTint}
             onPress={() => router.push({ pathname: "/find", params: { q: deciding.searchQuery } })}
           />
           {parts?.canCancelAndRefund && (
-            <ChoiceRow icon="wallet" title="Cancel and refund the customer" sub="They get their money back" onPress={() => setConfirmRefund(true)} />
+            <ChoiceRow icon="wallet" title={t("order.refund")} sub={t("order.refundSub")} onPress={() => setConfirmRefund(true)} />
           )}
         </Card>
       )}
@@ -212,24 +216,24 @@ export default function OrderScreen() {
       {/* What to do now */}
       {unpaid && (
         <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>How did they pay?</T>
-          <Segmented<PaidWith> options={[{ value: "transfer", label: "Transfer" }, { value: "cash", label: "Cash" }, { value: "pos", label: "POS" }]} value={paidWith} onChange={setPaidWith} />
-          {phone && <LinkButton title="Not paid yet? Remind them on WhatsApp" color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(reminder)}`)} />}
+          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.howPaid")}</T>
+          <Segmented<PaidWith> options={[{ value: "transfer", label: t("order.paidTransfer") }, { value: "cash", label: t("order.paidCash") }, { value: "pos", label: t("order.paidPos") }]} value={paidWith} onChange={setPaidWith} />
+          {phone && <LinkButton title={t("order.remind")} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(reminder)}`)} />}
         </Card>
       )}
       {toSend && (
         <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>Send the order</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>Pack it, and we&apos;ll find a rider to take it to {order.buyerName.split(" ")[0]}. Getting a rider opens in your browser.</T>
-          <LinkButton title={busy === "shipped" ? "Saving…" : "I sent it myself"} onPress={() => void change("shipped", { logisticsType: "personal" })} />
-          <LinkButton title="Print a label" color={colors.inkSoft} onPress={() => void openWeb(`/home/labels?orders=${order.id}`)} />
+          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.send")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.sendBody", { name: firstName })}</T>
+          <LinkButton title={busy === "shipped" ? t("saving") : t("order.sentMyself")} onPress={() => void change("shipped", { logisticsType: "personal" })} />
+          <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => void openWeb(`/home/labels?orders=${order.id}`)} />
         </Card>
       )}
       {order.status === "shipped" && (
         <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>On the way</T>
-          {order.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>Rider&apos;s code: {order.trackingCode}</T> : null}
-          <T style={{ color: colors.inkSoft, fontSize: 15 }}>Tap the button below when {order.buyerName.split(" ")[0]} has it.</T>
+          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.onTheWay")}</T>
+          {order.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.riderCode", { code: order.trackingCode })}</T> : null}
+          <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.tapWhen", { name: firstName })}</T>
         </Card>
       )}
       {/* Items */}
@@ -249,41 +253,41 @@ export default function OrderScreen() {
           </View>
         ))}
         <View style={{ height: 1, backgroundColor: colors.line, marginVertical: 8 }} />
-        <Row label="Items" value={naira(order.subtotal)} />
-        {order.discountAmount ? <Row label="Discount" value={`−${naira(order.discountAmount)}`} /> : null}
-        <Row label="Delivery" value={order.shippingFee ? naira(order.shippingFee) : "Free"} />
-        <Row label="Total" value={naira(order.total)} strong />
+        <Row label={t("order.items")} value={naira(order.subtotal)} />
+        {order.discountAmount ? <Row label={t("order.discount")} value={`−${naira(order.discountAmount)}`} /> : null}
+        <Row label={t("order.delivery")} value={order.shippingFee ? naira(order.shippingFee) : t("order.free")} />
+        <Row label={t("order.total")} value={naira(order.total)} strong />
         {(order.paymentMethod || order.channel) && (
           <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>
-            {[order.paymentMethod && `Payment: ${PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}`, order.channel && `From ${CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel}`].filter(Boolean).join(" · ")}
+            {[order.paymentMethod && t("order.payment", { method: t.dynamic(`order.method.${order.paymentMethod}`, PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod) }), order.channel && t("order.from", { channel: t.dynamic(`order.channel.${order.channel}`, CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel) })].filter(Boolean).join(" · ")}
           </T>
         )}
       </Card>
 
       {/* Customer */}
       <Card style={{ gap: 6 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }}>Customer</T>
+        <T weight="extrabold" style={{ fontSize: 16 }}>{t("order.customer")}</T>
         {phone ? <T>{phone}</T> : null}
         {order.buyerEmail ? <T>{order.buyerEmail}</T> : null}
         {address ? <T style={{ color: colors.inkSoft }}>{address}</T> : null}
-        {order.notes ? <T style={{ color: colors.inkSoft }}>Note: {order.notes}</T> : null}
+        {order.notes ? <T style={{ color: colors.inkSoft }}>{t("order.note", { note: order.notes })}</T> : null}
         {phone && (
           <View style={{ flexDirection: "row", gap: 16, marginTop: 2 }}>
-            <LinkButton title={`Message on WhatsApp`} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`)} />
-            <LinkButton title="Call" onPress={() => void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`)} />
+            <LinkButton title={t("order.whatsapp")} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`)} />
+            <LinkButton title={t("order.call")} onPress={() => void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`)} />
           </View>
         )}
       </Card>
 
-      <Sheet visible={confirmRefund} onClose={() => setConfirmRefund(false)} title="Cancel and refund the customer?">
+      <Sheet visible={confirmRefund} onClose={() => setConfirmRefund(false)} title={t("order.refundTitle")}>
         <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>
-          The order is cancelled and {order.buyerName.split(" ")[0]} gets {naira(order.total)} back. If they paid you directly, you send it back by transfer.
+          {t("order.refundBody", { name: firstName, total: naira(order.total) })}
         </T>
-        <PillButton title="Yes, cancel and refund" busy={busy === "refund"} onPress={() => void refund()} />
-        <LinkButton title="Keep the order" onPress={() => setConfirmRefund(false)} />
+        <PillButton title={t("order.refundYes")} busy={busy === "refund"} onPress={() => void refund()} />
+        <LinkButton title={t("order.keepOrder")} onPress={() => setConfirmRefund(false)} />
       </Sheet>
 
-      {(unpaid || toSend) && !deciding && <LinkButton title={busy === "cancelled" ? "Cancelling…" : "Cancel this order"} color={colors.danger} onPress={confirmCancel} />}
+      {(unpaid || toSend) && !deciding && <LinkButton title={busy === "cancelled" ? t("order.cancelling") : t("order.cancelThis")} color={colors.danger} onPress={confirmCancel} />}
     </Screen>
   );
 }

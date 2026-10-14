@@ -8,6 +8,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { TonePill } from "@/components/partner";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount, productStage } from "@/lib/partner-pure";
 import { fetchSupplierProduct, quickEditProduct } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
@@ -19,6 +20,7 @@ import { colors, radii } from "@/theme";
 
 export default function SupplierProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const t = useT("m_supplier", "m_partner");
   const product = useLoad(() => fetchSupplierProduct(String(id)), String(id));
   const data = product.data;
   // Edits start from what's saved; null = untouched.
@@ -30,7 +32,7 @@ export default function SupplierProductScreen() {
 
   if (!data) {
     return (
-      <Screen title="Product" refreshing={product.refreshing} onRefresh={() => void product.refresh()}>
+      <Screen title={t("product.title")} refreshing={product.refreshing} onRefresh={() => void product.refresh()}>
         {product.loading ? <LoadingBlock /> : null}
         {product.error ? <ErrorState message={product.error} onRetry={() => void product.reload()} /> : null}
       </Screen>
@@ -39,7 +41,7 @@ export default function SupplierProductScreen() {
 
   const stockText = stock ?? String(data.stockQuantity);
   const stockValue = parseCount(stockText);
-  const stage = productStage(data.status);
+  const stage = productStage(data.status, t);
   const hidden = ["draft", "unpublished", "rejected"].includes(data.status);
 
   function bump(delta: number) {
@@ -50,20 +52,20 @@ export default function SupplierProductScreen() {
     if (!data) return;
     const patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number } = {};
     if (stock !== null) {
-      if (stockValue === null) return setNotice({ tone: "error", text: "How many you have should be a whole number, like 12." });
+      if (stockValue === null) return setNotice({ tone: "error", text: t("product.stockWhole") });
       patch.stockQuantity = stockValue;
     }
     if (wholesale !== null) {
       const value = parseAmount(wholesale);
-      if (!value) return setNotice({ tone: "error", text: "Type your price to shops in naira, like 4500." });
+      if (!value) return setNotice({ tone: "error", text: t("product.needWholesale") });
       patch.wholesalePrice = value;
     }
     if (retail !== null) {
       const value = parseAmount(retail);
-      if (!value) return setNotice({ tone: "error", text: "Type what shops sell it for, in naira, like 9000." });
+      if (!value) return setNotice({ tone: "error", text: t("product.needRetail") });
       patch.suggestedRetailPrice = value;
     }
-    if (!Object.keys(patch).length) return setNotice({ tone: "success", text: "Nothing changed." });
+    if (!Object.keys(patch).length) return setNotice({ tone: "success", text: t("product.nothingChanged") });
     setBusy("save");
     setNotice(null);
     try {
@@ -72,9 +74,9 @@ export default function SupplierProductScreen() {
       setStock(null);
       setWholesale(null);
       setRetail(null);
-      setNotice({ tone: "success", text: saved.status === "pending_review" && data.status === "published" ? "Saved. Shops see the new price after we check it." : "Saved." });
+      setNotice({ tone: "success", text: saved.status === "pending_review" && data.status === "published" ? t("product.savedReview") : t("product.saved") });
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : "That didn't save. Check your connection and try again." });
+      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("product.saveFailed") });
     } finally {
       setBusy(null);
     }
@@ -87,9 +89,9 @@ export default function SupplierProductScreen() {
     try {
       const saved = await quickEditProduct(data.id, { publish: next });
       product.setData({ ...data, ...saved });
-      setNotice({ tone: "success", text: next ? "Sent. Shops can see it once we've checked it." : "Hidden. Shops can't add it until you show it again." });
+      setNotice({ tone: "success", text: next ? t("product.sent") : t("product.hiddenNow") });
     } catch (publishError) {
-      setNotice({ tone: "error", text: publishError instanceof Error ? publishError.message : "That didn't change. Check your connection and try again." });
+      setNotice({ tone: "error", text: publishError instanceof Error ? publishError.message : t("product.changeFailed") });
     } finally {
       setBusy(null);
     }
@@ -100,7 +102,7 @@ export default function SupplierProductScreen() {
       title={data.name}
       refreshing={product.refreshing}
       onRefresh={() => void product.refresh()}
-      footer={<PillButton title="Save changes" busy={busy === "save"} disabled={Boolean(busy) || (stock === null && wholesale === null && retail === null)} onPress={() => void save()} />}
+      footer={<PillButton title={t("product.save")} busy={busy === "save"} disabled={Boolean(busy) || (stock === null && wholesale === null && retail === null)} onPress={() => void save()} />}
     >
       {data.images.length ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -109,24 +111,24 @@ export default function SupplierProductScreen() {
       ) : null}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <TonePill tone={stage.tone} label={stage.label} />
-        {data._count?.storeProducts ? <TonePill tone="muted" label={`${data._count.storeProducts} shops sell it`} /> : null}
+        {data._count?.storeProducts ? <TonePill tone="muted" label={t("shopsSellIt", { count: data._count.storeProducts })} /> : null}
       </View>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
       <Card style={{ gap: 10 }}>
-        <Label>How many you have</Label>
+        <Label>{t("product.stock")}</Label>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="One less" onPress={() => bump(-1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("product.oneLess")} onPress={() => bump(-1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" style={{ fontSize: 22 }}>−</T>
           </Pressable>
-          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel="How many you have" style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
-          <Pressable accessibilityRole="button" accessibilityLabel="One more" onPress={() => bump(1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
+          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel={t("unitsInStock")} style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
+          <Pressable accessibilityRole="button" accessibilityLabel={t("product.oneMore")} onPress={() => bump(1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="plus" size={22} strokeWidth={2.4} />
           </Pressable>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           {[10, 50, 100].map((amount) => (
-            <Pressable key={amount} accessibilityRole="button" accessibilityLabel={`Add ${amount}`} onPress={() => bump(amount)} style={{ flex: 1, minHeight: 38, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" }}>
+            <Pressable key={amount} accessibilityRole="button" accessibilityLabel={t("product.addN", { count: amount })} onPress={() => bump(amount)} style={{ flex: 1, minHeight: 38, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" }}>
               <T weight="bold">+{amount}</T>
             </Pressable>
           ))}
@@ -135,25 +137,25 @@ export default function SupplierProductScreen() {
 
       <Card style={{ gap: 12 }}>
         <View>
-          <Label>Your price to shops (for one)</Label>
-          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel="Your price to shops" />
+          <Label>{t("product.wholesalePerUnit")}</Label>
+          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel={t("product.wholesale")} />
         </View>
         <View>
-          <Label>Shops sell it for about</Label>
-          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel="Shops sell it for about" />
-          <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>Now {naira(data.wholesalePrice)} to shops. They sell it for about {naira(data.suggestedRetailPrice)}. We check new prices before shops see them.</T>
+          <Label>{t("product.retail")}</Label>
+          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel={t("suggestedRetail")} />
+          <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>{t("product.now", { wholesale: naira(data.wholesalePrice), retail: naira(data.suggestedRetailPrice) })}</T>
         </View>
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? "Shops can't see it" : data.status === "pending_review" ? "We're checking it" : "Shops can see it"}</T>
+        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? t("product.notListed") : data.status === "pending_review" ? t("product.inReview") : t("product.listed")}</T>
         <T style={{ color: colors.inkSoft, lineHeight: 20 }}>
-          {hidden ? "Show it to shops. We check it first, usually within a day." : "Hide it to stop new shops adding it."}
+          {hidden ? t("product.showHint") : t("product.hideHint")}
         </T>
-        <PillButton title={hidden ? "Show it to shops" : "Hide it from shops"} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
+        <PillButton title={hidden ? t("showToShops") : t("product.hide")} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
       </Card>
 
-      <LinkButton title="Change photos, bulk prices and where it goes (opens in your browser)" color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
+      <LinkButton title={t("product.editOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
     </Screen>
   );
 }

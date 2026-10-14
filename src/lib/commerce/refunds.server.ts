@@ -65,6 +65,7 @@ async function notifySeller(order: RefundOrder, title: string, description: stri
     description,
     link: `/home/orders/${order.id}`,
     sendEmail: priority === "critical",
+    event: "refund.update",
   }).catch(() => null);
 }
 

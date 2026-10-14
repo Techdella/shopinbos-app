@@ -493,6 +493,7 @@ test("dark mode: the builder switch turns it off; <head> is created when missing
   // Body content the shell lays out (not a pasted document) is unaffected: the shell already handles dark mode.
   assert.doesNotMatch(layout.wrapEmail({ bodyHtml: "<p>Hi</p>", brand: BRAND, compliance }), /sib-pasted-dark/);
   const builder = read("src/app/home/marketing/_kit/EmailBuilder.tsx");
-  assert.match(builder, /label="Optimise for dark mode"/);
+  assert.match(builder, /label=\{t\("builder\.darkMode"\)\}/);
+  assert.match(read("shared/i18n/messages/emailBuilder/en.ts"), /"builder\.darkMode": "Optimise for dark mode"/);
   assert.match(builder, /setDarkMode\(content\.bodyHtml, on\)/);
 });

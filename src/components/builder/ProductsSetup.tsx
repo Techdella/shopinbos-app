@@ -6,6 +6,7 @@ import Papa from "papaparse";
 import { Mascot, Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { uploadFile } from "@/lib/supabase/storage";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface SpecField {
 }
 
 interface CategorySchema {
+  id: "fashion" | "food" | "beauty" | "tech" | "health" | "general";
   variantTypes: string[];
   specFields: SpecField[];
 }
@@ -62,6 +64,7 @@ function getCategorySchema(cat: string): CategorySchema {
 
   if (/fashion|cloth|wear|dress|shirt|bag|shoe|ankara|fabric|style|wears/.test(s)) {
     return {
+      id: "fashion",
       variantTypes: ["Size", "Color"],
       specFields: [
         { key: "material", label: "Material / Fabric", placeholder: "e.g. 100% cotton, Ankara print, polyester blend" },
@@ -74,6 +77,7 @@ function getCategorySchema(cat: string): CategorySchema {
 
   if (/food|sauce|snack|pepper|spice|rice|bread|cake|pastry|drink|beverage|jollof|bake|cook/.test(s)) {
     return {
+      id: "food",
       variantTypes: ["Size / Weight", "Flavour"],
       specFields: [
         { key: "ingredients", label: "Ingredients", placeholder: "List all ingredients in order of quantity...", multiline: true },
@@ -87,6 +91,7 @@ function getCategorySchema(cat: string): CategorySchema {
 
   if (/beauty|skin|hair|cream|soap|oil|serum|makeup|cosmetic|glow|moistur/.test(s)) {
     return {
+      id: "beauty",
       variantTypes: ["Size", "Shade / Tone"],
       specFields: [
         { key: "key_ingredients", label: "Key ingredients", placeholder: "e.g. Shea butter, Vitamin C, Aloe Vera, Jojoba oil", multiline: true },
@@ -100,6 +105,7 @@ function getCategorySchema(cat: string): CategorySchema {
 
   if (/phone|gadget|tech|electron|laptop|accessory|cable|charger|device/.test(s)) {
     return {
+      id: "tech",
       variantTypes: ["Color", "Storage / Variant"],
       specFields: [
         { key: "specs", label: "Technical specs", placeholder: "e.g. 6.5\" display, 4GB RAM, 64GB storage, 5000mAh", multiline: true },
@@ -112,6 +118,7 @@ function getCategorySchema(cat: string): CategorySchema {
 
   if (/health|wellness|vitamin|supplement|organic|herbal|natural/.test(s)) {
     return {
+      id: "health",
       variantTypes: ["Size / Quantity", "Variant"],
       specFields: [
         { key: "ingredients", label: "Active ingredients", placeholder: "e.g. Zinc, Vitamin D3, Elderberry extract", multiline: true },
@@ -124,6 +131,7 @@ function getCategorySchema(cat: string): CategorySchema {
 
   // Default / general merchandise
   return {
+    id: "general",
     variantTypes: ["Size", "Color"],
     specFields: [
       { key: "material", label: "Material", placeholder: "e.g. Wood, plastic, metal, leather, ceramic" },
@@ -160,7 +168,10 @@ const SECTION_TITLE = "m-0 mb-3 text-[15px] font-extrabold";
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function ProductsSetup({ category, onNext, onBack, onProductsChange }: ProductsSetupProps) {
+  const t = useT("builder");
   const schema = getCategorySchema(category);
+  const specLabel = (sf: SpecField) => t.dynamic(`ps.${schema.id}.${sf.key}`, sf.label);
+  const specPlaceholder = (sf: SpecField) => t.dynamic(`ps.${schema.id}.${sf.key}.ph`, sf.placeholder);
   const [tab, setTab] = useState<"manual" | "csv" | "marketplace">("manual");
   const [products, setProducts] = useState<ProductRow[]>(() => [mkProduct(schema)]);
   const [csvRows, setCsvRows] = useState<{ name: string; price: string; desc: string }[]>([]);
@@ -296,11 +307,11 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
       });
       const json = (await res.json().catch(() => null)) as { data?: { text?: string }; error?: { message?: string } } | null;
       const text = json?.data?.text;
-      if (!res.ok || !text) throw new Error(json?.error?.message ?? "Peggy couldn't write that right now.");
+      if (!res.ok || !text) throw new Error(json?.error?.message ?? t("ps.peggyError"));
       if (field === "shortDesc" || field === "fullDesc") update(productId, { [field]: text });
       else if (specKey) updateSpec(productId, specKey, text);
     } catch (error) {
-      setPeggyError(error instanceof Error ? error.message : "Peggy couldn't write that right now.");
+      setPeggyError(error instanceof Error ? error.message : t("ps.peggyError"));
     } finally {
       setPeggyLoading(null);
     }
@@ -439,11 +450,11 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
         type="button"
         onClick={() => askPeggy(id, field, specKey)}
         disabled={!product?.name.trim() || isLoading}
-        title={product?.name.trim() ? undefined : "Add the product name first"}
+        title={product?.name.trim() ? undefined : t("ps.nameFirst")}
         className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-full bg-app-mint px-2.5 text-[12.5px] font-bold text-app-forest disabled:opacity-45"
       >
         <Mascot name="peggy" mood={isLoading ? "thinking" : "idle"} className="h-4 w-4" alt="" />
-        {isLoading ? "Writing…" : "Ask Peggy"}
+        {isLoading ? t("ps.writing") : t("ps.askPeggy")}
       </button>
     );
   }
@@ -451,9 +462,9 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const TABS = [
-    { value: "manual" as const, label: "Add myself" },
-    { value: "csv" as const, label: "Import a file" },
-    { value: "marketplace" as const, label: "From suppliers" },
+    { value: "manual" as const, label: t("ps.tab.manual") },
+    { value: "csv" as const, label: t("ps.tab.csv") },
+    { value: "marketplace" as const, label: t("ps.tab.marketplace") },
   ];
 
   return (
@@ -461,8 +472,10 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
       <div className="flex items-start gap-3 rounded-[18px] bg-app-mint px-4 py-3.5">
         <Mascot name="peggy" className="h-9 w-9 shrink-0" alt="Peggy" />
         <p className="m-0 text-[14px] leading-[1.55]">
-          I&apos;m Peggy. Add your products and I&apos;ll help with descriptions, ingredients, care labels and specs. Tap{" "}
-          <strong>Ask Peggy</strong> next to any field.
+          {(() => {
+            const [before, after = ""] = t("ps.peggyIntro", { button: "\u0001" }).split("\u0001");
+            return <>{before}<strong>{t("ps.askPeggy")}</strong>{after}</>;
+          })()}
         </p>
       </div>
 
@@ -499,7 +512,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                     ) : (
                       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-app-canvas text-app-ink-soft"><Icon name="image" size={16} /></span>
                     )}
-                    <span className="truncate text-[15px] font-extrabold">{p.name || `Product ${pIdx + 1}`}</span>
+                    <span className="truncate text-[15px] font-extrabold">{p.name || t("ps.product", { n: pIdx + 1 })}</span>
                     {p.price && <span className="shrink-0 text-[13.5px] text-app-ink-soft">{p.price.match(/[₦GH₵KSh$]/) ? p.price : `₦${p.price}`}</span>}
                   </span>
                   <Icon name="chevDown" size={18} className={cx("shrink-0 text-app-ink-soft transition", p.open && "rotate-180")} />
@@ -508,33 +521,33 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                 {p.open && (
                   <div id={bodyId} className="grid gap-6 border-t border-app-line px-4 pb-5 pt-5 sm:px-5">
                     <section>
-                      <h4 className={SECTION_TITLE}>Basics</h4>
+                      <h4 className={SECTION_TITLE}>{t("ps.basics")}</h4>
                       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_150px]">
                         <div className="min-w-0">
-                          <label htmlFor={`${bodyId}-name`} className={`${LABEL} mb-1.5 block`}>Product name *</label>
-                          <input id={`${bodyId}-name`} value={p.name} onChange={(e) => update(p.id, { name: e.target.value })} placeholder="e.g. Handmade leather tote" className={INPUT} />
+                          <label htmlFor={`${bodyId}-name`} className={`${LABEL} mb-1.5 block`}>{t("ps.name")}</label>
+                          <input id={`${bodyId}-name`} value={p.name} onChange={(e) => update(p.id, { name: e.target.value })} placeholder={t("ps.namePh")} className={INPUT} />
                         </div>
                         <div className="min-w-0">
-                          <label htmlFor={`${bodyId}-price`} className={`${LABEL} mb-1.5 block`}>Price *</label>
+                          <label htmlFor={`${bodyId}-price`} className={`${LABEL} mb-1.5 block`}>{t("ps.price")}</label>
                           <input id={`${bodyId}-price`} inputMode="decimal" value={p.price} onChange={(e) => update(p.id, { price: e.target.value })} placeholder="₦15,000" className={INPUT} />
                         </div>
                         <div className="min-w-0">
-                          <label htmlFor={`${bodyId}-compare`} className={`${LABEL} mb-1.5 block`}>Was (optional)</label>
+                          <label htmlFor={`${bodyId}-compare`} className={`${LABEL} mb-1.5 block`}>{t("ps.was")}</label>
                           <input id={`${bodyId}-compare`} inputMode="decimal" value={p.compareAt} onChange={(e) => update(p.id, { compareAt: e.target.value })} placeholder="₦20,000" className={INPUT} />
                         </div>
                       </div>
                     </section>
 
                     <section>
-                      <h4 className={SECTION_TITLE}>Photos</h4>
+                      <h4 className={SECTION_TITLE}>{t("ps.photos")}</h4>
                       <div className="flex flex-wrap gap-2">
                         {p.images.map((url, imgIdx) => (
                           <div key={imgIdx} className="relative h-20 w-20 overflow-hidden rounded-[14px] border border-app-line">
-                            <Image src={url} alt={`Photo ${imgIdx + 1}`} fill sizes="80px" className="object-cover" />
+                            <Image src={url} alt={t("ps.photo", { n: imgIdx + 1 })} fill sizes="80px" className="object-cover" />
                             <button
                               type="button"
                               onClick={() => removeImage(p.id, imgIdx)}
-                              aria-label={`Remove photo ${imgIdx + 1}`}
+                              aria-label={t("ps.removePhoto", { n: imgIdx + 1 })}
                               className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-app-ink shadow"
                             >
                               <Icon name="x" size={13} />
@@ -544,29 +557,29 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                         {p.images.length < 5 && (
                           <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] border-2 border-dashed border-app-line-strong text-app-ink-soft transition hover:border-app-ink hover:text-app-ink focus-within:border-app-ink">
                             <Icon name="plus" size={18} />
-                            <span className="text-[11.5px] font-bold">Add photo</span>
+                            <span className="text-[11.5px] font-bold">{t("ps.addPhoto")}</span>
                             <input type="file" multiple accept="image/*" className="sr-only" onChange={(e) => addImages(p.id, e.target.files)} />
                           </label>
                         )}
                       </div>
-                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Up to 5 photos. The first one shows in the store preview.</p>
+                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{t("ps.photosHelp")}</p>
                     </section>
 
                     <section className="grid gap-4">
-                      <h4 className={`${SECTION_TITLE} mb-0`}>Descriptions</h4>
+                      <h4 className={`${SECTION_TITLE} mb-0`}>{t("ps.descriptions")}</h4>
                       <div>
                         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                           <label htmlFor={`${bodyId}-short`} className={LABEL}>
-                            Short description <span className="font-normal text-app-ink-soft">(one line, on the product card)</span>
+                            {t("ps.short")} <span className="font-normal text-app-ink-soft">{t("ps.shortHint")}</span>
                           </label>
                           <PeggyBtn id={p.id} field="shortDesc" />
                         </div>
-                        <input id={`${bodyId}-short`} value={p.shortDesc} onChange={(e) => update(p.id, { shortDesc: e.target.value })} placeholder="One line about this product…" className={INPUT} />
+                        <input id={`${bodyId}-short`} value={p.shortDesc} onChange={(e) => update(p.id, { shortDesc: e.target.value })} placeholder={t("ps.shortPh")} className={INPUT} />
                       </div>
                       <div>
                         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                           <label htmlFor={`${bodyId}-full`} className={LABEL}>
-                            Full description <span className="font-normal text-app-ink-soft">(on the product page)</span>
+                            {t("ps.full")} <span className="font-normal text-app-ink-soft">{t("ps.fullHint")}</span>
                           </label>
                           <PeggyBtn id={p.id} field="fullDesc" />
                         </div>
@@ -575,38 +588,38 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                           rows={3}
                           value={p.fullDesc}
                           onChange={(e) => update(p.id, { fullDesc: e.target.value })}
-                          placeholder="Quality, where it's from, why buyers love it…"
+                          placeholder={t("ps.fullPh")}
                           className={`${INPUT} resize-y leading-[1.55]`}
                         />
                       </div>
                     </section>
 
                     <section>
-                      <h4 className={SECTION_TITLE}>Options</h4>
+                      <h4 className={SECTION_TITLE}>{t("ps.options")}</h4>
                       <div className="grid gap-3 sm:grid-cols-2">
                         {p.variants.map((v, vIdx) => (
                           <div key={vIdx} className="min-w-0">
-                            <label htmlFor={`${bodyId}-variant-${vIdx}`} className={`${LABEL} mb-1.5 block`}>{v.type}</label>
+                            <label htmlFor={`${bodyId}-variant-${vIdx}`} className={`${LABEL} mb-1.5 block`}>{t.dynamic(`ps.${schema.id}.v${vIdx}`, v.type)}</label>
                             <input
                               id={`${bodyId}-variant-${vIdx}`}
                               value={v.options}
                               onChange={(e) => updateVariant(p.id, vIdx, e.target.value)}
-                              placeholder="Separate with commas, e.g. S, M, L, XL"
+                              placeholder={t("ps.optionsPh")}
                               className={INPUT}
                             />
                           </div>
                         ))}
                       </div>
-                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Leave blank if this product has no options.</p>
+                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{t("ps.optionsHelp")}</p>
                     </section>
 
                     <section>
-                      <h4 className={SECTION_TITLE}>Details</h4>
+                      <h4 className={SECTION_TITLE}>{t("ps.details")}</h4>
                       <div className="grid gap-3">
                         {schema.specFields.map((sf) => (
                           <div key={sf.key}>
                             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                              <label htmlFor={`${bodyId}-spec-${sf.key}`} className={LABEL}>{sf.label}</label>
+                              <label htmlFor={`${bodyId}-spec-${sf.key}`} className={LABEL}>{specLabel(sf)}</label>
                               <PeggyBtn id={p.id} field="spec" specKey={sf.key} />
                             </div>
                             {sf.multiline ? (
@@ -615,11 +628,11 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                                 rows={2}
                                 value={p.specs[sf.key] ?? ""}
                                 onChange={(e) => updateSpec(p.id, sf.key, e.target.value)}
-                                placeholder={sf.placeholder}
+                                placeholder={specPlaceholder(sf)}
                                 className={`${INPUT} resize-y leading-[1.55]`}
                               />
                             ) : (
-                              <input id={`${bodyId}-spec-${sf.key}`} value={p.specs[sf.key] ?? ""} onChange={(e) => updateSpec(p.id, sf.key, e.target.value)} placeholder={sf.placeholder} className={INPUT} />
+                              <input id={`${bodyId}-spec-${sf.key}`} value={p.specs[sf.key] ?? ""} onChange={(e) => updateSpec(p.id, sf.key, e.target.value)} placeholder={specPlaceholder(sf)} className={INPUT} />
                             )}
                           </div>
                         ))}
@@ -633,7 +646,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                           onClick={() => setProducts((prev) => prev.filter((x) => x.id !== p.id))}
                           className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"
                         >
-                          <Icon name="trash" size={14} /> Remove this product
+                          <Icon name="trash" size={14} /> {t("ps.removeProduct")}
                         </button>
                       </div>
                     )}
@@ -648,7 +661,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
             onClick={() => setProducts((prev) => [...prev, mkProduct(schema)])}
             className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-app-line-strong text-[14px] font-bold text-app-ink-soft transition hover:border-app-ink hover:text-app-ink"
           >
-            <Icon name="plus" size={16} /> Add another product
+            <Icon name="plus" size={16} /> {t("ps.addAnother")}
           </button>
         </div>
       )}
@@ -664,23 +677,23 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
             )}
           >
             <Icon name="upload" size={22} className="text-app-ink-soft" />
-            <span className="mt-2 text-[15px] font-extrabold">{csvFileName ?? "Choose a CSV file"}</span>
-            <span className="mt-1 text-[13px] text-app-ink-soft">Columns: name and price, plus description if you have it</span>
+            <span className="mt-2 text-[15px] font-extrabold">{csvFileName ?? t("ps.chooseCsv")}</span>
+            <span className="mt-1 text-[13px] text-app-ink-soft">{t("ps.csvCols")}</span>
           </button>
-          <input ref={csvRef} type="file" accept=".csv" aria-label="Upload CSV file" className="sr-only" onChange={handleCsvUpload} />
+          <input ref={csvRef} type="file" accept=".csv" aria-label={t("ps.uploadCsv")} className="sr-only" onChange={handleCsvUpload} />
 
           {csvRows.length > 0 && (
             <div className="overflow-hidden rounded-[22px] border border-app-line bg-white">
               <ul className="m-0 list-none divide-y divide-app-line p-0">
                 {csvRows.slice(0, 8).map((r, i) => (
                   <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-4 py-2.5 text-[14px]">
-                    <span className="min-w-0 flex-1 truncate font-bold">{r.name || "No name"}</span>
+                    <span className="min-w-0 flex-1 truncate font-bold">{r.name || t("ps.noName")}</span>
                     <span className="shrink-0 text-app-ink-soft">{r.price}</span>
                     {r.desc && <span className="w-full truncate text-[13px] text-app-ink-soft">{r.desc}</span>}
                   </li>
                 ))}
               </ul>
-              {csvRows.length > 8 && <p className="m-0 border-t border-app-line px-4 py-2.5 text-[13px] text-app-ink-soft">+{csvRows.length - 8} more</p>}
+              {csvRows.length > 8 && <p className="m-0 border-t border-app-line px-4 py-2.5 text-[13px] text-app-ink-soft">{t("ps.more", { count: csvRows.length - 8 })}</p>}
             </div>
           )}
         </div>
@@ -688,10 +701,10 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
 
       {tab === "marketplace" && (
         <div className="grid gap-3">
-          <p className="m-0 text-[14px] text-app-ink-soft">Suggested for {category || "your store"}. Add one and it sells on your store; the supplier ships it.</p>
+          <p className="m-0 text-[14px] text-app-ink-soft">{t("ps.suggested", { category: category || t("ps.yourStore") })}</p>
           {mpProducts.length === 0 ? (
             <p className="m-0 rounded-[18px] bg-app-canvas px-4 py-8 text-center text-[14px] text-app-ink-soft" role="status">
-              {mpState === "loading" || mpState === "idle" ? "Finding supplier products…" : mpState === "error" ? "Couldn't load supplier products. Try again later." : "No supplier products for this category yet."}
+              {mpState === "loading" || mpState === "idle" ? t("ps.finding") : mpState === "error" ? t("ps.loadError") : t("ps.noneForCategory")}
             </p>
           ) : (
             <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
@@ -707,8 +720,8 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                     <span className="block truncate text-[14px] font-bold">{p.name}</span>
                     <span className="block truncate text-[12.5px] text-app-ink-soft">{p.supplier} · {p.currency} {p.price}</span>
                   </span>
-                  <PillButton size="sm" tone={addedMp.has(p.id) ? "white" : "ink"} onClick={() => addMpProduct(p.id)} disabled={addedMp.has(p.id)} aria-label={addedMp.has(p.id) ? `${p.name} added` : `Add ${p.name}`}>
-                    {addedMp.has(p.id) ? <><Icon name="check" size={13} /> Added</> : "Add"}
+                  <PillButton size="sm" tone={addedMp.has(p.id) ? "white" : "ink"} onClick={() => addMpProduct(p.id)} disabled={addedMp.has(p.id)} aria-label={addedMp.has(p.id) ? t("ps.addedLabel", { name: p.name }) : t("ps.addLabel", { name: p.name })}>
+                    {addedMp.has(p.id) ? <><Icon name="check" size={13} /> {t("ps.added")}</> : t("ps.add")}
                   </PillButton>
                 </li>
               ))}
@@ -718,12 +731,12 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
       )}
 
       <div className="flex flex-wrap items-center gap-3 pt-1">
-        <PillButton size="md" tone="white" onClick={onBack}>Back</PillButton>
+        <PillButton size="md" tone="white" onClick={onBack}>{t("ps.back")}</PillButton>
         <PillButton size="md" onClick={saveAndNext} busy={isSaving} disabled={saved}>
-          {saved ? <><Icon name="check" size={15} /> Saved</> : "Save and continue"}
+          {saved ? <><Icon name="check" size={15} /> {t("ps.saved")}</> : t("ps.saveContinue")}
         </PillButton>
         <button type="button" onClick={onNext} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink">
-          Skip for now
+          {t("ps.skip")}
         </button>
       </div>
     </div>

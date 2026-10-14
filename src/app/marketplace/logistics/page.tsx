@@ -11,10 +11,18 @@ import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 import { redirect } from "next/navigation";
 import { MarketplaceChatWrapper } from "@/components/marketplace/MarketplaceChatWrapper";
 import { ChatButton } from "@/components/marketplace/ChatButton";
+import { formatMoney, type Locale } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-function fmtMoney(n: number) {
+export async function generateMetadata() {
+  const t = await getT("marketplace");
+  return { title: t("sup.chip.delivery") };
+}
+
+function fmtMoney(n: number, locale: Locale = "en") {
+  if (locale !== "en") return formatMoney(n, locale);
   return "\u20A6" + n.toLocaleString("en-NG");
 }
 
@@ -29,6 +37,8 @@ function norm(value?: string | null) {
 export default async function MarketplaceLogisticsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketplace");
+  const locale = await getLocale();
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   if (!workspace.store) redirect("/builder?firstRun=1");
@@ -95,48 +105,48 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
       <SellerPage
         user={user}
         store={storeSummary(store)}
-        title="Delivery partners"
-        sub={`${partners.length} verified partner${partners.length === 1 ? "" : "s"}. Compare prices and book deliveries for your orders.${nearbyCount > 0 ? ` ${nearbyCount} cover your area.` : ""}`}
+        title={t("sup.chip.delivery")}
+        sub={`${t("lp.sub", { count: partners.length })}${nearbyCount > 0 ? ` ${t("lp.cover", { count: nearbyCount })}` : ""}`}
       >
         <div className="grid gap-5">
           <FilterChips
             items={[
-              { label: "Products", href: "/marketplace" },
-              { label: "Suppliers", href: "/marketplace/suppliers" },
-              { label: "Delivery partners", href: "/marketplace/logistics", active: true },
+              { label: t("sup.chip.products"), href: "/marketplace" },
+              { label: t("sup.chip.suppliers"), href: "/marketplace/suppliers" },
+              { label: t("sup.chip.delivery"), href: "/marketplace/logistics", active: true },
             ]}
           />
 
           <form method="GET" action="/marketplace/logistics" role="search" className="flex flex-wrap items-center gap-2">
             <label className="flex min-h-[44px] w-full items-center gap-2 rounded-full border border-app-line bg-white px-4 sm:w-[300px]">
               <Icon name="search" size={16} className="shrink-0 text-app-ink-soft" />
-              <span className="sr-only">Search partners</span>
-              <input name="q" defaultValue={params?.q ?? ""} placeholder="Search partners" className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
+              <span className="sr-only">{t("lp.search")}</span>
+              <input name="q" defaultValue={params?.q ?? ""} placeholder={t("lp.search")} className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none placeholder:text-app-ink-faint" />
             </label>
-            <select name="zone" aria-label="Area covered" defaultValue={params?.zone ?? ""} className={selectClass}>
-              <option value="">All areas</option>
+            <select name="zone" aria-label={t("lp.area")} defaultValue={params?.zone ?? ""} className={selectClass}>
+              <option value="">{t("lp.allAreas")}</option>
               {allZones.map((z) => <option key={z} value={z}>{z}</option>)}
             </select>
-            <select name="country" aria-label="Country" defaultValue={params?.country ?? ""} className={selectClass}>
-              <option value="">All countries</option>
+            <select name="country" aria-label={t("sup.country")} defaultValue={params?.country ?? ""} className={selectClass}>
+              <option value="">{t("sup.allCountries")}</option>
               {allCountries.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select name="near" aria-label="Sort" defaultValue={params?.near ?? ""} className={selectClass}>
-              <option value="">Best match</option>
-              <option value="city">Same city first</option>
-              <option value="country">Same country first</option>
+            <select name="near" aria-label={t("sup.sort")} defaultValue={params?.near ?? ""} className={selectClass}>
+              <option value="">{t("sup.best")}</option>
+              <option value="city">{t("sup.sameCity")}</option>
+              <option value="country">{t("sup.sameCountry")}</option>
             </select>
-            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">Filter</button>
-            {filtered && <Link href="/marketplace/logistics" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">Clear</Link>}
+            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">{t("sup.filter")}</button>
+            {filtered && <Link href="/marketplace/logistics" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("sup.clear")}</Link>}
           </form>
 
           <AssistantNote who="peggy">
-            Ranked by coverage near {store.city ? `${store.city}, ` : ""}{store.country}, reliability and starting price. Ask for a quote before you promise delivery dates at checkout.
+            {t("lp.peggy", { place: `${store.city ? `${store.city}, ` : ""}${store.country ?? ""}` })}
           </AssistantNote>
 
           {partners.length === 0 ? (
-            <EmptyState icon="truck" title={filtered ? "No partners match" : "No verified partners yet"} action={filtered ? <PillLink href="/marketplace/logistics" tone="ink">Clear filters</PillLink> : undefined}>
-              {filtered ? "Try a different search or filter." : "Delivery partners show up here once they finish signing up and we verify them."}
+            <EmptyState icon="truck" title={filtered ? t("lp.noMatch") : t("lp.noneYet")} action={filtered ? <PillLink href="/marketplace/logistics" tone="ink">{t("sup.clearFilters")}</PillLink> : undefined}>
+              {filtered ? t("sup.tryDifferent") : t("lp.showOnce")}
             </EmptyState>
           ) : (
             <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 2xl:grid-cols-3 min-[1900px]:grid-cols-4">
@@ -156,7 +166,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
                     </div>
                     <div className="shrink-0 text-right">
                       <div className="text-[22px] font-extrabold leading-none">{p.reliabilityScore}</div>
-                      <div className="text-[12px] text-app-ink-soft">Reliability</div>
+                      <div className="text-[12px] text-app-ink-soft">{t("lp.reliability")}</div>
                     </div>
                   </div>
                   {p.description && <p className="mb-0 mt-3 line-clamp-3 text-[13.5px] leading-[1.5] text-app-ink-soft">{p.description}</p>}
@@ -167,13 +177,13 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
                     </div>
                   )}
                   <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[13.5px]">
-                    {p.basePrice > 0 && <span className="font-extrabold">From {fmtMoney(p.basePrice)}</span>}
-                    {p.coverageZones.length > 0 && <span className="text-app-ink-soft">{p.coverageZones.length} area{p.coverageZones.length === 1 ? "" : "s"}</span>}
+                    {p.basePrice > 0 && <span className="font-extrabold">{t("lp.from", { price: fmtMoney(p.basePrice, locale) })}</span>}
+                    {p.coverageZones.length > 0 && <span className="text-app-ink-soft">{t("lp.areas", { count: p.coverageZones.length })}</span>}
                     {p.estimatedSpeed && <span className="text-app-ink-soft">{p.estimatedSpeed}</span>}
                   </div>
                   <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
                     <ChatButton contactId={p.userId} />
-                    <PillLink href={`/home/logistics?intent=quote&partner=${p.id}#quote`} size="sm" tone="ink" className="min-h-[40px]">Get a quote</PillLink>
+                    <PillLink href={`/home/logistics?intent=quote&partner=${p.id}#quote`} size="sm" tone="ink" className="min-h-[40px]">{t("lp.quote")}</PillLink>
                   </div>
                 </li>
               ))}

@@ -5,6 +5,8 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { HelpButton } from "@/components/simple/HelpButton";
 import { Mascot, type MascotMood } from "@/components/brand/Mascot";
+import { LearnPill } from "@/components/learn/FeatureIntroHost";
+import { TitleTerm } from "@/components/learn/Term";
 
 // The 2026 app look ("Seller app · web", "Products, web", "Partners · web dispatch console" prototypes)
 // as server-safe building blocks. Pages are full-bleed: they use the whole width at every size.
@@ -54,7 +56,12 @@ export function AppPage({
   return (
     <AppFrame {...frame}>
       <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", className)}>
-        <PageHead title={title} sub={sub} actions={frame.role === "seller" || frame.role === "supplier" ? <>{actions}<HelpButton /></> : actions} />
+        <PageHead
+          title={typeof title === "string" ? <TitleTerm title={title} /> : title}
+          sub={sub}
+          learn={!frame.role || frame.role === "admin" ? undefined : <LearnPill role={frame.role} variant="inline" className="mt-3.5" />}
+          actions={frame.role === "seller" || frame.role === "supplier" ? <>{actions}<HelpButton /></> : actions}
+        />
         {toolbar && <div className="mb-4 flex flex-wrap items-center justify-between gap-3">{toolbar}</div>}
         {children}
       </div>
@@ -62,12 +69,13 @@ export function AppPage({
   );
 }
 
-export function PageHead({ title, sub, actions }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode }) {
+export function PageHead({ title, sub, actions, learn }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode; learn?: ReactNode }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <h1 className="m-0 break-words text-[28px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[30px]">{title}</h1>
         {sub && <p className="mb-0 mt-1.5 max-w-[720px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
+        {learn}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>

@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { Mascot, cx } from "@/components/app-ui";
+import { useT } from "@/components/i18n/I18nProvider";
 
-// Rex's tip inside the web address "technical details" fold: where each common registrar keeps its DNS records.
+// Rex's tip inside the domain "technical details" fold: where each common registrar keeps its DNS records.
 const GUIDES: Array<{ id: string; name: string; steps: string[] }> = [
-  { id: "whogohost", name: "Whogohost", steps: ["Log in to your Whogohost client area.", "Open Domains, then My Domains, and pick your web address.", "Choose Manage DNS (DNS Management) and add the records Shopinbos shows you."] },
+  { id: "whogohost", name: "Whogohost", steps: ["Log in to your Whogohost client area.", "Open Domains, then My Domains, and pick your domain.", "Choose Manage DNS (DNS Management) and add the records Shopinbos shows you."] },
   { id: "qservers", name: "Qservers", steps: ["Log in to your Qservers client area.", "Open Domains, then My Domains, and choose Manage next to it.", "Open DNS Management and add each record."] },
-  { id: "godaddy", name: "GoDaddy", steps: ["Sign in and open My Products.", "Next to your web address, choose DNS (Manage DNS).", "Choose Add New Record for each record. Delete an old record with the same name if GoDaddy says it already exists."] },
-  { id: "namecheap", name: "Namecheap", steps: ["Open Domain List and choose Manage next to your web address.", "Open the Advanced DNS tab.", "Choose Add New Record for each record, then the green tick to save."] },
-  { id: "cloudflare", name: "Cloudflare", steps: ["Open your web address and go to DNS, then Records.", "Choose Add record for each one.", "Set Proxy status to DNS only (grey cloud) so the secure certificate can be issued."] },
+  { id: "godaddy", name: "GoDaddy", steps: ["Sign in and open My Products.", "Next to your domain, choose DNS (Manage DNS).", "Choose Add New Record for each record. Delete an old record with the same name if GoDaddy says it already exists."] },
+  { id: "namecheap", name: "Namecheap", steps: ["Open Domain List and choose Manage next to your domain.", "Open the Advanced DNS tab.", "Choose Add New Record for each record, then the green tick to save."] },
+  { id: "cloudflare", name: "Cloudflare", steps: ["Open your domain and go to DNS, then Records.", "Choose Add record for each one.", "Set Proxy status to DNS only (grey cloud) so the secure certificate can be issued."] },
 ];
 
 export function RegistrarTip() {
+  const t = useT("domain");
   const [open, setOpen] = useState<string | null>(null);
   const guide = GUIDES.find((entry) => entry.id === open);
 
@@ -21,9 +23,9 @@ export function RegistrarTip() {
       <Mascot name="rex" className="h-10 w-10 shrink-0" alt="Rex" />
       <div className="min-w-0 flex-1">
         <p className="m-0 text-[14.5px] leading-[1.5]">
-          Bought your web address from Whogohost, Qservers or GoDaddy? Pick it and I&apos;ll show you where to add the records.
+          {t("tip.intro")}
         </p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Where did you buy your web address?">
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("tip.where")}>
           {GUIDES.map((entry) => (
             <button
               key={entry.id}

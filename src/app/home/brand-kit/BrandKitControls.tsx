@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { shrinkImage } from "@/components/profile/IdentityImageUploader";
 import { broadcastIdentity, type ShellIdentity } from "@/components/shell/useShellCounts";
 import { identityImageProblem } from "@shared/identity-images";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Interactive parts of the brand kit: logo upload (same endpoint as Settings → logo), downloading the logo,
 // editable colours (saved into the builder draft's theme, like the builder's own colour pickers) and the
@@ -17,6 +18,7 @@ const pillWhite =
   "inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink transition hover:border-app-line-strong disabled:opacity-60";
 
 export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
+  const t = useT("store");
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -40,13 +42,13 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
       body.set("file", file);
       const response = await fetch("/api/app/me/images", { method: "POST", body });
       const json = (await response.json().catch(() => null)) as { data?: ShellIdentity; error?: { message?: string } } | null;
-      if (response.status === 413) throw new Error("That image is too large. Choose a smaller one.");
-      if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "That didn't save. Try again.");
+      if (response.status === 413) throw new Error(t("bk.tooLarge"));
+      if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? t("bk.didntSave"));
       broadcastIdentity({ logoUrl: json.data.logoUrl });
-      setMessage({ tone: "ok", text: "Logo updated everywhere." });
+      setMessage({ tone: "ok", text: t("bk.logoUpdated") });
       router.refresh();
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "That didn't save. Try again." });
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("bk.didntSave") });
     } finally {
       setBusy(false);
     }
@@ -55,11 +57,11 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
   return (
     <span className="relative inline-flex">
       <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} className={pillWhite}>
-        {busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={16} />} {hasLogo ? "Change logo" : "Upload logo"}
+        {busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={16} />} {hasLogo ? t("bk.changeLogo") : t("bk.uploadLogo")}
       </button>
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Choose a logo image" onChange={(event) => void onChange(event)} />
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("bk.chooseLogo")} onChange={(event) => void onChange(event)} />
       <span role="status" aria-live="polite" className={cx("absolute left-0 top-[calc(100%+4px)] whitespace-nowrap text-[12.5px] font-semibold", message?.tone === "error" ? "text-app-danger" : "text-app-forest")}>
-        {busy ? "Uploading…" : message?.text ?? ""}
+        {busy ? t("bk.uploading") : message?.text ?? ""}
       </span>
     </span>
   );
@@ -110,6 +112,7 @@ export function ColourSwatches({
   linked: Partial<Record<ColourKey, string[]>>;
   storeLive: boolean;
 }) {
+  const t = useT("store");
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(colours.map((colour) => [colour.key, colour.value])));
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -167,7 +170,7 @@ export function ColourSwatches({
                 type="color"
                 value={values[colour.key]}
                 onChange={(event) => change(colour.key, event.target.value.toUpperCase())}
-                aria-label={`Change ${colour.label.toLowerCase()} colour`}
+                aria-label={t("bk.changeColour", { name: colour.label.toLowerCase() })}
                 className="sr-only"
               />
             </label>
@@ -175,23 +178,24 @@ export function ColourSwatches({
         ))}
       </ul>
       <p role="status" aria-live="polite" className="mb-0 mt-3 min-h-[20px] text-[13px] text-app-ink-soft">
-        {state === "saving" && "Saving…"}
-        {state === "error" && <span className="font-semibold text-app-danger">That didn&apos;t save. Try again.</span>}
+        {state === "saving" && t("bk.saving")}
+        {state === "error" && <span className="font-semibold text-app-danger">{t("bk.didntSave")}</span>}
         {state === "saved" &&
           (storeLive ? (
             <>
-              Saved to your draft. <Link href="/seller/store/builder" className="font-bold text-app-accent-ink">Publish in the builder</Link> to show shoppers.
+              {t("bk.savedDraft")} <Link href="/seller/store/builder" className="font-bold text-app-accent-ink">{t("bk.publishInBuilder")}</Link> {t("bk.toShow")}
             </>
           ) : (
-            "Saved. Your store uses it when you publish."
+            t("bk.savedOnPublish")
           ))}
-        {state === "idle" && "Click a colour to change it."}
+        {state === "idle" && t("bk.clickColour")}
       </p>
     </>
   );
 }
 
 export function VoiceNote({ initial }: { initial: string }) {
+  const t = useT("store", "common");
   const [value, setValue] = useState(initial);
   const [saved, setSaved] = useState(initial);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -218,37 +222,37 @@ export function VoiceNote({ initial }: { initial: string }) {
     return (
       <div className="mt-3">
         <p className={cx("m-0 text-[15px] leading-[1.55]", !saved && "text-app-ink-soft")}>
-          {saved || "Not set yet. Tell Rex how you talk to buyers: warm, short, playful, formal, a little Pidgin…"}
+          {saved || t("bk.voiceEmpty")}
         </p>
         <button type="button" onClick={() => setEditing(true)} className="mt-3 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold text-app-ink hover:border-app-line-strong">
-          <Icon name="edit" size={14} /> {saved ? "Edit" : "Add your voice"}
+          <Icon name="edit" size={14} /> {saved ? t("bk.edit") : t("bk.addVoice")}
         </button>
-        {state === "saved" && <span role="status" className="ml-3 text-[13px] font-semibold text-app-forest">Saved</span>}
+        {state === "saved" && <span role="status" className="ml-3 text-[13px] font-semibold text-app-forest">{t("saved")}</span>}
       </div>
     );
   }
 
   return (
     <div className="mt-3 grid gap-2">
-      <label htmlFor="brand-voice" className="sr-only">How you sound</label>
+      <label htmlFor="brand-voice" className="sr-only">{t("bk.voice")}</label>
       <textarea
         id="brand-voice"
         value={value}
         onChange={(event) => setValue(event.target.value.slice(0, 300))}
         rows={3}
         autoFocus
-        placeholder="Warm and short. A little Pidgin with WhatsApp buyers. No ALL CAPS."
+        placeholder={t("bk.voicePlaceholder")}
         className="w-full resize-y rounded-[16px] border border-app-line bg-white px-4 py-3 text-[15px] leading-[1.5] text-app-ink outline-none focus:border-app-ink"
       />
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => void save()} disabled={state === "saving"} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white disabled:opacity-60">
-          {state === "saving" ? <Spinner className="h-4 w-4" /> : <Icon name="check" size={14} />} Save
+          {state === "saving" ? <Spinner className="h-4 w-4" /> : <Icon name="check" size={14} />} {t("save")}
         </button>
         <button type="button" onClick={() => { setValue(saved); setEditing(false); setState("idle"); }} className="inline-flex min-h-[40px] items-center rounded-full px-3 text-[13.5px] font-bold text-app-ink-soft hover:text-app-ink">
-          Cancel
+          {t("cancel")}
         </button>
         <span className="text-[12.5px] text-app-ink-soft">{value.length}/300</span>
-        {state === "error" && <span role="alert" className="text-[13px] font-semibold text-app-danger">That didn&apos;t save. Try again.</span>}
+        {state === "error" && <span role="alert" className="text-[13px] font-semibold text-app-danger">{t("bk.didntSave")}</span>}
       </div>
     </div>
   );

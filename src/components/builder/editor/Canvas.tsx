@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { SELECT_BLUE } from "./ui";
+import { useEditorT } from "./i18n";
 
 export type Device = "desktop" | "tablet" | "mobile";
 
@@ -38,6 +39,7 @@ export interface CanvasProps {
 const PAD = 24;
 
 export function Canvas(props: CanvasProps) {
+  const { t, tx } = useEditorT();
   const outerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -119,11 +121,11 @@ export function Canvas(props: CanvasProps) {
           <div className="pointer-events-none absolute inset-0 z-20" aria-hidden={false}>
             <div className="absolute" style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height, boxShadow: `inset 0 0 0 2.5px ${SELECT_BLUE}` }} />
             <div className="absolute flex max-w-[60%] items-center gap-1 truncate rounded-b-[6px] rounded-tr-[6px] px-2 py-[3px] text-[12px] font-semibold text-white" style={{ top: rect.top, left: rect.left, background: SELECT_BLUE }}>
-              <Icon name="list" size={12} /> <span className="truncate">{props.selectedName}</span>
+              <Icon name="list" size={12} /> <span className="truncate">{tx(props.selectedName)}</span>
             </div>
             <div
               role="toolbar"
-              aria-label={`${props.selectedName ?? "Section"} actions`}
+              aria-label={t("edk.sectionActions", { name: tx(props.selectedName ?? "Section") })}
               className="pointer-events-auto absolute flex items-center gap-0.5 rounded-[12px] bg-[#16141F] p-1 shadow-[0_10px_30px_rgba(22,20,31,.3)]"
               style={{ top: Math.min(rect.top + rect.height, Math.max(contentHeight, minHeight) * scale - 22), left: rect.left + rect.width / 2, transform: "translate(-50%, -50%)" }}
             >
@@ -131,8 +133,8 @@ export function Canvas(props: CanvasProps) {
                 <button
                   key={action.id}
                   type="button"
-                  aria-label={action.label}
-                  title={action.label}
+                  aria-label={tx(action.label)}
+                  title={tx(action.label)}
                   disabled={action.disabled}
                   onClick={(event) => { event.stopPropagation(); action.onClick(); }}
                   className="grid h-9 w-9 place-items-center rounded-[9px] text-white hover:bg-white/15 disabled:opacity-35"

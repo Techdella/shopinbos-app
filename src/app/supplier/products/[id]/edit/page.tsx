@@ -6,6 +6,7 @@ import { AppPage, PillLink } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { updateSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
+import { getT } from "@/lib/i18n/server";
 
 export default async function EditSupplierProductPage({
   params,
@@ -54,16 +55,17 @@ export default async function EditSupplierProductPage({
   ]);
 
   if (!product) notFound();
+  const t = await getT("supplier");
 
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
       title={product.name}
-      sub={`${product.category.name} · keep prices for shops, photos, how many you have and delivery up to date. Changes to a live product go back through review.`}
+      sub={t("editProduct.sub", { category: product.category.name })}
       actions={
         <>
-          <PillLink href="/supplier/products">All products</PillLink>
-          <PillLink href="/supplier/products/new" icon="plus">New product</PillLink>
+          <PillLink href="/supplier/products">{t("dashboard.allProducts")}</PillLink>
+          <PillLink href="/supplier/products/new" icon="plus">{t("editProduct.newProduct")}</PillLink>
         </>
       }
     >

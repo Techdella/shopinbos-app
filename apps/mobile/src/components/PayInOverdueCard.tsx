@@ -3,17 +3,19 @@ import { View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { AppIcon } from "@/components/icons";
 import { PillButton, T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { checkPayInsAgain, type PayInOverdue } from "@/lib/logistics";
 import { radii } from "@/theme";
 
 // Calm amber card on Today and Money while a cash pay-in is late (web: src/components/logistics/PayInOverdueCard.tsx):
-// how much and since when, that pay-when-it-arrives jobs are paused until they pay, their account number with Copy,
+// how much and since when, that cash-on-delivery jobs are paused until they pay, their account number with Copy,
 // and "I've paid. Check again", which looks for the transfer straight away.
 
 const AMBER = "#FDF0D5";
 const AMBER_INK = "#5C4100";
 
 export function PayInOverdueCard({ overdue, onChecked }: { overdue: PayInOverdue; onChecked?: () => void }) {
+  const t = useT("m_partner", "common");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export function PayInOverdueCard({ overdue, onChecked }: { overdue: PayInOverdue
       setMessage(result.message);
       if (result.cleared) onChecked?.();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "That didn't go through. Check your connection and try again.");
+      setMessage(error instanceof Error ? error.message : t("error.retry"));
     } finally {
       setBusy(false);
     }
@@ -52,21 +54,21 @@ export function PayInOverdueCard({ overdue, onChecked }: { overdue: PayInOverdue
       </View>
       {overdue.account ? (
         <View style={{ backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 14, padding: 14, gap: 6 }}>
-          <T weight="bold" style={{ fontSize: 15, color: AMBER_INK }}>Pay into your account</T>
+          <T weight="bold" style={{ fontSize: 15, color: AMBER_INK }}>{t("overdue.payInto")}</T>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <T weight="extrabold" selectable style={{ flex: 1, fontSize: 26, letterSpacing: 1 }} accessibilityLabel={`Account number ${overdue.account.accountNumber.split("").join(" ")}`}>
+            <T weight="extrabold" selectable style={{ flex: 1, fontSize: 26, letterSpacing: 1 }} accessibilityLabel={t("accountNumber", { digits: overdue.account.accountNumber.split("").join(" ") })}>
               {overdue.account.accountNumber}
             </T>
-            <PillButton title={copied ? "Copied" : "Copy"} size="md" tone={copied ? "white" : undefined} onPress={() => void copy()} />
+            <PillButton title={copied ? t("copied") : t("copy")} size="md" tone={copied ? "white" : undefined} onPress={() => void copy()} />
           </View>
           <T style={{ fontSize: 15, color: AMBER_INK }}>{overdue.account.bankName}{overdue.account.accountName ? ` · ${overdue.account.accountName}` : ""}</T>
         </View>
       ) : (
         <View style={{ backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 14, padding: 14 }}>
-          <T style={{ fontSize: 15, lineHeight: 21, color: AMBER_INK }}>Pay in the usual way, then tell us how much you paid on the web Cash page.</T>
+          <T style={{ fontSize: 15, lineHeight: 21, color: AMBER_INK }}>{t("overdue.manual")}</T>
         </View>
       )}
-      <PillButton title="I've paid. Check again" tone="white" size="md" busy={busy} onPress={() => void checkAgain()} />
+      <PillButton title={t("overdue.check")} tone="white" size="md" busy={busy} onPress={() => void checkAgain()} />
       {message ? (
         <T weight="bold" accessibilityLiveRegion="polite" style={{ fontSize: 15, lineHeight: 21, color: AMBER_INK }}>{message}</T>
       ) : null}

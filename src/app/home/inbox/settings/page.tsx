@@ -6,12 +6,17 @@ import { db } from "@/lib/db/client";
 import { hasAiProvider } from "@/lib/inbox/ai";
 import { requireRole } from "@/lib/server-auth";
 import { InboxSettingsClient } from "./InboxSettingsClient";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Inbox settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("inbox");
+  return { title: t("set.title") };
+}
 
 export default async function InboxSettingsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -25,9 +30,9 @@ export default async function InboxSettingsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Inbox settings"
-      sub="Auto-replies, the Peggy chatbot, saved replies and where calls ring."
-      actions={<PillLink href="/home/messages" icon="chat" tone="ink">Open inbox</PillLink>}
+      title={t("set.title")}
+      sub={t("set.sub")}
+      actions={<PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>}
     >
       <InboxSettingsClient
         initial={{

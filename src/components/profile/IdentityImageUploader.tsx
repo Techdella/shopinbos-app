@@ -6,6 +6,7 @@ import { Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { broadcastIdentity, useIdentity, type ShellIdentity } from "@/components/shell/useShellCounts";
 import { identityImageProblem, initialsOf, type IdentityImageKind } from "@shared/identity-images";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Upload, change or remove the person's photo or their store/business logo. Saving broadcasts the new picture
 // so the top bar, the menu and any other uploader on screen update at once, then refreshes the page's server
@@ -35,7 +36,7 @@ export async function shrinkImage(file: File, max: number): Promise<File> {
   }
 }
 
-async function send(kind: IdentityImageKind, file: File | null): Promise<ShellIdentity> {
+async function send(kind: IdentityImageKind, file: File | null, messages: { tooLarge: string; failed: string }): Promise<ShellIdentity> {
   let response: Response;
   if (file) {
     const body = new FormData();
@@ -46,8 +47,8 @@ async function send(kind: IdentityImageKind, file: File | null): Promise<ShellId
     response = await fetch(`/api/app/me/images?kind=${kind}`, { method: "DELETE" });
   }
   const json = (await response.json().catch(() => null)) as { data?: ShellIdentity; error?: { message?: string } } | null;
-  if (response.status === 413) throw new Error("That image is too large. Choose a smaller one.");
-  if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "That didn't save. Try again.");
+  if (response.status === 413) throw new Error(messages.tooLarge);
+  if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? messages.failed);
   return json.data;
 }
 
@@ -71,6 +72,7 @@ export function IdentityImageUploader({
   /** When the surrounding card already shows the title, keep it for screen readers only. */
   hideTitle?: boolean;
 }) {
+  const t = useT("account", "common");
   const router = useRouter();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,12 +88,12 @@ export function IdentityImageUploader({
     setBusy(file ? "upload" : "remove");
     setMessage(null);
     try {
-      const identity = await send(kind, file);
+      const identity = await send(kind, file, { tooLarge: t("img.tooLarge"), failed: t("img.failed") });
       broadcastIdentity(kind === "avatar" ? { avatarUrl: identity.avatarUrl } : { logoUrl: identity.logoUrl });
-      setMessage({ tone: "ok", text: file ? (round ? "Photo updated everywhere." : `${title} updated everywhere.`) : round ? "Photo removed." : `${title} removed.` });
+      setMessage({ tone: "ok", text: file ? (round ? t("img.photoUpdated") : t("img.updated", { title })) : round ? t("img.photoRemoved") : t("img.removed", { title }) });
       router.refresh();
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "That didn't save. Try again." });
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("img.failed") });
     } finally {
       setBusy(null);
       setPreview((url) => {
@@ -106,7 +108,7 @@ export function IdentityImageUploader({
     event.target.value = ""; // Choosing the same file again should still upload.
     if (!picked) return;
     if (!picked.type.startsWith("image/")) {
-      setMessage({ tone: "error", text: "Use a JPG, PNG or WebP image." });
+      setMessage({ tone: "error", text: t("img.useType") });
       return;
     }
     const file = await shrinkImage(picked, round ? 800 : 1024);
@@ -147,7 +149,7 @@ export function IdentityImageUploader({
             disabled={busy !== null}
             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white transition hover:brightness-110 disabled:opacity-60"
           >
-            <Icon name="upload" size={14} /> {current ? "Change" : round ? "Add photo" : "Add logo"}
+            <Icon name="upload" size={14} /> {current ? t("img.change") : round ? t("img.addPhoto") : t("img.addLogo")}
           </button>
           {current && (
             <button
@@ -156,13 +158,13 @@ export function IdentityImageUploader({
               disabled={busy !== null}
               className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold text-app-ink transition hover:border-app-line-strong disabled:opacity-60"
             >
-              Remove
+              {t("remove")}
             </button>
           )}
         </div>
         <input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void onChange(event)} />
         <p role="status" aria-live="polite" className={`m-0 min-h-[18px] text-[12.5px] font-semibold ${message?.tone === "error" ? "text-app-danger" : "text-app-forest"}`}>
-          {busy === "upload" ? "Uploading…" : busy === "remove" ? "Removing…" : message?.text ?? ""}
+          {busy === "upload" ? t("img.uploading") : busy === "remove" ? t("img.removing") : message?.text ?? ""}
         </p>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface AnnouncementBannerProps {
   role: "supplier" | "logistics_partner";
@@ -10,10 +11,11 @@ interface AnnouncementBannerProps {
 }
 
 export function AnnouncementBanner({ role, verificationStatus, displayName }: AnnouncementBannerProps) {
+  const t = useT("verification");
   if (verificationStatus === "verified" || verificationStatus === "suspended") return null;
 
   const isSupplier = role === "supplier";
-  const label = isSupplier ? "Supplier" : "Logistics";
+  const label = isSupplier ? t("banner.supplier") : t("banner.logistics");
   const verificationLink = isSupplier ? "/supplier/verification" : "/logistics/verification";
 
   return (
@@ -33,10 +35,10 @@ export function AnnouncementBanner({ role, verificationStatus, displayName }: An
     >
       <Icon name="warn" size={16} color="#D97706" />
       <span>
-        <strong>{displayName ?? label} Profile</strong> — Your profile will not appear publicly until ShopinBos verification is completed.
-        {verificationStatus === "unverified" && " Upload your documents to start the verification process."}
-        {verificationStatus === "pending" && " Your documents are under review by the ShopinBos team."}
-        {verificationStatus === "rejected" && " Your verification was not approved. Please update and resubmit."}
+        <strong>{t("banner.profile", { name: displayName ?? label })}</strong> — {t("banner.notPublic")}
+        {verificationStatus === "unverified" && ` ${t("banner.unverified")}`}
+        {verificationStatus === "pending" && ` ${t("banner.pending")}`}
+        {verificationStatus === "rejected" && ` ${t("banner.rejected")}`}
       </span>
       <Link
         href={verificationLink}
@@ -52,7 +54,7 @@ export function AnnouncementBanner({ role, verificationStatus, displayName }: An
           whiteSpace: "nowrap",
         }}
       >
-        View verification status
+        {t("banner.view")}
       </Link>
     </div>
   );

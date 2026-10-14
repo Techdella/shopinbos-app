@@ -20,8 +20,10 @@ export const CHANNEL_LABELS: Record<InboxChannel, string> = {
 /** Channels where the seller can't reply from the inbox (the web says the same). */
 export const NO_REPLY_CHANNELS: InboxChannel[] = ["tiktok", "voice"];
 
-export function channelLabel(channel: string) {
-  return CHANNEL_LABELS[channel as InboxChannel] ?? "Message";
+/** Pass the screen's `t` (with "m_chats") for the label in the app language ("channel.<key>"). */
+export function channelLabel(channel: string, t?: { dynamic(key: string, fallback?: string): string }) {
+  const english = CHANNEL_LABELS[channel as InboxChannel] ?? "Message";
+  return t ? t.dynamic(`channel.${channel in CHANNEL_LABELS ? channel : "other"}`, english) : english;
 }
 
 export type InboxView = "open" | "unread" | "snoozed" | "closed";
@@ -57,7 +59,8 @@ export function channelsInUse(items: Array<{ channel: string }>): string[] {
 }
 
 /** "14:05" today, "Mon" this week, "3 Oct" before that (Lagos time). */
-export function shortTime(iso: string, now = new Date()) {
+/** Pass the screen's `t` (with "m_ui") for day and month names in the app language. */
+export function shortTime(iso: string, now = new Date(), t?: { dynamic(key: string, fallback?: string): string }) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
   const lagos = (d: Date) => new Date(d.getTime() + 60 * 60_000);
@@ -66,6 +69,7 @@ export function shortTime(iso: string, now = new Date()) {
   const sameDay = a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
   if (sameDay) return `${String(a.getUTCHours()).padStart(2, "0")}:${String(a.getUTCMinutes()).padStart(2, "0")}`;
   const days = (b.getTime() - a.getTime()) / 86_400_000;
-  if (days < 6) return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][a.getUTCDay()];
-  return `${a.getUTCDate()} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][a.getUTCMonth()]}`;
+  const word = (key: string, english: string) => (t ? t.dynamic(key, english) : english);
+  if (days < 6) return word(`day.short.${a.getUTCDay()}`, ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][a.getUTCDay()]);
+  return `${a.getUTCDate()} ${word(`day.month.${a.getUTCMonth()}`, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][a.getUTCMonth()])}`;
 }

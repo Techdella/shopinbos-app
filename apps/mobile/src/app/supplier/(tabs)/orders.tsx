@@ -9,13 +9,14 @@ import { Thumb } from "@/components/partner";
 import { OrderRow, openOrder } from "@/components/SupplierOrderRow";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { fetchQuoteRequests, fetchSupplierOrders, moveSupplierOrder, type QuoteRequest, type SupplierOrder } from "@/lib/supplier";
-import { countWord, supplierOrderGroup, waitingLabel, type SupplierOrderGroup } from "@/lib/supplier-pure";
+import { countWord, orderKindLabel, supplierOrderGroup, waitingLabel, type SupplierOrderGroup } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
 // Supplier orders (build spec 8A): New, To pack and Sent. A new order shows what you get and a big Accept button.
-// Bulk requests from shops ("A shop wants 50 pieces") sit at the top of New. Each new order counts down the time
+// Quote requests from shops ("A shop wants 50 pieces") sit at the top of New. Each new order counts down the time
 // left to accept it ("Accept in 2h 14m"; amber in the last 30 minutes).
 
 function orderTitle(order: SupplierOrder) {
@@ -23,9 +24,10 @@ function orderTitle(order: SupplierOrder) {
 }
 
 function NewOrderCard({ order, onAccepted }: { order: SupplierOrder; onAccepted: (order: SupplierOrder) => void }) {
+  const t = useT("m_supplier", "m_partner");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const area = order.kind === "dropship" ? order.label.address[order.label.address.length - 1] ?? order.label.to : order.address.split(",").pop()?.trim() || "the shop";
+  const area = order.kind === "dropship" ? order.label.address[order.label.address.length - 1] ?? order.label.to : order.address.split(",").pop()?.trim() || t("theShop");
 
   async function accept() {
     setBusy(true);
@@ -33,16 +35,16 @@ function NewOrderCard({ order, onAccepted }: { order: SupplierOrder; onAccepted:
     try {
       onAccepted(await moveSupplierOrder(order.kind, order.id, "accept"));
     } catch (acceptError) {
-      setError(acceptError instanceof Error ? acceptError.message : "That didn't go through. Check your connection and try again.");
+      setError(acceptError instanceof Error ? acceptError.message : t("error.retry"));
     } finally {
       setBusy(false);
     }
   }
 
   function cant() {
-    Alert.alert("Can't do this one?", "We tell the shop, so they can get it from someone else.", [
-      { text: "Keep it", style: "cancel" },
-      { text: "I can't do it", style: "destructive", onPress: () => void moveSupplierOrder(order.kind, order.id, "decline").then(onAccepted).catch((e) => setError(e instanceof Error ? e.message : "That didn't go through. Try again.")) },
+    Alert.alert(t("cant.title"), t("cant.body"), [
+      { text: t("keepIt"), style: "cancel" },
+      { text: t("cant.confirm"), style: "destructive", onPress: () => void moveSupplierOrder(order.kind, order.id, "decline").then(onAccepted).catch((e) => setError(e instanceof Error ? e.message : t("error.short"))) },
     ]);
   }
 
@@ -52,22 +54,23 @@ function NewOrderCard({ order, onAccepted }: { order: SupplierOrder; onAccepted:
         <Thumb uri={order.kind === "dropship" ? order.items[0]?.image : order.product.image} size={56} />
         <View style={{ flex: 1, gap: 2 }}>
           <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={2}>{orderTitle(order)}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={1}>For {order.shop} · to {area}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{t("orders.forTo", { kind: orderKindLabel(order.kind, t), shop: order.shop, area })}</T>
         </View>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <T weight="extrabold" style={{ fontSize: 18, color: colors.success }}>You get {naira(order.kind === "dropship" ? order.yourTotal : order.total)}</T>
-        {order.acceptBy ? null : <T style={{ color: colors.accentInk, fontSize: 15 }}>{waitingLabel(order.createdAt)}</T>}
+        <T weight="extrabold" style={{ fontSize: 18, color: colors.success }}>{t("orders.youGet", { amount: naira(order.kind === "dropship" ? order.yourTotal : order.total) })}</T>
+        {order.acceptBy ? null : <T style={{ color: colors.accentInk, fontSize: 15 }}>{waitingLabel(order.createdAt, undefined, t)}</T>}
       </View>
       <AcceptCountdown acceptBy={order.acceptBy} />
       {error ? <Notice>{error}</Notice> : null}
-      <PillButton title="Accept" busy={busy} onPress={() => void accept()} />
-      <LinkButton title="I can't" color={colors.inkSoft} onPress={cant} />
+      <PillButton title={t("accept")} busy={busy} onPress={() => void accept()} />
+      <LinkButton title={t("orders.iCant")} color={colors.inkSoft} onPress={cant} />
     </Card>
   );
 }
 
-function BulkRequestRow({ quote }: { quote: QuoteRequest }) {
+function QuoteRequestRow({ quote }: { quote: QuoteRequest }) {
+  const t = useT("m_supplier");
   return (
     <Pressable
       accessibilityRole="button"
@@ -76,14 +79,15 @@ function BulkRequestRow({ quote }: { quote: QuoteRequest }) {
     >
       <Thumb uri={quote.supplierProduct.images[0]} />
       <View style={{ flex: 1, gap: 2 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{quote.seller.name} wants {countWord(quote.quantity)}</T>
-        <T style={{ color: colors.accentInk, fontSize: 15 }} numberOfLines={1}>{quote.supplierProduct.name} · Tell them your price</T>
+        <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{t("wants", { shop: quote.seller.name, pieces: countWord(quote.quantity, t) })}</T>
+        <T style={{ color: colors.accentInk, fontSize: 15 }} numberOfLines={1}>{t("orders.quoteRequest", { product: quote.supplierProduct.name })}</T>
       </View>
     </Pressable>
   );
 }
 
 export default function SupplierOrders() {
+  const t = useT("m_supplier");
   const [view, setView] = useState<SupplierOrderGroup>("new");
   const open = useLoad(async () => {
     const [orders, requests] = await Promise.all([fetchSupplierOrders("open"), fetchQuoteRequests().catch(() => [] as QuoteRequest[])]);
@@ -104,40 +108,40 @@ export default function SupplierOrders() {
   const loader = view === "sent" ? sent : open;
 
   return (
-    <TabScreen title="Orders" action={<HelpButton />} refreshing={loader.refreshing} onRefresh={() => void loader.refresh()}>
+    <TabScreen title={t("orders.title")} action={<HelpButton />} refreshing={loader.refreshing} onRefresh={() => void loader.refresh()}>
       <Segmented
         value={view}
         onChange={setView}
         options={[
-          { value: "new", label: fresh.length + requests.length ? `New ${fresh.length + requests.length}` : "New" },
-          { value: "pack", label: toPack.length ? `To pack ${toPack.length}` : "To pack" },
-          { value: "sent", label: "Sent" },
+          { value: "new", label: fresh.length + requests.length ? t("orders.newCount", { count: fresh.length + requests.length }) : t("orders.new") },
+          { value: "pack", label: toPack.length ? t("orders.packCount", { count: toPack.length }) : t("orders.pack") },
+          { value: "sent", label: t("orders.sent") },
         ]}
       />
       <View style={{ marginTop: 14, gap: 10 }}>
-        {loader.loading && !loader.data ? <LoadingBlock label="Loading orders…" /> : null}
+        {loader.loading && !loader.data ? <LoadingBlock label={t("orders.loading")} /> : null}
         {loader.error && !loader.data ? <ErrorState message={loader.error} onRetry={() => void loader.reload()} /> : null}
         {view === "new" && open.data ? (
           <>
-            {requests.map((quote) => <BulkRequestRow key={quote.id} quote={quote} />)}
+            {requests.map((quote) => <QuoteRequestRow key={quote.id} quote={quote} />)}
             {fresh.map((order) => <NewOrderCard key={order.id} order={order} onAccepted={accepted} />)}
             {!fresh.length && !requests.length ? (
-              <EmptyState icon="bag" title="No new orders">When a shop sells your product, the order shows here. Accept it, pack it, and a rider collects it.</EmptyState>
+              <EmptyState icon="bag" title={t("orders.noNew")}>{t("orders.noNewBody")}</EmptyState>
             ) : null}
           </>
         ) : null}
         {view === "pack" && open.data ? (
           toPack.length ? (
             <>
-              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>Pack each one with the shop&apos;s label. Don&apos;t put your own name inside.</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("orders.whiteLabel")}</T>
               {toPack.map((order) => <OrderRow key={order.id} order={order} />)}
             </>
           ) : (
-            <EmptyState icon="box" title="Nothing to pack">Orders you accept show here until a rider collects them.</EmptyState>
+            <EmptyState icon="box" title={t("orders.nothingToPack")}>{t("orders.nothingToPackBody")}</EmptyState>
           )
         ) : null}
         {view === "sent" && sent.data ? (
-          done.length ? done.map((order) => <OrderRow key={order.id} order={order} />) : <EmptyState icon="truck" title="Nothing sent yet">Orders you&apos;ve given to a rider show here.</EmptyState>
+          done.length ? done.map((order) => <OrderRow key={order.id} order={order} />) : <EmptyState icon="truck" title={t("orders.nothingSent")}>{t("orders.nothingSentBody")}</EmptyState>
         ) : null}
       </View>
     </TabScreen>

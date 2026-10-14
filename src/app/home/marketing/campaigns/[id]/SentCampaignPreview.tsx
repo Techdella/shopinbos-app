@@ -5,6 +5,7 @@ import type { TemplateContent } from "@/lib/marketing/text-channels";
 import { EmailPreview } from "../../_kit/client";
 import { WhatsAppBubble } from "../../_kit/text";
 import { TextPreview } from "./TextPreview";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export function SentCampaignPreview({
   channel,
@@ -19,9 +20,10 @@ export function SentCampaignPreview({
   subject: string;
   whatsapp?: { content: TemplateContent; mapping: string[]; headerImageUrl: string | null } | null;
 }) {
+  const t = useT("marketing");
   return (
     <Card className="p-5">
-      <CardHead title="What was sent" />
+      <CardHead title={t("campaign.whatWasSent")} />
       <div className="mt-3">
         {channel === "email" ? (
           <EmailPreview bodyHtml={bodyHtml} preheader={preheader} subject={subject} />

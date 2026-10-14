@@ -5,6 +5,7 @@ import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBilling
 import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { createBlankEditorSnapshot, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import { useEditorT } from "./i18n";
 import {
   canRedo,
   canUndo,
@@ -73,6 +74,11 @@ export function storefrontHost(url: string | null) {
 
 /** Draft, undo history, autosave, publish and the store data the canvas renders. */
 export function useBuilder() {
+  // Messages are read through refs so a language change never re-runs loading or saving.
+  const words = useEditorT();
+  const wordsRef = useRef(words);
+  wordsRef.current = words;
+  const tx = (text: string) => wordsRef.current.tx(text);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [store, setStore] = useState<BuilderStore>(EMPTY_STORE);
@@ -106,7 +112,7 @@ export function useBuilder() {
     try {
       const response = await fetch("/api/store/editor", { cache: "no-store" });
       const json = await response.json().catch(() => null) as { data?: Record<string, unknown>; error?: { message?: string } } | null;
-      if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "Your store couldn't be loaded.");
+      if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? tx("Your store couldn't be loaded."));
       const raw = (json.data.store ?? {}) as Record<string, unknown>;
       setStore({
         name: typeof raw.name === "string" ? raw.name : EMPTY_STORE.name,
@@ -125,7 +131,7 @@ export function useBuilder() {
       resetDraft(nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null);
       setPublished((json.data.published as StoreEditorSnapshot | null | undefined) ?? null);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Your store couldn't be loaded.");
+      setLoadError(error instanceof Error ? error.message : tx("Your store couldn't be loaded."));
     } finally {
       setLoading(false);
     }
@@ -156,7 +162,7 @@ export function useBuilder() {
     });
     if (!response.ok) {
       const json = await response.json().catch(() => null) as { error?: { message?: string } } | null;
-      throw new Error(json?.error?.message ?? "Your changes couldn't be saved.");
+      throw new Error(json?.error?.message ?? tx("Your changes couldn't be saved."));
     }
     setSavedKey(snapshotKey(snapshot));
   }, []);
@@ -174,11 +180,11 @@ export function useBuilder() {
     try {
       await persist(snapshot);
       failedKey.current = null;
-      if (!options.quiet) showToast("Saved");
+      if (!options.quiet) showToast(tx("Saved"));
       return true;
     } catch (error) {
       failedKey.current = snapshotKey(snapshot);
-      showToast(error instanceof Error ? error.message : "Your changes couldn't be saved.", "error");
+      showToast(error instanceof Error ? error.message : tx("Your changes couldn't be saved."), "error");
       return false;
     } finally {
       setSaving(false);
@@ -215,12 +221,12 @@ export function useBuilder() {
         setLaunchPricing(json.billing);
         return;
       }
-      if (!response.ok) throw new Error(json?.error?.blockers?.[0] ?? json?.error?.message ?? "Your store couldn't be published.");
+      if (!response.ok) throw new Error(json?.error?.blockers?.[0] ?? json?.error?.message ?? tx("Your store couldn't be published."));
       setPublished(json?.data?.published ?? draftRef.current);
       const host = storefrontHost(store.storefrontUrl);
-      showToast(host ? `Published to ${host}` : "Published", "ok", store.storefrontUrl ? { href: store.storefrontUrl, label: "View store" } : undefined);
+      showToast(host ? wordsRef.current.t("edk.publishedTo", { host }) : tx("Published"), "ok", store.storefrontUrl ? { href: store.storefrontUrl, label: tx("View store") } : undefined);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Your store couldn't be published.", "error");
+      showToast(error instanceof Error ? error.message : tx("Your store couldn't be published."), "error");
     } finally {
       setPublishing(false);
     }
@@ -231,9 +237,9 @@ export function useBuilder() {
     resetDraft(next, false);
     try {
       await persist(next);
-      showToast("Blank store created");
+      showToast(tx("Blank store created"));
     } catch {
-      showToast("Blank store created here. It saves when you're back online.", "error");
+      showToast(tx("Blank store created here. It saves when you're back online."), "error");
     }
   }, [persist, resetDraft, showToast, store.name]);
 
@@ -246,7 +252,7 @@ export function useBuilder() {
       body: JSON.stringify({ ops }),
     });
     const json = await response.json().catch(() => null) as { data?: { draft?: StoreEditorSnapshot | null }; error?: { message?: string } } | null;
-    if (!response.ok || !json?.data?.draft) throw new Error(json?.error?.message ?? "Rex's change couldn't be applied.");
+    if (!response.ok || !json?.data?.draft) throw new Error(json?.error?.message ?? tx("Rex's change couldn't be applied."));
     const next = json.data.draft;
     // Kept undoable: Undo takes the store back to before Rex's change (and autosaves that).
     setHistory((current) => pushHistory(current, next));

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_PREFERENCES, parsePreferences, type AppPreferences } from "@shared/preferences";
+import { DEFAULT_PREFERENCES, MAX_INTROS_SEEN, parsePreferences, type AppPreferences } from "@shared/preferences";
 
 export interface ShellCounts {
   notifications: number;
@@ -100,7 +100,36 @@ export function usePreferences() {
     broadcast(parsePreferences(body.data));
   }
 
-  return { prefs, loaded: prefs !== null, confirmed, save };
+  /** Marks a 60-second feature intro as seen (server copy, with this device's localStorage as the fallback). */
+  async function markIntroSeen(key: string) {
+    rememberIntroLocally(key);
+    const seen = prefs?.introsSeen ?? [];
+    if (seen.includes(key)) return;
+    await save({ introsSeen: [...seen, key].slice(-MAX_INTROS_SEEN) }).catch(() => undefined);
+  }
+
+  return { prefs, loaded: prefs !== null, confirmed, save, markIntroSeen };
+}
+
+// Intros seen on this device: only a fallback for when the server save fails (offline, signed out mid-way).
+const INTROS_KEY = "shopinbos:intros-seen";
+
+function rememberIntroLocally(key: string) {
+  try {
+    const seen = introsSeenLocally().filter((item) => item !== key);
+    localStorage.setItem(INTROS_KEY, JSON.stringify([...seen, key].slice(-MAX_INTROS_SEEN)));
+  } catch {
+    // Private mode: the server copy is the only record.
+  }
+}
+
+export function introsSeenLocally(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(INTROS_KEY) ?? "[]") as unknown;
+    return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 // The person's photo and logo. Pages pass what they loaded on the server; the shell-counts response fills in

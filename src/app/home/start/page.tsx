@@ -5,13 +5,17 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { getSetupOverview, syncStartNav } from "@/lib/setup/server";
 import { StartHere } from "./StartHere";
+import { getT } from "@/lib/i18n/server";
 
 // Start here: the first-time page for new sellers. A short checklist built from the real state of the shop;
 // each step is done inline or one tap away, ticks itself, and can be skipped. Peggy and Rex sit alongside and
 // can do the setup for you. New sellers land here after onboarding until the list is done or dismissed.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Start here" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("home");
+  return { title: t("start.metaTitle") };
+}
 
 export default async function StartHerePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireRole(["seller"], "/login");

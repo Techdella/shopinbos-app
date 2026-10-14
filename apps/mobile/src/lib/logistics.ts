@@ -53,7 +53,7 @@ export interface DispatchRider {
   out?: boolean;
 }
 
-/** Late pay-in card: "₦X overdue since yesterday 6pm." + "You're paused from pay-when-it-arrives jobs until you pay in." */
+/** Late pay-in card: "₦X overdue since yesterday 6pm." + "You're paused from cash-on-delivery jobs until you pay in." */
 export interface PayInOverdue {
   amount: number;
   since: string;
@@ -75,7 +75,7 @@ export interface LogisticsOverview {
   cashToPayIn: number;
   /** "by 6pm today", "by 6pm tomorrow", or "now" when it's late. */
   payInBy?: string;
-  /** Set while a pay-in is late (paused from pay-when-it-arrives jobs). */
+  /** Set while a pay-in is late (paused from cash-on-delivery jobs). */
   overdue?: PayInOverdue | null;
   onTime: number | null;
   onTimeJobs: number;
@@ -148,7 +148,7 @@ export interface Earnings {
   late?: boolean;
   /** The company's own pay-in account; "manual" when it isn't available (pay in the old way, tell us on the web). */
   payIn?: PayInAccount;
-  /** Set while a pay-in is late (paused from pay-when-it-arrives jobs). */
+  /** Set while a pay-in is late (paused from cash-on-delivery jobs). */
   overdue?: PayInOverdue | null;
   remittances: Array<{ id: string; amount: number; method: string; reference: string | null; createdAt: string; status?: string }>;
   recent: Array<{ id: string; ref: string; from: string; to: string; rider: string | null; deliveredAt: string | null; amount: number }>;

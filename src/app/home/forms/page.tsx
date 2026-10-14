@@ -7,19 +7,25 @@ import { EmptyState, FilterChips, ListCard, Pill, PillLink, StatGrid, StatTile }
 import { Icon } from "@/components/ui/Icon";
 import { formatDate, humanize } from "@/components/growth/kit";
 import { ensureStorefrontVisitorTables } from "@/lib/storefront/visitor-data";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Form submissions" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("store");
+  return { title: t("forms.title") };
+}
 
 const FILTERS = [
-  { key: "", label: "All" },
-  { key: "contact", label: "Contact" },
-  { key: "newsletter", label: "Newsletter" },
-];
+  { key: "", label: "forms.filter.all" },
+  { key: "contact", label: "forms.filter.contact" },
+  { key: "newsletter", label: "forms.filter.newsletter" },
+] as const;
 
 export default async function SellerFormSubmissionsPage({ searchParams }: { searchParams?: Promise<{ type?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store", "common");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -48,27 +54,27 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Form submissions"
-      sub="Messages, sign-ups and leads from the forms on your store. Messages also arrive in your inbox, where you can reply."
+      title={t("forms.title")}
+      sub={t("forms.sub")}
       actions={
         <>
-          <PillLink href="/home/messages" icon="chat" tone="ink">Reply in inbox</PillLink>
-          <PillLink href="/home/marketing/forms" icon="settings">Manage forms</PillLink>
-          <PillLink href={`/s/${store.slug}`} icon="globe">View store</PillLink>
+          <PillLink href="/home/messages" icon="chat" tone="ink">{t("forms.reply")}</PillLink>
+          <PillLink href="/home/marketing/forms" icon="settings">{t("forms.manage")}</PillLink>
+          <PillLink href={`/s/${store.slug}`} icon="globe">{t("forms.viewStore")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <StatGrid>
-          <StatTile tone="card" label="Total" value={submissions.length} hint="Latest 100" />
-          <StatTile tone="card" label="New" value={newCount} />
-          <StatTile tone="card" label="Contact" value={contactCount} />
-          <StatTile tone="card" label="Newsletter" value={newsletterCount} />
+          <StatTile tone="card" label={t("forms.total")} value={submissions.length} hint={t("forms.latest100")} />
+          <StatTile tone="card" label={t("forms.new")} value={newCount} />
+          <StatTile tone="card" label={t("forms.filter.contact")} value={contactCount} />
+          <StatTile tone="card" label={t("forms.filter.newsletter")} value={newsletterCount} />
         </StatGrid>
 
         <FilterChips
           items={FILTERS.map((filter) => ({
-            label: filter.label,
+            label: t(filter.label),
             href: filter.key ? `/home/forms?type=${filter.key}` : "/home/forms",
             count: filter.key === "contact" ? contactCount : filter.key === "newsletter" ? newsletterCount : submissions.length,
             active: filter === active,
@@ -76,7 +82,7 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
         />
 
         {shown.length === 0 ? (
-          <EmptyState icon="message" title="No submissions yet">When shoppers use your contact or newsletter form, what they send shows up here.</EmptyState>
+          <EmptyState icon="message" title={t("forms.empty")}>{t("forms.emptySub")}</EmptyState>
         ) : (
           <ListCard>
             {shown.map((submission) => (
@@ -86,10 +92,10 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <strong className="min-w-0 truncate text-[15px] font-extrabold">{submission.name || submission.email || "Visitor"}</strong>
-                    <Pill tone={submission.type === "newsletter" ? "info" : "accent"}>{humanize(submission.type)}</Pill>
-                    {submission.status === "new" && <Pill tone="success" dot>New</Pill>}
-                    <span className="text-[12.5px] text-app-ink-soft">{formatDate(submission.createdAt, true)}</span>
+                    <strong className="min-w-0 truncate text-[15px] font-extrabold">{submission.name || submission.email || t("forms.visitor")}</strong>
+                    <Pill tone={submission.type === "newsletter" ? "info" : "accent"}>{t.dynamic(`forms.filter.${submission.type}`, humanize(submission.type))}</Pill>
+                    {submission.status === "new" && <Pill tone="success" dot>{t("forms.new")}</Pill>}
+                    <span className="text-[12.5px] text-app-ink-soft">{formatDate(submission.createdAt, true, locale)}</span>
                   </div>
                   {(submission.email || submission.phone) && (
                     <div className="mt-0.5 flex flex-wrap gap-x-3 text-[13.5px]">

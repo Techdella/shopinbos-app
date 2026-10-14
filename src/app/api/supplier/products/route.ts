@@ -8,6 +8,7 @@ import { isOnboardingComplete } from "@/lib/role-queries";
 import { SUPPLIER_FREE_PRODUCT_LIMIT, isProPlan, supplierProductLimitMessage } from "@/lib/plan-limits";
 import { slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
+import { notifyProductForReview } from "@/lib/notifications/events.server";
 
 export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -89,6 +90,7 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   });
 
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: category.slug });
+  if (product.status === "pending_review") await notifyProductForReview(product.id, product.name, supplier.displayName);
 
   return ok(product, 201);
 });

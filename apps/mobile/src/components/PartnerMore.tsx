@@ -3,10 +3,12 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import type { AppIconName } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
+import { LanguageRow } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, T } from "@/components/ui";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // The More tab for suppliers and delivery partners. "app:" paths are screens in the app, "url:" opens a public
@@ -30,10 +32,26 @@ export const HELP_SECTION: { title: string; links: MoreLink[] } = {
   ],
 };
 
+/** HELP_SECTION in the app language (m_ui "more.*"). */
+export function useHelpSection(): { title: string; links: MoreLink[] } {
+  const t = useT("m_ui");
+  const [email, terms, privacy] = HELP_SECTION.links;
+  return {
+    title: t("more.helpTitle"),
+    links: [
+      { ...email, label: t("more.emailSupport") },
+      { ...terms, label: t("more.terms") },
+      { ...privacy, label: t("more.privacy"), hint: t("more.privacyHint") },
+    ],
+  };
+}
+
 export function PartnerMore({ sections }: { sections: Array<{ title: string; links: MoreLink[] }> }) {
+  const t = useT("common");
+  const help = useHelpSection();
   return (
-    <TabScreen title="More">
-      {[...sections, HELP_SECTION].map((section) => (
+    <TabScreen title={t("more")}>
+      {[...sections, help].map((section) => (
         <View key={section.title} style={{ marginBottom: 14 }}>
           <T weight="bold" style={{ color: colors.inkSoft, fontSize: 12.5, letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 6, marginLeft: 4 }}>{section.title}</T>
           <Card style={{ paddingVertical: 2 }}>
@@ -43,7 +61,10 @@ export function PartnerMore({ sections }: { sections: Array<{ title: string; lin
           </Card>
         </View>
       ))}
-      <LinkButton title="Log out" color={colors.danger} onPress={() => confirmSignOut()} />
+      <Card style={{ paddingVertical: 2, marginBottom: 14 }}>
+        <LanguageRow first />
+      </Card>
+      <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
     </TabScreen>
   );
 }

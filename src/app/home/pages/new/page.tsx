@@ -3,11 +3,18 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { EmptyState, PillLink } from "@/components/app-kit";
 import { NewPageForm } from "./NewPageForm";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata() {
+  const t = await getT("store");
+  return { title: t("pages.new") };
+}
+
 export default async function NewPageModal() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const existing = store
     ? await db.storePage.findMany({ where: { storeId: store.id }, select: { id: true, slug: true, title: true } })
@@ -17,15 +24,15 @@ export default async function NewPageModal() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="New page"
-      sub="Pick a page type. Rex writes the first draft, then you can edit it."
-      actions={<PillLink href="/home/pages" icon="arrowLeft">Back to pages</PillLink>}
+      title={t("pages.new")}
+      sub={t("pages.newSub")}
+      actions={<PillLink href="/home/pages" icon="arrowLeft">{t("pages.backToPages")}</PillLink>}
     >
       {store ? (
         <NewPageForm existing={existing} />
       ) : (
-        <EmptyState icon="document" title="No store yet" action={<PillLink href="/onboarding" tone="ink">Set up your store</PillLink>}>
-          Set up your store first, then add pages to it.
+        <EmptyState icon="document" title={t("pages.noStore")} action={<PillLink href="/onboarding" tone="ink">{t("pages.setUpStore")}</PillLink>}>
+          {t("pages.setUpFirst")}
         </EmptyState>
       )}
     </SellerPage>

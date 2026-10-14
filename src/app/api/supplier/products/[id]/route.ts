@@ -5,6 +5,7 @@ import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError, noContent } from "@/lib/api/response";
 import { SupplierProductUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { notifyProductForReview } from "@/lib/notifications/events.server";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const supplier = await db.supplier.findUnique({ where: { userId } });
@@ -71,10 +72,11 @@ export const PATCH = withSupplier(async (
       ...(product.status === "published" && hasPublicFieldChanges ? { status: "pending_review" } : {}),
     },
     include: {
-      supplier: { select: { slug: true } },
+      supplier: { select: { slug: true, displayName: true } },
       category: { select: { slug: true } },
     },
   });
+  if (updated.status === "pending_review" && product.status !== "pending_review") await notifyProductForReview(updated.id, updated.name, updated.supplier.displayName);
 
   invalidatePublicMarketplaceCache({
     productSlug: updated.slug,

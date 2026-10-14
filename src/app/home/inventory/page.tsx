@@ -4,17 +4,27 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { AppPage, EmptyState, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, cx, type Tone } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
 
-function stockStatus(current: number, threshold: number): { label: string; tone: Tone } {
-  if (current <= 0) return { label: "Out of stock", tone: "danger" };
-  if (current <= threshold) return { label: "Low stock", tone: "accent" };
-  return { label: "In stock", tone: "success" };
+export async function generateMetadata() {
+  const t = await getT("products");
+  return { title: t("inv.title") };
+}
+
+function stockStatus(current: number, threshold: number): { label: "inv.out" | "inv.low" | "inv.in"; tone: Tone } {
+  if (current <= 0) return { label: "inv.out", tone: "danger" };
+  if (current <= threshold) return { label: "inv.low", tone: "accent" };
+  return { label: "inv.in", tone: "success" };
 }
 
 export default async function InventoryPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("products", "common");
+  const locale = await getLocale();
+  const num = (value: number) => formatNumber(value, locale);
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store;
 
@@ -56,34 +66,34 @@ export default async function InventoryPage() {
   return (
     <AppPage
       frame={sellerFrame(user, store)}
-      title="How many you have"
-      sub="How much you have of everything, and what is running low."
+      title={t("inv.title")}
+      sub={t("inv.sub")}
       actions={
         <>
-          <PillLink href="/products" tone="ink">Manage products</PillLink>
+          <PillLink href="/products" tone="ink">{t("inv.manage")}</PillLink>
         </>
       }
     >
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Products" value={totalProducts.toLocaleString("en-NG")} />
-        <StatTile tone="card" label="Units in stock" value={totalUnits.toLocaleString("en-NG")} hint="Your own stock" />
-        <StatTile tone="card" label="Low stock" value={lowStock.toLocaleString("en-NG")} />
-        <StatTile tone="card" label="Out of stock" value={outOfStock.toLocaleString("en-NG")} />
+        <StatTile tone="card" label={t("inv.products")} value={num(totalProducts)} />
+        <StatTile tone="card" label={t("inv.units")} value={num(totalUnits)} hint={t("inv.ownStock")} />
+        <StatTile tone="card" label={t("inv.low")} value={num(lowStock)} />
+        <StatTile tone="card" label={t("inv.out")} value={num(outOfStock)} />
       </StatGrid>
 
       {outOfStock > 0 || lowStock > 0 ? (
         <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] bg-app-peach px-4 py-3 text-[14px]" role="status">
           <span className="min-w-0 flex-1">
-            {outOfStock > 0 && `${outOfStock} product${outOfStock === 1 ? "" : "s"} out of stock. `}
-            {lowStock > 0 && `${lowStock} product${lowStock === 1 ? "" : "s"} running low.`}
+            {outOfStock > 0 && `${t("inv.outCount", { count: outOfStock })} `}
+            {lowStock > 0 && t("inv.lowCount", { count: lowStock })}
           </span>
-          <Link href="/marketplace" className="font-extrabold text-app-accent-ink no-underline hover:underline">Source from the marketplace</Link>
+          <Link href="/marketplace" className="font-extrabold text-app-accent-ink no-underline hover:underline">{t("inv.source")}</Link>
         </div>
       ) : null}
 
       {products.length === 0 ? (
-        <EmptyState icon="box" title="No products yet" action={<PillLink href="/products/new" tone="ink" icon="plus">Add product</PillLink>}>
-          Add products to start counting how many you have.
+        <EmptyState icon="box" title={t("inv.empty")} action={<PillLink href="/products/new" tone="ink" icon="plus">{t("addProduct")}</PillLink>}>
+          {t("inv.emptySub")}
         </EmptyState>
       ) : (
         <ListCard>
@@ -93,7 +103,7 @@ export default async function InventoryPage() {
             const supplierStock = p.supplierProduct?.stockQuantity;
             const source = isDropship && p.supplierProduct?.supplier?.displayName
               ? p.supplierProduct.supplier.displayName
-              : isDropship ? "Supplier" : "Own stock";
+              : isDropship ? t("inv.supplier") : t("list.ownStock");
             const count = isDropship ? supplierStock : p.currentStock;
             return (
               <ListRow key={p.id} href={`/products/${p.id}`}>
@@ -105,15 +115,15 @@ export default async function InventoryPage() {
                       <div className="truncate text-[13px] text-app-ink-soft">{[p.sku, source].filter(Boolean).join(" · ")}</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-app-ink-soft xl:contents">
-                      <span>{isDropship ? <Pill tone="muted">Sell without stock</Pill> : <Pill tone={status.tone} dot>{status.label}</Pill>}</span>
-                      <span>{isDropship ? "—" : `${p.reservedStock} reserved`}</span>
-                      <span>{p.soldStock} sold</span>
+                      <span>{isDropship ? <Pill tone="muted">{t("list.dropship")}</Pill> : <Pill tone={status.tone} dot>{t(status.label)}</Pill>}</span>
+                      <span>{isDropship ? "—" : t("inv.reserved", { count: p.reservedStock })}</span>
+                      <span>{t("list.sold", { count: p.soldStock })}</span>
                       <span className={cx(!isDropship && p.incomingStock > 0 && "font-bold text-app-success")}>
-                        {!isDropship && p.incomingStock > 0 ? `+${p.incomingStock} coming` : "—"}
+                        {!isDropship && p.incomingStock > 0 ? t("inv.coming", { count: p.incomingStock }) : "—"}
                       </span>
                     </div>
                     <div className={cx("text-[15px] font-extrabold md:text-right", !isDropship && p.currentStock <= p.lowStockThreshold && "text-app-accent-ink")}>
-                      {count ?? "—"} <span className="text-[12.5px] font-semibold text-app-ink-soft">{isDropship ? "at supplier" : "in stock"}</span>
+                      {count ?? "—"} <span className="text-[12.5px] font-semibold text-app-ink-soft">{isDropship ? t("inv.atSupplier") : t("inv.inStock")}</span>
                     </div>
                   </div>
                 </div>

@@ -104,7 +104,7 @@ export function roleReason(role: string | null | undefined) {
 
 /** In-app notification settings for each portal (linked from notification emails). */
 export function notificationSettingsUrl(role: string | null | undefined) {
-  const path = role === "supplier" ? "/supplier/settings" : role === "logistics_partner" ? "/logistics/settings" : role === "admin" ? "/admin/settings" : "/home/settings?tab=Notifications";
+  const path = role === "seller" || !role ? "/home/settings?tab=Notifications" : "/home/notifications/preferences";
   return `${appBase()}${path}`;
 }
 

@@ -9,6 +9,11 @@ import { Modal } from "@/components/growth/Modal";
 import { Field, buttonClass, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import type { FormDesign, FormField, PopupConfig } from "@/lib/marketing/forms";
 import { api, errorText } from "../_kit/client";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatNumber, type TFunction } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
+
+type MarketingT = TFunction<MessageKey<"marketing">>;
 
 export interface ManagedForm {
   id: string;
@@ -24,13 +29,13 @@ export interface ManagedForm {
   signups: number;
 }
 
-const TRIGGER_TEXT: Record<PopupConfig["trigger"], (c: PopupConfig) => string> = {
-  immediate: () => "as the page opens",
-  delay: (c) => `after ${c.delaySeconds} seconds`,
-  exit_intent: () => "when they're about to leave",
-  scroll: (c) => `after scrolling ${c.scrollPercent}%`,
+const TRIGGER_TEXT: Record<PopupConfig["trigger"], (c: PopupConfig, t: MarketingT) => string> = {
+  immediate: (_, t) => t("forms.trigger.immediate"),
+  delay: (c, t) => t("forms.trigger.delay", { seconds: c.delaySeconds }),
+  exit_intent: (_, t) => t("forms.trigger.exit"),
+  scroll: (c, t) => t("forms.trigger.scroll", { percent: c.scrollPercent }),
 };
-const LAYOUT_TEXT: Record<PopupConfig["layout"], string> = { modal: "Centre pop-up", flyout: "Corner flyout", bar: "Bottom bar" };
+const LAYOUT_TEXT: Record<PopupConfig["layout"], MessageKey<"marketing">> = { modal: "forms.layout.modal", flyout: "forms.layout.flyout", bar: "forms.layout.bar" };
 
 const DEFAULT_CONFIG: PopupConfig = { layout: "modal", trigger: "delay", delaySeconds: 8, scrollPercent: 50, pages: "all", frequency: "once", frequencyDays: 7, devices: ["mobile", "desktop"], reward: null, afterSubmit: "message", redirectUrl: "" };
 const DEFAULT_DESIGN: FormDesign = {
@@ -84,10 +89,11 @@ function fieldsFor(draft: Draft): FormField[] {
 }
 
 function Preview({ draft }: { draft: Draft }) {
+  const t = useT("marketing");
   const fields = fieldsFor(draft);
   const reward = draft.config.reward;
   return (
-    <div className="rounded-[18px] bg-app-canvas p-4" aria-label="Preview">
+    <div className="rounded-[18px] bg-app-canvas p-4" aria-label={t("editor.preview")}>
       <div className={draft.isPopup && draft.config.layout === "bar" ? "rounded-[14px] bg-white p-4" : "mx-auto max-w-[360px] rounded-[22px] bg-white p-5 shadow-sm"}>
         <div className="text-[19px] font-extrabold leading-tight">{draft.design.headline}</div>
         <p className="mb-3 mt-1.5 text-[13.5px] text-app-ink-soft">
@@ -102,13 +108,14 @@ function Preview({ draft }: { draft: Draft }) {
           <div className="grid h-10 place-items-center rounded-full bg-app-ink text-[13px] font-bold text-white">{draft.design.buttonText}</div>
         </div>
       </div>
-      <p className="mb-0 mt-3 text-[12.5px] text-app-ink-soft">On your store it uses your store's colours.</p>
+      <p className="mb-0 mt-3 text-[12.5px] text-app-ink-soft">{t("forms.previewNote")}</p>
     </div>
   );
 }
 
 function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: ManagedForm | null; startAsPopup: boolean; onClose: () => void; onSaved: () => void }) {
-  const [draft, setDraft] = useState<Draft>(() => ({ ...toDraft(editing), ...(editing ? {} : { isPopup: startAsPopup, name: startAsPopup ? "Welcome pop-up" : "Newsletter sign-up" }) }));
+  const t = useT("marketing", "common");
+  const [draft, setDraft] = useState<Draft>(() => ({ ...toDraft(editing), ...(editing ? {} : { isPopup: startAsPopup, name: startAsPopup ? t("forms.defaultPopupName") : t("forms.defaultPageName") }) }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const design = (patch: Partial<FormDesign>) => setDraft((d) => ({ ...d, design: { ...d.design, ...patch } }));
@@ -139,83 +146,83 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
   }
 
   return (
-    <Modal title={editing ? `Edit ${editing.name}` : draft.isPopup ? "New pop-up" : "New sign-up page"} onClose={onClose} wide>
+    <Modal title={editing ? t("seg.editName", { name: editing.name }) : draft.isPopup ? t("forms.newPopup") : t("forms.newPage")} onClose={onClose} wide>
       <form onSubmit={(event) => void save(event)} className="grid gap-5">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name (only you see this)" htmlFor="f-name"><input id="f-name" required value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} /></Field>
-          <Field label="Shows as">
-            <Segmented options={[{ value: "popup", label: "Pop-up on my store" }, { value: "page", label: "Sign-up page" }]} value={draft.isPopup ? "popup" : "page"} onChange={(v) => setDraft({ ...draft, isPopup: v === "popup" })} />
+          <Field label={t("forms.nameOnlyYou")} htmlFor="f-name"><input id="f-name" required value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} maxLength={120} /></Field>
+          <Field label={t("forms.showsAs")}>
+            <Segmented options={[{ value: "popup", label: t("forms.popupOnStore") }, { value: "page", label: t("forms.signupPage") }]} value={draft.isPopup ? "popup" : "page"} onChange={(v) => setDraft({ ...draft, isPopup: v === "popup" })} />
           </Field>
         </div>
 
         <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
-          <legend className="mb-2 p-0 text-[16px] font-extrabold">What it says</legend>
+          <legend className="mb-2 p-0 text-[16px] font-extrabold">{t("forms.whatItSays")}</legend>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Headline" htmlFor="f-head"><input id="f-head" value={draft.design.headline} onChange={(e) => design({ headline: e.target.value })} className={inputClass} maxLength={120} /></Field>
-            <Field label="Button" htmlFor="f-btn"><input id="f-btn" value={draft.design.buttonText} onChange={(e) => design({ buttonText: e.target.value })} className={inputClass} maxLength={40} /></Field>
+            <Field label={t("forms.headline")} htmlFor="f-head"><input id="f-head" value={draft.design.headline} onChange={(e) => design({ headline: e.target.value })} className={inputClass} maxLength={120} /></Field>
+            <Field label={t("forms.button")} htmlFor="f-btn"><input id="f-btn" value={draft.design.buttonText} onChange={(e) => design({ buttonText: e.target.value })} className={inputClass} maxLength={40} /></Field>
           </div>
-          <Field label="Message" htmlFor="f-body"><textarea id="f-body" rows={2} value={draft.design.body} onChange={(e) => design({ body: e.target.value })} className={textareaClass} maxLength={400} /></Field>
+          <Field label={t("forms.message")} htmlFor="f-body"><textarea id="f-body" rows={2} value={draft.design.body} onChange={(e) => design({ body: e.target.value })} className={textareaClass} maxLength={400} /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="After they sign up" htmlFor="f-done"><input id="f-done" value={draft.design.successMessage} onChange={(e) => design({ successMessage: e.target.value })} className={inputClass} maxLength={300} /></Field>
-            <Field label="Picture (optional, https link)" htmlFor="f-img"><input id="f-img" value={draft.design.imageUrl} onChange={(e) => design({ imageUrl: e.target.value })} className={inputClass} placeholder="https://" inputMode="url" /></Field>
+            <Field label={t("forms.afterSignup")} htmlFor="f-done"><input id="f-done" value={draft.design.successMessage} onChange={(e) => design({ successMessage: e.target.value })} className={inputClass} maxLength={300} /></Field>
+            <Field label={t("forms.picture")} htmlFor="f-img"><input id="f-img" value={draft.design.imageUrl} onChange={(e) => design({ imageUrl: e.target.value })} className={inputClass} placeholder="https://" inputMode="url" /></Field>
           </div>
-          <Field label="Consent wording (shown next to an unticked box)" htmlFor="f-consent"><textarea id="f-consent" rows={2} value={draft.design.consentText} onChange={(e) => design({ consentText: e.target.value })} className={textareaClass} maxLength={400} /></Field>
+          <Field label={t("forms.consent")} htmlFor="f-consent"><textarea id="f-consent" rows={2} value={draft.design.consentText} onChange={(e) => design({ consentText: e.target.value })} className={textareaClass} maxLength={400} /></Field>
         </fieldset>
 
         <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
-          <legend className="mb-2 p-0 text-[16px] font-extrabold">What it asks</legend>
-          <p className="m-0 text-[13.5px] text-app-ink-soft">Email is always asked. Fewer fields means more sign-ups.</p>
-          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askName} onChange={(e) => setDraft({ ...draft, askName: e.target.checked })} /> First name</label>
-          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askPhone} onChange={(e) => setDraft({ ...draft, askPhone: e.target.checked })} /> WhatsApp number</label>
+          <legend className="mb-2 p-0 text-[16px] font-extrabold">{t("forms.whatItAsks")}</legend>
+          <p className="m-0 text-[13.5px] text-app-ink-soft">{t("forms.emailAlways")}</p>
+          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askName} onChange={(e) => setDraft({ ...draft, askName: e.target.checked })} /> {t("forms.firstName")}</label>
+          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askPhone} onChange={(e) => setDraft({ ...draft, askPhone: e.target.checked })} /> {t("forms.whatsappNumber")}</label>
           {draft.askPhone ? (
-            <label className="ml-7 flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.design.askSmsConsent} onChange={(e) => design({ askSmsConsent: e.target.checked })} /> Ask permission for WhatsApp and SMS offers (separate tick boxes; without it, the number is only kept on file)</label>
+            <label className="ml-7 flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.design.askSmsConsent} onChange={(e) => design({ askSmsConsent: e.target.checked })} /> {t("forms.askSmsConsent")}</label>
           ) : null}
-          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askBirthday} onChange={(e) => setDraft({ ...draft, askBirthday: e.target.checked })} /> Birthday (for the birthday automation)</label>
+          <label className="flex min-h-[40px] items-center gap-2.5 text-[14px]"><input type="checkbox" className={checkClass} checked={draft.askBirthday} onChange={(e) => setDraft({ ...draft, askBirthday: e.target.checked })} /> {t("forms.birthday")}</label>
         </fieldset>
 
         {draft.isPopup ? (
           <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
-            <legend className="mb-2 p-0 text-[16px] font-extrabold">When and where it shows</legend>
+            <legend className="mb-2 p-0 text-[16px] font-extrabold">{t("forms.whenWhere")}</legend>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Style" htmlFor="f-layout">
+              <Field label={t("forms.style")} htmlFor="f-layout">
                 <select id="f-layout" className={selectClass} value={draft.config.layout} onChange={(e) => config({ layout: e.target.value as PopupConfig["layout"] })}>
-                  <option value="modal">Centre pop-up</option>
-                  <option value="flyout">Corner flyout</option>
-                  <option value="bar">Bottom bar</option>
+                  <option value="modal">{t("forms.layout.modal")}</option>
+                  <option value="flyout">{t("forms.layout.flyout")}</option>
+                  <option value="bar">{t("forms.layout.bar")}</option>
                 </select>
               </Field>
-              <Field label="Show it" htmlFor="f-trigger">
+              <Field label={t("forms.showIt")} htmlFor="f-trigger">
                 <select id="f-trigger" className={selectClass} value={draft.config.trigger} onChange={(e) => config({ trigger: e.target.value as PopupConfig["trigger"] })}>
-                  <option value="delay">After a few seconds</option>
-                  <option value="scroll">After scrolling down</option>
-                  <option value="exit_intent">When they're about to leave (computers)</option>
-                  <option value="immediate">Straight away</option>
+                  <option value="delay">{t("forms.afterSeconds")}</option>
+                  <option value="scroll">{t("forms.afterScrolling")}</option>
+                  <option value="exit_intent">{t("forms.exitIntent")}</option>
+                  <option value="immediate">{t("forms.straightAway")}</option>
                 </select>
               </Field>
               {draft.config.trigger === "delay" ? (
-                <Field label="Seconds to wait" htmlFor="f-delay"><input id="f-delay" type="number" min={0} max={600} value={draft.config.delaySeconds} onChange={(e) => config({ delaySeconds: Number(e.target.value) })} className={inputClass} /></Field>
+                <Field label={t("forms.secondsToWait")} htmlFor="f-delay"><input id="f-delay" type="number" min={0} max={600} value={draft.config.delaySeconds} onChange={(e) => config({ delaySeconds: Number(e.target.value) })} className={inputClass} /></Field>
               ) : null}
               {draft.config.trigger === "scroll" ? (
-                <Field label="How far down (%)" htmlFor="f-scroll"><input id="f-scroll" type="number" min={5} max={100} value={draft.config.scrollPercent} onChange={(e) => config({ scrollPercent: Number(e.target.value) })} className={inputClass} /></Field>
+                <Field label={t("forms.howFar")} htmlFor="f-scroll"><input id="f-scroll" type="number" min={5} max={100} value={draft.config.scrollPercent} onChange={(e) => config({ scrollPercent: Number(e.target.value) })} className={inputClass} /></Field>
               ) : null}
-              {draft.config.trigger === "exit_intent" ? <p className="m-0 self-end text-[13px] text-app-ink-soft">Phones have no mouse to leave with, so there it shows after scrolling halfway.</p> : null}
-              <Field label="On" htmlFor="f-pages">
+              {draft.config.trigger === "exit_intent" ? <p className="m-0 self-end text-[13px] text-app-ink-soft">{t("forms.phonesNoMouse")}</p> : null}
+              <Field label={t("forms.on")} htmlFor="f-pages">
                 <select id="f-pages" className={selectClass} value={draft.config.pages} onChange={(e) => config({ pages: e.target.value as PopupConfig["pages"] })}>
-                  <option value="all">Every page</option>
-                  <option value="home">Home page only</option>
-                  <option value="product">Product pages only</option>
+                  <option value="all">{t("forms.everyPage")}</option>
+                  <option value="home">{t("forms.homeOnly")}</option>
+                  <option value="product">{t("forms.productOnly")}</option>
                 </select>
               </Field>
-              <Field label="How often" htmlFor="f-freq">
+              <Field label={t("forms.howOften")} htmlFor="f-freq">
                 <select id="f-freq" className={selectClass} value={draft.config.frequency} onChange={(e) => config({ frequency: e.target.value as PopupConfig["frequency"] })}>
-                  <option value="once">Once per visitor</option>
-                  <option value="days">Again after some days</option>
-                  <option value="session">Once per visit</option>
-                  <option value="always">Every page load</option>
+                  <option value="once">{t("forms.oncePerVisitor")}</option>
+                  <option value="days">{t("forms.againAfterDays")}</option>
+                  <option value="session">{t("forms.oncePerVisit")}</option>
+                  <option value="always">{t("forms.everyLoad")}</option>
                 </select>
               </Field>
               {draft.config.frequency === "days" ? (
-                <Field label="Days between" htmlFor="f-days"><input id="f-days" type="number" min={1} max={365} value={draft.config.frequencyDays} onChange={(e) => config({ frequencyDays: Number(e.target.value) })} className={inputClass} /></Field>
+                <Field label={t("forms.daysBetween")} htmlFor="f-days"><input id="f-days" type="number" min={1} max={365} value={draft.config.frequencyDays} onChange={(e) => config({ frequencyDays: Number(e.target.value) })} className={inputClass} /></Field>
               ) : null}
             </div>
             <div className="flex flex-wrap gap-4 text-[14px]">
@@ -227,26 +234,26 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
                     checked={draft.config.devices.includes(device)}
                     onChange={(e) => config({ devices: e.target.checked ? [...new Set([...draft.config.devices, device])] : draft.config.devices.filter((d) => d !== device).length ? draft.config.devices.filter((d) => d !== device) : draft.config.devices })}
                   />
-                  {device === "mobile" ? "Phones" : "Computers"}
+                  {device === "mobile" ? t("forms.phones") : t("forms.computers")}
                 </label>
               ))}
             </div>
             <div className="grid gap-3 rounded-[16px] border border-app-line p-4">
               <label className="flex items-center gap-2.5 text-[14px] font-bold">
                 <input type="checkbox" className={checkClass} checked={Boolean(draft.config.reward)} onChange={(e) => config({ reward: e.target.checked ? { type: "percentage", value: 10, days: 14 } : null })} />
-                Give a sign-up reward
+                {t("forms.giveReward")}
               </label>
               {draft.config.reward ? (
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <Field label="Kind" htmlFor="f-rtype">
+                  <Field label={t("forms.kind")} htmlFor="f-rtype">
                     <select id="f-rtype" className={selectClass} value={draft.config.reward.type} onChange={(e) => config({ reward: { ...draft.config.reward!, type: e.target.value as "percentage" | "fixed_amount" } })}>
-                      <option value="percentage">% off</option>
-                      <option value="fixed_amount">₦ off</option>
+                      <option value="percentage">{t("forms.percentOff")}</option>
+                      <option value="fixed_amount">{t("forms.nairaOff")}</option>
                     </select>
                   </Field>
-                  <Field label={draft.config.reward.type === "percentage" ? "Percent" : "Naira"} htmlFor="f-rvalue"><input id="f-rvalue" type="number" min={1} value={draft.config.reward.value} onChange={(e) => config({ reward: { ...draft.config.reward!, value: Number(e.target.value) } })} className={inputClass} /></Field>
-                  <Field label="Valid for (days)" htmlFor="f-rdays"><input id="f-rdays" type="number" min={1} max={365} value={draft.config.reward.days} onChange={(e) => config({ reward: { ...draft.config.reward!, days: Number(e.target.value) } })} className={inputClass} /></Field>
-                  <p className="m-0 text-[12.5px] text-app-ink-soft sm:col-span-3">Each new subscriber gets their own one-use code, shown on screen and available to the welcome email as {"{{discount_code}}"}.</p>
+                  <Field label={draft.config.reward.type === "percentage" ? t("forms.percent") : t("forms.naira")} htmlFor="f-rvalue"><input id="f-rvalue" type="number" min={1} value={draft.config.reward.value} onChange={(e) => config({ reward: { ...draft.config.reward!, value: Number(e.target.value) } })} className={inputClass} /></Field>
+                  <Field label={t("forms.validFor")} htmlFor="f-rdays"><input id="f-rdays" type="number" min={1} max={365} value={draft.config.reward.days} onChange={(e) => config({ reward: { ...draft.config.reward!, days: Number(e.target.value) } })} className={inputClass} /></Field>
+                  <p className="m-0 text-[12.5px] text-app-ink-soft sm:col-span-3">{t("forms.rewardNote", { token: "{{discount_code}}" })}</p>
                 </div>
               ) : null}
             </div>
@@ -255,11 +262,11 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
 
         <Preview draft={draft} />
 
-        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px] font-bold"><input type="checkbox" className={checkClass} checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> Live</label>
+        <label className="flex min-h-[40px] items-center gap-2.5 text-[14px] font-bold"><input type="checkbox" className={checkClass} checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> {t("forms.live")}</label>
         {error ? <Notice>{error}</Notice> : null}
         <div className="flex flex-wrap justify-end gap-2">
-          <PillButton size="md" tone="white" onClick={onClose}>Cancel</PillButton>
-          <PillButton size="md" type="submit" busy={saving}>{editing ? "Save" : "Create"}</PillButton>
+          <PillButton size="md" tone="white" onClick={onClose}>{t("cancel")}</PillButton>
+          <PillButton size="md" type="submit" busy={saving}>{editing ? t("save") : t("forms.create")}</PillButton>
         </div>
       </form>
     </Modal>
@@ -268,6 +275,8 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
 
 export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; storeSlug: string }) {
   const router = useRouter();
+  const t = useT("marketing", "common");
+  const locale = useLocale();
   const [editor, setEditor] = useState<{ editing: ManagedForm | null; popup: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -283,7 +292,7 @@ export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; store
   }
 
   async function remove(form: ManagedForm) {
-    if (!window.confirm(`Delete "${form.name}"? Sign-ups it collected stay on your list.`)) return;
+    if (!window.confirm(t("forms.confirmDelete", { name: form.name }))) return;
     try {
       await api(`/api/app/marketing/forms/${form.id}`, "DELETE");
       router.refresh();
@@ -305,10 +314,10 @@ export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; store
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-2">
-        <PillButton size="md" tone="accent" onClick={() => setEditor({ editing: null, popup: true })}><Icon name="plus" size={16} /> New pop-up</PillButton>
-        <PillButton size="md" tone="white" onClick={() => setEditor({ editing: null, popup: false })}><Icon name="link" size={16} /> New sign-up page</PillButton>
+        <PillButton size="md" tone="accent" onClick={() => setEditor({ editing: null, popup: true })}><Icon name="plus" size={16} /> {t("forms.newPopup")}</PillButton>
+        <PillButton size="md" tone="white" onClick={() => setEditor({ editing: null, popup: false })}><Icon name="link" size={16} /> {t("forms.newPage")}</PillButton>
       </div>
-      {livePopups > 1 ? <Notice tone="info">{livePopups} pop-ups are live. Shoppers see at most one per visit: the most recently edited one that fits the page.</Notice> : null}
+      {livePopups > 1 ? <Notice tone="info">{t("forms.manyLive", { count: livePopups })}</Notice> : null}
       {error ? <Notice>{error}</Notice> : null}
 
       {forms.length ? (
@@ -321,32 +330,32 @@ export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; store
                 <div className="min-w-0 flex-1 basis-[200px]">
                   <div className="truncate text-[15px] font-extrabold">{form.name}</div>
                   <div className="truncate text-[13px] text-app-ink-soft">
-                    {form.isPopup ? `${LAYOUT_TEXT[form.config.layout]} ${TRIGGER_TEXT[form.config.trigger](form.config)}` : "Sign-up page"}
-                    {form.isPopup && form.config.reward ? ` · ${form.config.reward.type === "percentage" ? `${form.config.reward.value}%` : `₦${form.config.reward.value.toLocaleString("en-NG")}`} reward` : ""}
+                    {form.isPopup ? `${t(LAYOUT_TEXT[form.config.layout])} ${TRIGGER_TEXT[form.config.trigger](form.config, t)}` : t("forms.signupPage")}
+                    {form.isPopup && form.config.reward ? ` · ${t("forms.reward", { value: form.config.reward.type === "percentage" ? `${form.config.reward.value}%` : `₦${formatNumber(form.config.reward.value, locale)}` })}` : ""}
                   </div>
                 </div>
                 <div className="text-[13px] text-app-ink-soft sm:w-[190px]">
-                  <strong className="text-app-ink">{form.signups}</strong> sign-ups{form.isPopup ? <> · {form.views} views{rate !== null ? ` · ${rate}%` : ""}</> : null}
-                  <div>last 30 days</div>
+                  <strong className="text-app-ink">{form.signups}</strong> {t("forms.signupsWord")}{form.isPopup ? <> · {t("reports.views", { count: form.views })}{rate !== null ? ` · ${rate}%` : ""}</> : null}
+                  <div>{t("forms.last30")}</div>
                 </div>
-                <Toggle on={form.active} onChange={(on) => void toggle(form, on)} label={`${form.name} live`} />
+                <Toggle on={form.active} onChange={(on) => void toggle(form, on)} label={t("forms.liveLabel", { name: form.name })} />
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-                  {!form.isPopup ? <button type="button" className={buttonClass("white", "sm")} onClick={() => copyLink(form)}>{copied === form.id ? "Copied" : "Copy link"}</button> : null}
-                  <button type="button" className={buttonClass("white", "sm")} onClick={() => setEditor({ editing: form, popup: form.isPopup })}>Edit</button>
-                  <button type="button" className={buttonClass("danger", "sm")} onClick={() => void remove(form)} aria-label={`Delete ${form.name}`}><Icon name="trash" size={14} /></button>
+                  {!form.isPopup ? <button type="button" className={buttonClass("white", "sm")} onClick={() => copyLink(form)}>{copied === form.id ? t("copied") : t("forms.copyLink")}</button> : null}
+                  <button type="button" className={buttonClass("white", "sm")} onClick={() => setEditor({ editing: form, popup: form.isPopup })}>{t("edit")}</button>
+                  <button type="button" className={buttonClass("danger", "sm")} onClick={() => void remove(form)} aria-label={t("forms.deleteName", { name: form.name })}><Icon name="trash" size={14} /></button>
                 </div>
               </ListRow>
             );
           })}
         </ListCard>
       ) : (
-        <EmptyState icon="mail" title="No forms yet" action={<PillButton size="md" onClick={() => setEditor({ editing: null, popup: true })}>Make a welcome pop-up</PillButton>}>
-          A pop-up with a small reward is the fastest way to turn visitors into subscribers you can message again.
+        <EmptyState icon="mail" title={t("forms.emptyTitle")} action={<PillButton size="md" onClick={() => setEditor({ editing: null, popup: true })}>{t("forms.emptyAction")}</PillButton>}>
+          {t("forms.emptyBody")}
         </EmptyState>
       )}
 
       {forms.some((f) => !f.isPopup && f.active) ? (
-        <Card className="p-4 text-[13.5px] text-app-ink-soft">Sign-up pages live at <code className="text-app-ink">/s/{storeSlug}/join/…</code>. Put the link in your Instagram bio, WhatsApp status or on a QR code at your stand.</Card>
+        <Card className="p-4 text-[13.5px] text-app-ink-soft">{t("forms.pagesLiveAt")} <code className="text-app-ink">/s/{storeSlug}/join/…</code>. {t("forms.pagesTip")}</Card>
       ) : null}
 
       {editor ? (

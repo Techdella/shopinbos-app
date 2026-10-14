@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { ApiError } from "./api";
 import { fetchDashboard, type Dashboard } from "./dashboard";
 import { cacheDashboard, cachedDashboard, markHomeOpened, rememberStoreName, type CachedDashboard } from "./launch";
+import { tNow } from "./app-locale";
 
 /** Show the slow-network screen if Home still has nothing after this long. */
 export const SLOW_AFTER_MS = 8000;
@@ -100,7 +101,7 @@ export function useHomeData(uid: string | undefined): HomeData {
           // Server errors, or a failed pull-to-refresh with fresh data on screen: show the message on Home.
           settled.current = true;
           if (!fresh.current) setSlow(false);
-          setError(loadError instanceof Error ? loadError.message : "Couldn't load your shop.");
+          setError(loadError instanceof Error ? loadError.message : tNow("m_ui")("shopLoadFailed"));
           return;
         }
         // Nothing fresh on screen: show the slow screen (or keep the cached Home) and retry with backoff.

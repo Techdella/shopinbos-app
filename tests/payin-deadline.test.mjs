@@ -4,7 +4,7 @@
 //   - flag and unflag transitions (credit counted, the team's "Unpause" respected);
 //   - escalation at 24 and 72 hours, strikes per day late;
 //   - notification de-duplication keys (stable across runs, new per late period);
-//   - the pause excluding only pay-when-it-arrives jobs;
+//   - the pause excluding only cash-on-delivery jobs;
 //   - the wiring: cron route, pay-in hooks, partner pickers, migration.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -99,7 +99,7 @@ test("a 4pm reminder (2 hours before) when cash is still owed, once per deadline
 
 // ─── Flag and unflag ───────────────────────────────────────────────────────────
 
-test("late: flagged with the missed deadline and amount, paused from pay-when-it-arrives jobs", () => {
+test("late: flagged with the missed deadline and amount, paused from cash-on-delivery jobs", () => {
   const jobs = [job("2026-10-12T09:00:00Z", 5000), job("2026-10-12T10:00:00Z", 2500)];
   const result = plan(jobs, "2026-10-12T18:00:00Z");
   assert.equal(result.changed, true);
@@ -196,9 +196,9 @@ test("keys are per kind, partner and deadline: the same late period never repeat
   assert.equal(new Set(steps.map((step) => step.key)).size, steps.length);
 });
 
-// ─── The pause only covers pay-when-it-arrives jobs ────────────────────────────
+// ─── The pause only covers cash-on-delivery jobs ────────────────────────────
 
-test("a late partner gets prepaid jobs but no pay-when-it-arrives jobs", () => {
+test("a late partner gets prepaid jobs but no cash-on-delivery jobs", () => {
   const late = { status: "active", verificationStatus: "verified", codPaused: true };
   const fine = { status: "active", verificationStatus: "verified", codPaused: false };
   assert.equal(d.canOfferJob(late, { cod: true }), false);
@@ -222,10 +222,9 @@ test("plain words: the amber card and the partner message", () => {
   assert.equal(d.lagosWhenWords(since, at("2026-10-25T09:00:00Z")), "12 Oct 6pm");
   const card = d.overdueCardWords({ amount: 12500, since, paused: true, now: at("2026-10-13T09:00:00Z") });
   assert.equal(card.title, "₦12,500 overdue since yesterday 6pm.");
-  assert.equal(card.body, "You're paused from pay-when-it-arrives jobs until you pay in.");
+  assert.equal(card.body, "You're paused from cash-on-delivery jobs until you pay in.");
   const message = d.payInMessage("overdue", { amount: 12500, deadline: since, account: { accountNumber: "9930000001", bankName: "Wema Bank" }, config: cfg, now: at("2026-10-12T18:00:00Z") });
-  assert.equal(message.body, "You have ₦12,500 from customers to pay in. Until you pay, you won't get new pay-when-it-arrives jobs. Pay into your account: 9930000001 Wema Bank.");
-  for (const text of [card.title, card.body, message.title, message.body]) assert.doesNotMatch(text, /COD|cash on delivery|remit|settlement/i);
+  assert.equal(message.body, "You have ₦12,500 from customers to pay in. Until you pay, you won't get new cash-on-delivery jobs. Pay into your account: 9930000001 Wema Bank.");
 });
 
 // ─── Wiring ────────────────────────────────────────────────────────────────────

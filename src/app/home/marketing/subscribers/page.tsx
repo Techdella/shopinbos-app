@@ -7,12 +7,18 @@ import { FilterChips, PillLink, SearchForm, StatGrid, StatTile } from "@/compone
 import { consentSummary } from "@/lib/marketing/subscribers";
 import { SOURCE_LABEL } from "@/lib/marketing/segment-rules";
 import { SubscribersManager } from "./SubscribersManager";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Subscribers" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("hub.stat.subscribers") };
+}
 
 const PAGE = 50;
-const STATUSES: Array<{ key?: SubscriberStatus; label: string }> = [{ label: "All" }, { key: "active", label: "Subscribed" }, { key: "unsubscribed", label: "Unsubscribed" }, { key: "bounced", label: "Bounced" }];
+const STATUSES: Array<{ key?: SubscriberStatus; label: MessageKey<"marketing"> }> = [{ label: "campaigns.filter.all" }, { key: "active", label: "subs.status.active" }, { key: "unsubscribed", label: "subs.status.unsubscribed" }, { key: "bounced", label: "subs.status.bounced" }];
 
 type Search = { q?: string; status?: string; source?: string; tag?: string; page?: string };
 
@@ -24,6 +30,9 @@ function href(params: Search) {
 export default async function SubscribersPage({ searchParams }: { searchParams?: Promise<Search> }) {
   const params = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing", "common");
+  const locale = await getLocale();
+  const n = (value: number) => formatNumber(value, locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const status = STATUSES.find((s) => s.key === params.status)?.key;
   const source = params.source && params.source in SOURCE_LABEL ? (params.source as SubscriberSource) : undefined;
@@ -56,36 +65,36 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Subscribers"
-      sub="People who agreed to hear from your shop, and how they agreed."
+      title={t("hub.stat.subscribers")}
+      sub={t("subs.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/forms" icon="mail">Sign-up forms</PillLink>
-          <PillLink href="/home/marketing/segments" icon="layers">Groups of customers</PillLink>
+          <PillLink href="/home/marketing/forms" icon="mail">{t("subs.signupForms")}</PillLink>
+          <PillLink href="/home/marketing/segments" icon="layers">{t("hub.tool.segments")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <StatGrid>
-          <StatTile tone="card" label="Subscribed" value={count("active").toLocaleString("en-NG")} />
-          <StatTile tone="card" label="New in 30 days" value={newThisMonth.toLocaleString("en-NG")} />
-          <StatTile tone="card" label="Unsubscribed" value={count("unsubscribed").toLocaleString("en-NG")} />
-          <StatTile tone="card" label="Bounced or spam" value={(count("bounced") + count("spam")).toLocaleString("en-NG")} />
+          <StatTile tone="card" label={t("subs.status.active")} value={n(count("active"))} />
+          <StatTile tone="card" label={t("subs.new30")} value={n(newThisMonth)} />
+          <StatTile tone="card" label={t("subs.status.unsubscribed")} value={n(count("unsubscribed"))} />
+          <StatTile tone="card" label={t("subs.bouncedOrSpam")} value={n(count("bounced") + count("spam"))} />
         </StatGrid>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <FilterChips items={STATUSES.map((s) => ({ label: s.label, href: href({ ...params, status: s.key, page: undefined }), count: count(s.key), active: s.key === status }))} />
-          <SearchForm action="/home/marketing/subscribers" defaultValue={q} placeholder="Search name, email or phone" keep={{ status, source, tag: params.tag }} />
+          <FilterChips items={STATUSES.map((s) => ({ label: t(s.label), href: href({ ...params, status: s.key, page: undefined }), count: count(s.key), active: s.key === status }))} />
+          <SearchForm action="/home/marketing/subscribers" defaultValue={q} placeholder={t("subs.search")} keep={{ status, source, tag: params.tag }} />
         </div>
         {tags.length || source ? (
-          <nav aria-label="Filter by tag" className="flex flex-wrap items-center gap-2 text-[13.5px]">
-            <span className="font-bold text-app-ink-soft">Tags:</span>
+          <nav aria-label={t("subs.filterByTag")} className="flex flex-wrap items-center gap-2 text-[13.5px]">
+            <span className="font-bold text-app-ink-soft">{t("subs.tags")}</span>
             {tags.slice(0, 30).map((tag) => (
               <a key={tag} href={href({ ...params, tag: params.tag === tag ? undefined : tag, page: undefined })} aria-current={params.tag === tag ? "true" : undefined} className={`inline-flex min-h-[34px] items-center rounded-full border px-3 font-bold no-underline ${params.tag === tag ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
                 {tag}
               </a>
             ))}
-            {source ? <a href={href({ ...params, source: undefined })} className="font-bold text-app-accent-ink">Clear source: {SOURCE_LABEL[source]}</a> : null}
+            {source ? <a href={href({ ...params, source: undefined })} className="font-bold text-app-accent-ink">{t("subs.clearSource", { source: t.dynamic(`source.${source}`, SOURCE_LABEL[source]) })}</a> : null}
           </nav>
         ) : null}
 
@@ -100,7 +109,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
               phone: row.phone,
               status: row.status,
               source: row.source,
-              sourceLabel: SOURCE_LABEL[row.source] ?? row.source,
+              sourceLabel: t.dynamic(`source.${row.source}`, SOURCE_LABEL[row.source] ?? row.source),
               tags: row.tags,
               createdAt: row.createdAt.toISOString(),
               consent: consent ? { email: consent.email, text: consent.sms || consent.whatsapp, at: consent.at } : null,

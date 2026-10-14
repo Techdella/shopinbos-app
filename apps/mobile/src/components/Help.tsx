@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, type StyleProp, type ViewStyle } from "react-native";
 import { router, usePathname } from "expo-router";
@@ -11,6 +12,8 @@ import { useRole } from "@/lib/role";
 import { durationLabel, normaliseHelpPath, type HelpVideoRole } from "@shared/help-videos";
 import { openSupportWhatsApp, SUPPORT_EMAIL, SUPPORT_WHATSAPP } from "@/lib/support";
 import { colors } from "@/theme";
+import { openFeatureIntro } from "@/components/learn/events";
+import { introForPath } from "@shared/feature-intros";
 
 // "Help" on every screen (build spec 8A): chat with a person on WhatsApp, ask Peggy, or watch a one-minute video
 // for this screen. Without a support WhatsApp number set (see SUPPORT_WHATSAPP), "Chat with a person" opens the
@@ -18,12 +21,14 @@ import { colors } from "@/theme";
 
 export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const t = useT("m_help", "common");
   const { role, signedIn } = useRole();
   // Peggy works on a seller's shop; suppliers and delivery partners get a person.
   const peggy = !role || role === "seller";
   const [videos, setVideos] = useState<HelpVideos | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [playing, setPlaying] = useState<HelpVideoItem | null>(null);
+  const intro = introForPath(pathname, role);
   const videoRole: HelpVideoRole | null = normaliseHelpPath(pathname).startsWith("/rider") ? "rider" : role === "admin" ? null : role ?? null;
 
   useEffect(() => {
@@ -65,11 +70,11 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
   }
 
   return (
-    <Sheet visible={visible} onClose={close} title={playing ? playing.title : "How can we help?"} testID="help-sheet">
+    <Sheet visible={visible} onClose={close} title={playing ? playing.title : t("sheet.title")} testID="help-sheet">
       {playing && playing.source.kind === "file" ? (
         <>
           <HelpVideoPlayer video={playing} url={playing.source.url} />
-          <LinkButton title="Back to help" color={colors.inkSoft} onPress={() => setPlaying(null)} />
+          <LinkButton title={t("sheet.backToHelp")} color={colors.inkSoft} onPress={() => setPlaying(null)} />
         </>
       ) : (
       <>
@@ -78,22 +83,25 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
         icon="chat"
         tint={colors.successTint}
         iconColor={colors.success}
-        title={SUPPORT_WHATSAPP ? "Chat with a person on WhatsApp" : "Chat with a person"}
-        sub={SUPPORT_WHATSAPP ? "Our team answers on WhatsApp. English or Pidgin." : signedIn ? "Our team answers you here in the app." : `Email our team at ${SUPPORT_EMAIL}.`}
+        title={SUPPORT_WHATSAPP ? t("sheet.personWhatsApp") : t("sheet.person")}
+        sub={SUPPORT_WHATSAPP ? t("sheet.personWhatsAppSub") : signedIn ? t("sheet.personAppSub") : t("sheet.personEmailSub", { email: SUPPORT_EMAIL })}
         onPress={() => void person()}
       />
-      {peggy && signedIn ? <ChoiceRow testID="help-peggy" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title="Ask Peggy" sub="Say what you need. She'll do it or show you how." onPress={() => go("/peggy")} /> : null}
-      {signedIn ? <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title="Ask us to set something up" sub="We do the hard parts for you." onPress={() => go("/ask-us")} /> : null}
+      {peggy && signedIn ? <ChoiceRow testID="help-peggy" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title={t("sheet.askPeggy")} sub={t("sheet.askPeggySub")} onPress={() => go("/peggy")} /> : null}
+      {signedIn ? <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title={t("sheet.askUs")} sub={t("sheet.askUsSub")} onPress={() => go("/ask-us")} /> : null}
+      {intro ? (
+        <ChoiceRow testID="help-learn" icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title={t("sheet.learn")} sub={intro.title} onPress={() => { onClose(); openFeatureIntro(intro.key); }} />
+      ) : null}
       {videos?.current ? (
-        <ChoiceRow testID="help-video" icon="play" tint={colors.peach} iconColor={colors.accentInk} title="Watch a 1-minute video" sub={videos.current.title} onPress={() => watch(videos.current!)} />
+        <ChoiceRow testID="help-video" icon="play" tint={colors.peach} iconColor={colors.accentInk} title={t("sheet.watchVideo")} sub={videos.current.title} onPress={() => watch(videos.current!)} />
       ) : null}
       {videos && videos.all.length > 0 ? (
         <>
-          <LinkButton testID="help-all-videos" title={showAll ? "Hide videos" : `All videos (${videos.all.length})`} color={colors.inkSoft} onPress={() => setShowAll(!showAll)} />
+          <LinkButton testID="help-all-videos" title={showAll ? t("sheet.hideVideos") : t("sheet.allVideos", { count: videos.all.length })} color={colors.inkSoft} onPress={() => setShowAll(!showAll)} />
           {showAll ? (
             <ScrollView style={{ maxHeight: 260 }} contentContainerStyle={{ gap: 4 }}>
               {videos.all.map((video) => (
-                <Pressable key={video.id} accessibilityRole="button" accessibilityLabel={`Play ${video.title}`} onPress={() => watch(video)} style={({ pressed }) => ({ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 8, borderRadius: 14, backgroundColor: pressed ? colors.canvas : "transparent" })}>
+                <Pressable key={video.id} accessibilityRole="button" accessibilityLabel={t("sheet.play", { title: video.title })} onPress={() => watch(video)} style={({ pressed }) => ({ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 8, borderRadius: 14, backgroundColor: pressed ? colors.canvas : "transparent" })}>
                   <AppIcon name="play" size={16} color={colors.accentInk} />
                   <T weight="bold" style={{ flex: 1, fontSize: 15 }}>{video.title}</T>
                   <T style={{ fontSize: 13, color: colors.inkSoft }}>{durationLabel(video.durationSeconds)}</T>
@@ -103,7 +111,7 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
           ) : null}
         </>
       ) : null}
-      {signedIn ? <LinkButton title="See my chats with the team" color={colors.inkSoft} onPress={() => go("/help")} /> : null}
+      {signedIn ? <LinkButton title={t("sheet.myChats")} color={colors.inkSoft} onPress={() => go("/help")} /> : null}
       </>
       )}
     </Sheet>
@@ -113,18 +121,19 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
 /** The Help pill for screen headers: an icon with the word, as the prototype has it. */
 export function HelpButton({ style, testID = "help-button" }: { style?: StyleProp<ViewStyle>; testID?: string }) {
   const [open, setOpen] = useState(false);
+  const t = useT("common");
   return (
     <>
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel="Help"
+        accessibilityLabel={t("help")}
         onPress={() => setOpen(true)}
         hitSlop={4}
         style={({ pressed }) => [{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.8 : 1 }, style]}
       >
         <AppIcon name="help" size={18} />
-        <T weight="bold" style={{ fontSize: 15 }}>Help</T>
+        <T weight="bold" style={{ fontSize: 15 }}>{t("help")}</T>
       </Pressable>
       <HelpSheet visible={open} onClose={() => setOpen(false)} />
     </>

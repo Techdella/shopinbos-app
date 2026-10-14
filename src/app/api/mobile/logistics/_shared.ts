@@ -115,7 +115,7 @@ export async function pickupGeoFor(jobs: Array<JobRow>, country?: string | null)
 const coarse = (value: number | null) => (value === null ? null : Math.round(value * 1000) / 1000);
 
 /**
- * Active riders for the "pick a rider" sheet, best first: free riders who are out now (online, no open job), then
+ * Active riders for the "Assign a rider" sheet, best first: free riders who are out now (online, no open job), then
  * riders out but finishing a job, then offline riders. Each carries a coarse latest location so the app can put
  * the closest first for a given pickup (shared/delivery-geo rankRidersForPickup), and "last seen 2 min ago, Ikeja".
  */
