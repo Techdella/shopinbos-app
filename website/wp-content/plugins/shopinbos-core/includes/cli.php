@@ -57,6 +57,7 @@ class Sib_CLI {
 		update_option( 'page_for_posts', $blog );
 
 		$this->blog();
+		$this->articles();
 		// Make "Selling on WhatsApp" the default category and drop WordPress's sample content.
 		$start = get_term_by( 'slug', 'selling-on-whatsapp', 'category' );
 		if ( $start ) {
@@ -318,6 +319,46 @@ class Sib_CLI {
 			foreach ( $lessons[ $slug ] ?? [] as $n => $l ) {
 				$this->cpt( 'sib_lesson', sanitize_title( $l[0] ), $l[0], sib_seed_lesson_markup( $l ), $l[2], [], '', $n + 1, [ 'sib_track' => [ $tid ] ] );
 			}
+		}
+	}
+
+	/**
+	 * Articles from the team's Google Docs (seed/articles.json), plus colours for the team's own categories.
+	 * A post is only created when its slug is not on the site yet, so live posts are never duplicated or overwritten.
+	 */
+	private function articles(): void {
+		foreach ( [ 'how-to-sell' => [ 'How to Sell', '#FFEDE4', '#B23E0A' ], 'what-to-sell' => [ 'What to Sell', '#E3EEFD', '#1F5FBF' ], 'where-to-sell' => [ 'Where to Sell', '#E7E1FF', '#5B3FD6' ], 'start-a-shop' => [ 'Start a shop', '#E2F5EA', '#16794A' ] ] as $slug => [ $name, $bg, $fg ] ) {
+			$term = term_exists( $slug, 'category' );
+			if ( ! $term && in_array( $slug, [ 'how-to-sell', 'what-to-sell', 'where-to-sell' ], true ) ) {
+				$term = wp_insert_term( $name, 'category', [ 'slug' => $slug ] );
+			}
+			if ( $term && ! is_wp_error( $term ) && ! get_term_meta( (int) $term['term_id'], 'sib_bg', true ) ) {
+				update_term_meta( (int) $term['term_id'], 'sib_bg', $bg );
+				update_term_meta( (int) $term['term_id'], 'sib_fg', $fg );
+			}
+		}
+		$file = SIB_CORE_DIR . '/includes/seed/articles.json';
+		$list = file_exists( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : [];
+		foreach ( (array) $list as $a ) {
+			if ( get_page_by_path( $a['slug'], OBJECT, 'post' ) ) {
+				continue;
+			}
+			$id = wp_insert_post( wp_slash( [ 'post_type' => 'post', 'post_status' => 'publish', 'post_name' => $a['slug'], 'post_title' => $a['title'], 'post_excerpt' => $a['excerpt'], 'post_content' => $a['content'], 'post_date' => $a['date'], 'post_author' => $this->team_author() ] ) );
+			if ( ! $id || is_wp_error( $id ) ) {
+				WP_CLI::warning( "Could not create post {$a['slug']}" );
+				continue;
+			}
+			wp_set_object_terms( $id, [ $a['category'] ], 'category' );
+			update_post_meta( $id, 'sib_cover_bg', $a['cover_bg'] );
+			if ( $att = $this->media( $a['cover'] ) ) {
+				set_post_thumbnail( $id, $att );
+			}
+			foreach ( [ 'rank_math_title' => $a['meta_title'], 'rank_math_description' => $a['excerpt'], 'rank_math_focus_keyword' => $a['keyword'] ] as $k => $v ) {
+				if ( $v ) {
+					update_post_meta( $id, $k, $v );
+				}
+			}
+			WP_CLI::log( "Created post {$a['slug']}" );
 		}
 	}
 
