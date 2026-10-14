@@ -821,7 +821,7 @@ test("public profiles under portal prefixes stay reachable for guests and other 
   const proxy = read("src/proxy.ts");
   const portalRoutes = read("src/lib/portal-routes.ts");
 
-  assert.match(proxy, /const PUBLIC_ROUTES = \["\/logistics\/partners", "\/email", "\/rider"\]/);
+  assert.match(proxy, /const PUBLIC_ROUTES = \["\/logistics\/partners", "\/email", "\/rider", "\/data-deletion"\]/);
   assert.match(proxy, /if \(matchesRoute\(pathname, PUBLIC_ROUTES\)\)/);
   // /suppliers/[slug] must not be caught by the /supplier portal gate.
   assert.doesNotMatch(proxy, /pathname\.startsWith\("\/supplier"\)/);
