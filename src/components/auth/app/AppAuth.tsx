@@ -362,7 +362,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
             href={href}
             aria-current={on ? "page" : undefined}
             className={cx(
-              "grid min-h-[44px] place-items-center rounded-full px-2 text-center text-[14px] font-bold leading-tight no-underline transition",
+              "grid min-h-[44px] place-items-center rounded-full px-1.5 text-center text-[13.5px] font-bold leading-tight no-underline transition sm:px-2 sm:text-[14px]",
               on ? "bg-white text-app-ink shadow-[0_1px_3px_rgba(22,20,31,0.12)]" : "text-app-ink-soft hover:text-app-ink",
             )}
           >
@@ -537,8 +537,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         </Link>
       </p>
       {!usingPassword && (
-        <p className="mb-0 mt-3 flex items-center justify-center gap-1.5 text-center text-[13px] text-app-ink-faint">
-          <Icon name="lock" size={13} /> {t("lockLine")}
+        <p className="mb-0 mt-3 text-balance text-center text-[13px] leading-[1.5] text-app-ink-faint">
+          <span className="mr-1.5 inline-block align-[-2px]"><Icon name="lock" size={13} /></span>{t("lockLine")}
         </p>
       )}
     </form>
@@ -679,7 +679,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           <a href="https://shopinbos.com" aria-label={t("homeAria")} className="shrink-0"><Wordmark className="h-[18px] lg:h-[20px]" /></a>
           <HelpLink />
         </header>
-        <main className="flex flex-1 items-center py-10">
+        <main className="flex flex-1 items-start pb-10 pt-8 sm:pt-12 lg:items-center lg:py-10">
           <div className="w-full max-w-[440px]">{body}</div>
         </main>
         <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[13px] text-app-ink-faint">

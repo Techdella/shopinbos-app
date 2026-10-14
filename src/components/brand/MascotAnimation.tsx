@@ -50,6 +50,8 @@ export default function MascotAnimation({ source, loop, onReady, onComplete, onE
         onLoad={onReady}
         onError={onError}
         className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
+        // The sticker files carry a few stray white pixels in their corners (the figure stays well inside 12%).
+        style={{ clipPath: "inset(5%)" }}
       />
     );
   }

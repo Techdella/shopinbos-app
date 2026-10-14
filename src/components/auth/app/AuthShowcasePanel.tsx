@@ -55,7 +55,7 @@ export function AuthShowcasePanel({ who = "rex" }: { who?: "rex" | "peggy" }) {
           ))}
         </ul>
         {/* Rex cheering (sign-up) or Peggy waving (sign-in): the animated WebP sticker at this size. */}
-        <Mascot who={who} mood={who === "rex" ? "celebrate" : "wave"} size={150} decorative className="-mb-4 -mr-4" />
+        <Mascot who={who} mood={who === "rex" ? "celebrate" : "wave"} size={190} decorative className="-mb-6 -mr-6" />
       </div>
     </aside>
   );

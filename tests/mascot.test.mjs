@@ -130,7 +130,7 @@ test("moods follow the spec where the app knows the state", () => {
   const read = (file) => readFileSync(file, "utf8");
   assert.match(read("src/components/auth/app/AppAuth.tsx"), /<MascotVideo clip="peggy-hello"/, "Welcome: Peggy's hello clip (Prototype 10)");
   assert.match(read("src/components/auth/app/AppAuth.tsx"), /<MascotVideo clip="rex-hello"/, "Welcome to Shopinbos: Rex's hello clip");
-  assert.match(read("src/components/auth/app/AuthShowcasePanel.tsx"), /mood=\{who === "rex" \? "celebrate" : "wave"\} size=\{150\}/, "the panel's sticker: Rex cheers on sign-up, Peggy waves on sign-in");
+  assert.match(read("src/components/auth/app/AuthShowcasePanel.tsx"), /mood=\{who === "rex" \? "celebrate" : "wave"\} size=\{190\}/, "the panel's sticker: Rex cheers on sign-up, Peggy waves on sign-in");
   assert.match(read("apps/mobile/src/app/welcome.tsx"), /<MascotVideo clip="peggy-hello"/, "phone welcome: Peggy's hello clip (Prototype 10)");
   assert.match(read("src/components/shell/SupportChatModal.tsx"), /<Mascot name="peggy" mood="wave"/, "Help sheet: Peggy waves");
   assert.match(read("src/app/home/page.tsx"), /mood=\{isPeggyNight\(\) \? "sleep" : "idle"\}/, "night-time Home: Peggy sleeps");
