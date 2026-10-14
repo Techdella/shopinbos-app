@@ -21,14 +21,51 @@ function friendly(message: string, phone = false) {
   return message;
 }
 
-export async function sendCode(target: CodeTarget, options: { create: boolean; fullName?: string; role?: Exclude<AppRole, "admin"> }) {
+/** How a code actually went: WhatsApp, SMS (WhatsApp off, failed, or "Send it by SMS") or email. */
+export type CodeChannel = "whatsapp" | "sms" | "email";
+
+/** Can phone codes go by WhatsApp (the server's AUTH_OTP_WHATSAPP, GET /api/auth/otp)? false when unknown. */
+export async function fetchWhatsAppCodes() {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/otp`, { headers: { Accept: "application/json" } });
+    const body = (await response.json().catch(() => null)) as { data?: { whatsapp?: boolean } } | null;
+    return body?.data?.whatsapp === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sends a sign-in code and returns the channel that carried it. WhatsApp codes go through the server
+ * (POST /api/auth/otp notes the channel for the Send SMS hook, which falls back to SMS); SMS and email codes go
+ * straight to Supabase as before. Supabase itself is only ever asked for SMS (its WhatsApp needs Twilio).
+ */
+export async function sendCode(target: CodeTarget, options: { create: boolean; fullName?: string; role?: Exclude<AppRole, "admin"> }): Promise<CodeChannel> {
   // Same sign-up metadata as the web's /api/auth/otp: the role picked on the sign-up screen ("I sell / I supply shops / I deliver").
   const data = options.create ? { role: options.role ?? "seller", full_name: options.fullName?.trim() || undefined } : undefined;
+  if (target.kind === "phone" && target.via === "whatsapp") {
+    let response: Response | null = null;
+    try {
+      response = await fetch(`${API_URL}/api/auth/otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ action: "send", phone: target.phone, via: "whatsapp", create: options.create, profile: options.create ? { role: data?.role, fullName: data?.full_name } : undefined }),
+      });
+    } catch {
+      response = null; // Can't reach the server: send by SMS straight from Supabase below.
+    }
+    if (response) {
+      const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: { message?: string } } | null;
+      if (!response.ok) throw new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
+      return body?.data?.channel === "whatsapp" ? "whatsapp" : "sms";
+    }
+  }
   const { error } =
     target.kind === "phone"
-      ? await supabase.auth.signInWithOtp({ phone: target.phone, options: { shouldCreateUser: options.create, channel: target.via, data } })
+      ? await supabase.auth.signInWithOtp({ phone: target.phone, options: { shouldCreateUser: options.create, channel: "sms", data } })
       : await supabase.auth.signInWithOtp({ email: target.email, options: { shouldCreateUser: options.create, data } });
   if (error) throw new Error(friendly(error.message, target.kind === "phone"));
+  return target.kind === "phone" ? "sms" : "email";
 }
 
 export async function verifyCode(target: CodeTarget, token: string) {

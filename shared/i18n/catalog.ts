@@ -15,6 +15,7 @@ import settings from "./messages/settings/index.ts";
 import learn from "./messages/learn/index.ts";
 import glossary from "./messages/glossary/index.ts";
 import intros from "./messages/intros/index.ts";
+import introTitles from "./messages/introTitles/index.ts";
 import supplier from "./messages/supplier/index.ts";
 import logistics from "./messages/logistics/index.ts";
 import rider from "./messages/rider/index.ts";
@@ -80,6 +81,7 @@ export const CATALOGS = {
   learn,
   glossary,
   intros,
+  introTitles,
   supplier,
   logistics,
   rider,

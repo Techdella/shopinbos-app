@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { Mascot } from "@/components/app-ui";
+import { useT } from "@/components/i18n/I18nProvider";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import type { StorePageStatus } from "@/lib/store-health";
 
@@ -25,7 +26,9 @@ export function RexPreview({
   busy: boolean;
   onWrite: (page: StorePageStatus) => void;
 }) {
+  const t = useT("builder", "common");
   const boxRef = useRef<HTMLDivElement>(null);
+  const pageName = t.dynamic(`rex.page.${page.key}`, page.label);
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
@@ -44,8 +47,8 @@ export function RexPreview({
       <Mascot name="rex" alt="" className="h-9 w-9 shrink-0" />
       <p className="m-0 min-w-0 flex-1 basis-[220px] text-[13.5px] leading-[1.45]">
         {page.state === "missing"
-          ? `Your store doesn't have ${page.label === "Home" ? "a homepage" : `a ${page.label} page`} yet. I can write it from what I know about your store.`
-          : `Your ${page.label} page is still empty. I can write it from what I know about your store.`}
+          ? page.key === "home" ? t("rex.pv.missingHome") : t("rex.pv.missing", { page: pageName })
+          : t("rex.pv.empty", { page: pageName })}
       </p>
       <button
         type="button"
@@ -53,7 +56,7 @@ export function RexPreview({
         onClick={() => onWrite(page)}
         className="min-h-[40px] shrink-0 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white disabled:opacity-50"
       >
-        Write it
+        {t("rex.writeIt")}
       </button>
     </div>
   ) : null;

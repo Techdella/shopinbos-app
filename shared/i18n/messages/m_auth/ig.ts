@@ -94,6 +94,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   // Mascot spotlights (Prototype 10)
   "welcome.peggyHi": "Ndewo, abụ m Peggy! Mụ na Rex ga-enyere gị aka ire ahịa.",
   "form.noPassword": "Enweghị password ị ga-echeta. Anyị na-ezitere gị code oge ọ bụla.",
+  // WhatsApp codes (lib/auth.ts sendCode returns the channel used)
+  "form.whatsappCode": "Zitere m code na WhatsApp",
+  "form.whatsappHint": "Jiri nọmba WhatsApp gị dị na ya.",
+  "verify.titleWhatsapp": "Lelee WhatsApp gị",
+  "verify.titleSms": "Lelee ozi gị",
+  "verify.titleEmail": "Lelee email gị",
+  "verify.whatsappOn": "WhatsApp na {phone}",
+  "verify.noWhatsapp": "Enweghị WhatsApp na nọmba a?",
+  "verify.sendSms": "Ziga ya site na SMS",
 };
 
 export default ig;

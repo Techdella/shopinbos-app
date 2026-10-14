@@ -240,9 +240,12 @@ test("web and phone runtimes are mounted and the pickers are reachable", () => {
 // ─── Pages ship only their own words ───────────────────────────────────────────
 
 test("the per-page namespace map and the lazy loaders are up to date (run node scripts/i18n-route-namespaces.mjs)", async () => {
-  const { generate } = await import("../scripts/i18n-route-namespaces.mjs");
+  const { generate, introTitleFiles } = await import("../scripts/i18n-route-namespaces.mjs");
   const { routeFile, loaderFile } = generate();
   const { readFileSync } = await import("node:fs");
+  for (const [locale, text] of Object.entries(introTitleFiles())) assert.equal(readFileSync(new URL(`../shared/i18n/messages/introTitles/${locale}.ts`, import.meta.url), "utf8"), text, `introTitles/${locale}`);
+  // The full intro scripts and the chat drawer load when opened, not with every page.
+  assert.doesNotMatch(routeFile, /\["\/home\/orders", \[[^\]]*"(?:intros|inbox)"/);
   assert.equal(readFileSync(new URL("../src/lib/i18n/route-namespaces.generated.ts", import.meta.url), "utf8"), routeFile);
   assert.equal(readFileSync(new URL("../src/components/i18n/loaders.generated.ts", import.meta.url), "utf8"), loaderFile);
   // A page that shows the error copy only when it fails must not carry it in every page.

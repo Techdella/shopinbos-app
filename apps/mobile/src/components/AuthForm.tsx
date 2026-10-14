@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
-import { sendCode, signInWithGoogle, signInWithPassword, syncAccount, type CodeTarget } from "@/lib/auth";
+import { fetchWhatsAppCodes, sendCode, signInWithGoogle, signInWithPassword, syncAccount, type CodeTarget } from "@/lib/auth";
 import { BackButton, Chip, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
 import { AppIcon } from "@/components/icons";
 import { MascotVideo } from "@/components/MascotVideo";
@@ -37,8 +37,16 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const [method, setMethod] = useState<Method>(initialMethod);
   // Who is signing up: "I sell / I supply shops / I deliver" (like the web sign-up). Sets the account's role.
   const [role, setRole] = useState<SignupRole>(initialRole);
-  // Phone codes go by SMS (the server's Send SMS hook has no WhatsApp path).
-  const via = "sms" as const;
+  // Phone codes go on WhatsApp when the server has it on (GET /api/auth/otp), else SMS; null while asking.
+  const [whatsapp, setWhatsapp] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchWhatsAppCodes().then((value) => live && setWhatsapp(value));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const via = whatsapp ? ("whatsapp" as const) : ("sms" as const);
   const [emailMode, setEmailMode] = useState<"code" | "password">("code");
   const [name, setName] = useState("");
   const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
@@ -84,8 +92,8 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     }
     setBusy("send");
     try {
-      await sendCode(target, { create: mode === "signup", fullName: name, role });
-      router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role } });
+      const channel = await sendCode(target, { create: mode === "signup", fullName: name, role });
+      router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role, channel } });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t("form.sendFailed"));
     } finally {
@@ -106,7 +114,11 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     }
   }
 
-  const primary = usingPassword ? t("form.logIn") : mode === "signup" ? t("form.sendCode") : method === "phone" ? t("form.smsCode") : t("form.emailCode");
+  const primary = usingPassword
+    ? t("form.logIn")
+    : method === "phone" && whatsapp
+      ? t("form.whatsappCode")
+      : mode === "signup" ? t("form.sendCode") : method === "phone" ? t("form.smsCode") : t("form.emailCode");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -152,7 +164,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               <Label>{t("form.phoneNumber")}</Label>
               <PhoneField country={country} onCountryPress={() => setPicking(true)} value={phone} onChangeText={setPhone} />
               <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 12, lineHeight: 19 }}>
-                {t("form.smsHint")}
+                {whatsapp ? t("form.whatsappHint") : t("form.smsHint")}
               </T>
             </>
           ) : (

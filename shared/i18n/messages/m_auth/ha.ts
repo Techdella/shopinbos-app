@@ -94,6 +94,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   // Mascot spotlights (Prototype 10)
   "welcome.peggyHi": "Sannu, ni ce Peggy! Ni da Rex za mu taimaka maka ka sayar.",
   "form.noPassword": "Babu password da za ka tuna. Muna aiko maka da code kowane lokaci.",
+  // WhatsApp codes (lib/auth.ts sendCode returns the channel used)
+  "form.whatsappCode": "Aiko min da code a WhatsApp",
+  "form.whatsappHint": "Yi amfani da lambar da kake da WhatsApp a kai.",
+  "verify.titleWhatsapp": "Duba WhatsApp ɗinka",
+  "verify.titleSms": "Duba saƙonninka",
+  "verify.titleEmail": "Duba email ɗinka",
+  "verify.whatsappOn": "WhatsApp a {phone}",
+  "verify.noWhatsapp": "Babu WhatsApp a wannan lambar?",
+  "verify.sendSms": "Aika ta SMS",
 };
 
 export default ha;

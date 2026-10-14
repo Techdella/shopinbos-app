@@ -62,16 +62,21 @@ export interface MascotRendererProps {
 
 /** Animated WebP sticker through expo-image (already installed; animates on iOS, Android and web). */
 function MascotImage({ asset, size, onReady, onError }: MascotRendererProps) {
+  // The sticker files carry a few stray white pixels in their corners; the figure stays well inside 12%, so a 5%
+  // crop on each side hides them.
+  const crop = Math.round(size * 0.05);
   return (
-    <Image
-      source={asset as number}
-      style={{ width: size, height: size }}
-      contentFit="contain"
-      autoplay
-      accessible={false}
-      onDisplay={onReady}
-      onError={onError}
-    />
+    <View style={{ position: "absolute", top: crop, left: crop, width: size - crop * 2, height: size - crop * 2, overflow: "hidden" }}>
+      <Image
+        source={asset as number}
+        style={{ width: size, height: size, marginTop: -crop, marginLeft: -crop }}
+        contentFit="contain"
+        autoplay
+        accessible={false}
+        onDisplay={onReady}
+        onError={onError}
+      />
+    </View>
   );
 }
 

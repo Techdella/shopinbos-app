@@ -4,6 +4,7 @@ import { getAuthRouteClient } from "@/lib/auth/session.server";
 import { clearAuthFailures, consumeAuthLimit, lockedForSeconds, recordAuthFailure } from "@/lib/auth/throttle";
 import { clientIp, deviceCookie, logAuthEvent, recordSignIn } from "@/lib/auth/events";
 import { authError, authJson, rateLimited } from "@/lib/auth/responses";
+import { db } from "@/lib/db/client";
 import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channel";
 import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
 
@@ -50,6 +51,18 @@ function friendlySendError(message: string, phone: boolean) {
 /** Public flag for the sign-in screens: can phone codes go by WhatsApp? `{ data: { whatsapp: boolean } }` */
 export async function GET() {
   return authJson({ whatsapp: whatsappCodesAvailable(process.env) });
+}
+
+/**
+ * A brand-new account asks "What should we call you?" after the code (Prototype 10). Existing accounts (an app
+ * user row, or a name saved at sign-up by older clients, the phone app or Google) skip it.
+ */
+async function needsName(user: { id: string; user_metadata?: Record<string, unknown> | null }) {
+  const meta = user.user_metadata ?? {};
+  if ([meta.full_name, meta.fullName, meta.name].some((value) => typeof value === "string" && value.trim())) return false;
+  const existing = await db.user.findUnique({ where: { supabaseId: user.id }, select: { name: true } }).catch(() => ({ name: "unknown" }));
+  // "Shopinbos User" is the stand-in name when someone left at the name screen and the account row was made later.
+  return !existing || existing.name.trim() === "Shopinbos User";
 }
 
 export async function POST(request: NextRequest) {
@@ -130,7 +143,7 @@ export async function POST(request: NextRequest) {
 
       await clearAuthFailures(identifier);
       const deviceId = await recordSignIn(request, data.user, method);
-      const response = authJson({ accessToken: data.session?.access_token ?? null });
+      const response = authJson({ accessToken: data.session?.access_token ?? null, needsName: await needsName(data.user) });
       const device = deviceCookie(deviceId);
       response.cookies.set(device.name, device.value, device.options);
       return response;

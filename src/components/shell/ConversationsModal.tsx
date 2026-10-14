@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { Messenger } from "@/components/conversations/Messenger";
+// The messenger (and its words) loads the first time the drawer opens, not with every page.
+const Messenger = lazy(() => import("@/components/conversations/Messenger").then((mod) => ({ default: mod.Messenger })));
 import { OPEN_CONVERSATION_EVENT, type OpenConversationDetail } from "@/components/conversations/client";
 import type { PartnerRole } from "@/lib/conversations/pure";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -24,7 +25,7 @@ export function ConversationsModal({ open, onClose, preselectedContactId, role =
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [request, setRequest] = useState<(OpenConversationDetail & { at: number }) | null>(null);
-  const t = useT("shell");
+  const t = useT("shell", "common");
 
   useEffect(() => {
     if (!onOpenRequest) return;
@@ -82,7 +83,9 @@ export function ConversationsModal({ open, onClose, preselectedContactId, role =
           </button>
         </div>
         <div className="min-h-0 flex-1">
-          <Messenger key={initial ? JSON.stringify(initial) : "list"} role={role} variant="drawer" initial={initial} onNavigate={onClose} />
+          <Suspense fallback={<div className="grid h-full place-items-center text-[14px] text-app-ink-soft">{t("loading")}</div>}>
+            <Messenger key={initial ? JSON.stringify(initial) : "list"} role={role} variant="drawer" initial={initial} onNavigate={onClose} />
+          </Suspense>
         </div>
       </aside>
     </div>

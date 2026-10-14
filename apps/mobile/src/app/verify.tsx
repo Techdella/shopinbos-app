@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatE164, OTP_LENGTH, OTP_RESEND_SECONDS } from "@shared/phone";
-import { sendCode, syncAccount, verifyCode, type CodeTarget } from "@/lib/auth";
+import { sendCode, syncAccount, verifyCode, type CodeChannel, type CodeTarget } from "@/lib/auth";
 import { asSignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { BackButton, CodeInput, LinkButton, Notice, PillButton, T } from "@/components/ui";
@@ -13,9 +13,11 @@ import { useT } from "@/lib/i18n";
 
 export default function Verify() {
   const t = useT("m_auth");
-  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string }>();
+  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string; channel?: string }>();
   const initialTarget = useMemo(() => JSON.parse(params.target ?? "{}") as CodeTarget, [params.target]);
   const [target, setTarget] = useState<CodeTarget>(initialTarget);
+  // The channel the server really used (WhatsApp, SMS or email), so the screen says where to look.
+  const [channel, setChannel] = useState<CodeChannel>(params.channel === "whatsapp" ? "whatsapp" : initialTarget.kind === "email" ? "email" : "sms");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,15 +56,19 @@ export default function Verify() {
   async function resend(next: CodeTarget) {
     setError(null);
     try {
-      await sendCode(next, { create: params.mode === "signup", fullName: params.name, role: asSignupRole(params.role) });
+      const used = await sendCode(next, { create: params.mode === "signup", fullName: params.name, role: asSignupRole(params.role) });
       setTarget(next);
+      setChannel(used);
       startCountdown();
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t("verify.resendFailed"));
     }
   }
 
-  const where = target.kind === "phone" ? t("verify.smsOn", { phone: formatE164(target.phone) }) : target.email;
+  const where = target.kind === "phone"
+    ? channel === "whatsapp" ? t("verify.whatsappOn", { phone: formatE164(target.phone) }) : t("verify.smsOn", { phone: formatE164(target.phone) })
+    : target.email;
+  const title = channel === "whatsapp" ? t("verify.titleWhatsapp") : channel === "email" ? t("verify.titleEmail") : t("verify.titleSms");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas, paddingHorizontal: 22 }}>
@@ -70,7 +76,7 @@ export default function Verify() {
         <BackButton onPress={() => router.back()} />
         <HelpButton />
       </View>
-      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">{t("verify.title")}</T>
+      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">{title}</T>
       <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 24 }}>{t("verify.sentTo", { where })}</T>
       <CodeInput value={code} onChange={setCode} onComplete={(value) => void submit(value)} />
       {seconds > 0 ? (
@@ -80,6 +86,12 @@ export default function Verify() {
           <LinkButton title={t("verify.resend")} onPress={() => void resend(target)} />
         </View>
       )}
+      {target.kind === "phone" && channel === "whatsapp" ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 6 }}>
+          <T style={{ color: colors.inkSoft }}>{t("verify.noWhatsapp")}</T>
+          <LinkButton title={t("verify.sendSms")} onPress={() => void resend({ kind: "phone", phone: target.phone, via: "sms" })} />
+        </View>
+      ) : null}
       {error && <View style={{ marginTop: 18 }}><Notice>{error}</Notice></View>}
       <View style={{ flex: 1 }} />
       <PillButton title={t("verify.submit")} busy={busy} disabled={code.length !== OTP_LENGTH} onPress={() => void submit()} style={{ marginBottom: 12 }} />
