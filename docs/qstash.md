@@ -51,8 +51,9 @@ pay-as-you-go (a few cents a day at this volume).
    );
    ```
 
-   Steps 2 to 4 overlap for a few minutes, so some jobs run on both schedulers during that window. The jobs claim their
-   work idempotently (orders, messages and summaries are each claimed once), so a double run does nothing extra.
+   Steps 2 to 4 overlap, so some jobs run on both schedulers until step 4. Weekly summaries, pay-ins and supplier
+   acceptance say in their code that they're safe to run twice; the others haven't been checked. Keep the overlap
+   short: run step 4 as soon as step 3 looks good.
 
 To roll back, run `node scripts/qstash-schedules.mjs --pause` and re-create the pg_cron jobs from `docs/migrations/`.
 
