@@ -811,7 +811,7 @@ select.input { appearance: auto; }
 @media (max-width: 600px) { .rs { padding-top: 28px; } .rs-feat { grid-template-columns: 110px 1fr; gap: 18px; padding: 18px; } .rs-feat .rs-title { font-size: 20px; } .rs-feat .rs-sub { display: none; } .rs-grid { grid-template-columns: 1fr; } .rs-cover { height: 200px; } .rs-chips { flex-wrap: nowrap; overflow-x: auto; } }
 
 /* Investor relations */
-.inv-hero { padding: 56px 0 72px; background: linear-gradient(#F6F5F9 0%, #fff 100%); }
+section.cv.ahero.inv-hero { padding: 64px 0 80px; background: linear-gradient(#F6F5F9 0%, #fff 100%); }
 .inv-panel { position: relative; overflow: hidden; background: #16141F; color: #fff; border-radius: 28px; padding: 30px; }
 .inv-panel .dot-grid { position: absolute; inset: 0; opacity: .5; pointer-events: none; }
 .inv-k { position: relative; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #8BE3D3; margin: 0 0 14px; }
@@ -840,3 +840,4 @@ body.site { overflow-x: clip; }
 	.site .hlogo { height: 14px !important; }
 	.cv-hdr .navcta { padding: 0 6px !important; }
 }
+@media (max-width: 640px) { section.cv.ahero.inv-hero { padding: 36px 0 56px; } }
