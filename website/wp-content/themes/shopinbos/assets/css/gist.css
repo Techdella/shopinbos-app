@@ -75,3 +75,4 @@ html.gv-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .ga, .gs-num, .gs-hint { animation: none; opacity: 1; } .gs-blob { animation: none; } }
 .gs-pic { width: 132px; height: 132px; border-radius: 999px; overflow: hidden; border: 4px solid var(--g-fg); margin-bottom: 8px; animation: gistPop .8s cubic-bezier(.2,1.4,.3,1) both, gistFloat 6s 1s ease-in-out infinite; }
 .gs-pic img { width: 100%; height: 100%; object-fit: cover; display: block; background: color-mix(in srgb, var(--g-fg) 10%, transparent); }
+.sib .wp-block-post-content > .gist { padding: 28px 0 72px; }

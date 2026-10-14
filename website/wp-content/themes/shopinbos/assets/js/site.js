@@ -403,6 +403,13 @@
 			});
 		})();
 
+		// Videos play only while on screen (and never for reduced motion).
+		$$('video.motion-video').forEach(function (v) {
+			if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { v.controls = true; return; }
+			if (!('IntersectionObserver' in window)) { v.preload = 'auto'; v.play().catch(function () {}); return; }
+			new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { v.preload = 'auto'; v.play().catch(function () {}); } else { v.pause(); } }); }, { threshold: 0.35 }).observe(v);
+		});
+
 		// Pop-ups (canvas/popups.html): opened by [data-cv="pop.open…"] buttons and, once per visit, on exit.
 		var pops = $('.cv-pops');
 		function openPop(name) {

@@ -740,3 +740,7 @@ select.input { appearance: auto; }
 .art-body th, .art-body td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #ECEAF2; vertical-align: top; }
 .art-body th { background: #F6F5F9; font-weight: 800; }
 .art-body tr:last-child td { border-bottom: 0; }
+
+/* Home: the 15-second video */
+.motion-frame { border-radius: 28px; overflow: hidden; background: #FFF6F1; box-shadow: 0 40px 80px -40px rgba(22,20,31,.45); border: 1px solid #ECEAF2; aspect-ratio: 16 / 9; }
+.motion-video { width: 100%; height: 100%; display: block; object-fit: cover; }

@@ -11,6 +11,7 @@ defined( 'ABSPATH' ) || exit;
 function sib_canvas_parts(): array {
 	$names = [
 		'home-01' => 'Home: hero',
+		'motion-home' => 'Home: 15-second video',
 		'home-02' => 'Home: works with',
 		'home-03' => 'Home: made for how you sell',
 		'home-04' => 'Home: find stock',
