@@ -9,6 +9,7 @@ import {
   deliveryPlan,
   readWhatsAppSend,
   reportedChannel,
+  metaWhatsAppRequest,
   sendchampWhatsAppRequest,
   signInCodeMessage,
   termiiWhatsAppRequest,
@@ -84,9 +85,14 @@ export async function channelUsedFor(phone: string): Promise<CodeChannel> {
 }
 
 async function sendWhatsAppCode(config: WhatsAppCodeConfig, phone: string, otp: string) {
-  const request = config.provider === "termii" ? termiiWhatsAppRequest(config, phone, otp) : sendchampWhatsAppRequest(config, phone, otp);
+  const request =
+    config.provider === "termii"
+      ? termiiWhatsAppRequest(config, phone, otp)
+      : config.provider === "sendchamp"
+        ? sendchampWhatsAppRequest(config, phone, otp)
+        : metaWhatsAppRequest(config, phone, otp);
   const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
-  if (config.provider === "sendchamp") headers.Authorization = `Bearer ${config.apiKey}`;
+  if (config.provider !== "termii") headers.Authorization = `Bearer ${config.apiKey}`;
   const res = await fetch(request.url, { method: "POST", headers, body: JSON.stringify(request.body), signal: AbortSignal.timeout(15_000) }).catch((error: Error) => error);
   if (res instanceof Error) return { ok: false as const, error: res.message || "network error" };
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;

@@ -103,3 +103,24 @@ test("wiring: send route, hook, flag endpoint, env docs and the migration", () =
   assert.ok(existsSync("docs/migrations/2026-10-21-auth-code-channel.sql"));
   assert.match(readFileSync("prisma/schema.prisma", "utf8"), /model AuthCodeChannel \{/);
 });
+
+test("Meta Cloud API: Shopinbos's own WhatsApp number sends the authentication template", () => {
+  const META = { WHATSAPP_OTP_PHONE_NUMBER_ID: "1234567890", WHATSAPP_OTP_TOKEN: "EAAG-test", AUTH_OTP_WHATSAPP_TEMPLATE: "shopinbos_login_code" };
+  assert.equal(otp.whatsappCodeConfig(META), null, "off until AUTH_OTP_WHATSAPP=1");
+  assert.equal(otp.whatsappCodeConfig({ ...META, AUTH_OTP_WHATSAPP: "1", AUTH_OTP_WHATSAPP_TEMPLATE: "" }), null, "needs the template");
+  const config = otp.whatsappCodeConfig({ ...META, AUTH_OTP_WHATSAPP: "1" });
+  assert.equal(config.provider, "meta");
+  assert.equal(config.language, "en");
+  // Named explicitly, Meta wins over Termii/Sendchamp keys that are also set.
+  assert.equal(otp.whatsappCodeConfig({ ...META, ...TERMII, AUTH_OTP_WHATSAPP: "1", AUTH_OTP_WHATSAPP_PROVIDER: "meta" }).provider, "meta");
+  const req = otp.metaWhatsAppRequest({ ...config, graphVersion: "v21.0" }, "+234 803 123 4567", "481516");
+  assert.equal(req.url, "https://graph.facebook.com/v21.0/1234567890/messages");
+  assert.equal(req.body.to, "2348031234567");
+  assert.equal(req.body.template.name, "shopinbos_login_code");
+  assert.deepEqual(req.body.template.components[0], { type: "body", parameters: [{ type: "text", text: "481516" }] });
+  assert.deepEqual(req.body.template.components[1], { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: "481516" }] });
+  assert.deepEqual(otp.readWhatsAppSend("meta", true, { messages: [{ id: "wamid.1" }] }), { ok: true });
+  assert.deepEqual(otp.readWhatsAppSend("meta", false, { error: { message: "Template not approved" } }), { ok: false, error: "Template not approved" });
+  // Never Twilio, on any path.
+  assert.doesNotMatch(readFileSync("src/lib/auth/otp-channel.ts", "utf8") + readFileSync("scripts/create-whatsapp-otp-template.mjs", "utf8"), /twilio\.com|from "twilio"/i);
+});
