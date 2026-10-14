@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Mascot, MicIcon, Spinner, cx } from "@/components/app-ui";
+import { Mascot, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
-import { transcribe } from "@/components/onboarding/seller/api";
 import { REX_STARTERS } from "@/lib/ai/rex/starters";
 import { uploadStudioPhoto } from "./api";
 import { RexCardView, type RexCardHandlers } from "./RexCards";
@@ -54,10 +53,7 @@ export function RexChat({
   const [uploading, setUploading] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [link, setLink] = useState("");
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -133,46 +129,6 @@ export function RexChat({
     setLinkOpen(false);
     setNote(null);
     inputRef.current?.focus();
-  }
-
-  async function toggleMic() {
-    if (recording) {
-      recorderRef.current?.stop();
-      setRecording(false);
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setNote(t("rex.ch.noVoice"));
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size) chunks.push(event.data);
-      };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        setTranscribing(true);
-        try {
-          const heard = await transcribe(new Blob(chunks, { type: "audio/webm" }));
-          if (heard) setText((prev) => `${prev.trim() ? `${prev.trim()} ` : ""}${heard}`);
-          else setNote(t("rex.ch.notCaught"));
-        } catch (error) {
-          setNote(error instanceof Error ? error.message : t("rex.ch.notHeard"));
-        } finally {
-          setTranscribing(false);
-          inputRef.current?.focus();
-        }
-      };
-      recorderRef.current = recorder;
-      recorder.start();
-      setRecording(true);
-      setNote(null);
-    } catch {
-      setNote(t("rex.ch.allowMic"));
-    }
   }
 
   return (
@@ -388,20 +344,6 @@ export function RexChat({
                 </button>
                 <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={2000} context="a request for Rex" disabled={blocked} />
                 <button
-                  type="button"
-                  onClick={() => void toggleMic()}
-                  disabled={transcribing || busy}
-                  aria-label={recording ? t("rex.ch.stopUse") : t("rex.ch.speak")}
-                  aria-pressed={recording}
-                  title={recording ? t("rex.ch.stop") : t("rex.ch.speak")}
-                  className={cx(
-                    "grid h-10 w-10 place-items-center rounded-full border hover:bg-app-canvas disabled:opacity-50",
-                    recording ? "border-app-accent bg-app-accent text-white hover:bg-app-accent" : "border-app-line",
-                  )}
-                >
-                  {transcribing ? <Spinner className="h-4 w-4" /> : <MicIcon size={17} />}
-                </button>
-                <button
                   type="submit"
                   disabled={!text.trim() || blocked || uploading}
                   aria-label={t("rex.ch.sendToRex")}
@@ -413,7 +355,6 @@ export function RexChat({
             </form>
           )}
           {note ? <p className="m-0 mt-2 text-[12.5px] text-app-danger" role="status">{note}</p> : null}
-          {recording ? <p className="m-0 mt-2 text-[12.5px] font-bold text-app-accent-ink" role="status">{t("rex.ch.listening")}</p> : null}
         </div>
       </div>
     </div>
