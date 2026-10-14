@@ -23,8 +23,8 @@ const GUEST_ROUTES = [
 ];
 // Every signed-in area (see src/lib/auth/route-access.ts for which role each needs).
 const AUTH_ROUTES = PROTECTED_PREFIXES;
-// Public pages that live under a portal prefix and must stay open to guests and other roles.
-const PUBLIC_ROUTES = ["/logistics/partners", "/email", "/rider"];
+// Public pages that must stay open to guests and every role (some live under a portal prefix).
+const PUBLIC_ROUTES = ["/logistics/partners", "/email", "/rider", "/data-deletion"];
 /** Lets server code (requireRole) know which page was asked for, to send people back after sign-in. */
 const REQUEST_PATH_HEADER = "x-shopinbos-path";
 const NO_STORE = "private, no-store, max-age=0, must-revalidate";
