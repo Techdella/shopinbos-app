@@ -254,6 +254,11 @@ function sib_breadcrumb_trail(): array {
 			if ( $terms && ! is_wp_error( $terms ) ) {
 				$trail[] = [ $terms[0]->name, get_term_link( $terms[0] ) ];
 			}
+		} elseif ( 'sib_lesson' === $post->post_type ) {
+			$trail[] = [ __( 'Academy', 'shopinbos' ), sib_academy_url() ];
+			if ( $track = sib_lesson_track( $post ) ) {
+				$trail[] = [ $track->name, get_term_link( $track ) ];
+			}
 		} elseif ( 'page' !== $post->post_type && ( $obj = get_post_type_object( $post->post_type ) ) && $obj->has_archive ) {
 			$trail[] = [ $obj->labels->name, get_post_type_archive_link( $post->post_type ) ];
 		} elseif ( $post->post_parent ) {

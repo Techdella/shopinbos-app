@@ -30,6 +30,7 @@ foreach ( [
 	'article-blocks',
 	'blog',
 	'legal',
+	'academy',
 	'schema',
 	'seo',
 	'sitemaps',

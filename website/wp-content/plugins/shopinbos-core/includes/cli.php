@@ -43,7 +43,7 @@ class Sib_CLI {
 		$this->page( 'contact', 'Contact us', $this->text_page( 'The fastest way to reach us is WhatsApp. A real person replies, in English or Pidgin.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"contact\"} /-->\n", 'page-article' );
 		$this->page( 'careers', 'Careers', $this->text_page( '[List open roles here.]' ), 'page-article' );
 		$this->page( 'press', 'Press', $this->text_page( '[Press kit, logos and contact for journalists.]' ), 'page-article' );
-		$this->page( 'academy', 'Academy', $this->text_page( 'Free courses for store owners. The first course, Start your shop in a weekend, is coming soon.' ) . "<!-- wp:shopinbos/lead-form {\"kind\":\"newsletter\",\"heading\":\"Tell me when it opens\"} /-->\n", 'page-article' );
+		$this->academy();
 		$thanks = $this->page( 'thanks', 'You’re in', $this->text_page( 'Thanks for confirming. Your first tip is on its way.' ), 'page-article' );
 		update_post_meta( $thanks, 'sib_noindex', true );
 		$privacy = $this->legal();
@@ -264,6 +264,34 @@ class Sib_CLI {
 				update_post_meta( $id, 'sib_cover', $cover );
 			}
 			WP_CLI::log( "Created post {$slug}" );
+		}
+	}
+
+	/** Academy tracks and lessons. The old /academy/ placeholder page is removed so the Academy archive can use the URL. */
+	private function academy(): void {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		require_once SIB_CORE_DIR . '/includes/seed/academy.php';
+		$old = get_page_by_path( 'academy' );
+		if ( $old && ( str_contains( $old->post_content, 'is coming soon' ) || '' === trim( wp_strip_all_tags( $old->post_content ) ) ) ) {
+			wp_delete_post( $old->ID, true );
+			WP_CLI::log( 'Removed the placeholder /academy/ page' );
+		} elseif ( $old ) {
+			WP_CLI::warning( 'A page at /academy/ hides the Academy. Move or delete it.' );
+		}
+		$lessons = sib_seed_academy_lessons();
+		foreach ( sib_seed_academy_tracks() as $i => [ $slug, $name, $blurb, $bg, $fg, $icon ] ) {
+			$term = term_exists( $slug, 'sib_track' ) ?: wp_insert_term( $name, 'sib_track', [ 'slug' => $slug, 'description' => $blurb ] );
+			if ( is_wp_error( $term ) ) {
+				WP_CLI::warning( $term->get_error_message() );
+				continue;
+			}
+			$tid = (int) $term['term_id'];
+			foreach ( [ 'sib_bg' => $bg, 'sib_fg' => $fg, 'sib_icon' => $icon, 'sib_order' => $i + 1 ] as $k => $v ) {
+				update_term_meta( $tid, $k, $v );
+			}
+			foreach ( $lessons[ $slug ] ?? [] as $n => $l ) {
+				$this->cpt( 'sib_lesson', sanitize_title( $l[0] ), $l[0], sib_seed_lesson_markup( $l ), $l[2], [], '', $n + 1, [ 'sib_track' => [ $tid ] ] );
+			}
 		}
 	}
 

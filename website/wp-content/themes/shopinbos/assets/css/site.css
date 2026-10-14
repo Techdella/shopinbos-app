@@ -667,3 +667,11 @@ select.input { appearance: auto; }
 .lgl-body .entry-content { display: flex; flex-direction: column; gap: 32px; }
 .lgl-body .entry-content > * { margin: 0; }
 .lgl-sec:last-child { border-bottom: 0; }
+.les-h1 { font-size: 46px; line-height: 1.06; margin: 0; }
+.les-main { display: flex; flex-direction: column; gap: 28px; min-width: 0; max-width: 780px; }
+.les-main .entry-content { display: flex; flex-direction: column; gap: 28px; }
+.les-main .entry-content > * { margin: 0; }
+.les-video .vid-play { cursor: pointer; }
+@media (max-width: 640px) { .les-h1 { font-size: 34px; } .stats-strip { padding: 22px; } .stats-strip .bigstat { font-size: 32px !important; } .les-video b.disp { display: none; } .les-video > img { opacity: .9; } }
+@media print { .hdr, .foot, .les-side, .ctaband-wrap, .les-video, [data-lesson-done], .quiz-opt { display: none !important; } [data-lang][hidden] { display: none !important; } }
+.tag { white-space: nowrap; }
