@@ -137,7 +137,9 @@ test("wiring: pay first, verify like store launch, one buyer, Vercel never auto-
   assert.match(read("src/app/api/billing/domain/callback/route.ts"), /completeDomainPayment\(reference\)/);
 
   const paystack = read("src/lib/paystack.ts");
-  assert.match(paystack, /https:\/\/api\.paystack\.co\/refund/);
+  assert.match(paystack, /\$\{PAYSTACK_BASE\}\/refund`/);
+  // The test-only base URL can never point real payments elsewhere on the live site.
+  assert.match(paystack, /VERCEL_ENV !== "production" && process\.env\.PAYSTACK_API_BASE_URL\) \|\| "https:\/\/api\.paystack\.co"/);
   assert.match(paystack, /JSON\.stringify\(\{ transaction: reference \}\)/);
   assert.match(paystack, /transaction\/charge_authorization/);
 
