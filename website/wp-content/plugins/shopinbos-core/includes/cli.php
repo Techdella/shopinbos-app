@@ -57,6 +57,7 @@ class Sib_CLI {
 		update_option( 'page_for_posts', $blog );
 
 		$this->old_pages();
+		$this->comparisons();
 		$this->blog();
 		$this->articles();
 		$this->resources();
@@ -525,6 +526,52 @@ class Sib_CLI {
 			return [];
 		}
 		return get_posts( [ 'post_type' => 'page', 'name' => $slug, 'post_parent' => $parent ? $parent->ID : 0, 'post_status' => 'publish', 'numberposts' => 10, 'orderby' => 'ID', 'order' => 'ASC' ] );
+	}
+
+	/**
+	 * Compare pages: the canvas comparisons (seed/comparisons.json) as Compare blocks, and the blog's platform
+	 * comparison articles moved into /compare/ (their /blog/ URLs redirect, see redirects.php).
+	 */
+	private function comparisons(): void {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		$file = SIB_CORE_DIR . '/includes/seed/comparisons.json';
+		foreach ( (array) json_decode( (string) file_get_contents( $file ), true ) as $i => $c ) {
+			$content = sib_seed_b( 'compare', [
+				'competitor'  => $c['competitor'],
+				'lastChecked' => '2026-10-14',
+				'h1'          => $c['h1'],
+				'sub'         => $c['sub'],
+				'chooseUs'    => implode( "\n", $c['us'] ),
+				'chooseThem'  => implode( "\n", $c['them'] ),
+				'rows'        => implode( "\n", $c['rows'] ),
+				'steps'       => implode( "\n", $c['steps'] ),
+				'faq'         => implode( "\n", $c['faq'] ),
+				'kws'         => implode( "\n", $c['kws'] ),
+			] );
+			$existing = get_page_by_path( $c['slug'], OBJECT, 'sib_comparison' );
+			if ( $existing && 'sib_comparison' === $existing->post_type ) {
+				$this->refresh_post( $existing, $c['title'], $content, $c['sub'], '', $i + 1 );
+				continue;
+			}
+			$id = $this->cpt( 'sib_comparison', $c['slug'], $c['title'], $content, $c['sub'], [ 'sib_last_checked' => '2026-10-14', 'sib_cta_intent' => 'import' ], '', $i + 1 );
+			update_post_meta( $id, '_sib_seed_src', md5( $content ) );
+			$this->fingerprint( $id );
+		}
+		// Platform comparison articles from the blog.
+		foreach ( [ 'woocommerce-vs-shopify', 'top-ecommerce-platforms-compared', 'best-online-store-builder' ] as $n => $slug ) {
+			$post = get_page_by_path( $slug, OBJECT, 'post' );
+			if ( ! $post || 'post' !== $post->post_type ) {
+				continue;
+			}
+			$body = sib_block_group_open( 'land-hero', 'section' ) . sib_block_group_open( 'wrap col cmp-article', 'div', [ 'top' => '40px', 'bottom' => '32px' ] )
+				. sib_block_h( 1, esc_html( get_the_title( $post ) ), 'disp h1 mw-900' )
+				. ( $post->post_excerpt ? sib_block_p( esc_html( $post->post_excerpt ), 'lead mw-760' ) : '' )
+				. sib_block_group_close() . sib_block_group_close( 'section' )
+				. sib_block_group_open( 'wrap art-body cmp-article', 'div', [ 'top' => '24px', 'bottom' => '64px' ] ) . $post->post_content . sib_block_group_close();
+			wp_update_post( wp_slash( [ 'ID' => $post->ID, 'post_type' => 'sib_comparison', 'post_content' => $body, 'menu_order' => 10 + $n ] ) );
+			update_post_meta( $post->ID, 'sib_last_checked', get_the_modified_date( 'Y-m-d', $post ) );
+			WP_CLI::log( "Moved blog post {$slug} to /compare/{$slug}/" );
+		}
 	}
 
 	/** "Shopinbos team" author for posts written by the team. */

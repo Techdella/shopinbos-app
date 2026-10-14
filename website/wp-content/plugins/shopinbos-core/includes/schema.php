@@ -109,8 +109,8 @@ function sib_schema_graph(): array {
 function sib_schema_faq( array $blocks ): array {
 	$out = [];
 	foreach ( $blocks as $b ) {
-		if ( 'shopinbos/faq' === $b['blockName'] ) {
-			foreach ( sib_faq_items( (string) ( $b['attrs']['items'] ?? '' ) ) as [ $q, $ans ] ) {
+		if ( in_array( $b['blockName'], [ 'shopinbos/faq', 'shopinbos/compare' ], true ) ) {
+			foreach ( sib_faq_items( (string) ( $b['attrs']['items'] ?? $b['attrs']['faq'] ?? '' ) ) as [ $q, $ans ] ) {
 				$out[] = [ '@type' => 'Question', 'name' => wp_strip_all_tags( $q ), 'acceptedAnswer' => [ '@type' => 'Answer', 'text' => wp_strip_all_tags( $ans ) ] ];
 			}
 		}

@@ -31,6 +31,7 @@ foreach ( [
 	'blog',
 	'legal',
 	'academy',
+	'compare',
 	'redirects',
 	'schema',
 	'seo',

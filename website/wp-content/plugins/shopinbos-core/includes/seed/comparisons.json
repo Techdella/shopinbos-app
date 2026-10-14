@@ -1,0 +1,91 @@
+[
+ {
+  "slug": "shopify",
+  "title": "Shopinbos vs Shopify",
+  "competitor": "Shopify",
+  "h1": "Shopinbos vs Shopify for Nigerian sellers",
+  "sub": "Shopify is a great global platform. Shopinbos is built for selling in Nigeria: naira, pay on delivery, riders, and selling on WhatsApp, Instagram and TikTok from one app. Here’s an honest look at which fits you.",
+  "us": [
+   "You sell mainly in Nigeria",
+   "Your customers want pay on delivery",
+   "You sell in your store and on WhatsApp, Instagram and TikTok",
+   "You want to pay in naira"
+  ],
+  "them": [
+   "You sell to many countries",
+   "You need a very large app store",
+   "You have a developer or agency",
+   "You already run Shopify happily"
+  ],
+  "rows": [
+   "Price | Free plan, then from ₦7,500 a month | Paid plans after a free trial, billed in US dollars | us",
+   "Payments in Nigeria | Cards, transfer and USSD built in, through Paystack | Through a payment app such as Paystack | us",
+   "Pay on delivery | Built in, with rider codes and same-day cash | Manual cash on delivery option | us",
+   "Local riders at checkout | Built in for Lagos, Abuja, Ibadan, Port Harcourt | Through third-party apps | us",
+   "Selling on WhatsApp, Instagram and TikTok | Built in, one list of products and one inbox | Through apps | us",
+   "AI help | Rex and Peggy, in English and Pidgin | AI tools available | us",
+   "Themes and apps | Growing library of templates | Thousands of themes and apps | them",
+   "Selling worldwide | Nigeria first, export for brands | Strong, in many countries | them",
+   "Support | WhatsApp, English and Pidgin, 8am to 8pm | 24/7 chat and email | tie"
+  ],
+  "steps": [
+   "Export your products from Shopify as a CSV",
+   "Upload the file in Shopinbos, Rex maps the fields",
+   "Point your domain to Shopinbos",
+   "Turn on pay on delivery and riders"
+  ],
+  "kws": [
+   "Shopify alternative Nigeria",
+   "Shopify vs Shopinbos",
+   "Shopify in Nigeria",
+   "cheaper than Shopify"
+  ],
+  "faq": [
+   "Is Shopify available in Nigeria? | Yes. You can use Shopify from Nigeria. Check how you will take payments in naira and arrange delivery before you choose."
+  ]
+ },
+ {
+  "slug": "woocommerce",
+  "title": "Shopinbos vs WooCommerce",
+  "competitor": "WooCommerce",
+  "h1": "Shopinbos vs WooCommerce for Nigerian sellers",
+  "sub": "WooCommerce is powerful and flexible if you have a developer. Shopinbos does the setup, hosting and updates for you. Here’s how they compare.",
+  "us": [
+   "You don’t want to manage a website",
+   "You run the shop from your phone",
+   "You want riders and pay on delivery ready",
+   "You want help in plain words"
+  ],
+  "them": [
+   "You need full control of the code",
+   "You already use WordPress",
+   "You have a developer on hand",
+   "You need a very custom checkout"
+  ],
+  "rows": [
+   "Price | Free plan, then from ₦7,500 a month | Free plugin, plus hosting, domain and paid extensions | us",
+   "Setup | Tell Rex what you sell, ready in minutes | Install WordPress, a theme and plugins | us",
+   "Payments in Nigeria | Built in, through Paystack | Paystack and Flutterwave plugins available | tie",
+   "Pay on delivery | With rider codes and same-day cash | Cash on delivery option built in | us",
+   "Delivery | Riders booked at checkout | Through plugins | us",
+   "Updates and security | Done for you | You or your developer | us",
+   "Customisation | Templates and settings | Almost unlimited, it’s open source | them",
+   "Run from your phone | Built for phone first | WooCommerce mobile app available | tie"
+  ],
+  "steps": [
+   "Export products from WooCommerce as a CSV",
+   "Upload it in Shopinbos, Rex maps the fields",
+   "Point your domain to Shopinbos",
+   "Turn on payments and delivery"
+  ],
+  "kws": [
+   "WooCommerce alternative",
+   "WooCommerce Nigeria",
+   "WordPress ecommerce vs Shopinbos",
+   "online store without WordPress"
+  ],
+  "faq": [
+   "Is WooCommerce available in Nigeria? | Yes. You can use WooCommerce from Nigeria. Check how you will take payments in naira and arrange delivery before you choose."
+  ]
+ }
+]
