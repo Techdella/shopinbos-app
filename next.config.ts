@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               // connect.facebook.net: Meta's SDK for WhatsApp Embedded Signup (/home/inbox/chatbot?tab=whatsapp).
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com https://connect.facebook.net",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://va.vercel-scripts.com https://connect.facebook.net",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
               `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com https://i.ytimg.com https://i.vimeocdn.com ${storageOrigin}`.trim(),
@@ -53,9 +53,11 @@ const nextConfig: NextConfig = {
               `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
               // Embedded Signup opens its login/consent frames on www/web.facebook.com.
               // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
-              "frame-src https://js.paystack.co https://checkout.flutterwave.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.facebook.com https://web.facebook.com",
+              "frame-src https://js.paystack.co https://www.youtube-nocookie.com https://player.vimeo.com https://www.facebook.com https://web.facebook.com",
               // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
-              "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com" + (storageOrigin ? ` ${storageOrigin}` : ""),
+              "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io" + (storageOrigin ? ` ${storageOrigin}` : ""),
+              // Sentry session replay compresses in a blob: worker.
+              "worker-src 'self' blob:",
               "object-src 'none'",
               // Same as X-Frame-Options DENY, for browsers that only read CSP.
               "frame-ancestors 'none'",
