@@ -94,6 +94,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   // Mascot spotlights (Prototype 10)
   "welcome.peggyHi": "Báwo, èmi ni Peggy! Èmi àti Rex máa ràn ọ́ lọ́wọ́ láti tajà.",
   "form.noPassword": "Kò sí password láti rántí. A máa fi code ránṣẹ́ sí ọ nígbà kọ̀ọ̀kan.",
+  // WhatsApp codes (lib/auth.ts sendCode returns the channel used)
+  "form.whatsappCode": "Fi kóòdù ránṣẹ́ sí mi lórí WhatsApp",
+  "form.whatsappHint": "Lo nọ́mbà tí WhatsApp rẹ wà lórí rẹ̀.",
+  "verify.titleWhatsapp": "Wo WhatsApp rẹ",
+  "verify.titleSms": "Wo àwọn ìfiránṣẹ́ rẹ",
+  "verify.titleEmail": "Wo email rẹ",
+  "verify.whatsappOn": "WhatsApp lórí {phone}",
+  "verify.noWhatsapp": "Kò sí WhatsApp lórí nọ́mbà yìí?",
+  "verify.sendSms": "Fi ránṣẹ́ nípasẹ̀ SMS",
 };
 
 export default yo;

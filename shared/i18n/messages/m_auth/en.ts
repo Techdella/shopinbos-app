@@ -97,6 +97,15 @@ const en = {
   // Mascot spotlights (Prototype 10)
   "welcome.peggyHi": "Hi, I'm Peggy! Rex and I will help you sell.",
   "form.noPassword": "No password to remember. We send a code each time.",
+  // WhatsApp codes (lib/auth.ts sendCode returns the channel used)
+  "form.whatsappCode": "Send me a code on WhatsApp",
+  "form.whatsappHint": "Use the number you have WhatsApp on.",
+  "verify.titleWhatsapp": "Check your WhatsApp",
+  "verify.titleSms": "Check your messages",
+  "verify.titleEmail": "Check your email",
+  "verify.whatsappOn": "WhatsApp on {phone}",
+  "verify.noWhatsapp": "No WhatsApp on this number?",
+  "verify.sendSms": "Send it by SMS",
 } satisfies Record<string, string>;
 
 export default en;

@@ -94,6 +94,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   // Mascot spotlights (Prototype 10)
   "welcome.peggyHi": "Hi, na me be Peggy! Me and Rex go help you sell.",
   "form.noPassword": "No password to remember. We go send you code every time.",
+  // WhatsApp codes (lib/auth.ts sendCode returns the channel used)
+  "form.whatsappCode": "Send me code for WhatsApp",
+  "form.whatsappHint": "Use the number wey you get WhatsApp on top.",
+  "verify.titleWhatsapp": "Check your WhatsApp",
+  "verify.titleSms": "Check your messages",
+  "verify.titleEmail": "Check your email",
+  "verify.whatsappOn": "WhatsApp for {phone}",
+  "verify.noWhatsapp": "No WhatsApp for this number?",
+  "verify.sendSms": "Send am by SMS",
 };
 
 export default pcm;
