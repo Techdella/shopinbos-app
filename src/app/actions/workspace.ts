@@ -416,6 +416,12 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
   redirect("/home/brand-kit?saved=true");
 }
 
+/** An https image link from a form field, or "" (anything else is dropped: it ends up in the store's <head>). */
+function httpsImageUrl(value: FormDataEntryValue | null) {
+  const text = String(value || "").trim().slice(0, 2000);
+  return /^https:\/\/\S+$/i.test(text) ? text : "";
+}
+
 export async function saveStoreSeoSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
   const store = await db.store.findUnique({ where: { userId: user.id } });
@@ -429,7 +435,9 @@ export async function saveStoreSeoSettings(formData: FormData) {
           title: String(formData.get("seoTitle") || "").trim(),
           description: String(formData.get("seoDescription") || "").trim(),
           keywords: String(formData.get("seoKeywords") || "").trim(),
-          socialImage: String(formData.get("socialImage") || "").trim(),
+          socialImage: httpsImageUrl(formData.get("socialImage")),
+          // The browser-tab icon of every store page (src/lib/seo/store-head.ts); empty falls back to the logo.
+          favicon: httpsImageUrl(formData.get("favicon")),
         },
       }),
     },

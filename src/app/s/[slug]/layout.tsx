@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { storeHeadMetadata } from "@/lib/seo/store-head";
 import { headers } from "next/headers";
 import { LiveChatWidget } from "@/components/messaging/LiveChatWidget";
 import { StoreBrandProvider } from "@/components/errors/StoreBrandContext";
@@ -8,6 +10,11 @@ import { loadStoreBrand } from "@/lib/storefront/public-store.server";
 
 // Every storefront page gets the store's chat box (it hides itself in the builder preview and when the
 // seller hasn't turned live chat on), and the store's name and colours for its 404 and error pages.
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  return storeHeadMetadata(await loadStoreBrand(slug));
+}
+
 export default async function StorefrontLayout({ children, params }: { children: ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [brand, host] = await Promise.all([loadStoreBrand(slug), headers().then((h) => h.get("host"))]);

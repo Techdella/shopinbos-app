@@ -6,6 +6,7 @@ import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { buildStorefrontUrl, getStorefrontBasePathForHost, normalizeDomain } from "@/lib/domains/storefront";
 import { storePageSeo } from "@/lib/seo/page-seo";
 import { seoMetadata } from "@/lib/seo/fields";
+import { storeHomeMetadata } from "@/lib/seo/store-head";
 import { resolveStorefront } from "@/lib/storefront/public-store.server";
 import { StoreClosedPage } from "@/components/storefront/shopper/StoreClosedPage";
 import { PreviewClient } from "@/app/s/[slug]/preview/PreviewClient";
@@ -36,15 +37,9 @@ export async function generateMetadata({ params, searchParams }: Props & { searc
       siteName: store.name,
     }) as Metadata;
   }
-  return {
-    title: store.name,
-    description: store.description ?? `Shop at ${store.name}`,
-    openGraph: {
-      title: store.name,
-      description: store.description ?? `Shop at ${store.name}`,
-      images: store.logoUrl ? [store.logoUrl] : [],
-    },
-  };
+  const verification = (store.brandSettings as Record<string, unknown> | null)?.integrations as Record<string, unknown> | undefined;
+  const google = typeof verification?.gaSiteVerification === "string" ? verification.gaSiteVerification.trim() : "";
+  return storeHomeMetadata(store, buildStorefrontUrl({ slug: storeRef.slug, customDomain: normalizeDomain(decodeURIComponent(domain)) }), google || undefined);
 }
 
 export default async function CustomDomainStorefrontPage({ params }: Props) {

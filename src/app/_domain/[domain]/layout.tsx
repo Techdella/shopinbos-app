@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { storeHeadMetadata } from "@/lib/seo/store-head";
 import { headers } from "next/headers";
 import { LiveChatWidget } from "@/components/messaging/LiveChatWidget";
 import { StoreBrandProvider } from "@/components/errors/StoreBrandContext";
@@ -8,6 +10,12 @@ import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadStoreBrand } from "@/lib/storefront/public-store.server";
 
 // The store's chat box on custom-domain storefronts, and its name and colours for the 404 and error pages.
+export async function generateMetadata({ params }: { params: Promise<{ domain: string }> }): Promise<Metadata> {
+  const { domain } = await params;
+  const store = await getStoreByCustomDomain(domain).catch(() => null);
+  return storeHeadMetadata(store ? await loadStoreBrand(store.slug) : null);
+}
+
 export default async function CustomDomainLayout({ children, params }: { children: ReactNode; params: Promise<{ domain: string }> }) {
   const { domain } = await params;
   const store = await getStoreByCustomDomain(domain).catch(() => null);
