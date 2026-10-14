@@ -186,9 +186,10 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                         </div>
                         <div className="min-w-0">
                           <label htmlFor="addressPhone" className={FIELD_LABEL}>{t("addr.phone")}</label>
-                          <input id="addressPhone" name="addressPhone" type="tel" className={FIELD_INPUT} defaultValue={businessAddress.phone} />
+                          <input id="addressPhone" name="addressPhone" type="tel" className={FIELD_INPUT} defaultValue={businessAddress.phone} placeholder="+234 800 000 0000" />
                         </div>
                       </div>
+                      <p className={FIELD_HELP}>{t("addr.contactHelp")}</p>
                       <div>
                         <button type="submit" className={SUBMIT_INK}>{t("addr.save")}</button>
                       </div>

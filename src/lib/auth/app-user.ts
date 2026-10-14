@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { slugify } from "@/lib/workspace";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
+import { decideAccountRole, metadataNeedsAlign } from "@/lib/auth/role-rules";
 
 type AppUserInput = {
   supabaseId: string;
@@ -38,26 +39,6 @@ function adminInviteEmails() {
     .filter(Boolean);
 }
 
-function resolveRole(existingRole: Role | undefined, requestedRole: Role, canUseAdminRole: boolean): Role {
-  if (requestedRole === "admin" && !canUseAdminRole) {
-    return existingRole ?? "seller";
-  }
-
-  if (!existingRole || existingRole === requestedRole) {
-    return requestedRole;
-  }
-
-  if (existingRole === "admin") {
-    return existingRole;
-  }
-
-  if (requestedRole === "supplier" || requestedRole === "logistics_partner") {
-    return requestedRole;
-  }
-
-  return existingRole;
-}
-
 async function supabaseEmailConfirmed(supabaseId: string, email: string) {
   try {
     const admin = await getSupabaseServiceClient();
@@ -67,11 +48,6 @@ async function supabaseEmailConfirmed(supabaseId: string, email: string) {
   } catch {
     return false;
   }
-}
-
-async function recentlyCreated(userId: string) {
-  const row = await db.user.findUnique({ where: { id: userId }, select: { createdAt: true } }).catch(() => null);
-  return Boolean(row && Date.now() - row.createdAt.getTime() < 10 * 60_000);
 }
 
 export function appUserInputFromSupabaseUser(user: SupabaseUser): AppUserInput {
@@ -113,12 +89,11 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
 
   const requestedRole = normalizeRole(input.role);
   const invited = email ? adminInviteEmails().includes(email) : false;
-  const canUseAdminRole = existingUser?.role === "admin" || (invited && (await supabaseEmailConfirmed(input.supabaseId, email!)));
-  // Role metadata is editable by the signed-in user, so it only decides the role of a new account (or one created
-  // moments ago, when sign-up raced the first sync). After that the stored role wins.
-  const role = existingUser && !(await recentlyCreated(existingUser.id)) && !(requestedRole === "admin" && canUseAdminRole)
-    ? existingUser.role
-    : resolveRole(existingUser?.role, requestedRole, canUseAdminRole);
+  const canUseAdminRole = existingUser?.role === "admin" || (requestedRole === "admin" && invited && (await supabaseEmailConfirmed(input.supabaseId, email!)));
+  // One account is one role (src/lib/auth/role-rules.ts). The requested role (sign-up page, Google's ?role=, or
+  // metadata, which people can edit) only decides the role of a brand-new account. An existing seller who signs up
+  // on the supplier page stays a seller and keeps their shop; only an approved admin invite can become admin.
+  const role = decideAccountRole({ existingRole: existingUser?.role, requestedRole, canUseAdminRole });
 
   const phone = input.phone?.trim() || undefined;
 
@@ -200,4 +175,19 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   }
 
   return user;
+}
+
+/**
+ * Keeps the login's `user_metadata.role` in line with the stored role: fills it in when missing (Google sign-ups)
+ * and puts it back when it disagrees, so nothing downstream (the phone app, API fallbacks) reads a stale role.
+ * Never throws; the stored role is what counts either way.
+ */
+export async function alignRoleMetadata(supabaseId: string, metadataRole: unknown, role: Role) {
+  if (!metadataNeedsAlign(role, metadataRole)) return;
+  try {
+    const admin = await getSupabaseServiceClient();
+    await admin.auth.admin.updateUserById(supabaseId, { user_metadata: { role } });
+  } catch {
+    // Best effort.
+  }
 }

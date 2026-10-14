@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Spinner, Toggle, cx } from "@/components/app-ui";
 import { RichTextEditor } from "@/components/cms/RichTextEditor";
 import { RecordPicker, uploadCmsFile, type PickerRow } from "@/components/cms/pickers";
+import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import type { CalloutValue, CmsField, FileValue, FormValue, LinkValue, MediaValue, PriceValue, StatValue, TableValue } from "@/lib/cms/fields";
 import type { RichDoc } from "@/lib/cms/richtext";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -248,6 +249,8 @@ function TableInput({ label, value, onChange }: { label: string; value: TableVal
 
 function ImageInput({ label, value, onChange }: { label: string; value: MediaValue | undefined; onChange: (value: unknown) => void }) {
   const t = useT("cms");
+  const tm = useT("media");
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const upload = useUpload("image/jpeg,image/png,image/webp,image/gif", ([file]) => onChange({ url: file.url, alt: value?.alt ?? "" }));
   return (
     <div className="flex flex-wrap items-start gap-3">
@@ -264,16 +267,20 @@ function ImageInput({ label, value, onChange }: { label: string; value: MediaVal
         <input aria-label={t("fi.describe", { label })} className={input} placeholder={t("fi.describePh")} value={value?.alt ?? ""} maxLength={300} disabled={!value?.url} onChange={(e) => onChange({ ...value, alt: e.target.value })} />
         <div className="flex flex-wrap gap-2">
           {value?.url && <button type="button" className={small} onClick={upload.open} disabled={upload.busy}>{upload.busy ? <Spinner className="h-4 w-4" /> : <Icon name="refresh" size={14} />} {t("ed.replace")}</button>}
+          <button type="button" className={small} onClick={() => setLibraryOpen(true)}><Icon name="grid" size={14} /> {tm("field.choose")}</button>
           {value?.url && <button type="button" className={small} onClick={() => onChange(undefined)}><Icon name="trash" size={14} /> {t("ed.remove")}</button>}
         </div>
         {upload.error && <p className="m-0 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
       </div>
+      <MediaLibraryDialog open={libraryOpen} onClose={() => setLibraryOpen(false)} onSelect={([asset]) => asset && onChange({ url: asset.url, alt: value?.alt ?? "" })} />
     </div>
   );
 }
 
 function GalleryInput({ label, value, onChange }: { label: string; value: MediaValue[]; onChange: (value: unknown) => void }) {
   const t = useT("cms");
+  const tm = useT("media");
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const upload = useUpload("image/jpeg,image/png,image/webp,image/gif", (files) => onChange([...value, ...files.map((file) => ({ url: file.url, alt: "" }))].slice(0, 60)), true);
   const move = (index: number, by: number) => {
     const next = [...value];
@@ -302,9 +309,13 @@ function GalleryInput({ label, value, onChange }: { label: string; value: MediaV
         </ul>
       )}
       <div>
-        <button type="button" className={small} onClick={upload.open} disabled={upload.busy}>{upload.busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={14} />} {t("fi.addPictures")}</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={small} onClick={upload.open} disabled={upload.busy}>{upload.busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={14} />} {t("fi.addPictures")}</button>
+          <button type="button" className={small} onClick={() => setLibraryOpen(true)}><Icon name="grid" size={14} /> {tm("field.choose")}</button>
+        </div>
         {upload.error && <p className="m-0 mt-1.5 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
       </div>
+      <MediaLibraryDialog open={libraryOpen} multiple onClose={() => setLibraryOpen(false)} onSelect={(assets) => onChange([...value, ...assets.filter((asset) => !value.some((photo) => photo.url === asset.url)).map((asset) => ({ url: asset.url, alt: "" }))].slice(0, 60))} />
     </div>
   );
 }

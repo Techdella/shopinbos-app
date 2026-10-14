@@ -27,6 +27,8 @@ export interface SetupProgress {
 }
 
 export interface StoreBrandSettings {
+  /** A paid seller turned off the "Built with Shopinbos" badge (src/lib/store-badges.ts; free stores always show it). */
+  hideShopinbosBadge?: boolean;
   connectedChannels?: ChannelKey[];
   setup?: SetupProgress;
   onboardingMemory?: StoreOnboardingMemory;

@@ -178,6 +178,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     ha: () => import("@shared/i18n/messages/marketplace/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/marketplace/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
+  media: {
+    en: () => import("@shared/i18n/messages/media/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/media/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/media/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/media/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/media/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
   nav: {
     en: () => import("@shared/i18n/messages/nav/en.ts") as Promise<{ default: Record<string, string> }>,
     pcm: () => import("@shared/i18n/messages/nav/pcm.ts") as Promise<{ default: Record<string, string> }>,

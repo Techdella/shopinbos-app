@@ -21,7 +21,7 @@ export default async function CustomDomainLayout({ children, params }: { childre
   const store = await getStoreByCustomDomain(domain).catch(() => null);
   const brand = store ? await loadStoreBrand(store.slug) : null;
   const value = store && brand
-    ? { name: brand.name, logoUrl: brand.logoUrl, basePath: getStorefrontBasePathForHost((await headers()).get("host"), store.slug), theme: resolveShopperTheme(brand.brandSettings) }
+    ? { name: brand.name, logoUrl: brand.logoUrl, basePath: getStorefrontBasePathForHost((await headers()).get("host"), store.slug), theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
     : null;
   return (
     <StoreBrandProvider value={value}>

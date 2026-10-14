@@ -16,6 +16,8 @@ import {
   type PaymentsSettingsError,
 } from "@shared/seller-payments";
 import { unpaidTransferTtlHours } from "@/lib/commerce/stock-holds";
+import { defaultPaymentBadges, hasChosenPaymentBadges, readPaymentBadges } from "@shared/payment-badges";
+import { parsePaymentBadges } from "@/lib/store-badges";
 
 // A seller's money settings, shared by the /home/payments server actions (web) and /api/app/payments (phone app).
 
@@ -62,6 +64,31 @@ export async function saveSellerTransferWindow(userId: string, hours: number | n
   return {};
 }
 
+/**
+ * Which payment logos the store shows shoppers (footer, checkout "We accept"). An empty list shows none; only the
+ * known logos are kept (src/lib/store-badges.ts).
+ */
+export async function saveSellerPaymentBadges(userId: string, badges: unknown): Promise<{ error?: PaymentsSettingsError }> {
+  const parsed = parsePaymentBadges(badges);
+  if (!parsed.ok) return { error: "badges" };
+  const store = await storeSettings(userId);
+  if (!store) return { error: "noStore" };
+  await db.store.update({
+    where: { id: store.id },
+    data: { brandSettings: { ...store.settings, paymentBadges: parsed.badges } as Prisma.InputJsonValue },
+  });
+  return {};
+}
+
+/** The logos shown now, whether the seller picked them, and what their payment methods would give. */
+export function sellerPaymentBadges(brandSettings: unknown) {
+  return {
+    selected: readPaymentBadges(brandSettings),
+    chosen: hasChosenPaymentBadges(brandSettings),
+    defaults: defaultPaymentBadges(readShopPaymentMethods(brandSettings)),
+  };
+}
+
 /** The default time to pay by transfer (env UNPAID_TRANSFER_TTL_HOURS, 24 hours). */
 export function defaultTransferWindowHours() {
   return unpaidTransferTtlHours(process.env.UNPAID_TRANSFER_TTL_HOURS);
@@ -93,5 +120,6 @@ export async function sellerMoneyOverview(store: { id: string; brandSettings: un
     methods: readShopPaymentMethods(store?.brandSettings),
     transferWindow: { hours: readTransferWindowHours(store?.brandSettings), defaultHours: defaultTransferWindowHours() },
     bank: readPayoutBankSummary(store?.brandSettings),
+    paymentBadges: sellerPaymentBadges(store?.brandSettings),
   };
 }

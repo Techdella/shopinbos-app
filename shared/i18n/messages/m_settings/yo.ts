@@ -146,6 +146,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "set.helpHint": "Ènìyàn kan, tàbí Peggy",
   "set.more": "Ètò mìíràn lórí wẹ́ẹ̀bù",
   "set.moreHint": "Ẹgbẹ́, ìsanwó, ààbò àti títi ṣọ́ọ̀bù rẹ. Yóò ṣí nínú browser rẹ",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "money.badgesTitle": "Àwọn logo ìsanwó lórí ṣọ́ọ̀bù rẹ",
+  "money.badgesHint": "Tẹ̀ ẹ́ láti fi hàn tàbí fi pamọ́. Oníbàárà máa rí wọn nísàlẹ̀ ṣọ́ọ̀bù rẹ àti níbi checkout.",
+  "money.badgesNone": "Kò sí logo tó máa hàn lórí ṣọ́ọ̀bù rẹ.",
+  "money.badgesReset": "Lo àwọn ọ̀nà ìsanwó mi",
+  "money.badBadges": "Yan lára àwọn logo ìsanwó tó wà nínú àkójọ.",
+  "money.badge.transfer": "Bank transfer",
+  "money.badge.cod": "Sanwó nígbà tí ọjà bá dé",
 };
 
 export default yo;

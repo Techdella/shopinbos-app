@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { removeFileByPublicUrl, uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
+import { isInLibrary, recordMedia } from "@/lib/media/library.server";
 import { identityImageProblem, logoLabelFor, type IdentityImageKind } from "@shared/identity-images";
 
 // The person's photo and their business logo, read and changed in one place so the app shell, profile pages,
@@ -81,6 +82,8 @@ export async function setIdentityImage(user: Owner, kind: IdentityImageKind, fil
     await db.logisticsPartner.update({ where: { id: owner.id }, data: { logoUrl: url } });
     invalidatePublicMarketplaceCache({ logisticsSlug: owner.slug });
   }
-  if (owner.logoUrl !== url) await removeFileByPublicUrl(owner.logoUrl);
+  // The new logo joins the media library; the old file stays when it's in the library (it may be used elsewhere).
+  if (url) await recordMedia({ userId: user.id, storeId: owner.kind === "store" ? owner.id : null, url, name: "Logo", source: "logo" });
+  if (owner.logoUrl !== url && !(await isInLibrary(user.id, owner.logoUrl))) await removeFileByPublicUrl(owner.logoUrl);
   return getIdentity(user);
 }

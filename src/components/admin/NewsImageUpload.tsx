@@ -5,6 +5,7 @@ import { TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { NEWS_IMAGE_ACCEPT, newsImageProblem } from "@/lib/email/news-image";
 import { isAllowedNewsImage, type NewsImageHosts } from "@/lib/email/product-news";
+import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 
 // The image field on /admin/product-news: drop an image (or pick one), watch it upload, see it, remove it. The
 // server stores it in our public media bucket and the URL goes in the field; pasting a link still works.
@@ -50,6 +51,7 @@ export function NewsImageUpload({ value, onChange, hosts, disabled }: { value: s
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   const url = value.trim();
   const allowed = Boolean(url) && isAllowedNewsImage(url, hosts);
@@ -180,6 +182,21 @@ export function NewsImageUpload({ value, onChange, hosts, disabled }: { value: s
         </div>
       )}
       <input ref={fileRef} type="file" accept={NEWS_IMAGE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => void take(e.target.files?.[0])} />
+      {!disabled && !busy ? (
+        <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[40px] w-fit items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink transition hover:border-app-ink">
+          <Icon name="grid" size={14} /> Choose from my media
+        </button>
+      ) : null}
+      <MediaLibraryDialog
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        onSelect={([asset]) => {
+          if (!asset) return;
+          onChange(asset.url);
+          setError(null);
+          setInfo(asset.width ? `${asset.width}×${asset.height}px` : null);
+        }}
+      />
 
       <div className="grid gap-1">
         <label htmlFor={inputId} className="text-[12.5px] font-semibold text-app-ink-soft">Or paste an image link</label>

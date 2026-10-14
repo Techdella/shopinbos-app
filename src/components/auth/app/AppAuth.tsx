@@ -24,8 +24,9 @@ import { roleDestination, type AuthRole } from "@/lib/brand";
 import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
 import intentRouting from "@/lib/intent-routing";
 import { safeNextPath } from "@/lib/auth/route-access";
+import { asAccountRole, asSignupRole, withPortalNote } from "@/lib/auth/role-rules";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
-import { CodeInput, cx, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/components/app-ui";
+import { CodeInput, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/components/app-ui";
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import {
   fetchWhatsAppCodes,
@@ -49,6 +50,18 @@ type Screen = "welcome" | "details" | "code" | "name" | "ready";
 type Method = "phone" | "email";
 
 const SIGNUP_ROLES: SignupRole[] = ["seller", "supplier", "logistics_partner"];
+/** The picture on each "What do you do?" card. */
+const ROLE_ICON = { seller: "shop", supplier: "box", logistics_partner: "truck" } as const satisfies Record<SignupRole, "shop" | "box" | "truck">;
+
+/**
+ * /signup and /login show "What do you do?" (seller, supplier, delivery partner) first, unless the link already
+ * says: the supplier and delivery pages, ?role=, a marketing-site intent (?intent=add_product&productSlug=…, which
+ * is a seller), a ?next= page, or a message to show (an expired session, a sign-in link error, a sign-up clash).
+ */
+function roleAlreadyClear(role: AuthRole, params: URLSearchParams) {
+  if (role !== "seller") return true;
+  return ["role", "intent", "productSlug", "supplierSlug", "logisticsSlug", "next", "redirect", "error", "conflict", "reason", "signedOut"].some((key) => params.has(key));
+}
 
 /** How long "Welcome to Shopinbos, {name}" shows before Rex's first run. */
 const READY_MS = 3200;
@@ -168,6 +181,30 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const hasIntent = Boolean(params.get("intent") || productSlug || params.get("supplierSlug") || params.get("logisticsSlug"));
   const callbackError = params.get("error");
   const whatsapp = useWhatsAppCodes(!isAdmin);
+  // ?role=supplier (or logistics_partner) on /signup or /login belongs on that portal's own page.
+  const paramRole = asSignupRole(params.get("role"));
+  const movingTo = role === "seller" && paramRole && paramRole !== "seller"
+    ? (() => {
+        const rest = new URLSearchParams(params);
+        rest.delete("role");
+        const path = mode === "signup" ? portalSignupPath(paramRole) : portalLoginPath(paramRole);
+        return rest.toString() ? `${path}?${rest}` : path;
+      })()
+    : null;
+  useEffect(() => {
+    if (movingTo) window.location.replace(movingTo);
+  }, [movingTo]);
+  // "What do you do?" first, unless the page or link already says (admins never see it).
+  const [picked, setPicked] = useState(() => isAdmin || roleAlreadyClear(role, params));
+
+  /** "This email already has a seller account. Log in, or use a different email for your supplier business." */
+  function conflictMessage(existing: AuthRole, via: "email" | "phone") {
+    return t(via === "phone" ? "conflict.phone" : "conflict.email", {
+      account: t(`conflict.account.${existing}`),
+      business: t(`conflict.business.${signupRole}`),
+    });
+  }
+  const conflictParam = asAccountRole(params.get("conflict"));
 
   const [screen, setScreen] = useState<Screen>(mode === "signup" && !hasIntent ? "welcome" : "details");
   const [method, setMethod] = useState<Method>(isAdmin || params.get("method") === "email" ? "email" : "phone");
@@ -183,8 +220,12 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   // After a code is accepted for a brand-new account: the session waits here while they type their name.
   const [pending, setPending] = useState<{ accessToken: string | null; phone?: string } | null>(null);
   const [busy, setBusy] = useState<null | "send" | "sms" | "verify" | "password" | "google" | "name">(null);
-  const [error, setError] = useState<string | null>(
-    callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code" ? t("error.linkExpired") : null,
+  const [error, setError] = useState<string | null>(() =>
+    callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code"
+      ? t("error.linkExpired")
+      : conflictParam && conflictParam !== role
+        ? conflictMessage(conflictParam, params.get("via") === "phone" ? "phone" : "email")
+        : null,
   );
   const [info, setInfo] = useState<string | null>(
     params.get("reason") === "expired"
@@ -194,6 +235,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         : null,
   );
   const countdown = useCountdown();
+  // The kind of account this email or phone already has, after a sign-up on another portal's page.
+  const [conflictRole, setConflictRole] = useState<AuthRole | null>(conflictParam && conflictParam !== role ? conflictParam : null);
 
   // Computers have room for the form straight away; the welcome screen is the phone-sized front door.
   const activeScreen = desktop && screen === "welcome" ? "details" : screen;
@@ -201,6 +244,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   function resetMessages() {
     setError(null);
     setInfo(null);
+    setConflictRole(null);
   }
 
   function goTo(nextScreen: Screen) {
@@ -223,12 +267,19 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         })
       : null;
     if (mode === "signup" && syncedRole && syncedRole !== role && !isAdmin) {
-      setError(t(`error.otherRole.${syncedRole}`));
+      // This email or phone already has another kind of account. Nothing about it was changed; say so plainly.
+      setError(conflictMessage(syncedRole, target?.kind === "phone" || (!target && signedUpPhone) ? "phone" : "email"));
+      setConflictRole(syncedRole);
+      setScreen("details");
       setBusy(null);
       return;
     }
-    const explicitNext = safeNextPath(params.get("next") ?? params.get("redirect"));
-    const destination = syncedRole && syncedRole !== role && !explicitNext ? roleDestination(syncedRole) : nextUrl || roleDestination(role);
+    let destination = nextUrl || roleDestination(role);
+    if (syncedRole && syncedRole !== role) {
+      // Logged in on another portal's page: open their own portal (never block them), with a note saying why.
+      setInfo(t(`portal.opening.${syncedRole}`));
+      destination = withPortalNote(roleDestination(syncedRole), role);
+    }
     // A new seller sees "Welcome to Shopinbos, {name}" while Rex gets ready, then Rex's first run.
     if (mode === "signup" && role === "seller" && destination.startsWith("/onboarding")) {
       setScreen("ready");
@@ -336,7 +387,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     resetMessages();
     setBusy("google");
     try {
-      await signInWithGoogle(role, nextUrl);
+      await signInWithGoogle(role, nextUrl, mode);
     } catch (googleError) {
       setError(friendlyNetworkError(googleError));
       setBusy(null);
@@ -351,26 +402,74 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   // ── Pieces ─────────────────────────────────────────────────────────────────
 
-  const roleTabs = mode === "signup" && !isAdmin && (
-    <nav aria-label={t("roles.aria")} className="mt-7 grid grid-cols-3 gap-1 rounded-full bg-app-canvas p-1">
-      {SIGNUP_ROLES.map((item) => {
-        const href = intentQuery ? `${portalSignupPath(item)}?${intentQuery}` : portalSignupPath(item);
-        const on = item === role;
-        return (
-          <Link
-            key={item}
-            href={href}
-            aria-current={on ? "page" : undefined}
-            className={cx(
-              "grid min-h-[44px] place-items-center rounded-full px-1.5 text-center text-[13.5px] font-bold leading-tight no-underline transition sm:px-2 sm:text-[14px]",
-              on ? "bg-white text-app-ink shadow-[0_1px_3px_rgba(22,20,31,0.12)]" : "text-app-ink-soft hover:text-app-ink",
-            )}
-          >
-            {t(`role.${item}.tab`)}
-          </Link>
-        );
-      })}
-    </nav>
+  // "Sign up as a supplier · Not a supplier? Change": the chosen role, always in sight on the form.
+  function changeRole() {
+    resetMessages();
+    setScreen(mode === "signup" && !hasIntent ? "welcome" : "details");
+    setPicked(false);
+  }
+  const changeLabel = t(`change.${signupRole}`);
+  const changeClass = "inline-flex min-h-[44px] items-center text-[14px] font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink";
+  const roleBadge = !isAdmin && (
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="inline-flex items-center gap-2 rounded-full bg-app-peach px-3 py-1.5 text-[13.5px] font-bold text-app-ink">
+        <Icon name={ROLE_ICON[signupRole]} size={16} /> {t(`card.${signupRole}.title`)}
+      </span>
+      {role === "seller" ? (
+        <button type="button" onClick={changeRole} className={changeClass}>{changeLabel}</button>
+      ) : (
+        <Link href={mode === "signup" ? "/signup" : "/login"} className={changeClass}>{changeLabel}</Link>
+      )}
+    </div>
+  );
+
+  // Step one on /signup and /login: three big cards. Seller carries on right here; supplier and delivery partner
+  // go to their own pages (/supplier/signup, /logistics/login…).
+  const roleChooser = (
+    <div>
+      {!desktop && <MascotVideo clip="peggy-hello" size={112} decorative className="-ml-3 mb-1" />}
+      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">
+        {mode === "signup" ? t("choose.titleSignup") : t("choose.titleLogin")}
+      </h1>
+      <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">
+        {mode === "signup" ? t("choose.subSignup") : t("choose.subLogin")}
+      </p>
+      <nav aria-label={t("roles.aria")} className="mt-7 grid gap-3">
+        {SIGNUP_ROLES.map((item) => {
+          const cardClass = "flex min-h-[92px] w-full items-center gap-4 rounded-[22px] border border-app-line bg-white p-4 text-left text-app-ink no-underline transition hover:border-app-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink/20 sm:p-5";
+          const inside = (
+            <>
+              <span className="grid h-[56px] w-[56px] shrink-0 place-items-center rounded-[18px] bg-app-peach text-app-accent">
+                <Icon name={ROLE_ICON[item]} size={26} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[18px] font-extrabold leading-tight">{t(`card.${item}.title`)}</span>
+                <span className="mt-1 block text-[14.5px] leading-[1.4] text-app-ink-soft">{t(`card.${item}.line`)}</span>
+              </span>
+              <Icon name="arrow" size={18} />
+            </>
+          );
+          if (item === "seller") {
+            return (
+              <button key={item} type="button" className={cardClass} onClick={() => { resetMessages(); setScreen("details"); setPicked(true); }}>
+                {inside}
+              </button>
+            );
+          }
+          return (
+            <Link key={item} href={mode === "signup" ? portalSignupPath(item) : portalLoginPath(item)} className={cardClass}>
+              {inside}
+            </Link>
+          );
+        })}
+      </nav>
+      <p className="mb-0 mt-6 text-center text-[15px] text-app-ink-soft">
+        {mode === "signup" ? t("choose.haveAccount") : t("header.new")}{" "}
+        <Link href={mode === "signup" ? "/login" : "/signup"} className="font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink">
+          {mode === "signup" ? t("logIn") : t("choose.createAccount")}
+        </Link>
+      </p>
+    </div>
   );
 
   const intentBanner = hasIntent && (
@@ -468,12 +567,13 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       <Notice>
         {error}
         {/couldn't find an account/i.test(error) && mode === "login" && <> <Link href={switchHref} className="font-bold text-app-danger underline">{t("createShop")}</Link></>}
+        {conflictRole && <> <Link href={portalLoginPath(conflictRole)} className="font-bold text-app-danger underline">{t("logIn")}</Link></>}
       </Notice>
     </div>
   );
   const infoBox = info && <div className="mt-5"><Notice tone="info">{info}</Notice></div>;
 
-  const heading = mode === "signup" ? t(`role.${signupRole}.title`) : isAdmin ? t("heading.admin") : t("heading.welcomeBack");
+  const heading = isAdmin ? t("heading.admin") : t(`as.${mode}.${signupRole}`);
   const subheading = mode === "signup"
     ? signupRole === "seller" ? t("start.sub") : t(`role.${signupRole}.sub`)
     : isAdmin ? t("sub.admin") : t(`sub.login.${signupRole}`);
@@ -485,9 +585,9 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
         // Returning sellers: Peggy waves hello (on computers she waves from the panel instead).
         <MascotVideo clip="peggy-hello" size={124} decorative className="-ml-3 mb-2" />
       )}
+      {roleBadge}
       <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{heading}</h1>
       <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{subheading}</p>
-      {roleTabs}
       <div className="mt-7">{method === "phone" ? phoneFields : emailFields}</div>
       {errorBox}
       {infoBox}
@@ -637,9 +737,12 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     </div>
   );
 
+  // ?role=supplier on /signup: on the way to /supplier/signup.
+  if (movingTo) return <div className="min-h-dvh bg-white" />;
+
   // ── Phone front door ───────────────────────────────────────────────────────
 
-  if (activeScreen === "welcome") {
+  if (picked && activeScreen === "welcome") {
     return (
       <div className="app-wash flex min-h-dvh flex-col px-[22px] pb-[30px] pt-[22px] font-app text-app-ink">
         <div className="flex items-center justify-between gap-3">
@@ -652,6 +755,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
             {t("welcome.peggyBubble")}
           </span>
         </div>
+        <div className="mt-2">{roleBadge}</div>
         <h1 className="m-0 text-[36px] font-extrabold leading-[1.04] tracking-[-1px]">{heading}</h1>
         <p className="mb-[22px] mt-2.5 leading-[1.5] text-app-ink-soft">{subheading}</p>
         <PillButton tone="accent" onClick={() => { chooseMethod("phone"); goTo("details"); }}>{t("welcome.startPhone")}</PillButton>
@@ -667,7 +771,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   // ── Page ───────────────────────────────────────────────────────────────────
 
-  let body: ReactNode = detailsForm;
+  let body: ReactNode = picked ? detailsForm : roleChooser;
   if (activeScreen === "code") body = codeForm;
   if (activeScreen === "name") body = nameForm;
   if (activeScreen === "ready") body = ready;

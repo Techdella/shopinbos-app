@@ -12,8 +12,8 @@ export function redemptionError(code: RedeemableCode, subtotal: number, now = ne
   if (code.status !== "active") return "This code is not active";
   if (code.startsAt && now < code.startsAt) return "This code is not active yet";
   if (code.expiresAt && now > code.expiresAt) return "This code has expired";
-  if (code.maxUses && code.maxUses > 0 && code.usedCount >= code.maxUses) return "This code has reached its usage limit";
-  if (code.minOrder && subtotal < code.minOrder) return `Minimum order of ${code.minOrder} required`;
+  if (code.maxUses && code.maxUses > 0 && code.usedCount >= code.maxUses) return code.maxUses === 1 ? "This code has already been used" : "This code has reached its usage limit";
+  if (code.minOrder && subtotal < code.minOrder) return `Minimum order of ${code.minOrder.toLocaleString("en-NG")} required`;
   return null;
 }
 

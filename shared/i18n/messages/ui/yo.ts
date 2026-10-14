@@ -28,6 +28,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "scene.tapToFinish": "Tẹ̀ ẹ́ láti parí",
   "scene.deal": "A ti fẹnukò ✓",
   "scene.cashAtDoor": "OWÓ NÍ ẸNU ÌLẸ̀KÙN",
+  // Logged in on another portal's page: why they landed on their own home (components/auth/PortalNote.tsx)
+  "portalNote.seller": "O ní account olùtajà, nítorí náà a ṣí ṣọ́ọ̀bù rẹ.",
+  "portalNote.supplier": "O ní account olùpèsè ọjà, nítorí náà a ṣí portal olùpèsè rẹ.",
+  "portalNote.logistics_partner": "O ní account alábàáṣiṣẹ́ ìfijíṣẹ́, nítorí náà a ṣí portal ìfijíṣẹ́ rẹ.",
+  "portalNote.admin": "O ní account admin, nítorí náà a ṣí admin panel.",
 };
 
 export default yo;

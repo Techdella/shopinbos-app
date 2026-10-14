@@ -107,19 +107,45 @@ export async function sendPasswordReset(email: string) {
   if (error) throw new Error(friendly(error.message));
 }
 
-/** Creates or refreshes the app's User row; returns the account's actual role. */
+/**
+ * Creates or refreshes the app's User row; returns the account's actual role. On sign-up the role picked on the
+ * screen goes with it (source "signup"), and the server uses it only for a brand-new account: an existing account
+ * keeps its own role, and the server puts the login's saved role in line. (This used to write the role into the
+ * login's metadata from the phone, which could tag an existing seller as a supplier.)
+ */
 export async function syncAccount(payload: { fullName?: string; phone?: string; signup?: boolean; role?: Exclude<AppRole, "admin"> }) {
   const role = payload.role ?? "seller";
-  // Google sign-ups carry no role yet; the backend reads it from the session, so set it before the first sync.
-  if (payload.signup && role !== "seller") {
-    const { data: current } = await supabase.auth.getUser();
-    if (current.user && !current.user.user_metadata?.role) await supabase.auth.updateUser({ data: { role } }).then(() => supabase.auth.refreshSession()).catch(() => null);
-  }
   const data = await api<{ role?: AppRole }>("/api/auth/sync-user", {
     method: "POST",
     json: { role, fullName: payload.fullName, phone: payload.phone, source: payload.signup ? "signup" : undefined },
   }).catch(() => null);
+  // Pick up the role the server saved on the login, so later launches read the same one.
+  if (payload.signup && data?.role) await supabase.auth.refreshSession().catch(() => null);
   return data?.role ?? null;
+}
+
+/**
+ * Signed up as one kind of account with an email or phone that already has another kind: "This email already has
+ * a seller account. Log in, or use a different email for your supplier business." Nothing about the account was
+ * changed. "Open my account" keeps them in it; "Use a different email" logs out so they can start again.
+ */
+export function explainSignupConflict(actual: AppRole, wanted: Exclude<AppRole, "admin">, via: "email" | "phone") {
+  const t = tNow("m_auth");
+  const message = t(via === "phone" ? "conflict.phone" : "conflict.email", {
+    account: t(`conflict.account.${actual}`),
+    business: t(`conflict.business.${wanted}`),
+  });
+  return new Promise<"open" | "different">((resolve) => {
+    Alert.alert(
+      t("form.existingTitle"),
+      message,
+      [
+        { text: via === "phone" ? t("conflict.differentPhone") : t("conflict.differentEmail"), onPress: () => resolve("different") },
+        { text: t("conflict.open"), style: "default", onPress: () => resolve("open") },
+      ],
+      { cancelable: true, onDismiss: () => resolve("open") },
+    );
+  });
 }
 
 /** Asks "Log out of Shopinbos?" (m_auth "logout.*") and resolves true only if the person chose Log out. */

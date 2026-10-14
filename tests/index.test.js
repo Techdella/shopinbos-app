@@ -426,7 +426,8 @@ test("supplier product pages provide a full submit and edit workflow", () => {
   assert.match(form, /Save draft/);
   assert.match(form, /send to review/);
   assert.match(form, /Tier pricing/);
-  assert.match(form, /Image URLs/);
+  assert.match(form, /Product photos/);
+  assert.match(form, /MediaListField id="product-images" name="images"/);
   assert.match(actions, /export async function createSupplierProduct/);
   assert.match(actions, /export async function updateSupplierProduct/);
   assert.match(actions, /SupplierProductCreateSchema/);

@@ -1,3 +1,4 @@
+import { StoreFooterBadges } from "@/components/storefront/shopper/StoreFooterBadges";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
@@ -140,6 +141,7 @@ export function CmsShell({ store, basePath, children, collection, chrome }: { st
             </nav>
           )}
         </div>
+        <StoreFooterBadges muted="var(--cms-muted)" border="var(--cms-border)" ink="var(--cms-ink)" className="mt-4" />
       </footer>
     </div>
   );

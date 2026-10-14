@@ -219,6 +219,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lm.secure": "Paystack ló ń ṣe ìsanwó láìléwu. Shopinbos kì í gba àlàyé káàdì rẹ rárá.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Domain ọ̀fẹ́ fún ọdún kan",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "err.badges": "Yan lára àwọn logo ìsanwó tó wà nínú àkójọ.",
+  "badges.title": "Àwọn logo ìsanwó lórí ṣọ́ọ̀bù rẹ",
+  "badges.sub": "Tẹ logo kan láti fi hàn tàbí láti fi pamọ́. Oníbàárà máa rí wọn nísàlẹ̀ ṣọ́ọ̀bù rẹ àti níbi checkout.",
+  "badges.preview": "Bí oníbàárà ṣe máa rí i",
+  "badges.none": "Kò sí logo tó máa hàn lórí ṣọ́ọ̀bù rẹ.",
+  "badges.reset": "Lo àwọn ọ̀nà ìsanwó mi",
+  "badges.saved": "A ti fi pamọ́",
+  "badge.transfer": "Bank transfer",
+  "badge.cod": "Sanwó nígbà tí ọjà bá dé",
+  "plan.noBadge": "O lè pa àmì 'Built with Shopinbos' lórí ilé ìtajà rẹ",
 };
 
 export default yo;

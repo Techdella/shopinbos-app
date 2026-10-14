@@ -8,6 +8,7 @@ import type { MouseEvent } from "react";
 import Link from "next/link";
 import { CartDrawer } from "./CartDrawer";
 import { MarketingMount } from "@/components/storefront/marketing/MarketingMount";
+import { themeHeadingFont } from "@/lib/marketing/forms";
 import { TemplateStorefrontSurface } from "@/components/storefront/TemplateStorefrontSurface";
 import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
 import { freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
@@ -665,7 +666,7 @@ export function StorefrontClient({
         />
       ) : null}
 
-      {!previewMode ? <MarketingMount storeSlug={store.slug} colors={{ ink: snapshot.themeTokens.ink, paper: snapshot.themeTokens.paperBg, accent: snapshot.themeTokens.ctaBg, accentText: snapshot.themeTokens.ctaText }} /> : null}
+      {!previewMode ? <MarketingMount storeSlug={store.slug} currency={store.currency} colors={{ ink: snapshot.themeTokens.ink, paper: snapshot.themeTokens.paperBg, accent: snapshot.themeTokens.ctaBg, accentText: snapshot.themeTokens.ctaText, heading: themeHeadingFont(snapshot.themeTokens.headingStyle) }} /> : null}
 
       {!previewMode ? (
         <CartDrawer

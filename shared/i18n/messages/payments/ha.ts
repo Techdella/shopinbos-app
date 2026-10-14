@@ -219,6 +219,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lm.secure": "Paystack ne ke sarrafa biyan lafiya. Shopinbos ba ya taɓa karɓar bayanan katinka.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Domain kyauta na shekara ɗaya",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "err.badges": "Zaɓi daga cikin tambarin biyan kuɗi da aka lissafa.",
+  "badges.title": "Tambarin biyan kuɗi a shagonka",
+  "badges.sub": "Taɓa tambari don nuna shi ko ɓoye shi. Kwastomomi za su gan su a ƙasan shagonka da wajen checkout.",
+  "badges.preview": "Yadda kwastomomi za su gani",
+  "badges.none": "Babu tambarin da zai bayyana a shagonka.",
+  "badges.reset": "Yi amfani da hanyoyin biyana",
+  "badges.saved": "An ajiye",
+  "badge.transfer": "Bank transfer",
+  "badge.cod": "Biya idan an kawo",
+  "plan.noBadge": "Za ka iya kashe alamar 'Built with Shopinbos' a shagonka",
 };
 
 export default ha;

@@ -41,6 +41,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "preview.note": "Ìwò ń lo oníbàárà àpẹẹrẹ (Ada). Àwọn link, logo àti àwọ̀ rẹ wá láti brand kit rẹ.",
   "preview.of": "Ìwò {label}",
   "preview.thumbnail": "Àwòrán kékeré {label}",
+  "preview.linksHint": "Àwọn ìjápọ̀ máa ṣiṣẹ́ nínú ímeèlì tí o bá fi ránṣẹ́.",
   "vars.insert": "Fi àlàyé ara ẹni sí i",
   "flowVar.name": "Orúkọ àkọ́kọ́ wọn (tàbí “ọ̀rẹ́”)",
   "flowVar.full_name": "Orúkọ kíkún wọn",

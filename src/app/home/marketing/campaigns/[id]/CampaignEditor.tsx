@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHead, Pill, SplitLayout } from "@/components/app-kit";
 import { Notice, PillButton, Segmented } from "@/components/app-ui";
 import { Modal } from "@/components/growth/Modal";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import type { ChannelStatus } from "@/lib/marketing/channels";
 import type { CampaignChannelConfig } from "@/lib/marketing/campaign-config";
@@ -351,8 +352,8 @@ export function CampaignEditor({
                             </select>
                           </Field>
                           {template.content.header.format === "IMAGE" ? (
-                            <Field label={t("editor.orPicture")} htmlFor="c-wa-image" hint={t("editor.orPictureHint")}>
-                              <input id="c-wa-image" value={config.headerImageUrl ?? ""} onChange={(e) => setConfig({ headerImageUrl: e.target.value.trim() || null })} className={inputClass} placeholder="https://…" />
+                            <Field label={t("editor.orPicture")} htmlFor="c-wa-image-choose" hint={t("editor.orPictureHint")}>
+                              <MediaPicker id="c-wa-image" value={config.headerImageUrl ?? ""} onChange={(url) => setConfig({ headerImageUrl: url.trim() || null })} compact />
                             </Field>
                           ) : null}
                         </div>

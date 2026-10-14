@@ -20,7 +20,10 @@ export interface JWTClaims {
   /** Verified phone in E.164 (+234…), for accounts created with a phone number. */
   phone: string | null;
   user_metadata: {
+    /** The metadata role, or "seller" when none is set. */
     role: Role;
+    /** The metadata role exactly as saved, null when none is set (a Google sign-up before its first sync). */
+    rawRole?: Role | null;
     name?: string;
   };
   exp: number;

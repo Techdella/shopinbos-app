@@ -219,6 +219,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lm.secure": "Na Paystack dey process the payment safely. Shopinbos no dey ever see your card details.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Free domain for one year",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "err.badges": "Choose from the payment logos wey dey the list.",
+  "badges.title": "Payment logos for your store",
+  "badges.sub": "Tap logo to show am or hide am. Customers go see dem for the bottom of your store and for checkout.",
+  "badges.preview": "How customers go see am",
+  "badges.none": "No logo go show for your store.",
+  "badges.reset": "Use my payment methods",
+  "badges.saved": "E don save",
+  "badge.transfer": "Bank transfer",
+  "badge.cod": "Pay on delivery",
+  "plan.noBadge": "You fit off the 'Built with Shopinbos' badge for your store",
 };
 
 export default pcm;

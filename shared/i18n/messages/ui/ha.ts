@@ -28,6 +28,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "scene.tapToFinish": "Taɓa don gamawa",
   "scene.deal": "An daidaita ✓",
   "scene.cashAtDoor": "KUƊI A BAKIN ƘOFA",
+  // Logged in on another portal's page: why they landed on their own home (components/auth/PortalNote.tsx)
+  "portalNote.seller": "Kana da account na mai sayarwa, don haka mun buɗe shagonka.",
+  "portalNote.supplier": "Kana da account na mai kawo kaya, don haka mun buɗe portal ɗinka.",
+  "portalNote.logistics_partner": "Kana da account na abokin isar da kaya, don haka mun buɗe portal ɗinka.",
+  "portalNote.admin": "Kana da account na admin, don haka mun buɗe admin panel.",
 };
 
 export default ha;

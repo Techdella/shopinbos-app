@@ -146,6 +146,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "set.helpHint": "Person, or Peggy",
   "set.more": "More settings for web",
   "set.moreHint": "Team, billing, security and to close your shop. E go open for your browser",
+  // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
+  "money.badgesTitle": "Payment logos for your store",
+  "money.badgesHint": "Tap to show or hide. Customers go see dem for the bottom of your store and for checkout.",
+  "money.badgesNone": "No logo go show for your store.",
+  "money.badgesReset": "Use my payment methods",
+  "money.badBadges": "Choose from the payment logos wey dey the list.",
+  "money.badge.transfer": "Bank transfer",
+  "money.badge.cod": "Pay on delivery",
 };
 
 export default pcm;

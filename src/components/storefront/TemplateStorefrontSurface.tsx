@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront/shopper/StoreFooterBadges";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -14,6 +15,8 @@ import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
+import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
+import { itemMediaUrl, readCountdownEnd, readHeroSlides, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 
 export interface SurfaceProduct {
   id: string;
@@ -299,6 +302,14 @@ function renderMedia(
   className: string,
   label?: string,
 ) {
+  if (src && youTubeId(src)) {
+    const embed = youTubeEmbedUrl(src, { background: true });
+    return (
+      <span className={`relative block overflow-hidden ${className}`} aria-label={alt} role="img">
+        <iframe src={embed ?? undefined} title={alt} tabIndex={-1} allow="autoplay; encrypted-media; picture-in-picture" className="pointer-events-none absolute left-1/2 top-1/2 h-[max(100%,56.25vw)] w-[max(100%,177.78vh)] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0" />
+      </span>
+    );
+  }
   if (isVideoSource(src)) {
     return (
       <video
@@ -329,6 +340,8 @@ function renderImageBlock(
       : undefined;
   const alt = typeof content?.alt === "string" ? content.alt : fallbackLabel ?? "";
   const color = typeof content?.placeholder === "string" ? content.placeholder : fallbackColor ?? "#667eea";
+  const original = typeof content?.originalSrc === "string" ? content.originalSrc : "";
+  if (youTubeId(original)) return renderMedia(original, alt, color, className);
   if (isVideoSource(src)) {
     return (
       <video
@@ -470,6 +483,30 @@ function resolveProductItems(items: Array<Record<string, unknown>> | undefined, 
 }
 
 
+
+/** A real countdown to the end time the seller set (the old panel showed fixed sample numbers). Hidden once it ends. */
+function PromoCountdown({ endsAt }: { endsAt: Date }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  if (now === null) return <div className="mt-7 h-[52px]" aria-hidden />;
+  const left = Math.max(0, Math.floor((endsAt.getTime() - now) / 1000));
+  if (!left) return null;
+  const units: Array<[string, number]> = [["Days", Math.floor(left / 86400)], ["Hours", Math.floor((left % 86400) / 3600)], ["Min", Math.floor((left % 3600) / 60)], ["Sec", left % 60]];
+  return (
+    <div className="mt-7 flex gap-2" role="timer" aria-label={`Ends in ${units[0]![1]} days ${units[1]![1]} hours ${units[2]![1]} minutes`}>
+      {units.map(([label, value]) => (
+        <span key={label} className="grid min-w-[64px] place-items-center rounded-[12px] bg-white/10 px-3 py-2" aria-hidden>
+          <span className="font-mono text-[20px] leading-none">{String(value).padStart(2, "0")}</span>
+          <span className="mt-1 text-[10px] uppercase tracking-[0.12em] opacity-70">{label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function SectionHeading({
   eyebrow,
@@ -1305,6 +1342,65 @@ function ClassicTemplateSurface({
         : typeof lead?.imageUrl === "string"
           ? String(lead.imageUrl)
           : store.storeProducts[0]?.images[0];
+      if (heroLayout === "slideshow") {
+        const own = readHeroSlides(kindSection);
+        const fallbackSlide: HeroSlide = {
+          mediaUrl: leadMedia ?? "",
+          mediaType: leadMedia ? (youTubeId(leadMedia) ? "youtube" : isVideoSource(leadMedia) ? "video" : "image") : "none",
+          alt: "",
+          heading: cleanCustomerCopy(copy.title, `Welcome to ${store.name}`),
+          text: cleanCustomerCopy(copy.body, store.description ?? ""),
+          buttonLabel: cleanCustomerCopy(copy.primaryCta, "Shop now"),
+          link: { type: "page", value: String(primaryButtonAction) },
+          textTone: leadMedia ? "light" : "dark",
+          textPosition: "left",
+        };
+        const openLink = (link: HeroSlide["link"]) => {
+          if (link.type === "product") {
+            const product = store.storeProducts.find((entry) => entry.id === link.value);
+            if (product) {
+              setSelectedProductId(product.id);
+              navigate("product");
+            }
+            return;
+          }
+          if (link.type === "url") {
+            runCommerceAction("external", link.value);
+            return;
+          }
+          runCommerceAction(link.value || "products");
+        };
+        return (
+          <HeroSlider
+            key={kindSection.id}
+            slides={own.length ? own : [fallbackSlide]}
+            timing={readSlideTiming(kindSection.settings)}
+            label={cleanCustomerCopy(copy.title, store.name)}
+            emptyBackground={`linear-gradient(145deg, ${theme.heroBg}, ${rgba(theme.heroBg, 0.82)})`}
+            height="min(82vh, 720px)"
+            renderOverlay={(slide, index) => {
+              const light = slide.textTone === "light" && slide.mediaType !== "none";
+              const align = slideAlign(slide.textPosition);
+              const ink = light ? "#FFFFFF" : slide.mediaType === "none" ? theme.heroText : theme.ink;
+              const Heading = index === 0 ? "h1" : "h2";
+              return (
+                <>
+                  <div className="absolute inset-0" style={{ background: slide.mediaType === "none" ? "transparent" : light ? "linear-gradient(to top, rgba(0,0,0,.62), rgba(0,0,0,.08) 65%)" : "linear-gradient(to top, rgba(255,255,255,.82), rgba(255,255,255,0) 65%)" }} />
+                  <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-[1240px] flex-col px-6 pb-16 sm:px-10" style={{ alignItems: align.items, textAlign: align.text, color: ink }}>
+                    {slide.heading ? <Heading className="max-w-[820px] text-[clamp(38px,6vw,84px)] font-semibold leading-[0.95] tracking-[-0.04em]" style={{ fontFamily: theme.headingFont }}>{slide.heading}</Heading> : null}
+                    {slide.text ? <p className="mt-4 max-w-[560px] text-[16px] leading-7 opacity-90">{slide.text}</p> : null}
+                    {slide.buttonLabel ? (
+                      <div className="mt-7">
+                        <CommerceButton label={slide.buttonLabel} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark={light} onClick={() => openLink(slide.link)} />
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              );
+            }}
+          />
+        );
+      }
       if (heroLayout === "video-background") {
         return (
           <section key={kindSection.id} className="relative min-h-[88vh] overflow-hidden px-5 py-16 sm:px-8" style={{ background: theme.heroBg }}>
@@ -1850,8 +1946,10 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "featured-products") {
-      const products = filteredProducts(resolveProductItems(kindSection.items, store));
+      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8));
       const isPremiumProducts = kindSection.settings?.layout === "premium-product-cards";
+      // "Products per row on computers" (2, 3 or 4); without a choice the template's own grid is kept.
+      const columnClass = ({ "2": "xl:grid-cols-2", "3": "xl:grid-cols-3", "4": "xl:grid-cols-4" } as Record<string, string>)[String(kindSection.settings?.columns ?? "")];
       if (kindSection.settings?.layout === "editorial-rows") {
         return (
           <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
@@ -1889,7 +1987,7 @@ function ClassicTemplateSurface({
               ink={theme.ink}
               muted={theme.muted}
             />
-            <div className="mt-9 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <div className={`mt-9 grid gap-6 md:grid-cols-2 ${columnClass ?? "xl:grid-cols-4"}`}>
               {products.map((product, index) => {
                 const originalItem = kindSection.items?.[index];
                 return (
@@ -1935,7 +2033,7 @@ function ClassicTemplateSurface({
             ink={theme.ink}
             muted={theme.muted}
           />
-          <div className={`mt-8 grid ${isPremiumProducts ? "gap-7 sm:grid-cols-2 xl:grid-cols-4" : `gap-5 md:grid-cols-2 ${theme.templateStyle === "marketplace" || theme.templateStyle === "electronics" ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}`}>
+          <div className={`mt-8 grid ${isPremiumProducts ? `gap-7 sm:grid-cols-2 ${columnClass ?? "xl:grid-cols-4"}` : `gap-5 md:grid-cols-2 ${columnClass ?? (theme.templateStyle === "marketplace" || theme.templateStyle === "electronics" ? "xl:grid-cols-4" : "xl:grid-cols-3")}`}`}>
             {products.map((product) => (
               <ProductCard
                 key={product.id}
@@ -2405,29 +2503,31 @@ function ClassicTemplateSurface({
     if (kindSection.kind === "promo-banner") {
       const promoAccent = theme.accent;
       const promoLayout = String(kindSection.settings?.layout ?? "gradient-sale");
+      const promoAction = () => runCommerceAction(kindSection.settings?.primaryButtonAction ?? "products", kindSection.settings?.primaryButtonUrl);
       if (promoLayout === "minimal-strip") {
         return (
           <section key={kindSection.id} className="px-5 py-6 sm:px-8">
             <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-3 border-y py-4" style={{ borderColor: theme.border, color: theme.ink }}>
               <strong className="text-[18px]" style={{ fontFamily: theme.headingFont }}>{cleanCustomerCopy(copy.title, "Seasonal sale")}</strong>
-              <button type="button" onClick={() => navigate("products")} className="rounded-full px-5 py-2 text-[12px] font-bold uppercase tracking-[0.1em]" style={{ background: theme.ctaBg, color: theme.ctaText }}>{cleanCustomerCopy(copy.cta, "Shop now")}</button>
+              <button type="button" onClick={promoAction} className="rounded-full px-5 py-2 text-[12px] font-bold uppercase tracking-[0.1em]" style={{ background: theme.ctaBg, color: theme.ctaText }}>{cleanCustomerCopy(copy.cta, "Shop now")}</button>
             </div>
           </section>
         );
       }
       if (promoLayout === "split-offer" || promoLayout === "countdown") {
-        const image = typeof kindSection.items?.[0]?.imageUrl === "string" ? String(kindSection.items[0].imageUrl) : store.storeProducts[0]?.images[0];
+        const image = itemMediaUrl(kindSection.items?.[0]) || store.storeProducts[0]?.images[0];
+        const endsAt = promoLayout === "countdown" ? readCountdownEnd(kindSection.settings) : null;
         return (
           <section key={kindSection.id} className="px-5 py-12 sm:px-8">
             <div className="mx-auto grid max-w-[1320px] overflow-hidden rounded-[28px] lg:grid-cols-[1.05fr_0.95fr]" style={{ background: theme.heroBg, color: theme.heroText }}>
               <div className="px-6 py-12 sm:px-10 lg:px-14">
-                <div className="font-mono text-[12px] uppercase tracking-[0.28em]" style={{ color: rgba(theme.heroText, 0.68) }}>{promoLayout === "countdown" ? "Ends soon" : "Limited time"}</div>
+                <div className="font-mono text-[12px] uppercase tracking-[0.28em]" style={{ color: rgba(theme.heroText, 0.68) }}>{endsAt ? "Ends soon" : "Limited time"}</div>
                 <h2 className="mt-4 text-[40px] font-semibold leading-[0.96] sm:text-[58px]" style={{ fontFamily: theme.headingFont }}>{cleanCustomerCopy(copy.title, "Seasonal sale - up to 30% off selected items")}</h2>
                 <p className="mt-5 max-w-[620px] text-[16px] leading-8" style={{ color: rgba(theme.heroText, 0.76) }}>{cleanCustomerCopy(copy.body, "Limited time offers on curated favorites, best sellers, and new arrivals.")}</p>
-                {promoLayout === "countdown" ? <div className="mt-7 flex gap-2">{["02", "14", "36"].map((unit, index) => <span key={index} className="rounded-[12px] bg-white/10 px-4 py-3 font-mono text-[18px]">{unit}</span>)}</div> : null}
-                <button type="button" onClick={() => navigate("products")} className="mt-8 rounded-full px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ background: theme.ctaBg, color: theme.ctaText }}>{cleanCustomerCopy(copy.cta, "Shop the sale")}</button>
+                {endsAt ? <PromoCountdown endsAt={endsAt} /> : null}
+                <button type="button" onClick={promoAction} className="mt-8 rounded-full px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ background: theme.ctaBg, color: theme.ctaText }}>{cleanCustomerCopy(copy.cta, "Shop the sale")}</button>
               </div>
-              <div className="min-h-[360px]">{renderImage(image, String(copy.title ?? "Sale"), promoAccent, "h-full min-h-[360px] w-full object-cover")}</div>
+              <div className="min-h-[360px]">{renderMedia(image, String(copy.title ?? "Sale"), promoAccent, "h-full min-h-[360px] w-full object-cover")}</div>
             </div>
           </section>
         );
@@ -2443,7 +2543,7 @@ function ClassicTemplateSurface({
               <p className="mt-5 max-w-[640px] text-[16px] leading-8 text-white/84">
                 {cleanCustomerCopy(copy.body, "Limited time offers on curated favorites, best sellers, and new arrivals.")}
               </p>
-              <button type="button" onClick={() => navigate("products")} className="mt-8 border border-white/70 bg-white px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: theme.heroBg }}>
+              <button type="button" onClick={promoAction} className="mt-8 border border-white/70 bg-white px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: theme.heroBg }}>
                 {cleanCustomerCopy(copy.cta, "Shop the sale")}
               </button>
             </div>
@@ -2455,6 +2555,7 @@ function ClassicTemplateSurface({
     if (kindSection.kind === "story-split" || kindSection.kind === "text-columns") {
       const isStory = kindSection.kind === "story-split";
       const storyLayout = String(kindSection.settings?.layout ?? (isStory ? "image-collage" : "cards"));
+      const imageSide = String(kindSection.settings?.imagePosition ?? "");
       if (!isStory && (storyLayout === "cards" || storyLayout === "minimal-columns")) {
         return (
           <section key={kindSection.id} className="px-5 py-16 sm:px-8" style={{ background: theme.paperBg }}>
@@ -2476,7 +2577,7 @@ function ClassicTemplateSurface({
         return (
           <section key={kindSection.id} className="px-5 py-20 sm:px-8" style={{ background: rgba(theme.accent, 0.1) }}>
             <div className="mx-auto max-w-[1320px] text-center">
-              <div className="font-mono text-[12px] uppercase tracking-[0.24em]" style={{ color: theme.accent }}>Ritual</div>
+              <div className="font-mono text-[12px] uppercase tracking-[0.24em]" style={{ color: theme.accent }}>{cleanCustomerCopy(copy.eyebrow, "Ritual")}</div>
               <h2 className="mx-auto mt-4 max-w-[760px] text-[40px] font-light leading-[1.08] sm:text-[54px]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
                 {cleanCustomerCopy(copy.title, "Build your daily ritual")}
               </h2>
@@ -2499,15 +2600,15 @@ function ClassicTemplateSurface({
         );
       }
       if (storyLayout === "ingredients-feature") {
-        const image = typeof kindSection.items?.[0]?.imageUrl === "string" ? String(kindSection.items[0].imageUrl) : store.storeProducts[0]?.images[0];
+        const image = itemMediaUrl(kindSection.items?.[0]) || store.storeProducts[0]?.images[0];
         return (
           <section key={kindSection.id} className="overflow-hidden" style={{ background: theme.ink }}>
             <div className="mx-auto grid max-w-[1320px] lg:grid-cols-2">
-              <div className="min-h-[520px] overflow-hidden">
-                {renderImage(image, String(copy.title ?? "Ingredients"), theme.accent, "h-full min-h-[520px] w-full object-cover")}
+              <div className={`min-h-[520px] overflow-hidden ${imageSide === "right" ? "lg:order-last" : ""}`}>
+                {renderMedia(image, String(copy.title ?? "Ingredients"), theme.accent, "h-full min-h-[520px] w-full object-cover")}
               </div>
               <div className="flex flex-col justify-center px-6 py-16 sm:px-10 lg:px-16">
-                <div className="font-mono text-[12px] uppercase tracking-[0.24em]" style={{ color: rgba(theme.accent, 0.8) }}>Ingredients</div>
+                <div className="font-mono text-[12px] uppercase tracking-[0.24em]" style={{ color: rgba(theme.accent, 0.8) }}>{cleanCustomerCopy(copy.eyebrow, "Ingredients")}</div>
                 <h2 className="mt-5 max-w-[620px] text-[40px] font-light leading-[1.08] sm:text-[56px]" style={{ color: theme.heroText, fontFamily: theme.headingFont }}>
                   {cleanCustomerCopy(copy.title, "Ingredient-led care")}
                 </h2>
@@ -2541,7 +2642,7 @@ function ClassicTemplateSurface({
           <div className="mx-auto grid max-w-[1320px] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <div className="font-mono text-[12px] uppercase tracking-[0.28em]" style={{ color: isStory ? rgba(theme.heroText, 0.66) : theme.accent }}>
-                {isStory ? "Brand story" : "More detail"}
+                {cleanCustomerCopy(copy.eyebrow, isStory ? "Brand story" : "More detail")}
               </div>
               <h2 className="mt-4 max-w-[680px] text-[42px] font-semibold leading-[0.98] sm:text-[64px]" style={{ color: isStory ? theme.heroText : theme.ink, fontFamily: theme.headingFont }}>
                 {title}
@@ -2563,7 +2664,7 @@ function ClassicTemplateSurface({
                 </div>
               ) : null}
             </div>
-            <div className="relative min-h-[520px]">
+            <div className={`relative min-h-[520px] ${imageSide === "left" ? "lg:order-first" : ""}`}>
               <div className="absolute left-0 top-0 h-[72%] w-[72%] overflow-hidden rounded-[6px] bg-white/8">
                 {renderImage(storyImage, title, theme.accent, "h-full w-full object-cover")}
               </div>
@@ -2603,10 +2704,13 @@ function ClassicTemplateSurface({
       return (
         <section key={kindSection.id} className="px-5 py-14 sm:px-8">
           <div className="mx-auto max-w-[1320px]">
-          <SectionHeading eyebrow="Customer proof" title="What our customers say" headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
-          <div className={`mt-8 grid gap-5 ${testimonialLayout === "slider" ? "auto-cols-[minmax(280px,380px)] grid-flow-col overflow-x-auto pb-3" : testimonialLayout === "masonry" ? "md:grid-cols-2 lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          <SectionHeading eyebrow={cleanCustomerCopy(copy.eyebrow, "Customer proof")} title={cleanCustomerCopy(copy.title, "What our customers say")} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
+          <div
+            className={`mt-8 grid gap-5 ${testimonialLayout === "slider" ? "auto-cols-[minmax(260px,380px)] grid-flow-col snap-x snap-mandatory overflow-x-auto overscroll-x-contain pb-3" : testimonialLayout === "masonry" ? "md:grid-cols-2 lg:grid-cols-4" : "lg:grid-cols-3"}`}
+            {...(testimonialLayout === "slider" ? { tabIndex: 0, role: "region", "aria-label": "Reviews. Swipe or scroll sideways for more." } : {})}
+          >
             {(kindSection.items ?? []).map((item, index) => (
-              <div key={`${kindSection.id}-${index}`} className="border px-6 py-6" style={blockPanelStyle(item.variant ?? (testimonialLayout === "masonry" && index % 2 ? "soft" : "plain"), theme)}>
+              <div key={`${kindSection.id}-${index}`} className={`border px-6 py-6 ${testimonialLayout === "slider" ? "snap-start" : ""}`} style={blockPanelStyle(item.variant ?? (testimonialLayout === "masonry" && index % 2 ? "soft" : "plain"), theme)}>
                 <div className="mb-5 flex gap-1 text-[13px]" style={{ color: theme.accent }}>
                   {Array.from({ length: 5 }).map((_, starIndex) => <span key={starIndex}>*</span>)}
                 </div>
@@ -3102,6 +3206,8 @@ function ClassicTemplateSurface({
     ? readShopperInfo(store.shopper).announcement ?? ""
     : writtenAnnouncement;
   const footerCopy = footer?.blocks.find((entry) => entry.type === "copy")?.content ?? {};
+  // Null in the builder (no storefront layout around it).
+  const storeBadges = useStoreFooterBadges();
   const footerPaymentBadges = Array.isArray(footer?.settings?.paymentBadges)
     ? footer.settings.paymentBadges.map((item) => String(item))
     : ["Cards", "Bank transfer", "USSD", "Mobile money"];
@@ -3310,7 +3416,6 @@ function ClassicTemplateSurface({
                 <span>{store.city ? `${store.city}${store.country ? `, ${store.country}` : ""}` : "Online storefront"}</span>
                 {footerCopy.email ? <span>{String(footerCopy.email)}</span> : null}
                 {footerCopy.phone ? <span>{String(footerCopy.phone)}</span> : null}
-                {footer.settings?.showPayments !== false ? <span>Cards, bank transfer, USSD, and mobile money accepted</span> : null}
                 {footer.settings?.showDelivery !== false ? <span>Fast & reliable delivery</span> : null}
                 {footerCopy.whatsappLabel ? (
                   <button type="button" className="mt-2 w-fit rounded-full px-4 py-2 text-[12px] font-semibold" style={{ background: theme.ctaBg, color: theme.ctaText }}>
@@ -3341,7 +3446,10 @@ function ClassicTemplateSurface({
               {policyLinks.map((link) => <a key={link.key} href={link.href} className="inline-flex min-h-[32px] items-center hover:underline" style={{ color: rgba(theme.heroText, 0.8) }}>{link.label}</a>)}
             </nav>
           ) : null}
-          {footer.settings?.showPayments !== false ? (
+          {/* On the storefront the seller's own payment logos and "Built with Shopinbos" (StoreFooterBadges); the builder keeps the sample chips. */}
+          {storeBadges ? (
+            <StoreFooterBadges muted={rgba(theme.heroText, 0.62)} border={rgba(theme.heroText, 0.18)} ink={theme.heroText} showPayments={footer.settings?.showPayments !== false} />
+          ) : footer.settings?.showPayments !== false ? (
             <div className="flex flex-wrap gap-2">
               {footerPaymentBadges.map((badge) => (
                 <span key={badge} className="rounded-[4px] border px-2.5 py-1 font-bold uppercase tracking-[0.06em]" style={{ borderColor: rgba(theme.heroText, 0.18), color: rgba(theme.heroText, 0.76) }}>

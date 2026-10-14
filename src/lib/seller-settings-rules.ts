@@ -3,6 +3,7 @@
 // saveBusinessAddress action). Only zod and relative imports, so tests/seller-settings.test.mjs loads it directly.
 import { z } from "zod";
 import { cleanAccountNumber, isTransferWindowChoice } from "../../shared/seller-payments.ts";
+import { PaymentBadgesSchema } from "./store-badges.ts";
 
 export const PaymentsPatchSchema = z
   .object({
@@ -13,8 +14,10 @@ export const PaymentsPatchSchema = z
       .nullable()
       .refine((hours) => isTransferWindowChoice(hours), "Choose one of the listed times.")
       .optional(),
+    /** The payment logos shown on the store (shared/payment-badges.ts). */
+    paymentBadges: PaymentBadgesSchema.optional(),
   })
-  .refine((body) => body.methods !== undefined || body.transferWindowHours !== undefined, "Nothing to save.");
+  .refine((body) => body.methods !== undefined || body.transferWindowHours !== undefined || body.paymentBadges !== undefined, "Nothing to save.");
 
 export const ResolveAccountSchema = z.object({
   bankName: z.string().trim().min(1, "Choose your bank.").max(80),

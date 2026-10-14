@@ -140,6 +140,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
                   {plan.features.map((f, index) => (
                     <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t.dynamic(`plan.${plan.key}.f${index + 1}`, f)}</li>
                   ))}
+                  {/* Any paid plan lets the seller turn the "Built with Shopinbos" badge off in the store editor (src/lib/store-badges.ts). */}
+                  {plan.monthlyPlan && (
+                    <li className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t("plan.noBadge")}</li>
+                  )}
                   {/* Annual Growth and Pro pay for the seller's domain (src/lib/seller-plan.ts); monthly plans don't. */}
                   {billing === "annual" && plan.annualPlan && (
                     <li className="flex gap-2 font-bold text-app-ink"><span aria-hidden className="text-app-success">✓</span>{t("plan.freeDomain")}</li>

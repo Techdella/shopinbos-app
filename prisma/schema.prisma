@@ -3095,3 +3095,29 @@ model DomainPurchase {
   @@index([expiresAt])
 }
 // ---- end domain billing ----
+
+// ---- media library ----
+// Every picture (or video) a person has in their library: things they uploaded, and the photos, logo, banners and
+// editor images found in their store (docs/migrations/2026-10-26-media-library.sql backfills, and
+// shopinbos_media_sync(userId) tops it up when the library opens). Removing one only hides it (hiddenAt): the file
+// may still be on a live page. src/lib/media/library.server.ts, /api/app/media.
+model MediaAsset {
+  id        String    @id @default(cuid())
+  userId    String
+  storeId   String?
+  url       String
+  path      String? // storage path in the public bucket, when we stored it
+  name      String? // original file name or the product's name, for search
+  kind      String    @default("image") // image | video
+  width     Int?
+  height    Int?
+  bytes     Int?
+  source    String    @default("upload") // upload | product | ai | logo | banner | editor | collection | cms
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
+  @@index([storeId])
+}
+// ---- end media library ----

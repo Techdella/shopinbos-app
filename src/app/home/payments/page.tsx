@@ -11,6 +11,7 @@ import { isOnlinePayment } from "@shared/seller-payments";
 import { sellerMoneyOverview } from "@/lib/seller-payments.server";
 import { BankCard } from "./BankCard";
 import { PaymentMethods } from "./PaymentMethods";
+import { PaymentLogos } from "./PaymentLogos";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,7 +29,7 @@ export default async function SellerPaymentsPage() {
     select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true },
   });
   const now = new Date();
-  const { summary, waiting, latestPaid, methods: savedMethods, transferWindow, bank } = await sellerMoneyOverview(store, now);
+  const { summary, waiting, latestPaid, methods: savedMethods, transferWindow, bank, paymentBadges } = await sellerMoneyOverview(store, now);
   const { paidCount, online, offline, refunded, moneyIn } = summary;
   const days = summary.daily.map((row) => row.day);
   const daily = summary.daily.map((row) => row.total);
@@ -127,6 +128,7 @@ export default async function SellerPaymentsPage() {
               )}
             </Card>
             <PaymentMethods initial={savedMethods} transferWindow={transferWindow} />
+            {store ? <PaymentLogos initial={paymentBadges.selected} defaults={paymentBadges.defaults} /> : null}
             <AssistantNote>
               {t("money.note")}
             </AssistantNote>

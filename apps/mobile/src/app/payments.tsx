@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } fr
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira, PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
+import { cleanPaymentBadges, PAYMENT_BADGE_KEYS, PAYMENT_BADGE_LABELS, type PaymentBadgeKey } from "@shared/payment-badges";
 import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -31,6 +32,7 @@ function hoursLabel(hours: number, t: T_) {
 function saveMessage(error: unknown, t: T_) {
   if (error instanceof ApiError && error.code === "KEEP_ONE") return t("money.keepOne");
   if (error instanceof ApiError && error.code === "CHOOSE_TIME") return t("money.chooseTime");
+  if (error instanceof ApiError && error.code === "BAD_BADGES") return t("money.badBadges");
   return error instanceof Error ? error.message : t("saveFailed");
 }
 
@@ -67,6 +69,17 @@ export default function Payments() {
 
   const setWindow = (hours: number | null) =>
     void save({ transferWindowHours: hours }, (current) => ({ ...current, transferWindow: { ...current.transferWindow, hours } }));
+
+  /** Show or hide one payment logo on the store (footer and checkout); saved through PATCH paymentBadges. */
+  const setBadges = (paymentBadges: PaymentBadgeKey[]) =>
+    void save({ paymentBadges }, (current) => ({ ...current, paymentBadges: { ...current.paymentBadges, selected: paymentBadges, chosen: true } }));
+  const toggleBadge = (badge: PaymentBadgeKey) => {
+    if (!data) return;
+    const selected = data.paymentBadges.selected;
+    setBadges(cleanPaymentBadges(selected.includes(badge) ? selected.filter((key) => key !== badge) : [...selected, badge]));
+  };
+  const badgeName = (badge: PaymentBadgeKey) =>
+    badge === "transfer" ? t("money.badge.transfer") : badge === "cod" ? t("money.badge.cod") : PAYMENT_BADGE_LABELS[badge];
 
   if (!data) {
     return (
@@ -148,6 +161,21 @@ export default function Payments() {
         </Card>
       ) : null}
       <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("money.methodsNote")}</T>
+
+      <SectionTitle>{t("money.badgesTitle")}</SectionTitle>
+      <Card style={{ gap: 12 }}>
+        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("money.badgesHint")}</T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {PAYMENT_BADGE_KEYS.map((badge) => (
+            <Chip key={badge} label={badgeName(badge)} on={data.paymentBadges.selected.includes(badge)} onPress={() => toggleBadge(badge)} />
+          ))}
+        </View>
+        {!data.paymentBadges.selected.length ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("money.badgesNone")}</T> : null}
+        {data.paymentBadges.defaults.length > 0 &&
+        (data.paymentBadges.selected.length !== data.paymentBadges.defaults.length || data.paymentBadges.selected.some((badge) => !data.paymentBadges.defaults.includes(badge))) ? (
+          <LinkButton title={t("money.badgesReset")} onPress={() => setBadges(data.paymentBadges.defaults)} />
+        ) : null}
+      </Card>
 
       <SectionTitle>{t("money.latest")}</SectionTitle>
       {data.latestPaid.length ? (

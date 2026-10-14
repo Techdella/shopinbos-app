@@ -1,5 +1,6 @@
 import type { PaymentMethodKey } from "@shared/onboarding";
 import type { PayoutBankSummary } from "@shared/seller-payments";
+import type { PaymentBadgeKey } from "@shared/payment-badges";
 import { api } from "./api";
 import type { Zone } from "./settings-pure";
 
@@ -20,13 +21,15 @@ export interface PaymentsOverview {
   transferWindow: { hours: number | null; defaultHours: number; choices: number[] };
   bank: PayoutBankSummary | null;
   banks: string[];
+  /** The payment logos on the store: shown now, whether the seller picked them, and the payment-method defaults. */
+  paymentBadges: { selected: PaymentBadgeKey[]; chosen: boolean; defaults: PaymentBadgeKey[] };
   money: { moneyIn: number; online: number; offline: number; refunded: number; paidCount: number; waiting: { total: number; count: number } };
   latestPaid: { id: string; orderNumber: string; buyerName: string | null; total: number; paymentMethod: string | null; createdAt: string }[];
 }
 
 export const fetchPayments = () => api<PaymentsOverview>("/api/app/payments");
 
-export const savePaymentSettings = (body: { methods?: Record<PaymentMethodKey, boolean>; transferWindowHours?: number | null }) =>
+export const savePaymentSettings = (body: { methods?: Record<PaymentMethodKey, boolean>; transferWindowHours?: number | null; paymentBadges?: PaymentBadgeKey[] }) =>
   api<PaymentsOverview>("/api/app/payments", { method: "PATCH", json: body });
 
 export type ResolvedAccount = { status: "resolved"; accountName: string } | { status: "not_found" } | { status: "unavailable" };

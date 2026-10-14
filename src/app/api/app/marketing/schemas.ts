@@ -146,11 +146,28 @@ export const FormSchema = z.object({
       imageUrl: z.string().max(1000).optional(),
       consentText: z.string().max(400).optional(),
       askSmsConsent: z.boolean().optional(),
+      // How the pop-up looks (template, colours, corners, font, picture, size, overlay, close button).
+      style: z
+        .object({
+          template: z.enum(["classic", "split", "takeover", "corner", "badge", "minimal", "luxe", "festive"]).optional(),
+          background: z.string().max(9).optional(),
+          text: z.string().max(9).optional(),
+          button: z.string().max(9).optional(),
+          buttonText: z.string().max(9).optional(),
+          radius: z.enum(["square", "soft", "round"]).optional(),
+          font: z.enum(["theme", "modern", "elegant", "clean"]).optional(),
+          imagePosition: z.enum(["left", "top", "background", "none"]).optional(),
+          size: z.enum(["small", "medium", "large"]).optional(),
+          overlay: z.number().int().min(0).max(90).optional(),
+          closeStyle: z.enum(["icon", "circle", "text"]).optional(),
+          badgeText: z.string().max(24).optional(),
+        })
+        .optional(),
     })
     .default({}),
   popupConfig: z
     .object({
-      layout: z.enum(["modal", "flyout", "bar"]).default("modal"),
+      layout: z.enum(["modal", "flyout", "bar", "fullscreen"]).default("modal"),
       trigger: z.enum(["immediate", "delay", "exit_intent", "scroll"]).default("delay"),
       delaySeconds: z.number().int().min(0).max(600).default(8),
       scrollPercent: z.number().int().min(5).max(100).default(50),
@@ -158,8 +175,21 @@ export const FormSchema = z.object({
       frequency: z.enum(["once", "session", "always", "days"]).default("once"),
       frequencyDays: z.number().int().min(1).max(365).default(7),
       devices: z.array(z.enum(["mobile", "desktop"])).min(1).default(["mobile", "desktop"]),
-      // Sign-up reward: a one-use coupon made for each new subscriber.
-      reward: z.object({ type: z.enum(["percentage", "fixed_amount"]), value: z.number().positive().max(10_000_000), days: z.number().int().min(1).max(365).default(14) }).nullable().optional(),
+      // Sign-up reward: the store's own code, or one made here (shared, or one-use per person). See lib/marketing/popup-rewards.
+      reward: z
+        .object({
+          source: z.enum(["new", "existing"]).default("new"),
+          type: z.enum(["percentage", "fixed_amount", "free_shipping", "bogo"]).default("percentage"),
+          value: z.number().min(0).max(10_000_000).default(0),
+          days: z.number().int().min(0).max(365).default(0),
+          minOrder: z.number().min(0).max(100_000_000).default(0),
+          unique: z.boolean().default(true),
+          discountId: z.string().max(64).nullable().optional(),
+          code: z.string().trim().max(40).optional(),
+          prefix: z.string().trim().max(12).optional(),
+        })
+        .nullable()
+        .optional(),
       afterSubmit: z.enum(["message", "redirect"]).default("message"),
       redirectUrl: z.string().max(1000).optional(),
     })

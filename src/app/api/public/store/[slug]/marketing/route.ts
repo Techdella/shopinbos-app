@@ -5,6 +5,7 @@ import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, apiError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { readDesign, readFields, readPopupConfig } from "@/lib/marketing/forms";
+import { publicRewardSummary } from "@/lib/marketing/popup-rewards.server";
 
 // Storefront pop-ups and sign-up forms: GET lists the live pop-ups (what the storefront mount shows),
 // POST counts a view. No personal data either way.
@@ -24,15 +25,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const store = await activeStore((await params).slug);
   if (!store) return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
   const forms = await db.storeForm.findMany({ where: { storeId: store.id, active: true, isPopup: true }, orderBy: { updatedAt: "desc" }, take: 5 });
-  const popups = forms.map((form) => {
-    const config = readPopupConfig(form.popupConfig);
-    return {
-      id: form.id,
-      fields: readFields(form.fields),
-      design: readDesign(form.design, form.name),
-      config: { ...config, reward: config.reward ? { type: config.reward.type, value: config.reward.value, days: config.reward.days } : null },
-    };
-  });
+  const popups = await Promise.all(
+    forms.map(async (form) => {
+      const config = readPopupConfig(form.popupConfig);
+      // What the reward is, never the code itself: that is only handed out when someone signs up.
+      return {
+        id: form.id,
+        fields: readFields(form.fields),
+        design: readDesign(form.design, form.name),
+        config: { ...config, reward: await publicRewardSummary(store.id, config.reward) },
+      };
+    }),
+  );
   const res = withCors(req, ok({ popups }), CORS);
   res.headers.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   return res;

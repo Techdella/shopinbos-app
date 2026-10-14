@@ -28,6 +28,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "scene.tapToFinish": "Tap to finish",
   "scene.deal": "Deal don set ✓",
   "scene.cashAtDoor": "CASH FOR DOOR",
+  // Logged in on another portal's page: why they landed on their own home (components/auth/PortalNote.tsx)
+  "portalNote.seller": "You get seller account, so we open your shop.",
+  "portalNote.supplier": "You get supplier account, so we open your supplier portal.",
+  "portalNote.logistics_partner": "You get delivery partner account, so we open your delivery portal.",
+  "portalNote.admin": "You get admin account, so we open admin panel.",
 };
 
 export default pcm;

@@ -28,6 +28,8 @@ import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
 import { GameSection } from "../gamification/GameSection";
+import { HeroSlider, slideAlign } from "../HeroSlider";
+import { readHeroSlides, readProductLimit, readSlideLink, readSlideTiming, type HeroSlide, type SlideLink } from "@/lib/store-templates/section-content";
 import type { GameSectionKind } from "@/lib/gamification/logic";
 
 export interface BoutiqueStore {
@@ -175,7 +177,6 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const [sheet, setSheet] = useState<ShopperSheet>(live && props.initialQuery ? "search" : null);
   const [filter, setFilter] = useState<{ category: string; collection: string; q: string; sort: string }>({ category: "all", collection: "", q: "", sort: "featured" });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [heroSlide, setHeroSlide] = useState(0);
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
@@ -285,7 +286,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const uploaded = itemImages(section);
     const fromProducts = products.map((product) => product.images[0]).filter(Boolean) as string[];
     const slides = (uploaded.length ? uploaded : fromProducts).slice(0, 3);
-    const image = layout === "plain-slides" ? slides[heroSlide % Math.max(slides.length, 1)] : slides[0];
+    const image = slides[0];
     const title = text(copy.title) || store.name;
     const body = text(copy.body) || (layout === "plain-slides" ? "" : text(store.description));
     const cta = text(copy.primaryCta) || "Shop now";
@@ -702,30 +703,62 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
 
     if (layout === "plain-slides") {
+      // Each slide carries its own picture or video, words and button (older saves share the section's words).
+      // No slides yet: the product photos rotate under the section's words, as before.
+      const own = readHeroSlides(section);
+      const sliderSlides: HeroSlide[] = own.length
+        ? own
+        : (fromProducts.length ? fromProducts.slice(0, 3) : [""]).map((src) => ({
+            mediaUrl: src,
+            mediaType: src ? "image" : "none",
+            alt: "",
+            heading: title,
+            text: body,
+            buttonLabel: cta,
+            link: readSlideLink(undefined, section.settings),
+            textTone: src ? "light" : "dark",
+            textPosition: "left",
+          }));
+      const openLink = (link: SlideLink) => {
+        if (link.type === "product") {
+          if (link.value) openProduct(link.value);
+          return;
+        }
+        if (link.type === "url") {
+          if (live && link.value) window.location.href = link.value;
+          return;
+        }
+        go(link.value || "products");
+      };
       return (
-        <section aria-labelledby={headingId} aria-roledescription={slides.length > 1 ? "carousel" : undefined}>
-          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: look.placeholder }}>
-            {img}
-            <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 60%)" : "transparent" }} />
-            <div className="bq-wrap absolute inset-x-0 bottom-0 pb-8" style={{ color: image ? "#fff" : t.ink }}>
-              {text(copy.eyebrow) ? <p className="text-[12px] font-bold uppercase" style={{ letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
-              <h1 id={headingId} className="bq-h mt-2" style={{ ...look.headingStyle, fontSize: "clamp(32px, 5cqi, 52px)" }}>{title}</h1>
-              {body ? <p className="mt-2 max-w-[520px] text-[15px] opacity-90">{body}</p> : null}
-              <div className="mt-4 flex items-center gap-4">
-                <button type="button" className="bq-btn" style={image ? { background: "#fff", color: "#111", border: "1.5px solid #fff" } : look.primaryButton} onClick={() => go(action)}>{cta}</button>
-                {slides.length > 1 ? (
-                  <div className="flex gap-1.5">
-                    {slides.map((src, i) => (
-                      <button key={src} type="button" onClick={() => setHeroSlide(i)} aria-label={`Show slide ${i + 1} of ${slides.length}`} aria-current={i === heroSlide % slides.length ? "true" : undefined} className="h-6 border-0 bg-transparent p-0" style={{ cursor: "pointer" }}>
-                        <span className="block h-[3px] rounded-full" style={{ width: i === heroSlide % slides.length ? 22 : 10, background: image ? "#fff" : t.ink, opacity: i === heroSlide % slides.length ? 1 : 0.5 }} />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </section>
+        <HeroSlider
+          slides={sliderSlides}
+          timing={readSlideTiming(section.settings)}
+          label={title}
+          emptyBackground={look.placeholder}
+          slideClassName="bq-hero"
+          renderOverlay={(slide, i) => {
+            const light = slide.textTone === "light" && slide.mediaType !== "none";
+            const align = slideAlign(slide.textPosition);
+            const Heading = i === 0 ? "h1" : "h2";
+            const productLink = slide.link.type === "product" && slide.link.value ? productHref(slide.link.value) : undefined;
+            const buttonStyle: React.CSSProperties = light ? { background: "#fff", color: "#111", border: "1.5px solid #fff" } : look.primaryButton;
+            return (
+              <>
+                <div className="absolute inset-0" style={{ background: slide.mediaType === "none" ? "transparent" : light ? "linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 62%)" : "linear-gradient(to top, rgba(255,255,255,.78), rgba(255,255,255,0) 62%)" }} />
+                <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col pb-14" style={{ color: light ? "#fff" : t.ink, alignItems: align.items, textAlign: align.text }}>
+                  {slide.heading ? <Heading id={i === 0 ? headingId : undefined} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 5cqi, 52px)" }}>{slide.heading}</Heading> : null}
+                  {slide.text ? <p className="mt-2 max-w-[520px] text-[15px] opacity-90">{slide.text}</p> : null}
+                  {slide.buttonLabel ? (
+                    productLink || (live && slide.link.type === "url" && slide.link.value)
+                      ? <a className="bq-btn mt-4" style={buttonStyle} href={productLink ?? slide.link.value}>{slide.buttonLabel}</a>
+                      : <button type="button" className="bq-btn mt-4" style={buttonStyle} onClick={() => openLink(slide.link)}>{slide.buttonLabel}</button>
+                  ) : null}
+                </div>
+              </>
+            );
+          }}
+        />
       );
     }
 
@@ -793,14 +826,22 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const mapped = (section.items ?? [])
       .map((item) => (typeof item.mappedStoreProductId === "string" ? products.find((product) => product.id === item.mappedStoreProductId) : undefined))
       .filter((product): product is ShopperProduct => Boolean(product));
-    // Hand-picked products first (template apply maps a few), then the rest by reviews and newness.
+    const source = text(section.settings?.source);
+    // "Only products I pick": just those, in the seller's order.
+    if (source === "picked") return mapped;
+    // "One collection": that collection's products, best first. An unknown or empty collection falls back to best sellers.
+    if (source === "collection") {
+      const collection = shopper.collections.find((entry) => entry.id === text(section.settings?.collectionId));
+      if (collection) return bestSellers(products.filter((product) => collection.productIds.includes(product.id)));
+    }
+    // Best sellers: hand-picked products first (template apply maps a few), then the rest by reviews and newness.
     return [...mapped, ...bestSellers(products).filter((product) => !mapped.includes(product))];
   }
 
   function productRail(section: TemplateSectionNode) {
     const copy = copyOf(section);
     const railLayout = text(section.settings?.layout);
-    const list = sectionProducts(section).slice(0, railLayout === "dense" ? 12 : 8);
+    const list = sectionProducts(section).slice(0, readProductLimit(section.settings, railLayout === "dense" ? 12 : 8));
     const headingId = `${uid}-${section.id}`;
     if (!list.length) {
       return live ? (
@@ -952,9 +993,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function reviewsSection(section: TemplateSectionNode) {
     const copy = copyOf(section);
-    const reviews = shopper.reviews.slice(0, 3);
+    const reviews = shopper.reviews.slice(0, readProductLimit(section.settings, 3));
     if (!reviews.length) return editorHint("Customer reviews appear here once shoppers review their orders. We never show made-up reviews.");
     const headingId = `${uid}-${section.id}`;
+    const carousel = section.settings?.layout === "carousel";
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <h2 id={headingId} className="bq-h text-center text-[28px]" style={look.headingStyle}>{text(copy.title) || "What customers say"}</h2>
@@ -963,9 +1005,14 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <span aria-hidden style={{ color: "#F2A93B", letterSpacing: 1.5 }}>★★★★★</span> {shopper.rating.average.toFixed(1)} from {shopper.rating.count} {shopper.rating.count === 1 ? "review" : "reviews"}
           </p>
         ) : null}
-        <ul className="mt-6 grid gap-3 bq-cols-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+        <ul
+          className={carousel ? "mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]" : "mt-6 grid gap-3 bq-cols-3"}
+          style={carousel ? undefined : { gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
+          aria-label={carousel ? "Reviews. Swipe or scroll sideways for more." : undefined}
+          tabIndex={carousel ? 0 : undefined}
+        >
           {reviews.map((review) => (
-            <li key={review.id} className="rounded-[14px] p-5" style={{ background: look.raised }}>
+            <li key={review.id} className={carousel ? "w-[min(320px,85%)] shrink-0 snap-start rounded-[14px] p-5" : "rounded-[14px] p-5"} style={{ background: look.raised }}>
               <span aria-hidden style={{ color: "#F2A93B", letterSpacing: 1.5 }}>{"★".repeat(review.rating)}</span>
               <span className="sr-only">{review.rating} out of 5</span>
               <blockquote className="m-0 mt-2 text-[14.5px] leading-6">“{review.body}”</blockquote>
@@ -991,11 +1038,13 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {onAbout ? "Get in touch" : text(copy.primaryCta) || "Our story"}
       </button>
     );
+    // "Picture right" moves the picture after the words on wide screens; phones keep the picture on top.
+    const pictureRight = section.settings?.imagePosition === "right";
     if (section.settings?.layout === "editorial") {
       return (
         <section aria-labelledby={headingId} className="py-12 @3xl:py-16" style={{ background: look.storyBg }}>
           <div className="bq-wrap grid gap-8 @3xl:grid-cols-2 @3xl:items-center @3xl:gap-14">
-            <div className="bq-media" style={{ aspectRatio: "4 / 5", borderRadius: look.cardRadius }}>
+            <div className={pictureRight ? "bq-media @3xl:order-2" : "bq-media"} style={{ aspectRatio: "4 / 5", borderRadius: look.cardRadius }}>
               {image ? <img src={image} alt="" width={800} height={1000} loading="lazy" /> : null}
             </div>
             <div className="flex flex-col items-start gap-4">
@@ -1010,7 +1059,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
     return (
       <section aria-labelledby={headingId} className="bq-split" style={{ background: look.storyBg }}>
-        <div className="bq-media" style={{ aspectRatio: "4 / 3", minHeight: "100%" }}>
+        <div className={pictureRight ? "bq-media @3xl:order-2" : "bq-media"} style={{ aspectRatio: "4 / 3", minHeight: "100%" }}>
           {image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}
         </div>
         <div className="flex flex-col justify-center gap-3 px-6 py-10 @3xl:px-10">

@@ -2,6 +2,8 @@ import "server-only";
 import { toFile } from "openai";
 import { getOpenAIClient, OPENAI_IMAGE_MODEL } from "@/lib/ai/client";
 import { uploadFileServer } from "@/lib/supabase/storage.server";
+import { recordMedia } from "@/lib/media/library.server";
+import { aiImageOwner } from "@shared/media";
 
 // Image generation and editing for Rex (products, logos, banners, hero images). OpenAI image models only;
 // results are stored in Supabase so pages keep working after OpenAI's temporary URLs expire.
@@ -20,7 +22,11 @@ export class ImageUnavailableError extends Error {}
 
 async function store(b64: string, path: string) {
   const blob = new Blob([Buffer.from(b64, "base64")], { type: "image/webp" });
-  return (await uploadFileServer("brand", blob, path)).publicUrl;
+  const stored = await uploadFileServer("brand", blob, path);
+  // Rex's pictures and logos join the owner's media library (paths are generated|enhanced|logos|banners/<userId>/…).
+  const owner = aiImageOwner(path);
+  if (owner) await recordMedia({ userId: owner, url: stored.publicUrl, path: stored.path, kind: "image", bytes: blob.size, source: "ai" });
+  return stored.publicUrl;
 }
 
 export async function generateImage({

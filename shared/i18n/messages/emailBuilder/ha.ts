@@ -41,6 +41,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "preview.note": "Duban yana amfani da abokin ciniki na misali (Ada). Links, logo da launukanka suna fitowa daga brand kit ɗinka.",
   "preview.of": "Duban {label}",
   "preview.thumbnail": "Ƙaramin hoton {label}",
+  "preview.linksHint": "Hanyoyin haɗi suna aiki a imel ɗin da ka aika.",
   "vars.insert": "Saka bayanin mutum",
   "flowVar.name": "Sunansu na farko (ko “abokina”)",
   "flowVar.full_name": "Cikakken sunansu",

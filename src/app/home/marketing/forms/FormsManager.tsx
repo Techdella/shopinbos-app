@@ -6,8 +6,11 @@ import { Card, EmptyState, ListCard, ListRow, Pill } from "@/components/app-kit"
 import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/growth/Modal";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { Field, buttonClass, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
-import type { FormDesign, FormField, PopupConfig } from "@/lib/marketing/forms";
+import { DEFAULT_POPUP_STYLE, popupTemplate, type FormDesign, type FormField, type PopupConfig, type PopupStyle, type PopupTemplateId } from "@/lib/marketing/forms";
+import type { RenderablePopup } from "@/components/storefront/marketing/PopupView";
+import { LivePreview, NEW_REWARD, RewardEditor, StyleControls, TemplateGallery, rewardSummaryFor, type DiscountOption, type EditorTheme } from "./PopupDesigner";
 import { api, errorText } from "../_kit/client";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber, type TFunction } from "@shared/i18n";
@@ -27,6 +30,10 @@ export interface ManagedForm {
   config: PopupConfig;
   views: number;
   signups: number;
+  /** Times this form's codes were used at checkout (null: it doesn't hand out its own codes). */
+  codesUsed: number | null;
+  /** "10% off", for the list card. */
+  rewardText: string | null;
 }
 
 const TRIGGER_TEXT: Record<PopupConfig["trigger"], (c: PopupConfig, t: MarketingT) => string> = {
@@ -35,7 +42,7 @@ const TRIGGER_TEXT: Record<PopupConfig["trigger"], (c: PopupConfig, t: Marketing
   exit_intent: (_, t) => t("forms.trigger.exit"),
   scroll: (c, t) => t("forms.trigger.scroll", { percent: c.scrollPercent }),
 };
-const LAYOUT_TEXT: Record<PopupConfig["layout"], MessageKey<"marketing">> = { modal: "forms.layout.modal", flyout: "forms.layout.flyout", bar: "forms.layout.bar" };
+const LAYOUT_TEXT: Record<PopupConfig["layout"], MessageKey<"marketing">> = { modal: "forms.layout.modal", flyout: "forms.layout.flyout", bar: "forms.layout.bar", fullscreen: "forms.layout.fullscreen" };
 
 const DEFAULT_CONFIG: PopupConfig = { layout: "modal", trigger: "delay", delaySeconds: 8, scrollPercent: 50, pages: "all", frequency: "once", frequencyDays: 7, devices: ["mobile", "desktop"], reward: null, afterSubmit: "message", redirectUrl: "" };
 const DEFAULT_DESIGN: FormDesign = {
@@ -46,6 +53,7 @@ const DEFAULT_DESIGN: FormDesign = {
   imageUrl: "",
   consentText: "I agree to get emails about offers and new arrivals. I can unsubscribe at any time.",
   askSmsConsent: false,
+  style: DEFAULT_POPUP_STYLE,
 };
 
 interface Draft {
@@ -62,7 +70,7 @@ interface Draft {
 
 function toDraft(form: ManagedForm | null): Draft {
   if (!form) {
-    return { name: "Welcome pop-up", isPopup: true, active: true, design: DEFAULT_DESIGN, config: { ...DEFAULT_CONFIG, reward: { type: "percentage", value: 10, days: 14 } }, askName: true, askPhone: false, askBirthday: false, extra: [] };
+    return { name: "Welcome pop-up", isPopup: true, active: true, design: DEFAULT_DESIGN, config: { ...DEFAULT_CONFIG, reward: { ...NEW_REWARD } }, askName: true, askPhone: false, askBirthday: false, extra: [] };
   }
   const has = (type: string, key?: string) => form.fields.some((f) => f.type === type && (!key || f.key === key));
   return {
@@ -88,38 +96,32 @@ function fieldsFor(draft: Draft): FormField[] {
   ];
 }
 
-function Preview({ draft }: { draft: Draft }) {
-  const t = useT("marketing");
-  const fields = fieldsFor(draft);
-  const reward = draft.config.reward;
-  return (
-    <div className="rounded-[18px] bg-app-canvas p-4" aria-label={t("editor.preview")}>
-      <div className={draft.isPopup && draft.config.layout === "bar" ? "rounded-[14px] bg-white p-4" : "mx-auto max-w-[360px] rounded-[22px] bg-white p-5 shadow-sm"}>
-        <div className="text-[19px] font-extrabold leading-tight">{draft.design.headline}</div>
-        <p className="mb-3 mt-1.5 text-[13.5px] text-app-ink-soft">
-          {draft.design.body}
-          {draft.isPopup && reward ? <strong className="block text-app-ink">{reward.type === "percentage" ? `Get ${reward.value}% off your first order.` : `Get ₦${reward.value.toLocaleString("en-NG")} off your first order.`}</strong> : null}
-        </p>
-        <div className="grid gap-2">
-          {fields.map((field) => (
-            <div key={field.key} className="h-10 rounded-[10px] border border-app-line px-3 text-[13px] leading-10 text-app-ink-faint">{field.label}</div>
-          ))}
-          <div className="flex items-start gap-2 text-[11.5px] text-app-ink-soft"><span className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border border-app-line-strong" />{draft.design.consentText}</div>
-          <div className="grid h-10 place-items-center rounded-full bg-app-ink text-[13px] font-bold text-white">{draft.design.buttonText}</div>
-        </div>
-      </div>
-      <p className="mb-0 mt-3 text-[12.5px] text-app-ink-soft">{t("forms.previewNote")}</p>
-    </div>
-  );
+function previewPopup(draft: Draft, discounts: DiscountOption[]): RenderablePopup {
+  return {
+    id: "preview",
+    fields: fieldsFor(draft),
+    // Sign-up pages don't use the pop-up look: preview them plainly.
+    design: draft.isPopup ? draft.design : { ...draft.design, style: { ...DEFAULT_POPUP_STYLE, overlay: 0 } },
+    layout: draft.isPopup ? draft.config.layout : "modal",
+    reward: rewardSummaryFor(draft.config.reward, discounts),
+    afterSubmit: "message",
+    redirectUrl: "",
+  };
 }
 
-function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: ManagedForm | null; startAsPopup: boolean; onClose: () => void; onSaved: () => void }) {
+function FormEditor({ editing, startAsPopup, theme, discounts, onClose, onSaved }: { editing: ManagedForm | null; startAsPopup: boolean; theme: EditorTheme; discounts: DiscountOption[]; onClose: () => void; onSaved: () => void }) {
   const t = useT("marketing", "common");
   const [draft, setDraft] = useState<Draft>(() => ({ ...toDraft(editing), ...(editing ? {} : { isPopup: startAsPopup, name: startAsPopup ? t("forms.defaultPopupName") : t("forms.defaultPageName") }) }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const design = (patch: Partial<FormDesign>) => setDraft((d) => ({ ...d, design: { ...d.design, ...patch } }));
   const config = (patch: Partial<PopupConfig>) => setDraft((d) => ({ ...d, config: { ...d.config, ...patch } }));
+  const look = (patch: Partial<PopupStyle>) => setDraft((d) => ({ ...d, design: { ...d.design, style: { ...d.design.style, ...patch } } }));
+  const pickTemplate = (id: PopupTemplateId) => {
+    const template = popupTemplate(id);
+    setDraft((d) => ({ ...d, config: { ...d.config, layout: template.layout }, design: { ...d.design, style: { ...template.style, badgeText: d.design.style.badgeText } } }));
+  };
+  const popup = previewPopup(draft, discounts);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -133,7 +135,7 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
         active: draft.active,
         fields: fieldsFor(draft),
         design: draft.design,
-        popupConfig: { ...draft.config, redirectUrl: draft.config.redirectUrl || undefined },
+        popupConfig: { ...draft.config, redirectUrl: draft.config.redirectUrl || undefined, reward: draft.config.reward },
       };
       if (editing) await api(`/api/app/marketing/forms/${editing.id}`, "PATCH", body);
       else await api("/api/app/marketing/forms", "POST", body);
@@ -155,6 +157,15 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
           </Field>
         </div>
 
+        {draft.isPopup ? (
+          <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
+            <legend className="mb-1 p-0 text-[16px] font-extrabold">{t("forms.look")}</legend>
+            <p className="m-0 text-[13.5px] text-app-ink-soft">{t("forms.pickLook")}</p>
+            <TemplateGallery popup={popup} theme={theme} value={draft.design.style.template} onPick={pickTemplate} />
+            <StyleControls style={draft.design.style} layout={draft.config.layout} theme={theme} onStyle={look} onLayout={(layout) => config({ layout })} />
+          </fieldset>
+        ) : null}
+
         <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
           <legend className="mb-2 p-0 text-[16px] font-extrabold">{t("forms.whatItSays")}</legend>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -164,8 +175,8 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
           <Field label={t("forms.message")} htmlFor="f-body"><textarea id="f-body" rows={2} value={draft.design.body} onChange={(e) => design({ body: e.target.value })} className={textareaClass} maxLength={400} /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("forms.afterSignup")} htmlFor="f-done"><input id="f-done" value={draft.design.successMessage} onChange={(e) => design({ successMessage: e.target.value })} className={inputClass} maxLength={300} /></Field>
-            <Field label={t("forms.picture")} htmlFor="f-img"><input id="f-img" value={draft.design.imageUrl} onChange={(e) => design({ imageUrl: e.target.value })} className={inputClass} placeholder="https://" inputMode="url" /></Field>
           </div>
+          <Field label={t("forms.picture")} htmlFor="f-img-choose"><MediaPicker id="f-img" value={draft.design.imageUrl} onChange={(url) => design({ imageUrl: url })} /></Field>
           <Field label={t("forms.consent")} htmlFor="f-consent"><textarea id="f-consent" rows={2} value={draft.design.consentText} onChange={(e) => design({ consentText: e.target.value })} className={textareaClass} maxLength={400} /></Field>
         </fieldset>
 
@@ -184,13 +195,6 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
           <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
             <legend className="mb-2 p-0 text-[16px] font-extrabold">{t("forms.whenWhere")}</legend>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("forms.style")} htmlFor="f-layout">
-                <select id="f-layout" className={selectClass} value={draft.config.layout} onChange={(e) => config({ layout: e.target.value as PopupConfig["layout"] })}>
-                  <option value="modal">{t("forms.layout.modal")}</option>
-                  <option value="flyout">{t("forms.layout.flyout")}</option>
-                  <option value="bar">{t("forms.layout.bar")}</option>
-                </select>
-              </Field>
               <Field label={t("forms.showIt")} htmlFor="f-trigger">
                 <select id="f-trigger" className={selectClass} value={draft.config.trigger} onChange={(e) => config({ trigger: e.target.value as PopupConfig["trigger"] })}>
                   <option value="delay">{t("forms.afterSeconds")}</option>
@@ -238,29 +242,12 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
                 </label>
               ))}
             </div>
-            <div className="grid gap-3 rounded-[16px] border border-app-line p-4">
-              <label className="flex items-center gap-2.5 text-[14px] font-bold">
-                <input type="checkbox" className={checkClass} checked={Boolean(draft.config.reward)} onChange={(e) => config({ reward: e.target.checked ? { type: "percentage", value: 10, days: 14 } : null })} />
-                {t("forms.giveReward")}
-              </label>
-              {draft.config.reward ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Field label={t("forms.kind")} htmlFor="f-rtype">
-                    <select id="f-rtype" className={selectClass} value={draft.config.reward.type} onChange={(e) => config({ reward: { ...draft.config.reward!, type: e.target.value as "percentage" | "fixed_amount" } })}>
-                      <option value="percentage">{t("forms.percentOff")}</option>
-                      <option value="fixed_amount">{t("forms.nairaOff")}</option>
-                    </select>
-                  </Field>
-                  <Field label={draft.config.reward.type === "percentage" ? t("forms.percent") : t("forms.naira")} htmlFor="f-rvalue"><input id="f-rvalue" type="number" min={1} value={draft.config.reward.value} onChange={(e) => config({ reward: { ...draft.config.reward!, value: Number(e.target.value) } })} className={inputClass} /></Field>
-                  <Field label={t("forms.validFor")} htmlFor="f-rdays"><input id="f-rdays" type="number" min={1} max={365} value={draft.config.reward.days} onChange={(e) => config({ reward: { ...draft.config.reward!, days: Number(e.target.value) } })} className={inputClass} /></Field>
-                  <p className="m-0 text-[12.5px] text-app-ink-soft sm:col-span-3">{t("forms.rewardNote", { token: "{{discount_code}}" })}</p>
-                </div>
-              ) : null}
-            </div>
           </fieldset>
         ) : null}
 
-        <Preview draft={draft} />
+        <RewardEditor reward={draft.config.reward} discounts={discounts} onChange={(reward) => config({ reward })} />
+
+        <LivePreview popup={popup} theme={theme} />
 
         <label className="flex min-h-[40px] items-center gap-2.5 text-[14px] font-bold"><input type="checkbox" className={checkClass} checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> {t("forms.live")}</label>
         {error ? <Notice>{error}</Notice> : null}
@@ -273,7 +260,7 @@ function FormEditor({ editing, startAsPopup, onClose, onSaved }: { editing: Mana
   );
 }
 
-export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; storeSlug: string }) {
+export function FormsManager({ forms, storeSlug, theme, discounts }: { forms: ManagedForm[]; storeSlug: string; theme: EditorTheme; discounts: DiscountOption[] }) {
   const router = useRouter();
   const t = useT("marketing", "common");
   const locale = useLocale();
@@ -331,12 +318,13 @@ export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; store
                   <div className="truncate text-[15px] font-extrabold">{form.name}</div>
                   <div className="truncate text-[13px] text-app-ink-soft">
                     {form.isPopup ? `${t(LAYOUT_TEXT[form.config.layout])} ${TRIGGER_TEXT[form.config.trigger](form.config, t)}` : t("forms.signupPage")}
-                    {form.isPopup && form.config.reward ? ` · ${t("forms.reward", { value: form.config.reward.type === "percentage" ? `${form.config.reward.value}%` : `₦${formatNumber(form.config.reward.value, locale)}` })}` : ""}
+                    {form.rewardText ? ` · ${t("forms.gives", { value: form.rewardText })}` : ""}
                   </div>
                 </div>
                 <div className="text-[13px] text-app-ink-soft sm:w-[190px]">
                   <strong className="text-app-ink">{form.signups}</strong> {t("forms.signupsWord")}{form.isPopup ? <> · {t("reports.views", { count: form.views })}{rate !== null ? ` · ${rate}%` : ""}</> : null}
                   <div>{t("forms.last30")}</div>
+                  {form.codesUsed !== null ? <div><strong className="text-app-ink">{formatNumber(form.codesUsed, locale)}</strong> {t("forms.codesUsedWord")}</div> : null}
                 </div>
                 <Toggle on={form.active} onChange={(on) => void toggle(form, on)} label={t("forms.liveLabel", { name: form.name })} />
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -362,6 +350,8 @@ export function FormsManager({ forms, storeSlug }: { forms: ManagedForm[]; store
         <FormEditor
           editing={editor.editing}
           startAsPopup={editor.popup}
+          theme={theme}
+          discounts={discounts}
           onClose={() => setEditor(null)}
           onSaved={() => {
             setEditor(null);

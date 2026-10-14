@@ -7,6 +7,7 @@ import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
 import { SeoTab } from "@/components/seo/SeoTab";
+import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
@@ -158,6 +159,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [tagsStr, setTagsStr] = useState(product?.tags?.join(", ") ?? "");
   const [images, setImages] = useState<string[]>(product?.images ?? []);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState(product?.videoUrl ?? "");
 
   // "active" is an older spelling of Live; storefronts only sell "published".
@@ -397,6 +399,16 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                       <Icon name="upload" size={15} /> Upload photos
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" aria-label="Upload product photos" onChange={(e) => handleUpload(e.target.files)} />
+                    <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
+                      <Icon name="grid" size={15} /> Choose from my media
+                    </button>
+                    <MediaLibraryDialog
+                      open={libraryOpen}
+                      multiple
+                      title="Choose product photos"
+                      onClose={() => setLibraryOpen(false)}
+                      onSelect={(assets) => setImages((prev) => [...prev, ...assets.map((asset) => asset.url).filter((url) => !prev.includes(url))])}
+                    />
                   </>
                 }
               >

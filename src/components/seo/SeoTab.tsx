@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Toggle, cx } from "@/components/app-ui";
 import { SEO_LIMITS, lengthMeter, seoChecks, seoScore, type MeterState, type SeoFields } from "@/lib/seo/fields";
 import { useT } from "@/components/i18n/I18nProvider";
+import { MediaPicker } from "@/components/media/MediaPicker";
 
 type SeoT = ReturnType<typeof useT<["seo"]>>;
 
@@ -62,7 +63,7 @@ export interface SeoTabProps {
   content?: { firstParagraph?: string; bodyText?: string; images?: { total: number; missingAlt: number } };
   /** Narrow layout for side panels (the builder inspector). */
   compact?: boolean;
-  /** Let the seller upload a share image (POSTs to /api/app/cms/upload). */
+  /** Kept for callers; the share image always offers upload and the media library now (/api/app/media). */
   allowUpload?: boolean;
 }
 
@@ -106,9 +107,6 @@ export function SeoTab(props: SeoTabProps) {
   const { value, onChange } = props;
   const t = useT("seo");
   const id = useId();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const set = <K extends keyof SeoFields>(key: K, next: SeoFields[K]) => onChange({ ...value, [key]: next });
 
   const searchTitle = value.metaTitle || props.title || props.siteName;
@@ -123,25 +121,6 @@ export function SeoTab(props: SeoTabProps) {
     [value, props.title, props.slug, props.content?.firstParagraph, props.content?.bodyText, props.content?.images],
   );
   const score = seoScore(checks);
-
-  async function upload(file: File | undefined) {
-    if (!file) return;
-    setUploading(true);
-    setUploadError("");
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/app/cms/upload", { method: "POST", body: form });
-      const json = (await res.json().catch(() => null)) as { data?: { url: string }; error?: { message?: string } } | null;
-      if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("uploadFailed"));
-      set("socialImage", json.data.url);
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : t("uploadFailed"));
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  }
 
   const previews = (
     <div className="grid content-start gap-4">
@@ -245,19 +224,9 @@ export function SeoTab(props: SeoTabProps) {
           <textarea id={`${id}-sd`} className={area} rows={2} value={value.socialDescription} maxLength={300} placeholder={searchDescription || t("shareDescPh")} onChange={(e) => set("socialDescription", e.target.value)} />
         </div>
         <div>
-          <Label htmlFor={`${id}-si`} hint={t("imageHint")}>{t("shareImage")}</Label>
-          <div className="flex flex-wrap gap-2">
-            <input id={`${id}-si`} className={cx(input, "min-w-0 flex-1 basis-[200px]")} value={value.socialImage} placeholder="https://…" onChange={(e) => set("socialImage", e.target.value.trim())} />
-            {props.allowUpload !== false && (
-              <>
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("uploadShare")} onChange={(e) => void upload(e.target.files?.[0])} />
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong disabled:opacity-60">
-                  <Icon name="upload" size={15} /> {uploading ? t("uploading") : t("upload")}
-                </button>
-              </>
-            )}
-          </div>
-          {uploadError && <p className="m-0 mt-1.5 text-[13px] text-app-danger" role="alert">{uploadError}</p>}
+          <Label htmlFor={`${id}-si-choose`} hint={t("imageHint")}>{t("shareImage")}</Label>
+          {/* Upload, choose from the media library, or paste a link (src/components/media). */}
+          <MediaPicker id={`${id}-si`} value={value.socialImage} onChange={(url) => set("socialImage", url.trim())} compact />
         </div>
       </section>
 

@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
+import { StoreFootnote } from "./StoreFooterBadges";
 import type { ShopperTheme } from "./theme";
 
 // Frame for the bag, wishlist, checkout and order pages: the store's name and colours, a way back to
@@ -20,6 +21,7 @@ export function ShopperShell({
   bagCount,
   wishlistCount,
   showWishlist = true,
+  footPayments = true,
   children,
 }: {
   theme: ShopperTheme;
@@ -30,6 +32,8 @@ export function ShopperShell({
   bagCount?: number;
   wishlistCount?: number;
   showWishlist?: boolean;
+  /** The payment logos in the footnote (checkout shows them by the total instead). */
+  footPayments?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -71,7 +75,11 @@ export function ShopperShell({
           </nav>
         </div>
       </header>
-      <main id="shopper-main" className="px-4 pb-32 pt-6 sm:px-6 lg:px-10 lg:pb-16">{children}</main>
+      <main id="shopper-main" className="px-4 pb-32 pt-6 sm:px-6 lg:px-10 lg:pb-16">
+        {children}
+        {/* Payment logos and, "Built with Shopinbos" (from the storefront layout). */}
+        <StoreFootnote muted={theme.muted} border={theme.border} ink={theme.ink} showPayments={footPayments} className="mt-12" />
+      </main>
     </div>
   );
 }
