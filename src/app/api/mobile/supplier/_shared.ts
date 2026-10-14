@@ -3,7 +3,8 @@ import { db } from "@/lib/db/client";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { listDropshipOrders, type DropshipView } from "@/lib/supplier-orders/views.server";
 import { toE164 } from "@shared/phone";
-import { nextActions } from "./_rules";
+import { nextActions, type SupplierOrderAction } from "./_rules";
+import { pickupSummaries } from "@/lib/supplier-orders/views.server";
 
 // Shared by the mobile supplier routes (/api/mobile/supplier/**): the supplier's dropship orders (SupplierOrder:
 // what they ship for a shop's order, with what goes on the parcel) and wholesale orders, in the shape the app reads.
@@ -25,7 +26,8 @@ export function appDropshipView(order: DropshipView) {
     status: order.status,
     // The shop's order has other products too (the supplier ships only theirs).
     mixed: order.otherItemsInOrder,
-    next: nextActions("dropship", order.status),
+    // "I've packed it" is kept on the order (packedAt); it stays "accepted" until the rider has it.
+    next: order.status === "accepted" && !order.packedAt ? (["packed", ...nextActions("dropship", order.status)] as SupplierOrderAction[]) : nextActions("dropship", order.status),
     shop: order.shop,
     sellerUserId: order.sellerUserId,
     // What goes on the label: the shop's name as the sender, the buyer as the recipient.
@@ -41,6 +43,9 @@ export function appDropshipView(order: DropshipView) {
     notes: order.notes,
     trackingCode: order.trackingCode,
     rejectReason: order.rejectReason,
+    acceptBy: order.acceptBy,
+    packed: Boolean(order.packedAt),
+    pickup: order.pickup,
     createdAt: order.createdAt,
   };
 }
@@ -55,14 +60,14 @@ export type DropshipOrderView = ReturnType<typeof appDropshipView>;
 
 export const WHOLESALE_SELECT = {
   id: true, sellerId: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, deliveryAddress: true, notes: true,
-  status: true, trackingCode: true, rejectReason: true, createdAt: true,
+  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true,
   seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
   supplierProduct: { select: { id: true, name: true, images: true } },
 } as const;
 
 type WholesaleRow = {
   id: string; sellerId: string; quantity: number; unitPrice: number; totalPrice: number; currency: string; deliveryAddress: string; notes: string | null;
-  status: string; trackingCode: string | null; rejectReason: string | null; createdAt: Date;
+  status: string; trackingCode: string | null; rejectReason: string | null; createdAt: Date; acceptBy: Date | null;
   seller: { name: string; phone: string | null; store: { name: string } | null };
   supplierProduct: { id: string; name: string; images: string[] };
 };
@@ -87,8 +92,18 @@ export function wholesaleView(order: WholesaleRow) {
     notes: order.notes,
     trackingCode: order.trackingCode,
     rejectReason: order.rejectReason,
+    acceptBy: order.acceptBy?.toISOString() ?? null,
+    packed: order.status === "processing",
+    pickup: null as { status: string; text: string | null } | null,
     createdAt: order.createdAt.toISOString(),
   };
 }
 
 export type WholesaleOrderView = ReturnType<typeof wholesaleView>;
+
+/** Bulk orders with their rider booking ("Pick up 12–4pm today"), for the list and the order screen. */
+export async function wholesaleViews(rows: WholesaleRow[]) {
+  const views = rows.map(wholesaleView);
+  const pickups = await pickupSummaries("wholesale", views.filter((view) => view.status === "processing" || view.status === "shipped").map((view) => view.id));
+  return views.map((view) => ({ ...view, pickup: pickups.get(view.id) ?? null }));
+}

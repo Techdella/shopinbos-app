@@ -1,5 +1,9 @@
 import type { DocType, VerificationDoc } from "@shared/verification-docs";
 import { verificationFileHref } from "@/lib/security/private-files";
+import type { TFunction } from "@shared/i18n";
+
+/** Optional translate function (any page's t): the messages live in the "verification" namespace. */
+type Translate = Pick<TFunction, "dynamic">;
 
 export type VerificationUploadEndpoint = "/api/supplier/verification/upload" | "/api/logistics/verification/upload";
 
@@ -9,13 +13,18 @@ interface UploadResponse {
   error?: string | { message?: string };
 }
 
-function errorMessage(body: UploadResponse | null, status: number): string {
+function errorMessage(body: UploadResponse | null, status: number, t?: Translate, verb: "upload" | "remove" = "upload"): string {
   const fromBody = typeof body?.error === "string" ? body.error : body?.error?.message;
   if (fromBody) return fromBody;
-  if (status === 413) return "That file is too large for the server. Try a smaller file.";
-  if (status === 401 || status === 403) return "Your session has ended. Sign in again and retry.";
-  if (status === 0) return "Upload failed. Check your connection and try again.";
-  return "Upload failed. Please try again.";
+  const say = (key: string, english: string) => (t ? t.dynamic(key, english) : english);
+  if (status === 413) return say("upload.tooLarge", "That file is too large for the server. Try a smaller file.");
+  if (status === 401 || status === 403) return say("upload.sessionEnded", "Your session has ended. Sign in again and retry.");
+  if (verb === "remove") {
+    if (status === 0) return say("upload.removeFailedConnection", "Remove failed. Check your connection and try again.");
+    return say("upload.removeFailed", "Remove failed. Please try again.");
+  }
+  if (status === 0) return say("upload.failedConnection", "Upload failed. Check your connection and try again.");
+  return say("upload.failed", "Upload failed. Please try again.");
 }
 
 /**
@@ -28,6 +37,7 @@ export function uploadVerificationFile(
   docType: DocType,
   file: File,
   onProgress?: (percent: number) => void,
+  t?: Translate,
 ): Promise<VerificationDoc> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
@@ -51,23 +61,23 @@ export function uploadVerificationFile(
         onProgress?.(100);
         resolve(body.doc);
       } else {
-        reject(new Error(errorMessage(body, xhr.status)));
+        reject(new Error(errorMessage(body, xhr.status, t)));
       }
     };
-    xhr.onerror = () => reject(new Error(errorMessage(null, 0)));
-    xhr.onabort = () => reject(new Error("Upload cancelled."));
+    xhr.onerror = () => reject(new Error(errorMessage(null, 0, t)));
+    xhr.onabort = () => reject(new Error(t ? t.dynamic("upload.cancelled", "Upload cancelled.") : "Upload cancelled."));
     xhr.send(form);
   });
 }
 
-export async function deleteVerificationFile(endpoint: VerificationUploadEndpoint, docId: string): Promise<void> {
+export async function deleteVerificationFile(endpoint: VerificationUploadEndpoint, docId: string, t?: Translate): Promise<void> {
   const response = await fetch(endpoint, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ docId }),
   }).catch(() => null);
   const body = (await response?.json().catch(() => null)) as UploadResponse | null;
-  if (!response?.ok || !body?.success) throw new Error(errorMessage(body, response?.status ?? 0).replace("Upload", "Remove"));
+  if (!response?.ok || !body?.success) throw new Error(errorMessage(body, response?.status ?? 0, t, "remove"));
 }
 
 /** Opens a stored document through the signed-link route (checks the viewer owns it or is an admin). */

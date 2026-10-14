@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { withSeller } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 
-export const GET = withSeller(async (req: NextRequest, { user, params }: { user: AuthUser; params: any }) => {
+export const GET = withAuth(async (req: NextRequest, { user, params }: { user: AuthUser; params: any }) => {
   const { id } = await params;
   const notification = await db.notification.findFirst({
     where: { id, userId: user.id },
@@ -13,7 +13,7 @@ export const GET = withSeller(async (req: NextRequest, { user, params }: { user:
   return ok(notification);
 });
 
-export const PATCH = withSeller(async (req: NextRequest, { user, params }: { user: AuthUser; params: any }) => {
+export const PATCH = withAuth(async (req: NextRequest, { user, params }: { user: AuthUser; params: any }) => {
   const { id } = await params;
   const existing = await db.notification.findFirst({
     where: { id, userId: user.id },
@@ -36,7 +36,7 @@ export const PATCH = withSeller(async (req: NextRequest, { user, params }: { use
   return ok(updated);
 });
 
-export const DELETE = withSeller(async (req: NextRequest, { user, params }: { user: AuthUser; params: any }) => {
+export const DELETE = withAuth(async (req: NextRequest, { user, params }: { user: AuthUser; params: any }) => {
   const { id } = await params;
   const existing = await db.notification.findFirst({
     where: { id, userId: user.id },

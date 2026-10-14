@@ -9,15 +9,18 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { ChoiceSheet } from "@/components/partner";
 import { Field, Notice, T } from "@/components/ui";
 import { fetchRider, forgetRiderToken, riderAction, riderToken, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
-import { RIDER_LANGS, STRINGS, useRiderStrings } from "@/lib/rider-strings";
+import { useRiderLocation } from "@/lib/rider-location";
+import { RIDER_LANGS, RIDER_REASONS_EN, useRiderStrings } from "@/lib/rider-strings";
+import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
 
 // Shopinbos Riders (spec 8A, "Simple supplier, delivery and rider apps"): no tabs, one screen at a time with very
 // large buttons. Home: language, Online switch, earned today and cash with you, and the next delivery
 // ("Take this delivery"). Then: Go to the shop ("I have the parcel") → Take it to the customer ("I'm with the
-// customer") → the customer's 4 numbers on a big keypad → "I collected it" when there's cash → "Delivered".
-// Every word comes from lib/rider-strings.ts.
+// customer") → the customer's 4-digit delivery code on a big keypad → "I collected it" when there's cash → "Delivered".
+// Every word comes from lib/rider-strings.ts (the m_rider catalog, in the app language).
 
 type Step = "home" | "pickup" | "dropoff" | "code" | "cash" | "done";
 
@@ -54,6 +57,7 @@ export default function RiderApp() {
   const [token] = useState(riderToken);
   const rider = useLoad(fetchRider);
   const { lang, setLang, t } = useRiderStrings();
+  const common = useT("common");
   const [step, setStep] = useState<Step>(params.drop ? "dropoff" : "home");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +68,8 @@ export default function RiderApp() {
   const [photoDone, setPhotoDone] = useState(false);
   const [last, setLast] = useState<{ earned: number; cash: number } | null>(null);
   const data = rider.data;
+  // Location only while online or carrying a delivery, and only with the rider's yes (lib/rider-location.ts).
+  const location = useRiderLocation(Boolean(token && data && (data.rider.online || data.runs.length > 0)));
 
   if (!token) return <Redirect href="/rider/link" />;
 
@@ -169,18 +175,18 @@ export default function RiderApp() {
 
         {step === "home" || (!drop && step !== "done") ? (
           <>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.appName}{data ? ` · ${data.rider.partnerName}` : ""}</T>
-                <T weight="extrabold" style={{ fontSize: 22 }} numberOfLines={1} accessibilityRole="header">{data?.rider.name ?? t.appName}</T>
-              </View>
-              <View accessibilityRole="radiogroup" style={{ flexDirection: "row", backgroundColor: colors.surface, borderRadius: radii.pill, padding: 4, borderWidth: 1, borderColor: colors.line }}>
-                {RIDER_LANGS.map((item) => (
-                  <Pressable key={item.code} accessibilityRole="radio" accessibilityState={{ selected: lang === item.code }} onPress={() => setLang(item.code)} style={{ minHeight: 40, paddingHorizontal: 12, borderRadius: radii.pill, justifyContent: "center", backgroundColor: lang === item.code ? colors.ink : "transparent" }}>
-                    <T weight="bold" style={{ fontSize: 15, color: lang === item.code ? "#FFFFFF" : colors.ink }}>{item.label}</T>
-                  </Pressable>
-                ))}
-              </View>
+            <PushPromptCard who="rider" when={Boolean(data)} />
+            <View>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.appName}{data ? ` · ${data.rider.partnerName}` : ""}</T>
+              <T weight="extrabold" style={{ fontSize: 22 }} numberOfLines={1} accessibilityRole="header">{data?.rider.name ?? t.appName}</T>
+            </View>
+            {/* Five languages: one tap each, wrapping onto a second line on small phones. */}
+            <View accessibilityRole="radiogroup" accessibilityLabel={t.language} style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {RIDER_LANGS.map((item) => (
+                <Pressable key={item.code} accessibilityRole="radio" accessibilityState={{ selected: lang === item.code }} onPress={() => setLang(item.code)} style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: radii.pill, justifyContent: "center", borderWidth: 1, borderColor: lang === item.code ? colors.ink : colors.line, backgroundColor: lang === item.code ? colors.ink : colors.surface }}>
+                  <T weight="bold" style={{ fontSize: 15, color: lang === item.code ? "#FFFFFF" : colors.ink }}>{item.label}</T>
+                </Pressable>
+              ))}
             </View>
 
             {rider.loading && !data ? <LoadingBlock label={t.loading} /> : null}
@@ -208,6 +214,30 @@ export default function RiderApp() {
                   </View>
                 </Pressable>
 
+                {location.state === "ask" ? (
+                  <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 10, borderWidth: 1, borderColor: colors.line }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <AppIcon name="pin" size={22} />
+                      <T weight="extrabold" style={{ fontSize: 18, flex: 1 }}>{t.locAskT}</T>
+                    </View>
+                    <T style={{ fontSize: 16, lineHeight: 23 }}>{t.locAsk}</T>
+                    <BigButton title={t.locYes} tone="forest" onPress={() => void location.allow()} />
+                    <Pressable accessibilityRole="button" onPress={location.notNow} style={{ minHeight: 48, alignItems: "center", justifyContent: "center" }}>
+                      <T weight="bold" style={{ fontSize: 16, color: colors.inkSoft }}>{t.locNo}</T>
+                    </Pressable>
+                  </View>
+                ) : location.state === "denied" || location.state === "unavailable" ? (
+                  <Pressable accessibilityRole="button" onPress={location.openSettings} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48 }}>
+                    <AppIcon name="pin" size={18} color={colors.inkSoft} />
+                    <T style={{ flex: 1, fontSize: 15, color: colors.inkSoft, lineHeight: 21 }}>{t.locOff} <T weight="bold" style={{ fontSize: 15, color: colors.ink }}>{t.locSettings}</T></T>
+                  </Pressable>
+                ) : location.state === "on" ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <AppIcon name="pin" size={16} color={colors.success} />
+                    <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.locOn}</T>
+                  </View>
+                ) : null}
+
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, gap: 4 }}>
                     <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t.earnedToday}</T>
@@ -225,6 +255,7 @@ export default function RiderApp() {
                     <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }}>{carrying ? t.carrying : t.newJob}</T>
                     <T weight="extrabold" style={{ fontSize: 20 }}>{run.pickupName}</T>
                     <T style={{ fontSize: 16, color: colors.inkSoft }}>{run.pickupAddress} → {drop.area}</T>
+                    {run.pickupWindow ? <T weight="extrabold" style={{ fontSize: 17, color: colors.accentInk }}>{run.pickupWindow}</T> : null}
                     <T weight="extrabold" style={{ fontSize: 18 }}>{t.forYou({ amount: naira(run.fees) })}</T>
                     {drop.collect > 0 ? <T weight="bold" style={{ fontSize: 16, color: "#8A5A00" }}>{t.collect({ amount: naira(drop.collect) })}</T> : null}
                     {run.drops.length > 1 ? <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.parcels({ count: run.drops.length })}</T> : null}
@@ -255,6 +286,7 @@ export default function RiderApp() {
             <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 18, gap: 6 }}>
               <T weight="extrabold" style={{ fontSize: 20 }}>{run.pickupName}</T>
               <T style={{ fontSize: 17, lineHeight: 24 }} selectable>{run.pickupAddress}</T>
+              {run.pickupWindow ? <T weight="extrabold" style={{ fontSize: 17, color: colors.accentInk }}>{run.pickupWindow}</T> : null}
               <T style={{ fontSize: 15, color: colors.inkSoft }}>{run.drops.length > 1 ? t.parcels({ count: run.drops.length }) : drop.item}</T>
             </View>
             <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(mapUrl(run.pickupAddress))} />
@@ -292,7 +324,7 @@ export default function RiderApp() {
           <View style={{ flex: 1, gap: 14 }}>
             <T weight="extrabold" style={{ fontSize: 26 }} accessibilityRole="header">{t.codeT({ name: who })}</T>
             <T style={{ fontSize: 15, color: colors.inkSoft }}>{t.codeHint}</T>
-            <View style={{ flexDirection: "row", gap: 10, justifyContent: "center" }} accessibilityLabel={`${code.length} of 4`}>
+            <View style={{ flexDirection: "row", gap: 10, justifyContent: "center" }} accessibilityLabel={t.codeProgress({ count: code.length })}>
               {[0, 1, 2, 3].map((index) => (
                 <View key={index} style={{ width: 62, height: 72, borderRadius: 16, borderWidth: 2, borderColor: code.length === index ? colors.ink : colors.line, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
                   <T weight="extrabold" style={{ fontSize: 32 }}>{code.charAt(index)}</T>
@@ -308,7 +340,7 @@ export default function RiderApp() {
                   <Pressable
                     key={key}
                     accessibilityRole="button"
-                    accessibilityLabel={key === "⌫" ? "Delete" : key}
+                    accessibilityLabel={key === "⌫" ? common("delete") : key}
                     onPress={() => { setError(null); setCode((current) => (key === "⌫" ? current.slice(0, -1) : current.length < 4 ? current + key : current)); }}
                     style={({ pressed }) => ({ width: "30%", height: 64, borderRadius: 18, backgroundColor: pressed ? colors.line : colors.surface, alignItems: "center", justifyContent: "center" })}
                   >
@@ -380,7 +412,7 @@ export default function RiderApp() {
         onPick={(value) => {
           setFailing(false);
           // The company and the shop read the reason in English, whatever language the rider uses.
-          const reason = STRINGS.en.reasons[Number(value)] ?? STRINGS.en.reasons[0];
+          const reason = RIDER_REASONS_EN[Number(value)] ?? RIDER_REASONS_EN[0];
           if (drop) void act("fail", () => riderAction({ action: "failed", jobId: drop.id, reason }), () => reset("home"));
         }}
         onClose={() => setFailing(false)}

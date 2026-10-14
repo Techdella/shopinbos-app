@@ -1,8 +1,6 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
-import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { portalOnboardingPath } from "@/lib/portal-routes";
 
 export const dynamic = "force-dynamic";
@@ -50,16 +48,10 @@ export default async function OnboardingPage({
       redirect("/builder/templates?onboarding=true");
     }
 
-    // Keep marketplace intents (e.g. ?intent=add_product&productSlug=…) for after onboarding.
-    const query = new URLSearchParams(Object.entries(params).filter(([key, value]) => key !== "role" && typeof value === "string") as [string, string][]).toString();
-    redirect(query ? `/onboarding/rex?${query}` : "/onboarding/rex");
   }
 
-  return (
-    <Suspense>
-      <OnboardingFlow
-        initialUser={user ? { name: user.name, city: user.city ?? null, country: user.country ?? null } : null}
-      />
-    </Suspense>
-  );
+  // Sellers (and anyone else who lands here) carry on in Rex's first run, which signs people in as sellers.
+  // Keep marketplace intents (e.g. ?intent=add_product&productSlug=…) for after onboarding.
+  const query = new URLSearchParams(Object.entries(params).filter(([key, value]) => key !== "role" && typeof value === "string") as [string, string][]).toString();
+  redirect(query ? `/onboarding/rex?${query}` : "/onboarding/rex");
 }

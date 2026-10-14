@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Mascot, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import type { StoreConfig } from "@/lib/ai/store-types";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export interface BuildSummary {
   /** What the build-store step created (sample products, images) and anything it skipped. */
@@ -38,6 +39,7 @@ const STEPS_BY_PAGE: Record<string, string> = {
   "product-detail": "Setting up single product pages",
 };
 
+// Step labels come from STEPS_BY_PAGE (English) and are shown through the "bp.step.*" keys.
 async function readError(response: Response, fallback: string) {
   const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
   return json?.error?.message ?? fallback;
@@ -45,13 +47,16 @@ async function readError(response: Response, fallback: string) {
 
 // Progress here is real: each step is one server call, and the bar moves when a call finishes.
 export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig, design, onComplete }: BuildProgressProps) {
+  const t = useT("builder");
+  const tRef = useRef(t);
+  tRef.current = t;
   const buildPages = useMemo(() => {
     const base = selectedPageDetails?.length
       ? selectedPageDetails
       : selectedPages.map((type) => ({ type, label: type.charAt(0).toUpperCase() + type.slice(1), userContent: "" }));
     const automatic = [
       { type: "cart", label: "Cart", userContent: "Cart page with quantity controls, order summary, and checkout handoff." },
-      { type: "checkout", label: "Payment page", userContent: "Checkout page with customer details, delivery details, order summary, and payment." },
+      { type: "checkout", label: "Checkout", userContent: "Checkout page with customer details, delivery details, order summary, and payment." },
     ];
     const existing = new Set(base.map((page) => page.type));
     return [...base, ...automatic.filter((page) => !existing.has(page.type))];
@@ -59,10 +64,10 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
 
   const steps = useMemo(
     () => [
-      ...(design ? [{ key: "design", label: "Saving your store design, images and starter products" }] : []),
-      ...buildPages.map((page) => ({ key: page.type, label: STEPS_BY_PAGE[page.type] ?? `Writing your ${page.label ?? page.type} page` })),
+      ...(design ? [{ key: "design", label: t("bp.step.design") }] : []),
+      ...buildPages.map((page) => ({ key: page.type, label: STEPS_BY_PAGE[page.type] ? t.dynamic(`bp.step.${page.type}`, STEPS_BY_PAGE[page.type]) : t("bp.step.page", { page: t.dynamic(`pgs.${page.label}`, page.label ?? page.type) }) })),
     ],
-    [buildPages, design],
+    [buildPages, design, t],
   );
 
   const [states, setStates] = useState<Record<string, StepState>>({});
@@ -79,6 +84,7 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
       if (message) setMessages((prev) => ({ ...prev, [key]: message }));
     };
 
+    const t = tRef.current;
     (async () => {
       const result: BuildSummary = { notes: [], failedPages: [], designSaved: !design, aiOff: false };
 
@@ -90,19 +96,19 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ storeConfig: design, generateImages: true }),
           });
-          if (!response.ok) throw new Error(await readError(response, "Rex couldn't save the store design."));
+          if (!response.ok) throw new Error(await readError(response, t("bp.err.design")));
           const json = (await response.json()) as { data?: { notes?: string[]; products?: unknown[]; previewUrl?: string; images?: { hero?: string | null; product?: string | null } } };
           const made = [
-            json.data?.products?.length ? `${json.data.products.length} sample products (drafts)` : "",
-            json.data?.images?.hero ? "a hero image" : "",
-            json.data?.images?.product ? "a product photo" : "",
+            json.data?.products?.length ? t("bp.sampleProducts", { count: json.data.products.length }) : "",
+            json.data?.images?.hero ? t("bp.heroImage") : "",
+            json.data?.images?.product ? t("bp.productPhoto") : "",
           ].filter(Boolean);
-          result.notes.push(...(made.length ? [`Rex added ${made.join(", ")}.`] : []), ...(json.data?.notes ?? []));
+          result.notes.push(...(made.length ? [t("bp.rexAdded", { items: made.join(", ") })] : []), ...(json.data?.notes ?? []));
           result.previewUrl = json.data?.previewUrl;
           result.designSaved = true;
-          setStep("design", "done", made.length ? `Added ${made.join(", ")}` : undefined);
+          setStep("design", "done", made.length ? t("bp.added", { items: made.join(", ") }) : undefined);
         } catch (error) {
-          setStep("design", "failed", error instanceof Error ? error.message : "Couldn't save the design.");
+          setStep("design", "failed", error instanceof Error ? error.message : t("bp.err.designShort"));
         }
       }
 
@@ -123,17 +129,17 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
               }],
             }),
           });
-          if (!response.ok) throw new Error(await readError(response, "Couldn't write this page."));
+          if (!response.ok) throw new Error(await readError(response, t("bp.err.page")));
           const json = (await response.json()) as { aiOff?: boolean };
           if (json.aiOff) result.aiOff = true;
-          setStep(page.type, "done", json.aiOff ? "Starter text (AI is off)" : undefined);
+          setStep(page.type, "done", json.aiOff ? t("bp.starter") : undefined);
         } catch (error) {
           result.failedPages.push(page.label ?? page.type);
-          setStep(page.type, "failed", error instanceof Error ? error.message : "Couldn't write this page.");
+          setStep(page.type, "failed", error instanceof Error ? error.message : t("bp.err.page"));
         }
       }
 
-      if (result.aiOff) result.notes.push("AI isn't switched on, so pages have starter text for you to edit.");
+      if (result.aiOff) result.notes.push(t("bp.aiOff"));
       setSummary(result);
     })();
   }, [buildPages, design, storeConfig]);
@@ -152,11 +158,11 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
 
   return (
     <div className="flex w-full flex-col items-center px-4 py-10 text-center font-app text-app-ink sm:py-12">
-      <Mascot name="rex" className="h-20 w-20" alt="Rex" />
+      <Mascot name="rex" mood={hasFailures ? "oops" : summary ? "celebrate" : "working"} className="h-20 w-20" alt="Rex" />
 
-      <p className="m-0 mt-5 text-[14px] font-bold text-app-ink-soft">Rex is building {storeConfig.name || "your store"}</p>
+      <p className="m-0 mt-5 text-[14px] font-bold text-app-ink-soft">{t("bp.building", { store: storeConfig.name || t("bp.yourStore") })}</p>
       <h2 className="m-0 mt-1.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[28px]" aria-live="polite">
-        {summary ? (hasFailures ? "Built, with a few gaps" : "Your store draft is ready") : activeStep ? `${activeStep.label}…` : "Starting…"}
+        {summary ? (hasFailures ? t("bp.gaps") : t("bp.ready")) : activeStep ? `${activeStep.label}…` : t("bp.starting")}
       </h2>
 
       <div
@@ -165,12 +171,12 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progress}
-        aria-label="Build progress"
+        aria-label={t("bp.progress")}
       >
         <div className="h-full rounded-full bg-app-ink transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
       <div className="mt-2 text-[13px] text-app-ink-soft">
-        {finishedCount} of {steps.length} steps
+        {t("bp.steps", { done: finishedCount, total: steps.length })}
       </div>
 
       <ol className="m-0 mt-6 grid w-full max-w-[440px] list-none gap-2.5 p-0 text-left">
@@ -188,7 +194,7 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
                 )}
               >
                 {state === "done" ? <Icon name="check" size={13} /> : state === "failed" ? "!" : index + 1}
-                <span className="sr-only">{state === "done" ? " done" : state === "failed" ? " failed" : state === "active" ? " in progress" : " waiting"}</span>
+                <span className="sr-only">{state === "done" ? t("bp.state.done") : state === "failed" ? t("bp.state.failed") : state === "active" ? t("bp.state.active") : t("bp.state.waiting")}</span>
               </span>
               <span className="min-w-0">
                 <span className={cx(state === "pending" ? "text-app-ink-soft" : state === "failed" ? "text-app-danger" : "text-app-ink", state === "active" && "font-bold")}>
@@ -204,14 +210,14 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
       {summary && (summary.notes.length > 0 || hasFailures) && (
         <div className="mt-6 grid w-full max-w-[440px] gap-1.5 rounded-[18px] bg-app-peach px-4 py-3 text-left text-[13.5px] leading-[1.5]">
           {summary.notes.map((note) => <p key={note} className="m-0">{note}</p>)}
-          {summary.failedPages.length > 0 && <p className="m-0">Not written yet: {summary.failedPages.join(", ")}. You can ask Rex to write them from the preview.</p>}
-          {!summary.designSaved && <p className="m-0">The store design wasn&apos;t saved; your preview still has it, and you can save it from the builder.</p>}
+          {summary.failedPages.length > 0 && <p className="m-0">{t("bp.notWritten", { pages: summary.failedPages.join(", ") })}</p>}
+          {!summary.designSaved && <p className="m-0">{t("bp.notSaved")}</p>}
         </div>
       )}
 
       {summary && hasFailures && (
         <PillButton size="md" className="mt-5" onClick={() => onComplete(summary)}>
-          Continue to preview
+          {t("bp.continue")}
         </PillButton>
       )}
     </div>

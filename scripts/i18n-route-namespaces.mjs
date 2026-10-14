@@ -1,0 +1,159 @@
+#!/usr/bin/env node
+// Which message namespaces each web page needs, so a page ships only its own words instead of every namespace of
+// the app (that made every page ~550 KB of HTML). Follows each page's imports through src/ and shared/, collects
+// the namespaces passed to useT(...) in the files it reaches, and writes:
+//
+//   src/lib/i18n/route-namespaces.generated.ts   page pattern → namespaces (read by the root layout)
+//   src/components/i18n/loaders.generated.ts     one lazy chunk per namespace and language (client navigation)
+//
+// Run after adding namespaces or useT calls:  node scripts/i18n-route-namespaces.mjs
+// tests/i18n.test.mjs fails when the generated files are out of date.
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const LOCALES = ["en", "pcm", "yo", "ha", "ig"];
+
+/** Namespaces registered in shared/i18n/catalog.ts, minus the phone app's (m_*). */
+export function webNamespaces() {
+  const catalog = readFileSync(join(root, "shared/i18n/catalog.ts"), "utf8");
+  return [...catalog.matchAll(/^import (\w+) from "\.\/messages\/\1\/index\.ts";/gm)].map((m) => m[1]).filter((ns) => !ns.startsWith("m_"));
+}
+
+const EXT = [".tsx", ".ts", ".mjs", ".js"];
+function resolveImport(from, spec) {
+  let base;
+  if (spec.startsWith("@/")) base = join(root, "src", spec.slice(2));
+  else if (spec.startsWith("@shared/")) base = join(root, "shared", spec.slice(8));
+  else if (spec.startsWith(".")) base = join(dirname(from), spec);
+  else return null;
+  if (existsSync(base) && statSync(base).isFile()) return base;
+  for (const ext of EXT) if (existsSync(base + ext)) return base + ext;
+  for (const ext of EXT) if (existsSync(join(base, "index" + ext))) return join(base, "index" + ext);
+  return null;
+}
+
+const cache = new Map();
+function scan(file) {
+  if (cache.has(file)) return cache.get(file);
+  const src = readFileSync(file, "utf8");
+  const imports = [];
+  // Static imports and next/dynamic() pages are followed. A React lazy(() => import(...)) is skipped: it's a drawer or
+  // modal that loads its own words when it opens (the chat drawer, the 60-second intro), so it doesn't weigh down
+  // every page.
+  const lazyFree = src.replace(/\blazy\(\s*\(\)\s*=>\s*import\(\s*["'][^"']+["']\s*\)/g, "");
+  for (const m of lazyFree.matchAll(/(?:import|export)\s+(?:type\s+)?(?:[\w*{}\s,$]+\s+from\s+)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g)) {
+    // Type-only imports carry no words.
+    if (/^(?:import|export)\s+type\s/.test(m[0])) continue;
+    const target = resolveImport(file, m[1] ?? m[2]);
+    if (target) imports.push(target);
+  }
+  const namespaces = new Set();
+  for (const m of src.matchAll(/\buseT\(([^)]*)\)/g)) for (const s of m[1].matchAll(/["'](\w+)["']/g)) namespaces.add(s[1]);
+  const info = { imports, namespaces };
+  cache.set(file, info);
+  return info;
+}
+
+function reach(entry) {
+  const seen = new Set();
+  const out = new Set();
+  const stack = [entry];
+  while (stack.length) {
+    const file = stack.pop();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    // The message catalogs themselves are data, not screens.
+    if (file.includes(`${join("shared", "i18n")}`)) continue;
+    const info = scan(file);
+    for (const ns of info.namespaces) out.add(ns);
+    stack.push(...info.imports);
+  }
+  return out;
+}
+
+/** "src/app/(x)/home/[id]/page.tsx" → "/home/[id]". */
+function routeOf(dir) {
+  const rel = relative(join(root, "src/app"), dir).split(/[\\/]/).filter(Boolean);
+  const parts = rel.filter((part) => !/^\(.*\)$/.test(part) && !part.startsWith("@"));
+  return "/" + parts.join("/");
+}
+
+function walk(dir, layouts, out) {
+  const names = readdirSync(dir);
+  const here = [...layouts];
+  for (const name of ["layout.tsx", "template.tsx"]) if (names.includes(name)) here.push(join(dir, name));
+  // loading.tsx shows during navigation, so it belongs to the page's words too. error / not-found pages load theirs
+  // when they happen (they're the only place "Something went wrong" should appear).
+  const page = names.find((name) => name === "page.tsx");
+  if (page) {
+    const files = [...here, join(dir, page)];
+    if (names.includes("loading.tsx")) files.push(join(dir, "loading.tsx"));
+    const namespaces = new Set();
+    for (const file of files) for (const ns of reach(file)) namespaces.add(ns);
+    out.push([routeOf(dir), [...namespaces].sort()]);
+  }
+  for (const name of names) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory() && name !== "api") walk(full, here, out);
+  }
+}
+
+/**
+ * introTitles: just the "<intro>.title" lines of the intros catalog, in every language. The "Watch 60-sec intro"
+ * button on every page needs only the title; the full scripts (intros) load when an intro opens.
+ */
+export function introTitleFiles() {
+  const out = {};
+  for (const locale of LOCALES) {
+    const src = readFileSync(join(root, `shared/i18n/messages/intros/${locale}.ts`), "utf8");
+    const lines = [...src.matchAll(/^\s+"([\w-]+\.title)":\s*(".*"),\s*$/gm)].map((m) => `  ${JSON.stringify(m[1])}: ${m[2]},`);
+    const head = `// Generated by scripts/i18n-route-namespaces.mjs from ../intros/${locale}.ts (the intro titles only). Do not edit.\n`;
+    out[locale] =
+      locale === "en"
+        ? `${head}const en = {\n${lines.join("\n")}\n} satisfies Record<string, string>;\n\nexport default en;\n`
+        : `// Draft: needs native-speaker review\n${head}import type en from "./en.ts";\n\nconst ${locale}: Partial<Record<keyof typeof en, string>> = {\n${lines.join("\n")}\n};\n\nexport default ${locale};\n`;
+  }
+  return out;
+}
+
+export function generate() {
+  const web = new Set(webNamespaces());
+  const routes = [];
+  walk(join(root, "src/app"), [], routes);
+  const clean = routes
+    .map(([route, list]) => [route, list.filter((ns) => web.has(ns))])
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  const routeFile =
+    `// Generated by scripts/i18n-route-namespaces.mjs. Do not edit: run the script after adding useT() calls.\n` +
+    `// Page pattern → the message namespaces its components use (the root layout sends only these).\n` +
+    `export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]]> = [\n` +
+    clean.map(([route, list]) => `  [${JSON.stringify(route)}, ${JSON.stringify(list)}],`).join("\n") +
+    `\n];\n`;
+  const names = [...web].sort();
+  const loaderFile =
+    `// Generated by scripts/i18n-route-namespaces.mjs. Do not edit.\n` +
+    `// One lazy chunk per namespace and language, for words a page needs after a client-side navigation.\n` +
+    `/* eslint-disable */\n` +
+    `type Loader = () => Promise<{ default: Record<string, string> }>;\n` +
+    `export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {\n` +
+    names
+      .map(
+        (ns) =>
+          `  ${ns}: {\n` +
+          LOCALES.map((locale) => `    ${locale}: () => import("@shared/i18n/messages/${ns}/${locale}.ts") as Promise<{ default: Record<string, string> }>,`).join("\n") +
+          `\n  },`,
+      )
+      .join("\n") +
+    `\n};\n`;
+  return { routeFile, loaderFile };
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const { routeFile, loaderFile } = generate();
+  for (const [locale, text] of Object.entries(introTitleFiles())) writeFileSync(join(root, `shared/i18n/messages/introTitles/${locale}.ts`), text);
+  writeFileSync(join(root, "src/lib/i18n/route-namespaces.generated.ts"), routeFile);
+  writeFileSync(join(root, "src/components/i18n/loaders.generated.ts"), loaderFile);
+  console.log(`routes: ${(routeFile.match(/^\s+\["/gm) ?? []).length}`);
+}

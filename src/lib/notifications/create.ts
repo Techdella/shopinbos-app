@@ -1,8 +1,9 @@
 import "server-only";
-import { db } from "@/lib/db/client";
-import type { Prisma } from "@prisma/client";
-import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
-import { html } from "@/lib/email/shell";
+import { notify, type NotifyInput } from "./notify.server";
+
+// createNotification is the older name for notify() (./notify.server.ts): it writes the bell notification and then
+// sends push / email / SMS / WhatsApp the way the person chose. Pass `event` (shared/notifications.ts) so it lands
+// in the right category, and `dedupeKey` when the same thing could be triggered twice.
 
 export interface CreateNotificationInput {
   userId: string;
@@ -14,9 +15,16 @@ export interface CreateNotificationInput {
   actionLabel?: string;
   actionUrl?: string;
   metadata?: Record<string, unknown>;
+  /** Email it too (follows the person's email switch; payouts and critical alerts always send). */
   sendEmail?: boolean;
+  event?: NotifyInput["event"];
+  dedupeKey?: NotifyInput["dedupeKey"];
+  urgent?: boolean;
+  /** The caller already texted them about this. */
+  phoneHandled?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createNotification(input: CreateNotificationInput): Promise<any>;
 export async function createNotification(
   userId: string,
@@ -24,7 +32,8 @@ export async function createNotification(
   priority: CreateNotificationInput["priority"],
   title: string,
   description: string,
-  options?: { link?: string; actionLabel?: string; actionUrl?: string; metadata?: Record<string, unknown> },
+  options?: { link?: string; actionLabel?: string; actionUrl?: string; metadata?: Record<string, unknown>; event?: string; dedupeKey?: string },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any>;
 
 export async function createNotification(
@@ -33,63 +42,41 @@ export async function createNotification(
   priority?: CreateNotificationInput["priority"],
   title?: string,
   description?: string,
-  options?: { link?: string; actionLabel?: string; actionUrl?: string; metadata?: Record<string, unknown> },
+  options?: { link?: string; actionLabel?: string; actionUrl?: string; metadata?: Record<string, unknown>; event?: string; dedupeKey?: string },
 ) {
-  let input: CreateNotificationInput;
+  const input: CreateNotificationInput =
+    typeof userIdOrInput === "string"
+      ? {
+          userId: userIdOrInput,
+          type: type!,
+          priority: priority ?? "info",
+          title: title!,
+          description: description!,
+          link: options?.link,
+          actionLabel: options?.actionLabel,
+          actionUrl: options?.actionUrl,
+          metadata: options?.metadata,
+          event: options?.event,
+          dedupeKey: options?.dedupeKey,
+        }
+      : userIdOrInput;
 
-  if (typeof userIdOrInput === "string") {
-    input = {
-      userId: userIdOrInput,
-      type: type!,
-      priority: priority ?? "info",
-      title: title!,
-      description: description!,
-      link: options?.link,
-      actionLabel: options?.actionLabel,
-      actionUrl: options?.actionUrl,
-      metadata: options?.metadata,
-    };
-  } else {
-    input = { ...userIdOrInput, priority: userIdOrInput.priority ?? "info" };
-  }
-
-  const notification = await db.notification.create({
-    data: {
-      userId: input.userId,
-      type: input.type,
-      priority: input.priority,
-      title: input.title,
-      description: input.description,
-      link: input.link,
-      actionLabel: input.actionLabel,
-      actionUrl: input.actionUrl,
-      metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-    },
+  const { notification } = await notify({
+    userId: input.userId,
+    type: input.type,
+    event: input.event,
+    priority: input.priority ?? "info",
+    title: input.title,
+    description: input.description,
+    link: input.link,
+    actionLabel: input.actionLabel,
+    actionUrl: input.actionUrl,
+    metadata: input.metadata,
+    email: input.sendEmail ? true : false,
+    dedupeKey: input.dedupeKey,
+    urgent: input.urgent,
+    phoneHandled: input.phoneHandled,
   });
-
-  if (input.sendEmail) {
-    const user = await db.user.findUnique({
-      where: { id: input.userId },
-      select: { email: true, role: true },
-    });
-
-    if (user?.email) {
-      const target = input.actionUrl ?? input.link;
-      await sendPlatformEmail({
-        to: user.email,
-        user: { id: input.userId, role: user.role },
-        // Security and billing alerts can't be switched off; the rest link to notification settings.
-        kind: input.type === "payout" || input.priority === "critical" ? "transactional" : "notification",
-        subject: input.title,
-        heading: input.title,
-        eyebrow: input.type.replace(/_/g, " "),
-        preheader: input.description.slice(0, 140),
-        bodyHtml: html.text(input.description),
-        cta: target ? { label: input.actionLabel || "View details", url: /^https?:\/\//.test(target) ? target : `${appBase()}${target.startsWith("/") ? "" : "/"}${target}` } : null,
-      }).catch(() => {});
-    }
-  }
-
   return notification;
 }
 
@@ -104,6 +91,8 @@ export async function createOrderNotification(
     description: `Order ${orderNumber} has been placed and is awaiting confirmation.`,
     link: "/home/orders",
     sendEmail: true,
+    event: "order.new",
+    dedupeKey: `order.new:${orderNumber}`,
   });
 }
 
@@ -126,6 +115,7 @@ export async function createPayoutNotification(
     description: msg.description,
     link: "/home/payments",
     sendEmail: true,
+    event: status === "failed" ? "payout.failed" : "payout.sent",
   });
 }
 
@@ -140,6 +130,7 @@ export async function createPeggyNotification(
     title: "Peggy insight",
     description,
     link,
+    event: "tip",
   });
 }
 

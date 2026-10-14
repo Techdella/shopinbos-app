@@ -1,6 +1,8 @@
 "use client";
 
-import type { SupportStatus } from "@/lib/support/pure";
+import { attachmentProblem, type SupportStatus } from "@/lib/support/pure";
+import { formatDate, type Locale, type TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
 
 // What the in-app support chat gets back from /api/support (dates arrive as ISO strings).
 
@@ -77,4 +79,36 @@ export function formatBytes(size: number) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ─── In the person's language ("support" catalog) ────────────────────────────
+
+export type SupportT = TFunction<KeysOf<["support", "common"]>>;
+
+/** timeLabel in the person's language: "now", "5m ago", a time today, else "13 Oct" (Lagos time). */
+export function localTimeLabel(iso: string, locale: Locale, t: SupportT, now = Date.now()) {
+  const date = new Date(iso);
+  const minutes = Math.round((now - date.getTime()) / 60_000);
+  if (minutes < 1) return t("time.now");
+  if (minutes < 60) return t("time.minutesAgo", { count: minutes });
+  if (minutes < 24 * 60) return formatDate(date, locale, { hour: "2-digit", minute: "2-digit" });
+  return formatDate(date, locale, { day: "numeric", month: "short" });
+}
+
+/** attachmentProblem (lib/support/pure, English) as a catalog key. */
+export function attachmentProblemKey(file: { type: string; size: number }): "file.type" | "file.empty" | "file.tooBig" | null {
+  const problem = attachmentProblem(file);
+  if (!problem) return null;
+  return problem.startsWith("Attach") ? "file.type" : problem.startsWith("That file") ? "file.empty" : "file.tooBig";
+}
+
+/** What to show for a failed support call: offline in the person's language, else the API's own message. */
+export function supportErrorText(error: unknown, t: SupportT, fallback: "couldntSend" | "couldntSendConnection" = "couldntSend") {
+  if (error instanceof SupportRequestError && error.code === "OFFLINE") return t("offline");
+  return error instanceof Error && error.message ? error.message : t(fallback);
+}
+
+/** Ticket status as the customer sees it. */
+export function customerStatusLabel(status: SupportStatus, t: SupportT) {
+  return status === "open" ? t("customerStatus.open") : status === "pending" ? t("customerStatus.pending") : t(`status.${status}` as const);
 }

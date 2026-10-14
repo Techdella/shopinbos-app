@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { reviewLinkExpired, verifyReviewToken } from "./pure";
 import { reviewLinkSecret } from "./secrets";
 import { getReviewSettings } from "./server";
+import { notifyReviewsSaved } from "@/lib/notifications/events.server";
 
 // The buyer side: review links, submitting reviews from a link or the product page.
 
@@ -98,6 +99,10 @@ export async function saveOrderReviews(input: { storeId: string; order: { id: st
     );
     reviewed.add(review.productId);
     saved++;
+  }
+  if (saved > 0) {
+    const ratings = input.reviews.filter((review) => reviewed.has(review.productId) && !skipped.includes(review.productId)).map((review) => review.rating);
+    await notifyReviewsSaved({ storeId: input.storeId, orderId: input.order.id, count: saved, rating: ratings.length === 1 ? ratings[0] : null, buyerName: name });
   }
   return { saved, skipped, published: status === "approved" };
 }

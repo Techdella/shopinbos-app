@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { PartnerTabBar } from "@/components/partner";
 import type { AppIconName } from "@/components/icons";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Delivery partner tabs (spec 8A "Simple supplier, delivery and rider apps"): Today, Jobs, Riders, Money.
@@ -15,8 +16,11 @@ const ITEMS: Record<string, { icon: AppIconName; label: string }> = {
 };
 
 export default function LogisticsTabs() {
+  // Labels in the app language (shared/i18n "nav" catalog, "tab.logistics.<name>").
+  const t = useT("nav");
+  const items = Object.fromEntries(Object.entries(ITEMS).map(([name, item]) => [name, { ...item, label: t.dynamic(`tab.logistics.${name}`, item.label) }]));
   return (
-    <Tabs tabBar={(props) => <PartnerTabBar {...props} items={ITEMS} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.canvas } }}>
+    <Tabs tabBar={(props) => <PartnerTabBar {...props} items={items} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.canvas } }}>
       <Tabs.Screen name="home" />
       <Tabs.Screen name="jobs" />
       <Tabs.Screen name="riders" />

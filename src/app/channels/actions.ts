@@ -4,107 +4,62 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
-import { decryptJson, encryptJson, hasCredentialKey } from "@/lib/inbox/crypto";
-import { FEED_CHANNELS, type FeedChannel } from "@/lib/social/feeds";
-import { pushMetaCatalog, verifyMetaCatalog } from "@/lib/social/server";
-import { plainMetaError } from "@/components/simple/plain";
+import { COMING_SOON_PLATFORMS, LIVE_PLATFORMS, OAUTH_PLATFORMS } from "@/lib/sales-channels/pure";
+import { connectWhatsAppCatalog, disconnectPlatform, recordInterest, syncPlatform, type WhatsAppConnectResult } from "@/lib/sales-channels/server";
 
-// Social selling actions for /channels. Tokens are encrypted at rest (src/lib/inbox/crypto.ts, INBOX_ENCRYPTION_KEY)
-// and never sent back to the browser.
+// Sell everywhere (/channels): Disconnect, Try again, the WhatsApp one-tap connect, and "Tell me when it's ready".
+// Sign-ins for Facebook & Instagram, TikTok and Google go through /api/app/sales-channels/[platform]/connect.
+// Tokens are encrypted at rest (src/lib/inbox/crypto.ts, INBOX_ENCRYPTION_KEY) and never sent to the browser.
 
-export interface ChannelActionState {
-  ok?: boolean;
-  message?: string;
-}
-
-async function sellerStore() {
+async function seller() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
   if (!user || user.role !== "seller") return null;
-  return db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
+  return store ? { user, store } : null;
 }
 
-const channelSchema = z.enum(FEED_CHANNELS);
+const live = z.enum(LIVE_PLATFORMS);
+const oauth = z.enum(OAUTH_PLATFORMS);
+const soon = z.enum(COMING_SOON_PLATFORMS);
 
-/** The seller says they pasted the feed URL into the channel (or takes that back). */
-export async function setFeedAdded(formData: FormData) {
-  const store = await sellerStore();
-  const channel = channelSchema.safeParse(formData.get("channel"));
-  if (!store || !channel.success) return;
-  const added = formData.get("added") === "1";
-  const data = { feedAddedAt: added ? new Date() : null };
-  await db.socialChannelConnection.upsert({
-    where: { storeId_channel: { storeId: store.id, channel: channel.data } },
-    create: { storeId: store.id, channel: channel.data, ...data },
-    update: data,
-  });
+export async function disconnectAction(platform: string): Promise<void> {
+  const me = await seller();
+  const parsed = live.safeParse(platform);
+  if (!me || !parsed.success) return;
+  await disconnectPlatform(me.store.id, parsed.data);
   revalidatePath("/channels");
 }
 
-const metaSchema = z.object({
-  channel: z.enum(["meta", "whatsapp"]),
-  catalogId: z.string().trim().regex(/^\d{5,25}$/, "A catalog ID is the long number in Commerce Manager's catalog settings"),
-  token: z.string().trim().min(20, "Paste the whole access token").max(1000),
-});
-
-/** Connects a Meta catalog for API sync after checking the ID and token can see it. */
-export async function connectMetaCatalog(_state: ChannelActionState, formData: FormData): Promise<ChannelActionState> {
-  const store = await sellerStore();
-  if (!store) return { message: "Sign in to your shop first, then try again." };
-  if (!hasCredentialKey()) return { message: "Faster updates aren't switched on yet. The product link above works without them." };
-  const parsed = metaSchema.safeParse({ channel: formData.get("channel"), catalogId: formData.get("catalogId"), token: formData.get("token") });
-  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the catalog ID and token" };
-
-  let name: string;
-  try {
-    name = await verifyMetaCatalog(parsed.data.catalogId, parsed.data.token);
-  } catch (error) {
-    const raw = error instanceof Error ? error.message : "unknown error";
-    return { message: `${plainMetaError(raw)} (Facebook said: ${raw})` };
-  }
-  const data = { externalId: parsed.data.catalogId, tokenEnc: encryptJson({ token: parsed.data.token }), lastSyncStatus: null, lastSyncMessage: `Connected to “${name}”` };
-  await db.socialChannelConnection.upsert({
-    where: { storeId_channel: { storeId: store.id, channel: parsed.data.channel } },
-    create: { storeId: store.id, channel: parsed.data.channel, ...data },
-    update: data,
-  });
-  revalidatePath("/channels");
-  return { ok: true, message: `Connected to “${name}”. Press “Send my products now” to update it.` };
-}
-
-export async function disconnectChannel(formData: FormData) {
-  const store = await sellerStore();
-  const channel = channelSchema.safeParse(formData.get("channel"));
-  if (!store || !channel.success) return;
-  await db.socialChannelConnection.updateMany({
-    where: { storeId: store.id, channel: channel.data },
-    data: { externalId: null, tokenEnc: null, lastSyncAt: null, lastSyncStatus: null, lastSyncMessage: null },
-  });
-  revalidatePath("/channels");
-}
-
-/** Pushes every listable product to the connected Meta catalog now. */
-export async function syncChannel(_state: ChannelActionState, formData: FormData): Promise<ChannelActionState> {
-  const store = await sellerStore();
-  const channel = channelSchema.safeParse(formData.get("channel"));
-  if (!store || !channel.success) return { message: "Sign in to your shop first, then try again." };
-  if (channel.data !== "meta" && channel.data !== "whatsapp") return { message: "This app updates your products by itself once a day." };
-  return syncMeta(store, channel.data as Extract<FeedChannel, "meta" | "whatsapp">);
-}
-
-async function syncMeta(store: { id: string; name: string; slug: string; customDomain: string | null }, channel: "meta" | "whatsapp"): Promise<ChannelActionState> {
-  const connection = await db.socialChannelConnection.findUnique({ where: { storeId_channel: { storeId: store.id, channel } } });
-  const token = decryptJson<{ token: string }>(connection?.tokenEnc)?.token;
-  if (!connection?.externalId || !token) return { message: "Connect it first, or ask us to connect it for you." };
-  try {
-    const result = await pushMetaCatalog(store, channel, connection.externalId, token);
-    const message = `Sent ${result.sent} product${result.sent === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} left out, see "Products other apps can show")` : ""}. Facebook usually shows changes within a few minutes.`;
-    await db.socialChannelConnection.update({ where: { id: connection.id }, data: { lastSyncAt: new Date(), lastSyncStatus: "ok", lastSyncMessage: message } });
+/** "Try again" after a failed sync, and "I've done it, connect again" after creating the account they needed. */
+export async function retryAction(platform: string): Promise<{ ok: boolean }> {
+  const me = await seller();
+  if (!me) return { ok: false };
+  if (platform === "whatsapp") {
+    const result = await connectWhatsAppCatalog(me.store.id);
     revalidatePath("/channels");
-    return { ok: true, message };
-  } catch (error) {
-    const message = `Sync failed: ${error instanceof Error ? error.message : "unknown error"}`;
-    await db.socialChannelConnection.update({ where: { id: connection.id }, data: { lastSyncAt: new Date(), lastSyncStatus: "error", lastSyncMessage: message.slice(0, 500) } });
-    revalidatePath("/channels");
-    return { message: plainMetaError(message) };
+    return { ok: result.ok };
   }
+  const parsed = oauth.safeParse(platform);
+  if (!parsed.success) return { ok: false };
+  const outcome = await syncPlatform(me.store.id, parsed.data);
+  revalidatePath("/channels");
+  return { ok: outcome === "connected" || outcome === "syncing" };
+}
+
+/** WhatsApp: needs the number connected first (Embedded Signup in the browser), then sets up the catalog. */
+export async function connectWhatsAppAction(): Promise<WhatsAppConnectResult> {
+  const me = await seller();
+  if (!me) return { ok: false, error: "signin" };
+  const result = await connectWhatsAppCatalog(me.store.id);
+  revalidatePath("/channels");
+  return result;
+}
+
+export async function notifyMeAction(platform: string): Promise<{ ok: boolean }> {
+  const me = await seller();
+  const parsed = soon.safeParse(platform);
+  if (!me || !parsed.success) return { ok: false };
+  await recordInterest(me.store.id, me.user.id, parsed.data);
+  revalidatePath("/channels");
+  return { ok: true };
 }

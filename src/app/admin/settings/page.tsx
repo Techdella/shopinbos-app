@@ -1,7 +1,10 @@
-import { AppPage, Card, CardHead, ListCard, ListRow, Pill } from "@/components/app-kit";
+import { AppPage, Card, CardHead, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
+import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { adminFrame } from "@/components/admin/AdminKit";
+import { AiCheckCard } from "@/components/admin/AiCheckCard";
+import { providerOrder } from "@/lib/ai/client";
 import { requireRole } from "@/lib/server-auth";
 
 export default async function AdminSettingsPage() {
@@ -34,6 +37,14 @@ export default async function AdminSettingsPage() {
           <IdentityImageUploader kind="avatar" initialUrl={user.avatarUrl ?? null} name={user.name} title="Your photo" hint="Shows in the top bar and the menu." />
         </div>
       </Card>
+
+      <Card className="mb-6 p-5">
+        <CardHead title="Notifications" sub="Push to your phone and browser, email and quiet hours." action={<PillLink href="/home/notifications/preferences" size="sm" tone="ink">Open</PillLink>} />
+      </Card>
+
+      <AiCheckCard claude={Boolean(process.env.ANTHROPIC_API_KEY)} openai={Boolean(process.env.OPENAI_API_KEY)} first={providerOrder()[0]!} />
+
+      <LanguageSettingsCard className="mb-6" />
 
       <h2 className="mb-3 mt-0 text-[17px] font-extrabold">Operational settings</h2>
       <ListCard>

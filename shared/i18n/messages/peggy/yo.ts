@@ -1,0 +1,43 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const yo: Partial<Record<keyof typeof en, string>> = {
+  "metaTitle": "Bi Peggy",
+  "suggest.toSend": "Àwọn order wo ni mo gbọ́dọ̀ fi ránṣẹ́?",
+  "suggest.unpaid": "Àwọn order wo ni wọn kò tíì sanwó fún?",
+  "suggest.restock": "Kí ni mo gbọ́dọ̀ tún rà kún?",
+  "suggest.week": "Báwo ni mo ṣe ṣe ní ọ̀sẹ̀ yìí?",
+  "suggest.drafts": "Àwọn ọjà wo ló ṣì wà ní draft?",
+  "suggest.discount": "Ṣe discount code 10% fún òpin ọ̀sẹ̀ yìí",
+  "suggest.caption": "Kọ caption Instagram fún {product}",
+  "suggest.blog": "Kọ draft blog post nípa {product}",
+  "suggest.bestCustomers": "Ta ni àwọn oníbàárà mi tó dára jù?",
+  "suggest.email": "Kọ draft email sí àwọn tó máa ń padà wá rà",
+  "can.data": "Ọjà tí o tà, àwọn order, stock àti oníbàárà, láti ṣọ́ọ̀bù rẹ tó wà láàyè",
+  "can.orders": "Sàmì sí àwọn order pé wọ́n ti sanwó, ti fi ránṣẹ́ tàbí ti dé",
+  "can.products": "Yí iye owó àti stock padà, gbé ọjà jáde tàbí fi pamọ́",
+  "can.discounts": "Ṣe àwọn discount code",
+  "can.setup": "Ṣètò ọ̀nà ìsanwó àti owó ìfijíṣẹ́",
+  "can.drafts": "Kọ draft blog post, email campaign àti ads kí o lè yẹ̀ wọ́n wò",
+  "can.write": "Kọ WhatsApp status, caption àti àpèjúwe ọjà",
+  "err.answer": "Peggy kò lè dáhùn báyìí. Tún gbìyànjú láìpẹ́.",
+  "err.short": "Peggy kò lè dáhùn báyìí.",
+  "sub": "Ó ń yẹ ṣọ́ọ̀bù rẹ wò, ó sì ń ṣe iṣẹ́",
+  "newChat": "Ìjíròrò tuntun",
+  "working": "Peggy ń ṣiṣẹ́ lórí rẹ̀…",
+  "ask": "Bi Peggy",
+  "placeholder": "Bi Peggy, tàbí sọ ohun tí o fẹ́ kó ṣe",
+  "send": "Fi ránṣẹ́",
+  "today": "Ṣọ́ọ̀bù rẹ lónìí",
+  "stat.today": "Ohun tí o tà lónìí",
+  "stat.week": "Ọjọ́ 7 sẹ́yìn",
+  "stat.toSend": "Láti fi ránṣẹ́",
+  "stat.unpaid": "Wọn kò tíì sanwó",
+  "stat.lowStock": "Stock ti kéré",
+  "stat.unread": "Àwọn ìfiránṣẹ́ tí o kò tíì kà",
+  "canTitle": "Ohun tí Peggy lè ṣe",
+  "neverAlone": "Kì í fi ìfiránṣẹ́ ránṣẹ́, kì í gbé post jáde, kì í sì bẹ̀rẹ̀ ads fúnra rẹ̀; ó máa ń fi wọ́n pamọ́ bí draft kí o lè yẹ̀ wọ́n wò.",
+  "didThis": "Peggy ló ṣe èyí",
+};
+
+export default yo;

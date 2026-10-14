@@ -165,6 +165,13 @@ model User {
   aiCredits          Int                @default(5)
   verificationStatus VerificationStatus @default(unverified)
   preferences        Json               @default("{}") // menu items switched off, walkthrough progress (shared/preferences.ts)
+  // The paid plan as Paystack's subscription webhooks report it (src/lib/seller-plan.ts). An active annual seller
+  // plan paid up past now makes a domain free (src/lib/domains/billing.server.ts).
+  planCode           String?
+  planInterval       String? // monthly | annual
+  planStatus         String? // active | non_renewing | cancelled
+  planPaidUntil      DateTime?
+  subscriptionCode   String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -183,6 +190,8 @@ model User {
   logisticsReviews   LogisticsReview[]
   notifications      Notification[]
   notificationPreferences NotificationPreference[]
+  pushDevices        PushDevice[]
+  notificationSetting NotificationSetting?
   onboardingResponses OnboardingResponse[]
   storeLaunchPayments StoreLaunchPayment[]
 
@@ -220,6 +229,13 @@ model Store {
   status                     String   @default("active")
   onboardingState            String?
   firstDashboardVisitComplete Boolean  @default(false)
+  /// When a supplier doesn't accept in time, send the order to another supplier with the same product (on by
+  /// default), as long as the cost stays within the limit: "cost" = at most switchMaxIncreasePct above the
+  /// original cost; "margin" = the seller keeps at least switchMinMarginPct of their price.
+  autoSwitchSupplier         Boolean  @default(true)
+  switchCostRule             String   @default("cost")
+  switchMaxIncreasePct       Int      @default(10)
+  switchMinMarginPct         Int      @default(20)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -408,6 +424,11 @@ model Supplier {
   whatsappNumber     String?
   website            String?
   status             String             @default("active")
+  /// Hours this supplier has to accept a new order (admin override; null = SUPPLIER_ACCEPT_HOURS_* or 4 h / 24 h).
+  acceptHoursDropship  Int?
+  acceptHoursWholesale Int?
+  /// New orders that ran out of time without an answer (src/lib/supplier-orders/acceptance.server.ts).
+  missedOrders       Int                @default(0)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -533,6 +554,11 @@ model SupplierProduct {
   deliveryRegions       String[]
   processingTime        String?
   trendScore            Float         @default(0)
+  /// The same product from several suppliers shares a family key (or names another listing's id). Used to send an
+  /// order to another supplier when one doesn't answer (src/lib/supplier-orders/switch.server.ts).
+  familyKey             String?
+  /// Sizes and colours the supplier has: [{ size?, color? }]. Empty = one kind only.
+  variants              Json          @default("[]")
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -549,6 +575,7 @@ model SupplierProduct {
   @@index([slug])
   @@index([status])
   @@index([trendScore(sort: Desc)])
+  @@index([familyKey])
 }
 
 // ─── Store Product ────────────────────────────────────────────────────────────
@@ -746,6 +773,9 @@ model WholesaleOrder {
   stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
   stockReleasedAt   DateTime?   // given back once (declined or cancelled)
   paidOutAt         DateTime?   // the supplier confirmed they were paid
+  acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
+  acceptReminderAt  DateTime?   // "1 hour left" reminder sent
+  expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -756,6 +786,7 @@ model WholesaleOrder {
   @@index([sellerId])
   @@index([supplierId])
   @@index([status])
+  @@index([status, acceptBy])
 }
 
 // ─── Supplier Order (dropship) ────────────────────────────────────────────────
@@ -784,6 +815,15 @@ model SupplierOrder {
   deliveredAt     DateTime?
   rejectedAt      DateTime?
   paidOutAt       DateTime? // the supplier confirmed they were paid what they're owed (costTotal)
+  acceptBy        DateTime? // the supplier must accept by then, or it expires (status expired)
+  acceptReminderAt DateTime? // "1 hour left" reminder sent
+  expiredAt       DateTime?
+  packedAt        DateTime? // the supplier said "I've packed it"
+  stockReleasedAt DateTime? // the supplier stock this order's lines held went back (expired), once
+  /// Automatic switch: the expired order this one took over (idempotencyKey "switch:<that id>").
+  replacesId      String?
+  /// The seller pressed Undo before this supplier accepted (status cancelled).
+  undoneAt        DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -793,6 +833,58 @@ model SupplierOrder {
   @@index([supplierId, status])
   @@index([retailOrderId])
   @@index([storeId])
+  @@index([status, acceptBy])
+  @@index([replacesId])
+}
+
+/// What happened when a supplier didn't accept a shop's order in time: switched to another supplier, nobody
+/// qualified, the shop turned switching off, or the limit was reached; later "undone" when the seller pressed
+/// Undo. One row per expired supplier order (unique), so a cron re-run never switches twice.
+model SupplierSwitch {
+  id                  String    @id @default(cuid())
+  retailOrderId       String
+  storeId             String
+  fromSupplierOrderId String    @unique
+  fromSupplierId      String
+  /// switched | undone | none | off | limit
+  outcome             String
+  toSupplierOrderId   String?   @unique
+  toSupplierId        String?
+  costBefore          Float     @default(0)
+  costAfter           Float?
+  note                String?
+  undoneAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([retailOrderId])
+  @@index([storeId, createdAt])
+}
+
+/// A rider booked to collect a supplier's packed order at a set time (dropship SupplierOrder or WholesaleOrder,
+/// one per order). Links the delivery job once a partner is found; "finding_rider" waits for the admin team.
+model SupplierPickup {
+  id                 String    @id @default(cuid())
+  orderKind          String    // dropship | wholesale
+  orderId            String
+  supplierId         String
+  sellerId           String
+  /// booked | finding_rider | cancelled | picked_up | delivered
+  status             String    @default("booked")
+  pickupAddress      String
+  slotKey            String
+  windowStart        DateTime
+  windowEnd          DateTime
+  deliveryBookingId  String?   @unique
+  logisticsPartnerId String?
+  needsAdmin         Boolean   @default(false)
+  adminNote          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([orderKind, orderId])
+  @@index([supplierId])
+  @@index([needsAdmin, status])
 }
 
 // ─── Logistics Partner ────────────────────────────────────────────────────────
@@ -825,6 +917,23 @@ model LogisticsPartner {
   verificationDocuments Json            @default("[]")
   whatsappNumber     String?
   status             String             @default("active")
+  /// Cash pay-ins: money paid in beyond the cash jobs it could settle, used first by the next pay-in.
+  payInCredit        Float              @default(0)
+  /// Late pay-ins (lib/logistics/payin-deadline.ts): paused from new pay-when-it-arrives (COD) jobs only. Set and
+  /// cleared by the system (cron + pay-in matching) or the team, never by the partner's "Taking new jobs" switch.
+  codPaused          Boolean            @default(false)
+  /// The missed pay-in deadline (6pm Lagos) of the oldest cash still owed, while the partner is late.
+  payInOverdueSince  DateTime?
+  /// Cash past its deadline and grace, still owed after credit.
+  payInOverdueAmount Float              @default(0)
+  /// 24 hours late: told again, high priority for the team.
+  payInEscalatedAt   DateTime?
+  /// 72 hours late: flagged for the team to review (never suspended automatically).
+  payInReviewAt      DateTime?
+  /// The team unpaused the partner for this late period; the cron won't pause them again until it clears.
+  payInPauseWaived   Boolean            @default(false)
+  /// Late days counted against the partner (each also lowers reliabilityScore).
+  payInStrikes       Int                @default(0)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -837,6 +946,9 @@ model LogisticsPartner {
   webhooks       PartnerWebhook[]
   payoutAccount  LogisticsPayoutAccount?
   reviews        LogisticsReview[]
+  payInAccount   PartnerPayInAccount?
+  payIns         PartnerPayIn[]
+  payInEvents    PartnerPayInEvent[]
 
   @@index([slug])
   @@index([country, city])
@@ -873,11 +985,18 @@ model LogisticsTeamMember {
   riderTokenHash     String?          @unique
   online             Boolean          @default(false)
   lastSeenAt         DateTime?
+  /// Riders app: the rider's latest location only (reported while online or on a job). Never shown to shops or customers.
+  lastLat            Float?
+  lastLng            Float?
+  lastAccuracy       Float?
+  lastLocationAt     DateTime?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
   jobs             DeliveryBooking[]
+  trail            RiderLocationPoint[]
+  pushDevices      PushDevice[]
 
   @@unique([logisticsPartnerId, email])
   @@index([logisticsPartnerId])
@@ -976,6 +1095,14 @@ model DeliveryBooking {
   codMethod          String? // cash | transfer
   codCollectedAt     DateTime?
   remittanceId       String?
+  /// When the rider should collect it (supplier pickups): "Pick up 12–4pm today".
+  pickupWindowStart  DateTime?
+  pickupWindowEnd    DateTime?
+  /// Pickup coordinates for "closest rider" (lib/logistics/geocode.ts): google | nominatim | area.
+  pickupLat          Float?
+  pickupLng          Float?
+  pickupGeoSource    String?
+  pickupGeocodedAt   DateTime?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -984,6 +1111,7 @@ model DeliveryBooking {
   rider            LogisticsTeamMember? @relation(fields: [riderId], references: [id], onDelete: SetNull)
   remittance       CodRemittance?       @relation(fields: [remittanceId], references: [id], onDelete: SetNull)
   review           LogisticsReview?
+  trail            RiderLocationPoint[]
 
   @@index([sellerId])
   @@index([logisticsPartnerId])
@@ -1137,15 +1265,102 @@ model Notification {
   readAt      DateTime?
   scheduledFor DateTime?
   channel     NotificationChannel @default(in_app)
+  /// notify(): the event (e.g. "order.new"), its settings category (shared/notifications.ts) and a key that stops
+  /// the same thing being sent twice (unique per person).
+  event       String?
+  category    String?
+  dedupeKey   String?
   createdAt   DateTime            @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user       User                   @relation(fields: [userId], references: [id])
+  deliveries NotificationDelivery[]
 
+  @@unique([userId, dedupeKey])
   @@index([userId])
   @@index([userId, type])
   @@index([userId, priority])
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, category, createdAt(sort: Desc)])
+}
+
+/// A phone (Expo push token) or browser (Web Push subscription) that gets push notifications. Belongs to an
+/// account (userId) or to a rider (riderId: riders have no account, they use their private link).
+model PushDevice {
+  id           String    @id @default(cuid())
+  userId       String?
+  riderId      String?
+  /// ios | android | web
+  platform     String
+  /// expo | webpush
+  provider     String
+  /// The Expo push token, or the Web Push endpoint URL.
+  token        String    @unique
+  /// Web Push subscription keys.
+  p256dh       String?
+  auth         String?
+  appVersion   String?
+  deviceName   String?
+  lastSeenAt   DateTime  @default(now())
+  /// Set when the person turns push off here, or the token stops working (uninstalled, expired).
+  disabledAt   DateTime?
+  failureCount Int       @default(0)
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rider      LogisticsTeamMember?   @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, disabledAt])
+  @@index([riderId, disabledAt])
+}
+
+/// Each message sent (or held back) for a notification on push, email, SMS or WhatsApp. Expo push tickets are
+/// checked later by /api/cron/push-receipts; "held" rows (quiet hours, a burst) are sent there as one summary.
+model NotificationDelivery {
+  id             String    @id @default(cuid())
+  notificationId String?
+  userId         String?
+  riderId        String?
+  deviceId       String?
+  /// push | email | sms | whatsapp
+  channel        String
+  /// expo | webpush | resend | sms | whatsapp
+  provider       String?
+  /// sent | ok | error | expired (no receipt) | held_quiet | held_burst | flushed | skipped
+  status         String
+  ticketId       String?
+  collapseKey    String?
+  category       String?
+  title          String?
+  body           String?
+  error          String?
+  createdAt      DateTime  @default(now())
+  checkedAt      DateTime?
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  device       PushDevice?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([ticketId])
+  @@index([userId, collapseKey, createdAt])
+  @@index([notificationId])
+}
+
+/// Per-person notification settings that aren't a category × channel switch (those are NotificationPreference
+/// rows with eventKey "notify.<category>"): quiet hours.
+model NotificationSetting {
+  userId            String   @id
+  quietHoursEnabled Boolean  @default(true)
+  /// "HH:MM" in timezone. Default 22:00 to 07:00 Lagos time.
+  quietStart        String   @default("22:00")
+  quietEnd          String   @default("07:00")
+  timezone          String   @default("Africa/Lagos")
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {
@@ -1657,6 +1872,12 @@ model RetailOrder {
   refundStatus       String? // pending (claimed) | processing | processed | failed | manual
   refundId           String? // Paystack refund id
   refundedAt         DateTime?
+  // Orders sent in more than one parcel (some lines from suppliers, maybe some from the seller's own stock):
+  // the seller's own part, and when the first parcel left (the customer is told "part of your order is on its
+  // way" once). The order's status is worked out from its parts (src/lib/supplier-orders/parts.server.ts).
+  ownShippedAt       DateTime?
+  ownDeliveredAt     DateTime?
+  partlySentAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -1877,6 +2098,25 @@ model AiUsage {
   @@index([userId, kind, createdAt])
 }
 
+// ─── One-minute help videos (Help → "Watch a 1-minute video"; topics in shared/help-videos.ts) ─────
+
+model HelpVideo {
+  id              String   @id @default(cuid())
+  topic           String // add_product | record_sale | get_paid | … (HELP_TOPICS)
+  title           String
+  roles           String[] @default([]) // seller | supplier | logistics_partner | rider
+  language        String   @default("en") // en | pcm | yo | ha | ig
+  videoUrl        String? // our media bucket (platform/help-videos/…) or a YouTube/Vimeo link
+  posterUrl       String?
+  durationSeconds Int?
+  published       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([topic, language])
+  @@index([published, topic])
+}
+
 // ─── Delivery partners: cash-on-delivery pay-ins, API keys and webhooks ──────
 
 model CodRemittance {
@@ -1886,12 +2126,122 @@ model CodRemittance {
   method             String   @default("transfer") // transfer | cash | api
   reference          String?
   note               String?
+  /// What this pay-in settled (jobs ticked off), the partner's credit after it, and exact | over | under.
+  covered            Float?
+  creditAfter        Float?
+  outcome            String?
   createdAt          DateTime @default(now())
 
   logisticsPartner LogisticsPartner  @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
   bookings         DeliveryBooking[]
+  payIn            PartnerPayIn?
 
   @@index([logisticsPartnerId, createdAt])
+}
+
+/// A delivery partner's own pay-in bank account (Paystack Dedicated Virtual Account). Money sent to it is
+/// matched to the partner automatically (charge.success, channel dedicated_nuban).
+/// Pay-in deadline history per partner: reminders, late flags, escalations, strikes, clears and the team's
+/// actions. dedupeKey is unique, so the cron (every 15 minutes) never sends the same message twice.
+model PartnerPayInEvent {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  /// reminder | overdue | escalated | review | strike | cleared | settled | unpaused | recheck
+  kind               String
+  dedupeKey          String   @unique
+  amount             Float?
+  /// The deadline this is about (6pm Lagos).
+  deadline           DateTime?
+  note               String?
+  adminUserId        String?
+  createdAt          DateTime @default(now())
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId, createdAt])
+  @@index([kind, createdAt])
+}
+
+model PartnerPayInAccount {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String   @unique
+  provider           String   @default("paystack")
+  customerCode       String?
+  customerId         String?
+  providerAccountId  String?
+  accountNumber      String?  @unique
+  accountName        String?
+  bankName           String?
+  bankSlug           String?
+  /// pending | assigned | failed | unavailable (DVA not switched on for the business)
+  status             String   @default("pending")
+  lastError          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([customerCode])
+}
+
+/// Every transfer into a pay-in account, once per Paystack reference (replays are ignored). Matched ones point
+/// at the CodRemittance they created; unmatched ones wait for the team to assign them.
+model PartnerPayIn {
+  id                 String    @id @default(cuid())
+  provider           String    @default("paystack")
+  reference          String    @unique
+  amount             Float
+  currency           String    @default("NGN")
+  accountNumber      String?
+  customerCode       String?
+  senderName         String?
+  senderBank         String?
+  paidAt             DateTime  @default(now())
+  /// matched | unmatched
+  status             String    @default("unmatched")
+  matchedBy          String?   // auto | admin
+  matchedByUserId    String?
+  matchedAt          DateTime?
+  logisticsPartnerId String?
+  remittanceId       String?   @unique
+  raw                Json      @default("{}")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  logisticsPartner LogisticsPartner? @relation(fields: [logisticsPartnerId], references: [id], onDelete: SetNull)
+  remittance       CodRemittance?    @relation(fields: [remittanceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([logisticsPartnerId, createdAt])
+}
+
+/// A short location trail for a rider's current job (live tracking). Deleted 7 days after delivery.
+model RiderLocationPoint {
+  id        String   @id @default(cuid())
+  riderId   String
+  bookingId String
+  lat       Float
+  lng       Float
+  accuracy  Float?
+  at        DateTime
+
+  rider   LogisticsTeamMember @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  booking DeliveryBooking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, at])
+  @@index([at])
+}
+
+/// Addresses already looked up (Google or OpenStreetMap), so each address is geocoded once.
+model GeocodeCache {
+  key       String   @id
+  query     String
+  lat       Float?
+  lng       Float?
+  source    String
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PartnerApiKey {
@@ -2154,7 +2504,7 @@ model SocialChannelConnection {
   id              String    @id @default(cuid())
   storeId         String
   channel         String // google | meta | tiktok | whatsapp
-  externalId      String? // Merchant Center ID, Meta catalog ID, TikTok catalog ID, WhatsApp catalog ID
+  externalId      String? // the catalog: Meta catalog ID, TikTok catalog ID (Google: the Merchant Center account ID)
   tokenEnc        String? // encrypted access token (src/lib/social/secrets.ts); never sent to the browser
   feedAddedAt     DateTime? // seller said they pasted the feed URL into the channel
   lastFetchAt     DateTime? // the channel's crawler last downloaded the feed
@@ -2162,11 +2512,32 @@ model SocialChannelConnection {
   lastSyncAt      DateTime?
   lastSyncStatus  String? // ok | error
   lastSyncMessage String?
+  // One-tap connect on /channels (src/lib/sales-channels; docs/migrations/2026-10-22-sales-channels.sql).
+  // tokenEnc then holds encrypted JSON { token, refreshToken? }; null status with a token = an older pasted-token link.
+  status          String? // syncing | connected | error | reauth | needs_account
+  accountId       String? // Meta business ID, Google Merchant Center account ID, TikTok Business Center ID
+  feedId          String? // the scheduled feed we registered there (Meta product feed, Google data source, TikTok feed)
+  tokenExpiresAt  DateTime? // null = doesn't expire (or unknown)
+  productCount    Int? // products the platform reports it has
+  connectedAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@unique([storeId, channel])
   @@index([storeId])
+  @@index([status, lastSyncAt])
+}
+
+/// "Tell me when it's ready" on a coming-soon sales channel (Amazon, Jumia, Konga…), one row per store and platform.
+model SalesChannelInterest {
+  id        String   @id @default(cuid())
+  storeId   String
+  platform  String // amazon | jumia | konga | jiji | ebay | etsy | shopify | pinterest | snapchat
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@unique([storeId, platform])
+  @@index([platform])
 }
 // ---- end analytics + social selling (agent G) ----
 
@@ -2463,6 +2834,19 @@ model AuthThrottle {
 }
 // ---- end auth security ----
 
+// ---- sign-in codes on WhatsApp (docs/migrations/2026-10-21-auth-code-channel.sql) ----
+/// Per phone (hashed): the channel the send route wants for the next sign-in code, and the one the Supabase Send SMS
+/// hook actually used (WhatsApp or the SMS fallback). Short-lived; src/lib/auth/otp-delivery.server.ts.
+model AuthCodeChannel {
+  key       String   @id
+  wanted    String
+  used      String?
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+// ---- end sign-in codes on WhatsApp ----
+
 // ---- shared rate limits (docs/migrations/2026-10-17-followups.sql) ----
 /// One row per limiter key and fixed window: src/lib/rate-limit.ts counts requests here with an atomic upsert so
 /// limits hold across serverless instances. Keys hash the IP/identifier. Expired rows are swept opportunistically.
@@ -2677,3 +3061,37 @@ model ProductNewsRecipient {
   @@unique([broadcastId, userId])
   @@index([broadcastId, status])
 }
+
+// ---- domain billing ----
+// A domain a seller buys (or renews) through Shopinbos on the platform's Vercel registrar account. The seller pays
+// through Paystack first; only a verified payment moves the row paid → buying (one caller) → bought, else the
+// payment is refunded (src/lib/domains/billing.server.ts). The latest bought row per domain carries the expiry the
+// renewal cron reminds about (/api/cron/domain-renewals). Migration: docs/migrations/2026-10-24-domain-billing.sql.
+model DomainPurchase {
+  id                    String    @id @default(cuid())
+  storeId               String
+  userId                String
+  domain                String
+  kind                  String // new | renewal
+  years                 Int       @default(1)
+  costUsd               Float // the registrar price we quoted from (Vercel, USD)
+  amountNgn             Int // what the seller pays
+  coveredByPlan         Boolean   @default(false) // free with an annual plan: no Paystack payment, nothing to refund
+  reference             String    @unique // Paystack reference (domain-<uuid>)
+  status                String    @default("pending_payment") // pending_payment | payment_failed | paid | buying | bought | failed | refunded | refund_failed | expired
+  payerEmail            String? // the email Paystack charged (billingEmail, or the saved card's email)
+  vercelOrderId         String?
+  contactInformation    Json? // the registrant contact the registrar needs (renewals reuse it)
+  paystackAuthorization Json? // the reusable card authorization from the paid charge, for renewal charges
+  remindersSent         Json      @default("[]") // r30 | r7 | r1 | charge
+  paidAt                DateTime?
+  expiresAt             DateTime?
+  error                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([storeId])
+  @@index([status])
+  @@index([expiresAt])
+}
+// ---- end domain billing ----

@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
+import { pickupWindowText } from "@shared/supplier-pickup";
 import { supplierOrderActions, supplierOrderRef, type SupplierOrderLine } from "./pure";
 
 // Reading a supplier's dropship orders (SupplierOrder) in one shape for the web portal, /api/supplier/orders and
@@ -10,6 +11,7 @@ import { supplierOrderActions, supplierOrderRef, type SupplierOrderLine } from "
 export const SUPPLIER_ORDER_SELECT = {
   id: true, status: true, items: true, costTotal: true, currency: true, shippingAddress: true, recipientName: true, recipientPhone: true,
   trackingCode: true, carrier: true, rejectReason: true, acceptedAt: true, shippedAt: true, deliveredAt: true, rejectedAt: true,
+  acceptBy: true, expiredAt: true, packedAt: true,
   createdAt: true, updatedAt: true, storeId: true, sellerId: true, retailOrderId: true,
   retailOrder: { select: { orderNumber: true, status: true, paymentMethod: true, total: true, notes: true, items: true } },
 } as const satisfies Prisma.SupplierOrderSelect;
@@ -32,7 +34,7 @@ export function orderLines(items: unknown): SupplierOrderLine[] {
 }
 
 /** One dropship order as a supplier sees it: what to pack, where it goes, what they're owed, what they can do. */
-export function dropshipView(row: SupplierOrderRow, shopName: string) {
+export function dropshipView(row: SupplierOrderRow, shopName: string, pickup?: PickupSummary | null) {
   const items = orderLines(row.items);
   const retailLines = Array.isArray(row.retailOrder.items) ? row.retailOrder.items.length : items.length;
   const unpaidPod = row.retailOrder.paymentMethod === "pay_on_delivery" && ["pending", "awaiting_payment"].includes(row.retailOrder.status);
@@ -59,8 +61,25 @@ export function dropshipView(row: SupplierOrderRow, shopName: string) {
     acceptedAt: row.acceptedAt?.toISOString() ?? null,
     shippedAt: row.shippedAt?.toISOString() ?? null,
     deliveredAt: row.deliveredAt?.toISOString() ?? null,
+    // The time to accept a new order (the countdown) and the rider booked for a packed one.
+    acceptBy: row.acceptBy?.toISOString() ?? null,
+    expiredAt: row.expiredAt?.toISOString() ?? null,
+    packedAt: row.packedAt?.toISOString() ?? null,
+    pickup: pickup ?? null,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+export interface PickupSummary {
+  status: string;
+  text: string | null;
+}
+
+/** The open rider booking for each order ("Pick up 12–4pm today", or still finding a rider). */
+export async function pickupSummaries(kind: "dropship" | "wholesale", orderIds: string[], now = new Date()) {
+  if (!orderIds.length) return new Map<string, PickupSummary>();
+  const rows = await db.supplierPickup.findMany({ where: { orderKind: kind, orderId: { in: orderIds }, status: { not: "cancelled" } }, select: { orderId: true, status: true, windowStart: true, windowEnd: true } });
+  return new Map(rows.map((row) => [row.orderId, { status: row.status, text: pickupWindowText(row.windowStart, row.windowEnd, now) }]));
 }
 
 export type DropshipView = ReturnType<typeof dropshipView>;
@@ -91,6 +110,9 @@ export async function listDropshipOrders(supplierId: string, options: { statuses
     db.supplierOrder.findMany({ where, orderBy: { createdAt: options.order ?? "desc" }, skip: options.skip, take: options.take ?? 50, select: SUPPLIER_ORDER_SELECT }),
     db.supplierOrder.count({ where }),
   ]);
-  const names = await shopNames(rows.map((row) => row.storeId));
-  return { orders: rows.map((row) => dropshipView(row, names.get(row.storeId) ?? "Shop")), total };
+  const [names, pickups] = await Promise.all([
+    shopNames(rows.map((row) => row.storeId)),
+    pickupSummaries("dropship", rows.filter((row) => row.status === "accepted" || row.status === "shipped").map((row) => row.id)),
+  ]);
+  return { orders: rows.map((row) => dropshipView(row, names.get(row.storeId) ?? "Shop", pickups.get(row.id))), total };
 }

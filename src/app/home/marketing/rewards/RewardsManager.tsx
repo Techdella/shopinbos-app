@@ -32,6 +32,11 @@ import type { GameColors } from "@/components/storefront/gamification/client";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
 import { Wheel } from "@/components/storefront/gamification/Wheel";
 import { api, errorText } from "../_kit/client";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatDate, formatNumber } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
+
+type Key = MessageKey<"marketing">;
 
 const GameDialog = lazy(() => import("@/components/storefront/gamification/GameDialog"));
 
@@ -41,28 +46,28 @@ interface Product {
   retailPrice: number;
 }
 
-const SLICE_KINDS: Array<{ value: SliceKind; label: string }> = [
-  { value: "percent", label: "% off" },
-  { value: "amount", label: "₦ off" },
-  { value: "free_delivery", label: "Free delivery" },
-  { value: "free_gift", label: "Free gift" },
-  { value: "try_again", label: "Try again" },
+const SLICE_KINDS: Array<{ value: SliceKind; label: Key }> = [
+  { value: "percent", label: "forms.percentOff" },
+  { value: "amount", label: "forms.nairaOff" },
+  { value: "free_delivery", label: "rewards.freeDelivery" },
+  { value: "free_gift", label: "rewards.freeGift" },
+  { value: "try_again", label: "rewards.tryAgain" },
 ];
-const TIER_KINDS: Array<{ value: TierRewardKind; label: string }> = [
-  { value: "free_gift", label: "Free gift" },
-  { value: "percent", label: "% off" },
-  { value: "amount", label: "₦ off" },
+const TIER_KINDS: Array<{ value: TierRewardKind; label: Key }> = [
+  { value: "free_gift", label: "rewards.freeGift" },
+  { value: "percent", label: "forms.percentOff" },
+  { value: "amount", label: "forms.nairaOff" },
 ];
-const TRIGGERS: Array<{ value: GameTrigger; label: string }> = [
-  { value: "entry", label: "As the page opens" },
-  { value: "delay", label: "After a few seconds" },
-  { value: "scroll", label: "After scrolling" },
-  { value: "exit", label: "When they're about to leave" },
+const TRIGGERS: Array<{ value: GameTrigger; label: Key }> = [
+  { value: "entry", label: "rewards.trigger.entry" },
+  { value: "delay", label: "forms.afterSeconds" },
+  { value: "scroll", label: "rewards.trigger.scroll" },
+  { value: "exit", label: "rewards.trigger.exit" },
 ];
-const CONTACTS: Array<{ value: ContactChoice; label: string }> = [
-  { value: "either", label: "Email or WhatsApp" },
-  { value: "email", label: "Email" },
-  { value: "whatsapp", label: "WhatsApp number" },
+const CONTACTS: Array<{ value: ContactChoice; label: Key }> = [
+  { value: "either", label: "rewards.contact.either" },
+  { value: "email", label: "channel.email" },
+  { value: "whatsapp", label: "forms.whatsappNumber" },
 ];
 
 const newId = (prefix: string) => `${prefix}${Math.random().toString(36).slice(2, 7)}`;
@@ -78,6 +83,9 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
   colors: GameColors;
 }) {
   const router = useRouter();
+  const t = useT("marketing", "common");
+  const locale = useLocale();
+  const n = (value: number) => formatNumber(value, locale);
   const [config, setConfig] = useState(initial);
   const [saved, setSaved] = useState(JSON.stringify(initial));
   const [busy, setBusy] = useState(false);
@@ -101,7 +109,7 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
       const data = await api<{ config: GamificationConfig }>("/api/app/gamification", "PUT", { config });
       setConfig(data.config);
       setSaved(JSON.stringify(data.config));
-      setNotice("Saved. Your store shows the changes straight away.");
+      setNotice(t("rewards.saved"));
       router.refresh();
     } catch (err) {
       setError(errorText(err));
@@ -112,34 +120,34 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
 
   const plays = stats.plays.wheel + stats.plays.scratch + stats.plays.post_purchase;
   const builderHint = (kind: GameSectionKind) =>
-    placed.includes(kind) ? <Pill tone="success" dot>On your store</Pill> : <Pill tone="warning">Not placed yet</Pill>;
+    placed.includes(kind) ? <Pill tone="success" dot>{t("rewards.onStore")}</Pill> : <Pill tone="warning">{t("rewards.notPlaced")}</Pill>;
 
   return (
     <div className="grid gap-5 pb-24">
       <StatGrid className="xl:grid-cols-4">
-        <StatTile tone="card" label="Plays (30 days)" value={plays.toLocaleString("en-NG")} hint={stats.tablesReady ? `${stats.plays.wheel} spins · ${stats.plays.scratch} scratches · ${stats.plays.post_purchase} after orders` : "Counted once the database update is in"} />
-        <StatTile tone="card" label="Codes won / used" value={`${stats.codesIssued.toLocaleString("en-NG")} / ${stats.codesRedeemed.toLocaleString("en-NG")}`} hint={stats.codesIssued ? `${Math.round((stats.codesRedeemed / stats.codesIssued) * 100)}% used` : "None won yet"} />
-        <StatTile tone="card" label="Sales from game codes" value={naira(stats.revenue)} hint={`${naira(stats.discountGiven)} given away · tiers ${naira(stats.tierRevenue)}`} />
-        <StatTile tone="card" label="Points issued / redeemed" value={`${stats.points.issued.toLocaleString("en-NG")} / ${stats.points.redeemed.toLocaleString("en-NG")}`} hint={`${stats.points.members} members`} />
+        <StatTile tone="card" label={t("rewards.stat.plays")} value={n(plays)} hint={stats.tablesReady ? t("rewards.stat.playsHint", { wheel: stats.plays.wheel, scratch: stats.plays.scratch, after: stats.plays.post_purchase }) : t("rewards.stat.countedLater")} />
+        <StatTile tone="card" label={t("rewards.stat.codes")} value={`${n(stats.codesIssued)} / ${n(stats.codesRedeemed)}`} hint={stats.codesIssued ? t("rewards.stat.usedPct", { pct: Math.round((stats.codesRedeemed / stats.codesIssued) * 100) }) : t("rewards.stat.noneWon")} />
+        <StatTile tone="card" label={t("rewards.stat.sales")} value={naira(stats.revenue)} hint={t("rewards.stat.salesHint", { given: naira(stats.discountGiven), tiers: naira(stats.tierRevenue) })} />
+        <StatTile tone="card" label={t("rewards.stat.points")} value={`${n(stats.points.issued)} / ${n(stats.points.redeemed)}`} hint={t("rewards.stat.members", { count: stats.points.members })} />
       </StatGrid>
       {!stats.tablesReady ? (
-        <Notice tone="info">Games, codes and reward tiers already work. Counting plays, one play per person, and loyalty points need a database update (docs/migrations/2026-10-12-gamification.sql); until then points stay off at checkout.</Notice>
+        <Notice tone="info">{t("rewards.needsUpdate")}</Notice>
       ) : null}
 
       {/* ─── Games ─── */}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="grid min-w-0 gap-5">
           <GameCard
-            title="Spin the wheel"
-            sub="A prize wheel pop-up. Shoppers enter an email or WhatsApp number to spin."
+            title={t("rewards.wheel")}
+            sub={t("rewards.wheelSub")}
             settings={config.wheel}
             onChange={(value) => patch("wheel", value)}
             placedPill={builderHint("spin-wheel")}
             onTry={() => setTryGame("wheel")}
           />
           <GameCard
-            title="Scratch card"
-            sub="A mystery discount they scratch to reveal (or tap Reveal). Same prizes as the wheel."
+            title={t("rewards.scratch")}
+            sub={t("rewards.scratchSub")}
             settings={config.scratch}
             onChange={(value) => patch("scratch", value)}
             placedPill={builderHint("scratch-card")}
@@ -149,16 +157,16 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
         </div>
         <aside className="grid content-start gap-4 xl:sticky xl:top-6">
           <Card className="p-5">
-            <CardHead title="Live preview" sub="In your store's colours" />
+            <CardHead title={t("rewards.livePreview")} sub={t("rewards.livePreviewSub")} />
             <div className="mt-4 rounded-[18px] p-4" style={{ background: colors.paper }}>
               <Wheel slices={config.prizes.slices.map((slice) => ({ id: slice.id, label: slice.kind === "free_gift" && slice.productId && !slice.label ? `Free ${giftNames[slice.productId] ?? "gift"}` : sliceLabel(slice) }))} colors={colors} size={240} />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <PillButton size="sm" tone="ink" onClick={() => setTryGame("wheel")}><Icon name="play" size={13} /> Try the wheel</PillButton>
-              <PillButton size="sm" tone="white" onClick={() => setTryGame("scratch")}>Try the scratch card</PillButton>
+              <PillButton size="sm" tone="ink" onClick={() => setTryGame("wheel")}><Icon name="play" size={13} /> {t("rewards.tryWheel")}</PillButton>
+              <PillButton size="sm" tone="white" onClick={() => setTryGame("scratch")}>{t("rewards.tryScratch")}</PillButton>
             </div>
             <p className="mb-0 mt-3 text-[12.5px] leading-5 text-app-ink-soft">
-              Previews never make real codes. To show a game on your store, open the <a href="/builder/editor" className="font-bold underline">store builder</a>, choose Insert › Grow and add &ldquo;Spin the wheel&rdquo; or &ldquo;Scratch card&rdquo;. The switch here turns it on or off everywhere.
+              {t("rewards.previewNoCodes")} <a href="/builder/editor" className="font-bold underline">{t("rewards.storeBuilderLower")}</a>{t("rewards.previewHowTo")}
             </p>
           </Card>
         </aside>
@@ -174,16 +182,16 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
       <Card className="p-5">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
-            <CardHead title="Spin for your next order" sub="On the thank-you page: one free spin per order for a code to use next time. Brings shoppers back." />
+            <CardHead title={t("rewards.postTitle")} sub={t("rewards.postSub")} />
           </div>
-          <Toggle on={config.postPurchase.enabled} onChange={(enabled) => patch("postPurchase", { enabled })} label="Post-purchase spin" />
+          <Toggle on={config.postPurchase.enabled} onChange={(enabled) => patch("postPurchase", { enabled })} label={t("rewards.postToggle")} />
         </div>
         {config.postPurchase.enabled ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <Field label="Heading" htmlFor="pp-headline">
+            <Field label={t("rewards.heading")} htmlFor="pp-headline">
               <input id="pp-headline" className={inputClass} value={config.postPurchase.headline} maxLength={80} onChange={(event) => patch("postPurchase", { headline: event.target.value })} />
             </Field>
-            <PillButton size="md" tone="white" onClick={() => setTryGame("post_purchase")}>Try it</PillButton>
+            <PillButton size="md" tone="white" onClick={() => setTryGame("post_purchase")}>{t("rewards.tryIt")}</PillButton>
           </div>
         ) : null}
       </Card>
@@ -192,10 +200,10 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-app-line bg-white/95 px-4 py-3 backdrop-blur" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
         <div className="mx-auto flex max-w-[1100px] flex-wrap items-center gap-3">
           <p className="m-0 min-w-0 flex-1 text-[13.5px] text-app-ink-soft" role="status" aria-live="polite">
-            {error ? <span className="font-bold text-app-danger">{error}</span> : notice || (dirty ? (problems[0] ?? "You have changes that aren't saved.") : "All changes saved.")}
+            {error ? <span className="font-bold text-app-danger">{error}</span> : notice || (dirty ? (problems[0] ?? t("rewards.unsaved")) : t("rewards.allSaved"))}
           </p>
-          {dirty ? <PillButton size="md" tone="white" onClick={() => { setConfig(JSON.parse(saved)); setError(""); }}>Undo changes</PillButton> : null}
-          <PillButton size="md" tone="ink" busy={busy} disabled={!dirty || busy} onClick={() => void save()}>Save</PillButton>
+          {dirty ? <PillButton size="md" tone="white" onClick={() => { setConfig(JSON.parse(saved)); setError(""); }}>{t("rewards.undoChanges")}</PillButton> : null}
+          <PillButton size="md" tone="ink" busy={busy} disabled={!dirty || busy} onClick={() => void save()}>{t("save")}</PillButton>
         </div>
       </div>
 
@@ -209,6 +217,7 @@ export function RewardsManager({ initial, stats, products, currency, storeSlug, 
 }
 
 function GameCard({ title, sub, settings, onChange, placedPill, onTry }: { title: string; sub: string; settings: PopupGameSettings; onChange: (value: Partial<PopupGameSettings>) => void; placedPill: React.ReactNode; onTry: () => void }) {
+  const t = useT("marketing", "common");
   const id = useId();
   return (
     <Card className="p-5">
@@ -220,36 +229,36 @@ function GameCard({ title, sub, settings, onChange, placedPill, onTry }: { title
       </div>
       {settings.enabled ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Heading" htmlFor={`${id}-h`} className="sm:col-span-2">
+          <Field label={t("rewards.heading")} htmlFor={`${id}-h`} className="sm:col-span-2">
             <input id={`${id}-h`} className={inputClass} value={settings.headline} maxLength={80} onChange={(event) => onChange({ headline: event.target.value })} />
           </Field>
-          <Field label="Text" htmlFor={`${id}-b`} className="sm:col-span-2">
+          <Field label={t("rewards.text")} htmlFor={`${id}-b`} className="sm:col-span-2">
             <input id={`${id}-b`} className={inputClass} value={settings.body} maxLength={240} onChange={(event) => onChange({ body: event.target.value })} />
           </Field>
-          <Field label="Pop-up opens" htmlFor={`${id}-t`} hint="Each builder section can choose its own; this is the default.">
+          <Field label={t("rewards.popupOpens")} htmlFor={`${id}-t`} hint={t("rewards.popupOpensHint")}>
             <select id={`${id}-t`} className={selectClass} value={settings.trigger} onChange={(event) => onChange({ trigger: event.target.value as GameTrigger })}>
-              {TRIGGERS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              {TRIGGERS.map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
             </select>
           </Field>
           {settings.trigger === "delay" ? (
-            <Field label="Seconds" htmlFor={`${id}-d`}>
+            <Field label={t("rewards.seconds")} htmlFor={`${id}-d`}>
               <input id={`${id}-d`} type="number" min={1} max={120} className={inputClass} value={settings.delaySeconds} onChange={(event) => onChange({ delaySeconds: Number(event.target.value) || 1 })} />
             </Field>
           ) : settings.trigger === "scroll" ? (
-            <Field label="Percent of the page" htmlFor={`${id}-s`}>
+            <Field label={t("rewards.percentOfPage")} htmlFor={`${id}-s`}>
               <input id={`${id}-s`} type="number" min={5} max={100} className={inputClass} value={settings.scrollPercent} onChange={(event) => onChange({ scrollPercent: Number(event.target.value) || 50 })} />
             </Field>
           ) : <div />}
-          <Field label="Ask for" htmlFor={`${id}-c`}>
+          <Field label={t("rewards.askFor")} htmlFor={`${id}-c`}>
             <select id={`${id}-c`} className={selectClass} value={settings.collect} onChange={(event) => onChange({ collect: event.target.value as ContactChoice })}>
-              {CONTACTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              {CONTACTS.map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
             </select>
           </Field>
-          <Field label="One play per person every" htmlFor={`${id}-f`} hint="Days. The pop-up also shows at most once in that time.">
+          <Field label={t("rewards.onePlay")} htmlFor={`${id}-f`} hint={t("rewards.onePlayHint")}>
             <input id={`${id}-f`} type="number" min={1} max={365} className={inputClass} value={settings.frequencyDays} onChange={(event) => onChange({ frequencyDays: Number(event.target.value) || 1 })} />
           </Field>
           <div className="sm:col-span-2">
-            <PillButton size="sm" tone="white" onClick={onTry}><Icon name="play" size={13} /> Try it</PillButton>
+            <PillButton size="sm" tone="white" onClick={onTry}><Icon name="play" size={13} /> {t("rewards.tryIt")}</PillButton>
           </div>
         </div>
       ) : null}
@@ -258,6 +267,7 @@ function GameCard({ title, sub, settings, onChange, placedPill, onTry }: { title
 }
 
 function PrizesCard({ config, setConfig, products, currency }: { config: GamificationConfig; setConfig: React.Dispatch<React.SetStateAction<GamificationConfig>>; products: Product[]; currency: string }) {
+  const t = useT("marketing");
   const slices = config.prizes.slices;
   const odds = sliceOdds(slices);
   const setSlices = (next: GameSlice[]) => setConfig((prev) => ({ ...prev, prizes: { ...prev.prizes, slices: next } }));
@@ -265,28 +275,28 @@ function PrizesCard({ config, setConfig, products, currency }: { config: Gamific
   const winChance = odds.reduce((sum, odd, index) => sum + (slices[index]!.kind !== "try_again" ? odd : 0), 0);
   return (
     <Card className="p-5">
-      <CardHead title="Prizes and chances" sub={`${MIN_SLICES} to ${MAX_SLICES} slices, shared by the wheel and the scratch card. Shoppers can see the chances. About ${winChance}% of plays win something.`} />
+      <CardHead title={t("rewards.prizes")} sub={t("rewards.prizesSub", { min: MIN_SLICES, max: MAX_SLICES, win: winChance })} />
       <div className="mt-4 grid gap-2">
         <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_88px_56px_40px] gap-2 px-1 text-[12px] font-bold text-app-ink-soft md:grid">
-          <span>Prize</span><span>Amount / gift</span><span>Wheel label</span><span>Chance</span><span /><span />
+          <span>{t("rewards.col.prize")}</span><span>{t("rewards.col.amount")}</span><span>{t("rewards.col.label")}</span><span>{t("rewards.col.chance")}</span><span /><span />
         </div>
         {slices.map((slice, index) => (
           <div key={slice.id} className="grid grid-cols-2 gap-2 rounded-[16px] border border-app-line p-2.5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_88px_56px_40px] md:items-center md:border-0 md:p-1">
-            <select aria-label={`Slice ${index + 1} prize`} className={selectClass} value={slice.kind} onChange={(event) => update(index, { kind: event.target.value as SliceKind, value: event.target.value === "percent" ? 10 : event.target.value === "amount" ? 1000 : 0, productId: null })}>
-              {SLICE_KINDS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            <select aria-label={t("rewards.slicePrize", { n: index + 1 })} className={selectClass} value={slice.kind} onChange={(event) => update(index, { kind: event.target.value as SliceKind, value: event.target.value === "percent" ? 10 : event.target.value === "amount" ? 1000 : 0, productId: null })}>
+              {SLICE_KINDS.map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
             </select>
             {slice.kind === "percent" || slice.kind === "amount" ? (
-              <input aria-label={`Slice ${index + 1} ${slice.kind === "percent" ? "percent" : "naira"} off`} type="number" min={1} max={slice.kind === "percent" ? 90 : undefined} className={inputClass} value={slice.value} onChange={(event) => update(index, { value: Number(event.target.value) || 0 })} />
+              <input aria-label={slice.kind === "percent" ? t("rewards.slicePercent", { n: index + 1 }) : t("rewards.sliceNaira", { n: index + 1 })} type="number" min={1} max={slice.kind === "percent" ? 90 : undefined} className={inputClass} value={slice.value} onChange={(event) => update(index, { value: Number(event.target.value) || 0 })} />
             ) : slice.kind === "free_gift" ? (
-              <select aria-label={`Slice ${index + 1} gift`} className={selectClass} value={slice.productId ?? ""} onChange={(event) => update(index, { productId: event.target.value || null })}>
-                <option value="">Pick a product</option>
+              <select aria-label={t("rewards.sliceGift", { n: index + 1 })} className={selectClass} value={slice.productId ?? ""} onChange={(event) => update(index, { productId: event.target.value || null })}>
+                <option value="">{t("rewards.pickProduct")}</option>
                 {products.map((product) => <option key={product.id} value={product.id}>{product.name} ({naira(product.retailPrice)})</option>)}
               </select>
             ) : <span className="hidden md:block" />}
-            <input aria-label={`Slice ${index + 1} wheel label`} className={inputClass} maxLength={28} placeholder={sliceLabel({ ...slice, label: "" })} value={slice.label} onChange={(event) => update(index, { label: event.target.value })} />
-            <input aria-label={`Slice ${index + 1} chance weight`} type="number" min={0} max={1000} className={inputClass} value={slice.weight} onChange={(event) => update(index, { weight: Math.max(0, Number(event.target.value) || 0) })} />
-            <span className="self-center text-[13px] font-bold tabular-nums text-app-ink-soft" aria-label={`Chance ${odds[index]} percent`}>{odds[index]}%</span>
-            <button type="button" aria-label={`Remove slice ${index + 1}`} disabled={slices.length <= MIN_SLICES} onClick={() => setSlices(slices.filter((_, i) => i !== index))} className="grid h-10 w-10 place-items-center justify-self-end rounded-full text-app-ink-soft hover:bg-app-canvas disabled:opacity-30">
+            <input aria-label={t("rewards.sliceLabel", { n: index + 1 })} className={inputClass} maxLength={28} placeholder={sliceLabel({ ...slice, label: "" })} value={slice.label} onChange={(event) => update(index, { label: event.target.value })} />
+            <input aria-label={t("rewards.sliceWeight", { n: index + 1 })} type="number" min={0} max={1000} className={inputClass} value={slice.weight} onChange={(event) => update(index, { weight: Math.max(0, Number(event.target.value) || 0) })} />
+            <span className="self-center text-[13px] font-bold tabular-nums text-app-ink-soft" aria-label={t("rewards.chancePct", { pct: odds[index] })}>{odds[index]}%</span>
+            <button type="button" aria-label={t("rewards.removeSlice", { n: index + 1 })} disabled={slices.length <= MIN_SLICES} onClick={() => setSlices(slices.filter((_, i) => i !== index))} className="grid h-10 w-10 place-items-center justify-self-end rounded-full text-app-ink-soft hover:bg-app-canvas disabled:opacity-30">
               <Icon name="trash" size={15} />
             </button>
           </div>
@@ -294,15 +304,15 @@ function PrizesCard({ config, setConfig, products, currency }: { config: Gamific
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <PillButton size="sm" tone="white" disabled={slices.length >= MAX_SLICES} onClick={() => setSlices([...slices, { id: newId("s"), kind: "percent", value: 5, productId: null, label: "", weight: 10 }])}>
-          <Icon name="plus" size={13} /> Add a slice
+          <Icon name="plus" size={13} /> {t("rewards.addSlice")}
         </PillButton>
-        <span className="text-[12.5px] text-app-ink-soft">Chance is relative: a slice with 20 lands twice as often as one with 10. 0 means it never lands.</span>
+        <span className="text-[12.5px] text-app-ink-soft">{t("rewards.chanceHelp")}</span>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Field label="Codes last" htmlFor="prize-days" hint="Days from when they're won. Every code works once.">
+        <Field label={t("rewards.codesLast")} htmlFor="prize-days" hint={t("rewards.codesLastHint")}>
           <input id="prize-days" type="number" min={1} max={90} className={inputClass} value={config.prizes.codeDays} onChange={(event) => setConfig((prev) => ({ ...prev, prizes: { ...prev.prizes, codeDays: Number(event.target.value) || 1 } }))} />
         </Field>
-        <Field label={`Smallest order for a code (${currency})`} htmlFor="prize-min" hint="0 means any order.">
+        <Field label={t("rewards.minOrder", { currency })} htmlFor="prize-min" hint={t("rewards.minOrderHint")}>
           <input id="prize-min" type="number" min={0} className={inputClass} value={config.prizes.minOrder} onChange={(event) => setConfig((prev) => ({ ...prev, prizes: { ...prev.prizes, minOrder: Math.max(0, Number(event.target.value) || 0) } }))} />
         </Field>
       </div>
@@ -320,6 +330,7 @@ function ProgressCard({ config, patch, products, currency, freeDeliveryOver, col
   giftNames: Record<string, string>;
   placedPill: React.ReactNode;
 }) {
+  const t = useT("marketing");
   const tiers = config.progress.tiers;
   const setTiers = (next: ProgressTier[]) => patch("progress", { tiers: next });
   const update = (index: number, value: Partial<ProgressTier>) => setTiers(tiers.map((tier, i) => (i === index ? { ...tier, ...value } : tier)));
@@ -329,59 +340,59 @@ function ProgressCard({ config, patch, products, currency, freeDeliveryOver, col
     <Card className="p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">Reward progress {config.progress.enabled ? <Pill tone="success" dot>In the bag and when paying</Pill> : null}</span>} sub="“Add ₦4,500 more for free delivery” in the bag, the bag page and the payment page, plus rewards you choose at higher amounts." />
+          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">{t("rewards.progress")} {config.progress.enabled ? <Pill tone="success" dot>{t("rewards.inBag")}</Pill> : null}</span>} sub={t("rewards.progressSub")} />
         </div>
-        <Toggle on={config.progress.enabled} onChange={(enabled) => patch("progress", { enabled })} label="Reward progress" />
+        <Toggle on={config.progress.enabled} onChange={(enabled) => patch("progress", { enabled })} label={t("rewards.progress")} />
       </div>
       {config.progress.enabled ? (
         <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
           <div className="grid content-start gap-3">
             <label className="flex items-center gap-3 text-[14px] font-medium">
               <input type="checkbox" className="h-[18px] w-[18px] accent-[#16141F]" checked={config.progress.freeDelivery} onChange={(event) => patch("progress", { freeDelivery: event.target.checked })} />
-              Include free delivery {freeDeliveryOver ? `(from ${naira(freeDeliveryOver)}, your delivery settings)` : "(set a free-delivery amount in your delivery settings)"}
+              {t("rewards.includeFree")} {freeDeliveryOver ? t("rewards.includeFreeFrom", { amount: naira(freeDeliveryOver) }) : t("rewards.includeFreeSet")}
             </label>
             {tiers.map((tier, index) => (
               <div key={tier.id} className="grid grid-cols-2 gap-2 rounded-[16px] border border-app-line p-3 sm:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_40px] sm:items-end">
-                <Field label="At" htmlFor={`tier-${tier.id}-at`}>
+                <Field label={t("rewards.at")} htmlFor={`tier-${tier.id}-at`}>
                   <input id={`tier-${tier.id}-at`} type="number" min={1} className={inputClass} value={tier.threshold} onChange={(event) => update(index, { threshold: Math.max(1, Number(event.target.value) || 1) })} />
                 </Field>
-                <Field label="Reward" htmlFor={`tier-${tier.id}-kind`}>
+                <Field label={t("rewards.reward")} htmlFor={`tier-${tier.id}-kind`}>
                   <select id={`tier-${tier.id}-kind`} className={selectClass} value={tier.kind} onChange={(event) => update(index, { kind: event.target.value as TierRewardKind, value: event.target.value === "percent" ? 5 : event.target.value === "amount" ? 1000 : 0, productId: null })}>
-                    {TIER_KINDS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    {TIER_KINDS.map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
                   </select>
                 </Field>
                 {tier.kind === "free_gift" ? (
-                  <Field label="Gift" htmlFor={`tier-${tier.id}-gift`}>
+                  <Field label={t("rewards.gift")} htmlFor={`tier-${tier.id}-gift`}>
                     <select id={`tier-${tier.id}-gift`} className={selectClass} value={tier.productId ?? ""} onChange={(event) => update(index, { productId: event.target.value || null })}>
-                      <option value="">Pick a product</option>
+                      <option value="">{t("rewards.pickProduct")}</option>
                       {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
                     </select>
                   </Field>
                 ) : (
-                  <Field label={tier.kind === "percent" ? "Percent off" : "Naira off"} htmlFor={`tier-${tier.id}-value`}>
+                  <Field label={tier.kind === "percent" ? t("rewards.percentOff") : t("rewards.nairaOffLabel")} htmlFor={`tier-${tier.id}-value`}>
                     <input id={`tier-${tier.id}-value`} type="number" min={1} className={inputClass} value={tier.value} onChange={(event) => update(index, { value: Number(event.target.value) || 0 })} />
                   </Field>
                 )}
-                <button type="button" aria-label={`Remove the reward at ${naira(tier.threshold)}`} onClick={() => setTiers(tiers.filter((_, i) => i !== index))} className="grid h-12 w-10 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas">
+                <button type="button" aria-label={t("rewards.removeTier", { amount: naira(tier.threshold) })} onClick={() => setTiers(tiers.filter((_, i) => i !== index))} className="grid h-12 w-10 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas">
                   <Icon name="trash" size={15} />
                 </button>
               </div>
             ))}
             <div className="flex flex-wrap items-center gap-3">
               <PillButton size="sm" tone="white" disabled={tiers.length >= MAX_TIERS} onClick={() => setTiers([...tiers, { id: newId("t"), threshold: Math.round((top * 1.5) / 1000) * 1000, kind: "free_gift", value: 0, productId: null, label: "" }])}>
-                <Icon name="plus" size={13} /> Add a reward
+                <Icon name="plus" size={13} /> {t("rewards.addReward")}
               </PillButton>
-              <span className="text-[12.5px] text-app-ink-soft">Rewards apply by themselves when paying, if no other code is used. A free gift comes off once it&apos;s in the bag.</span>
+              <span className="text-[12.5px] text-app-ink-soft">{t("rewards.tiersHelp")}</span>
             </div>
           </div>
           <div className="grid content-start gap-3 rounded-[18px] p-4" style={{ background: colors.paper, color: colors.ink }}>
-            <p className="m-0 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: colors.muted }}>Preview</p>
+            <p className="m-0 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: colors.muted }}>{t("editor.preview")}</p>
             <RewardProgress subtotal={sample} freeDeliveryOver={config.progress.freeDelivery ? freeDeliveryOver : null} tiers={tiers} giftNames={giftNames} currency={currency} colors={{ ...colors, card: colors.paper }} />
             <label className="grid gap-1 text-[12.5px]" style={{ color: colors.muted }}>
-              Sample bag: {naira(sample)}
+              {t("rewards.sampleBag", { amount: naira(sample) })}
               <input type="range" min={0} max={Math.round(top * 1.2)} step={500} value={sample} onChange={(event) => setSample(Number(event.target.value))} />
             </label>
-            <p className="m-0 text-[12px]" style={{ color: colors.muted }}>Also available as a builder section: {placedPill}</p>
+            <p className="m-0 text-[12px]" style={{ color: colors.muted }}>{t("rewards.alsoSection")} {placedPill}</p>
           </div>
         </div>
       ) : null}
@@ -390,6 +401,8 @@ function ProgressCard({ config, patch, products, currency, freeDeliveryOver, col
 }
 
 function LoyaltyCard({ config, patch, currency, placedPill }: { config: GamificationConfig; patch: <K extends keyof GamificationConfig>(key: K, value: Partial<GamificationConfig[K]>) => void; currency: string; placedPill: React.ReactNode }) {
+  const t = useT("marketing");
+  const locale = useLocale();
   const l = config.loyalty;
   const set = (value: Partial<typeof l>) => patch("loyalty", value);
   const field = (key: keyof typeof l, label: string, hint?: string, step = 1) => (
@@ -403,33 +416,33 @@ function LoyaltyCard({ config, patch, currency, placedPill }: { config: Gamifica
     <Card className="p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">Loyalty points {l.enabled ? placedPill : null}</span>} sub="Shoppers earn points on paid orders and spend them when they pay. Bronze, Silver and Gold earn faster." />
+          <CardHead title={<span className="inline-flex flex-wrap items-center gap-2">{t("rewards.loyalty")} {l.enabled ? placedPill : null}</span>} sub={t("rewards.loyaltySub")} />
         </div>
-        <Toggle on={l.enabled} onChange={(enabled) => set({ enabled })} label="Loyalty points" />
+        <Toggle on={l.enabled} onChange={(enabled) => set({ enabled })} label={t("rewards.loyalty")} />
       </div>
       {l.enabled ? (
         <>
           <p className="mb-0 mt-3 rounded-[14px] bg-app-canvas px-4 py-3 text-[14px]">
-            A {naira(sampleOrder)} order earns <strong>{sampleEarn.toLocaleString("en-NG")} points</strong>, worth {naira(pointsValue(sampleEarn, l))} off a later order ({currency}). Points can pay for up to {l.maxRedeemPercent}% of an order.
-            {l.startedAt ? ` Counting orders since ${new Date(l.startedAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}.` : " Orders from when you save count."}
+            {t("rewards.earnBefore", { amount: naira(sampleOrder) })} <strong>{t("rewards.earnPoints", { points: formatNumber(sampleEarn, locale) })}</strong>{t("rewards.earnAfter", { worth: naira(pointsValue(sampleEarn, l)), currency, max: l.maxRedeemPercent })}
+            {l.startedAt ? ` ${t("rewards.countingSince", { date: formatDate(l.startedAt, locale) })}` : ` ${t("rewards.countFromSave")}`}
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {field("pointsPer100", "Points per ₦100 spent", "On products, after discounts.", 0.1)}
-            {field("pointValue", "₦ value of 1 point", undefined, 0.01)}
-            {field("maxRedeemPercent", "Most of an order (%)", "Points can pay for at most this share.")}
-            {field("minRedeemPoints", "Fewest points to use")}
-            {field("silverAt", "Silver from (lifetime points)")}
-            {field("silverMultiplier", "Silver earns ×", undefined, 0.05)}
-            {field("goldAt", "Gold from (lifetime points)")}
-            {field("goldMultiplier", "Gold earns ×", undefined, 0.05)}
-            <Field label="Silver perk (optional)" htmlFor="loy-sp" className="sm:col-span-2">
-              <input id="loy-sp" className={inputClass} maxLength={80} placeholder="e.g. Free gift wrap" value={l.silverPerk} onChange={(event) => set({ silverPerk: event.target.value })} />
+            {field("pointsPer100", t("rewards.loy.per100"), t("rewards.loy.per100Hint"), 0.1)}
+            {field("pointValue", t("rewards.loy.value"), undefined, 0.01)}
+            {field("maxRedeemPercent", t("rewards.loy.max"), t("rewards.loy.maxHint"))}
+            {field("minRedeemPoints", t("rewards.loy.min"))}
+            {field("silverAt", t("rewards.loy.silverAt"))}
+            {field("silverMultiplier", t("rewards.loy.silverX"), undefined, 0.05)}
+            {field("goldAt", t("rewards.loy.goldAt"))}
+            {field("goldMultiplier", t("rewards.loy.goldX"), undefined, 0.05)}
+            <Field label={t("rewards.loy.silverPerk")} htmlFor="loy-sp" className="sm:col-span-2">
+              <input id="loy-sp" className={inputClass} maxLength={80} placeholder={t("rewards.loy.silverPerkPlaceholder")} value={l.silverPerk} onChange={(event) => set({ silverPerk: event.target.value })} />
             </Field>
-            <Field label="Gold perk (optional)" htmlFor="loy-gp" className="sm:col-span-2">
-              <input id="loy-gp" className={inputClass} maxLength={80} placeholder="e.g. Early access to new drops" value={l.goldPerk} onChange={(event) => set({ goldPerk: event.target.value })} />
+            <Field label={t("rewards.loy.goldPerk")} htmlFor="loy-gp" className="sm:col-span-2">
+              <input id="loy-gp" className={inputClass} maxLength={80} placeholder={t("rewards.loy.goldPerkPlaceholder")} value={l.goldPerk} onChange={(event) => set({ goldPerk: event.target.value })} />
             </Field>
           </div>
-          <p className="mb-0 mt-3 text-[12.5px] leading-5 text-app-ink-soft">To spend points, a shopper enters the email and phone number from an earlier order, so nobody can use someone else&apos;s points. Points come back if an order is cancelled.</p>
+          <p className="mb-0 mt-3 text-[12.5px] leading-5 text-app-ink-soft">{t("rewards.loy.spendNote")}</p>
         </>
       ) : null}
     </Card>

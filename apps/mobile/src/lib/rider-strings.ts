@@ -1,169 +1,122 @@
-import "expo-sqlite/localStorage/install";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo } from "react";
+import type { Locale, TFunction } from "@shared/i18n";
+import { tFor, type KeysOf } from "@shared/i18n/catalog";
+import { useLocale, useSetLocale } from "./i18n";
 
-// Every word the Riders app shows, in one place so translators can add languages (spec 8A: English and Pidgin
-// first, then Yorùbá and Hausa). To add a language: add its code to RIDER_LANGS and a full block to STRINGS.
-// Pidgin here follows the prototype ("Same app in Pidgin"); have a native speaker check new lines before release.
+// Every word the Riders app shows, read from the app-language catalog shared/i18n/messages/m_rider (English,
+// Pidgin, Yorùbá, Hausa and Igbo; the non-English files are drafts for a native speaker to check). The language is
+// the app language (apps/mobile/src/lib/i18n.tsx): choosing one on the Riders screen changes it for the whole app.
+// Screens use `t.forYou({ amount })` etc. as before; the words themselves live in the catalog.
 
 export const RIDER_LANGS = [
   { code: "en", label: "English" },
   { code: "pcm", label: "Pidgin" },
-] as const;
+  { code: "yo", label: "Yorùbá" },
+  { code: "ha", label: "Hausa" },
+  { code: "ig", label: "Igbo" },
+] as const satisfies readonly { code: Locale; label: string }[];
 
 export type RiderLang = (typeof RIDER_LANGS)[number]["code"];
 
 type Fill = Record<string, string | number>;
-type Line = string | ((v: Fill) => string);
+type RiderKey = KeysOf<["m_rider"]>;
 
-const en = {
-  appName: "Shopinbos Riders",
-  online: "You're online",
-  offline: "You're offline",
-  onlineHint: "Your company can give you jobs.",
-  offlineHint: "Switch on when you're ready to work.",
-  earnedToday: "Earned today",
-  cashWithYou: "Cash with you",
-  cashWithYouHint: "Pay it in by 6pm",
-  newJob: "New delivery for you",
-  carrying: "You're on a delivery",
-  forYou: (v: Fill) => `${v.amount} for you`,
-  collect: (v: Fill) => `Collect ${v.amount}`,
-  parcels: (v: Fill) => (Number(v.count) === 1 ? "1 parcel" : `${v.count} parcels`),
-  accept: "Take this delivery",
-  continueJob: "Continue this delivery",
-  noJobs: "No deliveries right now",
-  noJobsOnline: "Your company gives you jobs here. Pull down to check again.",
-  noJobsOffline: "Switch on when you're ready, so your company knows you can take jobs.",
-  pickupT: "Go to the shop",
-  have: "I have the parcel",
-  dropT: (v: Fill) => `Take it to ${v.name}`,
-  with: "I'm with the customer",
-  codeT: (v: Fill) => `Ask ${v.name} for their 4 numbers`,
-  codeHint: "The numbers are on the customer's phone.",
-  next: "Next",
-  cashT: (v: Fill) => `Collect ${v.amount}`,
-  cashHint: "Count it before you leave. Pay it in with the rest of today's cash by 6pm.",
-  paidCash: "Cash",
-  paidTransfer: "They sent a transfer",
-  otherAmount: "They paid a different amount",
-  got: "I collected it",
-  delivered: "Delivered",
-  doneT: "Delivered!",
-  doneEarned: "Added to your earnings.",
-  doneCash: (v: Fill) => `You now have ${v.amount} cash to pay in by 6pm.`,
-  findNext: "Find the next delivery",
-  openMap: "Open map",
-  call: "Call",
-  whatsapp: "WhatsApp",
-  callCompany: (v: Fill) => `Call ${v.name}`,
-  back: "Back",
-  cantDeliver: "I couldn't deliver it",
-  whyNot: "Why couldn't you deliver it?",
-  reasons: ["Customer didn't pick up calls", "Customer not at the address", "Customer refused the parcel", "Wrong or incomplete address", "Customer couldn't pay"],
-  photo: "Add a photo (optional)",
-  photoDone: "Photo added",
-  cameraOff: "Your camera is off. Allow camera for Shopinbos in your phone's settings.",
-  typeAll4: "Type all 4 numbers.",
-  typeAmount: "Type how much the customer paid.",
-  tryAgain: "Try again",
-  removeLink: "Remove my Riders link from this phone",
-  removeTitle: "Remove your Riders link from this phone?",
-  removeBody: "You'll need the link from your company to open your deliveries again.",
-  keep: "Keep it",
-  remove: "Remove",
-  newLink: "Use a new link",
-  loading: "Loading your deliveries…",
-  customer: "the customer",
-} satisfies Record<string, Line | string[]>;
+const REASON_KEYS = ["reason.0", "reason.1", "reason.2", "reason.3", "reason.4"] as const;
 
-type Strings = typeof en;
-
-const pcm: Strings = {
-  appName: "Shopinbos Riders",
-  online: "You dey online",
-  offline: "You no dey online",
-  onlineHint: "Your company fit give you work.",
-  offlineHint: "On am when you ready to work.",
-  earnedToday: "Wetin you make today",
-  cashWithYou: "Cash wey dey your hand",
-  cashWithYouHint: "Pay am in before 6pm",
-  newJob: "New delivery don land",
-  carrying: "You dey do delivery",
-  forYou: (v) => `${v.amount} for you`,
-  collect: (v) => `Collect ${v.amount}`,
-  parcels: (v) => (Number(v.count) === 1 ? "1 parcel" : `${v.count} parcels`),
-  accept: "I go carry am",
-  continueJob: "Continue this delivery",
-  noJobs: "No delivery for now",
-  noJobsOnline: "Your company go give you work here. Pull down make you check again.",
-  noJobsOffline: "On am when you ready, make your company know say you fit carry work.",
-  pickupT: "Go the shop",
-  have: "I don collect the parcel",
-  dropT: (v) => `Carry am go give ${v.name}`,
-  with: "I don reach customer",
-  codeT: (v) => `Ask ${v.name} for their 4 numbers`,
-  codeHint: "The numbers dey the customer phone.",
-  next: "Next",
-  cashT: (v) => `Collect ${v.amount}`,
-  cashHint: "Count am before you comot. Pay am in with the rest of today cash before 6pm.",
-  paidCash: "Cash",
-  paidTransfer: "Dem send transfer",
-  otherAmount: "Dem pay different amount",
-  got: "I don collect am",
-  delivered: "I don deliver am",
-  doneT: "E don reach!",
-  doneEarned: "We don add am to wetin you make.",
-  doneCash: (v) => `${v.amount} cash dey your hand now. Pay am in before 6pm.`,
-  findNext: "Find the next delivery",
-  openMap: "Open map",
-  call: "Call",
-  whatsapp: "WhatsApp",
-  callCompany: (v) => `Call ${v.name}`,
-  back: "Go back",
-  cantDeliver: "I no fit deliver am",
-  whyNot: "Why you no fit deliver am?",
-  reasons: ["Customer no pick call", "Customer no dey the address", "Customer no gree collect am", "Address no correct", "Customer no get money"],
-  photo: "Snap picture (no be must)",
-  photoDone: "Picture don enter",
-  cameraOff: "Your camera dey off. Allow camera for Shopinbos for your phone settings.",
-  typeAll4: "Type all the 4 numbers.",
-  typeAmount: "Type how much the customer pay.",
-  tryAgain: "Try again",
-  removeLink: "Comot my Riders link from this phone",
-  removeTitle: "Comot your Riders link from this phone?",
-  removeBody: "You go need the link from your company to open your deliveries again.",
-  keep: "Leave am",
-  remove: "Comot am",
-  newLink: "Use new link",
-  loading: "We dey load your deliveries…",
-  customer: "the customer",
-};
-
-export const STRINGS: Record<RiderLang, Strings> = { en, pcm };
-
-const LANG_KEY = "shopinbos.rider.lang";
-
-function savedLang(): RiderLang {
-  try {
-    const value = localStorage.getItem(LANG_KEY);
-    return RIDER_LANGS.some((lang) => lang.code === value) ? (value as RiderLang) : "en";
-  } catch {
-    return "en";
-  }
+/** The rider words in one language, shaped for the screen (lines with blanks are functions). */
+function riderWords(t: TFunction<RiderKey>) {
+  const line = (key: RiderKey) => (v: Fill) => t(key, v);
+  return {
+    appName: t("appName"),
+    online: t("online"),
+    offline: t("offline"),
+    onlineHint: t("onlineHint"),
+    offlineHint: t("offlineHint"),
+    earnedToday: t("earnedToday"),
+    cashWithYou: t("cashWithYou"),
+    cashWithYouHint: t("cashWithYouHint"),
+    newJob: t("newJob"),
+    carrying: t("carrying"),
+    forYou: line("forYou"),
+    collect: line("collect"),
+    parcels: line("parcels"),
+    accept: t("accept"),
+    continueJob: t("continueJob"),
+    noJobs: t("noJobs"),
+    noJobsOnline: t("noJobsOnline"),
+    noJobsOffline: t("noJobsOffline"),
+    pickupT: t("pickupT"),
+    have: t("have"),
+    dropT: line("dropT"),
+    with: t("with"),
+    codeT: line("codeT"),
+    codeHint: t("codeHint"),
+    codeProgress: line("codeProgress"),
+    next: t("next"),
+    cashT: line("cashT"),
+    cashHint: t("cashHint"),
+    paidCash: t("paidCash"),
+    paidTransfer: t("paidTransfer"),
+    otherAmount: t("otherAmount"),
+    got: t("got"),
+    delivered: t("delivered"),
+    doneT: t("doneT"),
+    doneEarned: t("doneEarned"),
+    doneCash: line("doneCash"),
+    findNext: t("findNext"),
+    openMap: t("openMap"),
+    call: t("call"),
+    whatsapp: t("whatsapp"),
+    callCompany: line("callCompany"),
+    back: t("back"),
+    cantDeliver: t("cantDeliver"),
+    whyNot: t("whyNot"),
+    reasons: REASON_KEYS.map((key) => t(key)),
+    photo: t("photo"),
+    photoDone: t("photoDone"),
+    cameraOff: t("cameraOff"),
+    typeAll4: t("typeAll4"),
+    typeAmount: t("typeAmount"),
+    tryAgain: t("tryAgain"),
+    removeLink: t("removeLink"),
+    removeTitle: t("removeTitle"),
+    removeBody: t("removeBody"),
+    keep: t("keep"),
+    remove: t("remove"),
+    newLink: t("newLink"),
+    loading: t("loading"),
+    customer: t("customer"),
+    locAskT: t("locAskT"),
+    locAsk: t("locAsk"),
+    locYes: t("locYes"),
+    locNo: t("locNo"),
+    locOn: t("locOn"),
+    locOff: t("locOff"),
+    locSettings: t("locSettings"),
+    language: t("language"),
+  };
 }
 
-export type RiderT = Strings;
+export type RiderT = ReturnType<typeof riderWords>;
 
-/** The rider's language (kept on this phone) and its strings. */
+/** The rider words in a given language (English for the reasons the company and the shop read). */
+export function riderStringsFor(locale: Locale): RiderT {
+  return riderWords(tFor(locale, "m_rider"));
+}
+
+/** Failure reasons go to the company and the shop in English, whatever language the rider uses. */
+export const RIDER_REASONS_EN: readonly string[] = riderStringsFor("en").reasons;
+
+function isRiderLang(value: string): value is RiderLang {
+  return RIDER_LANGS.some((lang) => lang.code === value);
+}
+
+/** The rider's language (the app language, kept on this phone) and its strings. */
 export function useRiderStrings() {
-  const [lang, setLangState] = useState<RiderLang>(savedLang);
-  const setLang = useCallback((next: RiderLang) => {
-    setLangState(next);
-    try {
-      localStorage.setItem(LANG_KEY, next);
-    } catch {
-      // Storage unavailable: the choice lasts until the app closes.
-    }
-  }, []);
-  return { lang, setLang, t: STRINGS[lang] };
+  const locale = useLocale();
+  const setLocale = useSetLocale();
+  const lang: RiderLang = isRiderLang(locale) ? locale : "en";
+  const setLang = useCallback((next: RiderLang) => void setLocale(next), [setLocale]);
+  const t = useMemo(() => riderStringsFor(lang), [lang]);
+  return { lang, setLang, t };
 }

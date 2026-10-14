@@ -117,7 +117,11 @@ export async function checkNoRecentOrders(storeId: string): Promise<AlertCheckRe
   };
 }
 
+const EVENT_FOR_TYPE: Record<string, string> = { inventory: "stock.low", order: "order.stuck", category: "tip", marketing: "tip", products: "tip" };
+
 export async function runAllChecks(storeId: string, userId: string): Promise<void> {
+  // Once a day per alert, however often the checks run.
+  const day = new Date().toISOString().slice(0, 10);
   const checks = await Promise.all([
     checkLowStock(storeId),
     checkStuckOrders(storeId),
@@ -132,6 +136,8 @@ export async function runAllChecks(storeId: string, userId: string): Promise<voi
         link: notif.link,
         actionLabel: notif.actionLabel,
         actionUrl: notif.actionUrl,
+        event: notif.type === "inventory" && notif.priority === "critical" ? "stock.out" : EVENT_FOR_TYPE[notif.type] ?? "tip",
+        dedupeKey: `alert:${storeId}:${notif.title}:${notif.link ?? ""}:${day}`,
       });
     }
   }

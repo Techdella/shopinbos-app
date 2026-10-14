@@ -1,0 +1,38 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const ig: Partial<Record<keyof typeof en, string>> = {
+  pill: "Mụta",
+  pillTitle: "{title} n'ime otu nkeji",
+  eyebrow: "Mụta · sekọnd {seconds}",
+  in60: "n'ime otu nkeji",
+  skip: "Wụfee ya",
+  close: "Mechie",
+  replay: "Kpọghachi ya",
+  replayFromStart: "Bido ya ọzọ site na mmalite",
+  gotIt: "Aghọtala m",
+  next: "Nke ọzọ",
+  previousScene: "Akụkụ gara aga",
+  nextScene: "Akụkụ ọzọ",
+  play: "Kpọọ",
+  pause: "Kwụsịtụ",
+  scenes: "Akụkụ",
+  sceneOf: "Akụkụ {n} n'ime {total}: {caption}",
+  sceneProgress: "Akụkụ {n} n'ime {total}",
+  howToWatch: "Otu ị chọrọ ile ya",
+  animated: "Nkọwa na-emegharị ahụ",
+  watchVideo: "Lee vidiyo",
+  wordToKnow: "Okwu ị kwesịrị ịmara",
+  forExample: "Dịka ọmụmaatụ: {example}",
+  forExampleLabel: "Dịka ọmụmaatụ",
+  eg: "Ọmụmaatụ: {example}",
+  thatsIt: "Ọ bụ ya. Ị maarala {term} ugbu a.",
+  replayHint: "Ị nwere ike ikiri ya ọzọ oge ọ bụla site na “Mụta · 60s” n'elu peeji a.",
+  watchIntro: "Lee nkọwa otu nkeji",
+  watchIntroLong: "Lee nkọwa otu nkeji",
+  whatItMeans: "{term}: ihe ọ pụtara",
+  whatItMeansSr: ", ihe ọ pụtara",
+  explains: "Ọ na-akọwa {term}",
+};
+
+export default ig;

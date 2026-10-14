@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import intentRouting from "@/lib/intent-routing";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatMoney } from "@shared/i18n";
 import { deliveryScopeOptions, westAfricaCountries, type DeliveryScope } from "@/lib/data/west-africa";
 
 // Delivery partner setup in the 2026 app look (same shell as SupplierOnboarding). Everything stays in this
@@ -55,13 +57,15 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
   );
 }
 
-function naira(value: number) {
-  return `₦${Math.round(value).toLocaleString("en-NG")}`;
-}
-
 const scopeLabel = (scope: DeliveryScope) => deliveryScopeOptions.find((option) => option.value === scope)?.label ?? scope;
 
 export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser | null }) {
+  const t = useT("onboarding", "common");
+  const locale = useLocale();
+  const naira = (value: number) => formatMoney(Math.round(value), locale);
+  const scopeText = (scope: DeliveryScope) => t.dynamic(`scope.${scope}.label`, scopeLabel(scope));
+  const vehicleText = (vehicle: string) => t.dynamic(`vehicle.${vehicle}`, vehicle);
+  const typeText = (type: string) => t.dynamic(`dtype.${type}`, type.replace("_", " "));
   const router = useRouter();
   const searchParams = useSearchParams();
   const { extractIntentParams, getContinuationPath } = intentRouting;
@@ -136,7 +140,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
     }).catch(() => null);
     if (!response?.ok) {
       const body = await response?.json().catch(() => null);
-      throw new Error(body?.error?.message ?? "We couldn't save that. Check your connection and try again.");
+      throw new Error(body?.error?.message ?? t("saveFailed"));
     }
   }
 
@@ -161,7 +165,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
   async function submit() {
     setError("");
     if (!savable) {
-      setError("Add at least one active zone, one vehicle and one delivery type before submitting.");
+      setError(t("lp.needAll"));
       return;
     }
     setSaving(true);
@@ -209,7 +213,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-4 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 xl:px-8">
         <Wordmark />
         <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1"><ProgressBars total={STEPS.length} current={step - 1} /></div>
-        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">Step {step} of {STEPS.length}</span>
+        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">{t("stepOf", { step, total: STEPS.length })}</span>
       </header>
 
       <main className="w-full px-4 pb-10 pt-4 sm:px-6 xl:px-8">
@@ -220,33 +224,33 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
         <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
           <section className="min-w-0">
             {loading ? (
-              <p className="m-0 py-16 text-center text-[15px] text-app-ink-soft">Loading your profile…</p>
+              <p className="m-0 py-16 text-center text-[15px] text-app-ink-soft">{t("lp.loading")}</p>
             ) : (
               <>
                 {step === 1 && (
                   <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Tell us about your company.</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">Sellers see this when they ask you for a delivery quote.</p>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.companyTitle")}</h1>
+                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.companySub")}</p>
                     <div className={cx(cardClass, "mt-6")}>
                       <div>
-                        <FieldLabel htmlFor="lp-name">Company name</FieldLabel>
-                        <TextInput id="lp-name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Swift Riders Logistics" />
+                        <FieldLabel htmlFor="lp-name">{t("lp.companyName")}</FieldLabel>
+                        <TextInput id="lp-name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={t("lp.companyNamePlaceholder")} />
                       </div>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                          <FieldLabel htmlFor="lp-city">City</FieldLabel>
-                          <TextInput id="lp-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Lagos" />
+                          <FieldLabel htmlFor="lp-city">{t("city")}</FieldLabel>
+                          <TextInput id="lp-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder={t("lp.cityPlaceholder")} />
                         </div>
                         <div>
-                          <FieldLabel htmlFor="lp-country">Country</FieldLabel>
+                          <FieldLabel htmlFor="lp-country">{t("country")}</FieldLabel>
                           <select id="lp-country" className={selectClass} value={country} onChange={(e) => setCountry(e.target.value)}>
                             {westAfricaCountries.map((entry) => <option key={entry.code} value={entry.name}>{entry.name}</option>)}
                           </select>
                         </div>
                       </div>
                       <div>
-                        <FieldLabel htmlFor="lp-about">About your business</FieldLabel>
-                        <textarea id="lp-about" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Fleet size, areas you know well, how fast you pick up…" />
+                        <FieldLabel htmlFor="lp-about">{t("lp.about")}</FieldLabel>
+                        <textarea id="lp-about" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("lp.aboutPlaceholder")} />
                       </div>
                     </div>
                   </>
@@ -254,40 +258,40 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
 
                 {step === 2 && (
                   <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Where do you deliver?</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">Add each state or region you cover and your starting price there.</p>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.zonesTitle")}</h1>
+                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.zonesSub")}</p>
                     <div className={cx(cardClass, "mt-6")}>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                          <FieldLabel htmlFor="lp-zone-country">Country</FieldLabel>
+                          <FieldLabel htmlFor="lp-zone-country">{t("country")}</FieldLabel>
                           <select id="lp-zone-country" className={selectClass} value={newZoneCountry} onChange={(e) => { setNewZoneCountry(e.target.value); setNewZoneRegion(""); }}>
                             {westAfricaCountries.map((entry) => <option key={entry.code} value={entry.name}>{entry.name}</option>)}
                           </select>
                         </div>
                         <div>
-                          <FieldLabel htmlFor="lp-zone-region">State or region</FieldLabel>
+                          <FieldLabel htmlFor="lp-zone-region">{t("lp.region")}</FieldLabel>
                           <select id="lp-zone-region" className={selectClass} value={newZoneRegion} onChange={(e) => setNewZoneRegion(e.target.value)} disabled={!newZoneCountry}>
-                            <option value="">Choose one</option>
+                            <option value="">{t("chooseOne")}</option>
                             {regions.map((region) => <option key={region} value={region}>{region}</option>)}
                           </select>
                         </div>
                       </div>
                       <fieldset className="m-0 border-0 p-0">
-                        <legend className="mb-2 text-[14px] font-bold">Delivery scope</legend>
+                        <legend className="mb-2 text-[14px] font-bold">{t("lp.scope")}</legend>
                         <div className="flex flex-wrap gap-2">
                           {deliveryScopeOptions.map((option) => (
-                            <Chip key={option.value} on={newZoneScope === option.value} onClick={() => setNewZoneScope(option.value)} title={option.description}>{option.label}</Chip>
+                            <Chip key={option.value} on={newZoneScope === option.value} onClick={() => setNewZoneScope(option.value)} title={t.dynamic(`scope.${option.value}.description`, option.description)}>{scopeText(option.value)}</Chip>
                           ))}
                         </div>
-                        <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{deliveryScopeOptions.find((option) => option.value === newZoneScope)?.description}</p>
+                        <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{t.dynamic(`scope.${newZoneScope}.description`, deliveryScopeOptions.find((option) => option.value === newZoneScope)?.description ?? "")}</p>
                       </fieldset>
                       <div className="flex flex-wrap items-end gap-3">
                         <div className="min-w-[180px] flex-1">
-                          <FieldLabel htmlFor="lp-zone-price">Starting price (₦)</FieldLabel>
+                          <FieldLabel htmlFor="lp-zone-price">{t("lp.startPrice")}</FieldLabel>
                           <TextInput id="lp-zone-price" type="number" inputMode="numeric" min={0} step={100} value={newZonePrice} onChange={(e) => setNewZonePrice(Number(e.target.value))} />
                         </div>
                         <PillButton tone="ink" size="md" onClick={addZone} disabled={!newZoneRegion || newZonePrice <= 0}>
-                          <Icon name="plus" size={15} /> Add zone
+                          <Icon name="plus" size={15} /> {t("lp.addZone")}
                         </PillButton>
                       </div>
                     </div>
@@ -300,7 +304,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                               type="button"
                               role="checkbox"
                               aria-checked={zone.active}
-                              aria-label={`${zone.active ? "Pause" : "Turn on"} ${zone.region}`}
+                              aria-label={zone.active ? t("lp.pauseZone", { region: zone.region }) : t("lp.turnOnZone", { region: zone.region })}
                               onClick={() => setZones((current) => current.map((entry) => (entry.name === zone.name ? { ...entry, active: !entry.active } : entry)))}
                               className={cx("grid h-6 w-6 shrink-0 place-items-center rounded-full border-2", zone.active ? "border-app-ink bg-app-ink text-white" : "border-app-line-strong bg-white")}
                             >
@@ -308,34 +312,34 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                             </button>
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-[15px] font-bold">{zone.region}</div>
-                              <div className="text-[13px] text-app-ink-soft">{zone.country} · {scopeLabel(zone.scope)} · from {naira(zone.basePrice)}</div>
+                              <div className="text-[13px] text-app-ink-soft">{t("lp.zoneLine", { country: zone.country, scope: scopeText(zone.scope), price: naira(zone.basePrice) })}</div>
                             </div>
-                            <button type="button" aria-label={`Remove ${zone.region}`} onClick={() => setZones((current) => current.filter((entry) => entry.name !== zone.name))} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-danger">
+                            <button type="button" aria-label={t("lp.removeZone", { region: zone.region })} onClick={() => setZones((current) => current.filter((entry) => entry.name !== zone.name))} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-danger">
                               <Icon name="x" size={15} />
                             </button>
                           </div>
                         ))}
                       </div>
                     )}
-                    <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{activeZones.length} of {zones.length} zones on.</p>
+                    <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{t("lp.zonesOn", { active: activeZones.length, total: zones.length })}</p>
                   </>
                 )}
 
                 {step === 3 && (
                   <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Your fleet and services.</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">Pick the vehicles you use and the kinds of delivery you offer.</p>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.fleetTitle")}</h1>
+                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.fleetSub")}</p>
                     <div className={cx(cardClass, "mt-6")}>
                       <fieldset className="m-0 border-0 p-0">
-                        <legend className="mb-2 text-[14px] font-bold">Vehicles</legend>
+                        <legend className="mb-2 text-[14px] font-bold">{t("lp.vehicles")}</legend>
                         <div className="flex flex-wrap gap-2">
-                          {VEHICLES.map((vehicle) => <Chip key={vehicle} on={vehicleTypes.includes(vehicle)} onClick={() => toggle(vehicle, vehicleTypes, setVehicleTypes)}>{vehicle}</Chip>)}
+                          {VEHICLES.map((vehicle) => <Chip key={vehicle} on={vehicleTypes.includes(vehicle)} onClick={() => toggle(vehicle, vehicleTypes, setVehicleTypes)}>{vehicleText(vehicle)}</Chip>)}
                         </div>
                       </fieldset>
                       <fieldset className="m-0 border-0 p-0">
-                        <legend className="mb-2 text-[14px] font-bold">Delivery types</legend>
+                        <legend className="mb-2 text-[14px] font-bold">{t("lp.deliveryTypes")}</legend>
                         <div className="flex flex-wrap gap-2">
-                          {DELIVERY_TYPES.map((type) => <Chip key={type} on={deliveryTypes.includes(type)} onClick={() => toggle(type, deliveryTypes, setDeliveryTypes)}>{type.replace("_", " ")}</Chip>)}
+                          {DELIVERY_TYPES.map((type) => <Chip key={type} on={deliveryTypes.includes(type)} onClick={() => toggle(type, deliveryTypes, setDeliveryTypes)}>{typeText(type)}</Chip>)}
                         </div>
                       </fieldset>
                     </div>
@@ -344,16 +348,16 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
 
                 {step === 4 && (
                   <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Set your pricing.</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">Your base rate and how fast you usually deliver. You can change these any time.</p>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.pricingTitle")}</h1>
+                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.pricingSub")}</p>
                     <div className={cx(cardClass, "mt-6")}>
                       <div>
-                        <FieldLabel htmlFor="lp-base">Base price (₦)</FieldLabel>
+                        <FieldLabel htmlFor="lp-base">{t("lp.basePrice")}</FieldLabel>
                         <TextInput id="lp-base" type="number" inputMode="numeric" min={0} step={100} value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} />
                       </div>
                       <div>
-                        <FieldLabel htmlFor="lp-speed">Usual delivery speed</FieldLabel>
-                        <TextInput id="lp-speed" value={estimatedSpeed} onChange={(e) => setEstimatedSpeed(e.target.value)} placeholder="e.g. Same-day within Lagos" />
+                        <FieldLabel htmlFor="lp-speed">{t("lp.speed")}</FieldLabel>
+                        <TextInput id="lp-speed" value={estimatedSpeed} onChange={(e) => setEstimatedSpeed(e.target.value)} placeholder={t("lp.speedPlaceholder")} />
                         <div className="mt-2 flex flex-wrap gap-2">
                           {SPEEDS.map((speed) => <Chip key={speed} on={estimatedSpeed === speed} onClick={() => setEstimatedSpeed(speed)}>{speed}</Chip>)}
                         </div>
@@ -364,17 +368,17 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
 
                 {step === 5 && (
                   <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Check and submit.</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">Make sure everything looks right, then send it to the Shopinbos team for review.</p>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.reviewTitle")}</h1>
+                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.reviewSub")}</p>
                     <div className="mt-6 divide-y divide-app-line rounded-[22px] border border-app-line bg-white px-5">
                       {[
-                        ["Company", companyName || "Not set"],
-                        ["Location", [city, country].filter(Boolean).join(", ")],
-                        ["Zones on", activeZones.length ? activeZones.map((zone) => `${zone.region} (${naira(zone.basePrice)})`).join(", ") : "None yet"],
-                        ["Vehicles", vehicleTypes.join(", ") || "None yet"],
-                        ["Delivery types", deliveryTypes.map((type) => type.replace("_", " ")).join(", ") || "None yet"],
-                        ["Base price", naira(basePrice)],
-                        ["Usual speed", estimatedSpeed || "Not set"],
+                        [t("lp.r.company"), companyName || t("notSet")],
+                        [t("lp.r.location"), [city, country].filter(Boolean).join(", ")],
+                        [t("lp.r.zones"), activeZones.length ? activeZones.map((zone) => `${zone.region} (${naira(zone.basePrice)})`).join(", ") : t("noneYet")],
+                        [t("lp.vehicles"), vehicleTypes.map(vehicleText).join(", ") || t("noneYet")],
+                        [t("lp.deliveryTypes"), deliveryTypes.map(typeText).join(", ") || t("noneYet")],
+                        [t("lp.r.basePrice"), naira(basePrice)],
+                        [t("lp.r.speed"), estimatedSpeed || t("notSet")],
                       ].map(([label, value]) => (
                         <div key={label} className="flex items-baseline justify-between gap-4 py-3 text-[14.5px]">
                           <span className="shrink-0 text-app-ink-soft">{label}</span>
@@ -389,16 +393,16 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                   {step > 1 ? (
                     <PillButton tone="ghost" size="md" onClick={() => void goTo(step - 1)} disabled={saving}>
-                      <Icon name="arrowLeft" size={15} /> Back
+                      <Icon name="arrowLeft" size={15} /> {t("back")}
                     </PillButton>
                   ) : <span />}
                   {step < STEPS.length ? (
                     <PillButton tone="ink" size="md" onClick={() => void goTo(step + 1)} busy={saving} disabled={!canContinue}>
-                      Continue <Icon name="arrow" size={15} />
+                      {t("continue")} <Icon name="arrow" size={15} />
                     </PillButton>
                   ) : (
                     <PillButton tone="accent" size="md" onClick={() => void submit()} busy={saving}>
-                      Submit for review <Icon name="arrow" size={15} />
+                      {t("lp.submit")} <Icon name="arrow" size={15} />
                     </PillButton>
                   )}
                 </div>
@@ -408,12 +412,12 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
 
           <aside className="grid content-start gap-4 xl:mt-[92px]">
             <div className="rounded-[22px] border border-app-line bg-white p-5">
-              <h2 className="m-0 text-[17px] font-extrabold">What happens next</h2>
+              <h2 className="m-0 text-[17px] font-extrabold">{t("whatNext")}</h2>
               <ol className="m-0 mt-3 grid list-none gap-3 p-0 text-[14px] leading-[1.5]">
                 {[
-                  "You send your profile for review.",
-                  "The Shopinbos team checks it, usually within 1-2 business days.",
-                  "Once approved, sellers can find you, ask for quotes and book deliveries.",
+                  t("lp.next1"),
+                  t("lp.next2"),
+                  t("lp.next3"),
                 ].map((line, index) => (
                   <li key={line} className="flex gap-3">
                     <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-[12px] font-extrabold text-white">{index + 1}</span>
@@ -424,7 +428,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
             </div>
             <div className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5">
               <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
-              <p className="m-0 text-[14.5px] leading-[1.55]">Once you&apos;re approved, I&apos;ll send you bookings from sellers in the zones you cover.</p>
+              <p className="m-0 text-[14.5px] leading-[1.55]">{t("lp.peggyNote")}</p>
             </div>
           </aside>
         </div>

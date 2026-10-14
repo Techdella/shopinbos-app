@@ -6,6 +6,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
+import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
@@ -13,6 +14,16 @@ import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
+import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
+import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
+import { notifyOrderPaid } from "@/lib/notifications/events.server";
+import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
+
+// The plan itself (code, monthly/annual, status, paid-until) is recorded on User for the free-domain rule
+// (src/lib/seller-plan.ts). A failure there is logged, never fails the webhook: the credits above still apply.
+function recordPlan(work: Promise<unknown>) {
+  return work.catch((error) => console.error("[paystack webhook] could not record the seller plan", error));
+}
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -59,6 +70,21 @@ export async function POST(req: NextRequest) {
 
   const eventType = event.event as string;
 
+  // ── Delivery partners' pay-in accounts (Paystack Dedicated Virtual Accounts) ──────────────────────────────
+  // A transfer into a partner's own account settles their cash from pay-on-delivery jobs (lib/logistics/payins.server.ts).
+  // Kept apart from everything below: it is never a store order or a subscription. Idempotent on the Paystack
+  // reference, so a 500 here (the database was unreachable) is safe for Paystack to retry.
+  if ((eventType === "charge.success" && isDedicatedCharge(event.data)) || eventType?.startsWith("dedicatedaccount.assign.")) {
+    try {
+      if (eventType === "charge.success") await handleDedicatedAccountCharge(event.data);
+      else await handleDedicatedAccountAssign(eventType, event.data);
+    } catch (error) {
+      console.error(`[paystack webhook] pay-in account event ${eventType} failed`, error);
+      return new NextResponse("Retry later", { status: 500 });
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
+
   // ── Subscription created (first payment via plan) ────────────────────────
   if (eventType === "subscription.create") {
     const planCode = event.data?.plan?.plan_code as string | undefined;
@@ -70,6 +96,7 @@ export async function POST(req: NextRequest) {
         data: { aiCredits: credits },
       });
     }
+    await recordPlan(recordSubscriptionCreated(event.data ?? {}));
   }
 
   // ── Invoice paid (monthly renewal) ───────────────────────────────────────
@@ -87,6 +114,7 @@ export async function POST(req: NextRequest) {
         data: { aiCredits: credits },
       });
     }
+    await recordPlan(recordInvoicePaid(event.data ?? {}));
   }
 
   // ── Subscription cancelled ────────────────────────────────────────────────
@@ -98,6 +126,7 @@ export async function POST(req: NextRequest) {
         data: { aiCredits: 5 },
       });
     }
+    await recordPlan(recordSubscriptionStatus(event.data ?? {}, eventType === "subscription.disable" ? "cancelled" : "non_renewing"));
   }
 
   // ── Retail order payment (storefront checkout) ────────────────────────────
@@ -107,6 +136,13 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith("store-launch-")) {
         await completeStoreLaunchPayment(ref).catch((error) => {
           console.error("Store launch payment completion failed:", error);
+        });
+      }
+      // Domains bought or renewed through Shopinbos (purpose domain_purchase / domain_renewal): verified and
+      // completed idempotently, the same as the callback; the registrar is only called after a verified payment.
+      if (ref.startsWith(DOMAIN_REFERENCE_PREFIX)) {
+        await completeDomainPayment(ref).catch((error) => {
+          console.error("Domain payment completion failed:", error);
         });
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
@@ -133,6 +169,7 @@ export async function POST(req: NextRequest) {
           });
       if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
       if (moved.count === 1) await notifyOrderCustomer(ref, "payment_received"); // WhatsApp/SMS to the buyer, if switched on
+      if (moved.count === 1) await notifyOrderPaid(ref); // the seller's bell and phone
       // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
         await ensureSupplierOrdersSafely(ref);

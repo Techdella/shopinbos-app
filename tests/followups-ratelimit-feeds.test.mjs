@@ -185,9 +185,10 @@ test("feeds: the old channel feeds need the store's feed key; wrong or missing a
   assert.match(route, /status: 307/);
   assert.match(route, /Location: catalogFeedPath\(store\.slug, key\.feedToken\)/);
 
+  // /channels no longer shows feed links: "Connect" registers the keyed feed URL with the platform itself.
   const page = read("src/app/channels/page.tsx");
-  assert.match(page, /FEED_KEY_NOTICE/);
-  assert.match(page, /channel === "whatsapp" \? catalogFeedUrl\(store\.slug, feedKey\) : feedUrl\(store\.slug, file, feedKey\)/);
+  assert.doesNotMatch(page, /feedUrl\(|catalogFeedUrl\(/);
+  assert.match(read("src/lib/sales-channels/server.ts"), /feedUrl: \(file\) => feedUrl\(store\.slug, file, key\)/);
   assert.match(read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx"), /FEED_KEY_NOTICE/);
   assert.doesNotMatch(read("src/lib/ai/peggy/social-tools.ts"), /feedUrl\(/, "Peggy doesn't paste private feed links into the chat");
 });

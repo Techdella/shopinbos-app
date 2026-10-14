@@ -4,6 +4,7 @@ import { router, useFocusEffect, useNavigation } from "expo-router";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
+import { isPeggyNight } from "@shared/mascots";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
 import { HelpButton } from "@/components/Help";
@@ -16,13 +17,17 @@ import { useSession } from "@/lib/session";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openPath } from "@/lib/web";
 import { colors } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
+import { useT } from "@/lib/i18n";
 
 // Seller Home (build spec 8A, "Simple app" prototype): today's sales, at most three "Do these next" items and one
 // line about Peggy. Nothing else; everything else is in My shop or the orange +.
 
+/** m_home key for the time of day in Lagos. */
 function greeting() {
   const hour = (new Date().getUTCHours() + 1) % 24; // Lagos time
-  return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return hour < 12 ? "greeting.morning" : hour < 17 ? "greeting.afternoon" : "greeting.evening";
 }
 
 const TASK_ICON: Record<DoNextItem["icon"], AppIconName> = { chat: "chat", mail: "mail", truck: "truck", box: "box", coin: "coin", sparkle: "sparkle" };
@@ -31,6 +36,7 @@ const TASK_ICON: Record<DoNextItem["icon"], AppIconName> = { chat: "chat", mail:
 const OPENING_MIN_MS = 1500;
 
 export default function Home() {
+  const t = useT("m_home", "m_onboarding", "common");
   const { session } = useSession();
   const uid = session?.user.id;
   const home = useHomeData(uid);
@@ -75,7 +81,7 @@ export default function Home() {
   }
 
   const firstName = data?.ownerName.split(/\s+/)[0] ?? "";
-  const items = data ? doNextItems(data.tasks, setup?.checklist.showStart && !setup.checklist.complete && setup.checklist.next ? { key: setup.checklist.next.key, ...stepWords(setup.checklist.next) } : null) : [];
+  const items = data ? doNextItems(data.tasks, setup?.checklist.showStart && !setup.checklist.complete && setup.checklist.next ? { key: setup.checklist.next.key, ...stepWords(setup.checklist.next, t) } : null) : [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -89,16 +95,20 @@ export default function Home() {
               <T weight="extrabold" style={{ fontSize: 18, color: colors.accentInk }}>{(firstName || "S").charAt(0)}</T>
             </View>
             <View style={{ flex: 1 }}>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{greeting()}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t(greeting())}</T>
               <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{firstName || " "}</T>
             </View>
+            <NotificationBellButton />
             <HelpButton />
           </View>
 
+          {/* After the first sale: the moment a push matters. */}
+          {data?.counts.ordersToday ? <View style={{ marginTop: 14 }}><PushPromptCard who="seller" /></View> : null}
+
           <View style={{ backgroundColor: colors.surface, borderRadius: 26, padding: 20, marginTop: 18, gap: 4 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 16 }}>You sold today</T>
+            <T style={{ color: colors.inkSoft, fontSize: 16 }}>{t("soldToday")}</T>
             <T weight="extrabold" style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1 }} accessibilityRole="header">{data ? naira(data.sales.today) : "…"}</T>
-            {data ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{data.counts.ordersToday} order{data.counts.ordersToday === 1 ? "" : "s"} today</T> : null}
+            {data ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("ordersToday", { count: data.counts.ordersToday })}</T> : null}
           </View>
 
           {cachedAt !== null && (
@@ -107,8 +117,8 @@ export default function Home() {
                 offline={home.offline}
                 savedAt={cachedAt}
                 action={
-                  <Pressable accessibilityRole="button" accessibilityLabel="Try again now" disabled={home.attempting} onPress={() => void load()} hitSlop={8} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "flex-end" }}>
-                    <T weight="extrabold" style={{ fontSize: 15, color: "#8A5A08", textDecorationLine: "underline" }}>{home.attempting ? "Trying…" : "Try again"}</T>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t("offline.tryNow")} disabled={home.attempting} onPress={() => void load()} hitSlop={8} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "flex-end" }}>
+                    <T weight="extrabold" style={{ fontSize: 15, color: "#8A5A08", textDecorationLine: "underline" }}>{home.attempting ? t("trying") : t("tryAgain")}</T>
                   </Pressable>
                 }
               />
@@ -119,7 +129,7 @@ export default function Home() {
 
           {data && (
             <>
-              <T weight="extrabold" style={{ fontSize: 20, marginTop: 22, marginBottom: 10 }} accessibilityRole="header">Do these next</T>
+              <T weight="extrabold" style={{ fontSize: 20, marginTop: 22, marginBottom: 10 }} accessibilityRole="header">{t("doNext")}</T>
               {items.length ? (
                 <View style={{ gap: 10 }} testID="do-next">
                   {items.map((item) => (
@@ -141,14 +151,14 @@ export default function Home() {
                 </View>
               ) : (
                 <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 16 }}>
-                  <T style={{ fontSize: 15, lineHeight: 22 }}>Nothing needs you right now. Tap the orange + to add a product or record a sale.</T>
+                  <T style={{ fontSize: 15, lineHeight: 22 }}>{t("nothingNext")}</T>
                 </View>
               )}
 
               <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, paddingVertical: 6 }}>
-                <Mascot name="peggy" size={36} />
-                <T style={{ flex: 1, fontSize: 15, lineHeight: 21 }}>{peggyLine(data.counts)}</T>
-                <T weight="bold" style={{ fontSize: 15, color: colors.forest }}>Ask Peggy</T>
+                <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={36} />
+                <T style={{ flex: 1, fontSize: 15, lineHeight: 21 }}>{peggyLine(data.counts, t)}</T>
+                <T weight="bold" style={{ fontSize: 15, color: colors.forest }}>{t("askPeggyShort")}</T>
               </Pressable>
             </>
           )}

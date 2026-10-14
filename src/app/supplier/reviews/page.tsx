@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { AppPage } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { SupplierReviewsClient } from "./SupplierReviewsClient";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function SupplierReviewsPage() {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier");
 
   const [incoming, outgoing] = await Promise.all([
     db.supplierReview.findMany({
@@ -78,10 +80,10 @@ export default async function SupplierReviewsPage() {
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Reviews"
+      title={t("reviews.title")}
       sub={total > 0
-        ? `${total} review${total === 1 ? "" : "s"} about you · ${avgRating.toFixed(1)} average`
-        : "Reviews show up after sellers or delivery partners work with you."}
+        ? t("reviews.sub", { count: total, avg: avgRating.toFixed(1) })
+        : t("reviews.subEmpty")}
     >
       <SupplierReviewsClient
         supplierId={supplier.id}

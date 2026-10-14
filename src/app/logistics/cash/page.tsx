@@ -3,8 +3,14 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { recordCodRemittance } from "@/app/actions/logistics";
-import { Card, CardHead, ListCard, ListRow, Pill, SplitLayout, StatGrid, StatTile } from "@/components/app-kit";
+import { Card, CardHead, ListCard, ListRow, Pill, StatGrid, StatTile } from "@/components/app-kit";
 import { cashToPayIn } from "@/lib/logistics/job-rules";
+import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/payin-rules";
+import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
+import { PayInAccountCard } from "@/components/logistics/PayInAccountCard";
+import { PayInOverdueCard } from "@/components/logistics/PayInOverdueCard";
+import { overdueCardWords, payInConfig } from "@/lib/logistics/payin-deadline";
+import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import {
   ACTIVE_STATUSES,
   ActionNotice,
@@ -21,12 +27,17 @@ import {
   lagosTime,
   naira,
 } from "@/components/logistics/kit";
+import { getT } from "@/lib/i18n/server";
 
-// Cash on delivery: what riders collect at the door, what the partner still has to pay in, and the pay-ins.
+// Cash on delivery: what riders collect at the door, what the partner still has to pay in (by 6pm), their own pay-in
+// account (transfers to it are matched automatically: lib/logistics/payins.server.ts), and the pay-ins with status.
+// Without a pay-in account (Paystack not set up, or not available yet) the "Record a pay-in" form shows.
 // Transfers go straight from the buyer to the seller, so they're shown apart and never owed.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Cash collected" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("cash.title") };
+}
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -49,6 +60,8 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const { saved, error } = await searchParams;
+  const t = await getT("logistics", "common");
+  const now = new Date();
 
   const startOfToday = lagosStartOfToday();
   const monthAgo = new Date(startOfToday.getTime() - 29 * DAY);
@@ -58,7 +71,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
     seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
-  const [openJobs, heldCash, transfers, collectedRecent, remittances] = await Promise.all([
+  const [openJobs, heldCash, transfers, collectedRecent, remittances, payInAccount, overdue] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: { in: ["pending", ...ACTIVE_STATUSES] }, OR: [{ codAmount: { gt: 0 } }, { codAmount: null, orderId: { not: null } }] },
       orderBy: { createdAt: "asc" },
@@ -85,9 +98,12 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       where: { logisticsPartnerId: partner.id },
       orderBy: { createdAt: "desc" },
       take: 30,
-      select: { id: true, amount: true, method: true, reference: true, note: true, createdAt: true, _count: { select: { bookings: true } } },
+      select: { id: true, amount: true, method: true, reference: true, note: true, createdAt: true, outcome: true, covered: true, creditAfter: true, _count: { select: { bookings: true } } },
     }),
+    ensurePayInAccountSafely(partner.id),
+    payInOverdueView(partner.id),
   ]);
+  const account = payInAccountView(payInAccount);
 
   // Older jobs were booked before codAmount existed: fall back to the linked order's unpaid total.
   const legacyOrderIds = openJobs.filter((job) => job.codAmount === null && job.orderId).map((job) => job.orderId!);
@@ -99,10 +115,15 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
     .map((job) => ({ ...job, cash: job.codAmount ?? (job.orderId ? cashToCollect(orderById.get(job.orderId)) : 0) }))
     .filter((job) => job.cash > 0);
 
-  const owed = cashToPayIn(heldCash);
+  const held = cashToPayIn(heldCash);
+  const credit = partner.payInCredit;
+  const owed = owedAfterCredit(held, credit);
+  const oldest = heldCash[0];
+  const due = payInDue(oldest ? oldest.codCollectedAt ?? oldest.createdAt : null, new Date(), payInConfig().cutoffHour);
+  const late = due.late && owed > 0;
   const byRider = new Map<string, { name: string; amount: number; jobs: number }>();
   for (const job of heldCash) {
-    const key = job.rider?.name ?? "Not assigned";
+    const key = job.rider?.name ?? t("cash.notAssigned");
     const entry = byRider.get(key) ?? { name: key, amount: 0, jobs: 0 };
     entry.amount += job.codCollected ?? 0;
     entry.jobs += 1;
@@ -115,24 +136,25 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Cash collected"
-      sub="When a customer pays when it arrives, your rider collects the cash. Here's what you still have to pay in, and what you've paid in already."
+      title={t("cash.title")}
+      sub={t("cash.sub")}
     >
-      <ActionNotice saved={saved} error={error} savedText="Saved. We've ticked off the jobs this pay-in covers." />
+      <ActionNotice saved={saved} error={error} savedText={t("cash.saved")} />
 
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Cash to pay in" value={naira(owed)} hint={`${heldCash.length} ${heldCash.length === 1 ? "job" : "jobs"} not paid in yet`} />
-        <StatTile tone="card" label="To collect on open jobs" value={naira(toCollect.reduce((total, job) => total + job.cash, 0))} hint={`${toCollect.length} ${toCollect.length === 1 ? "job" : "jobs"}`} />
-        <StatTile tone="card" label="Collected today" value={naira(sum(collectedToday))} hint={`${collectedToday.filter((row) => row.codMethod === "transfer").length} by transfer`} />
-        <StatTile tone="card" label="Paid in, last 30 days" value={naira(paidInMonth)} hint={`Collected ${naira(sum(collectedRecent.filter((row) => row.codMethod === "cash")))} in cash`} />
+        <StatTile tone="card" label={t("cash.toPayIn")} value={naira(owed)} hint={owed > 0 ? `${late ? t("cash.lateNow") : t("today.payInWhen", { when: due.words })} · ${t("cash.jobs", { count: heldCash.length })}` : credit > 0 ? t("cash.extraKept", { amount: naira(credit) }) : t("cash.nothingOwed")} />
+        <StatTile tone="card" label={t("cash.toCollectOpen")} value={naira(toCollect.reduce((total, job) => total + job.cash, 0))} hint={t("cash.jobs", { count: toCollect.length })} />
+        <StatTile tone="card" label={t("cash.collectedToday")} value={naira(sum(collectedToday))} hint={t("cash.byTransfer", { count: collectedToday.filter((row) => row.codMethod === "transfer").length })} />
+        <StatTile tone="card" label={t("cash.paidIn30")} value={naira(paidInMonth)} hint={t("cash.collectedInCash", { amount: naira(sum(collectedRecent.filter((row) => row.codMethod === "cash"))) })} />
       </StatGrid>
 
-      <SplitLayout
-        main={
+      {/* What to pay in and how comes first on a phone; on a wide screen it sits on the right. */}
+      <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_420px]">
+        <div className="grid min-w-0 content-start gap-5">
           <>
-            <Section id="held" title="Cash not paid in yet" sub="Cash your riders collected. When you pay in, we tick these off oldest first.">
+            <Section id="held" title={t("cash.heldTitle")} sub={t("cash.heldSub")}>
               {heldCash.length === 0 ? (
-                <Empty>All collected cash has been paid in.</Empty>
+                <Empty>{t("cash.heldEmpty")}</Empty>
               ) : (
                 <>
                   {byRider.size > 1 && (
@@ -146,9 +168,9 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                     {heldCash.map((job) => (
                       <ListRow key={job.id}>
                         <div className="min-w-0 flex-1 basis-[200px]">
-                          <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
+                          <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" toLabel={t("kit.to")} />
                           <div className="truncate text-[15px] text-app-ink-soft">
-                            {jobId(job.id)} · {job.rider?.name ?? "No rider"} · {lagosDate(job.codCollectedAt ?? job.deliveredAt ?? job.createdAt)}
+                            {jobId(job.id)} · {job.rider?.name ?? t("dispatch.noRider")} · {lagosDate(job.codCollectedAt ?? job.deliveredAt ?? job.createdAt, undefined, now, t)}
                           </div>
                         </div>
                         <div className="ml-auto text-[15px] font-extrabold">{naira(job.codCollected ?? 0)}</div>
@@ -159,16 +181,16 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </Section>
 
-            <Section id="to-collect" title="To collect" sub="Open jobs where the customer pays when it arrives.">
+            <Section id="to-collect" title={t("cash.toCollectTitle")} sub={t("cash.toCollectSub")}>
               {toCollect.length === 0 ? (
-                <Empty>Nothing to collect on open jobs.</Empty>
+                <Empty>{t("cash.toCollectEmpty")}</Empty>
               ) : (
                 <ListCard>
                   {toCollect.map((job) => (
                     <ListRow key={job.id}>
                       <div className="min-w-0 flex-1 basis-[200px]">
-                        <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
-                        <div className="truncate text-[15px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? "No rider yet"}</div>
+                        <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" toLabel={t("kit.to")} />
+                        <div className="truncate text-[15px] text-app-ink-soft">{jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? t("today.noRiderYet")}</div>
                       </div>
                       <StatusPill status={job.status} />
                       <div className="ml-auto text-[15px] font-extrabold">{naira(job.cash)}</div>
@@ -178,17 +200,17 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </Section>
 
-            <Section id="transfers" title="Paid by transfer" sub="The buyer paid the seller directly, so there's nothing for you to pay in.">
+            <Section id="transfers" title={t("cash.transfersTitle")} sub={t("cash.transfersSub")}>
               {transfers.length === 0 ? (
-                <Empty>No transfers recorded yet.</Empty>
+                <Empty>{t("cash.transfersEmpty")}</Empty>
               ) : (
                 <ListCard>
                   {transfers.map((job) => (
                     <ListRow key={job.id}>
                       <div className="min-w-0 flex-1 basis-[200px]">
-                        <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" />
+                        <Route from={job.pickupLocation} to={job.destination} className="block truncate text-[15px]" toLabel={t("kit.to")} />
                         <div className="truncate text-[15px] text-app-ink-soft">
-                          {jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? "No rider"} · {lagosDate(job.codCollectedAt ?? job.createdAt)}
+                          {jobId(job.id)} · {job.seller.name} · {job.rider?.name ?? t("dispatch.noRider")} · {lagosDate(job.codCollectedAt ?? job.createdAt, undefined, now, t)}
                         </div>
                       </div>
                       <div className="ml-auto text-[15px] font-extrabold">{naira(job.codCollected ?? 0)}</div>
@@ -198,49 +220,76 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               )}
             </Section>
           </>
-        }
-        side={
+        </div>
+        <div className="order-first grid min-w-0 content-start gap-5 xl:order-none">
           <>
-            <Card className="p-5">
-              <CardHead title="Tell us you paid in" sub={owed > 0 ? `You owe ${naira(owed)} from cash jobs.` : "Nothing owed right now."} />
-              <form action={recordCodRemittance} className="mt-4 grid gap-3">
-                <div>
-                  <label htmlFor="payin-amount" className={labelClass}>Amount (₦)</label>
-                  <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
-                </div>
-                <div>
-                  <label htmlFor="payin-method" className={labelClass}>How you paid</label>
-                  <select id="payin-method" name="method" defaultValue="transfer" className={inputClass}>
-                    <option value="transfer">Bank transfer</option>
-                    <option value="cash">Cash</option>
-                  </select>
-                </div>
-                <details className="group">
-                  <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
-                    More options (optional) <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
-                  </summary>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <label htmlFor="payin-reference" className={labelClass}>Transfer reference</label>
-                      <input id="payin-reference" name="reference" maxLength={120} placeholder="From your bank app" className={inputClass} />
-                    </div>
-                    <div>
-                      <label htmlFor="payin-note" className={labelClass}>Note</label>
-                      <input id="payin-note" name="note" maxLength={300} className={inputClass} />
-                    </div>
-                  </div>
-                </details>
-                <SubmitButton>Save pay-in</SubmitButton>
-                <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
-                  We tick off your oldest cash jobs that this amount fully covers. Anything left over is kept for next time.
+            {overdue && <PayInOverdueCard {...overdueCardWords({ amount: overdue.amount, since: new Date(overdue.since), paused: overdue.paused, now }, t)} account={overdue.account} />}
+            <Card className="grid gap-4 p-5">
+              <div>
+                <h2 className="m-0 text-[22px] font-extrabold leading-tight">{owed > 0 ? t("cash.payInAmount", { amount: naira(owed), when: due.words }) : t("cash.nothingToPay")}</h2>
+                <p className={`m-0 mt-1 text-[15px] leading-[1.5] ${late && !overdue ? "font-bold text-app-danger" : "text-app-ink-soft"}`}>
+                  {owed > 0
+                    ? late
+                      ? overdue
+                        ? t("today.codOwed")
+                        : t("cash.dueEarlier")
+                      : t("today.codOwed")
+                    : credit > 0
+                    ? t("cash.paidExtra", { amount: naira(credit) })
+                    : t("cash.whenCollect")}
                 </p>
-              </form>
+              </div>
+              {account.state === "ready" ? (
+                // The late card above already shows the account with Copy.
+                overdue?.account ? null : <PayInAccountCard accountNumber={account.accountNumber} bankName={account.bankName} accountName={account.accountName} />
+              ) : (
+                <>
+                  <p className="m-0 rounded-[14px] bg-app-canvas p-3 text-[15px] leading-[1.5] text-app-ink-soft">
+                    {account.state === "setting_up"
+                      ? t("cash.settingUp")
+                      : t("cash.usualWay")}
+                  </p>
+                  <form action={recordCodRemittance} className="grid gap-3">
+                    <CardHead title={t("cash.recordTitle")} sub={owed > 0 ? t("cash.youOwe", { amount: naira(owed) }) : t("cash.nothingOwedNow")} />
+                    <div>
+                      <label htmlFor="payin-amount" className={labelClass}>{t("cash.amount")}</label>
+                      <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
+                    </div>
+                    <div>
+                      <label htmlFor="payin-method" className={labelClass}>{t("cash.howPaid")}</label>
+                      <select id="payin-method" name="method" defaultValue="transfer" className={inputClass}>
+                        <option value="transfer">{t("cash.bankTransfer")}</option>
+                        <option value="cash">{t("cash.cash")}</option>
+                      </select>
+                    </div>
+                    <details className="group">
+                      <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
+                        {t("jobs.moreOptions")} <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
+                      </summary>
+                      <div className="mt-3 grid gap-3">
+                        <div>
+                          <label htmlFor="payin-reference" className={labelClass}>{t("cash.reference")}</label>
+                          <input id="payin-reference" name="reference" maxLength={120} placeholder={t("cash.referencePlaceholder")} className={inputClass} />
+                        </div>
+                        <div>
+                          <label htmlFor="payin-note" className={labelClass}>{t("cash.note")}</label>
+                          <input id="payin-note" name="note" maxLength={300} className={inputClass} />
+                        </div>
+                      </div>
+                    </details>
+                    <SubmitButton>{t("cash.record")}</SubmitButton>
+                    <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
+                      {t("cash.settlesNote")}
+                    </p>
+                  </form>
+                </>
+              )}
             </Card>
 
             <section aria-labelledby="history" className="min-w-0">
-              <h2 id="history" className="m-0 mb-3 text-[18px] font-extrabold">Pay-ins</h2>
+              <h2 id="history" className="m-0 mb-3 text-[18px] font-extrabold">{t("cash.recent")}</h2>
               {remittances.length === 0 ? (
-                <Empty>No pay-ins yet.</Empty>
+                <Empty>{t("cash.noPayIns")}</Empty>
               ) : (
                 <ListCard>
                   {remittances.map((row) => (
@@ -248,19 +297,21 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
                         <div className="truncate text-[15px] text-app-ink-soft">
-                          {lagosDate(row.createdAt)}, {lagosTime(row.createdAt)} · {row.method === "cash" ? "Cash" : row.method === "api" ? "From your software" : "Transfer"}
-                          {row.reference ? ` · ${row.reference}` : ""}
+                          {lagosDate(row.createdAt, undefined, now, t)}, {lagosTime(row.createdAt, t)} · {row.method === "account" ? t("cash.method.account") : row.method === "settled" ? t("cash.method.settled") : row.method === "cash" ? t("cash.cash") : row.method === "api" ? t("cash.method.api") : t("cash.method.transfer")}
+                          {row.reference && row.method !== "account" ? ` · ${row.reference}` : ""}
+                        </div>
+                        <div className="truncate text-[14px] font-bold text-app-forest">
+                          {payInStatusWords({ outcome: row.outcome, covered: row.covered, creditAfter: row.creditAfter, jobs: row._count.bookings }, naira)}
                         </div>
                       </div>
-                      <span className="text-[15px] text-app-ink-soft">{row._count.bookings} {row._count.bookings === 1 ? "job" : "jobs"}</span>
                     </ListRow>
                   ))}
                 </ListCard>
               )}
             </section>
           </>
-        }
-      />
+        </div>
+      </div>
     </PartnerPage>
   );
 }

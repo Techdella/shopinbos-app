@@ -6,19 +6,24 @@ import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { toE164 } from "@shared/phone";
 import { RiderApp, type RiderRun } from "./RiderApp";
+import { pickupWindowText } from "@shared/supplier-pickup";
+import { getT } from "@/lib/i18n/server";
 
 // Shopinbos Riders app: a phone-first page the partner shares as a private link. No account, no login.
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Shopinbos Riders",
-  description: "Your delivery runs, drops and cash for today.",
-  robots: { index: false, follow: false },
-  // The link itself is the credential: never send it to the sites a rider opens from here (WhatsApp, maps).
-  referrer: "no-referrer",
-  appleWebApp: { capable: true, title: "Riders", statusBarStyle: "default" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("rider");
+  return {
+    title: "Shopinbos Riders",
+    description: t("meta.description"),
+    robots: { index: false, follow: false },
+    // The link itself is the credential: never send it to the sites a rider opens from here (WhatsApp, maps).
+    referrer: "no-referrer",
+    appleWebApp: { capable: true, title: "Riders", statusBarStyle: "default" },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -34,18 +39,19 @@ function Shell({ children }: { children: React.ReactNode }) {
 export default async function RiderPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const session = await riderFromToken(token);
+  const t = await getT("rider", "logistics");
 
   if (!session.ok) {
     return (
       <Shell>
         <div className="mx-auto grid min-h-dvh w-full max-w-[560px] content-center gap-3 px-5 py-10 text-center">
           <h1 className="m-0 text-[26px] font-extrabold tracking-[-0.02em]">
-            {session.reason === "limited" ? "Slow down a little" : "This link doesn't work"}
+            {session.reason === "limited" ? t("link.slowDown") : t("link.broken")}
           </h1>
           <p className="m-0 text-[16px] leading-[1.5] text-app-ink-soft">
             {session.reason === "limited"
-              ? "Too many tries from this phone. Wait a minute, then open the link again."
-              : "It may have been replaced with a new one. Ask your dispatcher to send you a fresh Riders app link."}
+              ? t("link.slowDownBody")
+              : t("link.brokenBody")}
           </p>
         </div>
       </Shell>
@@ -61,7 +67,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       take: 60,
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
-        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true,
+        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, pickupWindowStart: true, pickupWindowEnd: true,
         seller: { select: { name: true, store: { select: { name: true } } } },
       },
     }),
@@ -89,6 +95,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       key,
       pickupName: job.seller.store?.name ?? job.seller.name,
       pickupAddress: job.pickupLocation,
+      pickupWindow: pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd),
       fees: 0,
       drops: [],
     };
@@ -104,7 +111,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       buyerName: order?.buyerName ?? null,
       buyerPhone: phone,
       collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
-      item: packageSummary(job.packageDetails),
+      item: packageSummary(job.packageDetails, t),
     });
     runs.set(key, run);
   }

@@ -54,6 +54,13 @@ export async function updateOrderStatus(
     updateData.paymentMethod = input.paymentMethod ?? order.paymentMethod ?? "transfer";
     if (status === "delivered") updateData.deliveredAt = new Date();
   }
+  // An order with supplier parcels and lines the seller sends themselves: "sent" / "delivered" is the seller's own
+  // part, and the order follows all its parts (shipped only when every parcel has left).
+  if (input.status === "shipped" || input.status === "delivered") {
+    const { markOwnPart } = await import("@/lib/supplier-orders/parts.server");
+    const own = await markOwnPart(order.id, input.status, { trackingCode: input.trackingCode, notes: input.notes, logisticsType: input.logisticsType, logisticsDetails: input.logisticsDetails });
+    if (own) return { ok: true, order: own };
+  }
   if (input.notes) updateData.notes = input.notes;
   if (input.trackingCode) updateData.trackingCode = input.trackingCode;
   if (input.logisticsType) updateData.logisticsDetails = { type: input.logisticsType, ...(input.logisticsDetails || {}) };

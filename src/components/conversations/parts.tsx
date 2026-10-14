@@ -4,6 +4,9 @@ import Link from "next/link";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { contextHref, formatBytes, roleLabel, type ContextSnapshot, type PartnerRole, type ThreadAttachment } from "@/lib/conversations/pure";
+import { useT } from "@/components/i18n/I18nProvider";
+import { APP_TIME_ZONE, formatRelative, intlLocale, type Locale } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 // Small pieces of the partner messenger: logo/initials avatar, role badge, linked-item cards, files.
 
@@ -31,15 +34,23 @@ const ROLE_TONE: Record<PartnerRole, string> = {
   admin: "bg-app-lilac text-app-ink",
 };
 
+/** roleLabel() in the person's language. */
+export function useRoleLabel() {
+  const t = useT("inbox");
+  return (role: string | null | undefined) => t.dynamic(`partnerRole.${role ?? "seller"}`, roleLabel(role));
+}
+
 export function RoleBadge({ role }: { role: PartnerRole }) {
-  return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold", ROLE_TONE[role] ?? ROLE_TONE.seller)}>{roleLabel(role)}</span>;
+  const label = useRoleLabel();
+  return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold", ROLE_TONE[role] ?? ROLE_TONE.seller)}>{label(role)}</span>;
 }
 
 const CONTEXT_ICON: Record<ContextSnapshot["kind"], IconName> = { product: "bag", order: "package", wholesale_order: "box", booking: "truck" };
-const CONTEXT_EYEBROW: Record<ContextSnapshot["kind"], string> = { product: "Product", order: "Order", wholesale_order: "Wholesale order", booking: "Delivery" };
+const CONTEXT_EYEBROW: Record<ContextSnapshot["kind"], MessageKey<"inbox">> = { product: "ctx.product", order: "ctx.order", wholesale_order: "ctx.wholesale", booking: "ctx.booking" };
 
 /** A linked product/order/booking, shown in the thread and above the composer. */
 export function ContextCard({ context, viewerRole, mine = false, onRemove }: { context: ContextSnapshot; viewerRole: PartnerRole; mine?: boolean; onRemove?: () => void }) {
+  const t = useT("inbox");
   const href = onRemove ? null : contextHref(viewerRole, context);
   const body = (
     <>
@@ -52,7 +63,7 @@ export function ContextCard({ context, viewerRole, mine = false, onRemove }: { c
         </span>
       )}
       <span className="min-w-0 flex-1 text-left">
-        <span className={cx("block text-[10.5px] font-bold uppercase tracking-[0.08em]", mine ? "text-white/65" : "text-app-ink-faint")}>{CONTEXT_EYEBROW[context.kind]}</span>
+        <span className={cx("block text-[10.5px] font-bold uppercase tracking-[0.08em]", mine ? "text-white/65" : "text-app-ink-faint")}>{t(CONTEXT_EYEBROW[context.kind])}</span>
         <span className="block truncate text-[13.5px] font-extrabold">{context.label}</span>
         {context.sub && <span className={cx("block truncate text-[12px]", mine ? "text-white/75" : "text-app-ink-soft")}>{context.sub}</span>}
       </span>
@@ -64,7 +75,7 @@ export function ContextCard({ context, viewerRole, mine = false, onRemove }: { c
     <div className="relative min-w-0">
       {href ? <Link href={href} className={cx(shell, "hover:brightness-[0.98]")}>{body}</Link> : <div className={shell}>{body}</div>}
       {onRemove && (
-        <button type="button" onClick={onRemove} aria-label={`Remove ${context.label}`} className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full border border-app-line bg-white text-app-ink-soft shadow-sm hover:text-app-ink">
+        <button type="button" onClick={onRemove} aria-label={t("ctx.remove", { label: context.label })} className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full border border-app-line bg-white text-app-ink-soft shadow-sm hover:text-app-ink">
           <Icon name="x" size={11} />
         </button>
       )}
@@ -111,28 +122,24 @@ export function Attachments({ files, mine }: { files: Array<ThreadAttachment & {
 
 /** Where to find people to message, per portal. */
 export function EmptyPartners({ role, compact = false }: { role: PartnerRole; compact?: boolean }) {
+  const t = useT("inbox");
   const links: Array<{ href: string; label: string; icon: IconName }> =
     role === "seller"
       ? [
-          { href: "/marketplace/suppliers", label: "Find suppliers", icon: "search" },
-          { href: "/marketplace/logistics", label: "Find delivery partners", icon: "truck" },
+          { href: "/marketplace/suppliers", label: t("partner.findSuppliers"), icon: "search" },
+          { href: "/marketplace/logistics", label: t("partner.findPartners"), icon: "truck" },
         ]
       : role === "supplier"
         ? [
-            { href: "/supplier/products", label: "Your products", icon: "bag" },
-            { href: "/supplier/orders", label: "Orders", icon: "package" },
+            { href: "/supplier/products", label: t("empty.yourProducts"), icon: "bag" },
+            { href: "/supplier/orders", label: t("empty.orders"), icon: "package" },
           ]
-        : [{ href: "/logistics/bookings", label: "Your jobs", icon: "truck" }];
-  const text =
-    role === "seller"
-      ? "Message a supplier about stock and prices, or a delivery partner about pickups. Your chats show up here."
-      : role === "supplier"
-        ? "When a seller messages you about a product or an order, the chat shows up here. You can also message sellers from Orders and Buyers."
-        : "When a seller or supplier messages you about a delivery, the chat shows up here. You can message a seller from any job.";
+        : [{ href: "/logistics/bookings", label: t("empty.yourJobs"), icon: "truck" }];
+  const text = role === "seller" ? t("empty.seller") : role === "supplier" ? t("empty.supplier") : t("empty.logistics");
   return (
     <div className={cx("flex flex-col items-center px-6 text-center", compact ? "py-10" : "py-14")}>
       <span className="grid h-12 w-12 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="chat" size={22} /></span>
-      <h3 className="mb-0 mt-4 text-[17px] font-extrabold">No conversations yet</h3>
+      <h3 className="mb-0 mt-4 text-[17px] font-extrabold">{t("list.emptyTitle")}</h3>
       <p className="mb-0 mt-1.5 max-w-[360px] text-[14px] leading-[1.55] text-app-ink-soft">{text}</p>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         {links.map((link, index) => (
@@ -152,16 +159,17 @@ export function EmptyPartners({ role, compact = false }: { role: PartnerRole; co
   );
 }
 
-export function formatClock(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" });
+export function formatClock(iso: string, locale: Locale = "en") {
+  return new Date(iso).toLocaleTimeString(locale === "en" ? "en-GB" : intlLocale(locale), { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE });
 }
 
 /** List time: "14:05" today, "Mon" this week, "12 Oct" before that. */
-export function formatListTime(iso: string, now = Date.now()) {
+export function formatListTime(iso: string, now = Date.now(), locale: Locale = "en") {
   const date = new Date(iso);
   const diff = now - date.getTime();
-  if (diff < 60_000) return "now";
-  if (diff < 86_400_000 && new Date(now).toDateString() === date.toDateString()) return formatClock(iso);
-  if (diff < 6 * 86_400_000) return date.toLocaleDateString("en-GB", { weekday: "short", timeZone: "Africa/Lagos" });
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
+  const tag = locale === "en" ? "en-GB" : intlLocale(locale);
+  if (diff < 60_000) return locale === "en" ? "now" : formatRelative(date, locale, now);
+  if (diff < 86_400_000 && new Date(now).toDateString() === date.toDateString()) return formatClock(iso, locale);
+  if (diff < 6 * 86_400_000) return date.toLocaleDateString(tag, { weekday: "short", timeZone: APP_TIME_ZONE });
+  return date.toLocaleDateString(tag, { day: "numeric", month: "short", timeZone: APP_TIME_ZONE });
 }

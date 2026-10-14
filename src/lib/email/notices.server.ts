@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { formatFromAddress, sendEmail, type EmailSendResult } from "@/lib/notifications/resend";
 import { appBase, sendPlatformEmail, storeSender, SENDER_STORE_SELECT, type SenderStore } from "./compliance.server";
 import { html } from "./shell";
-import { orderConfirmationEmail, type OrderEmailInput } from "./store-emails";
+import { orderConfirmationEmail, orderPartlySentEmail, type OrderEmailInput } from "./store-emails";
 
 // Ready-made sends on the shared shell: a store's order confirmation (B) and the alerts Shopinbos sends sellers (A).
 
@@ -13,6 +13,14 @@ export async function sendOrderConfirmationEmail(input: { store: SenderStore | s
   if (!store) return { success: false, message: "Store not found" };
   const sender = storeSender(store);
   const { subject, html: body } = orderConfirmationEmail({ ...input, appUrl: appBase(), store: sender });
+  return sendEmail({ to: [input.to], subject, html: body, from: formatFromAddress(store.name) });
+}
+
+/** "Part of your order is on its way" to the customer (src/lib/supplier-orders/parts.server.ts sends it once). */
+export async function sendOrderPartlySentEmail(input: { store: SenderStore | string; to: string } & Omit<Parameters<typeof orderPartlySentEmail>[0], "appUrl" | "store">): Promise<EmailSendResult> {
+  const store = typeof input.store === "string" ? await db.store.findUnique({ where: { id: input.store }, select: SENDER_STORE_SELECT }) : input.store;
+  if (!store) return { success: false, message: "Store not found" };
+  const { subject, html: body } = orderPartlySentEmail({ ...input, appUrl: appBase(), store: storeSender(store) });
   return sendEmail({ to: [input.to], subject, html: body, from: formatFromAddress(store.name) });
 }
 

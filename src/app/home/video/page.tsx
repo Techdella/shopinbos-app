@@ -4,12 +4,17 @@ import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { VideoStudio } from "./VideoStudio";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Video studio" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("video");
+  return { title: t("title") };
+}
 
 export default async function VideoStudioPage({ searchParams }: { searchParams: Promise<{ product?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("video");
   const { product } = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true } });
   const products = store
@@ -26,11 +31,11 @@ export default async function VideoStudioPage({ searchParams }: { searchParams: 
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Video studio"
-      sub="Photos in, a reel out. Peggy writes the captions and the voiceover in English, Pidgin, Yorùbá or Hausa. Post it on Instagram, TikTok or your WhatsApp status."
+      title={t("title")}
+      sub={t("sub")}
     >
       <VideoStudio
-        storeName={store?.name ?? "My shop"}
+        storeName={store?.name ?? t("myShop")}
         storeHost={storeHost}
         initialProductId={product ?? null}
         products={products.map((item) => ({

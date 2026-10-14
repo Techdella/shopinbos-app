@@ -11,15 +11,20 @@ import { freeDeliveryEverywhereOver, summariseDeliveryZones } from "@/lib/storef
 import { resolveShopperTheme } from "@/components/storefront/shopper/theme";
 import { shopperGameColors } from "@/components/storefront/gamification/client";
 import { RewardsManager } from "./RewardsManager";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Rewards and games" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("hub.tool.rewards") };
+}
 
 // Marketing > Rewards: spin the wheel, scratch card, reward progress, loyalty points and the post-purchase
 // spin, each with an on/off switch, settings, a live preview in the store's colours, and 30-day numbers.
 
 export default async function RewardsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, currency: true, brandSettings: true } });
   if (!store) redirect("/onboarding");
 
@@ -38,12 +43,12 @@ export default async function RewardsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Rewards and games"
-      sub="Spin the wheel, scratch cards, reward progress and loyalty points. Real discounts, fair odds, never in the way of paying."
+      title={t("hub.tool.rewards")}
+      sub={t("rewards.sub")}
       actions={
         <>
-          <PillLink href="/home/discounts" icon="percent">Discounts</PillLink>
-          <PillLink href="/builder/editor" icon="edit">Store builder</PillLink>
+          <PillLink href="/home/discounts" icon="percent">{t("rewards.discounts")}</PillLink>
+          <PillLink href="/builder/editor" icon="edit">{t("rewards.storeBuilder")}</PillLink>
         </>
       }
     >
@@ -58,7 +63,7 @@ export default async function RewardsPage() {
           placed={placed}
           colors={shopperGameColors(resolveShopperTheme(store.brandSettings))}
         />
-        <AssistantNote>Small, frequent wins work best: a few 5–10% slices, free delivery, and an honest &ldquo;try again&rdquo;. Every prize is a one-use code that expires, so it can&apos;t be shared around.</AssistantNote>
+        <AssistantNote>{t("rewards.note")}</AssistantNote>
       </div>
     </SellerPage>
   );

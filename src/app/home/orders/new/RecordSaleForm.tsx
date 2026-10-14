@@ -6,7 +6,9 @@ import { FieldLabel, Notice, PillButton, Segmented, TextInput } from "@/componen
 import { cx } from "@/components/app-ui/cx";
 import { CHANNEL_LABEL, RECORDED_SALE_CHANNELS, type RecordedSaleChannel } from "@shared/channels";
 import { SALE_DELIVERY, SALE_PAYMENTS, saleTotals, type SaleDelivery, type SalePayment } from "@shared/sales";
-import { naira } from "@shared/onboarding";
+import { formatMoney } from "@shared/i18n";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface CatalogProduct {
   id: string;
@@ -29,6 +31,9 @@ const card = "rounded-[22px] border border-app-line bg-white p-5";
 const amount = (value: string) => Number(value.replace(/[^\d.]/g, "")) || 0;
 
 export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
+  const t = useT("orders", "common");
+  const locale = useLocale();
+  const naira = (value: number) => formatMoney(Math.round(value), locale);
   const router = useRouter();
   const [lines, setLines] = useState<Line[]>([]);
   const [search, setSearch] = useState("");
@@ -76,8 +81,8 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!lines.length) return setError("Add at least one item.");
-    if (lines.some((line) => !line.name.trim())) return setError("Every item needs a name.");
+    if (!lines.length) return setError(t("sale.needItem"));
+    if (lines.some((line) => !line.name.trim())) return setError(t("sale.needName"));
     setBusy(true);
     try {
       const response = await fetch("/api/app/orders", {
@@ -97,11 +102,11 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
         }),
       });
       const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(body?.error?.message ?? "Couldn't save this sale. Try again.");
+      if (!response.ok) throw new Error(body?.error?.message ?? t("sale.saveFailed"));
       router.push(`/home/orders/${body.data.id}`);
       router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Couldn't save this sale. Try again.");
+      setError(saveError instanceof Error ? saveError.message : t("sale.saveFailed"));
       setBusy(false);
     }
   }
@@ -109,11 +114,11 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
   return (
     <form onSubmit={submit} className="grid gap-4">
       <section className={card}>
-        <h2 className="m-0 text-[17px] font-extrabold">What did they buy?</h2>
+        <h2 className="m-0 text-[17px] font-extrabold">{t("sale.whatBought")}</h2>
         <div className="relative mt-3">
           <TextInput
-            aria-label="Search your products"
-            placeholder="Search your products, or type something new"
+            aria-label={t("sale.searchAria")}
+            placeholder={t("sale.searchPlaceholder")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -131,16 +136,16 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-bold">{product.name}</span>
-                    <span className="block text-[12.5px] text-app-ink-soft">{naira(product.price)} · {product.stock > 0 ? `${product.stock} in stock` : "Sold out"}</span>
+                    <span className="block text-[12.5px] text-app-ink-soft">{naira(product.price)} · {product.stock > 0 ? t("sale.inStock", { count: product.stock }) : t("sale.soldOut")}</span>
                   </span>
-                  <span className="text-[13px] font-extrabold text-app-accent-ink">Add</span>
+                  <span className="text-[13px] font-extrabold text-app-accent-ink">{t("sale.add")}</span>
                 </button>
               </li>
             ))}
             {search.trim() && (
               <li>
                 <button type="button" onClick={addCustom} className="w-full rounded-[14px] px-2 py-2.5 text-left text-[14px] font-bold text-app-accent-ink hover:bg-app-canvas">
-                  + Add &ldquo;{search.trim()}&rdquo; (not in your store)
+                  {t("sale.addCustom", { name: search.trim() })}
                 </button>
               </li>
             )}
@@ -151,14 +156,14 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
           <ul className="m-0 mt-4 grid list-none gap-2 border-t border-app-line p-0 pt-4">
             {lines.map((line) => (
               <li key={line.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[16px] bg-app-canvas p-3 sm:grid-cols-[minmax(0,1fr)_130px_120px_auto]">
-                <TextInput aria-label="Item name" value={line.name} onChange={(event) => update(line.key, { name: event.target.value })} className="col-span-2 sm:col-span-1" />
-                <TextInput aria-label={`Price for ${line.name || "item"}`} inputMode="numeric" value={line.price ? String(line.price) : ""} placeholder="Price (₦)" onChange={(event) => update(line.key, { price: amount(event.target.value) })} />
-                <div className="flex items-center gap-1" role="group" aria-label={`Quantity of ${line.name || "item"}`}>
-                  <button type="button" aria-label="One fewer" onClick={() => update(line.key, { quantity: Math.max(1, line.quantity - 1) })} className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-[18px] font-bold">−</button>
+                <TextInput aria-label={t("sale.itemName")} value={line.name} onChange={(event) => update(line.key, { name: event.target.value })} className="col-span-2 sm:col-span-1" />
+                <TextInput aria-label={t("sale.priceFor", { name: line.name || t("sale.item") })} inputMode="numeric" value={line.price ? String(line.price) : ""} placeholder={t("sale.pricePlaceholder")} onChange={(event) => update(line.key, { price: amount(event.target.value) })} />
+                <div className="flex items-center gap-1" role="group" aria-label={t("sale.qtyOf", { name: line.name || t("sale.item") })}>
+                  <button type="button" aria-label={t("sale.fewer")} onClick={() => update(line.key, { quantity: Math.max(1, line.quantity - 1) })} className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-[18px] font-bold">−</button>
                   <span className="w-8 text-center text-[15px] font-extrabold" aria-live="polite">{line.quantity}</span>
-                  <button type="button" aria-label="One more" onClick={() => update(line.key, { quantity: line.quantity + 1 })} className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-[18px] font-bold">+</button>
+                  <button type="button" aria-label={t("sale.more")} onClick={() => update(line.key, { quantity: line.quantity + 1 })} className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white text-[18px] font-bold">+</button>
                 </div>
-                <button type="button" onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))} className="text-[13px] font-bold text-app-danger">Remove</button>
+                <button type="button" onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))} className="text-[13px] font-bold text-app-danger">{t("remove")}</button>
               </li>
             ))}
           </ul>
@@ -166,24 +171,24 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
       </section>
 
       <section className={card}>
-        <h2 className="m-0 text-[17px] font-extrabold">Who bought it?</h2>
+        <h2 className="m-0 text-[17px] font-extrabold">{t("sale.whoBought")}</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
-            <FieldLabel htmlFor="sale-name">Customer name</FieldLabel>
+            <FieldLabel htmlFor="sale-name">{t("sale.customerName")}</FieldLabel>
             <TextInput id="sale-name" required value={buyerName} onChange={(event) => setBuyerName(event.target.value)} autoComplete="off" />
           </div>
           <div>
-            <FieldLabel htmlFor="sale-phone">Phone or WhatsApp (optional)</FieldLabel>
+            <FieldLabel htmlFor="sale-phone">{t("sale.phone")}</FieldLabel>
             <TextInput id="sale-phone" type="tel" value={buyerPhone} onChange={(event) => setBuyerPhone(event.target.value)} autoComplete="off" />
           </div>
           <div className="sm:col-span-2">
-            <FieldLabel htmlFor="sale-email">Email (optional, for a receipt later)</FieldLabel>
+            <FieldLabel htmlFor="sale-email">{t("sale.email")}</FieldLabel>
             <TextInput id="sale-email" type="email" value={buyerEmail} onChange={(event) => setBuyerEmail(event.target.value)} autoComplete="off" />
           </div>
         </div>
         <div className="mt-4">
-          <div className="mb-2 text-[14px] font-bold">Where did they buy?</div>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Where did they buy?">
+          <div className="mb-2 text-[14px] font-bold">{t("sale.where")}</div>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("sale.where")}>
             {RECORDED_SALE_CHANNELS.map((key) => (
               <button
                 key={key}
@@ -193,7 +198,7 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
                 onClick={() => setChannel(key)}
                 className={cx("min-h-[40px] rounded-full border px-4 text-[14px] font-bold", channel === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}
               >
-                {CHANNEL_LABEL[key]}
+                {t.dynamic(`channel.${CHANNEL_LABEL[key]}`, CHANNEL_LABEL[key])}
               </button>
             ))}
           </div>
@@ -201,33 +206,34 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
       </section>
 
       <section className={card}>
-        <h2 className="m-0 text-[17px] font-extrabold">Payment and delivery</h2>
+        <h2 className="m-0 text-[17px] font-extrabold">{t("sale.payDelivery")}</h2>
         <div className="mt-3 grid gap-4">
-          <Segmented options={SALE_PAYMENTS.map((option) => ({ value: option.key, label: option.label }))} value={payment} onChange={setPayment} />
-          <Segmented options={SALE_DELIVERY.map((option) => ({ value: option.key, label: option.label }))} value={delivery} onChange={setDelivery} />
+          <Segmented options={SALE_PAYMENTS.map((option) => ({ value: option.key, label: t(`salePay.${option.key}`) }))} value={payment} onChange={setPayment} />
+          <Segmented options={SALE_DELIVERY.map((option) => ({ value: option.key, label: t(`saleDel.${option.key}`) }))} value={delivery} onChange={setDelivery} />
           {delivery === "deliver" && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <FieldLabel htmlFor="sale-street">Delivery address</FieldLabel>
+                <FieldLabel htmlFor="sale-street">{t("sale.address")}</FieldLabel>
                 <TextInput id="sale-street" required value={street} onChange={(event) => setStreet(event.target.value)} />
               </div>
               <div>
-                <FieldLabel htmlFor="sale-city">Area or city</FieldLabel>
+                <FieldLabel htmlFor="sale-city">{t("sale.city")}</FieldLabel>
                 <TextInput id="sale-city" required value={city} onChange={(event) => setCity(event.target.value)} />
               </div>
               <div>
-                <FieldLabel htmlFor="sale-state">State</FieldLabel>
+                <FieldLabel htmlFor="sale-state">{t("sale.state")}</FieldLabel>
                 <TextInput id="sale-state" value={state} onChange={(event) => setState(event.target.value)} />
               </div>
               <div>
-                <FieldLabel htmlFor="sale-fee">Delivery fee the customer pays (₦)</FieldLabel>
+                <FieldLabel htmlFor="sale-fee">{t("sale.fee")}</FieldLabel>
                 <TextInput id="sale-fee" inputMode="numeric" value={deliveryFee} onChange={(event) => setDeliveryFee(event.target.value)} placeholder="0" />
               </div>
             </div>
           )}
           <div>
-            <FieldLabel htmlFor="sale-notes">Note (optional)</FieldLabel>
-            <TextInput id="sale-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="e.g. Size M, gift wrap" />
+            <FieldLabel htmlFor="sale-notes">{t("sale.note")}</FieldLabel>
+            <TextInput id="sale-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder={t("sale.notePlaceholder")} />
+            <VoiceInputButton value={notes} onChange={setNotes} context="a note about a sale" className="mt-2" />
           </div>
         </div>
       </section>
@@ -235,10 +241,10 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
       {error && <Notice>{error}</Notice>}
       <div className="sticky bottom-3 flex flex-wrap items-center justify-between gap-3 rounded-[22px] bg-app-ink px-5 py-4 text-white shadow-lg">
         <div>
-          <div className="text-[13px] text-white/70">{payment === "unpaid" ? "To collect" : "Sale total"}</div>
+          <div className="text-[13px] text-white/70">{payment === "unpaid" ? t("sale.toCollect") : t("sale.total")}</div>
           <div className="text-[24px] font-extrabold tracking-[-0.4px]">{naira(totals.total)}</div>
         </div>
-        <PillButton type="submit" tone="accent" busy={busy}>Save sale</PillButton>
+        <PillButton type="submit" tone="accent" busy={busy}>{t("sale.save")}</PillButton>
       </div>
     </form>
   );

@@ -5,9 +5,19 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  experimental: {
+    // Lower peak memory while compiling (Vercel's build machines have 8 GB).
+    webpackMemoryOptimizations: true,
+  },
   // Prevent Node.js-only packages from being bundled into the client bundle
   serverExternalPackages: ["@anthropic-ai/sdk", "openai", "@prisma/client", "prisma"],
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    // On Vercel, compile without webpack's on-disk cache: the restored cache keeps growing between deploys
+    // (1.5 GB+ after one build) and loading it ran the 8 GB build machine out of memory. A clean compile
+    // takes about 3 minutes.
+    if (!dev && process.env.VERCEL && config.cache) {
+      config.cache = Object.freeze({ type: "memory" as const });
+    }
     if (!isServer) {
       // Stub out Node.js built-in modules that leak into client bundles via SDK imports
       const nodeBuiltins = ["fs", "path", "os", "crypto", "stream", "buffer", "util", "url", "http", "https", "net", "tls", "child_process", "worker_threads", "process", "events", "assert", "string_decoder", "querystring", "zlib", "readline"];
@@ -37,7 +47,7 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
           {
             key: "Content-Security-Policy",
@@ -47,13 +57,15 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com https://connect.facebook.net",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
-              `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com ${storageOrigin}`.trim(),
+              `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com https://i.ytimg.com https://i.vimeocdn.com ${storageOrigin}`.trim(),
               "font-src 'self' https://fonts.gstatic.com data:",
-              // Video studio previews its reel (blob:) and product videos are stored on Supabase.
-              "media-src 'self' blob: https://*.supabase.co",
+              // Video studio previews its reel (blob:) and product videos are stored on Supabase; so are help videos.
+              `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
               // Embedded Signup opens its login/consent frames on www/web.facebook.com.
-              "frame-src https://js.paystack.co https://checkout.flutterwave.com https://www.facebook.com https://web.facebook.com",
-              "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com",
+              // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
+              "frame-src https://js.paystack.co https://checkout.flutterwave.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.facebook.com https://web.facebook.com",
+              // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
+              "connect-src 'self' https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com" + (storageOrigin ? ` ${storageOrigin}` : ""),
               "object-src 'none'",
               // Same as X-Frame-Options DENY, for browsers that only read CSP.
               "frame-ancestors 'none'",

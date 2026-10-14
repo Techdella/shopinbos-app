@@ -1003,11 +1003,14 @@ test("switching to and between the industry themes carries the seller's words an
 test("theme cards show real, lazy, inert previews and a live preview dialog", () => {
   const gallery = readFileSync(new URL("../src/components/builder/ThemeLibrary.tsx", import.meta.url), "utf8");
   const preview = readFileSync(new URL("../src/components/builder/theme-preview/ThemePreview.tsx", import.meta.url), "utf8");
+  // Visible words live in the builder catalog (shared/i18n/messages/builder/en.ts) and reach the screen through t().
+  const builderCopy = readFileSync(new URL("../shared/i18n/messages/builder/en.ts", import.meta.url), "utf8");
   assert.match(gallery, /<ThemeThumbnail themeId=\{theme\.id\}/);
   assert.match(gallery, /<ThemePreviewDialog/);
-  assert.match(gallery, /themeMeaningLine\(theme\)/);
+  assert.match(gallery, /themeMeaningLine\(\{ name: theme\.name, meaning: t\.dynamic\(`theme\.\$\{theme\.id\}\.meaning`, theme\.meaning\) \}\)/);
   assert.match(gallery, /searchThemes\(query/);
-  assert.match(gallery, /Show with my products/);
+  assert.match(gallery, /t\("tl\.showOwn"\)/);
+  assert.match(builderCopy, /"tl\.showOwn": "Show with my products"/);
   assert.doesNotMatch(gallery, /function ThemeSketch/, "no more empty outline sketches");
   assert.match(preview, /new IntersectionObserver/);
   assert.match(preview, /inert/);
@@ -1016,7 +1019,8 @@ test("theme cards show real, lazy, inert previews and a live preview dialog", ()
   assert.match(preview, /transform: `scale\(\$\{scale\}\)`/);
   assert.match(preview, /aspect-\[4\/5\]/, "the card's shape is reserved before the preview mounts");
   assert.match(preview, /role="dialog" aria-modal="true"/);
-  assert.match(preview, /label: "Product" \}/);
+  assert.match(preview, /label: t\("tp\.product"\) \}/);
+  assert.match(builderCopy, /"tp\.product": "Product"/);
   assert.match(preview, /<DeviceToggle /, "computer / phone switch");
 });
 
@@ -1744,9 +1748,8 @@ test("product feeds: only published products with a photo and price, with each c
   assert.equal(batch[0].data.sale_price, "15000.00 NGN");
 });
 
-test("social sharing: tagged links, caption limits, share pages, channel status and visit sources", async () => {
+test("social sharing: tagged links, caption limits, share pages and visit sources", async () => {
   const share = await import("../src/lib/social/share.ts");
-  const status = await import("../src/lib/social/status.ts");
   const sources = await import("../src/lib/analytics/sources.ts");
   const channels = await import("../shared/channels.ts");
   const link = share.taggedProductLink("https://ada.shopinbos.com/product/p1", "x");
@@ -1760,14 +1763,7 @@ test("social sharing: tagged links, caption limits, share pages, channel status 
   assert.match(share.postText("instagram", "Hi", "https://l.ng"), /link in bio$/);
   assert.match(share.fallbackCaption({ name: "Bag", price: "₦5,000", storeName: "Ada" }, "whatsapp"), /^Bag, ₦5,000\. Available now at Ada\./);
 
-  const now = new Date("2026-10-11T12:00:00Z");
-  const facts = { feedAddedAt: null, lastFetchAt: null, hasToken: false, lastSyncAt: null, lastSyncStatus: null };
-  assert.deepEqual(status.channelStatus(null, now), { tone: "muted", label: "Not set up" });
-  assert.equal(status.channelStatus({ ...facts, feedAddedAt: now }, now).label, "Waiting for the first fetch");
-  assert.deepEqual(status.channelStatus({ ...facts, lastFetchAt: new Date("2026-10-11T10:00:00Z") }, now), { tone: "success", label: "Feed fetched 2 hours ago" });
-  assert.equal(status.channelStatus({ ...facts, lastFetchAt: new Date("2026-10-01T10:00:00Z") }, now).tone, "warning");
-  assert.equal(status.channelStatus({ ...facts, hasToken: true, lastSyncStatus: "error" }, now).tone, "danger");
-  assert.equal(status.channelStatus({ ...facts, hasToken: true }, now).label, "Connected, not synced yet");
+  // Channel card status moved to src/lib/sales-channels/pure.ts (tests/sales-channels.test.mjs).
 
   assert.equal(sources.normalizeSource("wa"), "whatsapp");
   assert.equal(sources.normalizeSource("Twitter"), "x");
@@ -2609,4 +2605,14 @@ test("legal pages: footer links, public summary and templates", async () => {
   assert.match(text, /\[Check:/, "guesses are marked for the seller");
   assert.equal(legal.legalTemplate("warranty", { storeName: "x" }), null, "custom pages have no template");
   for (const page of legal.STANDARD_LEGAL_PAGES) assert.ok(!legal.isDocEmpty(legal.legalTemplate(page.key, { storeName: "Shop" })));
+});
+
+test("every store preview bar has an Exit preview button back to the dashboard", () => {
+  const bar = readFileSync(new URL("../src/components/storefront/shopper/PreviewBar.tsx", import.meta.url), "utf8");
+  assert.match(bar, /PREVIEW_EXIT_HREF = "\/home"/);
+  assert.match(bar, /href=\{PREVIEW_EXIT_HREF\}/);
+  assert.match(bar, /Exit preview/);
+  for (const file of ["../src/app/preview/store/[slug]/[pageId]/PreviewPageClient.tsx", "../src/app/s/[slug]/preview/PreviewFallbackClient.tsx"]) {
+    assert.match(readFileSync(new URL(file, import.meta.url), "utf8"), /<a href="\/home"[^>]*>\s*Exit preview/, file);
+  }
 });

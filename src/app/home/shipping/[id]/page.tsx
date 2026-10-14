@@ -5,13 +5,18 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
 import { ShippingZoneForm } from "../ShippingZoneForm";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Edit delivery zone" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("shipping");
+  return { title: t("edit.title") };
+}
 
 export default async function EditShippingZonePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("shipping");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, currency: true } });
   if (!store) notFound();
   const zone = await db.shippingZone.findFirst({ where: { id, storeId: store.id } });
@@ -25,9 +30,9 @@ export default async function EditShippingZonePage({ params }: { params: Promise
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Edit delivery zone"
+      title={t("edit.title")}
       sub={zone.name}
-      actions={<PillLink href="/home/shipping">All zones</PillLink>}
+      actions={<PillLink href="/home/shipping">{t("allZones")}</PillLink>}
     >
       <ShippingZoneForm
         currency={store.currency ?? "NGN"}

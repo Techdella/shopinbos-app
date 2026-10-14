@@ -8,27 +8,29 @@ import { MESSAGES_PATH, POLL_MS, filterConversations, type ContextRef, type Conv
 import { MESSAGES_CHANGED_EVENT, messagesApi, type OpenConversationDetail } from "./client";
 import { EmptyPartners, PartnerAvatar, RoleBadge, formatListTime } from "./parts";
 import { Thread } from "./Thread";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 // The partner messenger used by the Messages drawer and the full pages in all three portals:
 // conversation list (search, tabs, unread counts) and the open chat.
 
-const TABS: Record<PartnerRole, Array<{ id: ConversationTab; label: string }>> = {
+const TABS: Record<PartnerRole, Array<{ id: ConversationTab; label: MessageKey<"inbox"> }>> = {
   seller: [
-    { id: "all", label: "All" },
-    { id: "supplier", label: "Suppliers" },
-    { id: "logistics_partner", label: "Logistics" },
+    { id: "all", label: "list.all" },
+    { id: "supplier", label: "msgr.suppliers" },
+    { id: "logistics_partner", label: "msgr.logistics" },
   ],
   supplier: [
-    { id: "all", label: "All" },
-    { id: "seller", label: "Sellers" },
-    { id: "logistics_partner", label: "Logistics" },
+    { id: "all", label: "list.all" },
+    { id: "seller", label: "msgr.sellers" },
+    { id: "logistics_partner", label: "msgr.logistics" },
   ],
   logistics_partner: [
-    { id: "all", label: "All" },
-    { id: "seller", label: "Sellers" },
-    { id: "supplier", label: "Suppliers" },
+    { id: "all", label: "list.all" },
+    { id: "seller", label: "msgr.sellers" },
+    { id: "supplier", label: "msgr.suppliers" },
   ],
-  admin: [{ id: "all", label: "All" }],
+  admin: [{ id: "all", label: "list.all" }],
 };
 
 type ListMeta = { unread: number; filesEnabled: boolean };
@@ -46,6 +48,8 @@ export function Messenger({
   /** The drawer closes when a link inside is followed. */
   onNavigate?: () => void;
 }) {
+  const t = useT("inbox", "common");
+  const locale = useLocale();
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -119,7 +123,7 @@ export function Messenger({
         return body.data;
       }
       const body = await messagesApi<ThreadMessage[], { conversation: ConversationSummary | null }>(`/api/conversations/${encodeURIComponent(initial.conversation!)}/messages`);
-      if (!body.meta?.conversation) throw new Error("That conversation isn't available.");
+      if (!body.meta?.conversation) throw new Error(t("msgr.unavailable"));
       return body.meta.conversation;
     };
     run()
@@ -152,16 +156,16 @@ export function Messenger({
       <div className="shrink-0 px-3 pt-3 sm:px-4">
         <label className="flex h-10 items-center gap-2 rounded-full bg-app-canvas px-3.5 text-app-ink-soft focus-within:ring-2 focus-within:ring-app-ink/15">
           <Icon name="search" size={15} />
-          <span className="sr-only">Search conversations</span>
-          <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search by name or message" className="min-w-0 flex-1 bg-transparent text-[16px] text-app-ink outline-none placeholder:text-app-ink-faint sm:text-[14px]" />
+          <span className="sr-only">{t("list.searchLabel")}</span>
+          <input value={q} onChange={(event) => setQ(event.target.value)} placeholder={t("msgr.search")} className="min-w-0 flex-1 bg-transparent text-[16px] text-app-ink outline-none placeholder:text-app-ink-faint sm:text-[14px]" />
           {q && (
-            <button type="button" onClick={() => setQ("")} aria-label="Clear search" className="grid h-6 w-6 place-items-center rounded-full hover:bg-white">
+            <button type="button" onClick={() => setQ("")} aria-label={t("msgr.clearSearch")} className="grid h-6 w-6 place-items-center rounded-full hover:bg-white">
               <Icon name="x" size={11} />
             </button>
           )}
         </label>
       </div>
-      <div role="tablist" aria-label="Filter conversations" className="flex shrink-0 gap-1 border-b border-app-line px-3 pt-2 sm:px-4">
+      <div role="tablist" aria-label={t("msgr.filter")} className="flex shrink-0 gap-1 border-b border-app-line px-3 pt-2 sm:px-4">
         {tabs.map((item) => (
           <button
             key={item.id}
@@ -174,14 +178,14 @@ export function Messenger({
               tab === item.id ? "border-app-ink text-app-ink" : "border-transparent text-app-ink-soft hover:text-app-ink",
             )}
           >
-            {item.label}
-            {(unreadByTab[item.id] ?? 0) > 0 && <span className="h-1.5 w-1.5 rounded-full bg-app-accent" aria-label="has unread" />}
+            {t(item.label)}
+            {(unreadByTab[item.id] ?? 0) > 0 && <span className="h-1.5 w-1.5 rounded-full bg-app-accent" aria-label={t("msgr.hasUnread")} />}
           </button>
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
-          <div className="grid gap-1 p-3" aria-label="Loading conversations">
+          <div className="grid gap-1 p-3" aria-label={t("msgr.loading")}>
             {[0, 1, 2, 3].map((index) => (
               <div key={index} className="flex items-center gap-3 px-1 py-2">
                 <span className="h-10 w-10 animate-pulse rounded-full bg-app-line/70" />
@@ -195,14 +199,14 @@ export function Messenger({
         ) : listError && !items.length ? (
           <div className="p-6 text-center">
             <p role="alert" className="m-0 text-[14px] font-semibold text-app-danger">{listError}</p>
-            <button type="button" onClick={() => void loadList()} className="mt-3 min-h-[36px] rounded-full border border-app-line px-4 text-[13px] font-bold">Try again</button>
+            <button type="button" onClick={() => void loadList()} className="mt-3 min-h-[36px] rounded-full border border-app-line px-4 text-[13px] font-bold">{t("tryAgain")}</button>
           </div>
         ) : items.length === 0 ? (
           <div onClickCapture={(event) => (event.target as HTMLElement).closest("a") && onNavigate?.()}>
             <EmptyPartners role={role} compact={variant === "drawer"} />
           </div>
         ) : shown.length === 0 ? (
-          <p className="m-0 p-6 text-center text-[14px] text-app-ink-soft">{q ? `No conversations match “${q}”.` : "No conversations here yet."}</p>
+          <p className="m-0 p-6 text-center text-[14px] text-app-ink-soft">{q ? t("msgr.noMatch", { q }) : t("msgr.noneHere")}</p>
         ) : (
           <ul className="m-0 list-none p-0">
             {shown.map((item) => {
@@ -220,18 +224,18 @@ export function Messenger({
                       <span className="flex min-w-0 items-center gap-2">
                         <span className={cx("min-w-0 truncate text-[14px]", item.unread ? "font-extrabold" : "font-bold")}>{item.with.name}</span>
                         <RoleBadge role={item.with.role} />
-                        <span className="ml-auto shrink-0 text-[11.5px] text-app-ink-faint">{item.lastMessage ? formatListTime(item.lastMessage.createdAt) : ""}</span>
+                        <span className="ml-auto shrink-0 text-[11.5px] text-app-ink-faint">{item.lastMessage ? formatListTime(item.lastMessage.createdAt, Date.now(), locale) : ""}</span>
                       </span>
                       <span className="mt-0.5 flex min-w-0 items-center gap-2">
                         <span className={cx("min-w-0 flex-1 truncate text-[13px]", item.unread ? "font-semibold text-app-ink" : "text-app-ink-soft")}>
-                          {item.lastMessage ? `${item.lastMessage.mine ? "You: " : ""}${item.lastMessage.text}` : "No messages yet"}
+                          {item.lastMessage ? `${item.lastMessage.mine ? `${t("msgr.youPrefix")} ` : ""}${item.lastMessage.text}` : t("msgr.noMessages")}
                         </span>
                         {item.unread > 0 ? (
-                          <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-app-accent px-1.5 text-[11px] font-extrabold text-white" aria-label={`${item.unread} unread`}>
+                          <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-app-accent px-1.5 text-[11px] font-extrabold text-white" aria-label={t("msgr.unread", { count: item.unread })}>
                             {item.unread > 99 ? "99+" : item.unread}
                           </span>
                         ) : item.lastMessage?.mine && item.lastMessage.seen ? (
-                          <span className="shrink-0 text-app-ink-faint" title="Seen"><Icon name="checkCircle" size={13} /></span>
+                          <span className="shrink-0 text-app-ink-faint" title={t("msgr.seen")}><Icon name="checkCircle" size={13} /></span>
                         ) : null}
                       </span>
                     </span>
@@ -248,14 +252,14 @@ export function Messenger({
   const placeholder = (
     <div className="flex h-full flex-1 flex-col items-center justify-center bg-app-canvas/40 p-8 text-center">
       {opening ? (
-        <p className="m-0 text-[14px] text-app-ink-soft">Opening the chat…</p>
+        <p className="m-0 text-[14px] text-app-ink-soft">{t("msgr.opening")}</p>
       ) : openError ? (
         <p role="alert" className="m-0 max-w-[340px] text-[14px] font-semibold text-app-danger">{openError}</p>
       ) : (
         <>
           <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-app-ink-soft"><Icon name="chat" size={22} /></span>
-          <p className="mb-0 mt-3 text-[15px] font-extrabold">Pick a conversation</p>
-          <p className="mb-0 mt-1 max-w-[320px] text-[13.5px] text-app-ink-soft">Chats with suppliers, sellers and delivery partners, all in one place.</p>
+          <p className="mb-0 mt-3 text-[15px] font-extrabold">{t("msgr.pick")}</p>
+          <p className="mb-0 mt-1 max-w-[320px] text-[13.5px] text-app-ink-soft">{t("msgr.pickSub")}</p>
         </>
       )}
     </div>
@@ -282,7 +286,7 @@ export function Messenger({
             {placeholder}
             {openError && (
               <div className="border-t border-app-line p-3 text-center">
-                <button type="button" onClick={() => setOpenError(null)} className="min-h-[36px] rounded-full border border-app-line px-4 text-[13px] font-bold">Back to conversations</button>
+                <button type="button" onClick={() => setOpenError(null)} className="min-h-[36px] rounded-full border border-app-line px-4 text-[13px] font-bold">{t("thread.back")}</button>
               </div>
             )}
           </div>
@@ -291,7 +295,7 @@ export function Messenger({
         )}
         <div className="shrink-0 border-t border-app-line px-4 py-2.5 text-center">
           <Link href={active ? `${MESSAGES_PATH[role]}?c=${active.id}` : MESSAGES_PATH[role]} onClick={onNavigate} className="text-[13px] font-extrabold text-app-accent-ink no-underline hover:underline">
-            Open full page
+            {t("msgr.fullPage")}
           </Link>
         </div>
       </div>

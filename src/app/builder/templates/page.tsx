@@ -7,8 +7,14 @@ import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
 import { resolveDraftSnapshot } from "@/lib/store-templates";
 import { isLibraryTheme } from "@/lib/store-templates/theme-library";
 import { getSellerWorkspace } from "@/lib/workspace";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getT("builder");
+  return { title: t("tpl.title") };
+}
 
 /** Only same-site paths are followed after a first-run pick. */
 function safeNext(value: string | undefined) {
@@ -17,6 +23,7 @@ function safeNext(value: string | undefined) {
 
 export default async function BuilderTemplatesPage({ searchParams }: { searchParams?: Promise<{ next?: string; onboarding?: string; template?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("builder");
   const params = await searchParams;
   // "Use this template" on shopinbos.com sends ?template=breeze through sign-up.
   const requestedTheme = params?.template;
@@ -63,8 +70,8 @@ export default async function BuilderTemplatesPage({ searchParams }: { searchPar
     <SellerPage
       user={user}
       store={storeSummary(workspace.store)}
-      title="Shop looks"
-      sub="Switch any time. Your products, prices and orders stay."
+      title={t("tpl.title")}
+      sub={t("tpl.sub")}
     >
       <ThemeLibrary
         mode="page"

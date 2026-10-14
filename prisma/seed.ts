@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { config as loadEnv } from "dotenv";
+import { HELP_TOPICS } from "../shared/help-videos";
 
 // Shell variables win, then .env.local, then .env, so an explicit target is never overridden.
 loadEnv({ path: ".env.local" });
@@ -533,6 +534,16 @@ async function main() {
   }
 
   console.log(`  ✓ Demo seller: Chioma Eze`);
+
+  // One-minute help videos: every topic as an unpublished English draft, so the owner only uploads and publishes.
+  for (const topic of HELP_TOPICS) {
+    await db.helpVideo.upsert({
+      where: { topic_language: { topic: topic.key, language: "en" } },
+      update: {},
+      create: { topic: topic.key, title: topic.title, roles: topic.roles, language: "en", published: false },
+    });
+  }
+  console.log(`  ✓ ${HELP_TOPICS.length} help video drafts`);
 
   console.log("\n✅ Seed complete.");
   console.log(`   ${categoryData.length} categories`);

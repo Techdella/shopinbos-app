@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { Mascot } from "@/components/brand/Mascot";
 
 type PageRow = {
   id: string;
@@ -213,7 +213,7 @@ function BigCard({
       <Card style={{ position: "relative", overflow: "hidden", padding: 22, minHeight: 258 }}>
         <div style={{ position: "absolute", top: -30, right: -30, width: 130, height: 130, borderRadius: 99, background: `${tint}14` }} />
         <div style={{ position: "relative", width: 50, height: 50, borderRadius: 13, background: `${tint}1f`, color: tint, display: "grid", placeItems: "center", marginBottom: 16 }}>
-          {mascot ? <Image src="/brand/mascots/rex-1.png" alt="Rex" width={42} height={42} style={{ objectFit: "contain" }} /> : <Icon name={icon ?? "grid"} size={24} color="currentColor" />}
+          {mascot ? <Mascot who="rex" size={42} /> : <Icon name={icon ?? "grid"} size={24} color="currentColor" />}
         </div>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", color: tint, marginBottom: 6 }}>{eyebrow}</div>
         <h3 style={{ fontSize: 19, fontWeight: 800, letterSpacing: 0, marginBottom: 8 }}>{title}</h3>
@@ -250,14 +250,14 @@ export function StoreBuilderStandalone({ storeName, storeDomain }: PortalProps) 
           <span style={{ width: 10, height: 10, borderRadius: 99, background: T.green, boxShadow: `0 0 0 4px ${T.green}33` }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>{storeName} is live</div>
-            <div style={{ fontSize: 13, color: T.textSec }}>Last published 2 days ago - Minimal look - 8 parts</div>
+            <div style={{ fontSize: 13, color: T.textSec }}>Last published 2 days ago - Minimal theme - 8 sections</div>
           </div>
           <Button href="/builder/editor" variant="soft" icon="eye">Preview</Button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18, marginBottom: 22 }}>
           <BigCard href="/builder/rex" tint={T.mint} mascot="rex" eyebrow="AI BUILDER" title="Build with Rex" body="Describe your shop in a sentence. Rex designs the brand, writes copy and generates products - live." cta="Open Rex builder" />
           <BigCard href="/builder/editor" tint={T.purple} icon="edit" eyebrow="MANUAL EDITOR" title="Customise everything" body="Drag, drop and style every block. Full control over layout, type, colour and content like a pro page builder." cta="Open store editor" />
-          <BigCard href="/builder/templates" tint={T.yellow} icon="grid" eyebrow="SHOP LOOKS" title="Start from a shop look" body="Pick from mobile-first looks for every kind of business. Rex adapts it to your brand." cta="See shop looks" />
+          <BigCard href="/builder/templates" tint={T.yellow} icon="grid" eyebrow="THEME GALLERY" title="Start from a theme" body="Pick from mobile-first templates across every industry. Rex adapts it to your brand." cta="Browse themes" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 18 }}>
           <Card style={{ padding: 20 }}>
@@ -307,7 +307,7 @@ export function RexBuilderStandalone({ storeName, storeDomain }: PortalProps) {
       <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "100vh" }}>
         <aside style={{ background: T.surface, borderRight: `1px solid ${T.border}`, padding: 18, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <Image src="/brand/mascots/rex-1.png" alt="Rex" width={38} height={38} style={{ width: 38, height: 38, objectFit: "contain", flexShrink: 0 }} />
+            <Mascot who="rex" size={38} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 900 }}>Rex AI Builder</div>
               <div style={{ fontSize: 11.5, color: T.textSec }}>Live</div>
@@ -324,7 +324,7 @@ export function RexBuilderStandalone({ storeName, storeDomain }: PortalProps) {
           </div>
           <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", gap: 9 }}>
-              <Image src="/brand/mascots/rex-1.png" alt="Rex" width={28} height={28} style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} />
+              <Mascot who="rex" size={28} />
               <div style={{ background: T.surface2, border: `1px solid ${T.border}`, padding: "12px 15px", borderRadius: "4px 14px 14px 14px", fontSize: 13, lineHeight: 1.55 }}>
                 I built {storeName} and I keep editing it for you. Tell me what to change and watch it happen live.
               </div>
@@ -446,7 +446,7 @@ function PostsPanel({ posts }: { posts: PostRow[] }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <Card style={{ padding: 18, background: "linear-gradient(150deg,#E6F6F2,#F3FAF8)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <Image src="/brand/mascots/rex-1.png" alt="Rex" width={40} height={40} />
+            <Mascot who="rex" size={40} />
             <div><div style={{ fontSize: 14.5, fontWeight: 900 }}>Rex writes your blog</div><div style={{ fontSize: 11.5, color: T.textSec }}>SEO posts in your voice</div></div>
           </div>
           <p style={{ fontSize: 12.5, color: T.textSec, lineHeight: 1.5, marginBottom: 12 }}>Give Rex a topic and he will draft a full post - title, body, meta description and a featured image.</p>
@@ -472,7 +472,7 @@ function PagesPanel({ pages }: { pages: PageRow[] }) {
   return (
     <Card style={{ overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1.3fr 1fr 1fr .8fr 100px", gap: 10, padding: "12px 20px", borderBottom: `1px solid ${T.border}`, fontSize: 11, fontWeight: 800, color: T.muted, textTransform: "uppercase", letterSpacing: ".04em" }}>
-        <span>Page</span><span>URL</span><span>Look</span><span>Last edited</span><span>Views</span><span />
+        <span>Page</span><span>URL</span><span>Template</span><span>Last edited</span><span>Views</span><span />
       </div>
       {pages.length === 0 ? (
         <div style={{ padding: 28, textAlign: "center", color: T.muted, fontSize: 13 }}>

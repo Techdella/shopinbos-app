@@ -10,6 +10,11 @@ import { TechFold } from "@/components/simple/Fold";
 import { plainMetaError } from "@/components/simple/plain";
 import { formatStamp, inboxApi } from "@/components/messaging/inbox-ui";
 import type { CatalogOption, CatalogView, SyncSummary } from "@/lib/whatsapp-catalog/server";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import type { Locale, TFunction } from "@shared/i18n";
+import type { MessageKey } from "@shared/i18n/catalog";
+
+type InboxT = TFunction<MessageKey<"inbox"> | MessageKey<"common">>;
 
 // WhatsApp catalog page (simplicity rules, section 8A). The seller sees one plain status and one action: "Set it
 // up now" when we can do it with their connected number, otherwise "Ask us to connect it" (SetupHelpRequest).
@@ -23,6 +28,7 @@ type ActionResult = { view?: CatalogView; warnings?: string[]; sync?: SyncSummar
 type Message = { tone: "error" | "info" | "success"; text: string } | null;
 
 function CopyRow({ label, value }: { label: string; value: string }) {
+  const t = useT("inbox");
   const [copied, setCopied] = useState(false);
   return (
     <div className="grid gap-1">
@@ -37,7 +43,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
               window.setTimeout(() => setCopied(false), 1500);
             });
           }}
-          aria-label={`Copy ${label}`}
+          aria-label={t("ch.copy", { label })}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-white"
         >
           <Icon name={copied ? "check" : "copy"} size={16} />
@@ -56,15 +62,15 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-const when = (iso: string | null) => (iso ? formatStamp(iso) : "Never");
+const when = (iso: string | null, t: InboxT, locale: Locale) => (iso ? formatStamp(iso, locale) : t("wa.never"));
 
-function syncText(sync: SyncSummary) {
-  if (sync.status === "busy") return "We're already sending your products. Refresh the page in a minute.";
+function syncText(sync: SyncSummary, t: InboxT) {
+  if (sync.status === "busy") return t("cat.busy");
   if (sync.status === "error") return plainMetaError(sync.message);
-  const parts = [`${sync.sent} updated`, `${sync.unchanged} already up to date`];
-  if (sync.pending) parts.push(`${sync.pending} waiting for WhatsApp to check`);
-  if (sync.failed) parts.push(`${sync.failed} WhatsApp said no to (see below)`);
-  return `Done: ${parts.join(", ")}.`;
+  const parts = [t("cat.sent", { count: sync.sent }), t("cat.unchanged", { count: sync.unchanged })];
+  if (sync.pending) parts.push(t("cat.pendingN", { count: sync.pending }));
+  if (sync.failed) parts.push(t("cat.failedN", { count: sync.failed }));
+  return t("cat.done", { parts: parts.join(", ") });
 }
 
 /** Facebook permission and token problems in plain words; other messages are already plain. */
@@ -73,6 +79,8 @@ function plainError(text: string) {
 }
 
 export function WhatsAppCatalogClient({ initial, storeName }: { initial: CatalogView; storeName: string }) {
+  const t = useT("inbox", "common");
+  const locale = useLocale();
   const [view, setView] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
@@ -90,7 +98,7 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
       if (result.view) setView(result.view);
       done?.(result);
     } catch (error) {
-      const text = error instanceof Error ? error.message : "We couldn't do that just now. Check your connection and try again.";
+      const text = error instanceof Error ? error.message : t("cat.failed");
       if (/Business ID/i.test(text)) setAskBusiness(true);
       setMessage({ tone: "error", text: plainError(text) });
       // Permission problems are saved server side; reload the state so the page shows the fallback.
@@ -102,7 +110,7 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
 
   const afterSync = (result: ActionResult) => {
     const notes = (result.warnings ?? []).map(plainError);
-    if (result.sync) notes.unshift(syncText(result.sync));
+    if (result.sync) notes.unshift(syncText(result.sync, t));
     const bad = result.sync?.status === "error" || (result.warnings?.length ?? 0) > 0;
     setMessage(notes.length ? { tone: bad ? "error" : "success", text: notes.join(" ") } : null);
   };
@@ -119,7 +127,7 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
     <div className="grid min-w-0 gap-5">
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
       {!view.storeLive && (
-        <Notice tone="info">Your shop isn&apos;t open yet, so there&apos;s nothing to show on WhatsApp. Publish your shop first, then come back here.</Notice>
+        <Notice tone="info">{t("cat.notLive")}</Notice>
       )}
 
       {/* What the seller sees: one status, one action */}
@@ -127,104 +135,104 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
         <div className="flex flex-wrap items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white" aria-hidden="true"><Icon name="whatsapp" size={22} /></span>
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-[20px] font-extrabold leading-tight">{showing ? "Your products are showing on WhatsApp" : "Show my products on WhatsApp"}</h2>
+            <h2 className="m-0 text-[20px] font-extrabold leading-tight">{showing ? t("cat.showingTitle") : t("cat.showTitle")}</h2>
             <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">
               {showing
-                ? "Customers can look through your products in your WhatsApp chat and send you an order. Changes to your products go there by themselves."
-                : "Customers look through your products inside WhatsApp and send you the order without leaving the chat."}
+                ? t("cat.showingSub")
+                : t("cat.sub")}
             </p>
           </div>
-          {catalog.id && <Pill tone={syncFailed ? "danger" : showing ? "success" : "warning"} dot>{syncFailed ? "Needs your help" : showing ? "Showing" : "Almost ready"}</Pill>}
+          {catalog.id && <Pill tone={syncFailed ? "danger" : showing ? "success" : "warning"} dot>{syncFailed ? t("cat.needsHelp") : showing ? t("cat.showing") : t("cat.almost")}</Pill>}
         </div>
 
         {catalog.id && (
           <StatGrid>
-            <StatTile label="Showing" value={counts.synced} hint={catalog.lastSyncAt ? `Updated ${when(catalog.lastSyncAt)}` : "Starting"} />
-            <StatTile label="Waiting for WhatsApp to check" value={counts.pending} hint="Usually a few minutes" />
-            <StatTile label="Need fixing" value={counts.failed + counts.skipped} hint={counts.failed + counts.skipped ? "See the list below" : "Nothing to fix"} />
+            <StatTile label={t("cat.showing")} value={counts.synced} hint={catalog.lastSyncAt ? t("cat.updated", { when: when(catalog.lastSyncAt, t, locale) }) : t("cat.starting")} />
+            <StatTile label={t("cat.waitingCheck")} value={counts.pending} hint={t("cat.fewMinutes")} />
+            <StatTile label={t("cat.needFixing")} value={counts.failed + counts.skipped} hint={counts.failed + counts.skipped ? t("cat.seeList") : t("cat.nothingToFix")} />
           </StatGrid>
         )}
 
         {syncFailed && catalog.lastSyncError && <Notice>{plainMetaError(catalog.lastSyncError)}</Notice>}
-        {missing && <Notice tone="info">We need your permission on Facebook to do this. Ask us to help and we&apos;ll sort it out with you.</Notice>}
+        {missing && <Notice tone="info">{t("cat.needPermission")}</Notice>}
 
         {canDoItNow && (
           <div className="grid gap-2">
             <PillButton size="lg" busy={busy === "create_catalog"} disabled={Boolean(busy)} onClick={() => act("create_catalog", { name: newName.trim() || `${storeName} WhatsApp` }, afterSync)} className="w-full sm:w-auto">
-              Set it up now
+              {t("cat.setUpNow")}
             </PillButton>
-            <p className="m-0 text-[13.5px] text-app-ink-soft">Uses the WhatsApp number you connected{view.whatsapp.displayName ? ` (${view.whatsapp.displayName})` : ""}. Takes about a minute.</p>
+            <p className="m-0 text-[13.5px] text-app-ink-soft">{view.whatsapp.displayName ? t("cat.usesNumberNamed", { name: view.whatsapp.displayName }) : t("cat.usesNumber")}</p>
           </div>
         )}
         {showing && (
           <div className="flex flex-wrap gap-2">
             <PillButton size="md" tone="white" busy={busy === "sync"} disabled={Boolean(busy)} onClick={() => act("sync", {}, afterSync)}>
-              <Icon name="refresh" size={14} /> Send my products now
+              <Icon name="refresh" size={14} /> {t("cat.sendNow")}
             </PillButton>
           </div>
         )}
 
         {!showing && !canDoItNow && (
           <SetupHelpRequest
-            title="Connect my products to WhatsApp"
-            description={view.whatsapp.connected ? "We'll connect your products to your WhatsApp number for you and tell you when they're showing." : "We'll connect your WhatsApp Business number and your products for you, and tell you when they're showing. Put the number customers message below."}
+            title={t("cat.helpTitle")}
+            description={view.whatsapp.connected ? t("cat.helpDescConnected") : t("cat.helpDesc")}
             feature="whatsapp_catalog"
           />
         )}
         {(showing || canDoItNow) && !askTeam && (
-          <button type="button" onClick={() => setAskTeam(true)} className="min-h-[44px] justify-self-start text-[14.5px] font-bold text-app-ink underline underline-offset-4">Ask us to connect it instead</button>
+          <button type="button" onClick={() => setAskTeam(true)} className="min-h-[44px] justify-self-start text-[14.5px] font-bold text-app-ink underline underline-offset-4">{t("cat.askInstead")}</button>
         )}
         {(showing || canDoItNow) && askTeam && (
-          <SetupHelpRequest title="Check my products on WhatsApp" description="We'll check your WhatsApp products and fix anything for you." feature="whatsapp_catalog" />
+          <SetupHelpRequest title={t("cat.checkTitle")} description={t("cat.checkDesc")} feature="whatsapp_catalog" />
         )}
       </Card>
 
-      <TechFold forWho="the person who manages your Facebook account">
+      <TechFold forWho={t("wa.forWhoFacebook")}>
         <div className="grid min-w-0 gap-5">
           <div className="grid gap-x-6 divide-y divide-app-line sm:grid-cols-2 sm:divide-y-0">
-            <Row label="WhatsApp">{view.whatsapp.connected ? "Connected" : "Not connected"}</Row>
-            <Row label="In sync">{counts.synced}</Row>
-            <Row label="Waiting for Meta">{counts.pending}{catalog.dirty ? " (changes queued)" : ""}</Row>
-            <Row label="Need attention">{`${counts.failed} rejected, ${counts.skipped} not sent`}</Row>
+            <Row label="WhatsApp">{view.whatsapp.connected ? t("ch.connected") : t("ch.notConnected")}</Row>
+            <Row label={t("cat.inSync")}>{counts.synced}</Row>
+            <Row label={t("cat.waitingMeta")}>{counts.pending}{catalog.dirty ? t("cat.queued") : ""}</Row>
+            <Row label={t("cat.needAttention")}>{t("cat.rejectedSkipped", { failed: String(counts.failed), skipped: String(counts.skipped) })}</Row>
           </div>
           <div className="grid min-w-0 gap-5 xl:grid-cols-2">
             <section className="grid min-w-0 content-start gap-4">
               <CardHead
-                title="Sync with the Meta API"
-                sub="Products go straight to the catalog and update within minutes of a change."
-                action={catalog.id ? <Pill tone={catalog.lastSyncStatus === "error" ? "danger" : catalog.lastSyncStatus === "partial" ? "warning" : "success"} dot>{catalog.lastSyncStatus === "error" ? "Last sync didn't work" : catalog.lastSyncStatus === "partial" ? "Some rejected" : catalog.lastSyncAt ? "Syncing" : "Starting"}</Pill> : null}
+                title={t("cat.apiTitle")}
+                sub={t("cat.apiSub")}
+                action={catalog.id ? <Pill tone={catalog.lastSyncStatus === "error" ? "danger" : catalog.lastSyncStatus === "partial" ? "warning" : "success"} dot>{catalog.lastSyncStatus === "error" ? t("cat.lastSyncBad") : catalog.lastSyncStatus === "partial" ? t("cat.someRejected") : catalog.lastSyncAt ? t("cat.syncing") : t("cat.starting")}</Pill> : null}
               />
           {!view.whatsapp.connected ? (
               <div className="grid gap-3 rounded-[16px] bg-app-canvas p-4">
-                <p className="m-0 text-[14px] leading-[1.55]">Connect the WhatsApp Business number first. The feed URL below works without it.</p>
-                <div><PillLink href="/home/inbox/chatbot?tab=whatsapp" icon="whatsapp" tone="ink" size="sm">Connect WhatsApp</PillLink></div>
+                <p className="m-0 text-[14px] leading-[1.55]">{t("cat.connectFirst")}</p>
+                <div><PillLink href="/home/inbox/chatbot?tab=whatsapp" icon="whatsapp" tone="ink" size="sm">{t("cat.connectWa")}</PillLink></div>
               </div>
             ) : (
               <>
                 {missing && (
                   <Notice tone="info">
-                    The token is missing <b>{(permissions.missing.length ? permissions.missing : ["catalog_management", "business_management"]).join(" and ")}</b>. Use the feed URL below instead (it needs no extra permissions), or reconnect WhatsApp with a token that has them.
+                    {t("cat.tokenMissing")} <b>{(permissions.missing.length ? permissions.missing : ["catalog_management", "business_management"]).join(" + ")}</b>. {t("cat.tokenMissingAfter")}
                   </Notice>
                 )}
 
                 {catalog.id ? (
                   <>
                     <div className="divide-y divide-app-line">
-                      <Row label="Catalog">{catalog.name ?? catalog.id}</Row>
-                      <Row label="Catalog ID"><span className="break-all font-mono text-[12.5px]">{catalog.id}</span></Row>
-                      <Row label="Linked to your WhatsApp">{catalog.linkedToWhatsApp ? <Pill tone="success">Yes</Pill> : <Pill tone="warning">No</Pill>}</Row>
-                      <Row label="Cart and catalog in chats">{catalog.cartEnabled && catalog.catalogVisible ? <Pill tone="success">On</Pill> : <Pill tone="warning">Off</Pill>}</Row>
-                      <Row label="Last sync">{catalog.syncing ? "Running now" : when(catalog.lastSyncAt)}</Row>
+                      <Row label={t("cat.catalog")}>{catalog.name ?? catalog.id}</Row>
+                      <Row label={t("cat.catalogId")}><span className="break-all font-mono text-[12.5px]">{catalog.id}</span></Row>
+                      <Row label={t("cat.linked")}>{catalog.linkedToWhatsApp ? <Pill tone="success">{t("yes")}</Pill> : <Pill tone="warning">{t("no")}</Pill>}</Row>
+                      <Row label={t("cat.cart")}>{catalog.cartEnabled && catalog.catalogVisible ? <Pill tone="success">{t("cat.on")}</Pill> : <Pill tone="warning">{t("ch.off")}</Pill>}</Row>
+                      <Row label={t("cat.lastSync")}>{catalog.syncing ? t("cat.running") : when(catalog.lastSyncAt, t, locale)}</Row>
                     </div>
                     {catalog.lastSyncError && <Notice tone="info">{catalog.lastSyncError}</Notice>}
                     <div className="flex flex-wrap gap-2">
                       {!(catalog.linkedToWhatsApp && catalog.cartEnabled && catalog.catalogVisible) && (
                         <PillButton size="sm" tone="white" busy={busy === "relink"} disabled={Boolean(busy)} onClick={() => act("relink", {}, afterSync)}>
-                          <Icon name="link" size={14} /> Link to WhatsApp again
+                          <Icon name="link" size={14} /> {t("cat.relink")}
                         </PillButton>
                       )}
                       <PillButton size="sm" tone="white" busy={busy === "full"} disabled={Boolean(busy)} onClick={() => act("sync", { full: true }, afterSync, "full")}>
-                        Resend all products
+                        {t("cat.resend")}
                       </PillButton>
                       <PillButton
                         size="sm"
@@ -232,47 +240,47 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
                         busy={busy === "disconnect"}
                         disabled={Boolean(busy)}
                         onClick={() => {
-                          if (window.confirm("Stop syncing to this catalog? The catalog and its products stay in Meta.")) void act("disconnect");
+                          if (window.confirm(t("cat.stopConfirm"))) void act("disconnect");
                         }}
                       >
-                        Stop syncing
+                        {t("cat.stop")}
                       </PillButton>
                     </div>
                   </>
                 ) : (
                   <div className="grid gap-4">
                     <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">
-                      Needs a token with <b className="text-app-ink">catalog_management</b> and <b className="text-app-ink">business_management</b>. We&apos;ll link the catalog to your number and switch on the cart.
+                      {t("cat.needsToken")} <b className="text-app-ink">catalog_management</b> + <b className="text-app-ink">business_management</b>. {t("cat.needsTokenAfter")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <PillButton size="sm" tone="white" busy={busy === "check_permissions"} disabled={Boolean(busy)} onClick={() => act("check_permissions", {}, () => setMessage(null))}>
-                        <Icon name="shield" size={14} /> Check permissions
+                        <Icon name="shield" size={14} /> {t("cat.checkPerms")}
                       </PillButton>
                       <PillButton size="sm" busy={busy === "list_catalogs"} disabled={Boolean(busy)} onClick={() => act("list_catalogs", business, (r) => setCatalogs(r.catalogs ?? []))}>
-                        <Icon name="search" size={14} /> Find my catalogs
+                        <Icon name="search" size={14} /> {t("cat.find")}
                       </PillButton>
                     </div>
-                    {permissions.state === "ok" && <Notice tone="success">Your token has the permissions catalogs need.</Notice>}
-                    {permissions.state === "unknown" && permissions.checkedAt && <Notice tone="info">Meta didn&apos;t say which permissions your token has. Try finding your catalogs: we&apos;ll tell you if Meta refuses.</Notice>}
+                    {permissions.state === "ok" && <Notice tone="success">{t("cat.permsOk")}</Notice>}
+                    {permissions.state === "unknown" && permissions.checkedAt && <Notice tone="info">{t("cat.permsUnknown")}</Notice>}
 
                     {askBusiness && (
                       <label className="grid gap-1">
-                        <span className="text-[12.5px] font-bold text-app-ink-soft">Meta Business ID</span>
-                        <input className={input} inputMode="numeric" value={businessId} onChange={(e) => setBusinessId(e.target.value)} placeholder="From Business Settings → Business info" />
+                        <span className="text-[12.5px] font-bold text-app-ink-soft">{t("cat.businessId")}</span>
+                        <input className={input} inputMode="numeric" value={businessId} onChange={(e) => setBusinessId(e.target.value)} placeholder={t("cat.businessIdHint")} />
                       </label>
                     )}
 
                     {catalogs && (
                       <div className="grid gap-2">
-                        <span className="text-[12.5px] font-bold text-app-ink-soft">{catalogs.length ? "Your catalogs" : "No catalogs yet in this business"}</span>
+                        <span className="text-[12.5px] font-bold text-app-ink-soft">{catalogs.length ? t("cat.yours") : t("cat.noneYet")}</span>
                         {catalogs.map((option) => (
                           <div key={option.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-[14px] border border-app-line px-3 py-2.5">
                             <span className="min-w-0">
                               <span className="block break-words text-[14px] font-semibold">{option.name}</span>
-                              <span className="block break-all font-mono text-[12px] text-app-ink-soft">{option.id}{option.productCount !== null ? ` · ${option.productCount} products` : ""}</span>
+                              <span className="block break-all font-mono text-[12px] text-app-ink-soft">{option.id}{option.productCount !== null ? ` · ${t("cat.productCount", { count: option.productCount })}` : ""}</span>
                             </span>
                             <PillButton size="sm" tone="white" busy={busy === `select:${option.id}`} disabled={Boolean(busy)} onClick={() => act("select_catalog", { catalogId: option.id }, afterSync, `select:${option.id}`)}>
-                              Use this
+                              {t("cat.useThis")}
                             </PillButton>
                           </div>
                         ))}
@@ -280,11 +288,11 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
                     )}
 
                     <div className="grid gap-2 rounded-[16px] bg-app-canvas p-4">
-                      <span className="text-[14px] font-bold">Or create a new catalog</span>
+                      <span className="text-[14px] font-bold">{t("cat.orCreate")}</span>
                       <div className="flex min-w-0 flex-wrap gap-2">
-                        <input className={`${input} flex-1 basis-[200px]`} value={newName} maxLength={100} onChange={(e) => setNewName(e.target.value)} aria-label="New catalog name" />
+                        <input className={`${input} flex-1 basis-[200px]`} value={newName} maxLength={100} onChange={(e) => setNewName(e.target.value)} aria-label={t("cat.newName")} />
                         <PillButton size="sm" busy={busy === "create_catalog"} disabled={Boolean(busy) || newName.trim().length < 2} onClick={() => act("create_catalog", { name: newName.trim(), ...business }, afterSync)} className="min-h-[44px]">
-                          <Icon name="plus" size={14} /> Create and sync
+                          <Icon name="plus" size={14} /> {t("cat.createSync")}
                         </PillButton>
                       </div>
                     </div>
@@ -295,18 +303,18 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
             </section>
 
             <section className="grid min-w-0 content-start gap-4">
-              <CardHead title="Product feed URL" sub="Works with any WhatsApp account, no extra permissions. Meta downloads it on a schedule." action={<Pill tone="info">{view.feed.listed} products</Pill>} />
+              <CardHead title={t("cat.feedTitle")} sub={t("cat.feedSub")} action={<Pill tone="info">{t("cat.productCount", { count: view.feed.listed })}</Pill>} />
           <p role="note" className="m-0 rounded-[12px] border border-[#F2A93B]/40 bg-[#FDF0D5] px-3 py-2 text-[13px] text-[#5C3D00]">
-              <b>{FEED_KEY_NOTICE}</b> The key below is also in your Google, Facebook and TikTok feed links on Sell everywhere.
+              <b>{FEED_KEY_NOTICE}</b> {t("cat.keyAlso")}
             </p>
-            <CopyRow label="Feed URL (keep it private)" value={view.feed.url} />
+            <CopyRow label={t("cat.feedUrl")} value={view.feed.url} />
             <div className="divide-y divide-app-line">
-              <Row label="Last downloaded by Meta">{when(view.feed.fetchedAt)}</Row>
-              <Row label="Products left out">{view.feed.skipped ? `${view.feed.skipped} (no photo or price)` : "None"}</Row>
+              <Row label={t("cat.lastDownloaded")}>{when(view.feed.fetchedAt, t, locale)}</Row>
+              <Row label={t("cat.leftOut")}>{view.feed.skipped ? t("cat.leftOutN", { count: String(view.feed.skipped) }) : t("wa.none")}</Row>
             </div>
             <details className="rounded-[16px] bg-app-canvas p-4 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[14px] font-bold">
-                How to add it in Commerce Manager <Icon name="chevDown" size={16} />
+                {t("cat.howTo")} <Icon name="chevDown" size={16} />
               </summary>
               <ol className="mb-0 mt-3 grid list-decimal gap-2 pl-5 text-[14px] leading-[1.55] marker:font-bold">
                 <li>Open <b>Meta Commerce Manager</b> (business.facebook.com/commerce) and choose your catalog, or create one (type: <b>Online products</b>).</li>
@@ -323,12 +331,12 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
                 busy={busy === "rotate_token"}
                 disabled={Boolean(busy)}
                 onClick={() => {
-                  if (window.confirm("Make a new private feed key? Every feed link stops working (this WhatsApp feed and your Google, Facebook and TikTok feeds): paste the new links into Commerce Manager, Merchant Center and TikTok.")) void act("rotate_token", {}, () => setMessage({ tone: "success", text: "New feed key ready. Update the links in Commerce Manager, Merchant Center and TikTok." }));
+                  if (window.confirm(t("cat.rotateConfirm"))) void act("rotate_token", {}, () => setMessage({ tone: "success", text: t("cat.rotated") }));
                 }}
               >
-                <Icon name="refresh" size={14} /> New link
+                <Icon name="refresh" size={14} /> {t("cat.newLink")}
               </PillButton>
-              <span className="text-[12.5px] text-app-ink-soft">{view.feed.rotatedAt ? `Last changed ${when(view.feed.rotatedAt)}` : "Change it if it has leaked."}</span>
+              <span className="text-[12.5px] text-app-ink-soft">{view.feed.rotatedAt ? t("cat.lastChanged", { when: when(view.feed.rotatedAt, t, locale) }) : t("cat.changeIfLeaked")}</span>
             </div>
             </section>
           </div>
@@ -337,21 +345,21 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
 
       {/* Problems */}
       <Card className="grid min-w-0 gap-3 p-5">
-        <CardHead title="Products to fix" sub="Why WhatsApp said no to a product, or why we didn't send it. Tap a product to fix it." />
+        <CardHead title={t("cat.toFix")} sub={t("cat.toFixSub")} />
         {view.problems.length ? (
           <ul className="m-0 grid list-none divide-y divide-app-line p-0">
             {view.problems.map((problem) => (
               <li key={problem.productId} className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3">
                 <span className="min-w-0 flex-1 basis-[220px]">
                   <a href={`/products/${problem.productId}`} className="block break-words text-[14px] font-semibold text-app-ink no-underline hover:underline">{problem.name}</a>
-                  <span className="block break-words text-[13px] text-app-ink-soft">{problem.error ?? "WhatsApp said no to this product. Check its photo, name and price."}</span>
+                  <span className="block break-words text-[13px] text-app-ink-soft">{problem.error ?? t("cat.saidNoProduct")}</span>
                 </span>
-                <Pill tone={problem.status === "failed" ? "danger" : "muted"}>{problem.status === "failed" ? "WhatsApp said no" : "Not sent"}</Pill>
+                <Pill tone={problem.status === "failed" ? "danger" : "muted"}>{problem.status === "failed" ? t("cat.saidNo") : t("cat.notSent")}</Pill>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="m-0 text-[14px] text-app-ink-soft">{catalog.id ? "Nothing to fix. WhatsApp accepted every product." : "Anything to fix shows here once your products are on WhatsApp."}</p>
+          <p className="m-0 text-[14px] text-app-ink-soft">{catalog.id ? t("cat.allAccepted") : t("cat.emptyBefore")}</p>
         )}
       </Card>
     </div>

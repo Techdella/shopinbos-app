@@ -449,6 +449,7 @@ async function notifyAdminsOfTicket(
         actionLabel: "Open ticket",
         actionUrl: link,
         metadata: { supportTicket: ticket.number },
+        event: "admin.review",
       }).catch(() => null),
     ),
   );
@@ -480,6 +481,7 @@ async function deliverAgentReply(ticket: { id: string; number: number; userId: s
       actionLabel: "Read reply",
       actionUrl: link?.replace(appBase(), ""),
       metadata: { supportTicket: ticket.number },
+      event: "support.reply",
     }).catch(() => null);
   }
   if (email && isEmailConfigured()) {

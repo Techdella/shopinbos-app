@@ -3,6 +3,7 @@ import { Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // A bottom sheet (the "+" sheet and Help), from the "Simple app" prototype: white, rounded top, a grab handle,
@@ -10,17 +11,18 @@ import { colors } from "@/theme";
 
 export function Sheet({ visible, onClose, title, children, testID }: { visible: boolean; onClose: () => void; title: string; children: ReactNode; testID?: string }) {
   const insets = useSafeAreaInsets();
+  const t = useT("common");
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={{ flex: 1, justifyContent: "flex-end" }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(22,20,31,0.38)" }} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(22,20,31,0.38)" }} />
         <View testID={testID} accessibilityViewIsModal style={{ backgroundColor: colors.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 16, gap: 10 }}>
           <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: colors.track, alignSelf: "center", marginBottom: 6 }} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 }}>
             <T weight="extrabold" style={{ flex: 1, fontSize: 22, lineHeight: 28 }} accessibilityRole="header">{title}</T>
             <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8} style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, flexDirection: "row", alignItems: "center", gap: 6 }}>
               <AppIcon name="x" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>Close</T>
+              <T weight="bold" style={{ fontSize: 15 }}>{t("close")}</T>
             </Pressable>
           </View>
           {children}

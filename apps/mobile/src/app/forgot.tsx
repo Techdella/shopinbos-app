@@ -7,8 +7,10 @@ import { sendPasswordReset } from "@/lib/auth";
 import { BackButton, Field, Label, Mascot, Notice, PillButton, T } from "@/components/ui";
 import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { useT } from "@/lib/i18n";
 
 export default function Forgot() {
+  const t = useT("m_auth");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,13 +18,13 @@ export default function Forgot() {
 
   async function submit() {
     setError(null);
-    if (!isValidEmail(email)) return setError("Enter the email you use for Shopinbos.");
+    if (!isValidEmail(email)) return setError(t("forgot.needEmail"));
     setBusy(true);
     try {
       await sendPasswordReset(email.trim().toLowerCase());
       setSent(true);
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "Couldn't send the link. Check your connection and try again.");
+      setError(resetError instanceof Error ? resetError.message : t("forgot.sendFailed"));
     } finally {
       setBusy(false);
     }
@@ -37,22 +39,22 @@ export default function Forgot() {
       {sent ? (
         <>
           <Mascot name="peggyWave" size={96} />
-          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, marginTop: 12 }} accessibilityRole="header">Check your email</T>
+          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, marginTop: 12 }} accessibilityRole="header">{t("forgot.checkEmail")}</T>
           <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>
-            If {email.trim()} has a Shopinbos account, we&apos;ve sent a link to choose a new password. Or log in with an email code instead.
+            {t("forgot.sent", { email: email.trim() })}
           </T>
           <View style={{ flex: 1 }} />
-          <PillButton title="Back to log in" onPress={() => router.replace("/login")} style={{ marginBottom: 12 }} />
+          <PillButton title={t("forgot.backToLogin")} onPress={() => router.replace("/login")} style={{ marginBottom: 12 }} />
         </>
       ) : (
         <>
-          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">Reset your password</T>
-          <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 24, lineHeight: 21 }}>We&apos;ll email you a link to choose a new one.</T>
-          <Label>Email</Label>
+          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">{t("forgot.title")}</T>
+          <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 24, lineHeight: 21 }}>{t("forgot.sub")}</T>
+          <Label>{t("form.email")}</Label>
           <Field placeholder="you@yourshop.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" value={email} onChangeText={setEmail} autoFocus />
           {error && <View style={{ marginTop: 18 }}><Notice>{error}</Notice></View>}
           <View style={{ flex: 1 }} />
-          <PillButton title="Send reset link" busy={busy} onPress={() => void submit()} style={{ marginBottom: 12 }} />
+          <PillButton title={t("forgot.submit")} busy={busy} onPress={() => void submit()} style={{ marginBottom: 12 }} />
         </>
       )}
     </SafeAreaView>

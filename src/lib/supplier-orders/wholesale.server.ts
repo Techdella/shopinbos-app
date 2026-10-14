@@ -5,6 +5,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { parsePricingTiers, tierPrice } from "@/lib/marketplace/find";
 import { SELLER_CANCELLABLE_WHOLESALE, SELLER_CANCEL_PREFIX, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
 import type { ServiceResult } from "./service.server";
+import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
 // for the quantity). There's no payment rail for this yet: the supplier sends an invoice and the seller pays them
@@ -38,7 +39,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
       bulkOrderAvailable: true,
       supplier: { status: "active", verificationStatus: "verified" },
     },
-    include: { supplier: { select: { id: true, userId: true, displayName: true } } },
+    include: { supplier: { select: { id: true, userId: true, displayName: true, acceptHoursDropship: true, acceptHoursWholesale: true } } },
   });
   if (!product) return { ok: false, code: "NOT_FOUND", message: "This product isn't available to buy wholesale." };
   if (product.supplier.userId === input.sellerId) return { ok: false, code: "BAD_REQUEST", message: "You can't order your own product." };
@@ -50,6 +51,8 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
 
   const unitPrice = tierPrice(parsePricingTiers(product.pricingTiers), input.quantity, product.wholesalePrice);
   const totalPrice = Math.round(unitPrice * input.quantity * 100) / 100;
+  // The supplier has 24 hours to accept a bulk order unless set otherwise (acceptance.server.ts).
+  const deadline = acceptByFor("wholesale", product.supplier);
   // The units are reserved as the order is made (conditionally, so two sellers can't take the same stock and it
   // never goes below zero). They go back if the supplier declines or the seller cancels.
   const order = await db.$transaction(async (tx) => {
@@ -72,6 +75,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
         currency: product.currency,
         deliveryAddress: input.deliveryAddress.trim(),
         notes: input.notes?.trim() || null,
+        acceptBy: deadline.acceptBy,
       },
       include: { supplierProduct: { select: { id: true, name: true, images: true } } },
     });
@@ -86,14 +90,18 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     userId: product.supplier.userId,
     type: "suppliers",
     priority: "warning",
-    title: `New wholesale order ${wholesaleRef(order.id)}`,
-    description: `A seller ordered ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)}). Confirm it and send them your invoice; they pay you directly.`,
-    link: "/supplier/orders?kind=wholesale",
-    actionLabel: "View order",
-    actionUrl: "/supplier/orders?kind=wholesale",
+    title: `New wholesale order ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
+    description: `A shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} and send them your invoice; they pay you directly.`,
+    link: `/supplier/orders/${order.id}?kind=wholesale`,
+    actionLabel: "Accept order",
+    actionUrl: `/supplier/orders/${order.id}?kind=wholesale`,
     metadata: { wholesaleOrderId: order.id },
     sendEmail: true,
+    event: "supplier_order.new",
+    dedupeKey: `supplier_order.new:wholesale:${order.id}`,
   }).catch(() => null);
+
+  void messageSupplierPhone(product.supplierId, `Shopinbos: a shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name, 60)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} in the app.`);
 
   return { ok: true, data: order };
 }
@@ -109,9 +117,10 @@ export interface MoveWholesaleInput {
 export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<ServiceResult<{ id: string; status: string }>> {
   const order = await db.wholesaleOrder.findFirst({
     where: { id: input.orderId, supplierId: input.supplierId },
-    select: { id: true, status: true, sellerId: true, quantity: true, supplierProductId: true, supplier: { select: { displayName: true } }, supplierProduct: { select: { name: true } } },
+    select: { id: true, status: true, sellerId: true, quantity: true, supplierProductId: true, expiredAt: true, supplier: { select: { displayName: true } }, supplierProduct: { select: { name: true } } },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
+  if (order.expiredAt) return { ok: false, code: "CONFLICT", message: "Time ran out on this order, so the shop was told. Don't send it." };
   const next = wholesaleStatusAfter(order.status, input.action);
   if (!next) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
   const reason = input.reason?.trim();
@@ -150,6 +159,8 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
     description: note.description,
     link: `/marketplace/product/${order.supplierProductId}`,
     sendEmail: next !== "delivered",
+    event: next === "confirmed" ? "supplier.accepted" : next === "cancelled" ? "supplier.declined" : "supplier.update",
+    dedupeKey: `supplier.${next}:wholesale:${order.id}`,
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: next } };
 }
@@ -197,6 +208,8 @@ export async function cancelWholesaleOrder(input: { sellerId: string; orderId: s
     description: `The seller cancelled ${order.quantity.toLocaleString("en-NG")} × ${plainText(order.supplierProduct.name)}. Don't send it.${reason ? ` "${plainText(reason, 300)}"` : ""}`,
     link: "/supplier/orders?kind=wholesale",
     sendEmail: true,
+    event: "supplier_order.cancelled",
+    dedupeKey: `supplier_order.cancelled:wholesale:${order.id}`,
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: "cancelled" } };
 }

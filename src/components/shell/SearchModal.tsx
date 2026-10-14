@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Icon, MascotAvatar } from "@/components/ui";
 import Link from "next/link";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface SearchModalProps {
   open: boolean;
@@ -10,34 +11,34 @@ interface SearchModalProps {
 }
 
 interface SearchResult {
-  label: string;
+  /** Key prefix in the "shell" catalog: search.<id>.label / search.<id>.desc. */
+  id: string;
   href: string;
   icon: string;
-  description?: string;
 }
 
 const SEARCH_INDEX: SearchResult[] = [
-  { label: "Overview", href: "/home", icon: "home", description: "Dashboard & KPIs" },
-  { label: "Orders", href: "/home/orders", icon: "cart", description: "Manage incoming orders" },
-  { label: "Products", href: "/products", icon: "box", description: "Your catalog" },
-  { label: "Messages", href: "/home/messages", icon: "message", description: "Supplier and logistics conversations" },
-  { label: "Marketplace", href: "/marketplace", icon: "shop", description: "Find supplier products" },
-  { label: "Customers", href: "/home/customers", icon: "users", description: "Buyer management" },
-  { label: "Marketing", href: "/home/marketing", icon: "megaphone", description: "Campaigns & promotions" },
-  { label: "Store editor", href: "/builder/editor", icon: "palette", description: "Customize storefront" },
-  { label: "Payments", href: "/home/payments", icon: "coin", description: "Transactions & payouts" },
-  { label: "Analytics", href: "/home/analytics", icon: "chart", description: "Sales, visits, channels and marketing" },
-  { label: "Ask Peggy", href: "/home/peggy", icon: "sparkle", description: "AI assistant" },
-  { label: "Build with Rex", href: "/studio", icon: "bolt", description: "Creative studio" },
-  { label: "Settings", href: "/home/settings", icon: "settings", description: "Store & account settings" },
-  { label: "Profile", href: "/home/profile", icon: "users", description: "Your seller profile" },
-  { label: "Notifications", href: "/home/notifications", icon: "bell", description: "Activity alerts" },
-  { label: "Social channels", href: "/home/marketing?tab=Social%20Selling", icon: "chat", description: "Coming soon" },
-  { label: "Discounts", href: "/home/discounts", icon: "tag", description: "Coupons & sales events" },
-  { label: "Automations", href: "/home/automations", icon: "automation", description: "Workflow automation" },
-  { label: "Dropship", href: "/home/dropship", icon: "truck", description: "Dropshipping" },
-  { label: "Logo Studio", href: "/studio/logo", icon: "image", description: "AI logo generation" },
-  { label: "Image Generator", href: "/studio/images", icon: "image", description: "DALL-E image creation" },
+  { id: "overview", href: "/home", icon: "home" },
+  { id: "orders", href: "/home/orders", icon: "cart" },
+  { id: "products", href: "/products", icon: "box" },
+  { id: "messages", href: "/home/messages", icon: "message" },
+  { id: "marketplace", href: "/marketplace", icon: "shop" },
+  { id: "customers", href: "/home/customers", icon: "users" },
+  { id: "marketing", href: "/home/marketing", icon: "megaphone" },
+  { id: "editor", href: "/builder/editor", icon: "palette" },
+  { id: "payments", href: "/home/payments", icon: "coin" },
+  { id: "analytics", href: "/home/analytics", icon: "chart" },
+  { id: "peggy", href: "/home/peggy", icon: "sparkle" },
+  { id: "rex", href: "/studio", icon: "bolt" },
+  { id: "settings", href: "/home/settings", icon: "settings" },
+  { id: "profile", href: "/home/profile", icon: "users" },
+  { id: "notifications", href: "/home/notifications", icon: "bell" },
+  { id: "social", href: "/home/marketing?tab=Social%20Selling", icon: "chat" },
+  { id: "discounts", href: "/home/discounts", icon: "tag" },
+  { id: "automations", href: "/home/automations", icon: "automation" },
+  { id: "dropship", href: "/home/dropship", icon: "truck" },
+  { id: "logo", href: "/studio/logo", icon: "image" },
+  { id: "images", href: "/studio/images", icon: "image" },
 ];
 
 export function SearchModal({ open, onClose }: SearchModalProps) {
@@ -46,6 +47,14 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const t = useT("shell");
+  // Shown in the person's language; the English words still match (people often search in English).
+  const entries = SEARCH_INDEX.map((r) => ({
+    ...r,
+    label: t.dynamic(`search.${r.id}.label`),
+    description: t.dynamic(`search.${r.id}.desc`),
+    english: `${r.id} ${r.href}`,
+  }));
 
   useEffect(() => {
     if (open) {
@@ -87,11 +96,12 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   }, [query]);
 
   const filtered = query.trim()
-    ? SEARCH_INDEX.filter((r) =>
+    ? entries.filter((r) =>
         r.label.toLowerCase().includes(query.toLowerCase()) ||
-        (r.description ?? "").toLowerCase().includes(query.toLowerCase())
+        r.description.toLowerCase().includes(query.toLowerCase()) ||
+        r.english.toLowerCase().includes(query.toLowerCase())
       )
-    : SEARCH_INDEX;
+    : entries;
 
   if (!mounted) return null;
 
@@ -130,7 +140,8 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search pages, orders, products..."
+            placeholder={t("search.placeholder")}
+            aria-label={t("search.placeholder")}
             style={{
               flex: 1, border: "none", outline: "none", fontSize: 14,
               fontFamily: "inherit", color: "var(--ink-900)",
@@ -138,7 +149,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             }}
           />
           {query && (
-            <button onClick={() => setQuery("")}
+            <button type="button" aria-label={t("search.clear")} onClick={() => setQuery("")}
               style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-400)" }}
             >
               <Icon name="x" size={16} />
@@ -163,7 +174,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
         >
           {filtered.length === 0 ? (
             <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--ink-400)", fontSize: 13 }}>
-              No results for &ldquo;{query}&rdquo;
+              {t("search.noResults", { query })}
             </div>
           ) : (
             filtered.map((r, i) => (

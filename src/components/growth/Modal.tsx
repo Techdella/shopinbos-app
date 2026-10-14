@@ -3,12 +3,14 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { cx } from "@/components/app-ui/cx";
+import { useT } from "@/components/i18n/I18nProvider";
 
 /**
  * Sheet on phones, centred dialog from sm up. Closes on Escape and backdrop click,
  * and moves focus into the dialog when it opens.
  */
 export function Modal({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  const t = useT("common");
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
 
@@ -37,7 +39,7 @@ export function Modal({ title, onClose, children, wide = false }: { title: strin
       >
         <div className="flex items-center gap-3 border-b border-app-line px-5 py-4">
           <h2 id={titleId} className="m-0 min-w-0 flex-1 truncate text-[18px] font-extrabold">{title}</h2>
-          <button type="button" data-close onClick={onClose} aria-label="Close" className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
+          <button type="button" data-close onClick={onClose} aria-label={t("close")} className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
             <Icon name="x" size={18} />
           </button>
         </div>

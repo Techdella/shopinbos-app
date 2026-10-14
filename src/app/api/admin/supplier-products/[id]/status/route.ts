@@ -4,6 +4,7 @@ import { withAdmin } from "@/lib/auth/middleware";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { notifyProductDecision } from "@/lib/notifications/events.server";
 
 const ProductModerationSchema = z.object({
   action: z.enum(["approve", "reject", "unpublish", "mark_trending", "clear_trending"]),
@@ -53,5 +54,6 @@ export const PATCH = withAdmin(async (req: NextRequest, { params }) => {
     supplierSlug: product.supplier.slug,
     categorySlug: product.category.slug,
   });
+  if (action === "approve" || action === "reject") await notifyProductDecision(product.id, product.status);
   return ok(product);
 });

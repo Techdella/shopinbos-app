@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { TextLink } from "@/components/app-kit";
 import { PageDetailsClient } from "./PageDetailsClient";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function PageDetailPage({ params }: { params: Promise<{ id:
   if (!page) notFound();
 
   const storeName = workspace.store.name;
+  const t = await getT("store");
 
   // The client renders the page heading itself because the title is editable there.
   return (
@@ -33,7 +35,7 @@ export default async function PageDetailPage({ params }: { params: Promise<{ id:
     >
       <div className="w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10">
         <div className="mb-4">
-          <TextLink href="/home/pages">← All pages</TextLink>
+          <TextLink href="/home/pages">{t("pages.allPages")}</TextLink>
         </div>
         <PageDetailsClient
           page={JSON.parse(JSON.stringify(page))}

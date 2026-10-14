@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { NotificationType, Role } from "@prisma/client";
-import { withSeller } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
@@ -22,7 +22,7 @@ const BulkSchema = z.object({
   preferences: z.array(PreferenceSchema).min(1).max(50),
 });
 
-export const PUT = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
+export const PUT = withAuth(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
   const parsed = BulkSchema.safeParse(body);
   if (!parsed.success) {

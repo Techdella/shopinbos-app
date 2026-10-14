@@ -3,6 +3,7 @@ import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { AppPage } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { PortalBlogCmsClient } from "@/components/cms/PortalBlogCmsClient";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +11,21 @@ export default async function SupplierCmsPage() {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier");
 
   return (
     <AppPage
       frame={supplierFrame(user, supplier, {
         chipMode: "rail",
         chipRole: "supplier",
-        chipMessage: "Your blog is set up. Rex can write full SEO articles for your supplier profile.",
+        chipMessage: t("cms.chipMessage"),
         chipTasks: [
-          { text: "Blog CMS is ready for drafts and publishing", status: "auto", time: "live" },
-          { text: "Rex can write long-form SEO articles from a prompt", status: "review", time: "ready" },
+          { text: t("cms.task1"), status: "auto", time: t("cms.live") },
+          { text: t("cms.task2"), status: "review", time: t("cms.ready") },
         ],
       })}
-      title="Blog and articles"
-      sub="Rex writes the articles. They sit on your supplier page so sellers searching for what you make can find you."
+      title={t("cms.title")}
+      sub={t("cms.sub")}
     >
       <PortalBlogCmsClient
         role="supplier"

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { PageHead } from "@/components/ui";
 import { askPeggy } from "@/app/actions/ai";
+import { Mascot } from "@/components/brand/Mascot";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface Category {
   id: string;
@@ -331,14 +333,15 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                   <input name="name" className="inp" required minLength={2} maxLength={200} placeholder="e.g. Premium Leather Tote Bag" />
                 </label>
                 <label className="field">
-                  <span className="label">Product code (optional)</span>
+                  <span className="label">SKU (optional)</span>
                   <input name="sku" className="inp" maxLength={60} placeholder="e.g. LTH-TOTE-001" />
                 </label>
               </div>
               <div className="grid gap-4 lg:grid-cols-[1fr_0.6fr] mt-4">
                 <label className="field">
                   <span className="label">Description</span>
-                  <textarea name="description" className="ta" rows={5} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
+                  <textarea id="new-product-description" name="description" className="ta" rows={5} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
+                  <VoiceInputButton targetId="new-product-description" context="a product description" className="mt-2" />
                 </label>
                 <label className="field">
                   <span className="label">Category</span>
@@ -434,15 +437,15 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
             <section className="card" style={{ padding: 20 }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="onb-card-kicker">Sizes and colours (optional)</div>
-                  <h2 className="m-0 mt-1 font-display text-[22px] font-normal text-[var(--ink-900)]">Add the sizes and colours you have.</h2>
+                  <div className="onb-card-kicker">Variants</div>
+                  <h2 className="m-0 mt-1 font-display text-[22px] font-normal text-[var(--ink-900)]">Add size, color, and SKU options.</h2>
                 </div>
-                <button type="button" onClick={addVariant} className="dbtn dBtn-ghost dBtn-sm">+ Add a size or colour</button>
+                <button type="button" onClick={addVariant} className="dbtn dBtn-ghost dBtn-sm">+ Add variant</button>
               </div>
 
               {variants.length === 0 ? (
                 <div className="text-center py-6 text-[13px] text-[var(--ink-400)] border-2 border-dashed border-[var(--ink-200)] rounded-[12px]">
-                  None yet. Add a size or colour if this product comes in more than one.
+                  No variants yet. Add options like size or color.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -450,7 +453,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                     <div key={v.id} className="space-y-3 rounded-[10px] border border-[var(--ink-100)] bg-[var(--ink-50)] p-3">
                       <div className="grid gap-2" style={{ gridTemplateColumns: "1fr 1fr 90px 110px 90px 80px 32px" }}>
                         <label className="field"><span className="label text-[11px]">Name</span><input className="inp text-[13px]" value={v.name} onChange={(e) => updateVariant(v.id, "name", e.target.value)} placeholder="Black size 42" /></label>
-                        <label className="field"><span className="label text-[11px]">Product code</span><input className="inp text-[13px]" value={v.sku} onChange={(e) => updateVariant(v.id, "sku", e.target.value)} placeholder="SHOE-BLK-42" /></label>
+                        <label className="field"><span className="label text-[11px]">SKU</span><input className="inp text-[13px]" value={v.sku} onChange={(e) => updateVariant(v.id, "sku", e.target.value)} placeholder="SHOE-BLK-42" /></label>
                         <label className="field"><span className="label text-[11px]">Price</span><input className="inp text-[13px]" type="number" value={v.price} onChange={(e) => updateVariant(v.id, "price", e.target.value)} placeholder="25000" /></label>
                         <label className="field"><span className="label text-[11px]">Color</span><input className="inp text-[13px]" value={v.color} onChange={(e) => updateVariant(v.id, "color", e.target.value)} placeholder="Black" /></label>
                         <label className="field"><span className="label text-[11px]">Size</span><input className="inp text-[13px]" value={v.size} onChange={(e) => updateVariant(v.id, "size", e.target.value)} placeholder="42 / XL" /></label>
@@ -459,7 +462,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                       </div>
                       <div className="grid gap-3 lg:grid-cols-[180px_1fr]">
                         <div>
-                          <div className="label text-[11px]">Pictures</div>
+                          <div className="label text-[11px]">Variant images</div>
                           <label className="dbtn dBtn-ghost dBtn-sm inline-flex cursor-pointer">
                             Upload
                             <input type="file" accept="image/*" multiple className="hidden" onChange={(event) => uploadVariantImages(v.id, event.target.files)} />
@@ -483,12 +486,12 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
                               onClick={() => updateVariant(v.id, "imageUrl", url)}
                               className={`overflow-hidden rounded-[8px] border ${v.imageUrl === url ? "border-[var(--teal-600)]" : "border-[var(--ink-100)]"}`}
                               style={{ width: 58, height: 58 }}
-                              title="Use as the main picture for this size or colour"
+                              title="Set as primary variant image"
                             >
                               <img src={url} alt="" className="h-full w-full object-cover" />
                             </button>
                           ))}
-                          {v.images.length === 0 ? <span className="text-[12px] text-[var(--ink-400)]">No pictures yet.</span> : null}
+                          {v.images.length === 0 ? <span className="text-[12px] text-[var(--ink-400)]">No variant images yet.</span> : null}
                         </div>
                       </div>
                       <div>
@@ -525,7 +528,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
             <aside className="card flex flex-col" style={{ maxHeight: "calc(100vh - 140px)", background: "var(--ink-50)" }}>
               <div className="p-3 border-b border-[var(--ink-100)]">
                 <div className="flex items-center gap-2">
-                  <img src="/brand/mascots/peggy-1.png" alt="Peggy" className="h-8 w-8 rounded-full object-contain" />
+                  <Mascot who="peggy" mood={peggyLoading ? "thinking" : "idle"} className="h-8 w-8 rounded-full" />
                   <div>
                     <div className="text-[13px] font-semibold text-[var(--ink-900)]">Peggy</div>
                     <div className="text-[11px] text-[var(--ink-500)]">AI product assistant</div>

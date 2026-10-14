@@ -5,6 +5,9 @@ import { Card, EmptyState, Pill, StatGrid, StatTile } from "@/components/app-kit
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { respondToSupplierReview } from "@/app/actions/supplier-reviews";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { intlLocale, type Locale } from "@shared/i18n";
 
 interface ReviewData {
   id: string;
@@ -40,15 +43,16 @@ interface BookingData {
   logisticsPartner: { id: string; userId: string; displayName: string };
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+function fmtDate(iso: string, locale: Locale = "en") {
+  return new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : intlLocale(locale), { day: "numeric", month: "short", year: "numeric" });
 }
 
 const inputClass = "w-full rounded-[14px] border border-app-line bg-white px-4 py-3 text-[14.5px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
+  const t = useT("supplier");
   return (
-    <span className="inline-flex items-center gap-0.5 text-[#F2A93B]" role="img" aria-label={`${rating} out of 5 stars`}>
+    <span className="inline-flex items-center gap-0.5 text-[#F2A93B]" role="img" aria-label={t("reviewsUi.outOf5", { rating })}>
       {[1, 2, 3, 4, 5].map((s) => (
         <Icon key={s} name="star" size={size} fill={s <= rating ? "currentColor" : "none"} className={s <= rating ? "" : "text-app-toggle-off"} />
       ))}
@@ -57,6 +61,7 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
 }
 
 function StarPicker({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
+  const t = useT("supplier");
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex items-center">
       {[1, 2, 3, 4, 5].map((s) => (
@@ -65,7 +70,7 @@ function StarPicker({ value, onChange, label }: { value: number; onChange: (v: n
           type="button"
           role="radio"
           aria-checked={value === s}
-          aria-label={`${s} star${s === 1 ? "" : "s"}`}
+          aria-label={t("reviewsUi.stars", { count: s })}
           onClick={() => onChange(s)}
           className={cx("grid h-10 w-10 place-items-center rounded-full transition hover:bg-app-canvas", s <= value ? "text-[#F2A93B]" : "text-app-toggle-off")}
         >
@@ -79,6 +84,8 @@ function StarPicker({ value, onChange, label }: { value: number; onChange: (v: n
 function ReviewCard({ review, isIncoming, onReply, error }: {
   review: ReviewData; isIncoming: boolean; onReply: (id: string, reply: string) => Promise<void>; error?: string;
 }) {
+  const t = useT("supplier", "common");
+  const locale = useLocale();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState(review.reply ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -92,19 +99,19 @@ function ReviewCard({ review, isIncoming, onReply, error }: {
   };
 
   const reviewerLabel = isIncoming
-    ? review.targetRole === "logistics_partner" ? "Delivery partner" : "Seller"
-    : review.targetRole === "logistics_partner" ? "To delivery partner" : "To seller";
+    ? review.targetRole === "logistics_partner" ? t("reviewsUi.deliveryPartner") : t("reviewsUi.seller")
+    : review.targetRole === "logistics_partner" ? t("reviewsUi.toDeliveryPartner") : t("reviewsUi.toSeller");
 
-  const interactionLabel = review.interactionType === "wholesale_order" ? "Wholesale order" : "Delivery";
+  const interactionLabel = review.interactionType === "wholesale_order" ? t("order.wholesaleOrder") : t("reviewsUi.delivery");
 
   return (
     <Card as="article" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="m-0 truncate text-[15px] font-extrabold">{review.title || "Review"}</h3>
+          <h3 className="m-0 truncate text-[15px] font-extrabold">{review.title || t("reviewsUi.review")}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-app-ink-soft">
             <Pill tone="info">{reviewerLabel}</Pill>
-            <span>{interactionLabel} · {fmtDate(review.createdAt)}</span>
+            <span>{interactionLabel} · {fmtDate(review.createdAt, locale)}</span>
           </div>
         </div>
         <Stars rating={review.rating} size={16} />
@@ -114,34 +121,35 @@ function ReviewCard({ review, isIncoming, onReply, error }: {
 
       {isIncoming && review.reply && (
         <div className="mt-3 rounded-[16px] bg-app-mint px-4 py-3 text-[14px] leading-[1.5]">
-          <div className="mb-1 text-[12.5px] font-bold">Your reply{review.repliedAt ? ` · ${fmtDate(review.repliedAt)}` : ""}</div>
+          <div className="mb-1 text-[12.5px] font-bold">{t("quotes.yourReply")}{review.repliedAt ? ` · ${fmtDate(review.repliedAt, locale)}` : ""}</div>
           {review.reply}
         </div>
       )}
 
       {isIncoming && !review.reply && !showReplyForm && (
         <PillButton tone="white" size="sm" className="mt-3" onClick={() => setShowReplyForm(true)}>
-          <Icon name="message" size={14} /> Reply
+          <Icon name="message" size={14} /> {t("dashboard.reply")}
         </PillButton>
       )}
 
       {isIncoming && showReplyForm && (
         <div className="mt-3 grid gap-2">
-          <label htmlFor={`reply-${review.id}`} className="text-[13px] font-bold">Your reply</label>
+          <label htmlFor={`reply-${review.id}`} className="text-[13px] font-bold">{t("quotes.yourReply")}</label>
           <textarea
             id={`reply-${review.id}`}
             className={cx(inputClass, "resize-y")}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Thank them, or explain what you'll do differently"
+            placeholder={t("reviewsUi.replyPlaceholder")}
             rows={3}
           />
+          <VoiceInputButton value={replyText} onChange={setReplyText} context="a reply to a review" />
           <div className="flex flex-wrap gap-2">
             <PillButton tone="ink" size="sm" onClick={handleSubmit} busy={submitting} disabled={!replyText.trim()}>
-              Send reply
+              {t("reviewsUi.sendReply")}
             </PillButton>
             <PillButton tone="ghost" size="sm" onClick={() => { setShowReplyForm(false); setReplyText(review.reply ?? ""); }}>
-              Cancel
+              {t("cancel")}
             </PillButton>
           </div>
         </div>
@@ -160,6 +168,7 @@ function ReviewForm({ type, targetId, targetName, interactionId, interactionLabe
   interactionLabel: string;
   onSubmit: (fd: FormData) => Promise<void>;
 }) {
+  const t = useT("supplier");
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
@@ -167,7 +176,7 @@ function ReviewForm({ type, targetId, targetName, interactionId, interactionLabe
   const [error, setError] = useState("");
 
   const handleSubmit = async () => {
-    if (rating < 1) { setError("Pick a star rating first."); return; }
+    if (rating < 1) { setError(t("reviewsUi.pickRating")); return; }
     setSubmitting(true);
     setError("");
     const fd = new FormData();
@@ -192,30 +201,30 @@ function ReviewForm({ type, targetId, targetName, interactionId, interactionLabe
     <Card className="grid gap-3 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="m-0 truncate text-[15px] font-extrabold">Review {targetName}</h3>
+          <h3 className="m-0 truncate text-[15px] font-extrabold">{t("reviewsUi.reviewName", { name: targetName })}</h3>
           <div className="truncate text-[12.5px] text-app-ink-soft">{interactionLabel}</div>
         </div>
-        <StarPicker value={rating} onChange={setRating} label={`Rating for ${targetName}`} />
+        <StarPicker value={rating} onChange={setRating} label={t("reviewsUi.ratingFor", { name: targetName })} />
       </div>
       <input
         className={inputClass}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Short title (optional)"
-        aria-label="Review title"
+        placeholder={t("reviewsUi.titlePlaceholder")}
+        aria-label={t("reviewsUi.titleAria")}
       />
       <textarea
         className={cx(inputClass, "resize-y")}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="How did it go?"
-        aria-label="Review comment"
+        placeholder={t("reviewsUi.commentPlaceholder")}
+        aria-label={t("reviewsUi.commentAria")}
         rows={2}
       />
       {error && <p role="alert" className="m-0 text-[13px] text-app-danger">{error}</p>}
       <div className="flex justify-end">
         <PillButton tone="ink" size="sm" onClick={handleSubmit} busy={submitting}>
-          Submit review
+          {t("reviewsUi.submit")}
         </PillButton>
       </div>
     </Card>
@@ -241,6 +250,8 @@ export function SupplierReviewsClient({
   supplierRating: number;
   supplierRatingCount: number;
 }) {
+  const t = useT("supplier", "common");
+  const locale = useLocale();
   const [tab, setTab] = useState<"incoming" | "outgoing" | "pending">("incoming");
   const [reviews, setReviews] = useState(incoming);
   const [localOutgoing, setLocalOutgoing] = useState(outgoing);
@@ -259,7 +270,7 @@ export function SupplierReviewsClient({
         r.id === reviewId ? { ...r, reply, repliedAt: new Date().toISOString() } : r
       ));
     } else {
-      setReplyErrors((prev) => ({ ...prev, [reviewId]: result.error ?? "Failed to reply" }));
+      setReplyErrors((prev) => ({ ...prev, [reviewId]: result.error ?? t("reviewsUi.replyFailed") }));
     }
   };
 
@@ -279,7 +290,7 @@ export function SupplierReviewsClient({
         interactionType: type === "seller" ? "wholesale_order" : "delivery_booking",
         interactionId: fd.get(type === "seller" ? "orderId" : "bookingId") as string,
         rating: parseInt(fd.get("rating") as string, 10),
-        title: fd.get("title") as string || "Review",
+        title: fd.get("title") as string || t("reviewsUi.review"),
         comment: fd.get("comment") as string || null,
         reply: null,
         repliedAt: null,
@@ -295,25 +306,25 @@ export function SupplierReviewsClient({
         setLocalUnreviewedBookings((prev) => prev.filter((b) => b.id !== fd.get("bookingId")));
       }
     } else {
-      setSubmitError(result.error ?? "Failed to submit review");
+      setSubmitError(result.error ?? t("reviewsUi.submitFailed"));
     }
   };
 
   const responseRate = stats.total > 0 ? Math.round((stats.responded / stats.total) * 100) : 0;
   const pendingCount = localUnreviewedOrders.length + localUnreviewedBookings.length;
   const tabs = [
-    { id: "incoming" as const, label: "About you", count: reviews.length },
-    { id: "outgoing" as const, label: "Written by you", count: localOutgoing.length },
-    { id: "pending" as const, label: "To review", count: pendingCount },
+    { id: "incoming" as const, label: t("reviewsUi.aboutYou"), count: reviews.length },
+    { id: "outgoing" as const, label: t("reviewsUi.writtenByYou"), count: localOutgoing.length },
+    { id: "pending" as const, label: t("reviewsUi.toReview"), count: pendingCount },
   ];
 
   return (
     <div className="grid gap-5">
       <StatGrid>
-        <StatTile tone="card" label="Your rating" value={supplierRatingCount > 0 ? supplierRating.toFixed(1) : "—"} hint={`${supplierRatingCount} rating${supplierRatingCount === 1 ? "" : "s"} on your profile`} />
-        <StatTile tone="card" label="Replied to" value={`${responseRate}%`} hint={`${stats.responded} of ${stats.total} reviews`} />
-        <StatTile tone="card" label="5-star reviews" value={stats.distribution[4]} hint={`${stats.total > 0 ? Math.round((stats.distribution[4] / stats.total) * 100) : 0}% of reviews`} />
-        <StatTile tone="card" label="To review" value={pendingCount} hint={`${localUnreviewedOrders.length} orders · ${localUnreviewedBookings.length} deliveries`} />
+        <StatTile tone="card" label={t("reviewsUi.yourRating")} value={supplierRatingCount > 0 ? supplierRating.toFixed(1) : "—"} hint={t("reviewsUi.ratingsOnProfile", { count: supplierRatingCount })} />
+        <StatTile tone="card" label={t("reviewsUi.repliedTo")} value={`${responseRate}%`} hint={t("reviewsUi.xOfReviews", { done: stats.responded, total: stats.total })} />
+        <StatTile tone="card" label={t("reviewsUi.fiveStar")} value={stats.distribution[4]} hint={t("reviewsUi.pctOfReviews", { pct: stats.total > 0 ? Math.round((stats.distribution[4] / stats.total) * 100) : 0 })} />
+        <StatTile tone="card" label={t("reviewsUi.toReview")} value={pendingCount} hint={t("reviewsUi.ordersDeliveries", { orders: localUnreviewedOrders.length, deliveries: localUnreviewedBookings.length })} />
       </StatGrid>
 
       {stats.total > 0 && (
@@ -321,7 +332,7 @@ export function SupplierReviewsClient({
           <div className="text-center">
             <div className="text-[36px] font-extrabold leading-none">{stats.avgRating.toFixed(1)}</div>
             <div className="mt-1.5"><Stars rating={Math.round(stats.avgRating)} size={14} /></div>
-            <div className="mt-1 text-[12.5px] text-app-ink-soft">{stats.total} review{stats.total === 1 ? "" : "s"}</div>
+            <div className="mt-1 text-[12.5px] text-app-ink-soft">{t("reviewsUi.reviewCount", { count: stats.total })}</div>
           </div>
           <div className="grid min-w-[200px] flex-1 gap-1.5">
             {[5, 4, 3, 2, 1].map((star) => {
@@ -329,7 +340,7 @@ export function SupplierReviewsClient({
               const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
               return (
                 <div key={star} className="flex items-center gap-2.5 text-[13px]">
-                  <span className="w-12 shrink-0 text-app-ink-soft">{star} star</span>
+                  <span className="w-12 shrink-0 text-app-ink-soft">{t("reviewsUi.starRow", { star })}</span>
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-app-canvas">
                     <div className={cx("h-full rounded-full", star >= 4 ? "bg-app-success" : star === 3 ? "bg-[#F2A93B]" : "bg-app-danger")} style={{ width: `${pct}%` }} />
                   </div>
@@ -341,21 +352,21 @@ export function SupplierReviewsClient({
         </Card>
       )}
 
-      <div role="tablist" aria-label="Reviews" className="flex flex-wrap gap-2">
-        {tabs.map((t) => (
+      <div role="tablist" aria-label={t("reviews.title")} className="flex flex-wrap gap-2">
+        {tabs.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
             role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
+            aria-selected={tab === item.id}
+            onClick={() => setTab(item.id)}
             className={cx(
               "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold transition",
-              tab === t.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+              tab === item.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
             )}
           >
-            {t.label}
-            <span className={cx("ml-1", tab === t.id ? "text-white" : "text-app-ink-soft")}>· {t.count}</span>
+            {item.label}
+            <span className={cx("ml-1", tab === item.id ? "text-white" : "text-app-ink-soft")}>· {item.count}</span>
           </button>
         ))}
       </div>
@@ -363,7 +374,7 @@ export function SupplierReviewsClient({
       {submitError && (
         <div className="flex items-start gap-2">
           <div className="flex-1"><Notice tone="error">{submitError}</Notice></div>
-          <button type="button" onClick={() => setSubmitError("")} aria-label="Close this message" className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
+          <button type="button" onClick={() => setSubmitError("")} aria-label={t("reviewsUi.closeMessage")} className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
             <Icon name="x" size={16} />
           </button>
         </div>
@@ -372,8 +383,8 @@ export function SupplierReviewsClient({
       {tab === "incoming" && (
         <div role="tabpanel" className="grid gap-3">
           {reviews.length === 0 ? (
-            <EmptyState icon="star" title="No reviews yet">
-              When sellers or delivery partners review your business, their reviews show up here.
+            <EmptyState icon="star" title={t("reviewsUi.emptyTitle")}>
+              {t("reviewsUi.emptyBody")}
             </EmptyState>
           ) : (
             reviews.map((review) => (
@@ -386,8 +397,8 @@ export function SupplierReviewsClient({
       {tab === "outgoing" && (
         <div role="tabpanel" className="grid gap-3">
           {localOutgoing.length === 0 ? (
-            <EmptyState icon="edit" title="You haven't written any reviews">
-              Open &ldquo;To review&rdquo; to rate the sellers and delivery partners you&apos;ve worked with.
+            <EmptyState icon="edit" title={t("reviewsUi.noneWritten")}>
+              {t("reviewsUi.noneWrittenBody")}
             </EmptyState>
           ) : (
             localOutgoing.map((review) => (
@@ -400,14 +411,14 @@ export function SupplierReviewsClient({
       {tab === "pending" && (
         <div role="tabpanel" className="grid gap-5">
           {pendingCount === 0 ? (
-            <EmptyState icon="check" title="All caught up">
-              You&apos;ve reviewed every finished order and delivery. New ones show up here.
+            <EmptyState icon="check" title={t("reviewsUi.allCaughtUp")}>
+              {t("reviewsUi.allCaughtUpBody")}
             </EmptyState>
           ) : (
             <>
               {localUnreviewedOrders.length > 0 && (
                 <section className="grid gap-3">
-                  <h2 className="m-0 text-[17px] font-extrabold">Wholesale orders · {localUnreviewedOrders.length}</h2>
+                  <h2 className="m-0 text-[17px] font-extrabold">{t("reviewsUi.wholesaleOrders")} · {localUnreviewedOrders.length}</h2>
                   {localUnreviewedOrders.map((order) => (
                     <ReviewForm
                       key={order.id}
@@ -415,7 +426,7 @@ export function SupplierReviewsClient({
                       targetId={order.seller.id}
                       targetName={order.seller.name}
                       interactionId={order.id}
-                      interactionLabel={`${order.supplierProduct.name} · ${fmtDate(order.createdAt)} · ₦${Math.round(order.totalPrice).toLocaleString("en-NG")}`}
+                      interactionLabel={`${order.supplierProduct.name} · ${fmtDate(order.createdAt, locale)} · ₦${Math.round(order.totalPrice).toLocaleString("en-NG")}`}
                       onSubmit={(fd) => handleReviewSubmit("seller", fd)}
                     />
                   ))}
@@ -424,7 +435,7 @@ export function SupplierReviewsClient({
 
               {localUnreviewedBookings.length > 0 && (
                 <section className="grid gap-3">
-                  <h2 className="m-0 text-[17px] font-extrabold">Finished deliveries · {localUnreviewedBookings.length}</h2>
+                  <h2 className="m-0 text-[17px] font-extrabold">{t("reviewsUi.finishedDeliveries")} · {localUnreviewedBookings.length}</h2>
                   {localUnreviewedBookings.map((booking) => (
                     <ReviewForm
                       key={booking.id}
@@ -432,7 +443,7 @@ export function SupplierReviewsClient({
                       targetId={booking.logisticsPartner.userId}
                       targetName={booking.logisticsPartner.displayName}
                       interactionId={booking.id}
-                      interactionLabel={`${fmtDate(booking.createdAt)} · ₦${Math.round(booking.deliveryFee).toLocaleString("en-NG")} delivery fee`}
+                      interactionLabel={`${fmtDate(booking.createdAt, locale)} · ${t("reviewsUi.deliveryFee", { amount: `₦${Math.round(booking.deliveryFee).toLocaleString("en-NG")}` })}`}
                       onSubmit={(fd) => handleReviewSubmit("logistics_partner", fd)}
                     />
                   ))}

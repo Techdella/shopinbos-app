@@ -3,7 +3,7 @@ import { colors } from "@/theme";
 
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -38,6 +38,7 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   bot: () => <><Rect x="4.5" y="8" width="15" height="11" rx="3" /><Path d="M12 4v4M9 13h.01M15 13h.01" /></>,
   phone: () => <Path d="M5 4h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z" />,
   pin: () => <><Path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><Circle cx="12" cy="9.5" r="2.5" /></>,
+  globe: () => <><Circle cx="12" cy="12" r="9" /><Path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
   camera: () => <><Path d="M4 8h3.5L9 5.5h6L16.5 8H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><Circle cx="12" cy="13" r="3.5" /></>,
   shield: () => <><Path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" /><Path d="M9 12l2 2 4-4" /></>,
   users: () => <><Circle cx="9" cy="8.5" r="3.5" /><Path d="M3 20a6 6 0 0 1 12 0M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14.5a6 6 0 0 1 3 5.5" /></>,

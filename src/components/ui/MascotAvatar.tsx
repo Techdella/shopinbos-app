@@ -1,5 +1,5 @@
-import Image from "next/image";
-import { mascotPaths, type AuthRole } from "@/lib/brand";
+import { Mascot, type MascotMood } from "@/components/brand/Mascot";
+import type { AuthRole } from "@/lib/brand";
 
 export function mascotForRole(role: AuthRole): { name: "peggy" | "rex"; label: string } {
   if (role === "seller") return { name: "peggy", label: "Peggy" };
@@ -9,26 +9,16 @@ export function mascotForRole(role: AuthRole): { name: "peggy" | "rex"; label: s
 interface MascotAvatarProps {
   role: AuthRole;
   size?: number;
+  /** Kept for older call sites; the mood now picks the pose. */
   variant?: number;
+  mood?: MascotMood;
 }
 
-export function MascotAvatar({ role, size = 36, variant = 0 }: MascotAvatarProps) {
+export function MascotAvatar({ role, size = 36, mood = "idle" }: MascotAvatarProps) {
   const { name, label } = mascotForRole(role);
-  const frames = mascotPaths[name];
-  const src = frames[variant % frames.length];
-
   return (
-    <div
-      style={{ width: size, height: size, minWidth: size }}
-      className="shrink-0 overflow-hidden rounded-[10px]"
-    >
-      <Image
-        src={src}
-        alt={label}
-        width={size * 2}
-        height={size * 2}
-        className="h-full w-full object-cover object-top"
-      />
+    <div style={{ width: size, height: size, minWidth: size }} className="shrink-0 overflow-hidden rounded-[10px]">
+      <Mascot who={name} mood={mood} alt={label} className="h-full w-full" />
     </div>
   );
 }

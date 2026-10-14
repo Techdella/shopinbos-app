@@ -256,7 +256,8 @@ test("every server sender goes through the shell; marketing sends check preferen
   assert.doesNotMatch(read("src/lib/auth/route-access.ts").match(/PORTAL_API_PREFIXES = \[[^\]]*\]/)[0], /\/api\/email/);
   assert.match(read("src/app/email/preferences/[token]/page.tsx"), /verifyEmailToken/);
   assert.match(read("src/app/home/settings/page.tsx"), /id="business-address"/);
-  assert.match(read("src/app/home/settings/page.tsx"), /Email preferences/);
+  assert.match(read("src/app/home/settings/page.tsx"), /t\("notif\.prefs"\)/);
+  assert.match(read("shared/i18n/messages/account/en.ts"), /"notif\.prefs": "Email preferences"/);
 });
 
 test("Supabase auth templates use the shell, Go variables and our legal footer; the script pushes them", () => {

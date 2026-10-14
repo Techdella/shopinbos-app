@@ -63,7 +63,8 @@ test("'add documents later' opens the portal but never trading or review", () =>
   assert.match(productPatch, /VERIFICATION_REQUIRED/);
   const cron = readFileSync("src/app/api/cron/verification-reminders/route.ts", "utf8");
   assert.match(cron, /cronAuthorization/);
-  const ui = readFileSync("src/components/onboarding/SupplierOnboarding.tsx", "utf8");
+  // Copy lives in the onboarding catalog; the component shows it through t().
+  const ui = readFileSync("src/components/onboarding/SupplierOnboarding.tsx", "utf8") + readFileSync("shared/i18n/messages/onboarding/en.ts", "utf8");
   assert.match(ui, /Continue without documents/);
   assert.match(ui, /CacInstantCheck/);
 });

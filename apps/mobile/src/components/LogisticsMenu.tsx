@@ -3,10 +3,12 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import type { AppIconName } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
+import { LanguageRow } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
-import { HELP_SECTION } from "@/components/PartnerMore";
+import { useHelpSection } from "@/components/PartnerMore";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
@@ -14,22 +16,25 @@ import { colors } from "@/theme";
 // "app:" paths are screens in the app; anything else opens that page of the web console, signed in.
 
 type Row = { label: string; icon: AppIconName; path: string; hint?: string };
+type MenuKey = "messages" | "quotes" | "coverage" | "notifications" | "verification" | "profile" | "connect";
 
-const SECTIONS: { title: string; links: Row[] }[] = [
+// Words in m_partner "menu.<key>" / "menu.<key>Hint" (English: "Connect your system", …).
+const SECTIONS: { title: "work" | "company"; links: { key: MenuKey; icon: AppIconName; path: string }[] }[] = [
   {
-    title: "Your work",
+    title: "work",
     links: [
-      { label: "Messages", icon: "chat", path: "app:/logistics/messages", hint: "Chats with shops" },
-      { label: "Shops asking for your price", icon: "tag", path: "/logistics/quotes", hint: "Opens the website" },
-      { label: "Where you deliver and your prices", icon: "pin", path: "/logistics/coverage", hint: "Opens the website" },
+      { key: "messages", icon: "chat", path: "app:/logistics/messages" },
+      { key: "quotes", icon: "tag", path: "/logistics/quotes" },
+      { key: "coverage", icon: "pin", path: "/logistics/coverage" },
     ],
   },
   {
-    title: "Your company",
+    title: "company",
     links: [
-      { label: "Your papers", icon: "shield", path: "app:/logistics/verification", hint: "So shops can trust you" },
-      { label: "Company details", icon: "store", path: "/logistics/profile", hint: "Opens the website" },
-      { label: "Connect your system", icon: "send", path: "app:/logistics/connect", hint: "Already use delivery software? We connect it for you" },
+      { key: "notifications", icon: "bell", path: "app:/notifications" },
+      { key: "verification", icon: "shield", path: "app:/logistics/verification" },
+      { key: "profile", icon: "store", path: "/logistics/profile" },
+      { key: "connect", icon: "send", path: "app:/logistics/connect" },
     ],
   },
 ];
@@ -42,9 +47,15 @@ function go(path: string) {
 }
 
 export function LogisticsMenu() {
+  const t = useT("m_partner", "common");
+  const help = useHelpSection();
+  const sections: { title: string; links: Row[] }[] = SECTIONS.map((section) => ({
+    title: t(`menu.${section.title}`),
+    links: section.links.map((link) => ({ label: t(`menu.${link.key}`), hint: t(`menu.${link.key}Hint`), icon: link.icon, path: link.path })),
+  }));
   return (
-    <Screen title="Menu">
-      {[...SECTIONS, HELP_SECTION].map((section) => (
+    <Screen title={t("menu.title")}>
+      {[...sections, help].map((section) => (
         <View key={section.title}>
           <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14, marginBottom: 6, marginLeft: 4 }}>{section.title}</T>
           <Card style={{ paddingVertical: 2 }}>
@@ -54,7 +65,10 @@ export function LogisticsMenu() {
           </Card>
         </View>
       ))}
-      <LinkButton title="Log out" color={colors.danger} onPress={() => confirmSignOut()} />
+      <Card style={{ paddingVertical: 2 }}>
+        <LanguageRow first />
+      </Card>
+      <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
     </Screen>
   );
 }

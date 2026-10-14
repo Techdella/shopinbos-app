@@ -6,16 +6,15 @@ import { QUOTE_STATUS, buttonClass, fieldClass, labelClass, money, shortDate, st
 import { db } from "@/lib/db/client";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
+import { Mascot } from "@/components/brand/Mascot";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { getT } from "@/lib/i18n/server";
 
 type PageProps = {
   searchParams?: Promise<{ error?: string; saved?: string; show?: string }>;
 };
 
-const quoteTips = [
-  "Answer with a firm unit price and the exact quantity it covers.",
-  "Mention packing, processing time, and whether samples are available.",
-  "Set an expiry date when material or FX prices may move.",
-];
+const quoteTips = ["quotes.tip1", "quotes.tip2", "quotes.tip3"] as const;
 
 const FILTERS = [
   { key: "waiting", label: "Waiting on you", statuses: ["pending"] },
@@ -32,6 +31,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier", "common");
 
   const quotes = await db.supplierQuoteRequest.findMany({
     where: { supplierId: supplier.id },
@@ -71,15 +71,15 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Price requests"
-      sub="Shops asking for your price. Tell them your price, how long it lasts and when it can be ready, so they can order."
+      title={t("dashboard.quoteRequests")}
+      sub={t("quotes.sub")}
       toolbar={
         <FilterChips
           items={[
-            { label: "All", href: "/supplier/quote-requests", count: quotes.length, active: !filter },
-            { label: "Waiting on you", href: "/supplier/quote-requests?show=waiting", count: pendingQuotes.length, active: filter?.key === "waiting" },
-            { label: "Answered", href: "/supplier/quote-requests?show=answered", count: respondedQuotes.length, active: filter?.key === "answered" },
-            { label: "Closed", href: "/supplier/quote-requests?show=closed", count: closedQuotes.length, active: filter?.key === "closed" },
+            { label: t("products.filter.all"), href: "/supplier/quote-requests", count: quotes.length, active: !filter },
+            { label: t("quotes.waiting"), href: "/supplier/quote-requests?show=waiting", count: pendingQuotes.length, active: filter?.key === "waiting" },
+            { label: t("quotes.answered"), href: "/supplier/quote-requests?show=answered", count: respondedQuotes.length, active: filter?.key === "answered" },
+            { label: t("quotes.closed"), href: "/supplier/quote-requests?show=closed", count: closedQuotes.length, active: filter?.key === "closed" },
           ]}
         />
       }
@@ -88,23 +88,23 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
         sideWidth="360px"
         main={
           <>
-            {(params?.error || params?.saved) && <Notice tone={params?.error ? "error" : "success"}>{params?.error ?? "Quote updated."}</Notice>}
+            {(params?.error || params?.saved) && <Notice tone={params?.error ? "error" : "success"}>{params?.error ?? t("quotes.updated")}</Notice>}
             {!verified && (
               <AssistantNote who="rex">
-                You can read requests now. Replies open once your business is verified.
+                {t("quotes.unverified")}
               </AssistantNote>
             )}
 
             {visible.length === 0 ? (
-              <EmptyState icon="chat" title={quotes.length === 0 ? "No quote requests yet" : "Nothing here"}>
+              <EmptyState icon="chat" title={quotes.length === 0 ? t("quotes.emptyTitle") : t("quotes.nothingHere")}>
                 {quotes.length === 0
-                  ? "When a seller asks for bulk pricing, the request lands here with the product, quantity, destination and notes ready for your reply."
-                  : "No requests match this filter."}
+                  ? t("quotes.emptyBody")
+                  : t("quotes.noMatch")}
               </EmptyState>
             ) : (
               visible.map((quote) => {
                 const pending = quote.status === "pending";
-                const status = statusOf(QUOTE_STATUS, quote.status);
+                const status = statusOf(QUOTE_STATUS, quote.status, t);
                 const basePrice = quote.quotedPrice ?? quote.supplierProduct.wholesalePrice;
                 const currency = quote.supplierProduct.currency;
                 const place = [quote.seller.city, quote.seller.country].filter(Boolean).join(", ");
@@ -119,33 +119,33 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
                           <Pill tone={status.tone}>{status.label}</Pill>
                         </div>
                         <div className="mt-0.5 text-[13.5px] text-app-ink-soft">
-                          {quote.quantity.toLocaleString("en-NG")} × {quote.supplierProduct.name} to {quote.destination}
+                          {t("dashboard.quoteLine", { qty: quote.quantity.toLocaleString("en-NG"), product: quote.supplierProduct.name, destination: quote.destination })}
                         </div>
                         <div className="mt-0.5 text-[12.5px] text-app-ink-soft">
-                          {timeAgo(quote.createdAt)}{place && ` · ${place}`} · MOQ {quote.supplierProduct.moq.toLocaleString("en-NG")}
+                          {timeAgo(quote.createdAt, t)}{place && ` · ${place}`} · {t("products.moq", { moq: quote.supplierProduct.moq.toLocaleString("en-NG") })}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-[20px] font-extrabold leading-none">{money(basePrice * quote.quantity, currency)}</div>
-                        <div className="mt-1 text-[12px] text-app-ink-soft">{quote.quotedPrice ? "quoted value" : "at list price"}</div>
+                        <div className="mt-1 text-[12px] text-app-ink-soft">{quote.quotedPrice ? t("quotes.quotedValueSmall") : t("quotes.atListPrice")}</div>
                       </div>
                     </div>
 
                     <div className="grid gap-4 border-t border-app-line p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
                       <div className="grid content-start gap-3">
                         <div className="rounded-[16px] bg-app-canvas px-4 py-3">
-                          <div className="text-[13px] font-bold">Seller&apos;s note</div>
+                          <div className="text-[13px] font-bold">{t("quotes.sellerNote")}</div>
                           <p className="mb-0 mt-1 text-[14px] leading-[1.55]">
-                            {quote.notes || "No note. Reply with price, availability and next step."}
+                            {quote.notes || t("quotes.noNote")}
                           </p>
                         </div>
                         {!pending && (
                           <div className="rounded-[16px] bg-app-mint px-4 py-3">
-                            <div className="text-[13px] font-bold">Your reply</div>
-                            <p className="mb-0 mt-1 text-[14px] leading-[1.55]">{quote.supplierResponse || "Reply sent."}</p>
+                            <div className="text-[13px] font-bold">{t("quotes.yourReply")}</div>
+                            <p className="mb-0 mt-1 text-[14px] leading-[1.55]">{quote.supplierResponse || t("quotes.replySent")}</p>
                             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-app-ink-soft">
-                              {quote.quotedPrice && <span>{money(quote.quotedPrice, currency)} per unit</span>}
-                              {quote.expiresAt && <span>Valid until {shortDate(quote.expiresAt)}</span>}
+                              {quote.quotedPrice && <span>{t("quotes.perUnit", { amount: money(quote.quotedPrice, currency) })}</span>}
+                              {quote.expiresAt && <span>{t("quotes.validUntilDate", { date: shortDate(quote.expiresAt, t.locale) })}</span>}
                             </div>
                           </div>
                         )}
@@ -156,43 +156,44 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
                           <input type="hidden" name="quoteId" value={quote.id} />
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div>
-                              <label htmlFor={`price-${quote.id}`} className={labelClass}>Unit price ({currency})</label>
+                              <label htmlFor={`price-${quote.id}`} className={labelClass}>{t("quotes.unitPrice", { currency })}</label>
                               <input id={`price-${quote.id}`} name="quotedPrice" type="number" min="1" step="0.01" defaultValue={quote.supplierProduct.wholesalePrice} className={fieldClass} />
                             </div>
                             <div>
-                              <label htmlFor={`expires-${quote.id}`} className={labelClass}>Valid until</label>
+                              <label htmlFor={`expires-${quote.id}`} className={labelClass}>{t("quotes.validUntil")}</label>
                               <input id={`expires-${quote.id}`} name="expiresAt" type="date" className={fieldClass} />
                             </div>
                           </div>
                           <div>
-                            <label htmlFor={`message-${quote.id}`} className={labelClass}>Message</label>
+                            <label htmlFor={`message-${quote.id}`} className={labelClass}>{t("quotes.message")}</label>
                             <textarea
                               id={`message-${quote.id}`}
                               name="supplierResponse"
                               rows={3}
-                              defaultValue={`Yes, we can supply ${quote.quantity.toLocaleString("en-NG")} units to ${quote.destination}.`}
+                              defaultValue={t("quotes.defaultReply", { qty: quote.quantity.toLocaleString("en-NG"), destination: quote.destination })}
                               className={`${textareaClass} resize-y`}
                             />
+                            <VoiceInputButton targetId={`message-${quote.id}`} mode="replace" context="a note with a bulk price" className="mt-2" />
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <button type="submit" name="intent" value="respond" className={buttonClass.ink}>
-                              <Icon name="send" size={14} /> Send my price
+                              <Icon name="send" size={14} /> {t("quotes.send")}
                             </button>
                             <button type="submit" name="intent" value="reject" className={buttonClass.white}>
-                              Pass
+                              {t("quotes.pass")}
                             </button>
                           </div>
                         </form>
                       ) : (
                         <div className="rounded-[16px] border border-app-line px-4 py-3 text-[13.5px] leading-[1.55] text-app-ink-soft">
                           <div className="mb-1 flex items-center gap-2 font-bold text-app-ink">
-                            <Icon name="check" size={14} /> What happens next
+                            <Icon name="check" size={14} /> {t("quotes.next")}
                           </div>
                           {quote.status === "accepted"
-                            ? "The seller accepted this quote. Watch Orders for the wholesale order."
+                            ? t("quotes.nextAccepted")
                             : quote.status === "responded"
-                              ? "Your quote is with the seller. Keep stock ready until the expiry date."
-                              : "This request is closed. New requests from this seller still show up here."}
+                              ? t("quotes.nextResponded")
+                              : t("quotes.nextClosed")}
                         </div>
                       )}
                     </div>
@@ -205,25 +206,24 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
         side={
           <>
             <Card className="p-5">
-              <h2 className="m-0 text-[17px] font-extrabold">Your price requests</h2>
+              <h2 className="m-0 text-[17px] font-extrabold">{t("quotes.health")}</h2>
               <div className="mt-2 grid grid-cols-2 gap-1">
-                <StatTile label="Waiting on you" value={pendingQuotes.length} />
-                <StatTile label="Answered" value={respondedQuotes.length} />
-                <StatTile label="Closed" value={closedQuotes.length} />
-                <StatTile label="Value of prices sent" value={money(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN")} />
+                <StatTile label={t("quotes.waiting")} value={pendingQuotes.length} />
+                <StatTile label={t("quotes.answered")} value={respondedQuotes.length} />
+                <StatTile label={t("quotes.closed")} value={closedQuotes.length} />
+                <StatTile label={t("quotes.quotedValue")} value={money(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN")} />
               </div>
             </Card>
             <section className="rounded-[22px] bg-app-peach p-5">
               <div className="mb-3 flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/app/rex.png" alt="Rex" className="h-10 w-10 object-contain" />
-                <h2 className="m-0 text-[17px] font-extrabold">Prices that win orders</h2>
+                <Mascot who="rex" size={40} />
+                <h2 className="m-0 text-[17px] font-extrabold">{t("quotes.win")}</h2>
               </div>
               <ul className="m-0 grid list-none gap-2 p-0">
                 {quoteTips.map((tip) => (
                   <li key={tip} className="flex gap-2.5 rounded-[14px] bg-white px-3.5 py-2.5 text-[13.5px] leading-[1.5]">
                     <Icon name="check" size={14} className="mt-1 shrink-0 text-app-success" />
-                    <span>{tip}</span>
+                    <span>{t(tip)}</span>
                   </li>
                 ))}
               </ul>

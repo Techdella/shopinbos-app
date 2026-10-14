@@ -11,14 +11,16 @@ import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/fi
 import { addToStore, fetchFindContext, fetchFindProduct, requestQuote, type FindContext, type FindProduct } from "@/lib/marketplace";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // One supplier product (web /marketplace/product/[id]): photos, Dropship (pick your price, see what you keep,
 // add it to your store as a draft) or Wholesale (quantity, tier price, request a quote), and Message supplier.
 
 function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: string; value: string; onMinus: () => void; onPlus: () => void; minusOff?: boolean; plusOff?: boolean }) {
+  const t = useT("m_find");
   const button = (text: string, onPress: () => void, off?: boolean) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${text === "−" ? "Lower" : "Raise"} ${label.toLowerCase()}`} disabled={off} onPress={onPress} hitSlop={6} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center", opacity: off ? 0.4 : 1 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={text === "−" ? t("product.lower", { label }) : t("product.raise", { label })} disabled={off} onPress={onPress} hitSlop={6} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center", opacity: off ? 0.4 : 1 }}>
       <T weight="extrabold" style={{ fontSize: 22 }}>{text}</T>
     </Pressable>
   );
@@ -44,6 +46,7 @@ function Line({ label, value, strong, tone }: { label: string; value: string; st
 }
 
 export default function FindProductDetail() {
+  const t = useT("m_find");
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const loaded = useLoad(async () => {
     const [product, context] = await Promise.all([fetchFindProduct(String(slug)), fetchFindContext().catch(() => null)]);
@@ -52,7 +55,7 @@ export default function FindProductDetail() {
 
   if (!loaded.data) {
     return (
-      <Screen title="Product" refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title={t("product.title")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
         {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
@@ -63,6 +66,7 @@ export default function FindProductDetail() {
 }
 
 function ProductView({ product, context, refreshing, onRefresh }: { product: FindProduct; context: FindContext | null; refreshing: boolean; onRefresh: () => void }) {
+  const t = useT("m_find");
   const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price || product.cost * 1.5, product.cost));
   const [quantity, setQuantity] = useState(product.moq);
@@ -86,9 +90,9 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
     try {
       const result = await addToStore(product.id, price);
       setAddedId(result.storeProductId);
-      setNote({ tone: "success", text: result.already ? "It's already in your shop." : `It's in your shop at ${naira(price)}, hidden for now. Open My products to show it to customers.` });
+      setNote({ tone: "success", text: result.already ? t("product.already") : t("product.added", { price: naira(price) }) });
     } catch (addError) {
-      setNote({ tone: "error", text: addError instanceof Error ? addError.message : "Couldn't add it. Try again." });
+      setNote({ tone: "error", text: addError instanceof Error ? addError.message : t("product.addFailed") });
     } finally {
       setBusy(false);
     }
@@ -99,9 +103,9 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
     setNote(null);
     try {
       await requestQuote({ supplierId: product.supplier.id, supplierProductId: product.id, quantity, destination: destination.trim() || "Nigeria" });
-      setNote({ tone: "success", text: `Asked ${product.supplier.name} for a price for ${quantity}. They answer in Chats and we tell you.` });
+      setNote({ tone: "success", text: t("product.quoted", { name: product.supplier.name, quantity }) });
     } catch (quoteError) {
-      setNote({ tone: "error", text: quoteError instanceof Error ? quoteError.message : "Couldn't send the request. Try again." });
+      setNote({ tone: "error", text: quoteError instanceof Error ? quoteError.message : t("product.quoteFailed") });
     } finally {
       setBusy(false);
     }
@@ -110,12 +114,12 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
   const footer =
     mode === "dropship" ? (
       already ? (
-        <PillButton title="See it in My products" onPress={() => router.push("/products")} />
+        <PillButton title={t("product.seeInProducts")} onPress={() => router.push("/products")} />
       ) : (
-        <PillButton title={`Put it in my shop at ${naira(price)}`} busy={busy} onPress={() => void add()} />
+        <PillButton title={t("product.put", { price: naira(price) })} busy={busy} onPress={() => void add()} />
       )
     ) : (
-      <PillButton title={`Ask for a price for ${quantity}`} busy={busy} onPress={() => void quote()} />
+      <PillButton title={t("product.requestQuote", { quantity })} busy={busy} onPress={() => void quote()} />
     );
 
   return (
@@ -124,7 +128,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
         <View>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={(event) => setPhoto(Math.round(event.nativeEvent.contentOffset.x / width))} style={{ borderRadius: radii.card }}>
             {product.images.map((uri, index) => (
-              <Image key={uri + index} source={{ uri }} style={{ width, height: width, borderRadius: radii.card, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={`${product.name} photo ${index + 1}`} />
+              <Image key={uri + index} source={{ uri }} style={{ width, height: width, borderRadius: radii.card, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={t("product.photo", { name: product.name, n: index + 1 })} />
             ))}
           </ScrollView>
           {product.images.length > 1 ? (
@@ -136,10 +140,10 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
       ) : null}
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        <Badge label={product.category} />
-        {product.ships ? <Badge label={product.ships} /> : null}
-        {product.stock > 0 ? <Badge label={`Supplier has ${product.stock}`} /> : <Badge label="Finished" bg={colors.dangerTint} fg={colors.danger} />}
-        {already ? <Badge label="In your shop" bg={colors.successTint} fg={colors.success} /> : null}
+        <Badge label={t.dynamic(`category.${product.category}`, product.category)} />
+        {product.ships ? <Badge label={product.ships.startsWith("Ships in ") ? t("ships", { time: product.ships.slice(9) }) : product.ships} /> : null}
+        {product.stock > 0 ? <Badge label={t("product.inStock", { count: product.stock })} /> : <Badge label={t("product.outOfStock")} bg={colors.dangerTint} fg={colors.danger} />}
+        {already ? <Badge label={t("product.inShop")} bg={colors.successTint} fg={colors.success} /> : null}
       </View>
 
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -152,15 +156,15 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/partners/[id]", params: { id: product.supplier.id, name: product.supplier.name } })} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.canvas }}>
           <AppIcon name="chat" size={16} />
-          <T weight="bold" style={{ fontSize: 14 }}>Message</T>
+          <T weight="bold" style={{ fontSize: 14 }}>{t("product.message")}</T>
         </Pressable>
       </Card>
 
       {product.dropship && product.wholesale ? (
         <Segmented
           options={[
-            { value: "dropship", label: "No stock needed" },
-            { value: "wholesale", label: "Buy in bulk" },
+            { value: "dropship", label: t("card.dropship") },
+            { value: "wholesale", label: t("card.wholesale") },
           ]}
           value={mode}
           onChange={setMode}
@@ -171,9 +175,9 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
 
       {mode === "dropship" ? (
         <Card style={{ gap: 6 }}>
-          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>You don&apos;t buy anything now. When a customer pays you, {product.supplier.name} sends it to them and you keep the difference. Your money is safe here until delivery.</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>{t("product.dropshipIntro", { name: product.supplier.name })}</T>
           <Stepper
-            label="Your selling price"
+            label={t("product.sellingPrice")}
             value={naira(price)}
             onMinus={() => setPrice((current) => clampSellingPrice(current - priceStep(current - 1), product.cost))}
             onPlus={() => setPrice((current) => clampSellingPrice(current + step, product.cost))}
@@ -181,51 +185,51 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
             plusOff={price >= clampSellingPrice(Number.MAX_SAFE_INTEGER, product.cost)}
           />
           <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
-            <Line label="Customer pays" value={naira(sale.shopperPays)} />
-            <Line label="Supplier gets" value={`− ${naira(sale.supplierGets)}`} />
-            <Line label="Card and transfer fee" value={`− ${naira(sale.fee)}`} />
-            <Line label={`You keep (${sale.keepPct}%)`} value={naira(sale.keep)} strong tone={sale.keep > 0 ? colors.success : colors.danger} />
+            <Line label={t("product.customerPays")} value={naira(sale.shopperPays)} />
+            <Line label={t("product.supplierGets")} value={`− ${naira(sale.supplierGets)}`} />
+            <Line label={t("product.fee")} value={`− ${naira(sale.fee)}`} />
+            <Line label={t("product.keep", { percent: sale.keepPct })} value={naira(sale.keep)} strong tone={sale.keep > 0 ? colors.success : colors.danger} />
           </View>
-          {product.price ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>Suggested price {naira(product.price)}. The customer pays for delivery when they pay.</T> : null}
+          {product.price ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("product.suggested", { price: naira(product.price) })}</T> : null}
         </Card>
       ) : (
         <Card style={{ gap: 8 }}>
-          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>Buy many to keep and sell yourself. The smallest order is {product.moq}.</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>{t("product.wholesaleIntro", { moq: product.moq })}</T>
           <Stepper
-            label="Quantity"
+            label={t("product.quantity")}
             value={String(quantity)}
             onMinus={() => setQuantity((current) => Math.max(product.moq, current - qtyStep))}
             onPlus={() => setQuantity((current) => Math.min(1_000_000, current + qtyStep))}
             minusOff={quantity <= product.moq}
           />
           <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
-            <Line label="Price each" value={naira(unit)} />
-            <Line label="Estimated total" value={naira(unit * quantity)} strong />
+            <Line label={t("product.priceEach")} value={naira(unit)} />
+            <Line label={t("product.estimated")} value={naira(unit * quantity)} strong />
           </View>
           {product.tiers.length ? (
             <View style={{ gap: 4 }}>
-              <T weight="bold" style={{ fontSize: 15 }}>Cheaper when you buy more</T>
+              <T weight="bold" style={{ fontSize: 15 }}>{t("product.tiers")}</T>
               {product.tiers.map((tier) => (
                 <T key={tier.minQty} style={{ color: colors.inkSoft, fontSize: 14 }}>
-                  {tier.maxQty ? `${tier.minQty}–${tier.maxQty}` : `${tier.minQty}+`}: {naira(tier.price)} each
+                  {t("product.tier", { range: tier.maxQty ? `${tier.minQty}–${tier.maxQty}` : `${tier.minQty}+`, price: naira(tier.price) })}
                 </T>
               ))}
             </View>
           ) : null}
-          <Label>Deliver to</Label>
-          <Field value={destination} onChangeText={setDestination} placeholder="City, state" maxLength={200} />
-          <T style={{ color: colors.inkSoft, fontSize: 14 }}>The supplier tells you the final price and delivery.</T>
+          <Label>{t("product.deliverTo")}</Label>
+          <Field value={destination} onChangeText={setDestination} placeholder={t("product.cityState")} maxLength={200} />
+          <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("product.confirms")}</T>
         </Card>
       )}
 
       {product.description ? (
         <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 15 }}>About this product</T>
+          <T weight="extrabold" style={{ fontSize: 15 }}>{t("product.about")}</T>
           <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{product.description}</T>
         </Card>
       ) : null}
 
-      <LinkButton title="See it in my browser" color={colors.inkSoft} onPress={() => void openWeb(`/marketplace/product/${encodeURIComponent(product.id)}`)} />
+      <LinkButton title={t("product.browser")} color={colors.inkSoft} onPress={() => void openWeb(`/marketplace/product/${encodeURIComponent(product.id)}`)} />
     </Screen>
   );
 }

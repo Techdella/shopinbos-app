@@ -88,6 +88,9 @@ export function PreviewFallbackClient({ storeBasePath, slug }: PreviewFallbackCl
           <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7 4h2v5H7V4zm0 6h2v2H7v-2z"/>
         </svg>
         <span>Preview Mode — draft store. Cart & checkout are active for testing.</span>
+        <a href="/home" style={{ color: "#fff", marginLeft: 8, padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,.35)", textDecoration: "none", fontSize: 11 }}>
+          Exit preview
+        </a>
       </div>
       <div style={{ flex: 1, width: "100%", minWidth: 0 }}>
         <StorefrontClient

@@ -4,6 +4,8 @@ import { api } from "@/lib/api";
 import { AppIcon } from "@/components/icons";
 import { Card, Field, Label, Notice, PillButton, T } from "@/components/ui";
 import { colors, radii } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
+import { useT } from "@/lib/i18n";
 
 // Mobile twin of the web's src/components/support/SetupHelpRequest.tsx, with the same props.
 // "We'll set it up for you": instead of showing API keys, DNS records or feed links, a technical job becomes a
@@ -26,14 +28,16 @@ export interface SetupHelpRequestProps {
 const PHONE = /^\+?[\d\s-]{7,20}$/;
 
 function Optional({ children }: { children: string }) {
+  const t = useT("m_help");
   return (
     <Label>
-      {children} <T style={{ fontSize: 14, color: colors.inkSoft }}>(optional)</T>
+      {children} <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("setup.optional")}</T>
     </Label>
   );
 }
 
 export function SetupHelpRequest({ title, description, feature, softwareQuestion, softwarePlaceholder, style }: SetupHelpRequestProps) {
+  const t = useT("m_help");
   const [software, setSoftware] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [details, setDetails] = useState("");
@@ -44,7 +48,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
   async function submit() {
     setError(null);
     if (whatsapp.trim() && !PHONE.test(whatsapp.trim())) {
-      setError("That WhatsApp number doesn't look right. Check it, or leave it empty and we'll reply here.");
+      setError(t("setup.badNumber"));
       return;
     }
     setBusy(true);
@@ -61,7 +65,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
       });
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : "We couldn't send that. Check your connection and try again.");
+      setError(err instanceof Error && err.message ? err.message : t("setup.sendFailed"));
     } finally {
       setBusy(false);
     }
@@ -74,9 +78,9 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
           <AppIcon name="check" size={20} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 17 }}>Thanks, we&apos;ve got it.</T>
+          <T weight="extrabold" style={{ fontSize: 17 }}>{t("setup.thanks")}</T>
           <T style={{ fontSize: 15, lineHeight: 22, marginTop: 4 }}>
-            Someone from the Shopinbos team will {whatsapp.trim() ? "message you on WhatsApp" : "reply in Help"} within one working day and set it up with you. You don&apos;t need to do anything else.
+            {whatsapp.trim() ? t("setup.sentWhatsApp") : t("setup.sentHelp")}
           </T>
         </View>
       </View>
@@ -102,17 +106,18 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
         </View>
       ) : null}
       <View>
-        <Optional>Your WhatsApp number</Optional>
-        <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="0803 123 4567" keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" maxLength={20} accessibilityLabel="Your WhatsApp number" />
+        <Optional>{t("setup.whatsapp")}</Optional>
+        <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="0803 123 4567" keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" maxLength={20} accessibilityLabel={t("setup.whatsapp")} />
       </View>
       <View>
-        <Optional>Anything we should know?</Optional>
-        <Field value={details} onChangeText={setDetails} multiline maxLength={1500} accessibilityLabel="Anything we should know?" style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
+        <Optional>{t("setup.details")}</Optional>
+        <Field value={details} onChangeText={setDetails} multiline maxLength={1500} accessibilityLabel={t("setup.details")} style={{ height: 96, paddingTop: 14, textAlignVertical: "top" }} />
+        <VoiceInput value={details} onChange={setDetails} maxLength={1500} context="anything the team should know" style={{ marginTop: 8 }} />
       </View>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
 
-      <PillButton title="Ask the team to set it up" busy={busy} onPress={() => void submit()} />
+      <PillButton title={t("setup.submit")} busy={busy} onPress={() => void submit()} />
     </Card>
   );
 }

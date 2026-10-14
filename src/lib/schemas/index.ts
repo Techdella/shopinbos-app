@@ -640,6 +640,8 @@ export const PublicLogisticsQuerySchema = z.object({
   zone: z.string().optional(),
   vehicleType: z.string().optional(),
   q: z.string().max(200).optional(),
+  /** "true": only partners taking pay-when-it-arrives (cash) jobs now, skipping those paused for a late pay-in. */
+  cod: z.enum(["true", "false", "1", "0"]).optional(),
 });
 
 // ─── Notification Enums ────────────────────────────────────────────────────────

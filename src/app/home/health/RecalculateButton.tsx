@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
-export function RecalculateButton({ label = "Work it out again", tone = "white" }: { label?: string; tone?: "white" | "ink" }) {
+export function RecalculateButton({ label, tone = "white" }: { label?: string; tone?: "white" | "ink" }) {
+  const t = useT("home");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +20,7 @@ export function RecalculateButton({ label = "Work it out again", tone = "white" 
       if (!res.ok) throw new Error();
       router.refresh();
     } catch {
-      setError("Couldn't work out your score. Try again.");
+      setError(t("health.failed"));
     } finally {
       setBusy(false);
     }
@@ -27,7 +29,7 @@ export function RecalculateButton({ label = "Work it out again", tone = "white" 
   return (
     <div className="grid justify-items-start gap-2">
       <PillButton size="md" tone={tone} busy={busy} onClick={() => void run()}>
-        <Icon name="refresh" size={16} /> {label}
+        <Icon name="refresh" size={16} /> {label ?? t("health.again")}
       </PillButton>
       {error && <Notice>{error}</Notice>}
     </div>

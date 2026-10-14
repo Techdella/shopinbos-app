@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { ConversationsModal } from "@/components/shell/ConversationsModal";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface MessageBuyerButtonProps {
   sellerUserId: string;
@@ -11,6 +12,7 @@ interface MessageBuyerButtonProps {
 
 export function MessageBuyerButton({ sellerUserId, sellerName }: MessageBuyerButtonProps) {
   const [chatOpen, setChatOpen] = useState(false);
+  const t = useT("supplier");
 
   return (
     <>
@@ -18,9 +20,9 @@ export function MessageBuyerButton({ sellerUserId, sellerName }: MessageBuyerBut
         type="button"
         className="inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink transition hover:border-app-line-strong"
         onClick={() => setChatOpen(true)}
-        aria-label={`Message ${sellerName}`}
+        aria-label={t("messageBuyer.aria", { name: sellerName })}
       >
-        <Icon name="chat" size={14} /> Message
+        <Icon name="chat" size={14} /> {t("messageBuyer.button")}
       </button>
       <ConversationsModal
         open={chatOpen}

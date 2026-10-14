@@ -3,10 +3,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { PillButton, Spinner, cx } from "@/components/app-ui";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Small shared pieces for the CMS editors: a modal dialog, an upload helper and a product / item picker.
 
 export function Modal({ title, onClose, children, footer, wide = false }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  const t = useT("cms");
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -26,7 +28,7 @@ export function Modal({ title, onClose, children, footer, wide = false }: { titl
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={id} className={cx("flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-white text-app-ink shadow-xl sm:rounded-[24px]", wide ? "sm:max-w-[720px]" : "sm:max-w-[480px]")}>
         <div className="flex items-center justify-between gap-3 border-b border-app-line px-5 py-4">
           <h2 id={id} className="m-0 text-[17px] font-extrabold">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas">
+          <button type="button" onClick={onClose} aria-label={t("pk.close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas">
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -79,6 +81,7 @@ export function RecordPicker({
   onClose: () => void;
   title: string;
 }) {
+  const t = useT("cms");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<PickerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,23 +122,23 @@ export function RecordPicker({
       footer={
         multiple ? (
           <>
-            <PillButton tone="white" size="sm" onClick={onClose}>Cancel</PillButton>
+            <PillButton tone="white" size="sm" onClick={onClose}>{t("pk.cancel")}</PillButton>
             <PillButton tone="ink" size="sm" disabled={!picked.length} onClick={() => { onPick(picked); onClose(); }}>
-              Add {picked.length || ""}
+              {picked.length ? t("pk.add", { count: picked.length }) : t("pk.addNone")}
             </PillButton>
           </>
         ) : undefined
       }
     >
-      <label htmlFor={searchId} className="sr-only">Search</label>
+      <label htmlFor={searchId} className="sr-only">{t("pk.search")}</label>
       <div className="mb-3 flex min-h-[44px] items-center gap-2 rounded-full border border-app-line px-4 focus-within:border-app-ink">
         <Icon name="search" size={16} />
-        <input id={searchId} value={q} onChange={(e) => setQ(e.target.value)} placeholder={kind === "products" ? "Search products" : "Search items"} className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none" />
+        <input id={searchId} value={q} onChange={(e) => setQ(e.target.value)} placeholder={kind === "products" ? t("pk.searchProducts") : t("pk.searchItems")} className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] outline-none" />
       </div>
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[14px] text-app-ink-soft" role="status"><Spinner /> Loading</div>
+        <div className="flex items-center justify-center gap-2 py-8 text-[14px] text-app-ink-soft" role="status"><Spinner /> {t("pk.loading")}</div>
       ) : rows.length === 0 ? (
-        <p className="py-8 text-center text-[14px] text-app-ink-soft">{kind === "products" ? "No products found." : "No items found."}</p>
+        <p className="py-8 text-center text-[14px] text-app-ink-soft">{kind === "products" ? t("pk.noProducts") : t("pk.noItems")}</p>
       ) : (
         <ul className="m-0 grid list-none gap-1 p-0">
           {rows.map((row) => {
@@ -158,7 +161,7 @@ export function RecordPicker({
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-bold">{row.name}</span>
-                    <span className="block truncate text-[12.5px] text-app-ink-soft">{[row.price, row.collection, row.status].filter(Boolean).join(" · ")}{already ? " · added" : ""}</span>
+                    <span className="block truncate text-[12.5px] text-app-ink-soft">{[row.price, row.collection, row.status].filter(Boolean).join(" · ")}{already ? ` · ${t("pk.added")}` : ""}</span>
                   </span>
                   {multiple && <span className={cx("grid h-6 w-6 shrink-0 place-items-center rounded-full border", on ? "border-app-ink bg-app-ink text-white" : "border-app-line")}>{on && <Icon name="check" size={13} />}</span>}
                 </button>

@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
 import { SeoTab } from "@/components/seo/SeoTab";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface Category {
   id: string;
@@ -370,6 +371,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                 </div>
                 <Field label="Description">
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={field.textarea} rows={4} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
+                  <VoiceInputButton value={description} onChange={setDescription} context="a product description" className="mt-2" />
                 </Field>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Category">

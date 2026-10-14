@@ -47,6 +47,11 @@ function getEnvConfig(): {
   return null;
 }
 
+/** True when a WhatsApp-capable provider (Africa's Talking or Sendchamp) is set up for platform messages. */
+export function platformWhatsAppReady() {
+  return getEnvConfig() !== null;
+}
+
 function getProviderInstance(): NotificationProvider | null {
   const env = getEnvConfig();
   if (!env) return null;

@@ -17,6 +17,8 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
 import { washStops } from "@shared/tokens";
 import { colors, fonts, radii } from "@/theme";
+import { Mascot as SharedMascot, type MascotMood, type MascotWho } from "@/components/Mascot";
+import { useT } from "@/lib/i18n";
 
 // Building blocks for the 2026 app redesign, matching the web app's src/components/app-ui.
 
@@ -24,9 +26,6 @@ export const images = {
   wordmark: require("../../assets/brand/wordmark-dark.png"),
   wordmarkLight: require("../../assets/brand/wordmark-light.png"),
   markWhite: require("../../assets/brand/mark-white.png"),
-  rex: require("../../assets/brand/rex.png"),
-  peggy: require("../../assets/brand/peggy.png"),
-  peggyWave: require("../../assets/brand/peggy-wave.png"),
 };
 
 export function T({ style, weight = "regular", children, ...props }: { style?: StyleProp<TextStyle>; weight?: keyof typeof fonts; children: ReactNode } & Omit<React.ComponentProps<typeof Text>, "style">) {
@@ -67,8 +66,11 @@ export function Wordmark({ height = 18, light = false }: { height?: number; ligh
   return <Image source={light ? images.wordmarkLight : images.wordmark} style={{ height, width: height * (660 / 63) }} contentFit="contain" accessibilityLabel="Shopinbos" />;
 }
 
-export function Mascot({ name, size, label }: { name: "rex" | "peggy" | "peggyWave"; size: number; label?: string }) {
-  return <Image source={images[name]} style={{ width: size, height: size }} contentFit="contain" accessibilityLabel={label ?? (name === "rex" ? "Rex" : "Peggy")} />;
+/** Rex or Peggy: wraps the shared <Mascot> (components/Mascot.tsx) for older call sites. `peggyWave` is Peggy's wave
+ * mood; an empty `label` makes it decorative. */
+export function Mascot({ name, who, mood, size, label, style }: { name?: "rex" | "peggy" | "peggyWave"; who?: MascotWho; mood?: MascotMood; size: number; label?: string; style?: StyleProp<ViewStyle> }) {
+  const mascot: MascotWho = who ?? (name === "rex" ? "rex" : "peggy");
+  return <SharedMascot who={mascot} mood={mood ?? (name === "peggyWave" ? "wave" : "idle")} size={size} decorative={label === ""} label={label || undefined} style={style} />;
 }
 
 type Tone = "ink" | "white" | "accent" | "forest";
@@ -115,8 +117,9 @@ export function LinkButton({ title, onPress, style, color = colors.ink, testID }
 }
 
 export function BackButton({ onPress }: { onPress: () => void }) {
+  const t = useT("common");
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onPress} hitSlop={6} style={styles.round}>
+    <Pressable accessibilityRole="button" accessibilityLabel={t("back")} onPress={onPress} hitSlop={6} style={styles.round}>
       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M15 6l-6 6 6 6" />
       </Svg>
@@ -133,9 +136,10 @@ export const Field = forwardRef<TextInput, TextInputProps>(function Field({ styl
 });
 
 export function PhoneField({ country, onCountryPress, value, onChangeText }: { country: DialCountry; onCountryPress: () => void; value: string; onChangeText: (value: string) => void }) {
+  const t = useT("m_ui");
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Country code ${country.dial}, change`} onPress={onCountryPress} style={[styles.field, { minWidth: 70, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", flex: 0 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("phone.countryCode", { dial: country.dial })} onPress={onCountryPress} style={[styles.field, { minWidth: 70, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", flex: 0 }]}>
         <T weight="bold" style={{ fontSize: 15 }}>{country.dial}</T>
       </Pressable>
       <Field style={{ flex: 1 }} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" placeholder={country.example} value={value} onChangeText={onChangeText} />
@@ -179,13 +183,14 @@ export function Chip({ label, on, onPress }: { label: string; on: boolean; onPre
 
 /** One hidden input drives six boxes, so paste and SMS autofill work. */
 export function CodeInput({ value, onChange, onComplete }: { value: string; onChange: (value: string) => void; onComplete?: (value: string) => void }) {
+  const t = useT("m_ui");
   const input = useRef<TextInput>(null);
   useEffect(() => {
     const timer = setTimeout(() => input.current?.focus(), 300);
     return () => clearTimeout(timer);
   }, []);
   return (
-    <Pressable onPress={() => input.current?.focus()} accessibilityLabel="Verification code">
+    <Pressable onPress={() => input.current?.focus()} accessibilityLabel={t("code.label")}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
         {Array.from({ length: OTP_LENGTH }, (_, index) => {
           const digit = value[index] ?? "";
@@ -234,8 +239,9 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: bo
 }
 
 export function ProgressBars({ total, current }: { total: number; current: number }) {
+  const t = useT("m_ui");
   return (
-    <View style={{ flex: 1, flexDirection: "row", gap: 6 }} accessibilityLabel={`Step ${current + 1} of ${total}`}>
+    <View style={{ flex: 1, flexDirection: "row", gap: 6 }} accessibilityLabel={t("progress.step", { current: current + 1, total })}>
       {Array.from({ length: total }, (_, index) => (
         <View key={index} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: index <= current ? colors.ink : colors.track }} />
       ))}

@@ -10,8 +10,16 @@ import { buildPlatformSubdomainOrigin } from "@/lib/domains/storefront";
 import { hasVercelDomainConfig } from "@/lib/domains/vercel";
 import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
+import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
+import { domainPurchaseEnabled } from "@/lib/domains/billing.server";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getT("domain");
+  return { title: t("title") };
+}
 
 const FALLBACK_REGISTRARS = [
   {
@@ -25,7 +33,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "porkbun",
     name: "Porkbun",
-    description: "Low prices. Good for your first web address.",
+    description: "Low prices. Good for your first domain.",
     baseUrl: "https://porkbun.com",
     affiliateUrl: "https://porkbun.com",
     logoUrl: null,
@@ -33,7 +41,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "whogohost",
     name: "Whogohost",
-    description: "Nigerian company. Local support and you pay in Naira.",
+    description: "Nigeria's leading domain registrar — local support and Naira payments.",
     baseUrl: "https://whogohost.com",
     affiliateUrl: "https://whogohost.com",
     logoUrl: null,
@@ -41,7 +49,7 @@ const FALLBACK_REGISTRARS = [
   {
     id: "smartweb",
     name: "SmartWeb",
-    description: "Sells .ng web addresses. You pay in Naira.",
+    description: "African-focused registrar with .ng domains and local billing.",
     baseUrl: "https://smartwebng.com",
     affiliateUrl: "https://smartwebng.com",
     logoUrl: null,
@@ -73,12 +81,18 @@ type RegistrarRow = {
   logoUrl: string | null;
 };
 
-export default async function DomainSettingsPage() {
+const PURCHASE_RESULTS = new Set(["bought", "renewed", "processing", "failed"]);
+
+export default async function DomainSettingsPage({ searchParams }: { searchParams?: Promise<{ domain?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("domain");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
 
   const store = workspace.store;
+  // Back from Paystack (/api/billing/domain/callback): ?domain=bought|renewed|processing|failed.
+  const resultParam = (await searchParams)?.domain ?? null;
+  const purchaseResult = resultParam && PURCHASE_RESULTS.has(resultParam) ? resultParam : null;
 
   let dbPartners: RegistrarRow[] = [];
   try {
@@ -100,27 +114,28 @@ export default async function DomainSettingsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Web address"
-      sub="Where customers open your shop. You have a free one already, and you can use your own."
+      title={t("title")}
+      sub={t("sub")}
     >
       <PageToast />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
         <div className="grid min-w-0 content-start gap-4">
+          <DomainPurchaseBanner result={purchaseResult} />
           <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="globe" size={18} /></span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[13px] text-app-ink-soft">Your free address</p>
+              <p className="m-0 text-[13px] text-app-ink-soft">{t("free")}</p>
               <a href={freeOrigin} target="_blank" rel="noopener noreferrer" className="break-all text-[16px] font-extrabold text-app-ink no-underline hover:underline">
                 {freeHost}
               </a>
             </div>
-            <Pill tone={live ? "success" : "muted"} dot>{live ? "Live" : "Not published yet"}</Pill>
+            <Pill tone={live ? "success" : "muted"} dot>{live ? t("live") : t("notPublished")}</Pill>
           </div>
 
           <DomainConnect
             storeSlug={store.slug}
             storeName={store.name}
-            configured={hasVercelDomainConfig()}
+            configured={hasVercelDomainConfig() && domainPurchaseEnabled()}
             initialState={await getDomainSettings(user.id)}
             registrars={registrars.map(({ id, name, description, baseUrl, affiliateUrl }) => ({ id, name, description, baseUrl, affiliateUrl }))}
           />
@@ -128,7 +143,7 @@ export default async function DomainSettingsPage() {
 
         <aside className="min-w-0 xl:pt-1">
           <AssistantNote who="rex">
-            Not sure what to do? Choose &quot;Ask the Shopinbos team to do it&quot; and we&apos;ll set it up for you. Your free address works the whole time.
+            {t("rexNote")}
           </AssistantNote>
         </aside>
       </div>

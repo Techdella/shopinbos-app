@@ -5,6 +5,7 @@ import { PaystackCheckoutButton } from "./PaystackCheckout";
 import { upgradeSellerToGrowth, upgradeSellerToMax } from "@/app/actions/payments";
 import { useToast } from "@/components/ui/Toast";
 import { cx } from "@/components/app-ui/cx";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface SellerBillingSectionProps {
   userEmail: string;
@@ -46,13 +47,14 @@ const PLANS = [
     priceSub: "/month",
     annualNote: "₦15,000/mo · 2 months free",
     creditThreshold: 200,
-    features: ["200 AI credits/month", "Unlimited products", "Custom domain included", "Priority support"],
+    features: ["200 AI credits/month", "Unlimited products", "Use your own domain", "Priority support"],
     monthlyPlan: "PLN_2gph11w3yd0250y",
     annualPlan: "PLN_9gma70ofldhbj4r",
   },
 ] as const;
 
 export function SellerBillingSection({ userEmail, userName, aiCredits, productCount = 0 }: SellerBillingSectionProps) {
+  const t = useT("payments");
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -67,10 +69,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
     startTransition(async () => {
       const res = await upgradeSellerToGrowth(reference);
       if (res.success) {
-        toast("Upgraded to Growth plan!", "success");
+        toast(t("bill.upgradedGrowth"), "success");
         setTimeout(() => { window.location.reload(); }, 1500);
       } else {
-        toast(res.error ?? "Failed to verify payment", "error");
+        toast(res.error ?? t("bill.verifyFailed"), "error");
       }
     });
   };
@@ -79,10 +81,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
     startTransition(async () => {
       const res = await upgradeSellerToMax(reference);
       if (res.success) {
-        toast("Upgraded to Seller Pro!", "success");
+        toast(t("bill.upgradedPro"), "success");
         setTimeout(() => { window.location.reload(); }, 1500);
       } else {
-        toast(res.error ?? "Failed to verify payment", "error");
+        toast(res.error ?? t("bill.verifyFailed"), "error");
       }
     });
   };
@@ -94,10 +96,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
       <section className="rounded-[22px] border border-app-line bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="m-0 text-[17px] font-extrabold">Plan and billing</h2>
-            <p className="mb-0 mt-0.5 text-[13px] text-app-ink-soft">All prices in naira. Cancel any time.</p>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("bill.title")}</h2>
+            <p className="mb-0 mt-0.5 text-[13px] text-app-ink-soft">{t("bill.sub")}</p>
           </div>
-          <div role="tablist" aria-label="Billing period" className="flex rounded-full bg-app-canvas p-1">
+          <div role="tablist" aria-label={t("bill.period")} className="flex rounded-full bg-app-canvas p-1">
             {(["monthly", "annual"] as const).map((b) => (
               <button
                 key={b}
@@ -106,7 +108,7 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
                 aria-selected={billing === b}
                 onClick={() => setBilling(b)}
                 className={cx("min-h-[40px] rounded-full px-4 text-[13.5px] font-bold capitalize transition", billing === b ? "bg-app-ink text-white" : "text-app-ink hover:bg-white")}
-              >{b}{b === "annual" ? " · save 17%" : ""}</button>
+              >{b === "annual" ? t("bill.annual") : t("bill.monthly")}</button>
             ))}
           </div>
         </div>
@@ -115,28 +117,33 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
           {PLANS.map((plan) => {
             const isCurrent = currentPlan === plan.key;
             const planCode = billing === "annual" ? plan.annualPlan : plan.monthlyPlan;
-            const displayPrice = billing === "annual" ? plan.annualPrice : plan.monthlyPrice;
-            const displaySub = billing === "annual" ? "/year" : plan.priceSub;
+            const rawPrice = billing === "annual" ? plan.annualPrice : plan.monthlyPrice;
+            const displayPrice = rawPrice === "Free" ? t("plan.free") : rawPrice;
+            const displaySub = billing === "annual" ? (plan.key === "starter" ? "" : t("plan.perYear")) : plan.priceSub ? t("plan.perMonth") : "";
 
             return (
               <div key={plan.key} className={cx("flex min-w-0 flex-col rounded-[18px] border-2 p-4", isCurrent ? "border-app-ink" : "border-app-line")}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[14px] font-extrabold">{plan.label}</span>
+                  <span className="text-[14px] font-extrabold">{t(`plan.${plan.key}`)}</span>
                   {isCurrent ? (
-                    <span className="rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white">Your plan</span>
+                    <span className="rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white">{t("bill.yourPlan")}</span>
                   ) : plan.key === "pro" ? (
-                    <span className="rounded-full bg-app-peach px-2.5 py-1 text-[12px] font-bold text-app-accent-ink">Best value</span>
+                    <span className="rounded-full bg-app-peach px-2.5 py-1 text-[12px] font-bold text-app-accent-ink">{t("bill.bestValue")}</span>
                   ) : null}
                 </div>
                 <div className="mt-2 text-[24px] font-extrabold tracking-[-0.4px]">
                   {displayPrice}
                   <span className="text-[13px] font-medium text-app-ink-soft">{displaySub}</span>
                 </div>
-                {billing === "annual" && plan.annualNote && <div className="mt-0.5 text-[12.5px] font-bold text-app-success">{plan.annualNote}</div>}
+                {billing === "annual" && plan.annualNote && <div className="mt-0.5 text-[12.5px] font-bold text-app-success">{plan.key === "growth" ? t("plan.growthNote") : t("plan.proNote")}</div>}
                 <ul className="m-0 mt-3 grid list-none gap-1.5 p-0 text-[13.5px] text-app-ink-soft">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{f}</li>
+                  {plan.features.map((f, index) => (
+                    <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t.dynamic(`plan.${plan.key}.f${index + 1}`, f)}</li>
                   ))}
+                  {/* Annual Growth and Pro pay for the seller's domain (src/lib/seller-plan.ts); monthly plans don't. */}
+                  {billing === "annual" && plan.annualPlan && (
+                    <li className="flex gap-2 font-bold text-app-ink"><span aria-hidden className="text-app-success">✓</span>{t("plan.freeDomain")}</li>
+                  )}
                 </ul>
                 <div className="mt-auto pt-4">
                   {!isCurrent && plan.key === "growth" && planCode && (
@@ -148,7 +155,7 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
                       metadata={{ plan: `seller_growth_${billing}` }}
                       onSuccess={handleGrowthSuccess}
                       className={cx(upgradeBase, "bg-app-ink hover:bg-black")}
-                      label={isPending ? "Upgrading..." : "Upgrade"}
+                      label={isPending ? t("bill.upgrading") : t("bill.upgrade")}
                       disabled={isPending}
                     />
                   )}
@@ -161,7 +168,7 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
                       metadata={{ plan: `seller_pro_${billing}` }}
                       onSuccess={handleProSuccess}
                       className={cx(upgradeBase, "bg-app-accent hover:brightness-95")}
-                      label={isPending ? "Upgrading..." : "Upgrade to Pro"}
+                      label={isPending ? t("bill.upgrading") : t("bill.upgradePro")}
                       disabled={isPending}
                     />
                   )}
@@ -174,19 +181,19 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
 
       <section className="grid grid-cols-1 gap-3 rounded-[22px] border border-app-line bg-white p-2 sm:grid-cols-3">
         <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
-          <div className="text-[13px] text-app-ink-soft">AI credits left</div>
+          <div className="text-[13px] text-app-ink-soft">{t("bill.creditsLeft")}</div>
           <div className="mt-1 text-[26px] font-extrabold leading-none">{aiCredits}</div>
         </div>
         <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
-          <div className="text-[13px] text-app-ink-soft">Products</div>
+          <div className="text-[13px] text-app-ink-soft">{t("bill.products")}</div>
           <div className="mt-1 text-[26px] font-extrabold leading-none">
             {productCount}
             <span className="ml-1 text-[14px] font-medium text-app-ink-soft">/ {currentPlan === "pro" ? "∞" : currentPlan === "growth" ? "200" : "10"}</span>
           </div>
         </div>
         <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
-          <div className="text-[13px] text-app-ink-soft">Plan</div>
-          <div className="mt-1 text-[20px] font-extrabold capitalize leading-tight">{currentPlan}</div>
+          <div className="text-[13px] text-app-ink-soft">{t("bill.plan")}</div>
+          <div className="mt-1 text-[20px] font-extrabold capitalize leading-tight">{t(`plan.${currentPlan}`)}</div>
         </div>
       </section>
     </div>

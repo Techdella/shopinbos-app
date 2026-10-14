@@ -4,7 +4,9 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { HelpButton } from "@/components/Help";
+import { VoiceInput } from "@/components/VoiceInput";
 import { BackButton, T } from "@/components/ui";
+import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
 
 // The frame shared by the conversation screens (customer thread, partner chat, Rex): header, scrolling
@@ -78,6 +80,7 @@ export function Composer({
   placeholder,
   disabled,
   above,
+  voice = true,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -86,8 +89,11 @@ export function Composer({
   placeholder: string;
   disabled?: boolean;
   above?: ReactNode;
+  /** The mic for voice typing (build spec 8A), next to Send. */
+  voice?: boolean;
 }) {
   const off = disabled || busy || !value.trim();
+  const t = useT("common");
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: 10, paddingTop: 6, gap: 8 }}>
       {above}
@@ -102,7 +108,8 @@ export function Composer({
           accessibilityLabel={placeholder}
           style={{ flex: 1, minHeight: 50, maxHeight: 140, borderRadius: radii.field + 8, backgroundColor: colors.surface, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 14, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
         />
-        <Pressable accessibilityRole="button" accessibilityLabel="Send" accessibilityState={{ disabled: off, busy }} disabled={off} onPress={onSend} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: off ? 0.5 : 1 }}>
+        {voice ? <VoiceInput variant="icon" value={value} onChange={onChange} context="a chat message" disabled={disabled} /> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={t("send")} accessibilityState={{ disabled: off, busy }} disabled={off} onPress={onSend} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: off ? 0.5 : 1 }}>
           <AppIcon name="send" size={20} color="#FFFFFF" strokeWidth={2.1} />
         </Pressable>
       </View>

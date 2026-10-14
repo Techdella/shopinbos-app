@@ -12,6 +12,12 @@ import { TechFold } from "@/components/simple/Fold";
 import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { plainMetaError } from "@/components/simple/plain";
 import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatDate, type Locale, type TFunction } from "@shared/i18n";
+import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
+import type { MessageKey } from "@shared/i18n/catalog";
+
+type InboxT = TFunction<MessageKey<"inbox"> | MessageKey<"common">>;
 
 // "Put Peggy on your WhatsApp": 1. connect WhatsApp Business (Embedded Signup when the platform has a Meta app,
 // otherwise the guided manual connect), 2. choose what Peggy does there, 3. test on your own number, then go live.
@@ -19,17 +25,6 @@ import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
 
 const input = "h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[15px] outline-none focus:border-app-ink";
 const area = "w-full rounded-[14px] border border-app-line bg-white px-3 py-2.5 text-[15px] leading-[1.5] outline-none focus:border-app-ink";
-const GRAPH_VERSION = "v21.0";
-
-declare global {
-  interface Window {
-    FB?: {
-      init: (options: Record<string, unknown>) => void;
-      login: (callback: (response: { authResponse?: { code?: string } | null; status?: string }) => void, options: Record<string, unknown>) => void;
-    };
-    fbAsyncInit?: () => void;
-  }
-}
 
 function Switch({ label, sub, on, onChange }: { label: string; sub?: ReactNode; on: boolean; onChange: (on: boolean) => void }) {
   return (
@@ -44,6 +39,7 @@ function Switch({ label, sub, on, onChange }: { label: string; sub?: ReactNode; 
 }
 
 function CopyRow({ label, value }: { label: string; value: string }) {
+  const t = useT("inbox");
   const [copied, setCopied] = useState(false);
   return (
     <div className="grid gap-1">
@@ -58,7 +54,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
               window.setTimeout(() => setCopied(false), 1500);
             });
           }}
-          aria-label={`Copy ${label}`}
+          aria-label={t("ch.copy", { label })}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white"
         >
           <Icon name={copied ? "check" : "copy"} size={15} />
@@ -80,31 +76,14 @@ function Step({ n, title, sub, done, children }: { n: number; title: string; sub
   );
 }
 
-const when = (iso: string | null) => (iso ? formatWhen(iso) : "Never");
+const when = (iso: string | null, t: InboxT, locale: Locale) => (iso ? formatWhen(iso, locale) : t("wa.never"));
 
-function tokenText(value: string | null) {
-  if (!value) return "Unknown";
-  if (value === "never") return "Doesn't expire";
+function tokenText(value: string | null, t: InboxT, locale: Locale) {
+  if (!value) return t("wa.unknown");
+  if (value === "never") return t("wa.noExpiry");
   const date = new Date(value);
-  if (date.getTime() <= Date.now()) return "Expired";
-  return `Expires ${date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
-}
-
-function loadFacebookSdk(appId: string): Promise<NonNullable<Window["FB"]>> {
-  return new Promise((resolve, reject) => {
-    if (window.FB) return resolve(window.FB);
-    window.fbAsyncInit = () => {
-      window.FB!.init({ appId, autoLogAppEvents: true, xfbml: false, version: GRAPH_VERSION });
-      resolve(window.FB!);
-    };
-    const script = document.createElement("script");
-    script.src = "https://connect.facebook.net/en_US/sdk.js";
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.onerror = () => reject(new Error("Facebook sign-up couldn't load here. Use the manual connect below."));
-    document.body.appendChild(script);
-    window.setTimeout(() => reject(new Error("Facebook sign-up took too long to load. Use the manual connect below.")), 15_000);
-  });
+  if (date.getTime() <= Date.now()) return t("wa.expired");
+  return t("wa.expires", { date: locale === "en" ? date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : formatDate(date, locale) });
 }
 
 export function WhatsAppPeggyClient({
@@ -132,6 +111,8 @@ export function WhatsAppPeggyClient({
   ownerPhone: string;
   storeName: string;
 }) {
+  const t = useT("inbox", "common");
+  const locale = useLocale();
   const [bot, setBot] = useState(initialBot);
   const [view, setView] = useState(initialView);
   const [health, setHealth] = useState(initialHealth);
@@ -163,7 +144,7 @@ export function WhatsAppPeggyClient({
       const next = await inboxApi<ChannelView>("/api/app/inbox/channels/whatsapp", { method: "POST", body: JSON.stringify(body) });
       setView(next);
       setKeys({});
-      setConnectMessage({ tone: "success", text: "WhatsApp is connected. One last step for whoever set up your Meta app: it's under \"Show the technical details\" above." });
+      setConnectMessage({ tone: "success", text: t("wa.connectedManual") });
       setHealth(await inboxApi<WhatsAppHealth>("/api/app/inbox/whatsapp"));
     } catch (error) {
       setConnectMessage({ tone: "error", text: plainMetaError((error as Error).message) });
@@ -176,41 +157,16 @@ export function WhatsAppPeggyClient({
     if (!signup) return;
     setConnecting(true);
     setConnectMessage(null);
-    let session: { phone_number_id?: string; waba_id?: string } | null = null;
-    const onMessage = (event: MessageEvent) => {
-      let host = "";
-      try {
-        host = new URL(event.origin).hostname;
-      } catch {
-        return;
-      }
-      if (host !== "facebook.com" && !host.endsWith(".facebook.com")) return;
-      try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        if (data?.type === "WA_EMBEDDED_SIGNUP" && typeof data.event === "string" && data.event.startsWith("FINISH")) session = data.data ?? null;
-      } catch {
-        // Other Facebook messages aren't JSON.
-      }
-    };
-    window.addEventListener("message", onMessage);
     try {
-      const FB = await loadFacebookSdk(signup.appId);
-      const code = await new Promise<string | null>((resolve) => {
-        FB.login((response) => resolve(response.authResponse?.code ?? null), { config_id: signup.configId, response_type: "code", override_default_response_type: true, extras: { setup: {}, sessionInfoVersion: "3" } });
-      });
-      if (!code) throw new Error("WhatsApp sign-up was closed before it finished.");
-      // The number and account ids arrive in a separate message from Facebook; give it a moment.
-      for (let i = 0; i < 20 && !session; i++) await new Promise((r) => window.setTimeout(r, 150));
-      const info = session as { phone_number_id?: string; waba_id?: string } | null;
-      if (!info?.phone_number_id || !info?.waba_id) throw new Error("Facebook didn't send back your WhatsApp number. Try again, or use the manual connect.");
-      const result = await inboxApi<{ view: ChannelView; health: WhatsAppHealth }>("/api/app/inbox/whatsapp", { method: "POST", body: JSON.stringify({ action: "embedded_signup", code, phoneNumberId: info.phone_number_id, wabaId: info.waba_id }) });
+      const info = await runEmbeddedSignup(signup);
+      const result = await inboxApi<{ view: ChannelView; health: WhatsAppHealth }>("/api/app/inbox/whatsapp", { method: "POST", body: JSON.stringify({ action: "embedded_signup", code: info.code, phoneNumberId: info.phoneNumberId, wabaId: info.wabaId }) });
       setView(result.view);
       setHealth(result.health);
-      setConnectMessage({ tone: "success", text: "WhatsApp is connected. Messages to your number now arrive in your inbox." });
+      setConnectMessage({ tone: "success", text: t("wa.connectedEmbedded") });
     } catch (error) {
-      setConnectMessage({ tone: "error", text: (error as Error).message });
+      const code = error instanceof EmbeddedSignupError ? error.code : null;
+      setConnectMessage({ tone: "error", text: code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : (error as Error).message });
     } finally {
-      window.removeEventListener("message", onMessage);
       setConnecting(false);
     }
   }
@@ -223,7 +179,7 @@ export function WhatsAppPeggyClient({
       setChecks(result.checks);
       setHealth(result.health);
     } catch (error) {
-      setChecks([{ label: "Connection", ok: false, detail: (error as Error).message }]);
+      setChecks([{ label: t("wa.connection"), ok: false, detail: (error as Error).message }]);
     } finally {
       setChecking(false);
     }
@@ -234,7 +190,7 @@ export function WhatsAppPeggyClient({
     setTestMessage(null);
     try {
       await inboxApi("/api/app/inbox/whatsapp", { method: "POST", body: JSON.stringify({ action: "send_test", to: testTo }) });
-      setTestMessage({ tone: "success", text: "Sent. Check WhatsApp on your phone. Put Peggy in test mode and reply to see her answer." });
+      setTestMessage({ tone: "success", text: t("wa.testSent") });
     } catch (error) {
       setTestMessage({ tone: "error", text: (error as Error).message });
     } finally {
@@ -250,7 +206,7 @@ export function WhatsAppPeggyClient({
       const saved = await inboxApi<{ chatbot: ChatbotSettings }>("/api/app/inbox/automation", { method: "PUT", body: JSON.stringify({ chatbot: next }) });
       setBot(saved.chatbot);
       const mode = saved.chatbot.whatsapp.mode;
-      setSaveMessage({ tone: "success", text: mode === "live" ? "Peggy is live on your WhatsApp." : mode === "test" ? `Test mode: Peggy only answers ${saved.chatbot.whatsapp.testNumber || "your own number"}. Message your business number from it.` : "Saved. Peggy is off on WhatsApp." });
+      setSaveMessage({ tone: "success", text: mode === "live" ? t("wa.live") : mode === "test" ? t("wa.testMode", { number: saved.chatbot.whatsapp.testNumber || t("wa.ownNumber") }) : t("wa.offSaved") });
     } catch (error) {
       setSaveMessage({ tone: "error", text: (error as Error).message });
     } finally {
@@ -264,24 +220,24 @@ export function WhatsAppPeggyClient({
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="grid min-w-0 content-start gap-5">
-        {!ready ? <Notice tone="info">Peggy&apos;s settings aren&apos;t switched on yet. You can connect WhatsApp now; tap Help and we&apos;ll switch the rest on.</Notice> : null}
+        {!ready ? <Notice tone="info">{t("wa.notReady")}</Notice> : null}
         {!aiAvailable ? (
-          <Notice tone="info">Peggy&apos;s open answers aren&apos;t switched on yet. She still shows your products, takes orders, looks up order status and hands over to you; other messages get your <Link href="/home/inbox/auto-replies" className="font-bold underline">quick replies and away message</Link>.</Notice>
+          <Notice tone="info">{t("wa.noAi")} <Link href="/home/inbox/auto-replies" className="font-bold underline">{t("bot.noKeyLink")}</Link>.</Notice>
         ) : null}
 
-        <Step n={1} title="Connect WhatsApp Business" sub="Your WhatsApp Business number. Customers' messages arrive in your Shopinbos inbox." done={connected}>
+        <Step n={1} title={t("wa.step1")} sub={t("wa.step1Sub")} done={connected}>
           {connected ? (
             <div className="grid gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? "Needs attention" : "Connected"}</Pill>
+                <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? t("ch.attention") : t("ch.connected")}</Pill>
                 <span className="text-[14px] font-semibold">{view.displayName}</span>
               </div>
               {view.lastError ? <Notice tone="error">{plainMetaError(view.lastError)}</Notice> : null}
-              {view.lastError ? <SetupHelpRequest title="Fix my WhatsApp connection" description="We'll check your WhatsApp connection and fix it with you." feature="whatsapp_connect" /> : null}
+              {view.lastError ? <SetupHelpRequest title={t("wa.fixTitle")} description={t("wa.fixDesc")} feature="whatsapp_connect" /> : null}
               {health.via !== "embedded" && view.webhookUrl ? (
-                <TechFold forWho="the person who manages your Facebook account">
+                <TechFold forWho={t("wa.forWhoFacebook")}>
                   <div className="grid gap-2">
-                    {view.lastError ? <p className="m-0 break-words text-[12.5px] text-app-ink-soft">Last problem: {view.lastError}</p> : null}
+                    {view.lastError ? <p className="m-0 break-words text-[12.5px] text-app-ink-soft">{t("ch.lastProblem", { error: view.lastError })}</p> : null}
                     <p className="m-0 text-[13px] text-app-ink-soft">In your Meta app → WhatsApp → Configuration, set this callback URL and verify token, then subscribe to <strong>messages</strong>.</p>
                     <CopyRow label="Callback URL" value={view.webhookUrl} />
                     {view.verifyToken ? <CopyRow label="Verify token" value={view.verifyToken} /> : null}
@@ -289,8 +245,8 @@ export function WhatsAppPeggyClient({
                 </TechFold>
               ) : null}
               <div className="flex flex-wrap gap-2">
-                <PillButton size="md" tone="white" busy={checking} onClick={() => void testConnection()}>Check it&apos;s working</PillButton>
-                <Link href="/home/inbox/channels" className="inline-flex min-h-[48px] items-center rounded-full px-5 text-[15px] font-bold text-app-ink no-underline hover:bg-black/[0.04]">Change or disconnect</Link>
+                <PillButton size="md" tone="white" busy={checking} onClick={() => void testConnection()}>{t("wa.check")}</PillButton>
+                <Link href="/home/inbox/channels" className="inline-flex min-h-[48px] items-center rounded-full px-5 text-[15px] font-bold text-app-ink no-underline hover:bg-black/[0.04]">{t("wa.change")}</Link>
               </div>
               {checks ? (
                 <ul className="m-0 grid list-none gap-2 p-0">
@@ -306,25 +262,25 @@ export function WhatsAppPeggyClient({
               ) : null}
             </div>
           ) : !encryptionReady ? (
-            <SetupHelpRequest title="Connect my WhatsApp Business number" description="We'll connect your WhatsApp Business number to Shopinbos for you and message you when it's working." feature="whatsapp_connect" softwareQuestion="Which WhatsApp number do customers message?" softwarePlaceholder="0803 123 4567" />
+            <SetupHelpRequest title={t("wa.helpTitle")} description={t("wa.helpDesc")} feature="whatsapp_connect" softwareQuestion={t("wa.helpQuestion")} softwarePlaceholder="0803 123 4567" />
           ) : (
             <div className="grid gap-4">
               {signup ? (
                 <div className="grid gap-2">
                   <div>
                     <PillButton size="md" busy={connecting && !manual} onClick={() => void connectEmbedded()}>
-                      <Icon name="whatsapp" size={16} /> Connect with Facebook
+                      <Icon name="whatsapp" size={16} /> {t("wa.withFacebook")}
                     </PillButton>
                   </div>
-                  <p className="m-0 text-[13px] text-app-ink-soft">Log in to Facebook, pick or create your business, and add your WhatsApp number. It takes about 5 minutes.</p>
+                  <p className="m-0 text-[13px] text-app-ink-soft">{t("wa.withFacebookSub")}</p>
                 </div>
               ) : null}
               {askTeam ? (
-                <SetupHelpRequest title="Connect my WhatsApp Business number" description="We'll connect your WhatsApp Business number to Shopinbos for you and message you when it's working." feature="whatsapp_connect" softwareQuestion="Which WhatsApp number do customers message?" softwarePlaceholder="0803 123 4567" />
+                <SetupHelpRequest title={t("wa.helpTitle")} description={t("wa.helpDesc")} feature="whatsapp_connect" softwareQuestion={t("wa.helpQuestion")} softwarePlaceholder="0803 123 4567" />
               ) : (
-                <button type="button" onClick={() => setAskTeam(true)} className="w-fit min-h-[44px] text-[14px] font-bold text-app-ink underline">Ask us to connect it for you</button>
+                <button type="button" onClick={() => setAskTeam(true)} className="w-fit min-h-[44px] text-[14px] font-bold text-app-ink underline">{t("wa.askUs")}</button>
               )}
-              <TechFold forWho="the person who manages your Facebook account">
+              <TechFold forWho={t("wa.forWhoFacebook")}>
               <div className="grid gap-3">
               <button type="button" onClick={() => setManual((m) => !m)} className="w-fit text-[13px] font-bold text-app-ink underline">{manual || !signup ? "Connect with your own Meta app" : "I have my own Meta app (connect manually)"}</button>
               {manual || !signup ? (
@@ -349,7 +305,7 @@ export function WhatsAppPeggyClient({
                     { name: "appSecret", label: "App secret", secret: true, optional: platformSecret, hint: "App settings → Basic. We use it to check that messages really come from Meta." },
                   ].map((field) => (
                     <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
-                      <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> (optional)</span> : null}</span>
+                      <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> {t("wa.optional")}</span> : null}</span>
                       <input
                         type={field.secret ? "password" : "text"}
                         autoComplete="off"
@@ -364,8 +320,8 @@ export function WhatsAppPeggyClient({
                     </label>
                   ))}
                   {view.webhookUrl ? <CopyRow label="Callback URL (for your Meta app)" value={view.webhookUrl} /> : null}
-                  <p className="m-0 text-[12.5px] text-app-ink-soft">The verify token appears after you connect.</p>
-                  <div><PillButton type="submit" size="md" busy={connecting && manual}>Connect WhatsApp</PillButton></div>
+                  <p className="m-0 text-[12.5px] text-app-ink-soft">{t("wa.verifyAfter")}</p>
+                  <div><PillButton type="submit" size="md" busy={connecting && manual}>{t("cat.connectWa")}</PillButton></div>
                 </form>
               ) : null}
               </div>
@@ -375,114 +331,114 @@ export function WhatsAppPeggyClient({
           {connectMessage ? <Notice tone={connectMessage.tone}>{connectMessage.text}</Notice> : null}
         </Step>
 
-        <Step n={2} title="Choose what Peggy does" sub="She answers only from your products, prices, delivery settings, policies and FAQs. She never makes up stock, prices or delivery times.">
+        <Step n={2} title={t("wa.step2")} sub={t("wa.step2Sub")}>
           <div className="rounded-[14px] bg-app-canvas px-4 py-3">
-            <span className="block text-[14px] font-semibold">Answers questions</span>
-            <span className="block text-[12.5px] text-app-ink-soft">About products, prices, delivery and your FAQs. Name, FAQs and what she may use are shared with live chat: edit them on the <Link href="/home/inbox/chatbot" className="font-bold text-app-ink">live chat tab</Link>.</span>
+            <span className="block text-[14px] font-semibold">{t("wa.answers")}</span>
+            <span className="block text-[12.5px] text-app-ink-soft">{t("wa.answersSub")} <Link href="/home/inbox/chatbot" className="font-bold text-app-ink">{t("wa.liveTab")}</Link>.</span>
           </div>
-          <Switch label="Show products as a WhatsApp list" sub={'"What do you sell?" gets a tap-to-browse list with prices (up to 10 products).'} on={wa.productList} onChange={(on) => setWa({ productList: on })} />
+          <Switch label={t("wa.productList")} sub={t("wa.productListSub")} on={wa.productList} onChange={(on) => setWa({ productList: on })} />
           <div className="grid gap-1.5">
-            <span className="text-[13.5px] font-bold">When a customer wants to buy</span>
+            <span className="text-[13.5px] font-bold">{t("wa.wantsBuy")}</span>
             <Segmented
-              options={[{ value: "link", label: "Send a link to pay" }, { value: "collect", label: "Take the order for me" }, { value: "off", label: "Off" }]}
+              options={[{ value: "link", label: t("wa.sendLink") }, { value: "collect", label: t("wa.takeOrder") }, { value: "off", label: t("ch.off") }]}
               value={wa.ordering}
               onChange={(ordering) => setWa({ ordering })}
               className="border border-app-line"
             />
             <span className="text-[12.5px] text-app-ink-soft">
-              {wa.ordering === "link" ? "Peggy sends the product's page on your store so they can pay there." : wa.ordering === "collect" ? "Peggy asks how many and where to deliver, adds an order request note to the chat and notifies you to confirm and send payment details." : "Peggy hands buying questions to you."}
+              {wa.ordering === "link" ? t("wa.linkHint") : wa.ordering === "collect" ? t("wa.collectHint") : t("wa.offHint")}
             </span>
           </div>
-          <Switch label="Order status lookup" sub="“Where is my order?” shows orders placed with the same WhatsApp number. Never anyone else's." on={wa.orderStatus} onChange={(on) => setWa({ orderStatus: on })} />
+          <Switch label={t("wa.orderStatus")} sub={t("wa.orderStatusSub")} on={wa.orderStatus} onChange={(on) => setWa({ orderStatus: on })} />
           <div className="grid gap-1.5">
-            <span className="text-[13.5px] font-bold">When Peggy answers</span>
-            <Segmented options={[{ value: "always", label: "All the time" }, { value: "outside_hours", label: hoursOn ? "Outside opening hours" : "When I'm away" }]} value={wa.when} onChange={(value) => setWa({ when: value })} className="border border-app-line" />
-            <span className="text-[12.5px] text-app-ink-soft">{hoursOn ? "Uses your opening hours from Auto-replies." : <>Set opening hours in <Link href="/home/inbox/auto-replies" className="font-bold text-app-ink">Auto-replies</Link> to use them here.</>}</span>
+            <span className="text-[13.5px] font-bold">{t("bot.whenAnswers")}</span>
+            <Segmented options={[{ value: "always", label: t("bot.always") }, { value: "outside_hours", label: hoursOn ? t("bot.outsideHours") : t("bot.whenAway") }]} value={wa.when} onChange={(value) => setWa({ when: value })} className="border border-app-line" />
+            <span className="text-[12.5px] text-app-ink-soft">{hoursOn ? t("wa.usesHours") : <>{t("bot.setHours")} <Link href="/home/inbox/auto-replies" className="font-bold text-app-ink">{t("autoReplies")}</Link> {t("bot.setHoursAfter")}</>}</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1 text-[13.5px] font-bold">
-              Tone
+              {t("bot.tone")}
               <select value={bot.tone} onChange={(e) => setBot((b) => ({ ...b, tone: e.target.value as ChatbotSettings["tone"] }))} className={input}>
-                <option value="friendly">Warm and friendly</option>
-                <option value="professional">Professional</option>
-                <option value="playful">Playful, with Naija flavour</option>
+                <option value="friendly">{t("bot.friendly")}</option>
+                <option value="professional">{t("bot.professional")}</option>
+                <option value="playful">{t("bot.playful")}</option>
               </select>
             </label>
             <label className="grid gap-1 text-[13.5px] font-bold">
-              Quiet after you reply
+              {t("wa.quiet")}
               <select value={wa.quietMinutes} onChange={(e) => setWa({ quietMinutes: Number(e.target.value) })} className={input}>
-                {[10, 30, 60, 120, 240].map((m) => <option key={m} value={m}>{m < 60 ? `${m} minutes` : `${m / 60} hour${m > 60 ? "s" : ""}`}</option>)}
+                {[10, 30, 60, 120, 240].map((m) => <option key={m} value={m}>{m < 60 ? t("wa.minutes", { count: m }) : t("wa.hours", { count: m / 60 })}</option>)}
               </select>
             </label>
           </div>
           <label className="grid gap-1 text-[13.5px] font-bold">
-            WhatsApp greeting
+            {t("wa.greeting")}
             <textarea rows={2} maxLength={300} value={wa.greeting} placeholder={bot.greeting} onChange={(e) => setWa({ greeting: e.target.value })} className={area} />
-            <span className="text-[12px] font-normal text-app-ink-soft">Sent when a customer says hi, with buttons for products, their order and a person. Peggy always says she&apos;s an AI assistant.</span>
+            <span className="text-[12px] font-normal text-app-ink-soft">{t("wa.greetingHint")}</span>
           </label>
           <p className="m-0 rounded-[14px] bg-app-canvas px-4 py-3 text-[13px] leading-[1.5] text-app-ink-soft">
-            <strong className="text-app-ink">Hand-off:</strong> when a customer says &quot;agent&quot;, &quot;person&quot;, &quot;human&quot; or asks something Peggy can&apos;t answer, she stops on that chat, tags it &quot;needs-human&quot; and you get a notification. She also goes quiet when you reply yourself.
+            <strong className="text-app-ink">{t("wa.handoff")}</strong> {t("wa.handoffBody")}
             <br />
-            <strong className="text-app-ink">24-hour rule:</strong> WhatsApp only allows replies within 24 hours of the customer&apos;s last message. After that you need a message WhatsApp has approved (see <Link href="/home/marketing/whatsapp" className="font-bold underline">WhatsApp messages</Link>). Peggy only replies inside the 24 hours.
+            <strong className="text-app-ink">{t("wa.rule")}</strong> {t("wa.ruleBody")} <Link href="/home/marketing/whatsapp" className="font-bold underline">{t("wa.templates")}</Link>{t("wa.ruleAfter")}
           </p>
         </Step>
 
-        <Step n={3} title="Test, then go live" sub="Try Peggy from your own phone first. In test mode she answers only your number; everyone else gets your usual auto-replies." done={wa.mode === "live"}>
+        <Step n={3} title={t("wa.step3")} sub={t("wa.step3Sub")} done={wa.mode === "live"}>
           <label className="grid gap-1 text-[13.5px] font-bold">
-            Your own WhatsApp number
+            {t("wa.ownWhatsApp")}
             <input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="+2348012345678" inputMode="tel" className={`${input} font-mono`} />
           </label>
           <div className="flex flex-wrap gap-2">
-            <PillButton size="md" tone="white" busy={testing} disabled={!connected || !testTo.trim()} onClick={() => void sendTest()}>Send me a test message</PillButton>
+            <PillButton size="md" tone="white" busy={testing} disabled={!connected || !testTo.trim()} onClick={() => void sendTest()}>{t("wa.sendTest")}</PillButton>
           </div>
-          <p className="m-0 text-[12.5px] text-app-ink-soft">WhatsApp only lets your business message people who wrote to it in the last 24 hours, so send &quot;hi&quot; to your business number from this phone first.</p>
+          <p className="m-0 text-[12.5px] text-app-ink-soft">{t("wa.sendHiFirst")}</p>
           {testMessage ? <Notice tone={testMessage.tone}>{testMessage.text}</Notice> : null}
           <div className="grid gap-1.5">
-            <span className="text-[13.5px] font-bold">Peggy on WhatsApp</span>
+            <span className="text-[13.5px] font-bold">{t("bot.waTitle")}</span>
             <Segmented
-              options={[{ value: "off", label: "Off" }, { value: "test", label: "Test (my number only)" }, { value: "live", label: "Live for everyone" }]}
+              options={[{ value: "off", label: t("ch.off") }, { value: "test", label: t("wa.modeTest") }, { value: "live", label: t("wa.modeLive") }]}
               value={wa.mode}
               onChange={(mode) => setWa({ mode })}
               className="border border-app-line"
             />
           </div>
-          {liveBlocked && wa.mode !== "off" ? <Notice tone="info">{!connected ? "Connect WhatsApp in step 1 first." : "This isn't switched on yet. Tap Help and we'll sort it out."}</Notice> : null}
+          {liveBlocked && wa.mode !== "off" ? <Notice tone="info">{!connected ? t("wa.step1First") : t("wa.notOn")}</Notice> : null}
           <div className="flex flex-wrap items-center gap-3">
-            <PillButton size="md" busy={saving} disabled={!ready || (wa.mode !== "off" && !connected)} onClick={() => void save()}>{wa.mode === "live" ? "Save and go live" : "Save"}</PillButton>
+            <PillButton size="md" busy={saving} disabled={!ready || (wa.mode !== "off" && !connected)} onClick={() => void save()}>{wa.mode === "live" ? t("wa.saveLive") : t("save")}</PillButton>
           </div>
           {saveMessage ? <Notice tone={saveMessage.tone}>{saveMessage.text}</Notice> : null}
         </Step>
       </div>
 
       <Card className="grid h-fit content-start gap-3 p-5 xl:sticky xl:top-4">
-        <CardHead title="WhatsApp health" sub={connected ? health.displayName ?? "Connected" : "Not connected yet"} />
+        <CardHead title={t("wa.health")} sub={connected ? health.displayName ?? t("ch.connected") : t("wa.notConnectedYet")} />
         <div className="flex flex-wrap gap-2">
-          <Pill tone={!connected ? "muted" : view.lastError || health.failedLastDay ? "warning" : "success"} dot>{!connected ? "Not connected" : view.lastError || health.failedLastDay ? "Needs attention" : "Working"}</Pill>
-          <Pill tone={wa.mode === "live" ? "success" : wa.mode === "test" ? "info" : "muted"}>{wa.mode === "live" ? "Peggy live" : wa.mode === "test" ? "Peggy in test mode" : "Peggy off"}</Pill>
+          <Pill tone={!connected ? "muted" : view.lastError || health.failedLastDay ? "warning" : "success"} dot>{!connected ? t("ch.notConnected") : view.lastError || health.failedLastDay ? t("ch.attention") : t("wa.working")}</Pill>
+          <Pill tone={wa.mode === "live" ? "success" : wa.mode === "test" ? "info" : "muted"}>{wa.mode === "live" ? t("wa.peggyLive") : wa.mode === "test" ? t("wa.peggyTest") : t("wa.peggyOff")}</Pill>
         </div>
         <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-[13.5px]">
-          <dt className="text-app-ink-soft">Last message in</dt>
-          <dd className="m-0 text-right font-semibold">{when(health.lastInboundAt)}</dd>
-          <dt className="text-app-ink-soft">Peggy&apos;s last reply</dt>
-          <dd className="m-0 text-right font-semibold">{when(health.lastPeggyReplyAt)}</dd>
-          <dt className="text-app-ink-soft">Peggy replies (24h)</dt>
+          <dt className="text-app-ink-soft">{t("wa.lastIn")}</dt>
+          <dd className="m-0 text-right font-semibold">{when(health.lastInboundAt, t, locale)}</dd>
+          <dt className="text-app-ink-soft">{t("wa.lastReply")}</dt>
+          <dd className="m-0 text-right font-semibold">{when(health.lastPeggyReplyAt, t, locale)}</dd>
+          <dt className="text-app-ink-soft">{t("wa.replies24")}</dt>
           <dd className="m-0 text-right font-semibold">{health.peggyRepliesToday}</dd>
-          <dt className="text-app-ink-soft">Messages that didn&apos;t send (24h)</dt>
+          <dt className="text-app-ink-soft">{t("wa.failed24")}</dt>
           <dd className={`m-0 text-right font-semibold ${health.failedLastDay ? "text-app-danger" : ""}`}>{health.failedLastDay}</dd>
-          <dt className="text-app-ink-soft">Waiting for you</dt>
-          <dd className="m-0 text-right font-semibold">{health.handedOffOpen ? <Link href="/home/messages" className="text-app-ink underline">{health.handedOffOpen} chat{health.handedOffOpen === 1 ? "" : "s"}</Link> : "None"}</dd>
-          <dt className="text-app-ink-soft">Connection lasts</dt>
-          <dd className={`m-0 text-right font-semibold ${tokenWarn ? "text-app-danger" : ""}`}>{connected ? tokenText(health.tokenExpiresAt) : "-"}</dd>
+          <dt className="text-app-ink-soft">{t("wa.waitingForYou")}</dt>
+          <dd className="m-0 text-right font-semibold">{health.handedOffOpen ? <Link href="/home/messages" className="text-app-ink underline">{t("wa.chats", { count: health.handedOffOpen })}</Link> : t("wa.none")}</dd>
+          <dt className="text-app-ink-soft">{t("wa.lasts")}</dt>
+          <dd className={`m-0 text-right font-semibold ${tokenWarn ? "text-app-danger" : ""}`}>{connected ? tokenText(health.tokenExpiresAt, t, locale) : "-"}</dd>
           {health.qualityRating ? (
             <>
-              <dt className="text-app-ink-soft">WhatsApp quality score</dt>
+              <dt className="text-app-ink-soft">{t("wa.quality")}</dt>
               <dd className="m-0 text-right font-semibold">{health.qualityRating}</dd>
             </>
           ) : null}
         </dl>
-        {health.lastFailure ? <Notice tone="error"><span title={health.lastFailure}>A message didn&apos;t reach a customer lately. Check their number is on WhatsApp, or tap Help and we&apos;ll look.</span></Notice> : null}
-        {tokenWarn ? <Notice tone="error">Your WhatsApp connection ends soon. Ask us to reconnect it (tap Help) so Peggy doesn&apos;t stop.</Notice> : null}
-        <p className="m-0 text-[12.5px] text-app-ink-soft">Peggy&apos;s replies show in your inbox labelled &quot;{bot.name} (WhatsApp bot)&quot;, so you can see everything she told {storeName}&apos;s customers.</p>
+        {health.lastFailure ? <Notice tone="error"><span title={health.lastFailure}>{t("wa.lastFailure")}</span></Notice> : null}
+        {tokenWarn ? <Notice tone="error">{t("wa.tokenWarn")}</Notice> : null}
+        <p className="m-0 text-[12.5px] text-app-ink-soft">{t("wa.labelled", { name: bot.name, store: storeName })}</p>
       </Card>
     </div>
   );

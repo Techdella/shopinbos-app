@@ -1,12 +1,12 @@
 import type { DnsRecord } from "@/lib/domains/verification";
 
-// The message a seller sends to "the person who set up your web address" (a nephew, a web designer, the
+// The message a seller sends to "the person who set up your domain" (a nephew, a web designer, the
 // company they bought it from). The seller never has to read it: they tap "Send on WhatsApp" or "Copy the steps".
 // Technical words are fine here because the reader is the technical person.
 
 export function setupStepsMessage(domain: string, records: DnsRecord[]) {
   const lines = [
-    `Hi! Please help me connect my web address ${domain} to my Shopinbos shop. It takes about 5 minutes.`,
+    `Hi! Please help me connect my domain ${domain} to my Shopinbos shop. It takes about 5 minutes.`,
     "",
     `Log in where ${domain} was bought, open its DNS settings, and add these records:`,
     "",

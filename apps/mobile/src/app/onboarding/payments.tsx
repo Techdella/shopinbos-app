@@ -7,9 +7,11 @@ import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { fetchPayoutBank, linkPayoutBank, savePayments, startLaunchPayment } from "@/lib/onboarding";
+import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
 export default function Payments() {
+  const t = useT("m_onboarding");
   const { status, refresh, waitForBuild, startBuild } = useOnboarding();
   const [methods, setMethods] = useState<Record<PaymentMethodKey, boolean>>(DEFAULT_PAYMENT_METHODS);
   const [zones, setZones] = useState<DeliveryZone[]>(DEFAULT_DELIVERY_ZONES);
@@ -41,7 +43,7 @@ export default function Payments() {
       setBankLinked(true);
       setBankOpen(false);
     } catch (bankError) {
-      setError(bankError instanceof Error ? bankError.message : "Couldn't add that bank account. Check your connection and try again.");
+      setError(bankError instanceof Error ? bankError.message : t("pay.bankFailed"));
     } finally {
       setBusy(false);
     }
@@ -52,13 +54,13 @@ export default function Payments() {
     setError(null);
     try {
       await savePayments(methods, zones);
-      setNote("Finishing your shop design…");
+      setNote(t("pay.finishing"));
       await (status?.memory?.storeName ? waitForBuild() : startBuild(status?.store.name ?? "My Shop"));
       setNote(null);
       if (status?.store.live) router.replace("/onboarding/live");
       else setLaunchOpen(true);
     } catch (liveError) {
-      setError(liveError instanceof Error ? liveError.message : "Couldn't save your settings. Check your connection and try again.");
+      setError(liveError instanceof Error ? liveError.message : t("pay.saveFailed"));
     } finally {
       setBusy(false);
       setNote(null);
@@ -75,9 +77,9 @@ export default function Payments() {
       const next = await refresh();
       setLaunchOpen(false);
       if (next?.store.live) router.replace("/onboarding/live");
-      else setError("We haven't seen the payment yet. If you paid, wait a moment and tap Put my shop live again.");
+      else setError(t("pay.notSeen"));
     } catch (payError) {
-      setError(payError instanceof Error ? payError.message : "Couldn't open Paystack. Check your connection and try again.");
+      setError(payError instanceof Error ? payError.message : t("pay.paystackFailed"));
     } finally {
       setBusy(false);
     }
@@ -90,38 +92,38 @@ export default function Payments() {
         <>
           {error && !launchOpen && <View style={{ marginBottom: 10 }}><Notice>{error}</Notice></View>}
           {note && <T style={{ textAlign: "center", color: colors.inkSoft, marginBottom: 8 }}>{note}</T>}
-          <PillButton title="Put my shop live" busy={busy} onPress={() => void goLive()} />
+          <PillButton title={t("pay.goLive")} busy={busy} onPress={() => void goLive()} />
         </>
       }
     >
-      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">Getting paid and delivering</T>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>How customers can pay</T>
+      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">{t("pay.title")}</T>
+      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.how")}</T>
       <Card style={{ paddingVertical: 4 }}>
         {PAYMENT_METHODS.map((method, index) => (
           <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 13, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <View style={{ flex: 1 }}>
-              <T weight="extrabold" style={{ fontSize: 15 }}>{method.label}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{method.hint}</T>
+              <T weight="extrabold" style={{ fontSize: 15 }}>{t.dynamic(`method.${method.key}.label`, method.label)}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{t.dynamic(`method.${method.key}.hint`, method.hint)}</T>
             </View>
-            <Toggle label={method.label} on={methods[method.key]} onChange={(on) => setMethods((current) => ({ ...current, [method.key]: on }))} />
+            <Toggle label={t.dynamic(`method.${method.key}.label`, method.label)} on={methods[method.key]} onChange={(on) => setMethods((current) => ({ ...current, [method.key]: on }))} />
           </View>
         ))}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>Where your money goes</T>
+      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.payouts")}</T>
       <Card>
         {bankLinked ? (
-          <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>✓ Your bank is saved</T>
+          <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>{t("pay.bankAdded")}</T>
         ) : (
           <>
-            <T style={{ fontSize: 15, lineHeight: 22 }}>You can add your bank later. Until then, your money is safe here with Shopinbos.</T>
+            <T style={{ fontSize: 15, lineHeight: 22 }}>{t("pay.bankLater")}</T>
             <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-              <PillButton title="Add bank now" size="md" style={{ flex: 1 }} onPress={() => setBankOpen(true)} />
-              <PillButton title="Later" tone="white" size="md" style={{ flex: 1 }} onPress={() => setNote("No problem. It's on your checklist.")} />
+              <PillButton title={t("pay.addBank")} size="md" style={{ flex: 1 }} onPress={() => setBankOpen(true)} />
+              <PillButton title={t("pay.later")} tone="white" size="md" style={{ flex: 1 }} onPress={() => setNote(t("pay.noProblem"))} />
             </View>
           </>
         )}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>Delivery</T>
+      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.delivery")}</T>
       <Card style={{ paddingVertical: 4 }}>
         {zones.map((zone, index) => (
           <View key={zone.name} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 15, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
@@ -129,7 +131,7 @@ export default function Payments() {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <T weight="extrabold" style={{ fontSize: 15 }}>₦</T>
               <TextInput
-                accessibilityLabel={`Delivery fee for ${zone.name}`}
+                accessibilityLabel={t("pay.feeFor", { zone: zone.name })}
                 keyboardType="number-pad"
                 value={zone.fee.toLocaleString("en-NG")}
                 onChangeText={(value) => setZones((current) => current.map((row, i) => (i === index ? { ...row, fee: Number(value.replace(/\D/g, "")) || 0 } : row)))}
@@ -141,15 +143,15 @@ export default function Payments() {
       </Card>
       {!status?.store.live && status && (
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginTop: 14, paddingHorizontal: 4 }}>
-          Going live costs {naira(status.launch.totalNgn)} once, or {naira(status.launch.depositNgn)} now and the rest by month end. You pay on Paystack next.
+          {t("pay.costs", { total: naira(status.launch.totalNgn), deposit: naira(status.launch.depositNgn) })}
         </T>
       )}
 
       <Modal visible={bankOpen} transparent animationType="slide" onRequestClose={() => setBankOpen(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setBankOpen(false)}>
           <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 36, maxHeight: "85%" }} onPress={() => undefined}>
-            <T weight="extrabold" style={{ fontSize: 22, marginBottom: 14 }}>Where should we send your money?</T>
-            <Label>Bank</Label>
+            <T weight="extrabold" style={{ fontSize: 22, marginBottom: 14 }}>{t("pay.bankTitle")}</T>
+            <Label>{t("pay.bank")}</Label>
             <ScrollView style={{ maxHeight: 180, borderWidth: 1, borderColor: colors.line, borderRadius: 16 }}>
               {banks.map((bank) => (
                 <Pressable key={bank} onPress={() => setBankName(bank)} style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: bankName === bank ? colors.lilac : "transparent" }}>
@@ -158,15 +160,15 @@ export default function Payments() {
               ))}
             </ScrollView>
             <View style={{ marginTop: 14 }}>
-              <Label>Account number</Label>
-              <Field keyboardType="number-pad" maxLength={10} placeholder="10 digits" value={accountNumber} onChangeText={setAccountNumber} />
+              <Label>{t("pay.accountNumber")}</Label>
+              <Field keyboardType="number-pad" maxLength={10} placeholder={t("pay.tenDigits")} value={accountNumber} onChangeText={setAccountNumber} />
             </View>
             <View style={{ marginTop: 14 }}>
-              <Label>Account name</Label>
-              <Field placeholder="As it appears at your bank" value={accountName} onChangeText={setAccountName} />
+              <Label>{t("pay.accountName")}</Label>
+              <Field placeholder={t("pay.asAtBank")} value={accountName} onChangeText={setAccountName} />
             </View>
             {error && <View style={{ marginTop: 12 }}><Notice>{error}</Notice></View>}
-            <PillButton title="Save bank" busy={busy} style={{ marginTop: 18 }} disabled={!bankName || accountNumber.replace(/\D/g, "").length !== 10 || !accountName.trim()} onPress={() => void addBank()} />
+            <PillButton title={t("pay.saveBank")} busy={busy} style={{ marginTop: 18 }} disabled={!bankName || accountNumber.replace(/\D/g, "").length !== 10 || !accountName.trim()} onPress={() => void addBank()} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -174,14 +176,14 @@ export default function Payments() {
       <Modal visible={launchOpen} transparent animationType="slide" onRequestClose={() => setLaunchOpen(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setLaunchOpen(false)}>
           <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 36 }} onPress={() => undefined}>
-            <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>Put {status?.store.name} live</T>
-            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>A one-off launch fee. Your shop opens as soon as Paystack says you paid.</T>
+            <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>{t("pay.putLive", { name: status?.store.name ?? "" })}</T>
+            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>{t("pay.launchFee")}</T>
             {status && (
               <>
-                <PillButton title={`Pay ${naira(status.launch.totalNgn)}`} busy={busy} onPress={() => void pay("full")} />
+                <PillButton title={t("pay.payFull", { amount: naira(status.launch.totalNgn) })} busy={busy} onPress={() => void pay("full")} />
                 {status.launch.depositNgn < status.launch.totalNgn && (
                   <PillButton
-                    title={`Pay ${naira(status.launch.depositNgn)} now, ${naira(status.launch.totalNgn - status.launch.depositNgn)} by month end`}
+                    title={t("pay.payPart", { now: naira(status.launch.depositNgn), rest: naira(status.launch.totalNgn - status.launch.depositNgn) })}
                     tone="white"
                     size="md"
                     style={{ marginTop: 10 }}
@@ -192,7 +194,7 @@ export default function Payments() {
               </>
             )}
             {error && <View style={{ marginTop: 12 }}><Notice>{error}</Notice></View>}
-            <T style={{ color: colors.inkFaint, fontSize: 13.5, textAlign: "center", marginTop: 14 }}>Paystack handles the payment. Shopinbos never sees your card.</T>
+            <T style={{ color: colors.inkFaint, fontSize: 13.5, textAlign: "center", marginTop: 14 }}>{t("pay.paystackNote")}</T>
           </Pressable>
         </Pressable>
       </Modal>
