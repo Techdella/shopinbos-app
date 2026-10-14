@@ -1,15 +1,15 @@
 [
  {
   "slug": "abandoned-cart-email-templates",
-  "title": "Abandoned Cart Email Sequence Templates",
-  "sub": "So you've set up your store, and you're ready to recover those abandoned carts. Great! But now you're staring at a blank email template thinking, \"What do I actually write?\" Don't…",
+  "title": "Abandoned Cart Message Templates: Email and WhatsApp",
+  "sub": "So your store is live, and you want to win back customers who added items to their cart and left without paying. Good! But now you’re looking at an empty message box thinking, “What do…",
   "style": "template",
   "chapters": [
-   "Why Email Sequences Matter for Cart Recovery",
-   "Template #1: The Friendly Reminder (Send 1 Hour After Abandonment)",
-   "Template #2: The Value Builder (Send 24 Hours Later)",
-   "Template #3: The Final Nudge (Send 48-72 Hours Later)",
-   "Customization Tips for Your Templates",
+   "Why a Series of Messages Works Better Than One",
+   "Template #1: The Friendly Reminder (Send 1 Hour After They Leave)",
+   "Template #2: The Trust Builder (Send 24 Hours Later)",
+   "Template #3: The Final Nudge (Send 48–72 Hours Later)",
+   "Tips to Make the Templates Your Own",
    "When to Skip the Discount",
    "Quick Setup Checklist",
    "Start Recovering Sales Today"
@@ -21,110 +21,13 @@
  {
   "slug": "become-a-social-media-manager",
   "title": "Becoming a Social Media Manager Without Experience",
-  "sub": "The best part? You don't need a marketing degree or years of corporate experience to get started. What you need is the right foundation, some smart positioning, and a system that lets…",
+  "sub": "Social media management isn’t just posting pretty pictures anymore. Across Nigeria, from boutiques in Lekki to restaurants in Abuja, business owners need someone who can grow their…",
   "style": "guide",
   "chapters": [
-   "Social media management isn't just posting pretty pictures anymore. It's one of the most in-demand remote skills right now, with companies paying $3,000-$8,000 monthly for someone who can grow their online presence and drive real business results.",
    "Step 1: Build Your Foundation Without Fake Experience",
    "Step 2: Position Yourself as the Solution, Not a Beginner",
-   "Step 3: Your Client-Getting System & Success Toolkit"
-  ],
-  "pages": 7,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "product-validation-toolkit",
-  "title": "Beginner Friendly Product Validation Toolkit (2026)",
-  "sub": "So, you've got a product idea that seems promising, but you're worried about investing money only to discover nobody wants to buy it? Smart thinking! The biggest mistake new sellers…",
-  "style": "workbook",
-  "chapters": [
-   "What is the Meaning of Product Validation",
-   "What Makes a Product Worth Selling",
-   "Free Product Validation Tools You Can Use Today",
-   "The 72-Hour Product Validation Process",
-   "Signs Your Product Idea Is Solid",
-   "Red Flags That Mean Keep Searching",
-   "Pricing Validation Method",
-   "Talking to Real Potential Customers",
-   "Free Product Validation Toolkit",
-   "Moving from Product Validation to Launch",
-   "Ready to Test Your Product Idea?"
-  ],
-  "pages": 7,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "one-page-website-guide",
-  "title": "Building a One-Page Website for Your Business",
-  "sub": "So, you need a website for your business, but the thought of dealing with multiple pages and technical stuff makes your head spin? Worry less! The good news is, a simple one-page…",
-  "style": "guide",
-  "chapters": [
-   "Why One-Page Websites Work Perfect for Small Businesses",
-   "What Your One-Page Website Needs",
-   "Free Tools to Build Without Coding",
-   "Planning Your Content",
-   "Design Basics That Look Professional",
-   "Writing Copy That Connects",
-   "Essential Sections in Order",
-   "Getting Your Website Online",
-   "Help People Find You",
-   "Free Website Building Toolkit"
-  ],
-  "pages": 7,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "product-pricing-calculator-template",
-  "title": "Ecommerce Product Pricing Calculator Template",
-  "sub": "Figuring out how to price your products can feel overwhelming when you're just starting your ecommerce journey. Should you charge $25 or $35? How do you know if you're actually making…",
-  "style": "template",
-  "chapters": [
-   "What Is a Product Pricing Calculator?",
-   "What You'll Need",
-   "Building Your Pricing Calculator: Step-by-Step",
-   "Using Your Calculator Effectively",
-   "Quick Tips for Calculator Success",
-   "Your Next Steps"
-  ],
-  "pages": 6,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "first-90-days-launch-checklist",
-  "title": "First 90 Days Launch Checklist & Calendar",
-  "sub": "Now that you have everything to move forward with the launch of your new online store, let’s see how a structured website launch checklist can make the countdown to launch date become…",
-  "style": "checklist",
-  "chapters": [
-   "Days 1-30: Foundation & Planning Phase",
-   "Days 31-60: Build & Design Phase",
-   "Days 61-90: Testing & Launch Phase",
-   "Your Essential Beginner Toolkit",
-   "Post-Launch: Days 91 and Beyond",
-   "Common Beginner Mistakes to Avoid",
-   "Ready to Start Your Journey?"
-  ],
-  "pages": 7,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "fulfillment-decision-toolkit",
-  "title": "Fulfillment Decision Toolkit",
-  "sub": "Choosing how to fulfill orders is one of your first big decisions as an online seller. This toolkit simplifies the 3pl vs dropshipping vs self fulfillment choice with clear checklists…",
-  "style": "workbook",
-  "chapters": [
-   "Quick Start: Which Method Fits You?",
-   "Self Fulfillment Checklist",
-   "Dropshipping Checklist",
-   "3PL Checklist",
-   "Your Decision Framework",
-   "Making Your Choice: Action Steps",
-   "Common Mistakes to Avoid",
-   "Your Next Move"
+   "Step 3: Your Client-Getting System and Success Toolkit",
+   "Ready to Start Your Social Media Management Career?"
   ],
   "pages": 7,
   "meta_title": "",
@@ -133,7 +36,7 @@
  {
   "slug": "digital-product-business-guide",
   "title": "How to Start a Profitable Digital Product Business",
-  "sub": "So, you've been thinking about creating something digital to sell, maybe an eBook, online course, or digital templates, but you're stuck wondering \"What do I even sell?\" or \"Who's…",
+  "sub": "So, you’ve been thinking about creating something digital to sell, maybe an eBook, an online course or templates, but you’re stuck wondering “What do I even sell?” or “Who’s going to…",
   "style": "guide",
   "chapters": [
    "Why Digital Products Are Perfect for Beginners",
@@ -152,46 +55,163 @@
   "keyword": ""
  },
  {
+  "slug": "ecommerce-platform-comparison-worksheet",
+  "title": "Online Store Platform Comparison Worksheet",
+  "sub": "Feeling confused by all the options for building an online store? You’re not alone. For a new business owner, the technical words and long feature lists can be a lot to take in. The…",
+  "style": "workbook",
+  "chapters": [
+   "The Pre-Launch Checklist: Know Yourself First",
+   "Your Platform Comparison Worksheet",
+   "Your First Week Action Plan"
+  ],
+  "pages": 7,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "ecommerce-starter-tools-pack",
+  "title": "Free Online Business Starter Tools Pack",
+  "sub": "Feeling worried about starting to sell online? Relax. The secret is to start simple. You do not need every tool on the internet. You need a small set of free, reliable tools that take…",
+  "style": "template",
+  "chapters": [
+   "Your Online Store: The Building Tools",
+   "What to Sell: Product Sourcing Tools",
+   "Spreading the Word: The Marketing Tools",
+   "Understanding Your Customers: The Analytics Tool"
+  ],
+  "pages": 6,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "ecommerce-tools-checklist",
+  "title": "Online Business Tools Checklist",
+  "sub": "There is so much advice out there that it is easy to feel lost and not know where to start your online business. You do not need a big budget or technical skills to begin. You just…",
+  "style": "checklist",
+  "chapters": [
+   "Your Online Store and Selling Foundation",
+   "Getting Products and Keeping Track of Stock",
+   "Marketing and Getting Your First Sales"
+  ],
+  "pages": 6,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "email-marketing-onboarding-kit",
+  "title": "Email and WhatsApp Marketing Starter Kit",
+  "sub": "The real secret to growing any business is turning a first-time buyer into a customer who comes back again and again. The best way to do that? Keep talking to them, by email and on…",
+  "style": "workbook",
+  "chapters": [
+   "Step 1: Gather Your Essential Tools",
+   "Step 2: Set Up Your “Set It and Forget It” Messages",
+   "Step 3: Create Your Core Message Templates",
+   "Your Action Plan: Start This Week"
+  ],
+  "pages": 5,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "first-90-days-launch-checklist",
+  "title": "First 90 Days Launch Checklist and Calendar",
+  "sub": "You have decided to start selling online. Now let us use a clear launch checklist so the road to your launch day becomes less confusing, one step at a time.",
+  "style": "checklist",
+  "chapters": [
+   "Days 1–30: Foundation and Planning",
+   "Days 31–60: Build and Design",
+   "Days 61–90: Testing and Launch",
+   "Your Essential Beginner Toolkit",
+   "After Launch: Day 91 and Beyond",
+   "Common Beginner Mistakes to Avoid",
+   "Ready to Start Your Journey?"
+  ],
+  "pages": 7,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "fulfillment-decision-toolkit",
+  "title": "Packing and Delivery Decision Toolkit",
+  "sub": "Choosing how your orders get packed and delivered is one of your first big decisions as an online seller. This toolkit compares three ways: delivering yourself, dropshipping, or using…",
+  "style": "template",
+  "chapters": [
+   "Quick Start: Which Method Fits You?",
+   "Self-Delivery Checklist",
+   "Dropshipping Checklist",
+   "Fulfilment Service Checklist",
+   "Your Decision Framework",
+   "Making Your Choice: Action Steps",
+   "Common Mistakes to Avoid",
+   "Your Next Move"
+  ],
+  "pages": 7,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
   "slug": "low-competition-product-ideas-pack",
-  "title": "Low-Competition Product Ideas: Beginner's Starter Pack",
-  "sub": "Starting your eCommerce journey doesn't require expensive tools or complicated strategies. This starter pack gives you everything needed to find profitable product ideas without…",
+  "title": "Low-Competition Product Ideas: Beginner’s Starter Pack",
+  "sub": "Starting to sell online doesn’t need expensive tools or complicated plans. This starter pack shows you how to find good product ideas for Nigerian buyers without spending much money or…",
   "style": "guide",
   "chapters": [
-   "Essential Free Research Tools (Your Core Toolkit)",
+   "Free Research Tools (Your Core Toolkit)",
    "Your Step-by-Step Research Process",
-   "Budget-Based Tool Strategy",
+   "Budget-Based Tool Plan",
    "Your First Week Action Plan",
    "Critical Success Factors",
    "Next Steps"
   ],
-  "pages": 5,
+  "pages": 6,
   "meta_title": "",
   "keyword": ""
  },
  {
   "slug": "niche-research-toolkit",
   "title": "Niche Research Toolkit",
-  "sub": "Starting an online business begins with one critical decision: choosing the right niche. But where do beginners find niche product ideas that actually sell? You don't need fancy…",
+  "sub": "Starting an online business begins with one key decision: choosing the right niche, meaning the specific group of customers and type of products you will focus on. But where do…",
   "style": "workbook",
   "chapters": [
-   "Essential Free Tools for Finding Niche Product Ideas",
+   "Free Tools for Finding Niche Product Ideas",
    "Your Step-by-Step Niche Research Process",
    "Red Flags to Avoid",
    "Taking Action on Your Research"
   ],
-  "pages": 5,
+  "pages": 6,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "one-page-website-guide",
+  "title": "Building a One-Page Website for Your Business",
+  "sub": "So you need a website for your business, but the thought of many pages and technical stuff makes your head spin? Worry less! A simple one-page website can work just as well as a…",
+  "style": "guide",
+  "chapters": [
+   "Why One-Page Websites Work for Small Businesses",
+   "What Your One-Page Website Needs",
+   "Free Tools to Build Without Coding",
+   "Planning Your Content",
+   "Design Basics That Look Professional",
+   "Writing Words That Connect",
+   "Essential Sections in Order",
+   "Getting Your Website Online",
+   "Help People Find You",
+   "Free Website Building Toolkit",
+   "Ready to Build?"
+  ],
+  "pages": 7,
   "meta_title": "",
   "keyword": ""
  },
  {
   "slug": "online-store-launch-toolkit",
-  "title": "Online Store Launch Toolkit For Beginners",
-  "sub": "Starting an online store doesn't have to feel overwhelming. With the right toolkit and step-by-step approach, you can launch your business confidently. Here's everything you need to…",
+  "title": "Online Store Launch Toolkit for Beginners",
+  "sub": "Starting an online store in Nigeria does not have to feel overwhelming. With the right toolkit and a step-by-step plan, you can launch with confidence. Here is everything you need to…",
   "style": "workbook",
   "chapters": [
    "Phase 1: Foundation Setup (Week 1-2)",
-   "Phase 2: Store Design & Content (Week 3-4)",
-   "Phase 3: Payment & Shipping Setup (Week 4)",
+   "Phase 2: Store Design and Content (Week 3-4)",
+   "Phase 3: Payment and Delivery Setup (Week 4)",
    "Phase 4: Marketing Preparation (Week 5)",
    "Essential Tools Toolkit",
    "Launch Week Checklist",
@@ -206,27 +226,82 @@
  {
   "slug": "payment-gateway-setup-cheat-sheet",
   "title": "Payment Gateway Setup Cheat Sheet (With Expert Tips)",
-  "sub": "Our free Payment Gateway Setup Cheat Sheet walks you through the 5 simple steps to get paid online. Download your expert tips and start selling today!",
+  "sub": "Feeling stuck on how to actually get paid for your online sales? You are not alone. Setting up payments can seem technical, but it does not have to be.",
   "style": "checklist",
   "chapters": [
    "Your 5-Step Payment Gateway Setup Checklist",
-   "Expert Security & Fraud Prevention Tips",
+   "Expert Security and Fraud Prevention Tips",
    "Your Quick-Reference Cheat Sheet"
   ],
   "pages": 6,
-  "meta_title": "Payment Gateway Setup Cheat Sheet for Beginners \\| Expert Tips",
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "product-description-swipe-file",
+  "title": "Product Description and Copywriting Swipe File",
+  "sub": "Feeling stuck every time you write a product description? You are not alone. For many new sellers, a blank page is the biggest problem. This starter pack helps you build a “swipe…",
+  "style": "template",
+  "chapters": [
+   "Part 1: The Mindset Shift – What Makes a Product Description Sell?",
+   "Part 2: Your “Fill-in-the-Blanks” Swipe File Templates",
+   "Part 3: Words to “Swipe” and Use Instantly",
+   "Part 4: Your 3-Step Action Plan",
+   "Your Takeaway"
+  ],
+  "pages": 6,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "product-pricing-calculator-template",
+  "title": "Online Store Product Pricing Calculator Template",
+  "sub": "Pricing your products can feel overwhelming when you are just starting to sell online. Should you charge ₦15,000 or ₦18,000? How do you know if you are actually making money after all…",
+  "style": "template",
+  "chapters": [
+   "What Is a Product Pricing Calculator?",
+   "What You’ll Need",
+   "Building Your Pricing Calculator: Step-by-Step",
+   "Using Your Calculator Well",
+   "Quick Tips for Calculator Success",
+   "Your Next Steps"
+  ],
+  "pages": 6,
+  "meta_title": "",
+  "keyword": ""
+ },
+ {
+  "slug": "product-validation-toolkit",
+  "title": "Beginner-Friendly Product Validation Toolkit (2026)",
+  "sub": "So you have a product idea that looks promising. But you are worried about putting your money into stock, only to find out nobody wants to buy it. Good thinking. The biggest mistake…",
+  "style": "workbook",
+  "chapters": [
+   "What Product Validation Means",
+   "What Makes a Product Worth Selling",
+   "Free Product Validation Tools You Can Use Today",
+   "The 72-Hour Product Validation Process",
+   "Signs Your Product Idea Is Solid",
+   "Red Flags That Mean Keep Searching",
+   "Pricing Validation Method",
+   "Talking to Real Potential Customers",
+   "Free Product Validation Toolkit",
+   "Moving from Validation to Launch",
+   "Ready to Test Your Product Idea?"
+  ],
+  "pages": 7,
+  "meta_title": "",
   "keyword": ""
  },
  {
   "slug": "sales-funnel-starter-pack",
   "title": "Sales Funnel Starter Pack for First-Time Online Store Owners",
-  "sub": "Starting your first online store is exciting, but it can also feel overwhelming when you're staring at a blank screen wondering where to begin. You've heard that you need a sales…",
+  "sub": "Starting your first online store is exciting. It can also feel like too much when you are staring at a blank phone screen, wondering where to begin. People keep telling you that you…",
   "style": "guide",
   "chapters": [
-   "Essential Tools You Need in Your Sales Funnel Starter Pack",
+   "Essential Tools in Your Sales Funnel Starter Pack",
    "Your First Week Action Plan",
-   "Free Resources to Maximize Your Sales Funnel Starter Pack",
-   "What You Don't Need (Yet)",
+   "Free Resources to Get More From Your Starter Pack",
+   "What You Do Not Need (Yet)",
    "Your Next Steps"
   ],
   "pages": 8,
@@ -235,98 +310,24 @@
  },
  {
   "slug": "sales-page-copy-templates",
-  "title": "Sales Page Copy Template Pack",
-  "sub": "This sales page template gives you everything you need to write your first high-converting sales page, even if you've never written a sales copy before. Work through each step in…",
-  "style": "template",
-  "chapters": [
-   "No Copywriting Experience Required",
-   "STEP 1: Research & Document Customer Language",
-   "STEP 2: Create Your Sales Page Outline",
-   "STEP 3: Write Like You're Talking to a Friend",
-   "STEP 4: Use Formatting for Scannable Content",
-   "STEP 5: Show, Don't Just Tell",
-   "POWER WORDS BANK",
-   "CALL-TO-ACTION (CTA) EXAMPLES",
-   "OBJECTION-HANDLING FRAMEWORK",
-   "SOCIAL PROOF COLLECTION TEMPLATE",
-   "SALES PAGE COMPLETION CHECKLIST",
-   "SELF-EVALUATION SCORECARD"
-  ],
-  "pages": 20,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "ecommerce-platform-comparison-worksheet",
-  "title": "Your E-commerce Platform Comparison Worksheet: A Founder's Starter Kit",
-  "sub": "Don't know where to start? Our free e-commerce platform comparison worksheet helps you clarify your needs & choose the right platform. Simple, actionable, and for absolute beginners.",
+  "title": "The Complete Sales Page Writing Toolkit",
+  "sub": "No copywriting experience needed.",
   "style": "workbook",
   "chapters": [
-   "The Pre-Launch Checklist: Know Yourself First",
-   "Your E-commerce Platform Comparison Worksheet",
-   "Your First Week Action Plan"
+   "How to Use This Toolkit",
+   "Step 1: Research and Write Down Customer Language",
+   "Step 2: Create Your Sales Page Outline",
+   "Step 3: Write Like You Are Talking to a Friend",
+   "Step 4: Format Your Page So It Is Easy to Scan",
+   "Step 5: Show, Don’t Just Tell",
+   "Power Words Bank",
+   "Call-to-Action Examples",
+   "Objection-Handling Framework",
+   "Social Proof Collection Templates",
+   "Sales Page Completion Checklist",
+   "Self-Evaluation Scorecard"
   ],
-  "pages": 7,
-  "meta_title": "Your E-commerce Platform Comparison Worksheet \\| A Founder's Starter Kit",
-  "keyword": "ecommerce platform comparison worksheet"
- },
- {
-  "slug": "ecommerce-tools-checklist",
-  "title": "Your Ecommerce Tools Checklist: The Essential Starter Pack (Free & Freemium)",
-  "sub": "Launch your online store without breaking the bank. Use our simple ecommerce tools checklist to find the best free and freemium platforms for building, managing, and growing your business.",
-  "style": "checklist",
-  "chapters": [
-   "Your Website & Selling Foundation",
-   "Product Sourcing & Inventory Management",
-   "Marketing & Getting Your First Sales"
-  ],
-  "pages": 6,
-  "meta_title": "Your Ecommerce Tools Checklist: The Essential Starter Pack (Free & Freemium)",
-  "keyword": ""
- },
- {
-  "slug": "email-marketing-onboarding-kit",
-  "title": "Your Email Marketing Onboarding Kit for eCommerce Beginners",
-  "sub": "Launch your eCommerce email marketing with our simple onboarding kit. Get started with essential ecommerce email templates and a clear 3-step plan for beginners.",
-  "style": "workbook",
-  "chapters": [
-   "Step 1: Gather Your Essential Tools",
-   "Step 2: Implement Your Core \"Set-and-Forget\" Email Flows",
-   "Step 3: Create Your Core Ecommerce Email Templates",
-   "Your Action Plan: Start This Week"
-  ],
-  "pages": 5,
-  "meta_title": "Your Email Marketing Onboarding Kit for eCommerce Beginners",
-  "keyword": ""
- },
- {
-  "slug": "ecommerce-starter-tools-pack",
-  "title": "Your Free Essential Ecommerce Starter Tools Pack (All-in-One)",
-  "sub": "Feeling overwhelmed about starting an online store? Do away with your worries. The key is to start simple. You don’t need every tool under the sun, just a core set of reliable, free…",
-  "style": "template",
-  "chapters": [
-   "Think of this as your all-in-one starter kit. We’ve done the heavy lifting of research to give you only the most crucial free ecommerce tools with clear, actionable steps.",
-   "Your Ecommerce Storefront: The Building Tools",
-   "What to Sell: Ecommerce Sourcing Tools",
-   "Spreading the Word: The Marketing Tools",
-   "Understanding Your Customers: The Analytics Tool"
-  ],
-  "pages": 6,
-  "meta_title": "",
-  "keyword": ""
- },
- {
-  "slug": "product-description-swipe-file",
-  "title": "Your Product Description & Copywriting Swipe File (Starter Pack)",
-  "sub": "Feeling stuck every time you have to write a product description? You're not alone. For many new sellers, a blank page is the biggest hurdle. This starter pack will help you build your…",
-  "style": "template",
-  "chapters": [
-   "Part 1: The Mindset Shift - What Makes a Product Description Sell?",
-   "Part 2: Your \"Fill-in-the-Blanks\" Swipe File Templates",
-   "Part 3: Words to \"Swipe\" and Use Instantly",
-   "Part 4: Your 3-Step Action Plan"
-  ],
-  "pages": 6,
+  "pages": 19,
   "meta_title": "",
   "keyword": ""
  }

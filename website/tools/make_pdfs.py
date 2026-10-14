@@ -185,8 +185,17 @@ TITLES = {
     'First 90 Days Launch Checklist & Calendar': 'First 90 Days Launch Checklist & Calendar',
     'Sales Page Copy Template Pack': 'Sales Page Copy Template Pack',
 }
+SHORT = {
+    'niche-research-toolkit': 'Niche Research Toolkit',
+    'first-90-days-launch-checklist': 'First 90 Days Launch Checklist and Calendar',
+    'ecommerce-tools-checklist': 'Online Business Tools Checklist',
+    'email-marketing-onboarding-kit': 'Email and WhatsApp Marketing Starter Kit',
+    'product-description-swipe-file': 'Product Description and Copywriting Swipe File',
+    'ecommerce-platform-comparison-worksheet': 'Online Store Platform Comparison Worksheet',
+    'ecommerce-starter-tools-pack': 'Free Online Business Starter Tools Pack',
+}
 manifest = []
-for i, f in enumerate(sorted(x for x in os.listdir(SRC) if x.endswith('.docx'))):
+for i, f in enumerate(sorted(x for x in os.listdir(SRC) if x.endswith(('.docx', '.md')))):
     d = convert(os.path.join(SRC, f))
     title = d['title'] or f[:-5]
     title = re.sub(r'\s*\((Even|With)[^)]*\)\s*$', '', title) if len(title) > 70 else title
@@ -197,8 +206,9 @@ for i, f in enumerate(sorted(x for x in os.listdir(SRC) if x.endswith('.docx')))
     if len(sub) > 190:
         sub = sub[:sub.rfind(' ', 0, 185)] + '…'
     d['sub'] = sub
-    slug = SLUGS.get(f[:-5]) or d['slug'] or slugify(title)
-    title = TITLES.get(f[:-5], title)
+    stem = os.path.splitext(f)[0]
+    slug = SLUGS.get(stem) or (stem if stem in SLUGS.values() else '') or d['slug'] or slugify(title)
+    title = TITLES.get(stem, SHORT.get(slug, title))
     d['title'] = title
     st = style_for(title)
     h, chapters = body_html(d)

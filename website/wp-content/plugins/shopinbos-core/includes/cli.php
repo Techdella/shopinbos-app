@@ -411,23 +411,30 @@ class Sib_CLI {
 		$kind = [ 'guide' => 'guide', 'workbook' => 'workbook', 'template' => 'template pack', 'checklist' => 'checklist' ];
 		foreach ( (array) $list as $i => $r ) {
 			$existing = get_page_by_path( $r['slug'], OBJECT, 'sib_resource' );
-			if ( $existing && 'sib_resource' === $existing->post_type ) {
-				continue;
-			}
 			$items   = implode( "\n", array_map( fn( $c ) => "<!-- wp:list-item -->\n<li>" . esc_html( $c ) . "</li>\n<!-- /wp:list-item -->", $r['chapters'] ) );
 			$content = sib_block_p( esc_html( $r['sub'] ) )
 				. sib_block_h( 2, 'What’s inside', '' )
 				. ( $items ? "<!-- wp:list -->\n<ul class=\"wp-block-list\">" . $items . "</ul>\n<!-- /wp:list -->\n\n" : '' )
 				. sib_block_p( esc_html( sprintf( 'A free %1$s from Shopinbos. %2$d pages, PDF. Fill in the form and it opens straight away; we also send you the link.', $kind[ $r['style'] ] ?? 'guide', $r['pages'] ) ) );
-			// Create the guide first: media items get slugs too, and must not take the guide's URL.
-			$id  = $this->cpt( 'sib_resource', $r['slug'], $r['title'], $content, $r['sub'], [ 'sib_gated' => true, 'sib_list_tag' => $r['slug'] ], '', $i + 10 );
-			$pdf = $this->media_from( SIB_CORE_DIR . '/includes/seed/pdfs/' . $r['slug'] . '.pdf', $r['title'] . ' (PDF)' );
-			update_post_meta( $id, 'sib_file_id', $pdf );
-			if ( $cover = $this->media_from( SIB_CORE_DIR . '/includes/seed/pdfs/' . $r['slug'] . '.webp', $r['title'] . ' cover' ) ) {
-				set_post_thumbnail( $id, $cover );
+			if ( $existing && 'sib_resource' === $existing->post_type ) {
+				$id = $this->refresh_post( $existing, $r['title'], $content, $r['sub'], '', $i + 10 );
+			} else {
+				// Create the guide first: media items get slugs too, and must not take the guide's URL.
+				$id = $this->cpt( 'sib_resource', $r['slug'], $r['title'], $content, $r['sub'], [ 'sib_gated' => true, 'sib_list_tag' => $r['slug'] ], '', $i + 10 );
+				update_post_meta( $id, '_sib_seed_src', md5( $content ) );
+				$this->fingerprint( $id );
 			}
-			if ( $pdf ) {
-				sib_secure_resource_file( $id );
+			// Use this version of the PDF and cover, unless someone picked their own file in the editor.
+			$current = (int) get_post_meta( $id, 'sib_file_id', true );
+			if ( ! $current || str_starts_with( (string) get_post_meta( $current, '_sib_source', true ), 'plugin:' ) ) {
+				$pdf = $this->media_from( SIB_CORE_DIR . '/includes/seed/pdfs/' . $r['slug'] . '.pdf', $r['title'] . ' (PDF)' );
+				if ( $pdf && $pdf !== $current ) {
+					update_post_meta( $id, 'sib_file_id', $pdf );
+					sib_secure_resource_file( $id );
+					if ( $cover = $this->media_from( SIB_CORE_DIR . '/includes/seed/pdfs/' . $r['slug'] . '.webp', $r['title'] . ' cover' ) ) {
+						set_post_thumbnail( $id, $cover );
+					}
+				}
 			}
 			foreach ( [ 'rank_math_title' => $r['meta_title'], 'rank_math_description' => $r['sub'], 'rank_math_focus_keyword' => $r['keyword'] ] as $k => $v ) {
 				if ( $v ) {
@@ -442,7 +449,7 @@ class Sib_CLI {
 		if ( ! file_exists( $path ) ) {
 			return 0;
 		}
-		$key   = 'plugin:' . basename( $path );
+		$key   = 'plugin:' . basename( $path ) . ':' . md5_file( $path ); // a new version of the file is a new media item
 		$found = get_posts( [ 'post_type' => 'attachment', 'post_status' => 'any', 'meta_key' => '_sib_source', 'meta_value' => $key, 'numberposts' => 1, 'fields' => 'ids' ] );
 		if ( $found ) {
 			return (int) $found[0];

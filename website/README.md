@@ -89,12 +89,25 @@ DNS: `shopinbos.com` and `www` → Hostinger; `app.` and `*.shopinbos.com` store
 - `python3 tools/convert.py article.docx` gives block markup plus meta title, description, slug and keyword. SEO briefs,
   keyword lists, internal-link notes and social posts are dropped from the body; FAQ sections become FAQ blocks;
   "Shopping Boss" becomes Shopinbos. Add the result to `plugins/shopinbos-core/includes/seed/articles.json`.
-- `python3 tools/make_pdfs.py <folder of .docx> wp-content/themes/shopinbos <work>` then
+- `python3 tools/make_pdfs.py <folder of .docx or .md> wp-content/themes/shopinbos <work>` then
   `node tools/print_pdfs.js <work>` prints branded PDFs (cover, contents, pages with header and page numbers, back
   page). Copy `<work>/pdf/*.pdf` and the cover images into `includes/seed/pdfs/` and the manifest into `seed/resources.json`.
 
+The Nigerian versions of the 19 lead magnets live in `content/lead-magnets/*.md`: edit those and rebuild the PDFs.
+
 `wp shopinbos setup` imports both, skipping any slug that already exists, so posts already on the live site are
 never duplicated or overwritten. PDFs move to the private uploads folder and are only sent by signed link after the form.
+
+### Old pages, compare pages, logos
+
+- Pages from the old theme kept their content in PHP files and show blank with this theme. Setup fills any page that
+  is empty, still has placeholder text, or was written by setup and not edited since (it saves a fingerprint), and
+  never touches a page someone has edited. Old features and solutions become `sib_feature` / `sib_solution` posts at
+  the same URLs (`seed/landings.json`); retired URLs redirect (`includes/redirects.php`, filter `sib_redirects`).
+- Compare pages are `sib_comparison` posts with one **Comparison** block (`includes/compare.php`). Keep the rows fair,
+  set *Last checked*, and re-check every 90 days (the admin list flags old ones).
+- Brand logos live in `themes/shopinbos/assets/img/brands/`; `sib_brand_logo( 'Name' )` finds one by name. Add a file
+  and a line to the map in `inc/icons.php` for a new brand.
 
 ### Marketplace data
 - Reads `/products`, `/products/{slug}`, `/categories`, `/suppliers`, `/suppliers/{slug}`,
