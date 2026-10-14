@@ -28,6 +28,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   eg: "Like: {example}",
   thatsIt: "Na so e be. You don sabi {term}.",
   replayHint: "You fit play am again anytime from “Learn · 60s” for the top of dis page.",
+  tipsOffLead: "You no need tips?",
+  tipsOffLink: "Off am for Settings",
   watchIntro: "Watch 60-sec intro",
   watchIntroLong: "Watch the 60-sec intro",
   whatItMeans: "{term}: wetin e mean",

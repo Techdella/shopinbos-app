@@ -10,4 +10,6 @@ export const PreferencesPatchSchema = z.object({
   introsSeen: z.array(z.string().regex(/^[a-z0-9-]{1,40}$/)).max(60).optional(),
   /** App language (shared/i18n LOCALES). */
   language: z.enum(LOCALES as [Locale, ...Locale[]]).optional(),
+  /** Tips and tooltips on (true) or off (false). */
+  tips: z.boolean().optional(),
 });

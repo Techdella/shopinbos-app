@@ -145,6 +145,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.help": "Taimako",
   "set.helpHint": "Mutum, ko Peggy",
   "set.more": "Ƙarin saituna a yanar gizo",
+  "set.tips": "Shawarwari da bayanai",
+  "set.tipsHint": "Bayanin kalmomi da gabatarwa da ke buɗewa da kansu",
   "set.moreHint": "Ƙungiya, biyan kuɗi, tsaro da rufe shagonka. Zai buɗe a browser ɗinka",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Tambarin biyan kuɗi a shagonka",

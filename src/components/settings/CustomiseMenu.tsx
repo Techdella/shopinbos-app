@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Notice, PillButton, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { usePreferences } from "@/components/shell/useShellCounts";
+import { tipsOn } from "@shared/preferences";
 import { NAV_BY_ROLE, type Role } from "@/lib/nav";
 import { useT } from "@/components/i18n/I18nProvider";
 import { navGroupLabel, navLabel } from "@shared/i18n/nav";
@@ -24,6 +25,15 @@ export function CustomiseMenu({ role }: { role: Role }) {
     const next = on ? [...hidden].filter((value) => value !== id) : [...hidden, id];
     try {
       await save({ hiddenNav: next });
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : t("menu.saveFailed"));
+    }
+  }
+
+  async function setTips(on: boolean) {
+    setError(null);
+    try {
+      await save({ tips: on });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t("menu.saveFailed"));
     }
@@ -81,6 +91,18 @@ export function CustomiseMenu({ role }: { role: Role }) {
           <p className="mb-0 mt-2 text-[14px] leading-[1.55]">
             {t("menu.onlyUseSub")}
           </p>
+        </section>
+        <section id="tips" className="scroll-mt-24 rounded-[22px] border border-app-line bg-white p-5">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="m-0 text-[16px] font-extrabold">{t("menu.tips")}</h2>
+              <p className="mb-0 mt-2 text-[14px] leading-[1.55] text-app-ink-soft">{t("menu.tipsSub")}</p>
+            </div>
+            <span className="flex shrink-0 items-center gap-2 pt-0.5 text-[13px] font-bold">
+              <span>{tipsOn(prefs) ? t("menu.on") : t("menu.off")}</span>
+              <Toggle on={tipsOn(prefs)} onChange={(value) => void setTips(value)} label={t("menu.tips")} />
+            </span>
+          </div>
         </section>
         <section className="rounded-[22px] border border-app-line bg-white p-5">
           <h2 className="m-0 text-[16px] font-extrabold">{t("menu.walkthrough")}</h2>

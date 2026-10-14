@@ -13,6 +13,7 @@ import {
 import { loadShopperInfo } from "./shopper-info.server";
 import type { StorefrontShopperInfo } from "./shopper-info";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
+import { relatedProducts } from "@/components/storefront/shopper/catalog";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
 
@@ -77,6 +78,10 @@ const catalogSelect = {
   currency: true,
   category: { select: { id: true, name: true, slug: true } },
   variants: true,
+  variantOptions: true,
+  // For "Customers also like" when the seller picked none (same type, category or tags).
+  productType: true,
+  tags: true,
   supplierProduct: { select: { stockQuantity: true } },
 } as const;
 
@@ -101,8 +106,11 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
         longDescription: true,
         specifications: true,
         careInstructions: true,
+        warranty: true,
         shippingInfo: true,
         returnPolicy: true,
+        productDetails: true,
+        relatedProductIds: true,
       },
     }),
   ]);
@@ -158,6 +166,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     reviewCount,
     ratingCounts,
     catalog,
+    // "Customers also like": the seller's picks (up to 8), else the closest products in the store.
+    related: relatedProducts(publicProduct, catalog),
     shopper: shopper as StorefrontShopperInfo,
     themeId: isBoutiqueTheme(templateId) ? templateId : null,
   };

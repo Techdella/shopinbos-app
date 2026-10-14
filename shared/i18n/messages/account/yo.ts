@@ -165,6 +165,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "À ń gbé menu rẹ wá…",
   "menu.onlyUse": "Rí ohun tí o ń lò nìkan",
   "menu.onlyUseSub": "Pípa nǹkan kan máa fi pamọ́ kúrò nínú menu rẹ. Kò sí ohun tí a pa rẹ́: data rẹ wà níbẹ̀, o sì lè tan án padà níbí nígbàkigbà.",
+  "menu.tips": "Àwọn ìmọ̀ràn àti àlàyé kékeré",
+  "menu.tipsSub": "Àlàyé kékeré tí ó máa ń yọ nígbà tí o bá tọ́ka sí tàbí tẹ ọ̀rọ̀ kan, àwọn ìmọ̀ràn lórí menu, àti àwọn ìfihàn kúkúrú tí ó máa ń ṣí fúnra wọn lórí ojú-ìwé tuntun. Tí o bá pa á, o ṣì lè wo ìfihàn èyíkéyìí láti “Learn” ní òkè ojú-ìwé.",
   "menu.walkthrough": "Ìtọ́sọ́nà",
   "menu.walkthroughSub": "Tún wo ìrìn àjò kíákíá ti menu rẹ àti àwọn bọ́tìnnì àkọ́kọ́.",
   "menu.replay": "Tún fi mí hàn yíká",

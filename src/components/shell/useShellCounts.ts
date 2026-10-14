@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_PREFERENCES, MAX_INTROS_SEEN, parsePreferences, type AppPreferences } from "@shared/preferences";
+import { DEFAULT_PREFERENCES, MAX_INTROS_SEEN, parsePreferences, tipsOn, type AppPreferences } from "@shared/preferences";
 
 export interface ShellCounts {
   notifications: number;
@@ -109,6 +109,21 @@ export function usePreferences() {
   }
 
   return { prefs, loaded: prefs !== null, confirmed, save, markIntroSeen };
+}
+
+/**
+ * Whether tips and tooltips are on (Customise your menu → Tips and tooltips). Reads the cached preferences and
+ * follows changes; the shell's usePreferences loads the server copy, so this never fetches on its own.
+ */
+export function useTipsOn() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    setOn(tipsOn(cachedPreferences()));
+    const onChange = (event: Event) => setOn(tipsOn((event as CustomEvent<AppPreferences>).detail));
+    window.addEventListener(PREFS_EVENT, onChange);
+    return () => window.removeEventListener(PREFS_EVENT, onChange);
+  }, []);
+  return on;
 }
 
 // Intros seen on this device: only a fallback for when the server save fails (offline, signed out mid-way).

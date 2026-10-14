@@ -1,4 +1,5 @@
-import type { ProductKind, VariantRow } from "@shared/product-edit";
+import type { EditableVariantRow, ProductKind } from "@shared/product-edit";
+import type { ProductTypeKey } from "@shared/product-types";
 import { api } from "./api";
 
 // One product in the seller's shop, for the product editor (app/product/[id].tsx).
@@ -20,7 +21,13 @@ export interface EditProduct {
   inventoryType: string;
   kind: ProductKind;
   tracksStock: boolean;
-  variants: VariantRow[];
+  /** Versions (sizes, colours…): price and stock are edited here and saved as variantUpdates. */
+  variants: EditableVariantRow[];
+  productType: ProductTypeKey;
+  /** The type's details ({ fieldKey: value }); care instructions and warranty are their own fields. */
+  productDetails: Record<string, string>;
+  careInstructions: string | null;
+  warranty: string | null;
   dropship: {
     relationshipId: string;
     paused: boolean;

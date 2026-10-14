@@ -17,7 +17,7 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 const QuoteSchema = z.object({
-  items: z.array(z.object({ productId: z.string().max(64), quantity: z.number().int().positive().max(999), variant: z.string().max(120).optional() })).min(1).max(100),
+  items: z.array(z.object({ productId: z.string().max(64), quantity: z.number().int().positive().max(999), variant: z.string().max(120).optional(), variantId: z.string().max(80).optional() })).min(1).max(100),
   address: z.object({ city: z.string().max(120).optional(), state: z.string().max(120).optional() }).default({}),
   deliveryOptionId: z.string().max(64).optional(),
   discountCode: z.string().max(40).optional(),

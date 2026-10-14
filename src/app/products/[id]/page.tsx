@@ -35,10 +35,19 @@ export default async function ProductEditPage({
     notFound();
   }
 
-  const categories = await db.category.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, slug: true },
-  });
+  const [categories, others] = await Promise.all([
+    db.category.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, slug: true },
+    }),
+    // For "Customers also like".
+    db.storeProduct.findMany({
+      where: { storeId: store.id, status: { not: "archived" }, id: { not: product.id } },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+      select: { id: true, name: true, images: true, retailPrice: true },
+    }),
+  ]);
 
   return (
     <AppPage
@@ -53,6 +62,7 @@ export default async function ProductEditPage({
         isEdit
         storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain })}
         storeName={store.name}
+        storeProducts={others.map((entry) => ({ id: entry.id, name: entry.name, image: entry.images[0] ?? null, price: entry.retailPrice }))}
       />
     </AppPage>
   );

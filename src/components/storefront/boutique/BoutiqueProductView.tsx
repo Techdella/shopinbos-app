@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { deliveryLines, formatStoreMoney, whatsappLink, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
-import { colourHex, matchVariant, readVariants, variantGroups, variantLabel, type ShopperProduct } from "../shopper/catalog";
+import { colourHex, type ShopperProduct } from "../shopper/catalog";
+import { useVariantPicker } from "../shopper/useVariantPicker";
+import { productDetailRows } from "@shared/product-types";
 import { SectionTitle } from "./BoutiqueChrome";
 import type { BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
@@ -26,8 +28,10 @@ export interface BoutiqueProductDetail extends ShopperProduct {
   longDescription?: string | null;
   specifications?: unknown;
   careInstructions?: string | null;
+  warranty?: string | null;
   shippingInfo?: string | null;
   returnPolicy?: string | null;
+  productDetails?: unknown;
 }
 
 export interface AddToBagInput {
@@ -35,6 +39,7 @@ export interface AddToBagInput {
   price: number;
   image?: string;
   variant?: string;
+  variantId?: string;
   quantity: number;
   maxQuantity?: number;
 }
@@ -74,14 +79,6 @@ function Stars({ rating, size = 14, color }: { rating: number; size?: number; co
   );
 }
 
-function readSpecs(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => (entry && typeof entry === "object" ? (entry as { name?: unknown; value?: unknown }) : {}))
-    .filter((entry) => typeof entry.name === "string" && typeof entry.value === "string" && entry.name.trim() && (entry.value as string).trim())
-    .map((entry) => ({ name: String(entry.name), value: String(entry.value) }));
-}
-
 function Chip({ selected, disabled, onClick, children, look, label }: { selected: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode; look: BoutiqueLook; label?: string }) {
   const t = look.tokens;
   return (
@@ -107,12 +104,7 @@ function Chip({ selected, disabled, onClick, children, look, label }: { selected
 export function BoutiqueProductView(props: Props) {
   const { product, look, shopper, interactive } = props;
   const t = look.tokens;
-  const variants = useMemo(() => readVariants(product.variants), [product.variants]);
-  const groups = useMemo(() => variantGroups(variants), [variants]);
-  const firstAvailable = variants.find((variant) => typeof variant.stock !== "number" || variant.stock > 0) ?? variants[0];
-  const [colour, setColour] = useState<string | undefined>(firstAvailable?.color?.trim() || undefined);
-  const [size, setSize] = useState<string | undefined>(firstAvailable?.size?.trim() || undefined);
-  const [name, setName] = useState<string | undefined>(groups.names.length ? (firstAvailable?.name || firstAvailable?.sku)?.trim() : undefined);
+  const picker = useVariantPicker(product);
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState<"details" | "reviews" | "delivery">("details");
   const [index, setIndex] = useState(0);
@@ -120,14 +112,10 @@ export function BoutiqueProductView(props: Props) {
   const galleryRef = useRef<HTMLDivElement>(null);
   const tabsId = useId();
 
-  const selected = variants.length ? matchVariant(variants, { colour, size, name }) : null;
-  const stock = typeof selected?.stock === "number" ? selected.stock : null;
-  const soldOut = (variants.length > 0 && !selected) || (stock !== null && stock <= 0);
-  const price = selected?.price ?? product.retailPrice;
-  const compareAt = product.compareAtPrice && product.compareAtPrice > price ? product.compareAtPrice : null;
-  const variantImages = [selected?.imageUrl, ...(selected?.images ?? [])].filter((src): src is string => Boolean(src));
+  const { selected, stock, soldOut, price, compareAt } = picker;
+  const variantImages = [picker.image, ...(selected?.images ?? [])].filter((src): src is string => Boolean(src));
   const images = [...new Set([...variantImages, ...product.images])];
-  const specs = readSpecs(product.specifications);
+  const details = productDetailRows(product, { includeColumns: true });
   const delivery = deliveryLines(shopper, props.currency);
   const wished = props.wishlistIds.includes(product.id);
   const maxQuantity = stock !== null ? Math.max(1, stock) : 99;
@@ -140,24 +128,6 @@ export function BoutiqueProductView(props: Props) {
   useEffect(() => {
     if (quantity > maxQuantity) setQuantity(maxQuantity);
   }, [maxQuantity, quantity]);
-
-  const inStock = (variant: { stock?: number }) => typeof variant.stock !== "number" || variant.stock > 0;
-
-  function chooseColour(value: string) {
-    setColour(value);
-    if (!matchVariant(variants, { colour: value, size, name })) {
-      const next = variants.find((variant) => variant.color?.trim() === value && inStock(variant)) ?? variants.find((variant) => variant.color?.trim() === value);
-      setSize(next?.size?.trim() || undefined);
-    }
-  }
-
-  function chooseSize(value: string) {
-    setSize(value);
-    if (!matchVariant(variants, { colour, size: value, name })) {
-      const next = variants.find((variant) => variant.size?.trim() === value && inStock(variant)) ?? variants.find((variant) => variant.size?.trim() === value);
-      setColour(next?.color?.trim() || undefined);
-    }
-  }
 
   function goTo(next: number) {
     const count = Math.max(images.length, 1);
@@ -175,12 +145,12 @@ export function BoutiqueProductView(props: Props) {
   }
 
   function item(): AddToBagInput {
-    const label = selected ? variantLabel(selected) : undefined;
+    const label = selected?.name;
     return {
-      name: label ? `${product.name} - ${label}` : product.name,
+      name: label ? `${product.name} · ${label}` : product.name,
       price,
       image: variantImages[0] ?? product.images[0],
-      variant: label,
+      ...picker.line,
       quantity,
       maxQuantity: stock ?? undefined,
     };
@@ -203,7 +173,7 @@ export function BoutiqueProductView(props: Props) {
   }
 
   const chat = shopper.whatsappNumber
-    ? whatsappLink(shopper.whatsappNumber, `Hi ${props.storeName}, I'm asking about ${product.name}${selected ? ` (${variantLabel(selected)})` : ""}${props.shareUrl ? `: ${props.shareUrl}` : ""}`)
+    ? whatsappLink(shopper.whatsappNumber, `Hi ${props.storeName}, I'm asking about ${product.name}${selected ? ` (${selected.name})` : ""}${props.shareUrl ? `: ${props.shareUrl}` : ""}`)
     : null;
 
   const ratingLine = props.reviewCount > 0 ? (
@@ -299,52 +269,25 @@ export function BoutiqueProductView(props: Props) {
           </div>
           {product.description ? <p className="mt-4 text-[15px] leading-7" style={{ color: t.muted }}>{product.description}</p> : null}
 
-          {groups.colours.length ? (
-            <fieldset className="mt-5">
-              <legend className="text-[14px]">Colour: <strong>{colour ?? "Choose"}</strong></legend>
-              <div className="mt-2.5 flex flex-wrap gap-2.5">
-                {groups.colours.map((value) => {
-                  const hex = colourHex(value);
-                  const on = colour === value;
-                  const available = variants.some((variant) => variant.color?.trim() === value && (typeof variant.stock !== "number" || variant.stock > 0));
+          {picker.options.map((option) => (
+            <fieldset key={option.name} className="mt-5">
+              <legend className="text-[14px]">{option.name}: <strong>{picker.selection[option.name] ?? "Choose"}</strong></legend>
+              <div className={option.colour ? "mt-2.5 flex flex-wrap gap-2.5" : "mt-2.5 flex flex-wrap gap-2"}>
+                {option.values.map((value) => {
+                  const on = picker.selection[option.name] === value;
+                  const available = picker.available(option.name, value);
+                  const hex = option.colour ? colourHex(value) : null;
                   return hex ? (
-                    <button key={value} type="button" onClick={() => chooseColour(value)} aria-pressed={on} aria-label={`${value}${available ? "" : ", sold out"}`} className="grid h-10 w-10 place-items-center rounded-full" style={{ boxShadow: on ? `0 0 0 2px ${t.paperBg}, 0 0 0 4px ${t.ink}` : `0 0 0 1px ${t.border}`, opacity: available ? 1 : 0.45, cursor: "pointer" }}>
+                    <button key={value} type="button" onClick={() => picker.pick(option.name, value)} aria-pressed={on} aria-label={`${value}${available ? "" : ", sold out"}`} title={value} className="grid h-11 w-11 place-items-center rounded-full" style={{ boxShadow: on ? `0 0 0 2px ${t.paperBg}, 0 0 0 4px ${t.ink}` : `0 0 0 1px ${t.border}`, opacity: available ? 1 : 0.4, cursor: "pointer" }}>
                       <span className="block h-8 w-8 rounded-full" style={{ background: hex }} />
                     </button>
                   ) : (
-                    <Chip key={value} selected={on} disabled={!available} onClick={() => chooseColour(value)} look={look}>{value}</Chip>
+                    <Chip key={value} selected={on} disabled={!available && !on} onClick={() => picker.pick(option.name, value)} look={look} label={available ? undefined : `${value}, sold out`}>{value}</Chip>
                   );
                 })}
               </div>
             </fieldset>
-          ) : null}
-
-          {groups.sizes.length ? (
-            <fieldset className="mt-5">
-              <legend className="text-[14px]">Size: <strong>{size ?? "Choose"}</strong></legend>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {groups.sizes.map((value) => {
-                  const available = variants.some((variant) => variant.size?.trim() === value && (!colour || variant.color?.trim() === colour) && inStock(variant));
-                  return (
-                    <Chip key={value} selected={size === value} disabled={!available} onClick={() => chooseSize(value)} look={look} label={available ? undefined : `${value}, sold out`}>{value}</Chip>
-                  );
-                })}
-              </div>
-            </fieldset>
-          ) : null}
-
-          {groups.names.length ? (
-            <fieldset className="mt-5">
-              <legend className="text-[14px]">Option: <strong>{name ?? "Choose"}</strong></legend>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {groups.names.map((value) => {
-                  const variant = variants.find((entry) => (entry.name || entry.sku)?.trim() === value);
-                  const available = typeof variant?.stock !== "number" || variant.stock > 0;
-                  return <Chip key={value} selected={name === value} disabled={!available} onClick={() => setName(value)} look={look}>{value}</Chip>;
-                })}
-              </div>
-            </fieldset>
-          ) : null}
+          ))}
 
           {selected?.customFields?.some((field) => field.name && field.value) ? (
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]" style={{ color: t.muted }}>
@@ -368,7 +311,9 @@ export function BoutiqueProductView(props: Props) {
                 <Icon name="plus" size={14} />
               </button>
             </div>
-            {stock !== null && stock > 0 && stock <= 5 ? <span className="text-[13px] font-semibold" style={{ color: "#C2410C" }}>Only {stock} left</span> : null}
+            <span className="text-[13px] font-semibold" role="status" aria-live="polite" style={{ color: "#C2410C" }}>
+              {soldOut && picker.variants.length ? "Sold out" : stock !== null && stock > 0 && stock <= 5 ? `Only ${stock} left` : ""}
+            </span>
           </div>
 
           <div className="mt-5 grid gap-2.5">
@@ -458,20 +403,17 @@ export function BoutiqueProductView(props: Props) {
               <div>
                 <h2 className="bq-h text-[24px]" style={look.headingStyle}>Product details</h2>
                 {product.longDescription ? <p className="mt-3 whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{product.longDescription}</p> : null}
-                {!product.longDescription && !specs.length ? <p className="mt-3 text-[14.5px] leading-7" style={{ color: t.muted }}>{product.description || "The seller hasn't added more details yet. Ask on WhatsApp or through the contact page."}</p> : null}
-                {product.careInstructions ? (
-                  <p className="mt-3 text-[14px] leading-6" style={{ color: t.muted }}><strong style={{ color: t.ink }}>Care:</strong> {product.careInstructions}</p>
-                ) : null}
+                {!product.longDescription && !details.length ? <p className="mt-3 text-[14.5px] leading-7" style={{ color: t.muted }}>{product.description || "The seller hasn't added more details yet. Ask on WhatsApp or through the contact page."}</p> : null}
                 {product.sku ? <p className="mt-3 text-[12.5px]" style={{ color: t.muted }}>SKU {selected?.sku ?? product.sku}</p> : null}
               </div>
-              {specs.length ? (
+              {details.length ? (
                 <div className="rounded-[16px] p-5" style={{ background: look.raised }}>
-                  <h3 className="text-[18px] font-semibold">Specifications</h3>
+                  <h3 className="text-[18px] font-semibold">Details</h3>
                   <dl className="mt-3 rounded-[10px] px-4" style={{ background: look.dark ? t.paperBg : "#fff" }}>
-                    {specs.map((spec) => (
-                      <div key={spec.name} className="flex justify-between gap-4 border-b py-2.5 text-[14px] last:border-b-0" style={{ borderColor: t.border }}>
-                        <dt className="font-semibold">{spec.name}</dt>
-                        <dd className="m-0 text-right" style={{ color: t.muted }}>{spec.value}</dd>
+                    {details.map((row) => (
+                      <div key={row.label} className="flex justify-between gap-4 border-b py-2.5 text-[14px] last:border-b-0" style={{ borderColor: t.border }}>
+                        <dt className="font-semibold">{row.label}</dt>
+                        <dd className="m-0 whitespace-pre-line text-right" style={{ color: t.muted }}>{row.value}</dd>
                       </div>
                     ))}
                   </dl>
@@ -544,7 +486,7 @@ export function BoutiqueProductView(props: Props) {
 
       {props.related.length ? (
         <section className="mt-6" aria-labelledby={`${tabsId}-explore`}>
-          <SectionTitle look={look} id={`${tabsId}-explore`}>Explore</SectionTitle>
+          <SectionTitle look={look} id={`${tabsId}-explore`}>Customers also like</SectionTitle>
           <div className="bq-rail">
             {props.related.slice(0, 8).map((entry) => (
               <ProductTile

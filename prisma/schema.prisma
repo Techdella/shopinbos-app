@@ -616,6 +616,13 @@ model StoreProduct {
   sourceType        ProductSourceType? // tracks original source
   categoryId        String?
   variants          Json?
+  // Preset category (shared/product-types.ts); null = "other". Details are { fieldKey: value }.
+  productType       String?
+  productDetails    Json            @default("{}")
+  // Options for the versions in order: [{ name, values }] (shared/product-variants.ts).
+  variantOptions    Json            @default("[]")
+  // "Customers also like": up to 8 of the store's own products.
+  relatedProductIds String[]        @default([])
   tags              String[]
   featured          Boolean         @default(false)
   sortOrder         Int             @default(0)
@@ -659,6 +666,7 @@ model StoreProduct {
   productSources  ProductSource[]
 
   @@index([storeId])
+  @@index([storeId, productType])
   @@index([supplierProductId])
   @@index([categoryId])
   @@index([sku])

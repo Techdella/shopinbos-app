@@ -13,7 +13,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
 import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
-import type { ShopperProduct } from "../shopper/catalog";
+import { relatedProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
@@ -86,20 +86,17 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
     for (const entry of catalog) if (entry.category?.slug) map.set(entry.category.slug, { slug: entry.category.slug, name: entry.category.name });
     return [...map.values()];
   }, [catalog]);
-  const related = useMemo(() => {
-    const others = catalog.filter((entry) => entry.id !== product.id);
-    const same = others.filter((entry) => product.category?.slug && entry.category?.slug === product.category.slug);
-    return [...same, ...others.filter((entry) => !same.includes(entry))];
-  }, [catalog, product.id, product.category?.slug]);
+  // "Customers also like": the seller's picks, else same type, category or tags.
+  const related = useMemo(() => relatedProducts(product, catalog), [catalog, product]);
 
   function add(input: AddToBagInput) {
-    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, maxQuantity: input.maxQuantity, quantity: input.quantity });
+    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, variantId: input.variantId, maxQuantity: input.maxQuantity, quantity: input.quantity });
     if (cartSettings.afterAdd === "drawer") setCartOpen(true);
     else router.push(getPublicStorefrontPath(storeBasePath, cartSettings.afterAdd === "checkout" ? "/checkout" : "/cart"));
   }
 
   function buyNow(input: AddToBagInput) {
-    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, maxQuantity: input.maxQuantity, quantity: input.quantity });
+    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, variantId: input.variantId, maxQuantity: input.maxQuantity, quantity: input.quantity });
     router.push(getPublicStorefrontPath(storeBasePath, "/checkout"));
   }
 

@@ -236,3 +236,24 @@ test("the intro host waits for the server's preferences and the guided tour, and
   assert.match(intro, /Escape/);
   assert.match(intro, /Watch the video/);
 });
+
+test("tips and tooltips: on by default, switched off and back on through preferences", () => {
+  assert.equal(prefs.tipsOn(prefs.parsePreferences({})), true);
+  assert.equal(prefs.tipsOn(null), true);
+  const off = prefs.mergePreferences(prefs.DEFAULT_PREFERENCES, { tips: false }, new Set());
+  assert.equal(off.tips, false);
+  assert.equal(prefs.tipsOn(prefs.parsePreferences(off)), false, "survives a save and reload");
+  const on = prefs.mergePreferences(off, { tips: true }, new Set());
+  assert.equal("tips" in on, false, "back on leaves nothing stored");
+  assert.equal(prefs.parsePreferences({ tips: "no" }).tips, undefined);
+  assert.equal(PreferencesPatchSchema.safeParse({ tips: false }).success, true);
+  assert.equal(PreferencesPatchSchema.safeParse({ tips: "off" }).success, false);
+  // Switched off: word tooltips, menu tips and automatic intros stop; every tip says where to switch it off.
+  assert.match(read("src/components/learn/Term.tsx"), /if \(!entry \|\| !tipsOn\)/);
+  assert.match(read("src/components/learn/Term.tsx"), /<TipsOffNote /);
+  assert.match(read("src/components/shell/Sidebar.tsx"), /tipsOn \? navTerm\(role, id\) : null/);
+  assert.match(read("src/components/learn/FeatureIntroHost.tsx"), /!autoOn/);
+  assert.match(read("src/components/settings/CustomiseMenu.tsx"), /id="tips"/);
+  assert.match(read("apps/mobile/src/components/learn/LearnHost.tsx"), /!tipsOn/);
+  assert.match(read("apps/mobile/src/app/settings.tsx"), /<TipsRow \/>/);
+});

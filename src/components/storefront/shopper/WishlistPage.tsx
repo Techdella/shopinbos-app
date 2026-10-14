@@ -9,7 +9,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { parseSharedWishlist, sharedWishlistQuery } from "@shared/cart-checkout";
-import { readVariants, type ShopperProduct } from "./catalog";
+import { needsOptions, readVariants, type ShopperProduct } from "./catalog";
 import { Banner, ProductRow } from "./CartPage";
 import { PageTitle, Panel, PrimaryButton, SecondaryButton, ShopperShell } from "./ShopperShell";
 import { resolveShopperTheme } from "./theme";
@@ -51,6 +51,11 @@ export function WishlistPage({ store, basePath, commerce, preview = false }: { s
   }
 
   function addToBag(product: ShopperProduct) {
+    // Sizes or colours to choose first: open the product page.
+    if (needsOptions(product)) {
+      window.location.assign(productHref(product.id));
+      return;
+    }
     cart.add({ productId: product.id, name: product.name, price: product.retailPrice, image: product.images[0] });
     if (!shared) void wishlist.remove(product.id);
     setNotice(`${product.name} ${shared ? "added to" : "moved to"} your bag.`);

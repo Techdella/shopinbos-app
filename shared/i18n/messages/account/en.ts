@@ -163,6 +163,8 @@ const en = {
   "menu.loading": "Loading your menu…",
   "menu.onlyUse": "Only see what you use",
   "menu.onlyUseSub": "Switching something off hides it from your menu. Nothing is deleted: your data stays, and you can switch it back on here any time.",
+  "menu.tips": "Tips and tooltips",
+  "menu.tipsSub": "The little explanations when you point at or tap a word, the tips on menu items, and the short intros that open by themselves on new pages. Switch off and you can still watch any intro from “Learn” at the top of a page.",
   "menu.walkthrough": "Walkthrough",
   "menu.walkthroughSub": "See the quick tour of your menu and the main buttons again.",
   "menu.replay": "Show me around again",

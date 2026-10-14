@@ -1,5 +1,7 @@
 // Product helpers shared by the storefront themes, the product page and the shopper bottom nav.
 
+import { isColourOption, normalizeVariants, totalVariantStock } from "../../../../shared/product-variants.ts";
+
 export interface ShopperVariant {
   id?: string;
   name?: string;
@@ -25,6 +27,11 @@ export interface ShopperProduct {
   avgRating?: number;
   reviewCount?: number;
   variants?: unknown;
+  variantOptions?: unknown;
+  /** Product type key (shared/product-types.ts) and tags, for "Customers also like" when none are picked. */
+  productType?: string | null;
+  tags?: string[];
+  relatedProductIds?: string[];
   supplierProduct?: { stockQuantity?: number | null } | null;
 }
 
@@ -88,9 +95,8 @@ export function variantLabel(variant: ShopperVariant) {
 
 /** Units left when the seller tracks stock (variant stock, or the supplier's stock for dropship); null otherwise. */
 export function unitsLeft(product: Pick<ShopperProduct, "variants" | "supplierProduct">) {
-  const variants = readVariants(product.variants);
-  const tracked = variants.filter((variant) => typeof variant.stock === "number");
-  if (tracked.length) return tracked.reduce((sum, variant) => sum + Math.max(0, variant.stock ?? 0), 0);
+  const tracked = totalVariantStock(normalizeVariants(product.variants));
+  if (tracked !== null) return Math.max(0, tracked);
   const supplier = product.supplierProduct?.stockQuantity;
   return typeof supplier === "number" ? supplier : null;
 }
@@ -102,7 +108,10 @@ export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "suppli
 }
 
 export function productColours(product: Pick<ShopperProduct, "variants">) {
-  return unique(readVariants(product.variants).map((variant) => variant.color))
+  const colours = normalizeVariants(product.variants)
+    .filter((variant) => variant.enabled)
+    .map((variant) => Object.entries(variant.options).find(([name]) => isColourOption(name))?.[1]);
+  return unique(colours)
     .map((name) => ({ name, hex: colourHex(name) }))
     .filter((entry): entry is { name: string; hex: string } => Boolean(entry.hex))
     .slice(0, 4);
@@ -140,4 +149,33 @@ export function bestSellers<P extends ShopperProduct>(products: P[]) {
     .map((product, index) => ({ product, index }))
     .sort((a, b) => (b.product.reviewCount ?? 0) - (a.product.reviewCount ?? 0) || (b.product.avgRating ?? 0) - (a.product.avgRating ?? 0) || a.index - b.index)
     .map((entry) => entry.product);
+}
+
+/** A product with more than one version to choose from: quick "Add to bag" buttons open its page instead. */
+export function needsOptions(product: Pick<ShopperProduct, "variants">) {
+  return normalizeVariants(product.variants).filter((variant) => variant.enabled).length > 1;
+}
+
+/**
+ * "Customers also like": the products the seller picked (in their order), else the store's products of the same
+ * type, category or tags (closest first), then the rest. The product itself never appears.
+ */
+export function relatedProducts<P extends Pick<ShopperProduct, "id" | "category" | "productType" | "tags">>(
+  product: Pick<ShopperProduct, "id" | "category" | "productType" | "tags" | "relatedProductIds">,
+  catalog: P[],
+  limit = 8,
+): P[] {
+  const others = catalog.filter((entry) => entry.id !== product.id);
+  const picked = (product.relatedProductIds ?? []).map((id) => others.find((entry) => entry.id === id)).filter((entry): entry is P => Boolean(entry));
+  if (picked.length) return picked.slice(0, limit);
+  const tags = new Set((product.tags ?? []).map((tag) => tag.toLowerCase()));
+  const score = (entry: P) =>
+    (product.productType && entry.productType === product.productType ? 2 : 0) +
+    (product.category?.slug && entry.category?.slug === product.category.slug ? 3 : 0) +
+    (entry.tags ?? []).filter((tag) => tags.has(tag.toLowerCase())).length;
+  return others
+    .map((entry, index) => ({ entry, index, score: score(entry) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((row) => row.entry)
+    .slice(0, limit);
 }

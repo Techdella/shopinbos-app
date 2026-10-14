@@ -20,7 +20,7 @@ import {
   whatsappLink,
   type StorefrontShopperInfo,
 } from "@/lib/storefront/shopper-info";
-import { bestSellers, productCategories, searchProducts, type ShopperProduct } from "../shopper/catalog";
+import { bestSellers, productCategories, relatedProducts, searchProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView } from "./BoutiqueProductView";
@@ -1199,7 +1199,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   function productDetail() {
     const product = (selectedProductId ? products.find((entry) => entry.id === selectedProductId) : null) ?? products[0];
     if (!product) return editorHint("Add a product to preview the product page.");
-    const related = [...products.filter((entry) => entry.id !== product.id && entry.category?.slug && entry.category.slug === product.category?.slug), ...products.filter((entry) => entry.id !== product.id && entry.category?.slug !== product.category?.slug)];
+    const related = relatedProducts(product, products);
     return (
       <BoutiqueProductView
         product={product}

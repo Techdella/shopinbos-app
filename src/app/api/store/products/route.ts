@@ -5,6 +5,7 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { StoreProductCreateSchema, StoreProductQuerySchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
+import { productFieldsData } from "@/lib/products/save-fields.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const store = await db.store.findUnique({ where: { userId: user.id } });
@@ -103,7 +104,10 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { costPrice, retailPrice, ...rest } = parsed.data;
+  const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, ...rest } = parsed.data;
+  // Type, details, versions (checked and normalized) and related products.
+  const fields = await productFieldsData(store.id, { productType, productDetails, relatedProductIds, variants, variantOptions }, { inventoryType: rest.inventoryType });
+  if (!fields.ok) return apiError("BAD_REQUEST", fields.error);
 
   const margin =
     costPrice != null && retailPrice > 0
@@ -113,6 +117,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const product = await db.storeProduct.create({
     data: {
       ...rest,
+      ...(fields.data as Record<string, never>),
       storeId: store.id,
       userId: user.id,
       retailPrice,
