@@ -17,10 +17,14 @@
 //   Sendchamp  SENDCHAMP_API_KEY + AUTH_OTP_WHATSAPP_SENDER (the business WhatsApp number) + an approved
 //              authentication template (AUTH_OTP_WHATSAPP_TEMPLATE): WhatsApp only lets a business start a chat
 //              with a template.
-// AUTH_OTP_WHATSAPP_PROVIDER picks one when both are set (default: SMS_PROVIDER order).
+//   Meta       Shopinbos's own WhatsApp Business number on the Cloud API: WHATSAPP_OTP_PHONE_NUMBER_ID +
+//              WHATSAPP_OTP_TOKEN (a System User token with whatsapp_business_messaging) + the approved
+//              authentication template's name in AUTH_OTP_WHATSAPP_TEMPLATE (copy-code button; create it with
+//              scripts/create-whatsapp-otp-template.mjs). AUTH_OTP_WHATSAPP_TEMPLATE_LANG (default "en").
+// AUTH_OTP_WHATSAPP_PROVIDER picks one when several are set (default: SMS_PROVIDER order, then Termii, Sendchamp, Meta).
 
 export type CodeChannel = "whatsapp" | "sms";
-export type WhatsAppCodeProvider = "termii" | "sendchamp";
+export type WhatsAppCodeProvider = "termii" | "sendchamp" | "meta";
 
 type Env = Record<string, string | undefined>;
 
@@ -35,6 +39,9 @@ export interface WhatsAppCodeConfig {
   templateParam?: string;
   /** Termii base URL from its dashboard. */
   baseUrl?: string;
+  /** Meta only: the template's language code ("en"), and the Graph API version. */
+  language?: string;
+  graphVersion?: string;
 }
 
 const on = (value: string | undefined) => /^(1|true|yes|on)$/i.test((value ?? "").trim());
@@ -55,13 +62,31 @@ function sendchampConfig(env: Env): WhatsAppCodeConfig | null {
   return { provider: "sendchamp", apiKey, sender, template, templateParam: clean(env.AUTH_OTP_WHATSAPP_TEMPLATE_PARAM) || "1" };
 }
 
+function metaConfig(env: Env): WhatsAppCodeConfig | null {
+  const apiKey = clean(env.WHATSAPP_OTP_TOKEN);
+  const sender = clean(env.WHATSAPP_OTP_PHONE_NUMBER_ID).replace(/[^\d]/g, "");
+  const template = clean(env.AUTH_OTP_WHATSAPP_TEMPLATE);
+  if (!apiKey || !sender || !template) return null;
+  return {
+    provider: "meta",
+    apiKey,
+    sender,
+    template,
+    language: clean(env.AUTH_OTP_WHATSAPP_TEMPLATE_LANG) || "en",
+    graphVersion: clean(env.META_GRAPH_VERSION) || "v21.0",
+  };
+}
+
+const PROVIDERS: WhatsAppCodeProvider[] = ["termii", "sendchamp", "meta"];
+const isProvider = (value: string): value is WhatsAppCodeProvider => (PROVIDERS as string[]).includes(value);
+
 /** Which WhatsApp providers to try, best first: AUTH_OTP_WHATSAPP_PROVIDER, then SMS_PROVIDER order, then the rest. */
 function providerOrder(env: Env): WhatsAppCodeProvider[] {
   const names = `${clean(env.AUTH_OTP_WHATSAPP_PROVIDER)},${clean(env.SMS_PROVIDER)}`
     .split(",")
     .map((item) => item.trim().toLowerCase().replace(/[^a-z]/g, ""))
-    .filter((item): item is WhatsAppCodeProvider => item === "termii" || item === "sendchamp");
-  return Array.from(new Set<WhatsAppCodeProvider>([...names, "termii", "sendchamp"]));
+    .filter(isProvider);
+  return Array.from(new Set<WhatsAppCodeProvider>([...names, ...PROVIDERS]));
 }
 
 /**
@@ -71,7 +96,7 @@ function providerOrder(env: Env): WhatsAppCodeProvider[] {
 export function whatsappCodeConfig(env: Env): WhatsAppCodeConfig | null {
   if (!on(env.AUTH_OTP_WHATSAPP)) return null;
   for (const provider of providerOrder(env)) {
-    const config = provider === "termii" ? termiiConfig(env) : sendchampConfig(env);
+    const config = provider === "termii" ? termiiConfig(env) : provider === "sendchamp" ? sendchampConfig(env) : metaConfig(env);
     if (config) return config;
   }
   return null;
@@ -135,12 +160,42 @@ export function sendchampWhatsAppRequest(config: WhatsAppCodeConfig, phone: stri
   };
 }
 
+/**
+ * Meta Cloud API POST /{phone-number-id}/messages with the authentication template. Copy-code templates take the code
+ * twice: in the body ({{1}}) and as the button's parameter.
+ */
+export function metaWhatsAppRequest(config: WhatsAppCodeConfig, phone: string, otp: string) {
+  return {
+    url: `https://graph.facebook.com/${config.graphVersion || "v21.0"}/${config.sender}/messages`,
+    body: {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: digits(phone),
+      type: "template",
+      template: {
+        name: config.template ?? "",
+        language: { code: config.language || "en" },
+        components: [
+          { type: "body", parameters: [{ type: "text", text: otp }] },
+          { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: otp }] },
+        ],
+      },
+    },
+  };
+}
+
 /** Did the provider take the WhatsApp message? Termii answers code "ok" / a message_id; Sendchamp status "success". */
 export function readWhatsAppSend(provider: WhatsAppCodeProvider, httpOk: boolean, json: Record<string, unknown>): { ok: true } | { ok: false; error: string } {
   const text = (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : "");
   if (provider === "termii") {
     if (httpOk && (text(json.code).toLowerCase() === "ok" || text(json.message_id) || text(json.message_id_str))) return { ok: true };
     return { ok: false, error: (text(json.message) || "Termii didn't send the WhatsApp message.").slice(0, 300) };
+  }
+  if (provider === "meta") {
+    const messages = Array.isArray(json.messages) ? (json.messages as Record<string, unknown>[]) : [];
+    if (httpOk && text(messages[0]?.id)) return { ok: true };
+    const error = json.error && typeof json.error === "object" ? (json.error as Record<string, unknown>) : {};
+    return { ok: false, error: (text(error.message) || "Meta didn't send the WhatsApp message.").slice(0, 300) };
   }
   const status = text(json.status).toLowerCase();
   if (httpOk && status !== "error" && status !== "failed") return { ok: true };
