@@ -20,7 +20,7 @@ function sib_seed_ticks( array $items, string $class = 'ticks' ): string {
 function sib_seed_landing_markup( array $d ): string {
 	$vis_icon = [ 'store' => 'store', 'social' => 'layers', 'pay' => 'naira', 'chat' => 'chat', 'ai' => 'spark', 'stock' => 'box', 'deliver' => 'truck' ];
 	$fit      = 'contain' === $d['fit'] ? 'contain' : 'cover';
-	$img      = '<div class="land-media" style="background:' . esc_attr( $d['bg'] ) . '"><img class="is-' . $fit . '" src="' . esc_url( sib_theme_img( $d['img'] ) ) . '" alt="" loading="eager"></div>';
+	$img      = '<div class="land-media" style="background:' . esc_attr( $d['bg'] ) . '"><img class="is-' . $fit . '" src="' . esc_url( sib_theme_img( str_contains( $d['img'], '.' ) ? $d['img'] : 'c/' . $d['img'] . '.webp' ) ) . '" alt="" loading="eager"></div>';
 	$kws      = '<div class="row wrapflex" style="gap:8px">' . implode( '', array_map( fn( $k ) => '<span class="tag">' . esc_html( $k ) . '</span>', $d['kws'] ) ) . '</div>';
 
 	// Hero

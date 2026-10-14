@@ -511,12 +511,13 @@ class Sib_CLI {
 		}
 
 		foreach ( sib_seed_landings() as $i => $d ) {
-			$content  = sib_seed_landing_markup( $d );
+			// The canvas landing sections (theme canvas/land-<slug>-NN.html) when they exist.
+			$content  = function_exists( 'sib_canvas_blocks' ) && sib_canvas_blocks( 'land-' . $d['slug'] ) ? sib_canvas_blocks( 'land-' . $d['slug'] ) : sib_seed_landing_markup( $d );
 			$existing = get_page_by_path( $d['slug'], OBJECT, $d['type'] );
 			if ( $existing && $existing->post_type === $d['type'] ) {
 				$id = $this->refresh_post( $existing, $d['title'], $content, $d['excerpt'], '', $i + 1 );
 			} else {
-				$id = $this->cpt( $d['type'], $d['slug'], $d['title'], $content, $d['excerpt'], [ 'sib_cta_intent' => '', 'sib_reviewed' => gmdate( 'Y-m-d' ) ], $d['img'], $i + 1 );
+				$id = $this->cpt( $d['type'], $d['slug'], $d['title'], $content, $d['excerpt'], [ 'sib_cta_intent' => '', 'sib_reviewed' => gmdate( 'Y-m-d' ) ], str_contains( $d['img'], '.' ) ? $d['img'] : 'c/' . $d['img'] . '.webp', $i + 1 );
 				update_post_meta( $id, '_sib_seed_src', md5( $content ) );
 				$this->fingerprint( $id );
 			}
@@ -549,7 +550,9 @@ class Sib_CLI {
 		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
 		$file = SIB_CORE_DIR . '/includes/seed/comparisons.json';
 		foreach ( (array) json_decode( (string) file_get_contents( $file ), true ) as $i => $c ) {
-			$content = sib_seed_b( 'compare', [
+			// The canvas compare sections (theme canvas/cmp-<slug>-NN.html) when they exist, else the Compare block.
+			$canvas  = function_exists( 'sib_canvas_blocks' ) ? sib_canvas_blocks( 'cmp-' . $c['slug'] ) : '';
+			$content = $canvas ?: sib_seed_b( 'compare', [
 				'competitor'  => $c['competitor'],
 				'lastChecked' => '2026-10-14',
 				'h1'          => $c['h1'],
@@ -564,6 +567,9 @@ class Sib_CLI {
 			$existing = get_page_by_path( $c['slug'], OBJECT, 'sib_comparison' );
 			if ( $existing && 'sib_comparison' === $existing->post_type ) {
 				$this->refresh_post( $existing, $c['title'], $content, $c['sub'], '', $i + 1 );
+				if ( ! get_post_meta( $existing->ID, 'sib_last_checked', true ) ) {
+					update_post_meta( $existing->ID, 'sib_last_checked', '2026-10-14' );
+				}
 				continue;
 			}
 			$id = $this->cpt( 'sib_comparison', $c['slug'], $c['title'], $content, $c['sub'], [ 'sib_last_checked' => '2026-10-14', 'sib_cta_intent' => 'import' ], '', $i + 1 );

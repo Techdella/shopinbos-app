@@ -52,7 +52,16 @@ TEXT = {
     'Mama Put Snacks': 'Mama Tee Pantry',
     'mamaputsnacks.shopinbos.com': 'mamateepantry.shopinbos.com',
     'A smiling baker behind his counter of fresh pastries': 'A smiling food seller with his packed snacks',
+    'Last checked 1 October 2026': 'Last checked {{checked}}',
+    'We checked these details on 1 October 2026': 'We checked these details on {{checked}}',
 }
+def _urls(name):
+    f = os.path.join(CDOM, name)
+    return json.load(open(f)) if os.path.exists(f) else {}
+
+
+LAND_URLS = _urls('land-urls.json')
+CMP_URLS = _urls('cmp-urls.json')
 used_imgs = set()
 
 
@@ -73,6 +82,11 @@ def resolve(btn):
             return url
     if key in URLS:
         return URLS[key]
+    if key == 'item.open':
+        known = {**LAND_URLS, **CMP_URLS}
+        for name in sorted(known, key=len, reverse=True):
+            if t.startswith(name):
+                return known[name]
     card = btn.find_parent(class_='pcard') or btn
     img = card.find('img')
     up = btn
@@ -266,6 +280,16 @@ page_parts('templates', 'templates', {
     'tplcat': ['templates-fashion', 'templates-shoes', 'templates-luxury', 'templates-food', 'templates-home', 'templates-gadgets'],
 })
 
+for slug in sorted(set(LAND_URLS.values())):
+    slug = slug.strip('/').split('/')[-1]
+    if os.path.exists(os.path.join(CDOM, f'land-{slug}.html')):
+        page_parts(f'land-{slug}', f'land-{slug}')
+
+for url in sorted(set(CMP_URLS.values())):
+    slug = url.strip('/').split('/')[-1]
+    if os.path.exists(os.path.join(CDOM, f'cmp-{slug}.html')):
+        page_parts(f'cmp-{slug}', f'cmp-{slug}')
+
 # ---- Stylesheet --------------------------------------------------------------------------------------------
 css = open(os.path.join(CDOM, 'site.css')).read()
 css = css[css.find('x-dc{display'):]
@@ -274,6 +298,8 @@ css = re.sub(r'@import[^;]+;', '', css)
 css = css.replace('#FF6A2B_TEXT', 'inherit')  # an unset token in the canvas: eyebrows take the text colour
 css = re.sub(r'\n\s*\n+', '\n', css)
 css = """/* Generated from the design canvas by website/tools/canvas_build.py. Edit the canvas, then rebuild. */
+/* Undo site.css's text margin reset inside canvas sections (first, so the canvas classes below still win). */
+.sib :where(.cv) :where(p,h1,h2,h3,h4){margin:revert}
 """ + css + """
 /* Canvas buttons that became links */
 :where(a.cv-b){display:inline-block;text-decoration:none;cursor:pointer;font-size:13.333px;line-height:normal;text-align:center;color:inherit}

@@ -1,4 +1,6 @@
 /* Generated from the design canvas by website/tools/canvas_build.py. Edit the canvas, then rebuild. */
+/* Undo site.css's text margin reset inside canvas sections (first, so the canvas classes below still win). */
+.sib :where(.cv) :where(p,h1,h2,h3,h4){margin:revert}
 
 body{margin:0}
 a{color:#16141F}a:hover{color:#000000}

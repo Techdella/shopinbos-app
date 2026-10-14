@@ -70,6 +70,10 @@ function sib_canvas_part( string $part ): string {
 		}
 		return esc_url( home_url( $m[2] ) );
 	}, $html );
+	if ( str_contains( $html, '{{checked}}' ) ) {
+		$checked = (string) get_post_meta( get_queried_object_id(), 'sib_last_checked', true );
+		$html    = str_replace( '{{checked}}', esc_html( date_i18n( 'j F Y', $checked ? strtotime( $checked ) : time() ) ), $html );
+	}
 	$wa   = function_exists( 'sib_whatsapp_url' ) ? sib_whatsapp_url() : 'https://wa.me/';
 	$html = str_replace( '{{wa}}', esc_url( $wa ), $html );
 
@@ -116,3 +120,11 @@ JS
 
 /* The canvas styles hang off .site. */
 add_filter( 'body_class', fn( $c ) => array_merge( $c, [ 'site' ] ) );
+
+/* Canvas pages carry their own breadcrumb, related links and closing call; skip the template's. */
+add_filter( 'render_block', function ( $html, $block ) {
+	if ( in_array( $block['blockName'], [ 'shopinbos/breadcrumbs', 'shopinbos/related' ], true ) && is_singular() && has_block( 'shopinbos/canvas', get_queried_object_id() ) ) {
+		return '';
+	}
+	return $html;
+}, 10, 2 );
