@@ -18,7 +18,7 @@
     "android": {
       "package": "com.shopinbos.app",
       "adaptiveIcon": {
-        "backgroundColor": "#F6F5F9",
+        "backgroundColor": "#0C4A44",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
