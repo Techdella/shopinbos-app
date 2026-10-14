@@ -263,7 +263,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const memory = read("src/lib/onboarding-memory.ts");
   const workspace = read("src/lib/workspace.ts");
   const storeRoute = read("src/app/api/app/store/route.ts");
-  const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
+  const onboardingPage = read("src/app/onboarding/page.tsx");
   const onboardingCss = read("src/app/globals.css");
   const schema = read("prisma/schema.prisma");
   const schemas = read("src/lib/schemas/index.ts");
@@ -286,35 +286,18 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(workspace, /mergeOnboardingMemory\(parsed\.onboardingMemory, patch\.onboardingMemory\)/);
   assert.match(storeRoute, /mergeBrandSettings\(store\.brandSettings, body\[key\]/);
 
-  assert.match(onboarding, /syncOnboardingMemoryToStore/);
-  assert.match(onboarding, /\/api\/ai\/onboarding-rex/);
-  assert.match(onboarding, /\/api\/ai\/transcribe/);
-  assert.match(onboarding, /navigator\.mediaDevices\.getUserMedia/);
-  assert.match(onboarding, /documentNames/);
-  assert.match(onboarding, /\["Meet Rex", "Name your store", "What you sell", "Build path"\]/);
-  assert.match(onboarding, /const sellerStepsTotal = 10/);
-  assert.match(onboarding, /Step 1 of \{sellerStepsTotal\}/);
-  assert.match(onboarding, /onboardingState: "LIVE"/);
-  assert.match(onboarding, /firstDashboardVisitComplete: true/);
-  assert.doesNotMatch(onboarding, /Step 1 of 5/);
-  assert.doesNotMatch(onboarding, /\/seller\/store\/builder/);
-  assert.match(onboarding, /Build completely with Rex/);
-  assert.match(onboarding, /Start from a template/);
-  assert.match(onboarding, /\/api\/ai\/store-builder/);
-  assert.match(onboarding, /shopinbos-builder-progress/);
-  assert.match(onboarding, /Set up payments/);
-  assert.match(onboarding, /Pick logistics/);
-  assert.match(onboarding, /Launch/);
-  assert.match(onboarding, /forcedRole/);
+  // The old all-in-one /onboarding flow is gone: sellers go to Rex's first run (/onboarding/rex), keeping intents;
+  // suppliers and delivery partners keep their own onboarding pages.
+  assert.match(onboardingPage, /redirect\(query \? `\/onboarding\/rex\?\$\{query\}` : "\/onboarding\/rex"\)/);
+  assert.match(onboardingPage, /portalOnboardingPath\("logistics_partner"\)/);
+  assert.doesNotMatch(onboardingPage, /OnboardingFlow/);
+  assert.equal(exists("src/components/onboarding/OnboardingFlow.tsx"), false);
+
   assert.match(supplierOnboardingComponent, /export function SupplierOnboarding/);
   assert.match(supplierOnboardingComponent, /Submit for admin review/);
-  assert.match(onboarding, /LogisticsOnboardingStage/);
-  assert.match(onboarding, /Where do you operate\?/);
   assert.match(supplierOnboardingComponent, /Verify your business/);
   assert.match(supplierOnboardingComponent, /\/api\/supplier\/onboarding/);
-  assert.match(onboarding, /\/api\/logistics\/onboarding/);
   assert.match(supplierOnboardingComponent, /manual admin verification/);
-  assert.match(onboarding, /Save & exit/);
   assert.match(onboardingCss, /\.onb-step-header/);
   assert.match(onboardingCss, /\.phone-mini/);
   assert.match(onboardingCss, /\.steps \.s\.on/);
@@ -489,7 +472,6 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   const supplierProfile = read("src/app/supplier/profile/page.tsx");
   const logisticsProfile = read("src/app/logistics/profile/page.tsx");
   const logisticsCouriers = withWords("src/app/logistics/couriers/page.tsx", "logistics");
-  const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
 
   assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 50/);
   assert.match(planLimits, /LOGISTICS_FREE_ROUTE_LIMIT = 4/);
@@ -514,7 +496,6 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(logisticsCouriers, /"riders\.starterLimit": "Starter logistics includes \{limit\} active team members/);
   assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
   assert.match(supplierNew, /Free product limit reached/);
-  assert.match(onboarding, /completed: payload\.completed \?\? true/);
 });
 
 test("supplier quote and order pages support response and fulfilment workflows", () => {
