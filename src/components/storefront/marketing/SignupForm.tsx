@@ -38,6 +38,8 @@ export interface SignupResult {
   reward?: SignupReward | null;
   /** They already had (and used, or let end) their one code from this form. */
   rewardSpent?: boolean;
+  /** A free-download pop-up: the file they signed up for (and whether it was emailed too). */
+  download?: { url: string; name: string; emailed: boolean } | null;
 }
 
 function visitorKey(slug: string) {
@@ -105,7 +107,8 @@ export function SignupForm({
       const reward: SignupReward | null = json?.data?.reward ?? null;
       // Kept on this device and put on the bag, so checkout fills it in (and offers it again later).
       if (code) rememberWonCode(storeSlug, { code, label: reward?.label ?? "Your reward", expiresAt: reward?.expiresAt ?? null, minOrder: reward?.minOrder ?? 0, gift: null, source: "signup" });
-      onDone({ code, message: json?.data?.message ?? design.successMessage, alreadySubscribed: Boolean(json?.data?.alreadySubscribed), reward, rewardSpent: Boolean(json?.data?.rewardSpent) });
+      const download = json?.data?.download && typeof json.data.download.url === "string" && /^https:\/\//.test(json.data.download.url) ? (json.data.download as SignupResult["download"]) : null;
+      onDone({ code, message: json?.data?.message ?? design.successMessage, alreadySubscribed: Boolean(json?.data?.alreadySubscribed), reward, rewardSpent: Boolean(json?.data?.rewardSpent), download });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Something went wrong. Try again.");
     } finally {
@@ -219,7 +222,8 @@ export function SignupSuccess({
   const [copied, setCopied] = useState(false);
   const reward = result.reward ?? null;
   const ends = endsOn(reward?.expiresAt ?? null);
-  const headline = result.code && result.alreadySubscribed ? (reward?.again ? "Welcome back! Here's your code again." : "You're already on the list. Here's your code.") : result.alreadySubscribed ? "You're already on the list. Thanks!" : result.message;
+  const download = result.download ?? null;
+  const headline = download && result.alreadySubscribed ? result.message : result.code && result.alreadySubscribed ? (reward?.again ? "Welcome back! Here's your code again." : "You're already on the list. Here's your code.") : result.alreadySubscribed ? "You're already on the list. Thanks!" : result.message;
   const buttonStyle = { background: colors.accent, color: colors.accentText, ...(shape ? { borderRadius: shape.button } : {}) };
   const shop = onShop ? (
     <button type="button" onClick={onShop} className="min-h-[48px] rounded-full px-6 text-[15px] font-bold" style={buttonStyle}>Shop now</button>
@@ -259,7 +263,22 @@ export function SignupSuccess({
       ) : result.rewardSpent ? (
         <p className="m-0 text-[14px] opacity-80">You already got your code for this offer.</p>
       ) : null}
-      {shop}
+      {download ? (
+        <div className="grid gap-2">
+          <a
+            href={download.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 px-6 text-[15px] font-bold no-underline"
+            style={{ ...buttonStyle, borderRadius: shape?.button ?? 999 }}
+          >
+            <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
+            Download {download.name}
+          </a>
+          <p className="m-0 text-[13px] opacity-80">{download.emailed ? "We've also sent the link to your email." : "Save the file so you can open it again later."}</p>
+        </div>
+      ) : null}
+      {download ? (onShop ? <button type="button" onClick={onShop} className="min-h-[44px] text-[14px] font-semibold underline underline-offset-4">Continue shopping</button> : null) : shop}
     </div>
   );
 }

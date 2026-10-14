@@ -9,7 +9,9 @@ import { readFormMarker } from "@/lib/marketing/popup-rewards";
 import { describeDiscount, parseDiscountConfig, redemptionError } from "@/lib/discounts";
 import { readStoreLook, toHex6 } from "@/app/home/store/look";
 import { FormsManager, type ManagedForm } from "./FormsManager";
-import type { DiscountOption, EditorTheme } from "./PopupDesigner";
+import type { DiscountOption, EditorExtras, EditorTheme } from "./PopupDesigner";
+import { readGameConfig, sliceLabel, sliceOdds } from "@/lib/gamification/logic";
+import { freeDeliveryEverywhereOver, summariseDeliveryZones } from "@/lib/storefront/shopper-info";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -29,19 +31,27 @@ export default async function FormsPage() {
   const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, status: true, brandSettings: true } });
   const since = new Date(Date.now() - 30 * 86_400_000);
-  const [rows, stats, discountRows] = store
+  const [rows, stats, discountRows, zones] = store
     ? await Promise.all([
         // Contact and enquiry forms live with form messages (/home/forms); this page is for growing the list.
         db.storeForm.findMany({ where: { storeId: store.id, OR: [{ isPopup: true }, { type: { in: ["newsletter", "lead", "waitlist", "popup"] } }] }, orderBy: { createdAt: "desc" }, take: 100 }),
         db.marketingFormStat.groupBy({ by: ["formId"], where: { storeId: store.id, day: { gte: since } }, _sum: { views: true, submissions: true } }),
         // Codes the seller can hand out: active, typed by shoppers, not someone's personal prize or sign-up code.
         db.discount.findMany({
-          where: { storeId: store.id, status: "active", NOT: [{ code: { startsWith: "SPIN-" } }, { code: { startsWith: "SCRATCH-" } }, { code: { startsWith: "NEXT-" } }] },
+          where: { storeId: store.id, status: "active", NOT: [{ code: { startsWith: "SPIN-" } }, { code: { startsWith: "SCRATCH-" } }, { code: { startsWith: "NEXT-" } }, { code: { startsWith: "BOX-" } }] },
           orderBy: { createdAt: "desc" },
           take: 300,
         }),
+        db.shippingZone.findMany({ where: { storeId: store.id, active: true }, select: { name: true, regions: true, rates: true } }),
       ])
-    : [[], [], []];
+    : [[], [], [], []];
+
+  // Game pop-ups use the prizes from Marketing > Rewards; free-delivery pop-ups start from the delivery settings.
+  const games = readGameConfig((store?.brandSettings as Record<string, unknown> | null)?.gamification ?? {});
+  const extras: EditorExtras = {
+    prizes: { slices: games.prizes.slices.map((slice) => ({ id: slice.id, label: sliceLabel(slice) })), odds: sliceOdds(games.prizes.slices), codeDays: games.prizes.codeDays, minOrder: games.prizes.minOrder },
+    storeFreeDeliveryOver: freeDeliveryEverywhereOver(summariseDeliveryZones(zones.map((zone) => ({ name: zone.name ?? "", regions: zone.regions, rates: zone.rates })))),
+  };
 
   const discounts: DiscountOption[] = discountRows
     .filter((d) => !parseDiscountConfig(d.config).automatic && !readFormMarker(d.config)?.email && !redemptionError(d, Number.MAX_SAFE_INTEGER))
@@ -99,7 +109,7 @@ export default async function FormsPage() {
       }
     >
       <div className="grid gap-5">
-        <FormsManager forms={forms} storeSlug={store?.slug ?? ""} theme={theme} discounts={discounts} />
+        <FormsManager forms={forms} storeSlug={store?.slug ?? ""} theme={theme} discounts={discounts} extras={extras} />
         <AssistantNote>{t("forms.note")}</AssistantNote>
       </div>
     </SellerPage>

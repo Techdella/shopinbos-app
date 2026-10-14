@@ -22,7 +22,7 @@ export interface GameStats {
   points: { issued: number; redeemed: number; members: number };
 }
 
-const PREFIXES = [GAME_CODE_PREFIXES.wheel, GAME_CODE_PREFIXES.scratch, GAME_CODE_PREFIXES.post_purchase].map((prefix) => `${prefix}-`);
+const PREFIXES = [GAME_CODE_PREFIXES.wheel, GAME_CODE_PREFIXES.scratch, GAME_CODE_PREFIXES.post_purchase, GAME_CODE_PREFIXES.box].map((prefix) => `${prefix}-`);
 
 export async function gameStats(storeId: string, days = 30): Promise<GameStats> {
   const since = new Date(Date.now() - days * 86_400_000);
