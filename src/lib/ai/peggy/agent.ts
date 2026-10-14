@@ -89,7 +89,7 @@ function fallbackText(state: RunState, reason: string) {
 // ─── Claude ──────────────────────────────────────────────────────────────────
 
 let claudeTools: Anthropic.Tool[] | null = null;
-function anthropicTools(): Anthropic.Tool[] {
+export function anthropicTools(): Anthropic.Tool[] {
   claudeTools ??= PEGGY_TOOL_NAMES.map((name) => ({
     name,
     description: PEGGY_TOOL_SPECS[name].description,
@@ -142,7 +142,7 @@ async function viaClaude(client: Anthropic, context: string, turns: PeggyTurn[],
 // ─── OpenAI ──────────────────────────────────────────────────────────────────
 
 let gptTools: OpenAI.Responses.FunctionTool[] | null = null;
-function openaiTools(): OpenAI.Responses.FunctionTool[] {
+export function openaiTools(): OpenAI.Responses.FunctionTool[] {
   gptTools ??= PEGGY_TOOL_NAMES.map((name) => ({
     type: "function",
     name,

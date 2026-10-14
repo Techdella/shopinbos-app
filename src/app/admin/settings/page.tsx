@@ -3,6 +3,8 @@ import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { adminFrame } from "@/components/admin/AdminKit";
+import { AiCheckCard } from "@/components/admin/AiCheckCard";
+import { providerOrder } from "@/lib/ai/client";
 import { requireRole } from "@/lib/server-auth";
 
 export default async function AdminSettingsPage() {
@@ -39,6 +41,8 @@ export default async function AdminSettingsPage() {
       <Card className="mb-6 p-5">
         <CardHead title="Notifications" sub="Push to your phone and browser, email and quiet hours." action={<PillLink href="/home/notifications/preferences" size="sm" tone="ink">Open</PillLink>} />
       </Card>
+
+      <AiCheckCard claude={Boolean(process.env.ANTHROPIC_API_KEY)} openai={Boolean(process.env.OPENAI_API_KEY)} first={providerOrder()[0]!} />
 
       <LanguageSettingsCard className="mb-6" />
 
