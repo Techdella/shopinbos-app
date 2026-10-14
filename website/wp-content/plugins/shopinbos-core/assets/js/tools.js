@@ -33,6 +33,43 @@
 			var ok = v.rate > 0;
 			return { goods: ok ? naira(goods) : 'Add the rate', ship: v.freight > 0 ? naira(ship) : 'Add the shipping price', total: ok ? naira(total) : '–', each: ok && v.qty ? naira(total / v.qty) : '–', _summary: ok ? naira(total / v.qty) + ' per piece landed' : '' };
 		},
+		'break-even': function (v) {
+			var per = v.price - v.cost - (v.pay === 'cod' ? 0 : fee(v.price));
+			if (per <= 0) return { per: naira(per), units: 'Your price is below your cost', sales: '–', day: '–' };
+			var units = Math.ceil(v.fixed / per);
+			return { per: naira(per), units: units + (units === 1 ? ' sale' : ' sales'), sales: naira(units * v.price), day: (Math.round(units / 30 * 10) / 10) + ' sales a day', _summary: 'Break even at ' + units + ' sales a month' };
+		},
+		'discount': function (v) {
+			var sale = Math.round(v.price * (1 - Math.min(v.off, 90) / 100));
+			var before = v.price - v.cost - fee(v.price), keep = sale - v.cost - fee(sale);
+			var more = keep > 0 ? Math.max(0, Math.ceil(before / keep * 100 - 100)) + '% more sales' : 'You lose money at this price';
+			return { sale: naira(sale), keep: naira(keep), before: naira(before), more: more, _summary: v.off + '% off: sell at ' + naira(sale) + ', keep ' + naira(keep) };
+		},
+		'ad-budget': function (v) {
+			var spend = v.daily * v.days, orders = v.cpo > 0 ? Math.floor(spend / v.cpo) : 0, net = orders * v.profit - spend;
+			return { spend: naira(spend), orders: v.cpo > 0 ? String(orders) : 'Add a cost per order', net: naira(net), max: naira(v.profit), _summary: naira(spend) + ' on ads, about ' + orders + ' orders, ' + naira(net) + ' after ads' };
+		},
+		'business-name': function (v) {
+			var cap = function (t) { return String(t || '').trim().replace(/\s+/g, ' ').replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }); };
+			var w = cap(v.word) || 'Ade', t = cap(v.what) || 'Shop', single = t.split(' ')[0];
+			var sets = {
+				warm: [w + '’s ' + t, t + ' by ' + w, 'Little ' + single + ' Co', w + ' & Co', 'The ' + single + ' Corner', 'Hello ' + single, 'Simply ' + w, w + ' Home of ' + t],
+				premium: ['Maison ' + w, w + ' Atelier', 'House of ' + w, w + ' Studio', 'The ' + w + ' Edit', single + ' & Gold', w + ' Luxe', 'Atelier ' + single],
+				fun: [single + ' Plug', 'Oya ' + single, single + 'tastic', 'Go ' + single, single + ' Gang', 'Big ' + single + ' Energy', single + ' Pop', w + ' Vibes'],
+				local: ['Ọja ' + w, 'Ilé ' + single, w + ' Naija ' + single, 'Eko ' + single, w + ' Market', single + ' from Aba', 'Ankara & ' + single, w + ' Oluwa ' + single]
+			};
+			var names = (sets[v.style] || sets.warm).filter(function (n, i, a) { return a.indexOf(n) === i; });
+			return { names: names.join('\n'), tip: 'Say it out loud on a voice note. Check the name is free on Instagram, TikTok and as a domain, and search it on the CAC portal before you register.', _summary: names.slice(0, 4).join(', ') };
+		},
+		'product-description': function (v) {
+			var p = v.price ? naira(v.price) : '';
+			var store = v.name + '. ' + cap1(v.made) + '. ' + cap1(v.size) + '. Made for ' + v.for + '.\n\nPrice: ' + p + '\nDelivery: ' + v.delivery + '. Pay online or pay on delivery.';
+			var wa = '✨ ' + v.name + ' ✨\n' + cap1(v.made) + ', ' + v.size + '.\nPerfect for ' + v.for + '.\n💰 ' + p + '\n🚚 ' + cap1(v.delivery) + '\nReply “I want it” to order.';
+			var tag = String(v.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+			var ig = 'Meet your new favourite: the ' + String(v.name || '').toLowerCase() + '. ' + cap1(v.made) + ', ' + v.size + ', made for ' + v.for + '. ' + p + ', ' + v.delivery + '. Tap the link in bio to order.\n\n#' + tag + ' #shopnigeria #lagosvendor #naijabusiness';
+			return { store: store, whatsapp: wa, instagram: ig, _summary: store.slice(0, 280) };
+			function cap1(t) { t = String(t || '').trim(); return t.charAt(0).toUpperCase() + t.slice(1); }
+		},
 		'whatsapp-link': function (v, root) {
 			var digits = String(v.phone || '').replace(/\D/g, '').replace(/^234/, '').replace(/^0/, '');
 			if (digits.length < 10) return { link: 'Add your number', _link: '' };
@@ -72,6 +109,13 @@
 		form.addEventListener('input', function () {
 			run();
 			if (!used) { used = true; if (window.SIB && window.SIB.track) window.SIB.track('tool_used', { tool: name, path: location.pathname }); }
+		});
+		root.querySelectorAll('[data-copy-r]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var out = root.querySelector('[data-r="' + b.getAttribute('data-copy-r') + '"]');
+				if (!out || !navigator.clipboard) return;
+				navigator.clipboard.writeText(out.textContent).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
+			});
 		});
 		var copy = root.querySelector('[data-copy]');
 		if (copy) copy.addEventListener('click', function () {

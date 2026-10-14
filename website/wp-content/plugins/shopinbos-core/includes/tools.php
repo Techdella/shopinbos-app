@@ -74,6 +74,46 @@ function sib_tool_markup( string $tool ): array {
 				. sib_tool_field( 'local', __( 'China delivery, clearing and other fees (total)', 'shopinbos' ), 'money', [ 'value' => 0, 'min' => 0 ] ),
 				[ 'goods' => __( 'Goods', 'shopinbos' ), 'ship' => __( 'Shipping', 'shopinbos' ), 'total' => __( 'Total landed cost', 'shopinbos' ), 'each' => __( 'Cost per piece', 'shopinbos' ) ],
 			];
+		case 'break-even':
+			return [
+				sib_tool_field( 'fixed', __( 'Monthly running costs (data, rent, plan, ads)', 'shopinbos' ), 'money', [ 'value' => 60000, 'min' => 0 ] )
+				. sib_tool_field( 'price', __( 'Selling price per item', 'shopinbos' ), 'money', [ 'value' => 15000, 'min' => 0 ] )
+				. sib_tool_field( 'cost', __( 'Cost per item (product, packaging, delivery you cover)', 'shopinbos' ), 'money', [ 'value' => 8000, 'min' => 0 ] )
+				. sib_tool_field( 'pay', __( 'How most customers pay', 'shopinbos' ), 'select', [ 'options' => [ 'paystack' => __( 'Card, transfer or USSD (Paystack)', 'shopinbos' ), 'cod' => __( 'Pay on delivery', 'shopinbos' ) ] ] ),
+				[ 'per' => __( 'You keep per sale', 'shopinbos' ), 'units' => __( 'Sales to break even each month', 'shopinbos' ), 'sales' => __( 'Sales value to break even', 'shopinbos' ), 'day' => __( 'That is about', 'shopinbos' ) ],
+			];
+		case 'discount':
+			return [
+				sib_tool_field( 'price', __( 'Normal price', 'shopinbos' ), 'money', [ 'value' => 20000, 'min' => 0 ] )
+				. sib_tool_field( 'cost', __( 'What it costs you (all in)', 'shopinbos' ), 'money', [ 'value' => 11000, 'min' => 0 ] )
+				. sib_tool_field( 'off', __( 'Discount', 'shopinbos' ), 'number', [ 'value' => 15, 'min' => 0, 'max' => 90, 'prefix' => '%' ] ),
+				[ 'sale' => __( 'Sale price', 'shopinbos' ), 'keep' => __( 'You keep per sale (after Paystack fee)', 'shopinbos' ), 'before' => __( 'You kept before', 'shopinbos' ), 'more' => __( 'Sell this many more to earn the same', 'shopinbos' ) ],
+			];
+		case 'ad-budget':
+			return [
+				sib_tool_field( 'daily', __( 'Daily ad budget', 'shopinbos' ), 'money', [ 'value' => 5000, 'min' => 0 ] )
+				. sib_tool_field( 'days', __( 'Number of days', 'shopinbos' ), 'number', [ 'value' => 7, 'min' => 1 ] )
+				. sib_tool_field( 'cpo', __( 'Ad cost per order (from your past ads, or your guess)', 'shopinbos' ), 'money', [ 'value' => 2500, 'min' => 0 ] )
+				. sib_tool_field( 'profit', __( 'Profit per order before ads', 'shopinbos' ), 'money', [ 'value' => 6000, 'min' => 0 ] ),
+				[ 'spend' => __( 'Total ad spend', 'shopinbos' ), 'orders' => __( 'Orders you can expect', 'shopinbos' ), 'net' => __( 'Profit after ads', 'shopinbos' ), 'max' => __( 'Most you can pay per order and still profit', 'shopinbos' ) ],
+			];
+		case 'business-name':
+			return [
+				sib_tool_field( 'what', __( 'What you sell (one or two words)', 'shopinbos' ), 'text', [ 'value' => 'bags', 'placeholder' => 'bags, skincare, snacks' ] )
+				. sib_tool_field( 'word', __( 'A word you like (your name, area or a feeling)', 'shopinbos' ), 'text', [ 'value' => 'Tola', 'placeholder' => 'Tola, Lekki, Glow' ] )
+				. sib_tool_field( 'style', __( 'Style', 'shopinbos' ), 'select', [ 'options' => [ 'warm' => __( 'Warm and friendly', 'shopinbos' ), 'premium' => __( 'Premium', 'shopinbos' ), 'fun' => __( 'Fun and bold', 'shopinbos' ), 'local' => __( 'Proudly Nigerian', 'shopinbos' ) ] ] ),
+				[ 'names' => __( 'Name ideas', 'shopinbos' ), 'tip' => __( 'Before you choose', 'shopinbos' ) ],
+			];
+		case 'product-description':
+			return [
+				sib_tool_field( 'name', __( 'Product name', 'shopinbos' ), 'text', [ 'value' => 'Leather tote bag', 'placeholder' => 'Leather tote bag' ] )
+				. sib_tool_field( 'made', __( 'Made of / key detail', 'shopinbos' ), 'text', [ 'value' => 'soft brown leather, inner zip pocket' ] )
+				. sib_tool_field( 'size', __( 'Size, weight or quantity', 'shopinbos' ), 'text', [ 'value' => 'fits a 14-inch laptop' ] )
+				. sib_tool_field( 'for', __( 'Who it is for / when they use it', 'shopinbos' ), 'text', [ 'value' => 'work, church and weekend outings' ] )
+				. sib_tool_field( 'price', __( 'Price', 'shopinbos' ), 'money', [ 'value' => 28000, 'min' => 0 ] )
+				. sib_tool_field( 'delivery', __( 'Delivery', 'shopinbos' ), 'text', [ 'value' => 'same day in Lagos, 2 to 4 days elsewhere' ] ),
+				[ 'store' => __( 'For your store', 'shopinbos' ), 'whatsapp' => __( 'For WhatsApp', 'shopinbos' ), 'instagram' => __( 'For Instagram and TikTok', 'shopinbos' ) ],
+			];
 	}
 	return [ '', [] ];
 }
@@ -88,9 +128,12 @@ function sib_render_tool( array $a ): string {
 	if ( 'whatsapp-link' === $tool ) {
 		wp_enqueue_script( 'sib-qrcode' );
 	}
-	$rows = '';
+	$rows  = '';
+	$texty = in_array( $tool, [ 'business-name', 'product-description' ], true );
 	foreach ( $results as $k => $label ) {
-		$rows .= '<div class="kv"><span class="muted">' . esc_html( $label ) . '</span><b data-r="' . esc_attr( $k ) . '">–</b></div>';
+		$rows .= $texty
+			? '<div class="tool-text"><span class="muted">' . esc_html( $label ) . '</span><b data-r="' . esc_attr( $k ) . '">–</b>' . ( 'product-description' === $tool ? '<button type="button" class="chip" data-copy-r="' . esc_attr( $k ) . '">' . esc_html__( 'Copy', 'shopinbos' ) . '</button>' : '' ) . '</div>'
+			: '<div class="kv"><span class="muted">' . esc_html( $label ) . '</span><b data-r="' . esc_attr( $k ) . '">–</b></div>';
 	}
 	$extra = 'whatsapp-link' === $tool
 		? '<div data-r-qr style="display:flex;justify-content:center;padding:12px;background:#fff;border-radius:16px"></div><div class="row wrapflex"><button type="button" class="btn btn-ink btn-s" data-copy>' . esc_html__( 'Copy link', 'shopinbos' ) . '</button><button type="button" class="btn btn-ghost btn-s" data-download-qr>' . esc_html__( 'Download QR', 'shopinbos' ) . '</button></div>'

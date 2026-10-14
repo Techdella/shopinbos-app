@@ -29,6 +29,11 @@ function sib_tools_list(): array {
 		'paystack-fee'  => __( 'Paystack fee calculator', 'shopinbos' ),
 		'whatsapp-link' => __( 'WhatsApp link and QR maker', 'shopinbos' ),
 		'landed-cost'   => __( 'Landed cost calculator (China)', 'shopinbos' ),
+		'break-even'    => __( 'Break-even calculator', 'shopinbos' ),
+		'discount'      => __( 'Discount and sale calculator', 'shopinbos' ),
+		'ad-budget'     => __( 'Ad budget calculator', 'shopinbos' ),
+		'business-name' => __( 'Business name generator', 'shopinbos' ),
+		'product-description' => __( 'Product description writer', 'shopinbos' ),
 	];
 }
 

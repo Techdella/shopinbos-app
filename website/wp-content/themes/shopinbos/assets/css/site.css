@@ -744,3 +744,7 @@ select.input { appearance: auto; }
 /* Home: the 15-second video */
 .motion-frame { border-radius: 28px; overflow: hidden; background: #FFF6F1; box-shadow: 0 40px 80px -40px rgba(22,20,31,.45); border: 1px solid #ECEAF2; aspect-ratio: 16 / 9; }
 .motion-video { width: 100%; height: 100%; display: block; object-fit: cover; }
+.tool-text { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid #ECEAF2; }
+.tool-text:last-child { border-bottom: 0; }
+.tool-text b { white-space: pre-line; font-weight: 600; font-size: 15px; line-height: 1.55; background: #F6F5F9; border-radius: 14px; padding: 12px 14px; }
+.tool-text .chip { align-self: flex-start; border: 1px solid #ECEAF2; background: #fff; cursor: pointer; }
