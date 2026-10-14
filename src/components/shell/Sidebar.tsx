@@ -9,7 +9,7 @@ import { cx } from "@/components/app-ui";
 import { SignOutButton } from "./SignOutButton";
 import { SupportChatModal } from "./SupportChatModal";
 import { useUnreadMessages } from "@/components/conversations/client";
-import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity } from "./useShellCounts";
+import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity, useTipsOn } from "./useShellCounts";
 import { OPEN_HELP_EVENT } from "@/components/simple/HelpButton";
 import { TermCard } from "@/components/learn/Term";
 import { navTerm, type GlossaryEntry } from "@shared/glossary";
@@ -50,8 +50,10 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const t = useT("nav", "common");
   const tGlossary = useT("glossary");
   const label = (item: { id: string; label: string }) => navLabel(t, role, item);
+  const tipsOn = useTipsOn();
+  // No menu tips once tips and tooltips are switched off.
   const termFor = (id: string) => {
-    const entry = navTerm(role, id);
+    const entry = tipsOn ? navTerm(role, id) : null;
     return entry ? translateTerm(entry, tGlossary) : null;
   };
   const counts = useShellCounts();

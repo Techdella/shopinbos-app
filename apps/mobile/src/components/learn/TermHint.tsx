@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, Text, View, type StyleProp, type TextStyle } from "react-native";
+import { router } from "expo-router";
+import { useRole } from "@/lib/role";
 import { glossaryTerm } from "@shared/glossary";
 import { introByKey } from "@shared/feature-intros";
 import { Sheet } from "@/components/Sheet";
@@ -8,6 +10,7 @@ import { translateTerm } from "@shared/i18n/learn";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 import { openFeatureIntro } from "./events";
+import { useTipsOnPhone } from "./prefs";
 import { LC } from "./scenes";
 
 // Tap-to-explain for a standard word: <TermHint k="segments">Segments</TermHint> shows the word with a dotted
@@ -21,7 +24,10 @@ export function TermHint({ k, children, style }: { k: string; children?: ReactNo
   const tGlossary = useT("glossary");
   // The meaning and example in the app language; the word itself stays the standard one.
   const entry = source ? translateTerm(source, tGlossary) : null;
-  if (!entry) return <Text style={style}>{children}</Text>;
+  const tipsOn = useTipsOnPhone();
+  const { role } = useRole();
+  // Tips switched off: just the word.
+  if (!entry || !tipsOn) return <Text style={style}>{children ?? entry?.term}</Text>;
   const intro = introByKey(entry.introKey);
   return (
     <>
@@ -54,6 +60,20 @@ export function TermHint({ k, children, style }: { k: string; children?: ReactNo
               <Text style={{ color: LC.navy, fontSize: 12 }}>▶</Text>
             </View>
             <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.cream }}>{t("watchIntroLong")}</Text>
+          </Pressable>
+        ) : null}
+        {role === "seller" ? (
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => {
+              setOpen(false);
+              setTimeout(() => router.push("/settings"), 350);
+            }}
+            style={{ minHeight: 44, justifyContent: "center", marginTop: 2 }}
+          >
+            <T style={{ fontSize: 14, color: colors.inkSoft }}>
+              {t("tipsOffLead")} <Text style={{ fontFamily: fonts.extrabold, color: colors.forest, textDecorationLine: "underline" }}>{t("tipsOffLink")}</Text>
+            </T>
           </Pressable>
         ) : null}
       </Sheet>

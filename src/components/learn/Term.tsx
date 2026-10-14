@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { findTerm, glossaryTerm, type GlossaryEntry } from "@shared/glossary";
 import { introByKey } from "@shared/feature-intros";
 import { translateTerm } from "@shared/i18n/learn";
 import { useT } from "@/components/i18n/I18nProvider";
+import { useTipsOn } from "@/components/shell/useShellCounts";
 
 // <Term k="segments">Segments</Term>: the standard word with a dotted underline and a tiny info dot. Hover or
 // keyboard focus shows a tooltip; a tap (or click) opens it as a small dialog with a close button. Escape closes
@@ -17,6 +20,27 @@ export const OPEN_INTRO_EVENT = "shopinbos:open-intro";
 /** Opens a feature intro by key, or the one for the current page when no key is given. */
 export function openFeatureIntro(key?: string) {
   window.dispatchEvent(new CustomEvent<{ key?: string }>(OPEN_INTRO_EVENT, { detail: { key } }));
+}
+
+/** Where tips and tooltips are switched off (Customise your menu) for the portal a page belongs to; none for admin. */
+export function tipsSettingsHref(pathname: string | null): string | null {
+  if (!pathname || pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/supplier")) return "/supplier/features#tips";
+  if (pathname.startsWith("/logistics")) return "/logistics/features#tips";
+  return "/home/features#tips";
+}
+
+/** "Don't need tips? Turn them off in Settings." under every tip, so people know they can. */
+export function TipsOffNote({ onNavigate, className = "" }: { onNavigate?: () => void; className?: string }) {
+  const t = useT("learn");
+  const href = tipsSettingsHref(usePathname());
+  if (!href) return null;
+  return (
+    <p className={`m-0 text-[12px] leading-[1.4] text-[rgba(244,241,234,0.62)] ${className}`}>
+      {t("tipsOffLead")}{" "}
+      <Link href={href} onClick={onNavigate} className="font-extrabold text-[#73D8C8] underline underline-offset-2">{t("tipsOffLink")}</Link>
+    </p>
+  );
 }
 
 const NAVY = "#0E2A38";
@@ -50,6 +74,7 @@ export function TermCard({ entry: source, onWatch, compact = false, hideWatch = 
           {t("watchIntro")}
         </button>
       )}
+      <TipsOffNote onNavigate={onWatch} className="mt-2.5 border-t border-[rgba(244,241,234,0.12)] pt-2" />
     </div>
   );
 }
@@ -75,6 +100,7 @@ export function Term({ k, children, className = "" }: { k: string; children?: Re
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const fromTouch = useRef(false);
+  const tipsOn = useTipsOn();
 
   const close = useCallback((returnFocus = false) => {
     window.clearTimeout(timer.current);
@@ -121,7 +147,8 @@ export function Term({ k, children, className = "" }: { k: string; children?: Re
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
-  if (!entry) return <>{children}</>;
+  // Tips switched off: just the word.
+  if (!entry || !tipsOn) return <>{children ?? entry?.term}</>;
 
   const showTip = (delay: number) => {
     window.clearTimeout(timer.current);

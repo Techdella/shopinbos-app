@@ -165,6 +165,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "Anyị na-ebuli menu gị…",
   "menu.onlyUse": "Hụ naanị ihe ị na-eji",
   "menu.onlyUseSub": "Ịgbanyụ ihe na-ezo ya na menu gị. Ọ dịghị ihe ehichapụrụ: data gị ka dị, ị nwere ike ịgbanye ya ebe a oge ọ bụla.",
+  "menu.tips": "Ndụmọdụ na nkọwa nta",
+  "menu.tipsSub": "Nkọwa nta na-apụta mgbe ị tụrụ aka ma ọ bụ pịa okwu, ndụmọdụ na menu, na obere mmalite na-emepe onwe ha na peeji ọhụrụ. Ọ bụrụ na ị gbanyụọ ya, ị ka nwere ike ikiri mmalite ọ bụla site na “Learn” n'elu peeji.",
   "menu.walkthrough": "Ntuziaka",
   "menu.walkthroughSub": "Hụ ọzọ njegharị ngwa ngwa nke menu gị na bọtịnụ ndị bụ isi.",
   "menu.replay": "Gosi m gburugburu ọzọ",
