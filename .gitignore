@@ -49,3 +49,4 @@ ts-errors.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+website/dist/

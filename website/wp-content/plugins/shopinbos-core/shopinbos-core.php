@@ -49,6 +49,9 @@ foreach ( [
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once SIB_CORE_DIR . '/includes/cli.php';
 }
+if ( is_admin() ) {
+	require_once SIB_CORE_DIR . '/includes/setup-admin.php';
+}
 
 register_activation_hook( __FILE__, function () {
 	sib_register_content_types();
