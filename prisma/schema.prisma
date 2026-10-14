@@ -3054,3 +3054,36 @@ model ProductNewsRecipient {
   @@unique([broadcastId, userId])
   @@index([broadcastId, status])
 }
+
+// ---- domain billing ----
+// A domain a seller buys (or renews) through Shopinbos on the platform's Vercel registrar account. The seller pays
+// through Paystack first; only a verified payment moves the row paid → buying (one caller) → bought, else the
+// payment is refunded (src/lib/domains/billing.server.ts). The latest bought row per domain carries the expiry the
+// renewal cron reminds about (/api/cron/domain-renewals). Migration: docs/migrations/2026-10-24-domain-billing.sql.
+model DomainPurchase {
+  id                    String    @id @default(cuid())
+  storeId               String
+  userId                String
+  domain                String
+  kind                  String // new | renewal
+  years                 Int       @default(1)
+  costUsd               Float // the registrar price we quoted from (Vercel, USD)
+  amountNgn             Int // what the seller pays
+  reference             String    @unique // Paystack reference (domain-<uuid>)
+  status                String    @default("pending_payment") // pending_payment | payment_failed | paid | buying | bought | failed | refunded | refund_failed | expired
+  payerEmail            String? // the email Paystack charged (billingEmail, or the saved card's email)
+  vercelOrderId         String?
+  contactInformation    Json? // the registrant contact the registrar needs (renewals reuse it)
+  paystackAuthorization Json? // the reusable card authorization from the paid charge, for renewal charges
+  remindersSent         Json      @default("[]") // r30 | r7 | r1 | charge
+  paidAt                DateTime?
+  expiresAt             DateTime?
+  error                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([storeId])
+  @@index([status])
+  @@index([expiresAt])
+}
+// ---- end domain billing ----

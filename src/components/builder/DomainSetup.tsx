@@ -1,42 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { DomainOwnership } from "@/components/domains/DomainOwnership";
-import { TechFold } from "@/components/simple/Fold";
 import { buildStorefrontOrigin, getPlatformRootDomain } from "@/lib/domains/storefront";
 import { useT } from "@/components/i18n/I18nProvider";
+import { naira } from "@shared/onboarding";
 
+/** A search result, priced in naira by the server (/api/domains/search). */
 interface DomainResult {
   domain: string;
   ending: string;
   available: boolean;
+  /** Naira for the first year; null when we don't sell it. */
   price: number | null;
+  /** Naira for each renewal year. */
+  renewalPrice: number | null;
   currency: string;
-}
-
-interface DomainVerification {
-  type: string;
-  domain: string;
-  value: string;
-  reason: string;
-}
-
-interface DomainConfiguration {
-  configuredBy: "CNAME" | "A" | "http" | "dns-01" | null;
-  acceptedChallenges: Array<"dns-01" | "http-01">;
-  recommendedIPv4: Array<{ rank: number; value: string[] }>;
-  recommendedCNAME: Array<{ rank: number; value: string }>;
-  misconfigured: boolean;
-}
-
-interface ConnectedDomain {
-  domain: string;
-  verified: boolean;
-  verification: DomainVerification[];
-  configuration: DomainConfiguration | null;
-  demo?: boolean;
+  tooExpensive?: boolean;
 }
 
 interface RegistrarContactSchemaProperty {
@@ -56,29 +38,6 @@ interface RegistrarContactSchema {
   description?: string;
   properties?: Record<string, RegistrarContactSchemaProperty>;
   required?: string[];
-}
-
-interface DomainOrderItem {
-  domainName: string;
-  status: string;
-  price: number;
-  years: number;
-  autoRenew: boolean;
-  purchaseType: string;
-  error?: {
-    code?: string;
-    details?: Record<string, string>;
-  };
-}
-
-interface DomainPurchaseStatusPayload {
-  orderId: string;
-  status: "draft" | "purchasing" | "completed" | "failed";
-  domains: DomainOrderItem[];
-  error?: {
-    code?: string;
-    message?: string;
-  };
 }
 
 interface StandardContactValues {
@@ -182,18 +141,16 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const [connectedDomain, setConnectedDomain] = useState<ConnectedDomain | null>(null);
-
   const [selectedPurchaseDomain, setSelectedPurchaseDomain] = useState<DomainResult | null>(null);
   const [contactSchema, setContactSchema] = useState<RegistrarContactSchema | null>(null);
   const [contactValues, setContactValues] = useState<StandardContactValues>(DEFAULT_CONTACT_VALUES);
   const [extraContactValues, setExtraContactValues] = useState<Record<string, string>>({});
   const [isLoadingContactSchema, setIsLoadingContactSchema] = useState(false);
-  const [autoRenew, setAutoRenew] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
-  const [purchaseOrder, setPurchaseOrder] = useState<DomainPurchaseStatusPayload | null>(null);
-  const [purchaseIntegrationError, setPurchaseIntegrationError] = useState<string | null>(null);
+  const [priceNotice, setPriceNotice] = useState<string | null>(null);
+  // Contact details first, then "Check before you pay" (spelling, yearly price, renewal, no refunds), then Paystack.
+  const [confirming, setConfirming] = useState(false);
 
   const rootDomain = getPlatformRootDomain();
   const freeDomain = `${storeSlug}.${rootDomain}`;
@@ -209,51 +166,6 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
     [schemaSection],
   );
   const requiredExtraFields = useMemo(() => new Set(schemaSection.required), [schemaSection]);
-
-  useEffect(() => {
-    if (!purchaseOrder?.orderId || connectedDomain) return;
-    if (purchaseOrder.status === "failed") return;
-
-    const interval = window.setInterval(async () => {
-      try {
-        const response = await fetch(`/api/domains/order/${purchaseOrder.orderId}`);
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              data?: {
-                order?: DomainPurchaseStatusPayload;
-                assignedDomain?: ConnectedDomain | null;
-                integrationError?: string;
-              };
-              error?: { message?: string };
-            }
-          | null;
-
-        if (!response.ok) {
-          throw new Error(payload?.error?.message ?? t("setup.err.check"));
-        }
-
-        if (payload?.data?.order) {
-          setPurchaseOrder(payload.data.order);
-        }
-
-        if (payload?.data?.integrationError) {
-          setPurchaseIntegrationError(payload.data.integrationError);
-        }
-
-        if (payload?.data?.assignedDomain) {
-          window.clearInterval(interval);
-          setConnectedDomain(payload.data.assignedDomain);
-        } else if (payload?.data?.order?.status === "failed") {
-          window.clearInterval(interval);
-        }
-      } catch (error) {
-        window.clearInterval(interval);
-        setPurchaseError(error instanceof Error ? error.message : t("setup.err.check"));
-      }
-    }, 4000);
-
-    return () => window.clearInterval(interval);
-  }, [connectedDomain, purchaseOrder, t]);
 
   async function searchDomains() {
     const query = searchQuery.trim();
@@ -289,8 +201,8 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
   async function preparePurchase(domain: DomainResult) {
     setSelectedPurchaseDomain(domain);
     setPurchaseError(null);
-    setPurchaseIntegrationError(null);
-    setPurchaseOrder(null);
+    setPriceNotice(null);
+    setConfirming(false);
     setContactSchema(null);
     setExtraContactValues({});
     setIsLoadingContactSchema(true);
@@ -331,7 +243,31 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
     setExtraContactValues((current) => ({ ...current, [key]: value }));
   }
 
-  async function purchaseDomain() {
+  function contactPayload() {
+    const additional = Object.fromEntries(
+      Object.entries(extraContactValues)
+        .map(([key, value]) => [key, value.trim()])
+        .filter(([, value]) => value.length > 0),
+    );
+    return {
+      firstName: contactValues.firstName.trim(),
+      lastName: contactValues.lastName.trim(),
+      email: contactValues.email.trim(),
+      // The registrar wants +2348012345678: no spaces or dashes.
+      phone: contactValues.phone.replace(/[\s()-]/g, ""),
+      address1: contactValues.address1.trim(),
+      city: contactValues.city.trim(),
+      state: contactValues.state.trim(),
+      zip: contactValues.zip.trim(),
+      country: contactValues.country.trim().toUpperCase(),
+      ...(contactValues.address2.trim() ? { address2: contactValues.address2.trim() } : {}),
+      ...(contactValues.companyName.trim() ? { companyName: contactValues.companyName.trim() } : {}),
+      ...(Object.keys(additional).length > 0 ? { additional } : {}),
+    };
+  }
+
+  /** Checks the contact form, then shows the confirm step. */
+  function reviewPurchase() {
     if (!selectedPurchaseDomain) return;
 
     const requiredBaseFields: Array<keyof StandardContactValues> = [
@@ -370,132 +306,50 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
       return;
     }
 
+    setPurchaseError(null);
+    setConfirming(true);
+  }
+
+  /** Pay first: the server records the purchase and sends the seller to Paystack. The domain is bought after. */
+  async function payForDomain() {
+    if (!selectedPurchaseDomain) return;
     setIsPurchasing(true);
     setPurchaseError(null);
-    setPurchaseIntegrationError(null);
+    setPriceNotice(null);
 
     try {
-      const additional = Object.fromEntries(
-        Object.entries(extraContactValues)
-          .map(([key, value]) => [key, value.trim()])
-          .filter(([, value]) => value.length > 0),
-      );
-
       const response = await fetch("/api/domains/purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           domain: selectedPurchaseDomain.domain,
           years: 1,
-          autoRenew,
-          expectedPrice: selectedPurchaseDomain.price ?? undefined,
-          contactInformation: {
-            firstName: contactValues.firstName.trim(),
-            lastName: contactValues.lastName.trim(),
-            email: contactValues.email.trim(),
-            phone: contactValues.phone.trim(),
-            address1: contactValues.address1.trim(),
-            city: contactValues.city.trim(),
-            state: contactValues.state.trim(),
-            zip: contactValues.zip.trim(),
-            country: contactValues.country.trim().toUpperCase(),
-            ...(contactValues.address2.trim() ? { address2: contactValues.address2.trim() } : {}),
-            ...(contactValues.companyName.trim() ? { companyName: contactValues.companyName.trim() } : {}),
-            ...(Object.keys(additional).length > 0 ? { additional } : {}),
-          },
+          expectedAmountNgn: selectedPurchaseDomain.price ?? undefined,
+          contactInformation: contactPayload(),
         }),
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { data?: { domain: string; orderId: string }; error?: { message?: string } }
+        | { data?: { authorizationUrl?: string; amountNgn?: number; renewalNgn?: number }; error?: { code?: string; message?: string } }
         | null;
 
-      if (!response.ok || !payload?.data?.orderId) {
+      if (payload?.error?.code === "price_changed" && payload.data?.amountNgn) {
+        const amount = payload.data.amountNgn;
+        setSelectedPurchaseDomain((current) => current ? { ...current, price: amount, renewalPrice: payload.data?.renewalNgn ?? current.renewalPrice } : current);
+        setPriceNotice(t("confirm.priceChanged", { price: naira(amount) }));
+        setIsPurchasing(false);
+        return;
+      }
+
+      if (!response.ok || !payload?.data?.authorizationUrl) {
         throw new Error(payload?.error?.message ?? t("setup.err.pay"));
       }
 
-      setPurchaseOrder({
-        orderId: payload.data.orderId,
-        status: "purchasing",
-        domains: [
-          {
-            domainName: payload.data.domain,
-            status: "purchasing",
-            price: selectedPurchaseDomain.price ?? 0,
-            years: 1,
-            autoRenew,
-            purchaseType: "registration",
-          },
-        ],
-      });
+      window.location.assign(payload.data.authorizationUrl);
     } catch (error) {
       setPurchaseError(error instanceof Error ? error.message : t("setup.err.pay"));
-    } finally {
       setIsPurchasing(false);
     }
-  }
-
-  function resetDomainFlow() {
-    setConnectedDomain(null);
-    setPurchaseError(null);
-    setPurchaseIntegrationError(null);
-    setPurchaseOrder(null);
-    setSelectedPurchaseDomain(null);
-    setContactSchema(null);
-    setExtraContactValues({});
-    setOption(null);
-  }
-
-  if (connectedDomain) {
-    const ready = connectedDomain.verified || connectedDomain.demo;
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-3 rounded-[18px] bg-app-canvas px-4 py-4">
-          <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full", ready ? "bg-app-success-tint text-app-success" : "bg-[#FDF0D5] text-[#8A5A00]")}>
-            <Icon name={ready ? "check" : "clock"} size={18} />
-          </span>
-          <div className="min-w-0">
-            <p className="m-0 text-[13px] font-bold text-app-ink-soft">{ready ? t("setup.ready") : t("setup.almost")}</p>
-            <h3 className="m-0 mt-0.5 break-all text-[20px] font-extrabold">{connectedDomain.domain}</h3>
-            <p className="mb-0 mt-1.5 text-[14px] leading-[1.5] text-app-ink-soft">
-              {ready
-                ? t("setup.readyBody")
-                : t("setup.settingUp")}
-            </p>
-          </div>
-        </div>
-
-        {(connectedDomain.verification.length > 0 || (connectedDomain.configuration && !connectedDomain.verified)) && (
-          <TechFold forWho={t("own.forWho")}>
-        {connectedDomain.verification.length > 0 && (
-          <RecordList title={t("setup.addRecords")}>
-            {connectedDomain.verification.map((record) => (
-              <RecordRow key={`${record.type}-${record.domain}-${record.value}`} type={record.type} host={record.domain} value={record.value} note={record.reason} />
-            ))}
-          </RecordList>
-        )}
-
-        {connectedDomain.configuration && !connectedDomain.verified && (connectedDomain.configuration.recommendedCNAME.length > 0 || connectedDomain.configuration.recommendedIPv4.length > 0) && (
-          <RecordList title={t("setup.pointHere")}>
-            {connectedDomain.configuration.recommendedCNAME.map((entry) => (
-              <RecordRow key={`cname-${entry.rank}-${entry.value}`} type="CNAME" host={connectedDomain.domain} value={entry.value} note={t("setup.cnameNote")} />
-            ))}
-            {connectedDomain.configuration.recommendedIPv4.flatMap((entry) => entry.value).map((value) => (
-              <RecordRow key={`ipv4-${value}`} type="A" host={connectedDomain.domain} value={value} note={t("setup.aNote")} />
-            ))}
-          </RecordList>
-        )}
-          </TechFold>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <PillButton size="md" onClick={() => onDone(connectedDomain.domain)}>{doneLabel}</PillButton>
-          <button type="button" onClick={resetDomainFlow} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline">
-            {t("own.different")}
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -583,38 +437,54 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                 <li key={result.domain} className="flex flex-wrap items-center gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="break-all text-[15px] font-bold">{result.domain}</div>
-                    <div className={cx("mt-0.5 text-[13px]", result.available ? "text-app-success" : "text-app-ink-soft")}>
+                    <div className={cx("mt-0.5 text-[13px]", result.available && result.price !== null ? "text-app-success" : "text-app-ink-soft")}>
                       {result.available
                         ? result.price !== null
-                          ? t("setup.firstYear", { price: `${result.currency} ${result.price.toFixed(2)}` })
-                          : t("setup.available")
+                          ? t("setup.firstYear", { price: naira(result.price) })
+                          : result.tooExpensive ? t("setup.notSold") : t("setup.available")
                         : t("setup.taken")}
                     </div>
                   </div>
-                  <PillButton size="sm" tone={result.available ? "ink" : "white"} disabled={!result.available} onClick={() => void preparePurchase(result)}>
-                    {result.available ? t("setup.buy") : t("setup.takenBtn")}
-                  </PillButton>
+                  {(() => {
+                    const buyable = result.available && result.price !== null;
+                    return (
+                      <PillButton size="sm" tone={buyable ? "ink" : "white"} disabled={!buyable} onClick={() => void preparePurchase(result)}>
+                        {result.available ? (buyable ? t("setup.buy") : t("setup.notSoldBtn")) : t("setup.takenBtn")}
+                      </PillButton>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>
           )}
 
-          {selectedPurchaseDomain && (
+          {selectedPurchaseDomain && confirming && (
+            <ConfirmPurchase
+              domain={selectedPurchaseDomain.domain}
+              price={selectedPurchaseDomain.price ?? 0}
+              renewalPrice={selectedPurchaseDomain.renewalPrice ?? selectedPurchaseDomain.price ?? 0}
+              busy={isPurchasing}
+              notice={priceNotice}
+              error={purchaseError}
+              onPay={() => void payForDomain()}
+              onBack={() => {
+                setConfirming(false);
+                setPurchaseError(null);
+                setPriceNotice(null);
+              }}
+            />
+          )}
+
+          {selectedPurchaseDomain && !confirming && (
             <div className="mt-4 rounded-[18px] bg-app-canvas p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="m-0 text-[13px] font-bold text-app-ink-soft">{t("setup.buying")}</p>
-                  <div className="mt-0.5 break-all text-[20px] font-extrabold">{selectedPurchaseDomain.domain}</div>
-                  <div className="mt-0.5 text-[13px] text-app-ink-soft">
-                    {selectedPurchaseDomain.price !== null
-                      ? t("setup.oneYear", { price: `${selectedPurchaseDomain.currency} ${selectedPurchaseDomain.price.toFixed(2)}` })
-                      : t("setup.priceOnPay")}
-                  </div>
+              <div className="min-w-0">
+                <p className="m-0 text-[13px] font-bold text-app-ink-soft">{t("setup.buying")}</p>
+                <div className="mt-0.5 break-all text-[20px] font-extrabold">{selectedPurchaseDomain.domain}</div>
+                <div className="mt-0.5 text-[13px] text-app-ink-soft">
+                  {selectedPurchaseDomain.price !== null
+                    ? t("setup.oneYear", { price: naira(selectedPurchaseDomain.price) })
+                    : t("setup.priceOnPay")}
                 </div>
-                <label className="flex min-h-[40px] items-center gap-2 text-[14px] font-semibold">
-                  <input type="checkbox" checked={autoRenew} onChange={(event) => setAutoRenew(event.target.checked)} className="h-4 w-4 accent-[#16141F]" />
-                  {t("setup.renew")}
-                </label>
               </div>
 
               <p className="mb-0 mt-4 text-[13px] text-app-ink-soft">{t("setup.contactNeeded")}</p>
@@ -683,15 +553,11 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                 </div>
               )}
 
-              {purchaseOrder && (
-                <div className="mt-4"><Notice tone="info">{t.dynamic(`setup.order.${purchaseOrder.status}`, t("setup.order.draft"))}</Notice></div>
-              )}
               {purchaseError && <div className="mt-4"><Notice>{purchaseError}</Notice></div>}
-              {purchaseIntegrationError && <div className="mt-4"><Notice tone="info">{purchaseIntegrationError}</Notice></div>}
 
               <div className="mt-5 flex flex-wrap items-center gap-3">
-                <PillButton size="md" tone="accent" busy={isPurchasing} disabled={isLoadingContactSchema} onClick={() => void purchaseDomain()}>
-                  {t("setup.payConnect")}
+                <PillButton size="md" tone="accent" disabled={isLoadingContactSchema} onClick={reviewPurchase} className="w-full sm:w-auto">
+                  {t("setup.toConfirm")}
                 </PillButton>
                 <button
                   type="button"
@@ -700,8 +566,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
                     setContactSchema(null);
                     setExtraContactValues({});
                     setPurchaseError(null);
-                    setPurchaseIntegrationError(null);
-                    setPurchaseOrder(null);
+                    setPriceNotice(null);
                   }}
                   className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink"
                 >
@@ -720,43 +585,57 @@ function Panel({ children }: { children: ReactNode }) {
   return <div className="min-w-0 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">{children}</div>;
 }
 
-function RecordList({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="min-w-0 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
-      <h3 className="m-0 text-[15px] font-extrabold">{title}</h3>
-      <ul className="m-0 mt-3 grid list-none gap-2 p-0">{children}</ul>
-    </section>
-  );
-}
-
-function RecordRow({ type, host, value, note }: { type: string; host: string; value: string; note?: string }) {
+/** "Check before you pay": the name in big letters, the yearly price, the renewal and the no-refund rule. */
+function ConfirmPurchase({
+  domain,
+  price,
+  renewalPrice,
+  busy,
+  notice,
+  error,
+  onPay,
+  onBack,
+}: {
+  domain: string;
+  price: number;
+  renewalPrice: number;
+  busy: boolean;
+  notice: string | null;
+  error: string | null;
+  onPay: () => void;
+  onBack: () => void;
+}) {
   const t = useT("domain");
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard blocked: the value is selectable text.
-    }
-  }
   return (
-    <li className="rounded-[16px] bg-app-canvas px-4 py-3">
-      <dl className="m-0 grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13.5px]">
-        <dt className="text-app-ink-soft">{t("setup.rec.type")}</dt>
-        <dd className="m-0 font-mono font-bold">{type}</dd>
-        <dt className="text-app-ink-soft">{t("setup.rec.name")}</dt>
-        <dd className="m-0 break-all font-mono">{host}</dd>
-        <dt className="text-app-ink-soft">{t("setup.rec.value")}</dt>
-        <dd className="m-0 flex min-w-0 items-start gap-2">
-          <span className="min-w-0 flex-1 break-all font-mono">{value}</span>
-          <button type="button" onClick={() => void copy()} aria-label={t("setup.rec.copy", { type })} className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-full border border-app-line bg-white px-2.5 text-[12px] font-bold">
-            <Icon name={copied ? "check" : "copy"} size={12} /> {copied ? t("setup.copied") : t("setup.copy")}
-          </button>
-        </dd>
-      </dl>
-      {note && <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{note}</p>}
-    </li>
+    <section className="mt-4 rounded-[18px] border-2 border-app-ink bg-white p-4 sm:p-5" aria-labelledby="confirm-domain-title">
+      <p id="confirm-domain-title" className="m-0 text-[13px] font-bold text-app-ink-soft">{t("confirm.title")}</p>
+      <div className="mt-2 break-all text-[28px] font-extrabold leading-tight tracking-[-0.5px] sm:text-[34px]">{domain}</div>
+      <p className="mb-0 mt-1 text-[15px] font-bold">{t("confirm.spelled")}</p>
+      <ul className="m-0 mt-4 grid list-none gap-2.5 p-0 text-[15px] leading-[1.45]">
+        <li className="flex items-start gap-2.5">
+          <Icon name="check" size={16} className="mt-1 shrink-0 text-app-success" />
+          <span><strong>{t("confirm.price", { price: naira(price) })}</strong></span>
+        </li>
+        <li className="flex items-start gap-2.5">
+          <Icon name="clock" size={16} className="mt-1 shrink-0 text-app-ink-soft" />
+          <span>{t("confirm.renews", { price: naira(renewalPrice) })}</span>
+        </li>
+        <li className="flex items-start gap-2.5">
+          <Icon name="warn" size={16} className="mt-1 shrink-0 text-app-danger" />
+          <span>{t("confirm.noRefund")}</span>
+        </li>
+      </ul>
+      {notice && <div className="mt-4"><Notice tone="info">{notice}</Notice></div>}
+      {error && <div className="mt-4"><Notice>{error}</Notice></div>}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <PillButton size="lg" tone="accent" busy={busy} onClick={onPay} className="w-full sm:w-auto">
+          {t("confirm.pay", { price: naira(price) })}
+        </PillButton>
+        <button type="button" onClick={onBack} className="min-h-[44px] px-2 text-[14px] font-bold text-app-ink-soft hover:text-app-ink">
+          {t("confirm.back")}
+        </button>
+      </div>
+      <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{t("confirm.paystack")}</p>
+    </section>
   );
 }

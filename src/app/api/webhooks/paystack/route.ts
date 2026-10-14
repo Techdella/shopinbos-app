@@ -6,6 +6,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
+import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
@@ -125,6 +126,13 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith("store-launch-")) {
         await completeStoreLaunchPayment(ref).catch((error) => {
           console.error("Store launch payment completion failed:", error);
+        });
+      }
+      // Domains bought or renewed through Shopinbos (purpose domain_purchase / domain_renewal): verified and
+      // completed idempotently, the same as the callback; the registrar is only called after a verified payment.
+      if (ref.startsWith(DOMAIN_REFERENCE_PREFIX)) {
+        await completeDomainPayment(ref).catch((error) => {
+          console.error("Domain payment completion failed:", error);
         });
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before

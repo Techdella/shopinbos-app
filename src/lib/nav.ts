@@ -364,6 +364,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "marketplace-sync", label: "Marketplace", href: "/admin/marketplace" },
             { id: "categories", label: "Categories", href: "/admin/categories" },
             { id: "domain-partners", label: "Domain partners", href: "/admin/domain-partners" },
+            { id: "domain-purchases", label: "Domains sellers bought", href: "/admin/domains" },
           ],
         },
       ],

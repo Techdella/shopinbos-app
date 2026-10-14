@@ -260,3 +260,24 @@ export async function markPurchasedDomainVerified(storeId: string, rawDomain: st
   forgetCustomDomain(before?.customDomain, parsed.host);
   return true;
 }
+
+/**
+ * A domain bought through the app that wasn't renewed: if it is still the store's live domain, take it off the
+ * store (the free Shopinbos address keeps working) and off the hosting project. Returns whether it was live.
+ */
+export async function releaseStoreDomain(storeId: string, rawDomain: string) {
+  const key = domainKey(rawDomain);
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { customDomain: true, customDomainKey: true } });
+  if (!key || !store || store.customDomainKey !== key) return false;
+  const moved = await db.store.updateMany({
+    where: { id: storeId, customDomainKey: key },
+    data: { customDomain: null, customDomainKey: null, customDomainVerifiedAt: null },
+  });
+  forgetCustomDomain(store.customDomain, key);
+  if (hasVercelDomainConfig()) {
+    for (const host of new Set([store.customDomain, key].filter((value): value is string => Boolean(value)))) {
+      await removeDomainFromVercel(host).catch((error) => console.error("[domains] could not remove expired domain from hosting", error));
+    }
+  }
+  return moved.count === 1;
+}

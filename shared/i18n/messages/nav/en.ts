@@ -129,6 +129,7 @@ const en = {
   "admin.supplier-pickups": "Pickups waiting for a rider",
   "admin.marketplace-sync": "Marketplace",
   "admin.domain-partners": "Domain partners",
+  "admin.domain-purchases": "Domains sellers bought",
   "group.sourcing": "Sourcing",
   "group.people": "People",
   "group.store": "Store",

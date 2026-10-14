@@ -128,6 +128,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.supplier-pickups": "Pickups na-eche rider",
   "admin.marketplace-sync": "Marketplace",
   "admin.domain-partners": "Domain partners",
+  "admin.domain-purchases": "Domain ndị na-ere ahịa zụrụ",
   "group.sourcing": "Ịchọta ngwaahịa",
   "group.people": "Ndị mmadụ",
   "group.store": "Ụlọ ahịa",
