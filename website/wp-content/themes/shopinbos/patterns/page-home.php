@@ -3,9 +3,11 @@
  * Title: Home page
  * Slug: shopinbos/page-home
  * Categories: shopinbos-pages
- * Description: The full shopinbos.com home page from the prototype.
+ * Description: The full shopinbos.com home page from the design canvas.
  * Post Types: page
  */
-foreach ( [ 'home-hero', 'integrations-marquee', 'bento-features', 'connect-tabs', 'ads-showcase', 'social-week', 'how-it-works', 'find-stock-strip', 'templates-teaser', 'grow-with-us', 'faq', 'cta-band' ] as $slug ) {
-	echo '<!-- wp:pattern {"slug":"shopinbos/' . $slug . "\"} /-->\n\n";
+foreach ( array_keys( sib_canvas_parts() ) as $part ) {
+	if ( str_starts_with( $part, 'home-' ) ) {
+		echo '<!-- wp:shopinbos/canvas {"part":"' . esc_attr( $part ) . "\"} /-->\n\n";
+	}
 }

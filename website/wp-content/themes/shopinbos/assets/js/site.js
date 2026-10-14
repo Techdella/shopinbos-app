@@ -255,4 +255,93 @@
 		};
 		addEventListener('scroll', tick, { passive: true }); tick();
 	});
+
+	/* Canvas sections (canvas/*.html): mega menus, mobile menu, tab panes, chips, FAQ and the ad budget. */
+	(function canvas() {
+		var DARK = 'rgb(22, 20, 31)';
+		var megas = $$('.mega[data-mega]'), megabs = $$('[data-cv="mega"]');
+		function closeMegas() {
+			megas.forEach(function (m) { m.hidden = true; });
+			megabs.forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+		}
+		megabs.forEach(function (b) {
+			b.addEventListener('click', function (e) {
+				e.stopPropagation();
+				var i = b.getAttribute('data-mega'), open = b.getAttribute('aria-expanded') === 'true';
+				closeMegas();
+				if (open) return;
+				var m = $('.mega[data-mega="' + i + '"]');
+				if (m) { m.hidden = false; b.setAttribute('aria-expanded', 'true'); }
+			});
+		});
+		$$('[data-cv="closeMega"]').forEach(function (b) { b.addEventListener('click', closeMegas); });
+		document.addEventListener('click', function (e) { if (!e.target.closest('.mega')) closeMegas(); });
+		document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMegas(); });
+
+		$$('[data-cv="burger"]').forEach(function (b) {
+			var menu = document.getElementById(b.getAttribute('aria-controls'));
+			b.addEventListener('click', function () {
+				var open = b.getAttribute('aria-expanded') === 'true';
+				b.setAttribute('aria-expanded', String(!open));
+				if (menu) menu.hidden = open;
+			});
+		});
+
+		// Sections that change with a tab are kept once per tab; show the one picked.
+		document.addEventListener('click', function (e) {
+			var t = e.target.closest('[data-cv="tab"]');
+			if (!t) return;
+			var wrap = t.closest('.cv-panes'), k = t.getAttribute('data-pane');
+			if (!wrap) return;
+			var group = t.closest('[data-pane]:not([data-cv])');
+			var y = group ? group.getBoundingClientRect().top : 0;
+			$$(':scope > [data-pane]', wrap).forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== k; });
+			var now = $(':scope > [data-pane="' + k + '"]', wrap);
+			if (now && group) window.scrollBy(0, now.getBoundingClientRect().top - y);
+			track('canvas_tab', { group: wrap.getAttribute('data-group'), tab: k });
+		});
+
+		// Chip rows: the picked chip takes the dark look.
+		$$('[data-cv="item.pick"]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var sibs = $$(':scope > [data-cv="item.pick"]', b.parentNode);
+				var on = sibs.filter(function (x) { return (x.getAttribute('style') || '').indexOf('background: ' + DARK) === 0; })[0];
+				if (!on || on === b) return;
+				var s = on.getAttribute('style'); on.setAttribute('style', b.getAttribute('style')); b.setAttribute('style', s);
+				adTotal(b);
+			});
+		});
+
+		// Ad budget: days stepper and the total.
+		function adBox(el) { return el.closest('.stepper') ? el.closest('.stepper').parentNode.parentNode : el.parentNode.parentNode; }
+		function adTotal(el) {
+			var box = adBox(el), step = $('.stepper', box);
+			if (!step) return;
+			var on = $$('[data-cv="item.pick"]', box).filter(function (x) { return (x.getAttribute('style') || '').indexOf('background: ' + DARK) === 0; })[0];
+			var day = on ? parseInt(on.textContent.replace(/[^0-9]/g, ''), 10) : 0;
+			var days = parseInt($('span', step).textContent, 10) || 1;
+			var total = step.parentNode.querySelector(':scope > span > b');
+			if (total && day) total.textContent = naira(day * days);
+		}
+		$$('[data-cv="ad.dMinus"], [data-cv="ad.dPlus"]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var span = $('span', b.parentNode), d = parseInt(span.textContent, 10) || 1;
+				d = Math.max(1, Math.min(30, d + (b.getAttribute('data-cv') === 'ad.dPlus' ? 1 : -1)));
+				span.textContent = d + (d === 1 ? ' day' : ' days');
+				adTotal(b);
+			});
+		});
+
+		// Questions: one answer open at a time.
+		$$('[data-cv="item.toggle"]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var a = b.nextElementSibling, open = b.getAttribute('aria-expanded') === 'true';
+				if (!a) return;
+				a.hidden = open;
+				b.setAttribute('aria-expanded', String(!open));
+				var sign = b.lastElementChild;
+				if (sign) sign.textContent = open ? '+' : '−';
+			});
+		});
+	})();
 })();

@@ -13,6 +13,7 @@ define( 'SIB_THEME_VERSION', '1.0.0' );
 
 require_once __DIR__ . '/inc/icons.php';
 require_once __DIR__ . '/inc/chrome.php';
+require_once __DIR__ . '/inc/canvas.php';
 require_once __DIR__ . '/inc/pattern-helpers.php';
 
 add_action( 'after_setup_theme', function () {
@@ -20,7 +21,7 @@ add_action( 'after_setup_theme', function () {
 	add_theme_support( 'editor-styles' );
 	add_theme_support( 'responsive-embeds' );
 	add_theme_support( 'post-thumbnails' );
-	add_editor_style( 'assets/css/site.css' );
+	add_editor_style( [ 'assets/css/site.css', 'assets/css/canvas.css' ] );
 	register_nav_menus( [
 		'primary'        => __( 'Main menu', 'shopinbos' ),
 		'footer_sell'    => __( 'Footer: Sell', 'shopinbos' ),
@@ -42,6 +43,7 @@ add_action( 'wp_enqueue_scripts', function () {
 	$css = get_theme_file_path( 'assets/css/site.css' );
 	$js  = get_theme_file_path( 'assets/js/site.js' );
 	wp_enqueue_style( 'sib-site', get_theme_file_uri( 'assets/css/site.css' ), [], SIB_THEME_VERSION . '.' . filemtime( $css ) );
+	wp_enqueue_style( 'sib-canvas', get_theme_file_uri( 'assets/css/canvas.css' ), [ 'sib-site' ], SIB_THEME_VERSION . '.' . filemtime( get_theme_file_path( 'assets/css/canvas.css' ) ) );
 	wp_enqueue_script( 'sib-site', get_theme_file_uri( 'assets/js/site.js' ), [], SIB_THEME_VERSION . '.' . filemtime( $js ), [ 'strategy' => 'defer', 'in_footer' => true ] );
 } );
 

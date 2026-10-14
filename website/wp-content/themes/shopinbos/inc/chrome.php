@@ -74,6 +74,9 @@ function sib_theme_is_current( string $url ): bool {
 }
 
 function sib_theme_render_header( array $attrs ): string {
+	if ( empty( $attrs['minimal'] ) && ( $html = sib_canvas_part( 'header' ) ) ) {
+		return $html;
+	}
 	$links = sib_theme_menu_links( 'primary', sib_theme_default_links() );
 	ob_start();
 	?>
@@ -121,6 +124,9 @@ function sib_theme_render_header( array $attrs ): string {
 
 function sib_theme_render_footer( array $attrs ): string {
 	$year = wp_date( 'Y' );
+	if ( empty( $attrs['minimal'] ) && ( $html = sib_canvas_part( 'footer' ) ) ) {
+		return $html . sib_canvas_part( 'stickycta' );
+	}
 	if ( ! empty( $attrs['minimal'] ) ) {
 		return '<footer class="foot"><div class="wrap foot-base" style="border:0;padding:28px 32px">'
 			. '<span>© ' . esc_html( $year ) . ' Shopinbos.</span>'
