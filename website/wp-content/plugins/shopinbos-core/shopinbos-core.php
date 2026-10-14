@@ -33,6 +33,7 @@ foreach ( [
 	'academy',
 	'compare',
 	'redirects',
+	'app-leads',
 	'schema',
 	'seo',
 	'sitemaps',

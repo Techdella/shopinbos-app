@@ -341,6 +341,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "support-macros", label: "Saved replies", href: "/admin/support/macros" },
           ],
         },
+        { id: "leads", label: "Website leads", icon: "list", href: "/admin/leads", core: true },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
       ],

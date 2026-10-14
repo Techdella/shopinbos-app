@@ -298,9 +298,18 @@ function sib_handle_lead(): void {
 }
 
 /**
- * Validate and act on a submitted lead form. Returns ['ok' => bool, 'message' => string, 'download' => ?string].
+ * Validate and act on a submitted lead form, then pass it to the app's admin (app-leads.php).
+ * Returns ['ok' => bool, 'message' => string, 'download' => ?string].
  */
 function sib_process_lead( string $kind, array $in ): array {
+	$result = sib_process_lead_form( $kind, $in );
+	if ( $result['ok'] && empty( $in['website'] ) && function_exists( 'sib_app_lead_from_form' ) ) {
+		sib_app_lead_from_form( $kind, $in );
+	}
+	return $result;
+}
+
+function sib_process_lead_form( string $kind, array $in ): array {
 	$fail = fn( $m ) => [ 'ok' => false, 'message' => $m ];
 	if ( ! in_array( $kind, [ 'newsletter', 'contact', 'tool', 'download', 'sunday' ], true ) ) {
 		return $fail( __( 'Unknown form.', 'shopinbos' ) );

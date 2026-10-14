@@ -14,6 +14,7 @@ function sib_settings_fields(): array {
 			'fields' => [
 				'app_url'   => [ __( 'App URL', 'shopinbos' ), 'https://app.shopinbos.com', 'url', __( 'Sign-up and log-in links go here.', 'shopinbos' ) ],
 				'api_base'  => [ __( 'Public API base', 'shopinbos' ), 'https://app.shopinbos.com/api/public', 'url', __( 'Marketplace pages read products, suppliers and delivery partners from here. Responses are cached for 15 minutes.', 'shopinbos' ) ],
+				'leads_secret' => [ __( 'Website leads secret', 'shopinbos' ), '', 'password', __( 'Form sign-ups are sent to the app’s admin (Website leads). Use the same value as WEBSITE_LEADS_SECRET in the app, or define SIB_LEADS_SECRET in wp-config.php.', 'shopinbos' ) ],
 				'demo_mode' => [ __( 'Use sample marketplace data', 'shopinbos' ), '0', 'checkbox', __( 'For staging without the app. Shows the prototype products and never calls the API.', 'shopinbos' ) ],
 			],
 		],
@@ -131,6 +132,9 @@ function sib_settings_page(): void {
 		<?php
 		$status = sib_api_status();
 		printf( '<p><strong>%s</strong> %s</p>', esc_html__( 'Marketplace API:', 'shopinbos' ), esc_html( $status ) );
+		if ( function_exists( 'sib_app_leads_status_text' ) ) {
+			printf( '<p><strong>%s</strong> %s</p>', esc_html__( 'Website leads to the app:', 'shopinbos' ), esc_html( sib_app_leads_status_text() ) );
+		}
 		?>
 		<form method="post" action="options.php">
 			<?php settings_fields( 'sib_settings' ); ?>
