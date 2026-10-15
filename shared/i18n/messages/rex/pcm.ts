@@ -191,6 +191,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "logo.cost": "Each round go make 3 logos: 3 pictures from today free allowance, then 5 credits each.",
   "logo.freeUsed": "{used} of today {limit} free pictures don use",
   "logo.topUp": "Top up",
+  "logo.context": "Give Rex more gist (optional)",
+  "logo.contextHint": "Tell Rex the story, wetin you like and wetin you no like, add photos or short video: your shop, packaging, old signboard or logos wey you love.",
+  "logo.notes": "Notes for Rex",
+  "logo.notesPh": "e.g. Rexi mean 'king' for us. We like crown, but no gold. E go dey on gadget boxes and our Instagram.",
+  "logo.addInspiration": "Add photos or video",
+  "logo.inspirationAlt": "Inspiration for your logo",
 };
 
 export default pcm;

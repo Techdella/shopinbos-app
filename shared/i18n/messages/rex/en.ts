@@ -194,6 +194,12 @@ const en = {
   "logo.cost": "Each round makes 3 logos: 3 pictures from today's free allowance, then 5 credits each.",
   "logo.freeUsed": "{used} of today's {limit} free pictures used",
   "logo.topUp": "Top up",
+  "logo.context": "Give Rex more context (optional)",
+  "logo.contextHint": "Tell Rex the story, what you like and don't, and add photos or a short video: your shop, packaging, an old sign or logos you love.",
+  "logo.notes": "Notes for Rex",
+  "logo.notesPh": "e.g. Rexi means 'king' to us. We like a crown, but no gold. It goes on gadget boxes and our Instagram.",
+  "logo.addInspiration": "Add photos or a video",
+  "logo.inspirationAlt": "Inspiration for your logo",
 } satisfies Record<string, string>;
 
 export default en;

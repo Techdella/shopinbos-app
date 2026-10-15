@@ -191,6 +191,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "logo.cost": "Kowane zagaye yana yin tambari 3: hotuna 3 daga kason kyauta na yau, sannan kiredit 5 kowanne.",
   "logo.freeUsed": "An yi amfani da {used} cikin hotuna kyauta {limit} na yau",
   "logo.topUp": "Ƙara",
+  "logo.context": "Ba Rex ƙarin bayani (ba dole ba)",
+  "logo.contextHint": "Faɗa wa Rex labarin, abin da kake so da wanda ba ka so, kuma ƙara hotuna ko gajeren bidiyo: shagonka, kwalin kaya, tsohon allon suna ko tambarin da kake so.",
+  "logo.notes": "Bayanan kula don Rex",
+  "logo.notesPh": "misali: Rexi na nufin 'sarki' a wurinmu. Muna son kambi, amma ba zinariya ba. Zai kasance a kan kwalayen na'ura da Instagram ɗinmu.",
+  "logo.addInspiration": "Ƙara hotuna ko bidiyo",
+  "logo.inspirationAlt": "Wahayi don tambarinka",
 };
 
 export default ha;

@@ -191,6 +191,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "logo.cost": "Agba ọ bụla na-eme logo 3: foto 3 site na oke n'efu taa, mgbe ahụ kredit 5 nke ọ bụla.",
   "logo.freeUsed": "Ejirila {used} n'ime foto n'efu {limit} nke taa",
   "logo.topUp": "Gbakwunye",
+  "logo.context": "Nye Rex nkọwa ọzọ (ọ dịghị mkpa)",
+  "logo.contextHint": "Gwa Rex akụkọ, ihe ị masịrị na nke ị naghị amasị, tinyekwa foto ma ọ bụ obere vidiyo: ụlọ ahịa gị, ngwugwu, akara ochie ma ọ bụ logo ị hụrụ n'anya.",
+  "logo.notes": "Ndetu maka Rex",
+  "logo.notesPh": "dịka: Rexi pụtara 'eze' n'ebe anyị nọ. Anyị chọrọ okpueze, ma ọ bụghị ọla edo. Ọ ga-adị na igbe ngwa na Instagram anyị.",
+  "logo.addInspiration": "Tinye foto ma ọ bụ vidiyo",
+  "logo.inspirationAlt": "Mkpali maka logo gị",
 };
 
 export default ig;

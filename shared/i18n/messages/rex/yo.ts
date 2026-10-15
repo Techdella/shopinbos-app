@@ -191,6 +191,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "logo.cost": "Ìpele kọ̀ọ̀kan ń ṣe lógò 3: àwòrán 3 láti inú ìpín ọ̀fẹ́ òní, lẹ́yìn náà kírẹ́dítì 5 fún ọ̀kọ̀ọ̀kan.",
   "logo.freeUsed": "A ti lo {used} nínú àwòrán ọ̀fẹ́ {limit} ti òní",
   "logo.topUp": "Fi kún un",
+  "logo.context": "Fún Rex ní àlàyé sí i (kò pọn dandan)",
+  "logo.contextHint": "Sọ ìtàn rẹ fún Rex, ohun tí o fẹ́ àti èyí tí o kò fẹ́, kí o sì fi fọ́tò tàbí fídíò kúkúrú kún un: ṣọ́ọ̀bù rẹ, àpò ọjà, àmì àtijọ́ tàbí lógò tí o fẹ́ràn.",
+  "logo.notes": "Àkọsílẹ̀ fún Rex",
+  "logo.notesPh": "àpẹẹrẹ: Rexi túmọ̀ sí 'ọba' fún wa. A fẹ́ adé, ṣùgbọ́n kì í ṣe wúrà. Yóò wà lórí àpótí ẹ̀rọ àti Instagram wa.",
+  "logo.addInspiration": "Fi fọ́tò tàbí fídíò kún un",
+  "logo.inspirationAlt": "Ìmísí fún lógò rẹ",
 };
 
 export default yo;

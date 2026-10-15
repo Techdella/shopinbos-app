@@ -18,7 +18,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     return NextResponse.json({ error: { code: "no_key", message: aiConfigured() ? "Logos need an OpenAI key (OPENAI_API_KEY)." : "AI isn't switched on yet." } }, { status: 503 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { businessName?: string; businessDescription?: string; paletteHint?: string; round?: number; likeUrl?: string };
+  const body = (await req.json().catch(() => ({}))) as { businessName?: string; businessDescription?: string; paletteHint?: string; round?: number; likeUrl?: string; notes?: string; referenceUrls?: unknown };
   const { businessName, businessDescription, paletteHint } = body;
 
   if (!businessName?.trim()) {
@@ -29,11 +29,14 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const limited = await meterAi(user.id, "image", LOGO_STYLES.length);
   if (limited) return limited;
 
-  const input = { businessName, business: businessDescription || "retail business", paletteHint, userId: user.id, round: Math.max(1, Math.min(20, Number(body.round) || 1)) };
-  const reference = likeUrl ? await loadReferences([likeUrl]) : [];
-  const { logos, failures } = reference.length
-    ? await drawLogoVariations(input, (prompt, path) => generateImage({ prompt, size: "1024x1024", path, references: reference }))
-    : await drawLogoOptions(input, (prompt, path) => generateImage({ prompt, size: "1024x1024", path }));
+  // Context the seller added: notes, and up to 3 inspiration pictures (photos or video stills) in our storage.
+  const inspirationUrls = Array.isArray(body.referenceUrls) ? body.referenceUrls.filter((url): url is string => typeof url === "string" && isOwnImageUrl(url) && url !== likeUrl).slice(0, 3) : [];
+  const [likeRef, inspiration] = await Promise.all([likeUrl ? loadReferences([likeUrl]) : Promise.resolve([]), loadReferences(inspirationUrls)]);
+  const notes = typeof body.notes === "string" ? body.notes.slice(0, 600) : "";
+  const input = { businessName, business: businessDescription || "retail business", paletteHint, userId: user.id, round: Math.max(1, Math.min(20, Number(body.round) || 1)), notes, inspiration: inspiration.length };
+  const references = [...likeRef, ...inspiration];
+  const draw = (prompt: string, path: string) => generateImage({ prompt, size: "1024x1024", path, references });
+  const { logos, failures } = likeRef.length ? await drawLogoVariations(input, draw) : await drawLogoOptions(input, draw);
 
   if (logos.length === 0) {
     return NextResponse.json({ error: { code: "generation_failed", message: `Logo generation failed. (${failures.join("; ")})` } }, { status: 500 });

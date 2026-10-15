@@ -2716,3 +2716,13 @@ test("Suppliers buy and are pointed to AI credits in their own portal", async ()
   assert.match(c.outOfCreditsMessage("8 images", 5, 0, "/supplier/credits"), /\/supplier\/credits/);
   assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
 });
+
+test("Logo prompts carry the seller's notes and inspiration, and never copy another brand", async () => {
+  const { logoContext } = await import("../src/lib/ai/rex/logo.ts");
+  assert.equal(logoContext({}), "");
+  const withBoth = logoContext({ notes: "Rexi means king. No gold.", inspiration: 2 });
+  assert.match(withBoth, /Rexi means king/);
+  assert.match(withBoth, /inspiration/);
+  assert.match(withBoth, /never copy another brand/);
+  assert.match(logoContext({ inspiration: 1 }, 1), /after the first/, "variations: the first reference is the chosen logo");
+});

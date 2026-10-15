@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { uploadStudioPhoto } from "@/components/builder/rex/api";
+import { isVideoFile, videoFrames } from "@/components/builder/rex/video-frames";
 import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
 import { Icon } from "@/components/ui/Icon";
 import { FieldLabel, Notice, PillButton, Spinner, TextInput, cx } from "@/components/app-ui";
@@ -16,6 +18,8 @@ interface LogoResult {
   url: string;
   palette: { primary: string; secondary: string; accent: string };
 }
+
+const MAX_INSPIRATION = 3;
 
 interface Batch {
   id: number;
@@ -32,6 +36,10 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
   const [businessName, setBusinessName] = useState(storeName);
   const [description, setDescription] = useState(about);
   const [paletteHint, setPaletteHint] = useState("");
+  const [notes, setNotes] = useState("");
+  const [inspiration, setInspiration] = useState<Array<{ url: string; fromVideo: boolean }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState<null | "ideas" | "like">(null);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [round, setRound] = useState(0);
@@ -51,7 +59,15 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
       const res = await fetch("/api/ai/generate-logo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessName: businessName.trim(), businessDescription: description.trim(), paletteHint: paletteHint.trim(), round: nextRound, ...(likeUrl ? { likeUrl } : {}) }),
+        body: JSON.stringify({
+          businessName: businessName.trim(),
+          businessDescription: description.trim(),
+          paletteHint: paletteHint.trim(),
+          notes: notes.trim(),
+          referenceUrls: inspiration.map((item) => item.url),
+          round: nextRound,
+          ...(likeUrl ? { likeUrl } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -68,6 +84,32 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
     } finally {
       setLoading(null);
       creditsChanged();
+    }
+  }
+
+  /** Photos (or stills from a video) the seller gives Rex as inspiration: an old sign, packaging, logos they like. */
+  async function addInspiration(files: FileList | null) {
+    if (!files?.length) return;
+    let room = MAX_INSPIRATION - inspiration.length;
+    if (room <= 0) return;
+    setUploading(true);
+    setError("");
+    try {
+      for (const file of Array.from(files)) {
+        if (room <= 0) break;
+        const video = isVideoFile(file);
+        const parts = video ? await videoFrames(file, Math.min(2, room)) : [file];
+        for (const part of parts) {
+          const url = await uploadStudioPhoto(part);
+          setInspiration((prev) => [...prev, { url, fromVideo: video }]);
+          room -= 1;
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("img.uploadFailed"));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -146,7 +188,51 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
               <FieldLabel htmlFor="logo-colours">{t("logo.colours")}</FieldLabel>
               <TextInput id="logo-colours" value={paletteHint} onChange={(e) => setPaletteHint(e.target.value)} placeholder={t("logo.coloursPh")} />
             </div>
-            <PillButton tone="accent" size="md" className="w-full" onClick={() => void generate()} disabled={loading !== null || !businessName.trim()}>
+            <div className="rounded-[16px] bg-app-canvas p-4">
+              <p className="m-0 text-[14px] font-bold">{t("logo.context")}</p>
+              <p className="m-0 mt-0.5 text-[12.5px] leading-[1.5] text-app-ink-soft">{t("logo.contextHint")}</p>
+              <label htmlFor="logo-notes" className="sr-only">{t("logo.notes")}</label>
+              <textarea
+                id="logo-notes"
+                rows={3}
+                maxLength={600}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t("logo.notesPh")}
+                className="mt-3 w-full resize-y rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[14px] leading-[1.5] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink"
+              />
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                {inspiration.map((item) => (
+                  <span key={item.url} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.url} alt={item.fromVideo ? t("img.fromVideo") : t("logo.inspirationAlt")} className="h-14 w-14 rounded-[10px] object-cover" />
+                    {item.fromVideo ? (
+                      <span className="absolute bottom-1 left-1 grid h-5 w-5 place-items-center rounded-full bg-app-ink/80 text-white"><Icon name="play" size={10} /></span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setInspiration((prev) => prev.filter((entry) => entry.url !== item.url))}
+                      aria-label={t("img.removeRef")}
+                      className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-app-ink text-white"
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </span>
+                ))}
+                {inspiration.length < MAX_INSPIRATION ? (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading || loading !== null}
+                    className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-dashed border-app-line-strong bg-white px-4 text-[13px] font-bold hover:border-app-ink disabled:opacity-50"
+                  >
+                    {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="paperclip" size={14} />} {t("logo.addInspiration")}
+                  </button>
+                ) : null}
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" multiple className="sr-only" tabIndex={-1} onChange={(e) => void addInspiration(e.target.files)} />
+              </div>
+            </div>
+            <PillButton tone="accent" size="md" className="w-full" onClick={() => void generate()} disabled={loading !== null || uploading || !businessName.trim()}>
               {loading === "ideas" ? <><Spinner /> {t("logo.drawing")}</> : <><Icon name="sparkle" size={16} /> {batches.length ? t("logo.newIdeas") : t("logo.make")}</>}
             </PillButton>
             <div className="grid gap-1 text-center text-[12.5px] text-app-ink-soft">
