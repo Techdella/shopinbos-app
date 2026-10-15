@@ -93,7 +93,7 @@ export interface LayoutElementMeta {
 
 export const LAYOUT_ELEMENTS: LayoutElementMeta[] = [
   { type: "heading", label: "Heading", description: "A title for this part of the page.", defaults: () => ({ text: "Your heading", level: "h2", align: "left" }) },
-  { type: "text", label: "Text", description: "A paragraph of words.", defaults: () => ({ text: "Tell shoppers something useful here.", align: "left" }) },
+  { type: "text", label: "Text", description: "A paragraph of words.", defaults: () => ({ text: "", align: "left" }) },
   { type: "image", label: "Image", description: "One picture.", defaults: () => ({ imageUrl: "", alt: "", ratio: "landscape" }) },
   { type: "button", label: "Button", description: "A button that opens a page, product or link.", defaults: () => ({ label: "Shop now", link: { type: "page", value: "products" }, style: "primary", align: "left" }) },
   { type: "video", label: "Video", description: "A YouTube link or uploaded video.", defaults: () => ({ videoUrl: "" }) },

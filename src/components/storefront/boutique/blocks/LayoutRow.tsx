@@ -18,6 +18,7 @@ import {
   type LayoutRowView,
 } from "./layout-logic";
 import { BlockProductCard, ItemLink, itemLink, Paragraphs, type BlockContext } from "./shared";
+import { isPlaceholderCopy } from "@shared/placeholder-copy";
 
 export interface LayoutRowEditing {
   selectedElementId?: string | null;
@@ -58,6 +59,8 @@ function ElementView({ ctx, element, dark }: { ctx: BlockContext; element: Layou
     case "text": {
       const words = str(element.text);
       if (!words) return placeholder("Type your text in the panel on the right.");
+      // Older rows saved the starter text "Tell shoppers something useful here."; shoppers never see it.
+      if (!editor && isPlaceholderCopy(words)) return null;
       return <div className="grid gap-3 text-[15px] leading-7" style={{ color: muted, textAlign: textAlign(element) }}><Paragraphs text={words} className="m-0 whitespace-pre-line" /></div>;
     }
     case "image": {

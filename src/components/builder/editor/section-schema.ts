@@ -7,6 +7,7 @@
 import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
 import { classicPdpSchemaGroups, pdpSchemaGroups } from "./pdp-schema.ts";
+import { checkoutSchemaGroups, classicCheckoutSchemaGroups } from "./checkout-schema.ts";
 import { storeBlockMeta } from "../../storefront/boutique/blocks/block-catalog.ts";
 import { LAYOUT_ELEMENTS, LAYOUT_ROW_KIND } from "../../storefront/boutique/blocks/layout-logic.ts";
 
@@ -140,6 +141,9 @@ const PAYDAY_COPY: SchemaField[] = [
   text("primaryCta", "Button label"),
 ];
 
+// Guidance for the seller lives in the input, never in the saved text (shared/placeholder-copy.ts).
+const FOOTER_SUMMARY_PLACEHOLDER = "e.g. Handmade leather bags from Lagos, delivered nationwide.";
+const ANNOUNCEMENT_PLACEHOLDER = "e.g. Free delivery in Lagos on orders over ₦30,000";
 const SHOPINBOS_BADGE: SchemaField = { id: "shopinbosBadge", type: "badge", label: "Built with Shopinbos badge", help: "A small badge at the bottom of every page of your store." };
 const STORE_LOGO: SchemaField = { id: "storeLogo", type: "logo", label: "Logo", help: "On a dark header or footer, your logo for dark backgrounds shows instead." };
 const FOOTER_SHOW_LOGO: SchemaField = { id: "showLogo", type: "toggle", label: "Show logo", target: setting("showLogo"), fallback: true, help: "Your logo in the footer. Without a logo, your store name shows." };
@@ -315,7 +319,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
         ] },
       ], LAYOUT_ELEMENTS.map((element) => ({ id: `element:${element.type}`, label: element.label })));
     case "announcement-bar":
-      return plain([{ fields: [area("text", "Message", { help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." }), sharedNote("announcement bar")] }]);
+      return plain([{ fields: [area("text", "Message", { placeholder: ANNOUNCEMENT_PLACEHOLDER, help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." }), sharedNote("announcement bar")] }]);
     case "header":
       return plain([
         { fields: [
@@ -329,7 +333,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       ]);
     case "footer":
       return plain([
-        { fields: [sharedNote("footer"), area("summary", "About text", { help: "A line about your store. Contact, delivery and payment details come from your settings." })] },
+        { fields: [sharedNote("footer"), area("summary", "About text", { placeholder: FOOTER_SUMMARY_PLACEHOLDER, help: "A line about your store. Contact, delivery and payment details come from your settings." })] },
         { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] },
         { fields: [SHOPINBOS_BADGE] },
       ]);
@@ -465,7 +469,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "cart-summary":
       return plain([{ fields: [text("title", "Heading")] }]);
     case "checkout-form":
-      return plain([{ fields: [{ id: "note", type: "note", label: "Shoppers pay on the secure checkout page. Payment choices are in Checkout settings." }] }]);
+      return plain(checkoutSchemaGroups(themeId));
     case "product-detail":
       return plain(pdpSchemaGroups(themeId));
     default:
@@ -761,7 +765,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
   const heading = (extra: Partial<FieldBase> = {}) => area("title", "Heading", extra);
   switch (kind) {
     case "announcement-bar":
-      return [{ fields: [area("text", "Message"), sharedNote("announcement bar")] }];
+      return [{ fields: [area("text", "Message", { placeholder: ANNOUNCEMENT_PLACEHOLDER, help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." }), sharedNote("announcement bar")] }];
     case "header":
       return [{ title: "Header", fields: [
         sharedNote("header"),
@@ -779,7 +783,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
     case "footer":
       return [{ title: "Footer", fields: [
         sharedNote("footer"),
-        area("summary", "Footer summary"),
+        area("summary", "Footer summary", { placeholder: FOOTER_SUMMARY_PLACEHOLDER, help: "Leave empty to show your store description." }),
         { id: "showPayments", type: "toggle", label: "Show payment methods", target: setting("showPayments"), fallback: true },
         { id: "showDelivery", type: "toggle", label: "Show delivery note", target: setting("showDelivery"), fallback: true },
         text("email", "Contact email"),
@@ -1002,6 +1006,9 @@ function classicSchema(kind: string): SectionSchema {
   // Classic product pages render the shared product page (ClassicPdp), so they get its settings. The old layout
   // cards are gone: a saved classic layout now only sets the starting layout (classic-pdp.ts).
   if (kind === "product-detail") return { settings: classicPdpSchemaGroups(), style, addable: [] };
+  // Classic checkout pages render the shared checkout layouts (checkout-layout.ts); a saved classic layout only sets
+  // the starting layout.
+  if (kind === "checkout-form") return { settings: classicCheckoutSchemaGroups(), style, addable: [] };
 
   const variations = kind === "hero-split" ? [...SECTION_VARIATIONS[kind]!, CLASSIC_SLIDESHOW] : SECTION_VARIATIONS[kind];
   const fallback = variations?.[0]?.value ?? "";

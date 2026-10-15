@@ -25,6 +25,8 @@ export function ShopperShell({
   wishlistCount,
   showWishlist = true,
   footPayments = true,
+  nav,
+  centered = false,
   children,
 }: {
   theme: ShopperTheme;
@@ -39,6 +41,10 @@ export function ShopperShell({
   showWishlist?: boolean;
   /** The payment logos in the footnote (checkout shows them by the total instead). */
   footPayments?: boolean;
+  /** The store's page links beside the logo (checkout's "Logo and links" header). */
+  nav?: Array<{ key: string; label: string; href: string }>;
+  /** Logo centred on its own, nothing else in the header (distraction-free checkout). */
+  centered?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -49,13 +55,22 @@ export function ShopperShell({
       <a href="#shopper-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
-      <header className="sticky top-[var(--sb-preview-h,0px)] z-30 border-b backdrop-blur" style={{ background: `${theme.headerBg}F2`, borderColor: theme.border }}>
-        <div className="flex min-h-16 py-1.5 items-center gap-3 px-4 sm:px-6 lg:px-10">
+      <header className="@container sticky top-[var(--sb-preview-h,0px)] z-30 border-b backdrop-blur" style={{ background: `${theme.headerBg}F2`, borderColor: theme.border }}>
+        <div className={`flex min-h-16 py-1.5 items-center gap-3 px-4 sm:px-6 lg:px-10 ${centered ? "justify-center" : ""}`}>
           <Link href={getPublicStorefrontPath(basePath, "/")} className="flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">
             <StoreBrandMark store={{ logoUrl, brandSettings }} name={storeName} background={theme.headerBg} nameClassName="text-[17px] font-semibold" nameStyle={{ fontFamily: theme.heading, color: theme.headerText }} />
           </Link>
-          {title ? <span className="hidden truncate text-[14px] sm:inline" style={{ color: theme.muted }}>/ {title}</span> : null}
-          <nav aria-label="Shopping" className="ml-auto flex items-center gap-1.5">
+          {title && !centered ? <span className="hidden truncate text-[14px] sm:inline" style={{ color: theme.muted }}>/ {title}</span> : null}
+          {nav?.length && !centered ? (
+            <nav aria-label="Store" className="ml-4 hidden min-w-0 items-center gap-1 @2xl:flex">
+              {nav.map((link) => (
+                <Link key={link.key} href={link.href} className="inline-flex min-h-11 items-center rounded-full px-3 text-[14px] font-medium focus-visible:outline focus-visible:outline-2" style={{ color: theme.headerText }}>
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
+          <nav aria-label="Shopping" className={centered ? "hidden" : "ml-auto flex items-center gap-1.5"}>
             {showWishlist && wishlistCount !== undefined ? (
               <Link
                 href={getPublicStorefrontPath(basePath, "/wishlist")}
@@ -127,7 +142,7 @@ export function PrimaryButton({
     <button
       {...props}
       className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      style={{ background: theme.cta, color: theme.ctaText, outlineColor: theme.ink }}
+      style={{ background: theme.cta, color: theme.ctaText, outlineColor: theme.ink, borderRadius: theme.buttonRadius }}
     >
       {children}
     </button>
@@ -144,7 +159,7 @@ export function SecondaryButton({
     <button
       {...props}
       className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-5 text-[14px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      style={{ borderColor: theme.border, color: theme.ink, background: theme.surface }}
+      style={{ borderColor: theme.border, color: theme.ink, background: theme.surface, borderRadius: theme.buttonRadius }}
     >
       {children}
     </button>

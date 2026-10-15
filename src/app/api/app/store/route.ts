@@ -144,7 +144,7 @@ export const PATCH = withSeller(async (req: NextRequest, { user }: { user: AuthU
 
   // Header "Shop name" fields that still say the old name follow the new one.
   if (updateData.name) {
-    const cleared = clearStaleShopNames(updateData.brandSettings ?? store.brandSettings, store.name);
+    const cleared = clearStaleShopNames(updateData.brandSettings ?? store.brandSettings, store.name, String(updateData.name));
     if (cleared) updateData.brandSettings = cleared;
   }
 
@@ -168,7 +168,7 @@ export const PATCH = withSeller(async (req: NextRequest, { user }: { user: AuthU
     where: { id: store.id },
     data: updateData as any,
   });
-  if (updateData.name) await clearStaleShopNamesInStorePages(store.id, store.name);
+  if (updateData.name) await clearStaleShopNamesInStorePages(store.id, store.name, String(updateData.name));
   // A new logo is measured for dark headers and footers (and gets its re-inked version when it can).
   if ("logoUrl" in updateData && updateData.logoUrl !== store.logoUrl) await refreshLogoVariants(store.id, user.id, updateData.logoUrl as string | null);
 

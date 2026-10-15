@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",
-    "test": "node --no-warnings --test tests/index.test.js tests/behaviour.test.mjs tests/pdp.test.mjs tests/storefront-blocks.test.mjs tests/builder-inserter.test.mjs",
+    "test": "node --no-warnings --test tests/index.test.js tests/behaviour.test.mjs tests/pdp.test.mjs tests/storefront-blocks.test.mjs tests/builder-inserter.test.mjs tests/placeholder-copy.test.mjs tests/checkout-layout.test.mjs",
     "templates:import": "node scripts/import-store-templates.mjs",
     "supabase:configure-auth": "node scripts/configure-supabase-auth.mjs",
     "prisma:generate": "prisma generate",

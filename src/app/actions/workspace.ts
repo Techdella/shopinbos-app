@@ -405,7 +405,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       description,
       city,
       country,
-      brandSettings: mergeBrandSettings((name !== store.name ? clearStaleShopNames(store.brandSettings, store.name) : null) ?? store.brandSettings, {
+      brandSettings: mergeBrandSettings((name !== store.name ? clearStaleShopNames(store.brandSettings, store.name, name) : null) ?? store.brandSettings, {
         tagline,
         brandKit: {
           primaryColor: primary,
@@ -414,7 +414,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       }),
     },
   });
-  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name);
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name, name);
 
   redirect("/home/brand-kit?saved=true");
 }

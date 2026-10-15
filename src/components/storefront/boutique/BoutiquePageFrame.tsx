@@ -19,6 +19,7 @@ import type { ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { shopperCopy } from "@shared/placeholder-copy";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
 
 // Any other page of a 2026-theme store (policies…) inside the theme's own announcement bar, header, footer,
@@ -27,7 +28,7 @@ import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
 interface Props {
   themeId: BoutiqueThemeId;
   snapshot: StoreEditorSnapshot;
-  store: { id: string; name: string; slug: string; logoUrl?: string | null; city?: string | null; country?: string | null; currency: string; brandSettings?: unknown };
+  store: { id: string; name: string; slug: string; description?: string | null; logoUrl?: string | null; city?: string | null; country?: string | null; currency: string; brandSettings?: unknown };
   catalog: ShopperProduct[];
   shopper: StorefrontShopperInfo;
   storeBasePath: string;
@@ -61,7 +62,7 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
   const headerCopy = copyOf(headerSection);
   const headerLayout = typeof headerSection?.settings?.layout === "string" ? headerSection.settings.layout : "";
   const announcementSection = sections.find((section) => section.kind === "announcement-bar");
-  const announcement = announcementSection ? text(copyOf(announcementSection).text) || shopper.announcement : null;
+  const announcement = announcementSection ? shopperCopy(copyOf(announcementSection).text, store.name) || shopper.announcement : null;
   const footerSection = sections.find((section) => section.kind === "footer");
   const pageTypes = new Set(snapshot.pages.map((page) => page.pageType as string));
 

@@ -40,6 +40,10 @@ import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
 import { LAYOUT_ROW_KIND } from "./blocks/layout-logic";
 import { LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
+import { shopperCopy } from "@shared/placeholder-copy";
+import { CheckoutPreview } from "../checkout/CheckoutPreview";
+import { checkoutNavLinks, readCheckoutPageSettings } from "../checkout/checkout-layout";
+import { checkoutThemeFromLook } from "../checkout/checkout-theme";
 
 export interface BoutiqueStore {
   id?: string;
@@ -210,7 +214,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   const current = normalizePage(props.currentPage);
   const page = findStorefrontPage(snapshot.pages, current) ?? snapshot.pages.find((entry) => entry.pageType === "home") ?? snapshot.pages[0];
-  const sections = (page?.sections ?? []).filter((entry) => entry.visible !== false);
+  // Builder: the checkout page is previewed as the real checkout, which has its own slim header (CheckoutPreview), so
+  // the store's announcement bar, header and footer aren't drawn around it (the live checkout doesn't show them).
+  const checkoutPreview = !live && page?.pageType === "checkout";
+  const sections = (page?.sections ?? []).filter((entry) => entry.visible !== false && !(checkoutPreview && ["announcement-bar", "header", "footer"].includes(entry.kind)));
   const announcementSection = sections.find((entry) => entry.kind === "announcement-bar");
   const headerSection = sections.find((entry) => entry.kind === "header");
   const footerSection = [...sections].reverse().find((entry) => entry.kind === "footer");
@@ -1592,6 +1599,17 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           />
         );
       case "checkout-form":
+        if (!live) {
+          return (
+            <CheckoutPreview
+              theme={checkoutThemeFromLook(look)}
+              settings={readCheckoutPageSettings(section, themeId)}
+              store={store}
+              nav={checkoutNavLinks(snapshot)}
+              device={props.device}
+            />
+          );
+        }
         return (
           <section className="bq-wrap py-12 text-center">
             <h1 className="bq-h text-[30px]" style={look.headingStyle}>Checkout</h1>
@@ -1618,9 +1636,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const policyLinks: ChromeHref[] = live ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(basePath, legalPagePath(link.key)) })) : [];
-  const announcementText = text(copyOf(announcementSection).text) || shopper.announcement;
+  // Seller guidance saved by older templates ("Add your shipping or payment message here.") counts as empty.
+  const announcementText = shopperCopy(copyOf(announcementSection).text, store.name) || shopper.announcement;
   const logoText = text(headerCopy.logoText) && text(headerCopy.logoText) !== "Store" ? text(headerCopy.logoText) : store.name;
-  const showNav = live || props.device === "mobile";
+  const showNav = (live || props.device === "mobile") && !checkoutPreview;
   const editorStyle: React.CSSProperties = live ? {} : { minHeight: "100%" };
 
   return (
@@ -1656,7 +1675,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {!live && !props.demo && content.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
-        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} />
+        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} />
       )) : null}
       {showNav ? (
         <ShopperBottomNav

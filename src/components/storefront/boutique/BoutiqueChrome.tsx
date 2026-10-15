@@ -8,12 +8,15 @@ import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront
 import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { BoutiqueLook } from "./look";
 import { StoreBrandMark } from "../StoreBrandMark";
+import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy } from "@shared/placeholder-copy";
 
 export interface ChromeStore {
   name: string;
   logoUrl?: string | null;
   city?: string | null;
   country?: string | null;
+  /** The footer's line about the store falls back to this when the seller hasn't written one. */
+  description?: string | null;
   /** For the logo icon, how the header shows the brand and the dark-background logo (Brand kit). */
   brandSettings?: unknown;
 }
@@ -32,7 +35,9 @@ function pageLinkClick(link: ChromeLink) {
 /** A plain link to another route (legal pages, policies). */
 export type ChromeHref = { key: string; label: string; href: string };
 
-export function AnnouncementBar({ text, look }: { text: string | null; look: BoutiqueLook }) {
+/** The bar on the live store. Seller guidance saved by older templates never shows (shopperCopy). */
+export function AnnouncementBar({ text: raw, look }: { text: string | null; look: BoutiqueLook }) {
+  const text = shopperCopy(raw);
   if (!text) return null;
   return (
     <div className="px-4 py-2.5 text-center font-medium" style={look.announcement} role="region" aria-label="Store announcement">
@@ -234,6 +239,7 @@ export function BoutiqueFooter({
   onTrackOrder,
   legalLinks = [],
   showLogo = true,
+  editor = false,
 }: {
   store: ChromeStore;
   look: BoutiqueLook;
@@ -245,8 +251,12 @@ export function BoutiqueFooter({
   legalLinks?: ChromeHref[];
   /** The footer's "Show logo" setting: the logo (its dark-background version on a dark footer) in place of the name. */
   showLogo?: boolean;
+  /** In the builder: an empty or placeholder summary shows as a dashed "edit me" hint instead. */
+  editor?: boolean;
 }) {
   const t = look.tokens;
+  const shown = editor ? (summary ?? "").trim() : footerSummaryForShoppers(summary, { name: store.name, description: store.description, tagline: brandTagline(store.brandSettings) });
+  const summaryHint = editor && (!shown || isPlaceholderCopy(shown, store.name));
   const place = [store.city, store.country].filter(Boolean).join(", ");
   const whatsapp = shopper.whatsappNumber ? `WhatsApp +${shopper.whatsappNumber}` : null;
   const line = [place, whatsapp].filter(Boolean).join(" · ");
@@ -262,7 +272,11 @@ export function BoutiqueFooter({
               <div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>
             )}
             {line ? <p className="mt-2 text-[13.5px]" style={{ color: t.muted }}>{shopper.whatsappNumber ? <a href={`https://wa.me/${shopper.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">{line}</a> : line}</p> : null}
-            {summary ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{summary}</p> : null}
+            {summaryHint ? (
+              <p className="mt-2 rounded-[8px] border border-dashed px-2.5 py-1.5 text-[12.5px] leading-5" style={{ borderColor: t.border, color: t.muted }}>
+                {shown ? <><span style={{ opacity: 0.6 }}>{shown}</span><br />Shoppers won&apos;t see this placeholder. Write your own line in the footer settings.</> : "Add a line about your store in the footer settings. Until then shoppers see your store description."}
+              </p>
+            ) : shown ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{shown}</p> : null}
           </div>
           <nav aria-label="Footer">
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">

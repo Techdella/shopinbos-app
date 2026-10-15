@@ -20,13 +20,14 @@ import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { shopperCopy } from "@shared/placeholder-copy";
 import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout } from "./look";
 
 interface Props {
   themeId: BoutiqueThemeId;
   snapshot: StoreEditorSnapshot;
-  store: { id: string; name: string; slug: string; logoUrl?: string | null; city?: string | null; country?: string | null; currency: string; brandSettings?: unknown };
+  store: { id: string; name: string; slug: string; description?: string | null; logoUrl?: string | null; city?: string | null; country?: string | null; currency: string; brandSettings?: unknown };
   product: BoutiqueProductDetail;
   reviews: ProductReviewEntry[];
   avgRating: number;
@@ -71,7 +72,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const headerCopy = copyOf(headerSection);
   const headerLayout = typeof headerSection?.settings?.layout === "string" ? headerSection.settings.layout : "";
   const announcementSection = sections.find((section) => section.kind === "announcement-bar");
-  const announcement = announcementSection ? text(copyOf(announcementSection).text) || shopper.announcement : null;
+  const announcement = announcementSection ? shopperCopy(copyOf(announcementSection).text, store.name) || shopper.announcement : null;
   const footerSection = sections.find((section) => section.kind === "footer");
   const pageTypes = new Set(snapshot.pages.map((page) => page.pageType as string));
 
