@@ -16,7 +16,7 @@ export type IconName =
   | "document" | "mail" | "target" | "code" | "cards" | "message" | "grid" | "book"
   | "logout" | "arrowLeft"
   | "copy" | "paperclip" | "moreHorizontal" | "chevRight" | "checkCircle" | "trash"
-  | "file" | "shield" | "archive" | "percent";
+  | "file" | "shield" | "archive" | "percent" | "menu";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
@@ -45,6 +45,7 @@ const paths: Record<IconName, React.ReactNode> = {
   arrow:     <><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></>,
   check:     <><path d="M5 12l4 4 10-10"/></>,
   x:         <><path d="M6 6l12 12M18 6L6 18"/></>,
+  menu:      <><path d="M4 7h16M4 12h16M4 17h16"/></>,
   play:      <path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none"/>,
   pause:     <><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></>,
   pulse:     <><path d="M3 12h4l2-7 4 14 2-7h6"/></>,

@@ -89,8 +89,6 @@ const en = {
   "chat.placeholder": "Write your message…",
   "chat.send": "Send",
   "chat.sentOk": "Sent. You'll find it in your Inbox too.",
-  "chat.emailTo": "Goes to {email} from your store's email.",
-  "chat.emailNoInbox": "To see their replies here and in your Inbox, connect email in your Inbox settings.",
   "chat.connectEmail": "Connect email",
   "chat.emailNotReady": "Email sending isn't set up yet. Please contact Shopinbos support.",
   "chat.noEmail": "This customer didn't give an email address.",
@@ -118,6 +116,18 @@ const en = {
   "chat.err.OPTED_OUT": "This customer asked not to get these WhatsApp messages from you, so it wasn't sent.",
   "chat.err.NO_PICTURE": "This template needs a picture. Add a product photo or your logo first.",
   "chat.err.RATE_LIMITED": "You've sent a lot of messages in a short time. Wait a few minutes and try again.",
+  "drawer.writeEmail": "Write an email to {email}",
+  "chat.emailFrom": "Goes to {email} from {from}.",
+  "chat.emailToOnly": "Goes to {email} from your store's email.",
+  "chat.ownAddressNudge": "This goes from your Shopinbos inbox address.",
+  "chat.ownAddressLink": "Send from my own email",
+  "chat.connectFirst.title": "Connect your email to write to customers here",
+  "chat.connectFirst.domain_auto": "You bought {domain} on Shopinbos, so an address like hello@{domain} takes one click. Customers' replies come back to your Inbox.",
+  "chat.connectFirst.domain_dns": "Send from your own address, like hello@{domain}. We show you the few settings to add where you bought your domain. You can also connect Gmail.",
+  "chat.connectFirst.gmail": "Connect your Gmail and your emails go out from it. Customers' replies come back to your Inbox. A domain of your own gives you a more professional address.",
+  "chat.connectFirst.oneClick": "Set up email for {domain}",
+  "chat.connectFirst.gmailAction": "Connect Gmail",
+  "chat.err.EMAIL_NOT_CONNECTED": "Connect your email first.",
 } satisfies Record<string, string>;
 
 export default en;

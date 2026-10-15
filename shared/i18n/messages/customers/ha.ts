@@ -91,8 +91,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "chat.placeholder": "Rubuta saƙonka…",
   "chat.send": "Aika",
   "chat.sentOk": "An aika. Za ka gan shi a Inbox ɗinka ma.",
-  "chat.emailTo": "Zai je {email} daga email ɗin store ɗinka.",
-  "chat.emailNoInbox": "Don ganin amsoshinsu a nan da cikin Inbox ɗinka, haɗa email a saitunan Inbox ɗinka.",
   "chat.connectEmail": "Haɗa email",
   "chat.emailNotReady": "Ba a saita aika email ba tukuna. Da fatan za ka tuntuɓi Shopinbos support.",
   "chat.noEmail": "Wannan kwastoma bai bayar da adireshin email ba.",
@@ -120,6 +118,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "chat.err.OPTED_OUT": "Wannan kwastoma ya ce kada ka aika masa irin waɗannan saƙonnin WhatsApp, don haka ba a aika ba.",
   "chat.err.NO_PICTURE": "Wannan template yana buƙatar hoto. Ka fara ƙara hoton kaya ko logo ɗinka.",
   "chat.err.RATE_LIMITED": "Ka aika saƙonni da yawa cikin ɗan lokaci. Jira 'yan mintuna, sannan ka sake gwadawa.",
+  "drawer.writeEmail": "Rubuta email zuwa {email}",
+  "chat.emailFrom": "Zai je {email} daga {from}.",
+  "chat.emailToOnly": "Zai je {email} daga email ɗin store ɗinka.",
+  "chat.ownAddressNudge": "Wannan yana fita daga adireshin inbox ɗinka na Shopinbos.",
+  "chat.ownAddressLink": "Aika daga email ɗina",
+  "chat.connectFirst.title": "Haɗa email ɗinka don ka rubuta wa kwastomomi daga nan",
+  "chat.connectFirst.domain_auto": "Ka sayi {domain} a Shopinbos, don haka adireshi kamar hello@{domain} danna ɗaya ne kawai. Amsoshin kwastomomi za su dawo Inbox ɗinka.",
+  "chat.connectFirst.domain_dns": "Aika daga adireshinka, kamar hello@{domain}. Za mu nuna maka ƴan saitunan da za ka ƙara inda ka sayi domain ɗinka. Kana iya haɗa Gmail ma.",
+  "chat.connectFirst.gmail": "Haɗa Gmail ɗinka kuma email ɗinka za su fita daga gare shi. Amsoshin kwastomomi za su dawo Inbox ɗinka. Domain naka zai ba ka adireshi mai kyau.",
+  "chat.connectFirst.oneClick": "Saita email don {domain}",
+  "chat.connectFirst.gmailAction": "Haɗa Gmail",
+  "chat.err.EMAIL_NOT_CONNECTED": "Ka fara haɗa email ɗinka.",
 };
 
 export default ha;

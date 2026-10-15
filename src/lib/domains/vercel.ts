@@ -488,3 +488,28 @@ export async function removeDomainFromVercel(rawDomain: string) {
     throw error;
   }
 }
+
+// ─── DNS records (domains whose DNS is on Vercel: the ones bought through Shopinbos) ─────────────────────────
+
+export interface VercelDnsRecord {
+  id?: string;
+  name: string;
+  type: string;
+  value: string;
+  mxPriority?: number;
+}
+
+/** The zone's records (https://vercel.com/docs/rest-api/dns/list-existing-dns-records). Names are relative, "" for the apex. */
+export async function listDnsRecordsOnVercel(rawDomain: string) {
+  const domain = normalizeDomain(rawDomain);
+  if (!hasVercelDomainConfig()) throw new Error("Vercel domain integration is not configured.");
+  const json = await vercelRequest<{ records?: VercelDnsRecord[] }>(`/v4/domains/${encodeURIComponent(domain)}/records?limit=100`);
+  return json?.records ?? [];
+}
+
+/** Adds one record (https://vercel.com/docs/rest-api/dns/create-a-dns-record). */
+export async function addDnsRecordOnVercel(rawDomain: string, record: { name: string; type: string; value: string; ttl?: number; mxPriority?: number }) {
+  const domain = normalizeDomain(rawDomain);
+  if (!hasVercelDomainConfig()) throw new Error("Vercel domain integration is not configured.");
+  return vercelRequest<{ uid?: string }>(`/v2/domains/${encodeURIComponent(domain)}/records`, { method: "POST", body: JSON.stringify(record) });
+}

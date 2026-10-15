@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { encryptJson, decryptJson, hasCredentialKey, randomSecret } from "./crypto";
 import { inboxAddress, inboxEmailDomain } from "./channels/email";
+import { disconnectEmail } from "@/lib/email-channel/gmail.server";
 import { subscribePage, verifyMetaPage } from "./channels/meta";
 import { connectTelegram, disconnectTelegram } from "./channels/telegram";
 import { smsProvider, SMS_PROVIDER_MODULES } from "@/lib/sms";
@@ -156,7 +157,11 @@ export async function connectChannel(store: { id: string; slug: string }, channe
   if (channel === "email") {
     if (!process.env.RESEND_API_KEY) return { ok: false, error: "Email sending isn't set up on this server yet (RESEND_API_KEY)." };
     const address = inboxAddress(store.slug);
-    await save(store.id, "email", { externalId: address, displayName: address ?? "Replies by email", credentials: null });
+    // The store's Shopinbos inbox address. A domain set up earlier stays in the settings, so it can be finished later.
+    const current = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "email" } }, select: { settings: true } });
+    const { gmail: _gmail, ...kept } = (current?.settings as Record<string, unknown> | null) ?? {};
+    void _gmail;
+    await save(store.id, "email", { externalId: address, displayName: address ?? "Replies by email", credentials: null, settings: { ...kept, provider: "platform" } });
     return { ok: true, view: await viewOf(store.id, "email") };
   }
 
@@ -310,6 +315,7 @@ async function connectVoice(store: { id: string }, input: Record<string, string 
 }
 
 export async function disconnectChannel(storeId: string, channel: ConnectableChannel) {
+  if (channel === "email") return disconnectEmail(storeId);
   const row = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId, channel } } });
   if (!row) return;
   if (channel === "telegram") {

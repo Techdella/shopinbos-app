@@ -463,7 +463,7 @@ export function BoutiquePdp(props: Props) {
         <div className="bq-pdp2-info">{buyBox}</div>
       </div>
 
-      <div className="mt-12 grid gap-14">
+      <div className="bq-pdp2-blocks mt-12 gap-14">
         {settings.sections.map((id) => pageBlocks[id]())}
       </div>
 

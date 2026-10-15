@@ -3,7 +3,8 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
-import { inboxEmailDomain } from "@/lib/inbox/channels/email";
+import { inboxAddress, inboxEmailDomain } from "@/lib/inbox/channels/email";
+import { resolveEmailSender, storeRecommendation } from "@/lib/email-channel/server";
 import { normaliseEmail, normalisePhone } from "@/lib/inbox/pure";
 import { getChannel, sendRecorded, sendReply } from "@/lib/inbox/service";
 import { MARKETING_STORE_SELECT, storeUrl } from "@/lib/marketing/brand";
@@ -22,6 +23,7 @@ import { NOTE_MAX, addressPlace, customerTemplateValues, fillCustomerTemplate, r
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
 const THREAD_MESSAGES = 30;
 export const TEMPLATES_HREF = "/home/marketing/templates";
+export const EMAIL_SETUP_HREF = "/home/inbox/email";
 
 type Store = { id: string; name: string; slug: string; customDomain: string | null; currency: string };
 
@@ -107,8 +109,9 @@ export async function customerProfile(store: Store, key: string) {
         })
       : [],
     whatsappSetup(store.id),
-    db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "email" } }, select: { status: true } }),
+    resolveEmailSender(store.id, store.name),
   ]);
+  const emailRecommendation = emailChannel.kind === "none" ? await storeRecommendation(store).catch(() => null) : null;
 
   const templates = setup.hasAccount && phone ? await approvedTemplates(store.id).catch(() => []) : [];
   const values = templateValues(store, contact);
@@ -137,8 +140,15 @@ export async function customerProfile(store: Store, key: string) {
       : null,
     emailChannel: {
       address: email,
-      ready: Boolean(process.env.RESEND_API_KEY),
-      repliesInInbox: Boolean(inboxEmailDomain() && emailChannel?.status === "connected"),
+      /** Email is connected (Gmail, the store's own domain, or its Shopinbos inbox address): the composer is on. */
+      connected: emailChannel.kind !== "none",
+      provider: emailChannel.kind,
+      from: emailChannel.kind === "gmail" || emailChannel.kind === "domain" ? emailChannel.address : emailChannel.kind === "platform" ? inboxAddress(store.slug) : null,
+      ready: emailChannel.kind === "gmail" || Boolean(process.env.RESEND_API_KEY),
+      repliesInInbox: emailChannel.kind === "gmail" || Boolean(inboxEmailDomain() && emailChannel.kind !== "none"),
+      /** Not connected yet: the way to connect we recommend for this store (own domain, or Gmail on a free address). */
+      recommended: emailRecommendation ? { option: emailRecommendation.primary, domain: emailRecommendation.domain } : null,
+      setupHref: EMAIL_SETUP_HREF,
       conversationId: threads.emailThread?.id ?? null,
       subject: threads.emailThread?.subject ?? null,
       messages: emailMessages,
@@ -213,6 +223,8 @@ export async function messageCustomer(storeId: string, key: string, input: Custo
 
   if (input.channel === "email") {
     if (!email) throw new CustomerMessageError("NO_EMAIL", "This customer has no email address.");
+    // Connect first: email goes out from the seller's own address (Gmail or their domain), so replies come back.
+    if ((await resolveEmailSender(storeId, store.name)).kind === "none") throw new CustomerMessageError("EMAIL_NOT_CONNECTED", "Connect your email first, in Inbox → Email.", 409);
     const subject = input.subject?.trim() || `A message from ${store.name}`;
     const conversation = await openThread(storeId, "email", email, who, subject);
     const earlier = await db.inboxMessage.count({ where: { conversationId: conversation.id, direction: { in: ["inbound", "outbound"] } } });

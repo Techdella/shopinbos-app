@@ -14,6 +14,8 @@ import { readShopperInfo } from "@/lib/storefront/shopper-info";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
+import { StoreMenuBar, StoreMenuButton, resolveMenu } from "./StoreMenu";
+import { menuPageKeys, menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
@@ -946,7 +948,8 @@ function ClassicTemplateSurface({
     if (normalized === "wishlist") return header?.settings?.wishlist !== false;
     return normalized === "cart" || publishedPageTypes.has(normalized as typeof snapshot.pages[number]["pageType"]);
   };
-  const navLinks = (Array.isArray(headerCopy.navLinks) ? (headerCopy.navLinks as string[]) : ["home", "products", "about", "blog", "faq", "contact"])
+  const savedMenu = readMenu(headerCopy, ["home", "products", "about", "blog", "faq", "contact"]);
+  const navLinks = menuPageKeys(savedMenu)
     .filter(visibleNavLink)
     .filter((item, index, array) => array.indexOf(item) === index);
   const utilityLinks = (Array.isArray(headerCopy.utilityLinks) ? (headerCopy.utilityLinks as string[]) : ["categories", "wishlist", "cart"])
@@ -954,6 +957,18 @@ function ClassicTemplateSurface({
     .filter((item, index, array) => array.indexOf(item) === index);
   const headerLayout = String(header?.settings?.layout ?? "standard");
   const categoryNavLayout = String(header?.settings?.categoryNavLayout ?? "simple");
+  const shownMenu = resolveMenu(savedMenu, {
+    hasPage: (page) => visibleNavLink(page),
+    pageLabel: (page) => pageLabel(page),
+    goPage: (page) => navigate(page),
+    categories: productCategories,
+    goCategory: (slug) => navigateCategory({ slug }),
+    products: store.storeProducts,
+    goProduct: (id) => openProductPage(id),
+    current: currentPage,
+    categoriesUnderShop: categoryNavLayout === "simple",
+  });
+  const menuColors = { ink: theme.ink, muted: theme.muted, accent: theme.accent, accentText: theme.ctaText, panel: theme.paperBg, panelInk: theme.ink, border: theme.border };
   const headerFeatures = {
     search: header?.settings?.search !== false,
     wishlist: header?.settings?.wishlist !== false,
@@ -3487,6 +3502,16 @@ function ClassicTemplateSurface({
           }}
         >
           <div className={`mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-8 ${headerLayout === "centered" ? "md:grid md:grid-cols-[1fr_auto_1fr]" : ""}`}>
+            <div className="flex min-w-0 items-center gap-1">
+            <StoreMenuButton
+              items={shownMenu}
+              style={mobileMenuStyleOf(header.settings?.mobileMenu)}
+              colors={{ ...menuColors, ink: theme.ink }}
+              storeName={store.name}
+              className="-ml-2 inline-grid md:hidden"
+              headingFont={theme.headingFont}
+              interactive={mode === "live"}
+            />
             <button
               type="button"
               onClick={(event) => {
@@ -3514,13 +3539,14 @@ function ClassicTemplateSurface({
                 </>
               )}
             </button>
-            <nav className={`hidden min-w-0 flex-1 flex-wrap items-center ${headerLayout === "centered" ? "justify-start" : "justify-center"} gap-1 md:flex`}>
-              {[...navLinks, ...utilityLinks.filter((pageType) => !navLinks.includes(pageType))].map((pageType) => (
-                <button key={pageType} type="button" onClick={() => navigate(pageType)} className="rounded-[4px] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.06em] transition-colors hover:opacity-80" style={{ color: currentPage === normalizePageType(pageType) ? theme.accent : theme.muted, background: "transparent" }}>
-                  {pageLabel(pageType)}
-                </button>
-              ))}
-            </nav>
+            </div>
+            <StoreMenuBar
+              items={[...shownMenu, ...utilityLinks.filter((pageType) => !navLinks.includes(pageType)).map((pageType) => ({ id: `utility-${pageType}`, label: pageLabel(pageType), onSelect: () => navigate(pageType), current: currentPage === normalizePageType(pageType), children: [] }))]}
+              style={menuStyleOf(header.settings?.menuStyle ?? "caps")}
+              colors={menuColors}
+              className={`hidden min-w-0 flex-1 flex-wrap ${headerLayout === "centered" ? "justify-start" : "justify-center"} md:flex`}
+              font={{ color: theme.muted }}
+            />
             <div className="flex items-center gap-2">
             {headerFeatures.search ? <button type="button" title="Search" className="rounded-full border px-3 py-2 text-[12px] font-semibold" style={{ borderColor: theme.border, color: theme.muted }}>Search</button> : null}
             {headerFeatures.wishlist ? <button type="button" onClick={() => navigate("wishlist")} title="Wishlist" className="rounded-full border px-3 py-2 text-[12px] font-semibold" style={{ borderColor: theme.border, color: theme.muted }}>Wishlist</button> : null}

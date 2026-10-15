@@ -8,6 +8,7 @@ import { quotePoints, type PointsRedemption } from "@/lib/gamification/loyalty.s
 import { buildStockHolds, isDropshipProduct, stockShortfallDetails, stockShortfallMessage, storeStockMode, type StockHold, type VariantHold } from "@/lib/commerce/stock-holds";
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
 import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
+import { spreadAgreedAmount } from "@/lib/payment-links/pure";
 import {
   chooseDelivery,
   deliveryOptionsFor,
@@ -68,6 +69,11 @@ export interface PricingInput {
   settings: Pick<CheckoutSettings, "enableCoupon">;
   /** Loyalty points the shopper wants to use; needs buyerEmail and the phone from an earlier order. */
   loyalty?: { points: number; phone?: string | null } | null;
+  /**
+   * A price the seller agreed for these items (before delivery), from a payment link loaded on the server, never
+   * from the browser. The lines are re-priced to add up to it and no automatic discount is added on top.
+   */
+  agreedItemsTotal?: number | null;
 }
 
 /** Stock left per version id (null when that version isn't counted). */
@@ -177,7 +183,8 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   if (short.length) return { ok: false, message: stockShortfallMessage(short) };
   const stockHolds = buildStockHolds(products, quantities, variantHolds);
 
-  const items = [...merged.values()];
+  const agreed = typeof input.agreedItemsTotal === "number" && input.agreedItemsTotal > 0 ? input.agreedItemsTotal : null;
+  const items = agreed !== null ? spreadAgreedAmount([...merged.values()], agreed) : [...merged.values()];
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const zones = await db.shippingZone.findMany({
@@ -218,7 +225,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     }
   }
 
-  if (!applied) {
+  if (!applied && agreed === null) {
     const candidates = await db.discount.findMany({ where: { storeId: input.store.id, status: "active" } });
     const best = bestAutomaticDiscount(candidates, lines, fee);
     if (best && !(await eligibilityError(input.store.id, best.discount, input.buyerEmail))) {

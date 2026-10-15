@@ -12,7 +12,8 @@ export interface SendInput {
   interactive?: Record<string, unknown> | null;
 }
 
-export type SendResult = { ok: true; externalId: string | null } | { ok: false; error: string };
+/** `meta`: details kept on the sent message (the Gmail thread id, so later emails stay in one thread). */
+export type SendResult = { ok: true; externalId: string | null; meta?: Record<string, string | null> } | { ok: false; error: string };
 
 export const GRAPH_VERSION = "v21.0";
 export const GRAPH_URL = `https://graph.facebook.com/${GRAPH_VERSION}`;

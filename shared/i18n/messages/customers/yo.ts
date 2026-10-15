@@ -91,8 +91,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "chat.placeholder": "Kọ ọ̀rọ̀ rẹ…",
   "chat.send": "Fi ránṣẹ́",
   "chat.sentOk": "Ó ti lọ. Wàá tún rí i nínú Inbox rẹ.",
-  "chat.emailTo": "Yóò lọ sí {email} láti email store rẹ.",
-  "chat.emailNoInbox": "Láti rí èsì wọn níbí àti nínú Inbox rẹ, so email pọ̀ nínú ètò Inbox rẹ.",
   "chat.connectEmail": "So email pọ̀",
   "chat.emailNotReady": "A kò tíì ṣètò fífi email ránṣẹ́. Jọ̀wọ́ kàn sí Shopinbos support.",
   "chat.noEmail": "Oníbàárà yìí kò fún wa ní àdírẹ́sì email.",
@@ -120,6 +118,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "chat.err.OPTED_OUT": "Oníbàárà yìí sọ pé kí o má fi irú ọ̀rọ̀ WhatsApp yìí ránṣẹ́ sí òun, nítorí náà kò lọ.",
   "chat.err.NO_PICTURE": "Template yìí nílò àwòrán. Kọ́kọ́ fi fọ́tò ọjà tàbí logo rẹ kún un.",
   "chat.err.RATE_LIMITED": "O ti fi ọ̀pọ̀ ọ̀rọ̀ ránṣẹ́ ní àkókò kúkúrú. Dúró ìṣẹ́jú díẹ̀, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
+  "drawer.writeEmail": "Kọ email sí {email}",
+  "chat.emailFrom": "Yóò lọ sí {email} láti {from}.",
+  "chat.emailToOnly": "Yóò lọ sí {email} láti email store rẹ.",
+  "chat.ownAddressNudge": "Èyí ń lọ láti àdírẹ́sì inbox Shopinbos rẹ.",
+  "chat.ownAddressLink": "Fi ránṣẹ́ láti email tèmi",
+  "chat.connectFirst.title": "So email rẹ pọ̀ kí o lè kọ̀wé sí àwọn oníbàárà níbí",
+  "chat.connectFirst.domain_auto": "O ra {domain} lórí Shopinbos, nítorí náà àdírẹ́sì bíi hello@{domain} jẹ́ títẹ̀ ẹ̀ẹ̀kan. Èsì àwọn oníbàárà yóò padà sí Inbox rẹ.",
+  "chat.connectFirst.domain_dns": "Fi ránṣẹ́ láti àdírẹ́sì tìrẹ, bíi hello@{domain}. A ó fi àwọn ètò díẹ̀ hàn ọ́ láti fi kún un níbi tí o ti ra domain rẹ. O tún lè so Gmail pọ̀.",
+  "chat.connectFirst.gmail": "So Gmail rẹ pọ̀, àwọn email rẹ yóò sì máa jáde láti ibẹ̀. Èsì àwọn oníbàárà yóò padà sí Inbox rẹ. Domain tìrẹ yóò fún ọ ní àdírẹ́sì tó dára jù.",
+  "chat.connectFirst.oneClick": "Ṣètò email fún {domain}",
+  "chat.connectFirst.gmailAction": "So Gmail pọ̀",
+  "chat.err.EMAIL_NOT_CONNECTED": "Kọ́kọ́ so email rẹ pọ̀.",
 };
 
 export default yo;

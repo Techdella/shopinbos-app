@@ -55,6 +55,7 @@ const CHANNEL_BAR: Record<OrderChannel, string> = {
   email: "bg-app-accent",
   online_store: "bg-app-forest",
   in_person: "bg-[#F2A93B]",
+  payment_link: "bg-[#6B4F8A]",
 };
 
 const TASK_ICON: Record<SellerDashboard["tasks"][number]["icon"], IconName> = {

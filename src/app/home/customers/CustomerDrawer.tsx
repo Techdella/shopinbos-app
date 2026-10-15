@@ -15,9 +15,10 @@ import { renderTemplateText } from "@/lib/marketing/text-channels";
 import type { CustomerProfile } from "@/lib/customers/drawer.server";
 
 // The customer drawer on /home/customers: a right-side panel (a full-screen sheet on phones) opened by
-// ?customer=<key>, so it can be linked and the back button closes it. Contact, shopping history, a one-to-one
-// message box (email, or WhatsApp inside the 24-hour window / with an approved template) that writes into the
-// customer's Inbox conversation, their orders, reviews and marketing tags and note.
+// ?customer=<key>, so it can be linked and the back button closes it (&compose=email opens on the email composer).
+// Contact, shopping history, a one-to-one message box (email from the seller's connected address, or WhatsApp
+// inside the 24-hour window / with an approved template) that writes into the customer's Inbox conversation, their
+// orders, reviews and marketing tags and note. Email never opens the device mail app; it is written and sent in here.
 
 const ROW_CLASS = "flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 text-app-ink no-underline hover:bg-app-canvas sm:flex-nowrap sm:px-5";
 
@@ -64,6 +65,7 @@ export function CustomerDrawer() {
   const closeHref = useMemo(() => {
     const next = new URLSearchParams(params.toString());
     next.delete("customer");
+    next.delete("compose");
     const text = next.toString();
     return text ? `/home/customers?${text}` : "/home/customers";
   }, [params]);
@@ -166,9 +168,27 @@ function Fact({ label, value }: { label: string; value: string }) {
 function DrawerBody({ profile, reload }: { profile: CustomerProfile; reload: () => Promise<void> }) {
   const t = useT("customers", "orders");
   const locale = useLocale();
+  const params = useSearchParams();
   const money = (amount: number, currency = profile.currency) => formatMoney(Math.round(amount), locale, { currency: currency || "NGN" });
   const date = (iso: string) => formatDate(iso, locale);
   const s = profile.stats;
+  const [channel, setChannel] = useState<Channel>(params.get("compose") === "whatsapp" && profile.whatsapp.phone ? "whatsapp" : profile.email ? "email" : profile.whatsapp.phone ? "whatsapp" : "email");
+  const composer = useRef<HTMLDivElement>(null);
+
+  // The email address opens the in-app email composer (not the device's mail app): same drawer, same thread.
+  const writeEmail = useCallback(() => {
+    setChannel("email");
+    window.requestAnimationFrame(() => {
+      composer.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      composer.current?.querySelector<HTMLElement>("textarea, input, a")?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  // ?compose=email (from an order page): open straight on the composer.
+  const composeEmail = params.get("compose") === "email" && Boolean(profile.email);
+  useEffect(() => {
+    if (composeEmail) writeEmail();
+  }, [composeEmail, writeEmail]);
 
   return (
     <>
@@ -176,7 +196,13 @@ function DrawerBody({ profile, reload }: { profile: CustomerProfile; reload: () 
         <ul className="m-0 grid list-none gap-2 p-0 text-[14px]">
           <li className="flex min-w-0 items-center gap-2.5">
             <Icon name="mail" size={16} className="shrink-0 text-app-ink-soft" />
-            {profile.email ? <a href={`mailto:${profile.email}`} className="truncate text-app-ink">{profile.email}</a> : <span className="text-app-ink-soft">{t("drawer.noEmail")}</span>}
+            {profile.email ? (
+              <button type="button" onClick={writeEmail} aria-label={t("drawer.writeEmail", { email: profile.email })} className="min-w-0 truncate text-left font-bold text-app-accent-ink underline-offset-2 hover:underline">
+                {profile.email}
+              </button>
+            ) : (
+              <span className="text-app-ink-soft">{t("drawer.noEmail")}</span>
+            )}
           </li>
           <li className="flex min-w-0 items-center gap-2.5">
             <Icon name="phone" size={16} className="shrink-0 text-app-ink-soft" />
@@ -199,7 +225,9 @@ function DrawerBody({ profile, reload }: { profile: CustomerProfile; reload: () 
         </div>
       </Section>
 
-      <MessageBox profile={profile} reload={reload} />
+      <div ref={composer} className="scroll-mt-4">
+        <MessageBox profile={profile} reload={reload} channel={channel} setChannel={setChannel} />
+      </div>
 
       <Section title={t("drawer.ordersList")}>
         <ul className="m-0 grid list-none divide-y divide-app-line p-0">
@@ -273,14 +301,34 @@ function SetupNote({ children, href, action }: { children: ReactNode; href?: str
   );
 }
 
+/** Email isn't connected: say how we recommend connecting it for this store, and link to Inbox → Email. */
+function EmailConnectNote({ recommended, href }: { recommended: { option: string; domain: string | null } | null; href: string }) {
+  const t = useT("customers");
+  const option = recommended?.option ?? "gmail";
+  const domain = recommended?.domain ?? "";
+  return (
+    <div className="grid gap-2 rounded-[14px] border border-app-line bg-white px-3.5 py-3 text-[13.5px] leading-[1.5]">
+      <div className="flex items-center gap-2 font-extrabold">
+        <Icon name="mail" size={16} className="shrink-0" /> {t("chat.connectFirst.title")}
+      </div>
+      <p className="m-0 break-words text-app-ink-soft">
+        {option === "domain_auto" ? t("chat.connectFirst.domain_auto", { domain }) : option === "domain_dns" ? t("chat.connectFirst.domain_dns", { domain }) : t("chat.connectFirst.gmail")}
+      </p>
+      <Link href={href} className="inline-flex min-h-[40px] items-center justify-self-start rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black">
+        {option === "domain_auto" ? t("chat.connectFirst.oneClick", { domain }) : option === "gmail" ? t("chat.connectFirst.gmailAction") : t("chat.connectEmail")}
+      </Link>
+    </div>
+  );
+}
+
 const fieldClass = "w-full rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[14.5px] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink";
 
-function MessageBox({ profile, reload }: { profile: CustomerProfile; reload: () => Promise<void> }) {
+function MessageBox({ profile, reload, channel, setChannel }: { profile: CustomerProfile; reload: () => Promise<void>; channel: Channel; setChannel: (next: Channel) => void }) {
   const t = useT("customers", "inbox");
   const locale = useLocale();
   const detailLabel = useDetailLabel();
   const wa = profile.whatsapp;
-  const [channel, setChannel] = useState<Channel>(profile.email ? "email" : wa.phone ? "whatsapp" : "email");
+  const mail = profile.emailChannel;
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [useTemplate, setUseTemplate] = useState(wa.composer.mode === "template");
@@ -289,8 +337,8 @@ function MessageBox({ profile, reload }: { profile: CustomerProfile; reload: () 
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const thread = channel === "email" ? profile.emailChannel.messages : wa.messages;
-  const conversationId = channel === "email" ? profile.emailChannel.conversationId : wa.conversationId;
+  const thread = channel === "email" ? mail.messages : wa.messages;
+  const conversationId = channel === "email" ? mail.conversationId : wa.conversationId;
   const template = wa.templates.find((tpl) => tpl.id === templateId) ?? wa.templates[0] ?? null;
   const values = template ? params[template.id] ?? template.variables.map((v) => v.value) : [];
   const filledPreview = template ? renderTemplateText(template.content, template.variables.map((v, i) => values[i]?.trim() || v.value)) : "";
@@ -298,7 +346,7 @@ function MessageBox({ profile, reload }: { profile: CustomerProfile; reload: () 
 
   const errorText = (error: ApiError) => {
     if (error.code === "SEND_FAILED") return t("chat.err.sendFailed", { reason: error.message });
-    if (error.code && ["NO_EMAIL", "NO_PHONE", "NOT_APPROVED", "OPTED_OUT", "NO_PICTURE", "RATE_LIMITED"].includes(error.code)) return t.dynamic(`chat.err.${error.code}`, error.message);
+    if (error.code && ["NO_EMAIL", "NO_PHONE", "NOT_APPROVED", "OPTED_OUT", "NO_PICTURE", "RATE_LIMITED", "EMAIL_NOT_CONNECTED"].includes(error.code)) return t.dynamic(`chat.err.${error.code}`, error.message);
     return error.message || t("chat.err.generic");
   };
 
@@ -325,7 +373,7 @@ function MessageBox({ profile, reload }: { profile: CustomerProfile; reload: () 
   };
 
   const statusLabel = (status: string) => (status === "queued" ? t("msg.sending") : status === "failed" ? t("msg.notSent") : status === "delivered" ? t("msg.delivered") : status === "read" ? t("msg.read") : status === "sent" ? t("msg.sent") : "");
-  const newEmailThread = channel === "email" && profile.emailChannel.messages.length === 0;
+  const newEmailThread = channel === "email" && mail.messages.length === 0;
 
   return (
     <Section
@@ -363,9 +411,11 @@ function MessageBox({ profile, reload }: { profile: CustomerProfile; reload: () 
       </div>
 
       {channel === "email" ? (
-        !profile.emailChannel.address ? (
+        !mail.address ? (
           <SetupNote>{t("chat.noEmail")}</SetupNote>
-        ) : !profile.emailChannel.ready ? (
+        ) : !mail.connected ? (
+          <EmailConnectNote recommended={mail.recommended} href={mail.setupHref} />
+        ) : !mail.ready ? (
           <SetupNote>{t("chat.emailNotReady")}</SetupNote>
         ) : (
           <div className="grid gap-2">
@@ -373,10 +423,10 @@ function MessageBox({ profile, reload }: { profile: CustomerProfile; reload: () 
               <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} placeholder={t("chat.subjectPlaceholder")} aria-label={t("chat.subject")} className={fieldClass} />
             )}
             <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={4000} rows={4} placeholder={t("chat.placeholder")} aria-label={t("chat.placeholder")} className={cx(fieldClass, "resize-y")} />
-            <p className="m-0 text-[12.5px] text-app-ink-soft">{t("chat.emailTo", { email: profile.emailChannel.address })}</p>
-            {!profile.emailChannel.repliesInInbox && (
+            <p className="m-0 break-words text-[12.5px] text-app-ink-soft">{mail.from ? t("chat.emailFrom", { email: mail.address, from: mail.from }) : t("chat.emailToOnly", { email: mail.address })}</p>
+            {mail.provider === "platform" && (
               <p className="m-0 text-[12.5px] text-app-ink-soft">
-                {t("chat.emailNoInbox")} <Link href="/home/inbox/channels" className="font-bold text-app-accent-ink">{t("chat.connectEmail")}</Link>
+                {t("chat.ownAddressNudge")} <Link href={mail.setupHref} className="font-bold text-app-accent-ink">{t("chat.ownAddressLink")}</Link>
               </p>
             )}
             <PillButton size="sm" tone="ink" busy={busy} disabled={!body.trim()} onClick={() => void send()} className="justify-self-end">
