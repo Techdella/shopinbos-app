@@ -31,6 +31,8 @@ import { GameSection } from "../gamification/GameSection";
 import { HeroSlider, slideAlign } from "../HeroSlider";
 import { readHeroSlides, readProductLimit, readSlideLink, readSlideTiming, type HeroSlide, type SlideLink } from "@/lib/store-templates/section-content";
 import type { GameSectionKind } from "@/lib/gamification/logic";
+import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
+import { filterFaq } from "./blocks/block-logic";
 
 export interface BoutiqueStore {
   id?: string;
@@ -178,6 +180,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const [filter, setFilter] = useState<{ category: string; collection: string; q: string; sort: string }>({ category: "all", collection: "", q: "", sort: "featured" });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [faqQuery, setFaqQuery] = useState<Record<string, string>>({});
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
   const railRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1083,12 +1086,24 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       .filter((item) => item.question && (item.answer || (!live && !props.demo)));
     if (!items.length) return editorHint("Add questions and answers for shoppers.");
     const headingId = `${uid}-${section.id}`;
+    // Optional search box (FAQ settings): filters questions and answers as the shopper types.
+    const searchable = section.settings?.searchable === true;
+    const query = faqQuery[section.id] ?? "";
+    const shown = searchable ? filterFaq(items, query) : items;
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <div className="mx-auto max-w-[720px]">
           <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{text(copy.title) || "Questions"}</h2>
+          {searchable ? (
+            <label className="mt-5 flex h-12 items-center gap-2 rounded-full border px-4" style={{ borderColor: t.border }}>
+              <Icon name="search" size={16} color={t.muted} />
+              <span className="sr-only">{text(copy.searchPlaceholder) || "Search questions"}</span>
+              <input type="search" value={query} onChange={(event) => setFaqQuery((prev) => ({ ...prev, [section.id]: event.target.value }))} placeholder={text(copy.searchPlaceholder) || "Search questions"} className="h-full w-full bg-transparent text-[15px] outline-none" style={{ color: t.ink }} />
+            </label>
+          ) : null}
+          {searchable && query.trim() ? <p className="m-0 mt-2 text-[13px]" role="status" style={{ color: t.muted }}>{shown.length ? `${shown.length} ${shown.length === 1 ? "answer" : "answers"}` : "No answers match. Try another word, or contact us."}</p> : null}
           <div className="mt-6">
-            {items.map((item) => {
+            {shown.map((item) => {
               const open = openFaq === item.id;
               return (
                 <div key={item.id} className="border-b" style={{ borderColor: t.border }}>
@@ -1234,7 +1249,37 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
   }
 
+  /** What the ready-made blocks (./blocks) get to draw with: the same data and actions as the sections above. */
+  function blockContext(section: TemplateSectionNode): BlockContext {
+    return {
+      section,
+      copy: copyOf(section),
+      settings: section.settings ?? {},
+      items: section.items ?? [],
+      look,
+      store,
+      shopper,
+      products,
+      live,
+      editor: !live && !props.demo,
+      headingId: `${uid}-${section.id}`,
+      currentPage: current,
+      go,
+      openProduct,
+      productHref,
+      shopCollection,
+      shopCategory,
+      addToCart: live ? props.onAddToCart : undefined,
+      openCart: props.onOpenCart,
+      wished,
+      toggleWish,
+      visitorKey: props.visitorKey,
+      editorHint,
+    };
+  }
+
   function render(section: TemplateSectionNode): React.ReactNode {
+    if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
     switch (section.kind) {
       case "hero-split":
         return hero(section);

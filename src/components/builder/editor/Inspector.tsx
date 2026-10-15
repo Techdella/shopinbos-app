@@ -411,6 +411,15 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
         </FieldShell>
       );
     }
+    case "image": {
+      // One picture or video stored at the field's target (ready-made blocks keep their items for other lists).
+      const value = str(readTarget(section, field.target));
+      return (
+        <div className="py-2">
+          <MediaPicker compact label={tx(field.label)} help={tx(field.help)} accept={field.accept === "media" ? "any" : "image"} value={value} onChange={(url) => set(url ?? "")} />
+        </div>
+      );
+    }
     case "repeater":
       return <RepeaterField field={field} section={section} sectionKey={sectionKey} {...props} />;
     case "badge":
@@ -786,6 +795,12 @@ function RepeaterField({ field, section, ...props }: FieldProps & { field: Extra
               <input type="color" value={/^#[0-9a-f]{6}$/i.test(str(item[itemField.key])) ? str(item[itemField.key]) : "#0FA493"} onChange={(event) => update(index, { [itemField.key]: event.target.value }, itemField.key)} className="h-10 w-12 shrink-0 rounded-[10px] border border-app-line p-1" aria-label={t("edk.blockField", { label, n: index + 1 })} />
               <input className={inputClass} value={str(item[itemField.key])} placeholder="#0FA493" onChange={(event) => update(index, { [itemField.key]: event.target.value }, itemField.key)} aria-label={t("edk.blockField", { label, n: index + 1 })} />
             </div>
+          </FieldShell>
+        );
+      case "number":
+        return (
+          <FieldShell label={itemField.label} help={itemField.help}>
+            <input type="number" inputMode="decimal" min={itemField.min} max={itemField.max} className={inputClass} value={str(item[itemField.key])} placeholder={itemField.placeholder} onChange={(event) => update(index, { [itemField.key]: event.target.value }, itemField.key)} aria-label={t("edk.blockField", { label, n: index + 1 })} />
           </FieldShell>
         );
       case "link":

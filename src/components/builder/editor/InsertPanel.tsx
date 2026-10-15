@@ -62,9 +62,10 @@ export const InsertPanel = forwardRef<HTMLInputElement, InsertPanelProps>(functi
                     <li key={item.kind}>
                       <SectionPreviewPopover section={{ id: item.kind, label: item.label }} position="right">
                         <button type="button" onClick={() => props.onInsert(item.kind)} className="flex min-h-10 w-full items-center gap-3 rounded-[10px] px-2 text-left hover:bg-app-canvas" title={tx(item.hint)}>
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] bg-[#EAF0FF] text-[#2F66F6]"><Icon name="plus" size={14} /></span>
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] bg-[#EAF0FF] text-[#2F66F6]"><Icon name={item.icon ?? "plus"} size={14} /></span>
                           <span className="min-w-0">
                             <span className="block truncate text-[13.5px] font-medium text-app-ink">{tx(item.label)}</span>
+                            {item.icon ? <span className="block truncate text-[11.5px] leading-4 text-app-ink-soft">{tx(item.hint)}</span> : null}
                           </span>
                         </button>
                       </SectionPreviewPopover>
