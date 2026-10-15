@@ -8,7 +8,8 @@ import { z } from "zod";
 import { parseReviewKey, validRating, isReviewSource, isReviewStatus, type RequestChannel } from "@/lib/reviews/pure";
 import { moderateReview } from "@/lib/reviews/server";
 import { requestReviews, type RequestOutcome } from "@/lib/reviews/requests";
-import { chooseGoogleLocation, disconnectGoogle, getGoogleConnection, GoogleReviewsError, replyOnGoogle, syncGoogleReviews } from "@/lib/reviews/google";
+import { chooseGoogleLocation, disconnectGoogle, GoogleReviewsError, syncGoogleReviews } from "@/lib/reviews/google";
+import { saveSellerReply } from "@/lib/reviews/reply";
 
 export async function respondToReview(formData: FormData) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
@@ -99,32 +100,9 @@ export async function saveReviewReply(_prev: ActionState, formData: FormData): P
   const ref = keyFrom(formData);
   const reply = formData.get("intent") === "delete" ? "" : String(formData.get("reply") || "").trim().slice(0, 4000);
   if (!ref) return { ok: false, message: "Review not found." };
-  const now = new Date();
-  if (ref.kind === "store") {
-    const res = await db.productReview.updateMany({ where: { id: ref.id, storeId: store.id }, data: { sellerReply: reply, repliedAt: reply ? now : null } });
-    refresh(String(formData.get("key")));
-    return res.count ? { ok: true, message: reply ? "Reply saved. It shows under the review on your store." : "Reply deleted." } : { ok: false, message: "Review not found." };
-  }
-  const review = await db.externalReview.findFirst({ where: { id: ref.id, storeId: store.id } });
-  if (!review) return { ok: false, message: "Review not found." };
-  let synced: Date | null = null;
-  let replyError: string | null = null;
-  if (review.source === "google" && review.importMethod === "api" && review.externalId) {
-    const connection = await getGoogleConnection(store.id);
-    if (connection) {
-      try {
-        await replyOnGoogle(store.id, review.externalId, reply);
-        synced = now;
-      } catch (error) {
-        replyError = error instanceof Error ? error.message.slice(0, 300) : "Google didn't accept the reply";
-      }
-    } else replyError = "Google isn't connected, so the reply is only saved here.";
-  }
-  await db.externalReview.update({ where: { id: review.id }, data: { reply: reply || null, repliedAt: reply ? now : null, replySyncedAt: synced, replyError } });
-  refresh(String(formData.get("key")));
-  if (replyError) return { ok: false, message: `Saved here, but not on Google: ${replyError}` };
-  if (synced) return { ok: true, message: reply ? "Reply posted on Google and saved." : "Reply deleted on Google." };
-  return { ok: true, message: reply ? "Reply saved. It shows with the review on your reviews wall." : "Reply deleted." };
+  const outcome = await saveSellerReply(store.id, ref, reply);
+  if (outcome.message !== "Review not found.") refresh(String(formData.get("key")));
+  return outcome;
 }
 
 /** Marks an imported review as from a verified buyer by linking one of the store's orders. */

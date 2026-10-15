@@ -181,7 +181,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/preview/store/[slug]/[pageId]", ["common","nav","ui"]],
   ["/products", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/products/[id]", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","productTypes","rex","seo","settings","shell","support","tour","ui","verification"]],
-  ["/products/import", ["auth","common","glossary","help","introTitles","learn","nav","notifications","products","rex","settings","shell","support","tour","ui","verification"]],
+  ["/products/import", ["auth","common","glossary","help","introTitles","learn","nav","notifications","productTypes","products","rex","settings","shell","support","tour","ui","verification"]],
   ["/products/new", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","productTypes","rex","seo","settings","shell","support","tour","ui","verification"]],
   ["/reset-password", ["auth","common","nav","settings","support","ui"]],
   ["/rider/[token]", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","rider","settings","shell","support","tour","ui","verification"]],
