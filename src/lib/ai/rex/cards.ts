@@ -25,6 +25,10 @@ export type RexCard =
       product: { id: string; name: string; photos: string[] };
       language: string;
       script: { captions: string[]; voiceover: string; cta: string };
+      /** Reel template, voice and music (older cards have none: the studio picks). */
+      template?: string;
+      voice?: string;
+      music?: string;
     }
   | {
       type: "brand";

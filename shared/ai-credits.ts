@@ -42,7 +42,7 @@ export function planCreditGrant(planCode: string | null | undefined) {
 }
 
 /** Credits per request once the day's allowance is used: a picture costs more than a chat message. */
-export const CREDIT_COST = { text: 1, speech: 1, voice: 2, image: 5, build: 15 } as const;
+export const CREDIT_COST = { text: 1, speech: 1, voice: 2, image: 5, build: 15, video: 10 } as const;
 export type CreditKind = keyof typeof CREDIT_COST;
 
 /** Automatic charges allowed in 24 hours, so a runaway loop can't keep charging the card. */

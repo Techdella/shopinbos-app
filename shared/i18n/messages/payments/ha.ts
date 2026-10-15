@@ -276,6 +276,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.voice": "Murya ɗaya",
   "cr.kind.image": "Hoto ko gyaran hoto ɗaya",
   "cr.kind.build": "Gina shago gaba ɗaya",
+  "cr.kind.video": "Bidiyo guda da aka gama (reel)",
   "cr.cost": "{count, plural, other {kiredit #}}",
   "cr.today": "Kason yau",
   "cr.settingsLine": "{count, plural, other {Kiredit # sun rage}}. Sayi ƙari don Rex da Peggy su ci gaba.",

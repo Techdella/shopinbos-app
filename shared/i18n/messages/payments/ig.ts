@@ -276,6 +276,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.voice": "Otu olu",
   "cr.kind.image": "Otu foto ma ọ bụ ndozi foto",
   "cr.kind.build": "Iwu otu ụlọ ahịa dum",
+  "cr.kind.video": "Otu vidiyo emechara (reel)",
   "cr.cost": "{count, plural, other {kredit #}}",
   "cr.today": "Oke taa",
   "cr.settingsLine": "{count, plural, other {Kredit # fọdụrụ}}. Zụta ọzọ ka Rex na Peggy gaa n'ihu.",

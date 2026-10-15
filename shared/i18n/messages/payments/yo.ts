@@ -276,6 +276,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.voice": "Ohùn kan",
   "cr.kind.image": "Àwòrán tàbí àtúnṣe fọ́tò kan",
   "cr.kind.build": "Kíkọ́ ilé-ìtajà kan pátápátá",
+  "cr.kind.video": "Fídíò kan tí a parí (reel)",
   "cr.cost": "{count, plural, other {kírẹ́dítì #}}",
   "cr.today": "Ìpín òní",
   "cr.settingsLine": "{count, plural, other {Kírẹ́dítì # ló kù}}. Ra sí i kí Rex àti Peggy máa bá iṣẹ́ lọ.",

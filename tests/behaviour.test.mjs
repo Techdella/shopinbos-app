@@ -3257,3 +3257,38 @@ test("see-through logos with dark lettering and coloured accents get a light-let
   const script = readFileSync(new URL("../scripts/backfill-logo-variants.mjs", import.meta.url), "utf8");
   assert.match(script, /relightDarkInk/, "the one-off backfill uses the same rule as saving a logo");
 });
+
+test("Reel styles: timing follows the voice, voices are Nigerian, brand colours are safe", async () => {
+  const v = await import("../shared/video-style.ts");
+  const plain = v.styledTimeline("float", 3, null);
+  assert.equal(plain.perShot, 2.6);
+  assert.equal(plain.total, plain.perShot * 3 + plain.endCard);
+  const grid = v.styledTimeline("grid", 3, null);
+  assert.ok(grid.intro > 0, "the collage opens on a grid");
+  const voiced = v.styledTimeline("bold", 3, 14);
+  assert.ok(Math.abs(voiced.total - (14 + 0.8)) < 0.01, "the reel runs as long as the voice plus a beat");
+  assert.equal(v.styledTimeline("pop", 2, 60).perShot, 5, "shots never drag past 5 seconds");
+  assert.equal(v.styledTimeline("pop", 6, 2).perShot, 1.4, "or flash by under 1.4");
+
+  assert.equal(v.openAiVoice("male", "expressive"), "ash");
+  assert.equal(v.openAiVoice("female", "basic"), "nova");
+  assert.match(v.voiceDirection("pidgin", "male"), /Nigerian man.*Pidgin/s);
+  assert.match(v.voiceDirection("english", "female"), /Nigerian woman.*Nigerian accent/s);
+
+  const brand = v.reelBrand({ button: "#e86a4f", hero: "nope", paper: "#FAF7F1", ink: null }, null);
+  assert.equal(brand.primary, "#E86A4F");
+  assert.equal(brand.secondary, "#16141F", "a bad colour falls back");
+  assert.equal(v.textOn("#FFFFFF"), "#16141F");
+  assert.equal(v.textOn("#0E2A38"), "#FFFFFF");
+  assert.equal(new Set(v.popColours(brand)).size, v.popColours(brand).length, "no repeated colours");
+
+  assert.equal(v.reelTemplate("nope").id, "float");
+  assert.ok(v.isReelTemplate("words") && !v.isReelTemplate("x"));
+  assert.ok(v.MUSIC_MOODS.every((mood) => v.isMusicMood(mood.id)));
+  assert.equal(v.defaultMood("bold"), "afrobeats");
+  const under = v.musicLevels(1, true);
+  assert.ok(under.underVoice < under.base, "music dips under the voice");
+  assert.match(v.reelShotPrompt("cutout", { product: "Ankara tote", colours: null }), /transparent.*Keep the product exactly the same/s);
+  assert.match(v.reelShotPrompt("studio", { product: null, colours: { paper: "#FAF7F1", accent: "#E86A4F" } }), /#FAF7F1/);
+  assert.match(v.REEL_TEMPLATE_CREDIT, /Pinterest/);
+});
