@@ -31,6 +31,26 @@ export interface BuilderProduct {
   avgRating?: number;
   reviewCount?: number;
   category?: { id: string; name: string; slug: string } | null;
+  /** Product page fields, so the builder's product page preview shows the real product. */
+  compareAtPrice?: number | null;
+  variants?: unknown;
+  variantOptions?: unknown;
+  productType?: string | null;
+  productDetails?: unknown;
+  relatedProductIds?: string[];
+  tags?: string[];
+  sku?: string | null;
+  longDescription?: string | null;
+  specifications?: unknown;
+  faqs?: unknown;
+  careInstructions?: string | null;
+  shippingInfo?: string | null;
+  returnPolicy?: string | null;
+  warranty?: string | null;
+  supportInfo?: string | null;
+  videoUrl?: string | null;
+  currentStock?: number | null;
+  lowStockThreshold?: number | null;
 }
 
 export interface BuilderStore {
@@ -292,6 +312,25 @@ export function useBuilder() {
       avgRating: product.avgRating,
       reviewCount: product.reviewCount,
       category: product.category ?? null,
+      compareAtPrice: product.compareAtPrice ?? null,
+      variants: product.variants,
+      variantOptions: product.variantOptions,
+      productType: product.productType,
+      productDetails: product.productDetails,
+      relatedProductIds: product.relatedProductIds,
+      tags: product.tags,
+      sku: product.sku,
+      longDescription: product.longDescription,
+      specifications: product.specifications,
+      faqs: product.faqs,
+      careInstructions: product.careInstructions,
+      shippingInfo: product.shippingInfo,
+      returnPolicy: product.returnPolicy,
+      warranty: product.warranty,
+      supportInfo: product.supportInfo,
+      videoUrl: product.videoUrl,
+      currentStock: product.currentStock,
+      lowStockThreshold: product.lowStockThreshold,
     })),
   }), [store]);
 

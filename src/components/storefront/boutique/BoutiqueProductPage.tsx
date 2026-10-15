@@ -20,6 +20,7 @@ import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout } from "./look";
 
 interface Props {
@@ -58,6 +59,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const [sheet, setSheet] = useState<ShopperSheet>(null);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
   const look = useMemo(() => boutiqueLook(themeId, snapshot.themeTokens), [themeId, snapshot.themeTokens]);
+  const pdpSettings = useMemo(() => pdpSettingsForSnapshot(snapshot, themeId), [snapshot, themeId]);
 
   useEffect(() => {
     setShareUrl(window.location.href.split("#")[0]);
@@ -153,6 +155,8 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
           ]}
           shareUrl={shareUrl}
           interactive
+          settings={pdpSettings}
+          catalog={catalog}
         />
       </main>
       {footerSection ? <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} summary={text(copyOf(footerSection).summary)} onTrackOrder={() => setSheet("account")} legalLinks={legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath, legalPagePath(link.key)) }))} /> : null}

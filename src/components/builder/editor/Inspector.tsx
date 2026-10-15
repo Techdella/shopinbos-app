@@ -23,6 +23,7 @@ import {
 import type { BuilderProduct } from "./useBuilder";
 import { FieldShell, IconButton, inputClass, Menu, MenuItem, PillGroup, textareaClass } from "./ui";
 import { useEditorT } from "./i18n";
+import { moveInOrder, toggleInOrder } from "@/components/storefront/boutique/pdp/pdp-logic";
 
 export type SectionAction = "duplicate" | "up" | "down" | "hide" | "remove";
 
@@ -415,6 +416,8 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
       return <RepeaterField field={field} section={section} sectionKey={sectionKey} {...props} />;
     case "badge":
       return <BadgeField label={field.label} help={field.help} />;
+    case "order":
+      return <OrderField field={field} value={readTarget(section, field.target)} onChange={set} />;
     case "note":
       return <p className="my-2 rounded-[12px] bg-app-canvas px-3 py-2.5 text-[12.5px] leading-5 text-app-ink-soft">{tx(field.label)}</p>;
     case "media":
@@ -430,6 +433,37 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
     default:
       return null;
   }
+}
+
+/** Ordered on/off list (product page blocks): shown parts first, in order, with up/down; hidden parts below. */
+function OrderField({ field, value, onChange }: { field: Extract<SchemaField, { type: "order" }>; value: unknown; onChange: (value: string[]) => void }) {
+  const allowed = field.options.map((option) => option.value);
+  const shown = Array.isArray(value) ? value.map(String).filter((entry, index, all) => allowed.includes(entry) && all.indexOf(entry) === index) : field.fallback;
+  const hidden = allowed.filter((entry) => !shown.includes(entry));
+  const { tx } = useEditorT();
+  const label = (id: string) => tx(field.options.find((option) => option.value === id)?.label ?? id);
+  return (
+    <FieldShell label={field.label} help={field.help}>
+      <ul className="grid gap-1.5" aria-label={tx(field.label)}>
+        {[...shown, ...hidden].map((id) => {
+          const on = shown.includes(id);
+          const at = shown.indexOf(id);
+          return (
+            <li key={id} className={cx("flex min-h-10 items-center gap-2 rounded-[10px] border px-2.5", on ? "border-app-line bg-white" : "border-dashed border-app-line bg-app-canvas")}>
+              <Toggle on={on} onChange={(next: boolean) => onChange(toggleInOrder(shown, id, next, field.fallback))} label={`Show ${label(id).toLowerCase()}`} />
+              <span className={cx("min-w-0 flex-1 truncate text-[13px] font-semibold", on ? "text-app-ink" : "text-app-ink-soft")}>{label(id)}</span>
+              {on ? (
+                <>
+                  <IconButton icon="arrowUp" label={`Move ${label(id).toLowerCase()} up`} disabled={at === 0} onClick={() => onChange(moveInOrder(shown, id, -1))} className="h-8 w-8" size={14} />
+                  <IconButton icon="arrowDown" label={`Move ${label(id).toLowerCase()} down`} disabled={at === shown.length - 1} onClick={() => onChange(moveInOrder(shown, id, 1))} className="h-8 w-8" size={14} />
+                </>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </FieldShell>
+  );
 }
 
 type FieldProps = InspectorProps & { section: TemplateSectionNode; sectionKey: (field: string) => string };
