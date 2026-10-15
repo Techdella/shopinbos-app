@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { Mascot } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
+import { useEditorT } from "@/components/builder/editor/i18n";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import type { StorePageStatus } from "@/lib/store-health";
 
@@ -27,6 +28,8 @@ export function RexPreview({
   onWrite: (page: StorePageStatus) => void;
 }) {
   const t = useT("builder", "common");
+  // The draft is drawn in editor mode, so its canvas hints come in the builder's words.
+  const { editorText } = useEditorT();
   const boxRef = useRef<HTMLDivElement>(null);
   const pageName = t.dynamic(`rex.page.${page.key}`, page.label);
   const [width, setWidth] = useState(0);
@@ -79,6 +82,7 @@ export function RexPreview({
               device={device}
               selectedPage={page.pageType}
               onSelectPage={() => undefined}
+              editorText={editorText}
               cartCount={0}
             />
           </div>

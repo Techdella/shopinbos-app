@@ -10,6 +10,7 @@ import { helpLanguage, type VideoSource } from "@shared/help-videos";
 import { translateIntro, translateTerm } from "@shared/i18n/learn";
 import { useT } from "@/components/i18n/I18nProvider";
 import { C, INTRO_CSS, SceneArtwork } from "./scenes";
+import { TipsOffNote } from "./Term";
 
 // The 60-second feature intro: a navy panel that plays five short motion-graphics scenes (scenes.tsx), each with
 // one caption and a spoken-style line, then a recap of the word it taught and the page's main action. Segmented
@@ -288,6 +289,7 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
                   <>
                     <p className="m-0 text-[19px] font-extrabold leading-[1.25] sm:text-[22px]">{t("thatsIt", { term: term?.term ?? intro.title })}</p>
                     <p className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-[rgba(244,241,234,0.72)] sm:text-[15.5px]">{t("replayHint")}</p>
+                    <TipsOffNote onNavigate={() => onClose("close")} className="mt-1 text-[13.5px]" />
                   </>
                 ) : (
                   <div key={`${run}-${index}`} className="animate-slide-up">

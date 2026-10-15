@@ -55,6 +55,7 @@ const CheckoutSchema = z.object({
     quantity: z.number().int().positive().max(999),
     image: z.string().optional(),
     variant: z.string().max(120).optional(),
+    variantId: z.string().max(80).optional(),
   })).min(1, "Your bag is empty."),
   notes: z.string().max(1000).optional(),
   giftMessage: z.string().max(500).optional(),
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     order = await db.$transaction(async (tx) => {
       // Takes the stock now (the store's, or the supplier's for dropship products), conditionally so the last
       // unit can't sell twice. Unpaid card/transfer orders give it back when they expire (order-expiry.server.ts).
-      await reserveStock(tx, store.id, priced.stockHolds);
+      const stockHolds = await reserveStock(tx, store.id, priced.stockHolds);
 
       if (usedDiscountId) {
         await tx.discount.update({
@@ -219,7 +220,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           // Null keeps meaning "Paystack checkout" for older readers; transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           status: "pending",
-          stockHold: JSON.parse(JSON.stringify(priced.stockHolds)),
+          // What was really taken (versions of products that keep selling at 0 may give less than asked).
+          stockHold: JSON.parse(JSON.stringify(stockHolds)),
           // When it lets its stock go if still unpaid: card 30 min, bank transfer 24 h or the seller's choice.
           paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" ? null : paymentMethod, store.brandSettings),
         },

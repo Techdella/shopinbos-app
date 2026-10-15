@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useState } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, Toggle, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -132,7 +133,7 @@ export function DomainPartnersManager({ initialPartners }: { initialPartners: Do
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Remove "${name}" from the domain partners list?`)) return;
+    if (!(await confirmDialog(`Remove "${name}" from the domain partners list?`))) return;
     try {
       const res = await fetch(`/api/admin/domain-partners/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();

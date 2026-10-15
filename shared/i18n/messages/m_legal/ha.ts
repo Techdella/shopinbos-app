@@ -1,0 +1,43 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const ha: Partial<Record<keyof typeof en, string>> = {
+  "status.published": "Yana kan shagonka",
+  "status.draft": "Draft",
+  "status.empty": "Ba a rubuta ba tukuna",
+  saved: "An ajiye {date}",
+  notSaved: "Ba a ajiye ba tukuna",
+  gone: "Wannan shafin ba ya nan kuma.",
+  name: "Sunan shafi",
+  text: "Abin da shafin ya faɗa",
+  textHint: "Fara layi da # don yin kanun labari, ko da - don yin jeri.",
+  textPlaceholder: "Rubuta shafinka a nan…",
+  richOnly: "Wannan shafin yana da bidiyo, maɓalli ko kaya a ciki, don haka a web ake gyara kalmominsa don kada su ɓace.",
+  editWeb: "Gyara a web",
+  view: "Duba shi a shagonka",
+  unsaved: "Kana da canje-canje da ba a ajiye ba tukuna.",
+  write: "Rubuta min shi",
+  writeSub: "Peggy za ta rubuta draft na farko daga abin da ta sani game da shagonka. Karanta shi ka canza duk abin da aka yi wa alamar [Check: …].",
+  brief: "Akwai abin da ya kamata Peggy ta sani? (ba dole ba)",
+  briefPlaceholder: "Misali: ba ma karɓar kayan ciki baya",
+  writeGo: "Rubuta draft ɗin",
+  replaceTitle: "Maye gurbin kalmominka?",
+  replaceBody: "Draft na Peggy zai maye gurbin abin da shafin ya faɗa yanzu. Ba za a ajiye komai ba sai ka danna Save.",
+  replace: "Maye gurbi",
+  drafted: "Draft na Peggy ya iso. Karanta shi, canza duk abin da aka yi wa alamar [Check: …], goge sanarwar da ke sama, sannan ka ajiye.",
+  draftedTemplate: "Peggy tana da aiki, don haka ga draft da aka shirya. Karanta shi, canza duk abin da aka yi wa alamar [Check: …], goge sanarwar da ke sama, sannan ka ajiye.",
+  draftFailed: "Peggy ba ta iya rubuta wannan shafin yanzu ba. Sake gwadawa nan ba da daɗewa ba.",
+  saveDraft: "Ajiye draft",
+  publish: "Wallafa",
+  update: "Ajiye canje-canje",
+  unpublish: "Cire wallafa",
+  published: "An wallafa. Masu siyayya za su iya ganinsa a shagonka.",
+  updated: "An ajiye. Masu siyayya za su ga sabon.",
+  unpublished: "An cire wallafa. Masu siyayya ba za su iya ganinsa yanzu ba.",
+  savedDraft: "An ajiye a matsayin draft.",
+  writeFirst: "Rubuta wani abu kafin ka wallafa wannan shafin.",
+  addName: "Ba shafin suna.",
+  saveFailed: "Ba mu iya ajiye shafin ba. Duba network ɗinka ka sake gwadawa.",
+};
+
+export default ha;

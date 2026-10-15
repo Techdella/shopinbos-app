@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatE164, OTP_LENGTH, OTP_RESEND_SECONDS } from "@shared/phone";
-import { sendCode, syncAccount, verifyCode, type CodeChannel, type CodeTarget } from "@/lib/auth";
+import { explainSignupConflict, sendCode, signOutNow, syncAccount, verifyCode, type CodeChannel, type CodeTarget } from "@/lib/auth";
 import { asSignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { BackButton, CodeInput, LinkButton, Notice, PillButton, T } from "@/components/ui";
@@ -44,8 +44,17 @@ export default function Verify() {
     try {
       await verifyCode(target, value);
       const role = asSignupRole(params.role);
-      const actual = await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup: params.mode === "signup", role });
+      const signup = params.mode === "signup";
+      const actual = await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup, role });
       await rememberSignedInRole(actual);
+      // This email or phone already has another kind of account (a seller signing up as a supplier): nothing was
+      // changed. "Use a different email" logs out and goes back to the form; otherwise their own account opens.
+      if (signup && actual && actual !== role && (await explainSignupConflict(actual, role, target.kind)) === "different") {
+        await signOutNow();
+        router.replace({ pathname: "/signup", params: { role, method: target.kind } });
+        return;
+      }
+      // Each role opens its own tabs: the launch gate sends sellers home, suppliers to /supplier, delivery to /logistics.
       router.replace("/");
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : t("verify.checkFailed"));

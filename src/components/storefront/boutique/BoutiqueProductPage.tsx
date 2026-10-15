@@ -11,20 +11,23 @@ import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
 import { useStoreProductView } from "@/lib/analytics/storefront-events";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { storefrontPageHref } from "@shared/storefront-pages";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
 import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
-import type { ShopperProduct } from "../shopper/catalog";
+import { relatedProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
+import { shopperCopy } from "@shared/placeholder-copy";
+import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout } from "./look";
 
 interface Props {
   themeId: BoutiqueThemeId;
   snapshot: StoreEditorSnapshot;
-  store: { id: string; name: string; slug: string; logoUrl?: string | null; city?: string | null; country?: string | null; currency: string; brandSettings?: unknown };
+  store: { id: string; name: string; slug: string; description?: string | null; logoUrl?: string | null; city?: string | null; country?: string | null; currency: string; brandSettings?: unknown };
   product: BoutiqueProductDetail;
   reviews: ProductReviewEntry[];
   avgRating: number;
@@ -57,6 +60,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const [sheet, setSheet] = useState<ShopperSheet>(null);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
   const look = useMemo(() => boutiqueLook(themeId, snapshot.themeTokens), [themeId, snapshot.themeTokens]);
+  const pdpSettings = useMemo(() => pdpSettingsForSnapshot(snapshot, themeId), [snapshot, themeId]);
 
   useEffect(() => {
     setShareUrl(window.location.href.split("#")[0]);
@@ -68,38 +72,35 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const headerCopy = copyOf(headerSection);
   const headerLayout = typeof headerSection?.settings?.layout === "string" ? headerSection.settings.layout : "";
   const announcementSection = sections.find((section) => section.kind === "announcement-bar");
-  const announcement = announcementSection ? text(copyOf(announcementSection).text) || shopper.announcement : null;
+  const announcement = announcementSection ? shopperCopy(copyOf(announcementSection).text, store.name) || shopper.announcement : null;
   const footerSection = sections.find((section) => section.kind === "footer");
   const pageTypes = new Set(snapshot.pages.map((page) => page.pageType as string));
 
-  const pageHref = (page: string) => getPublicStorefrontPath(storeBasePath, page === "home" ? "/" : `/?page=${page}`);
+  const pageHref = (page: string, params?: URLSearchParams) => storefrontPageHref(storeBasePath, page, params) ?? getPublicStorefrontPath(storeBasePath, "/");
   const go = (page: string) => router.push(pageHref(page));
   const navKeys = (Array.isArray(headerCopy.navLinks) ? (headerCopy.navLinks as unknown[]) : ["home", "products", "about", "contact"])
     .map((entry) => (String(entry) === "shop" ? "products" : String(entry)))
     .filter((key, index, all) => LABELS[key] && (key === "home" || pageTypes.has(key)) && all.indexOf(key) === index);
-  const links: ChromeLink[] = navKeys.map((key) => ({ key, label: LABELS[key]!, onSelect: () => go(key) }));
+  const links: ChromeLink[] = navKeys.map((key) => ({ key, label: LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
-    .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : LABELS[key]!, onSelect: () => go(key) }));
+    .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const categories = useMemo(() => {
     const map = new Map<string, { slug: string; name: string }>();
     for (const entry of catalog) if (entry.category?.slug) map.set(entry.category.slug, { slug: entry.category.slug, name: entry.category.name });
     return [...map.values()];
   }, [catalog]);
-  const related = useMemo(() => {
-    const others = catalog.filter((entry) => entry.id !== product.id);
-    const same = others.filter((entry) => product.category?.slug && entry.category?.slug === product.category.slug);
-    return [...same, ...others.filter((entry) => !same.includes(entry))];
-  }, [catalog, product.id, product.category?.slug]);
+  // "Customers also like": the seller's picks, else same type, category or tags.
+  const related = useMemo(() => relatedProducts(product, catalog), [catalog, product]);
 
   function add(input: AddToBagInput) {
-    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, maxQuantity: input.maxQuantity, quantity: input.quantity });
+    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, variantId: input.variantId, maxQuantity: input.maxQuantity, quantity: input.quantity });
     if (cartSettings.afterAdd === "drawer") setCartOpen(true);
     else router.push(getPublicStorefrontPath(storeBasePath, cartSettings.afterAdd === "checkout" ? "/checkout" : "/cart"));
   }
 
   function buyNow(input: AddToBagInput) {
-    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, maxQuantity: input.maxQuantity, quantity: input.quantity });
+    cart.add({ productId: product.id, name: input.name, price: input.price, image: input.image, variant: input.variant, variantId: input.variantId, maxQuantity: input.maxQuantity, quantity: input.quantity });
     router.push(getPublicStorefrontPath(storeBasePath, "/checkout"));
   }
 
@@ -120,7 +121,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         categories={categories}
         onHome={() => go("home")}
         onShopAll={() => go("products")}
-        onCategory={() => go("products")}
+        onCategory={(slug) => router.push(pageHref("products", new URLSearchParams({ category: slug })))}
         onSearch={() => setSheet("search")}
         onWishlist={cartSettings.wishlist ? () => setSheet("wishlist") : undefined}
         onBag={() => setCartOpen(true)}
@@ -128,6 +129,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         wishlistCount={wishlist.productIds.length}
         cartLabel={cartLabel}
         centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
+        bold={headerLayout === "bold"}
       />
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         <BoutiqueProductView
@@ -149,14 +151,16 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
           crumbs={[
             { label: "Home", onSelect: () => go("home") },
             { label: "Shop", onSelect: () => go("products") },
-            ...(product.category ? [{ label: product.category.name, onSelect: () => go("products") }] : []),
+            ...(product.category ? [{ label: product.category.name, onSelect: () => router.push(pageHref("products", new URLSearchParams({ category: product.category!.slug }))) }] : []),
             { label: product.name },
           ]}
           shareUrl={shareUrl}
           interactive
+          settings={pdpSettings}
+          catalog={catalog}
         />
       </main>
-      {footerSection ? <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} summary={text(copyOf(footerSection).summary)} onTrackOrder={() => setSheet("account")} legalLinks={legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath, legalPagePath(link.key)) }))} /> : null}
+      {footerSection ? <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={() => setSheet("account")} legalLinks={legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath, legalPagePath(link.key)) }))} /> : null}
       <ShopperBottomNav
         storeSlug={store.slug}
         storeName={store.name}

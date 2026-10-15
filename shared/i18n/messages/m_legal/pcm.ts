@@ -1,0 +1,43 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const pcm: Partial<Record<keyof typeof en, string>> = {
+  "status.published": "E dey live for your shop",
+  "status.draft": "Draft",
+  "status.empty": "You never write am",
+  saved: "Saved {date}",
+  notSaved: "You never save am",
+  gone: "This page no dey again.",
+  name: "Page name",
+  text: "Wetin the page talk",
+  textHint: "Start line with # make e be heading, or with - make e be list.",
+  textPlaceholder: "Write your page here…",
+  richOnly: "This page get video, button or product inside, so na for web you go edit the words, make dem no lost.",
+  editWeb: "Edit am for web",
+  view: "See am for your shop",
+  unsaved: "You get changes wey you never save.",
+  write: "Write am for me",
+  writeSub: "Peggy go write first draft from wetin she sabi about your shop. Read am and change anything wey get [Check: …].",
+  brief: "Anything wey Peggy suppose know? (optional)",
+  briefPlaceholder: "Like: we no dey collect underwear back",
+  writeGo: "Write the draft",
+  replaceTitle: "Replace your words?",
+  replaceBody: "Peggy draft go replace wetin the page talk now. Nothing go save until you tap Save.",
+  replace: "Replace",
+  drafted: "Peggy draft don land. Read am, change anything wey get [Check: …], delete the note for top, then save.",
+  draftedTemplate: "Peggy dey busy, so here be ready-made draft. Read am, change anything wey get [Check: …], delete the note for top, then save.",
+  draftFailed: "Peggy no fit write this page now. Try again small time.",
+  saveDraft: "Save draft",
+  publish: "Publish",
+  update: "Save changes",
+  unpublish: "Unpublish",
+  published: "E don publish. Shoppers fit see am for your shop.",
+  updated: "E don save. Shoppers go see the new one.",
+  unpublished: "E don unpublish. Shoppers no fit see am now.",
+  savedDraft: "E don save as draft.",
+  writeFirst: "Write something before you publish this page.",
+  addName: "Give the page name.",
+  saveFailed: "We no fit save the page. Check your network, then try again.",
+};
+
+export default pcm;

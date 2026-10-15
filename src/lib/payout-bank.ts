@@ -128,3 +128,35 @@ export async function linkSellerPayoutBank(userId: string, bankName: string, acc
   });
   return { success: true };
 }
+
+export type ResolvedAccount =
+  | { status: "resolved"; accountName: string }
+  /** Paystack doesn't know this number at this bank. */
+  | { status: "not_found" }
+  /** Paystack isn't set up here or didn't answer: the seller types the name instead. */
+  | { status: "unavailable" };
+
+/**
+ * Looks up the name on a bank account (Paystack "Resolve Account Number"), so a seller can confirm it's theirs
+ * before saving it as the payout bank. Saving still goes through linkSellerPayoutBank.
+ */
+export async function resolvePaystackAccount(bankName: string, accountNumber: string): Promise<ResolvedAccount> {
+  const secret = getPaystackSecret();
+  const bankCode = PAYSTACK_BANK_CODES[bankName];
+  const digits = accountNumber.replace(/\D/g, "");
+  if (!secret || !bankCode || digits.length !== 10) return { status: "unavailable" };
+  try {
+    const response = await fetch(`https://api.paystack.co/bank/resolve?account_number=${digits}&bank_code=${encodeURIComponent(bankCode)}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const data = await response.json().catch(() => null);
+    const name = typeof data?.data?.account_name === "string" ? data.data.account_name.trim() : "";
+    if (response.ok && data?.status && name) return { status: "resolved", accountName: name };
+    // Paystack answers 422 (or 400) when the number doesn't exist at that bank.
+    if (response.status === 422 || response.status === 400) return { status: "not_found" };
+    return { status: "unavailable" };
+  } catch {
+    return { status: "unavailable" };
+  }
+}

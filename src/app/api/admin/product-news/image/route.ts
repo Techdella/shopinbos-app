@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api/response";
 import { withAdmin } from "@/lib/auth/middleware";
 import { NEWS_IMAGE_MAX_BYTES } from "@/lib/email/news-image";
 import { NewsImageRejected, storeNewsImage } from "@/lib/email/news-image.server";
+import { recordMedia } from "@/lib/media/library.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ const Form = z.object({ file: z.instanceof(File, { message: "Attach the image as
 // POST /api/admin/product-news/image (multipart, field "file") — stores an image for a product news email in the
 // public media bucket (platform/product-news/<uuid>.<ext>) and returns its public URL for the image field.
 // JPG, PNG, WebP or GIF up to 5 MB; the bytes must match the type; wider than 1200px is scaled down.
-export const POST = withAdmin(async (req: NextRequest) => {
+export const POST = withAdmin(async (req: NextRequest, { user }) => {
   // Refuse obviously oversize bodies before buffering them (multipart adds a little overhead).
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > NEWS_IMAGE_MAX_BYTES + 64 * 1024) return apiError("FILE_TOO_LARGE", "That image is over 5 MB. Use a smaller one.", 413);
@@ -24,7 +25,10 @@ export const POST = withAdmin(async (req: NextRequest) => {
   if (!parsed.success) return apiError("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Attach an image", 422);
 
   try {
-    return NextResponse.json({ data: await storeNewsImage(parsed.data.file) }, { status: 201 });
+    const stored = await storeNewsImage(parsed.data.file);
+    // Also kept in the admin's media library ("Choose from my media").
+    await recordMedia({ userId: user.id, storeId: null, url: stored.url, path: stored.path, kind: "image", width: stored.width, height: stored.height, bytes: stored.bytes, source: "upload" });
+    return NextResponse.json({ data: stored }, { status: 201 });
   } catch (error) {
     if (error instanceof NewsImageRejected) {
       const tooBig = /5 MB/.test(error.message);

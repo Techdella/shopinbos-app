@@ -137,6 +137,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "brand-kit", label: "Brand kit", icon: "tag", href: "/home/brand-kit" },
+        { id: "media", label: "Media", icon: "image", href: "/home/media" },
         { id: "templates", label: "Templates", icon: "grid", href: "/builder/templates" },
         { id: "domain", label: "Domain", icon: "globe", href: "/home/domain" },
       ],
@@ -150,6 +151,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "marketing-overview", label: "Overview", href: "/home/marketing" },
             { id: "campaigns", label: "Campaigns", href: "/home/marketing/campaigns" },
+            { id: "seasonal-campaigns", label: "Seasonal campaigns", href: "/home/campaigns" },
             { id: "automations", label: "Automations", href: "/home/automations" },
             { id: "email-templates", label: "Email templates", href: "/home/marketing/templates" },
             { id: "mkt-forms", label: "Forms and pop-ups", href: "/home/marketing/forms" },
@@ -344,6 +346,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "leads", label: "Website leads", icon: "list", href: "/admin/leads", core: true },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
+        { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
       ],
     },
     {

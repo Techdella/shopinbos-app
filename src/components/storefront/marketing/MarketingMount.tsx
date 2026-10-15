@@ -1,18 +1,37 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { popupAllowed, type FormDesign, type FormField, type PopupConfig } from "@/lib/marketing/forms";
-import { SignupForm, SignupSuccess, type SignupColors, type SignupResult } from "./SignupForm";
+import { useCallback, useEffect, useState } from "react";
+import { cartCount, cartSubtotal, sanitizeLines } from "@shared/cart-checkout";
+import { popupAllowed, type FormDesign, type FormField, type PopupConfig, type PopupRewardSummary } from "@/lib/marketing/forms";
+import type { SignupColors, SignupResult } from "./SignupForm";
+import type { PopupPrizes } from "./PopupGame";
+import { popupMemory } from "@/components/storefront/gamification/client";
+import { PopupView } from "./PopupView";
+import { campaignPreviewQuery, trackCampaignEvent } from "@/components/storefront/campaign/tracking";
 
 // Storefront mount point for the seller's marketing pop-ups (Marketing > Forms and pop-ups).
 // Loads the live pop-ups, waits for each one's trigger (delay, exit intent, scroll depth), respects the
-// page/device/frequency rules and shows one at a time as a centred window, a corner flyout or a bottom bar.
+// page/device/frequency rules and shows one at a time, drawn by PopupView (the same renderer the editor previews).
+// Cart reminders only show with something in the bag; countdown sales stop once they end; people already on the
+// list aren't asked to join again (sales, games and reminders still show).
 
 interface Popup {
   id: string;
   fields: FormField[];
   design: FormDesign;
-  config: PopupConfig;
+  config: Omit<PopupConfig, "reward" | "leadMagnet"> & { reward: PopupRewardSummary | null; leadMagnet: { name: string } | null };
+  /** Game pop-ups: the store's prizes (labels and odds only). */
+  prizes?: PopupPrizes | null;
+}
+
+/** The bag on this device (the same storage useCart keeps), read once when the pop-up is chosen. */
+function readBag(slug: string) {
+  try {
+    const lines = sanitizeLines(JSON.parse(localStorage.getItem(`cart:${slug}`) ?? "[]"));
+    return { count: cartCount(lines), subtotal: cartSubtotal(lines) };
+  } catch {
+    return { count: 0, subtotal: 0 };
+  }
 }
 
 const shownKey = (id: string) => `sib-popup:${id}:shown`;
@@ -49,33 +68,50 @@ function markShown(id: string) {
   } catch {}
 }
 
-export function MarketingMount({ storeSlug, colors }: { storeSlug: string; colors: SignupColors }) {
+export function MarketingMount({ storeSlug, colors, currency = "NGN", storeBasePath = "" }: { storeSlug: string; colors: SignupColors; currency?: string; storeBasePath?: string }) {
   const [popup, setPopup] = useState<Popup | null>(null);
+  const [bagTotal, setBagTotal] = useState(0);
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<SignupResult | null>(null);
+  const campaignId = popup?.config.campaignId ?? null;
+  const close = useCallback(() => {
+    setOpen(false);
+    if (campaignId) trackCampaignEvent(storeSlug, { campaignId, event: "popup_closed" });
+  }, [campaignId, storeSlug]);
+  const converted = useCallback(() => {
+    if (campaignId) trackCampaignEvent(storeSlug, { campaignId, event: "popup_converted" });
+  }, [campaignId, storeSlug]);
 
   useEffect(() => {
     if (!storeSlug) return;
     let cancelled = false;
     const cleanups: Array<() => void> = [];
-    void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing`)
+    // A seasonal campaign preview link also previews that campaign's pop-up.
+    const preview = campaignPreviewQuery();
+    void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing${preview ? `?${preview}` : ""}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (cancelled) return;
         const popups: Popup[] = json?.data?.popups ?? [];
         const isMobile = window.matchMedia("(max-width: 767px)").matches;
+        const bag = readBag(storeSlug);
         const candidate = popups.find((item) =>
-          popupAllowed(item.config, { path: window.location.pathname, isMobile, lastShownAt: readNumber(shownKey(item.id)), shownThisSession: sessionShown(item.id), subscribed: subscribed(storeSlug) }),
+          // A game pop-up someone already played on this device doesn't come back (the server caps plays too).
+          !(item.config.kind === "game" && popupMemory(storeSlug, `popup-${item.id}`).played) &&
+          popupAllowed(item.config, { path: window.location.pathname, isMobile, lastShownAt: readNumber(shownKey(item.id)), shownThisSession: sessionShown(item.id), subscribed: subscribed(storeSlug), cartCount: bag.count }),
         );
         if (!candidate) return;
         setPopup(candidate);
+        setBagTotal(bag.subtotal);
         let fired = false;
         const show = () => {
           if (fired || cancelled) return;
           fired = true;
           cleanups.forEach((cleanup) => cleanup());
           markShown(candidate.id);
+          setBagTotal(readBag(storeSlug).subtotal);
           setOpen(true);
+          if (candidate.config.campaignId) trackCampaignEvent(storeSlug, { campaignId: candidate.config.campaignId, event: "popup_shown" });
           void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -114,99 +150,44 @@ export function MarketingMount({ storeSlug, colors }: { storeSlug: string; color
   }, [storeSlug]);
 
   if (!popup || !open) return null;
-  return <PopupView popup={popup} storeSlug={storeSlug} colors={colors} result={result} onResult={setResult} onClose={() => setOpen(false)} />;
-}
-
-function PopupView({
-  popup,
-  storeSlug,
-  colors,
-  result,
-  onResult,
-  onClose,
-}: {
-  popup: Popup;
-  storeSlug: string;
-  colors: SignupColors;
-  result: SignupResult | null;
-  onResult: (result: SignupResult) => void;
-  onClose: () => void;
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const { layout, reward } = popup.config;
-  const titleId = `sib-popup-title-${popup.id}`;
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    if (layout === "modal") dialogRef.current?.querySelector<HTMLElement>("input, button")?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      if (layout === "modal") previous?.focus?.();
-    };
-  }, [layout, onClose]);
-
-  function done(next: SignupResult) {
-    onResult(next);
-    if (popup.config.afterSubmit === "redirect" && popup.config.redirectUrl && !next.code) window.location.assign(popup.config.redirectUrl);
-  }
-
-  const rewardLine = reward ? (reward.type === "percentage" ? `Get ${reward.value}% off your first order.` : `Get ₦${reward.value.toLocaleString("en-NG")} off your first order.`) : null;
-  const body = (
-    <>
-      <button
-        type="button"
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full text-[22px] leading-none opacity-70 hover:opacity-100"
-        style={{ color: colors.ink }}
-      >
-        ×
-      </button>
-      {popup.design.imageUrl && layout !== "bar" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={popup.design.imageUrl} alt="" className="mb-4 h-40 w-full rounded-2xl object-cover" />
-      ) : null}
-      <h2 id={titleId} className="m-0 pr-10 text-[22px] font-bold leading-tight">{popup.design.headline}</h2>
-      {!result ? (
-        <>
-          <p className="mb-4 mt-2 text-[14.5px] leading-[1.5] opacity-80">
-            {popup.design.body}
-            {rewardLine ? <strong className="block pt-1 opacity-100">{rewardLine}</strong> : null}
-          </p>
-          <SignupForm storeSlug={storeSlug} formId={popup.id} fields={popup.fields} design={popup.design} colors={colors} onDone={done} compact={layout !== "modal"} />
-        </>
-      ) : (
-        <div className="mt-3">
-          <SignupSuccess result={result} colors={colors} />
-        </div>
-      )}
-    </>
-  );
-
-  const panelStyle = { background: colors.paper, color: colors.ink };
-  if (layout === "bar") {
-    return (
-      <div role="region" aria-labelledby={titleId} className="fixed inset-x-0 bottom-0 z-[60] max-h-[85vh] overflow-y-auto border-t px-4 pb-6 pt-5 shadow-[0_-12px_40px_rgba(0,0,0,0.18)] sm:px-6" style={{ ...panelStyle, borderColor: `${colors.ink}22` }}>
-        <div className="relative mx-auto max-w-[720px]">{body}</div>
-      </div>
-    );
-  }
-  if (layout === "flyout") {
-    return (
-      <div role="dialog" aria-labelledby={titleId} className="fixed bottom-4 right-4 z-[60] max-h-[85vh] w-[calc(100vw-32px)] max-w-[380px] overflow-y-auto rounded-3xl p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)]" style={panelStyle}>
-        <div className="relative">{body}</div>
-      </div>
-    );
-  }
+  const config = popup.config;
+  const kind = config.kind ?? "signup";
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/50 p-4" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="relative max-h-[90vh] w-full max-w-[440px] overflow-y-auto rounded-3xl p-6 shadow-[0_30px_80px_rgba(0,0,0,0.3)]" style={panelStyle}>
-        {body}
-      </div>
-    </div>
+    <PopupView
+      popup={{
+        id: popup.id,
+        fields: popup.fields,
+        design: popup.design,
+        layout: config.layout,
+        reward: config.reward,
+        afterSubmit: config.afterSubmit,
+        redirectUrl: config.redirectUrl,
+        kind,
+        game: kind === "game" && popup.prizes ? { game: config.game, collect: config.collect, playEveryDays: config.playEveryDays, prizes: popup.prizes } : null,
+        leadMagnetName: config.leadMagnet?.name ?? null,
+        endsAt: config.endsAt,
+        freeDeliveryOver: config.freeDeliveryOver,
+      }}
+      storeSlug={storeSlug}
+      colors={colors}
+      currency={currency}
+      basePath={storeBasePath}
+      cartSubtotal={bagTotal}
+      result={result}
+      onResult={(next) => {
+        setResult(next);
+        if (next) converted();
+      }}
+      onClose={close}
+      onCta={() => {
+        converted();
+        void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ formId: popup.id, event: "click" }),
+          keepalive: true,
+        }).catch(() => null);
+      }}
+    />
   );
 }

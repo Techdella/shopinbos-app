@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, type ReactNode } from "react";
 import { Card, CardHead, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice, PillButton } from "@/components/app-ui";
@@ -239,8 +240,8 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
                         tone="ghost"
                         busy={busy === "disconnect"}
                         disabled={Boolean(busy)}
-                        onClick={() => {
-                          if (window.confirm(t("cat.stopConfirm"))) void act("disconnect");
+                        onClick={async () => {
+                          if ((await confirmDialog(t("cat.stopConfirm")))) void act("disconnect");
                         }}
                       >
                         {t("cat.stop")}
@@ -330,8 +331,8 @@ export function WhatsAppCatalogClient({ initial, storeName }: { initial: Catalog
                 tone="white"
                 busy={busy === "rotate_token"}
                 disabled={Boolean(busy)}
-                onClick={() => {
-                  if (window.confirm(t("cat.rotateConfirm"))) void act("rotate_token", {}, () => setMessage({ tone: "success", text: t("cat.rotated") }));
+                onClick={async () => {
+                  if ((await confirmDialog(t("cat.rotateConfirm")))) void act("rotate_token", {}, () => setMessage({ tone: "success", text: t("cat.rotated") }));
                 }}
               >
                 <Icon name="refresh" size={14} /> {t("cat.newLink")}

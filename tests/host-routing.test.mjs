@@ -83,7 +83,8 @@ test("custom domains: a host and its www twin share one ownership key", () => {
 test("the proxy routes store hosts before auth, keeps app-host auth, and the dead root middleware is gone", () => {
   const proxy = readFileSync(new URL("../src/proxy.ts", import.meta.url), "utf8");
   assert.ok(proxy.indexOf('if (route.kind !== "app") return routeStoreHost') < proxy.indexOf("csrfRejection("), "store hosts are routed before the app's checks");
-  assert.match(proxy, /skippedOnAppHost\(request\.nextUrl\.pathname\)\) return NextResponse\.next\(\)/, "/s/ and /api/public stay untouched on app hosts");
+  // /s/ and /api/public skip the app's auth on app hosts; /s/ only gains the shopper's path header (for old-address redirects).
+  assert.match(proxy, /if \(skippedOnAppHost\(request\.nextUrl\.pathname\)\) \{\n    if \(!request\.nextUrl\.pathname\.startsWith\("\/s\/"\)\) return NextResponse\.next\(\);/, "/s/ and /api/public stay untouched on app hosts");
   assert.doesNotMatch(proxy, /api\/public\|s\//, "the matcher no longer skips the storefront paths");
   assert.match(proxy, /resolveCustomDomainSlug\(/);
   const lookup = readFileSync(new URL("../src/lib/domains/lookup.ts", import.meta.url), "utf8");

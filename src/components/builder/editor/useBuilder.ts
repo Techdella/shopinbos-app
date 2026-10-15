@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
-import { createBlankEditorSnapshot, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
+import { createBlankEditorSnapshot, isBoutiqueTheme, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
+import { migrateSnapshot } from "@/lib/store-templates/section-content";
+import { normalizeChrome, propagateChrome } from "@/lib/store-templates/chrome";
+import { heroDefaultLayout } from "./section-schema";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import type { ShopperStock } from "@shared/product-stock";
 import { useEditorT } from "./i18n";
 import {
   canRedo,
@@ -12,6 +16,7 @@ import {
   createHistory,
   publishState,
   pushHistory,
+  replacePresent,
   redoHistory,
   snapshotKey,
   undoHistory,
@@ -28,6 +33,30 @@ export interface BuilderProduct {
   avgRating?: number;
   reviewCount?: number;
   category?: { id: string; name: string; slug: string } | null;
+  /** Product page fields, so the builder's product page preview shows the real product. */
+  compareAtPrice?: number | null;
+  variants?: unknown;
+  variantOptions?: unknown;
+  productType?: string | null;
+  productDetails?: unknown;
+  relatedProductIds?: string[];
+  tags?: string[];
+  sku?: string | null;
+  longDescription?: string | null;
+  specifications?: unknown;
+  faqs?: unknown;
+  careInstructions?: string | null;
+  shippingInfo?: string | null;
+  returnPolicy?: string | null;
+  warranty?: string | null;
+  supportInfo?: string | null;
+  videoUrl?: string | null;
+  /** Tracked stock as shoppers see it (shared/product-stock.ts); null when not tracked. */
+  stock?: ShopperStock | null;
+  supplierProduct?: { stockQuantity?: number | null } | null;
+  /** The product's own page layout / sections (product-override.ts). */
+  pageLayout?: unknown;
+  lowStockThreshold?: number | null;
 }
 
 export interface BuilderStore {
@@ -42,9 +71,58 @@ export interface BuilderStore {
   products: BuilderProduct[];
   shopper: StorefrontShopperInfo;
   rawShopper: unknown;
+  /** Store.status: "active" (or "published") is open to shoppers; "draft" is closed. */
+  status: string | null;
+  /** brandSettings.logoVariants: the logo's dark-background version, for the preview's header and footer. */
+  logoVariants: unknown;
+}
+
+/** Brand kit and the builder's logo settings announce new logos with this event (detail: BrandAssets). */
+export const BRAND_ASSETS_EVENT = "shopinbos:brand-assets";
+
+/**
+ * Older saves are upgraded in memory (slides get their own words, renamed layouts…), and every page shares the
+ * home page's header and footer. Drafts and published copies go through the same upgrade so the upgrade alone
+ * never shows as unpublished changes.
+ */
+function upgradeSnapshot(snapshot: StoreEditorSnapshot | null) {
+  return normalizeChrome(migrateSnapshot(snapshot, { heroDefault: snapshot ? heroDefaultLayout(isBoutiqueTheme(snapshot.templateId) ? "boutique" : "classic", snapshot.templateId) : undefined }));
+}
+
+function isLiveStatus(status: string | null) {
+  return status === "active" || status === "published";
 }
 
 const AUTOSAVE_MS = 5000;
+
+// Edits not yet saved to the server are also kept in this browser (a lost connection or a closed tab doesn't lose
+// them); the next visit brings them back. Cleared once the server has them, or when the seller leaves without saving.
+const backupKey = (slug: string) => `shopinbos:editor-backup:${slug}`;
+
+interface DraftBackup {
+  at: string;
+  snapshot: StoreEditorSnapshot;
+}
+
+function readBackup(slug: string): DraftBackup | null {
+  if (!slug) return null;
+  try {
+    const raw = JSON.parse(localStorage.getItem(backupKey(slug)) ?? "null") as DraftBackup | null;
+    return raw && typeof raw.at === "string" && raw.snapshot && Array.isArray(raw.snapshot.pages) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeBackup(slug: string, snapshot: StoreEditorSnapshot | null) {
+  if (!slug) return;
+  try {
+    if (snapshot) localStorage.setItem(backupKey(slug), JSON.stringify({ at: new Date().toISOString(), snapshot } satisfies DraftBackup));
+    else localStorage.removeItem(backupKey(slug));
+  } catch {
+    // Private mode or full storage: autosave to the server still runs.
+  }
+}
 
 const EMPTY_STORE: BuilderStore = {
   name: "My store",
@@ -58,6 +136,8 @@ const EMPTY_STORE: BuilderStore = {
   products: [],
   shopper: readShopperInfo(null),
   rawShopper: null,
+  status: null,
+  logoVariants: null,
 };
 
 export type ToastAction = { label: string; href?: string; run?: () => void };
@@ -66,7 +146,9 @@ export type Toast = { id: number; message: string; tone: "ok" | "error"; action?
 export function storefrontHost(url: string | null) {
   if (!url) return null;
   try {
-    return new URL(url).host;
+    const parsed = new URL(url);
+    // Shops at app.shopinbos.com/s/<slug> show their path too.
+    return `${parsed.host}${parsed.pathname.replace(/\/$/, "")}`;
   } catch {
     return null;
   }
@@ -126,26 +208,52 @@ export function useBuilder() {
         products: Array.isArray(raw.storeProducts) ? (raw.storeProducts as BuilderProduct[]) : [],
         shopper: readShopperInfo(raw.shopper),
         rawShopper: raw.shopper ?? null,
+        status: typeof raw.status === "string" ? raw.status : null,
+        logoVariants: raw.brandSettings && typeof raw.brandSettings === "object" ? (raw.brandSettings as Record<string, unknown>).logoVariants ?? null : null,
       });
-      const nextDraft = (json.data.draft as StoreEditorSnapshot | null | undefined) ?? null;
-      resetDraft(nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null);
-      setPublished((json.data.published as StoreEditorSnapshot | null | undefined) ?? null);
+      const nextDraft = upgradeSnapshot((json.data.draft as StoreEditorSnapshot | null | undefined) ?? null);
+      const serverDraft = nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null;
+      resetDraft(serverDraft);
+      // Edits from last time that never reached the server come back (and autosave saves them a moment later),
+      // unless the saved draft is newer (edited on another device since).
+      const slug = typeof raw.slug === "string" ? raw.slug : "";
+      const backup = readBackup(slug);
+      if (backup) {
+        const restored = upgradeSnapshot(backup.snapshot);
+        const serverAt = Date.parse(serverDraft?.updatedAt ?? "") || 0;
+        if (restored && snapshotKey(restored) !== snapshotKey(serverDraft) && Date.parse(backup.at) >= serverAt) {
+          setHistory(createHistory<StoreEditorSnapshot | null>(restored));
+          showToast(tx("We brought back edits that hadn't saved yet."), "ok", {
+            label: tx("Undo"),
+            run: () => {
+              writeBackup(slug, null);
+              resetDraft(serverDraft);
+            },
+          });
+        } else {
+          writeBackup(slug, null);
+        }
+      }
+      setPublished(upgradeSnapshot((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : tx("Your store couldn't be loaded."));
     } finally {
       setLoading(false);
     }
-  }, [resetDraft]);
+  }, [resetDraft, showToast]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  /** Every edit goes through here so it can be undone. Edits sharing a key (typing in one field) merge. */
+  /**
+   * Every edit goes through here so it can be undone. Edits sharing a key (typing in one field) merge. The header,
+   * announcement bar and footer are shared by every page, so changing them on one page changes them everywhere.
+   */
   const commit = useCallback((updater: (snapshot: StoreEditorSnapshot) => StoreEditorSnapshot, key?: string) => {
     setHistory((current) => {
       if (!current.present) return current;
-      const next = updater(current.present);
+      const next = propagateChrome(current.present, updater(current.present));
       if (next === current.present) return current;
       return pushHistory(current, { ...next, updatedAt: new Date().toISOString() }, { key: key ?? null });
     });
@@ -172,6 +280,7 @@ export function useBuilder() {
 
   // An autosave that failed isn't retried for the same content; the next edit (or Save) tries again.
   const failedKey = useRef<string | null>(null);
+  const pageHidden = useRef(false);
 
   const save = useCallback(async (options: { quiet?: boolean } = {}) => {
     const snapshot = draftRef.current;
@@ -184,7 +293,9 @@ export function useBuilder() {
       return true;
     } catch (error) {
       failedKey.current = snapshotKey(snapshot);
-      showToast(error instanceof Error ? error.message : tx("Your changes couldn't be saved."), "error");
+      // fetch() throws a TypeError when there's no connection: say so plainly (the edits are kept on this device).
+      const offline = error instanceof TypeError;
+      showToast(offline ? tx("No connection. Your edits are kept on this device and will save when you're back online.") : error instanceof Error ? error.message : tx("Your changes couldn't be saved."), "error");
       return false;
     } finally {
       setSaving(false);
@@ -198,6 +309,55 @@ export function useBuilder() {
     return () => clearTimeout(timer);
   }, [dirty, draftKey, saving, save]);
 
+  // The browser copy: kept while there are unsaved edits (written a moment after typing stops), dropped once saved.
+  useEffect(() => {
+    if (loading || !store.slug) return;
+    if (!dirty) {
+      writeBackup(store.slug, null);
+      return;
+    }
+    const timer = setTimeout(() => writeBackup(store.slug, draftRef.current), 600);
+    return () => clearTimeout(timer);
+  }, [dirty, draftKey, loading, store.slug]);
+
+  // Back online: try the save that failed again (autosave doesn't retry the same edits on its own).
+  useEffect(() => {
+    if (!dirty) return;
+    const retry = () => {
+      failedKey.current = null;
+      void save({ quiet: true });
+    };
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [dirty, save]);
+
+  // Closing or hiding the tab: browsers don't let a page show its own box then, so the save is sent right away
+  // with keepalive (the browser finishes it after the page is gone; it caps such requests at 64 KB, so a larger
+  // store relies on the browser copy above). Switching tabs just saves early.
+  useEffect(() => {
+    if (!dirty) return;
+    const flush = () => {
+      if (document.visibilityState !== "hidden" && !pageHidden.current) return;
+      const snapshot = draftRef.current;
+      if (!snapshot) return;
+      const body = JSON.stringify({ snapshot });
+      if (body.length > 60_000) return;
+      void fetch("/api/store/editor", { method: "PATCH", headers: { "Content-Type": "application/json" }, body, keepalive: true })
+        .then((response) => { if (response.ok) setSavedKey(snapshotKey(snapshot)); })
+        .catch(() => undefined);
+    };
+    const onPageHide = () => { pageHidden.current = true; flush(); };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [dirty]);
+
+  /** Leaving without saving: the unsaved edits are dropped for good (no "brought back" next time). */
+  const forgetUnsaved = useCallback(() => writeBackup(store.slug, null), [store.slug]);
+
   useEffect(() => {
     if (!dirty) return;
     const handler = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -210,10 +370,11 @@ export function useBuilder() {
     setPublishing(true);
     try {
       // Publishing reads the saved draft, so the latest edits are saved first.
-      if (snapshotKey(draftRef.current) !== savedKey) await persist(draftRef.current);
+      const sent = draftRef.current;
+      if (snapshotKey(sent) !== savedKey) await persist(sent);
       const response = await fetch("/api/store/editor/publish", { method: "POST" });
       const json = await response.json().catch(() => null) as {
-        data?: { published?: StoreEditorSnapshot | null };
+        data?: { published?: StoreEditorSnapshot | null; draft?: StoreEditorSnapshot | null };
         billing?: StoreLaunchPricing;
         error?: { message?: string; blockers?: string[] };
       } | null;
@@ -222,7 +383,18 @@ export function useBuilder() {
         return;
       }
       if (!response.ok) throw new Error(json?.error?.blockers?.[0] ?? json?.error?.message ?? tx("Your store couldn't be published."));
-      setPublished(json?.data?.published ?? draftRef.current);
+      // The server publishes its own copy of the draft (blank page SEO filled in, one shared header): that copy,
+      // upgraded like a fresh load, becomes both the published snapshot and, unless the seller kept editing while
+      // it published, the draft. Otherwise the pill compared against a different copy and kept saying "changes".
+      const published = upgradeSnapshot(json?.data?.published ?? sent);
+      const serverDraft = json?.data?.draft ? upgradeSnapshot(json.data.draft) : published;
+      setPublished(published);
+      if (serverDraft && draftRef.current && snapshotKey(draftRef.current) === snapshotKey(sent)) {
+        setHistory((current) => replacePresent(current, serverDraft));
+        setSavedKey(snapshotKey(serverDraft));
+      }
+      // Publishing also opens the store (after the launch payment check above).
+      setStore((current) => ({ ...current, status: "active" }));
       const host = storefrontHost(store.storefrontUrl);
       showToast(host ? wordsRef.current.t("edk.publishedTo", { host }) : tx("Published"), "ok", store.storefrontUrl ? { href: store.storefrontUrl, label: tx("View store") } : undefined);
     } catch (error) {
@@ -253,10 +425,12 @@ export function useBuilder() {
     });
     const json = await response.json().catch(() => null) as { data?: { draft?: StoreEditorSnapshot | null }; error?: { message?: string } } | null;
     if (!response.ok || !json?.data?.draft) throw new Error(json?.error?.message ?? tx("Rex's change couldn't be applied."));
-    const next = json.data.draft;
+    // An older saved draft can still hold per-page headers; the builder always works on the shared one.
+    const next = normalizeChrome(json.data.draft);
     // Kept undoable: Undo takes the store back to before Rex's change (and autosaves that).
     setHistory((current) => pushHistory(current, next));
-    setSavedKey(snapshotKey(next));
+    // What the server holds; when normalising changed it, autosave stores the shared version.
+    setSavedKey(snapshotKey(json.data.draft));
   }, [persist, savedKey]);
 
   const surfaceStore: SurfaceStore = useMemo(() => ({
@@ -268,6 +442,8 @@ export function useBuilder() {
     country: store.country,
     currency: store.currency,
     shopper: store.rawShopper ?? undefined,
+    // Only the logo's dark-background facts: the preview's header and footer pick the right logo from them.
+    brandSettings: store.logoVariants ? { logoVariants: store.logoVariants } : undefined,
     storeProducts: store.products.map((product) => ({
       id: product.id,
       name: product.name,
@@ -278,10 +454,51 @@ export function useBuilder() {
       avgRating: product.avgRating,
       reviewCount: product.reviewCount,
       category: product.category ?? null,
+      compareAtPrice: product.compareAtPrice ?? null,
+      variants: product.variants,
+      variantOptions: product.variantOptions,
+      productType: product.productType,
+      productDetails: product.productDetails,
+      relatedProductIds: product.relatedProductIds,
+      tags: product.tags,
+      sku: product.sku,
+      longDescription: product.longDescription,
+      specifications: product.specifications,
+      faqs: product.faqs,
+      careInstructions: product.careInstructions,
+      shippingInfo: product.shippingInfo,
+      returnPolicy: product.returnPolicy,
+      warranty: product.warranty,
+      supportInfo: product.supportInfo,
+      videoUrl: product.videoUrl,
+      stock: product.stock ?? null,
+      supplierProduct: product.supplierProduct ?? null,
+      pageLayout: product.pageLayout,
+      lowStockThreshold: product.lowStockThreshold,
     })),
   }), [store]);
 
-  const status = useMemo(() => publishState(draft, published), [draft, published]);
+  const status = useMemo(
+    () => publishState(draft, published, { storeName: store.name, storeLive: store.status === null ? undefined : isLiveStatus(store.status) }),
+    [draft, published, store.name, store.status],
+  );
+
+  // A new logo (or dark-background logo) from the header and footer settings, or the builder's logo picker.
+  const applyBrandAssets = useCallback((assets: { logo?: string | null; logoVariants?: unknown } | null | undefined) => {
+    if (!assets) return;
+    setStore((current) => ({ ...current, logoUrl: assets.logo ?? current.logoUrl, logoVariants: assets.logoVariants ?? null }));
+  }, []);
+  useEffect(() => {
+    const onAssets = (event: Event) => applyBrandAssets((event as CustomEvent).detail);
+    window.addEventListener(BRAND_ASSETS_EVENT, onAssets);
+    return () => window.removeEventListener(BRAND_ASSETS_EVENT, onAssets);
+  }, [applyBrandAssets]);
+  /** Re-reads the logo and its dark-background version (after the logo changed). */
+  const refreshLogo = useCallback(async () => {
+    const response = await fetch("/api/app/brand-assets", { cache: "no-store" }).catch(() => null);
+    const json = response?.ok ? await response.json().catch(() => null) as { data?: { logo?: string | null; logoVariants?: unknown } } | null : null;
+    applyBrandAssets(json?.data);
+  }, [applyBrandAssets]);
 
   return {
     loading,
@@ -293,6 +510,7 @@ export function useBuilder() {
     draft,
     published,
     status,
+    refreshLogo,
     dirty,
     saving,
     publishing,
@@ -302,6 +520,7 @@ export function useBuilder() {
     undo,
     redo,
     save,
+    forgetUnsaved,
     publish,
     startBlank,
     applyOps,

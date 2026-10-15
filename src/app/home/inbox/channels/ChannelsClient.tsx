@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Card, Pill } from "@/components/app-kit";
@@ -218,7 +219,7 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
   }
 
   async function disconnect() {
-    if (!window.confirm(t("ch.confirmDisconnect", { title }))) return;
+    if (!(await confirmDialog(t("ch.confirmDisconnect", { title })))) return;
     setBusy(true);
     try {
       await inboxApi(`/api/app/inbox/channels/${view.channel}`, { method: "DELETE" });

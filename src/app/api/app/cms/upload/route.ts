@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { sellerStore } from "@/lib/cms/server";
 import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
+import { recordMedia } from "@/lib/media/library.server";
+import { mediaDisplayName, mediaKindOfType } from "@shared/media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (file.size > maxMb * 1024 * 1024) return NextResponse.json({ error: { code: "BAD_REQUEST", message: `That file is over ${maxMb} MB` } }, { status: 400 });
   try {
     const result = await uploadFileServer("brand", file, uploadPath(`brand/cms/${store.id}`, file));
+    const kind = mediaKindOfType(file.type);
+    if (kind) await recordMedia({ userId: user.id, storeId: store.id, url: result.publicUrl, path: result.path, name: mediaDisplayName(file.name), kind, bytes: file.size, source: "cms" });
     return NextResponse.json({ data: { url: result.publicUrl, name: file.name.slice(0, 120), type: file.type } });
   } catch (error) {
     console.error("[cms] upload failed", error);

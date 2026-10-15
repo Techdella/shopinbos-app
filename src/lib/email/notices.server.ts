@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { formatFromAddress, sendEmail, type EmailSendResult } from "@/lib/notifications/resend";
 import { appBase, sendPlatformEmail, storeSender, SENDER_STORE_SELECT, type SenderStore } from "./compliance.server";
 import { html } from "./shell";
-import { orderConfirmationEmail, orderPartlySentEmail, type OrderEmailInput } from "./store-emails";
+import { leadMagnetEmail, orderConfirmationEmail, orderPartlySentEmail, type OrderEmailInput } from "./store-emails";
 
 // Ready-made sends on the shared shell: a store's order confirmation (B) and the alerts Shopinbos sends sellers (A).
 
@@ -21,6 +21,14 @@ export async function sendOrderPartlySentEmail(input: { store: SenderStore | str
   const store = typeof input.store === "string" ? await db.store.findUnique({ where: { id: input.store }, select: SENDER_STORE_SELECT }) : input.store;
   if (!store) return { success: false, message: "Store not found" };
   const { subject, html: body } = orderPartlySentEmail({ ...input, appUrl: appBase(), store: storeSender(store) });
+  return sendEmail({ to: [input.to], subject, html: body, from: formatFromAddress(store.name) });
+}
+
+/** A pop-up's free download, emailed to the person who just signed up for it. */
+export async function sendLeadMagnetEmail(input: { store: SenderStore | string; to: string; name: string; url: string; buyerName?: string | null }): Promise<EmailSendResult> {
+  const store = typeof input.store === "string" ? await db.store.findUnique({ where: { id: input.store }, select: SENDER_STORE_SELECT }) : input.store;
+  if (!store) return { success: false, message: "Store not found" };
+  const { subject, html: body } = leadMagnetEmail({ appUrl: appBase(), store: storeSender(store), name: input.name, url: input.url, buyerName: input.buyerName });
   return sendEmail({ to: [input.to], subject, html: body, from: formatFromAddress(store.name) });
 }
 

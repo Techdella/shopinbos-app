@@ -31,8 +31,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "addr.line2": "Ụlọ, okpukpu ma ọ bụ akara ama (nhọrọ)",
   "addr.state": "Steeti",
   "addr.postal": "Koodu ozi (nhọrọ)",
-  "addr.email": "Email kọntaktị ndị ahịa (nhọrọ)",
-  "addr.phone": "Ekwentị kọntaktị ndị ahịa (nhọrọ)",
+  "addr.email": "Email ụlọ ahịa ndị na-azụ ahịa gị nwere ike ide (nhọrọ)",
+  "addr.phone": "Ekwentị ụlọ ahịa ndị na-azụ ahịa gị nwere ike ịkpọ (nhọrọ)",
+  "addr.contactHelp": "Ndị na-azụ ahịa gị ga-ahụ ya n'email ụlọ ahịa gị na-ezigara ha, ka ha nwee ike ịkpọtụrụ gị. Ọ bụghị nke ịbanye gị.",
   "addr.save": "Chekwaa adreesị azụmahịa",
   "contact.title": "Nkọwa kọntaktị",
   email: "Email",
@@ -164,6 +165,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "Anyị na-ebuli menu gị…",
   "menu.onlyUse": "Hụ naanị ihe ị na-eji",
   "menu.onlyUseSub": "Ịgbanyụ ihe na-ezo ya na menu gị. Ọ dịghị ihe ehichapụrụ: data gị ka dị, ị nwere ike ịgbanye ya ebe a oge ọ bụla.",
+  "menu.tips": "Ndụmọdụ na nkọwa nta",
+  "menu.tipsSub": "Nkọwa nta na-apụta mgbe ị tụrụ aka ma ọ bụ pịa okwu, ndụmọdụ na menu, na obere mmalite na-emepe onwe ha na peeji ọhụrụ. Ọ bụrụ na ị gbanyụọ ya, ị ka nwere ike ikiri mmalite ọ bụla site na “Learn” n'elu peeji.",
   "menu.walkthrough": "Ntuziaka",
   "menu.walkthroughSub": "Hụ ọzọ njegharị ngwa ngwa nke menu gị na bọtịnụ ndị bụ isi.",
   "menu.replay": "Gosi m gburugburu ọzọ",
@@ -181,6 +184,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "img.addLogo": "Tinye logo",
   "img.uploading": "Anyị na-ebulite…",
   "img.removing": "Anyị na-ewepụ ya…",
+  "details.nameHelp": "Ịgbanwe aha store gị anaghị agbanwe adreesị webụ gị.",
+  "details.slugLocked": "Adreesị webụ gị gbanwere n'oge na-adịbeghị anya. Ị nwere ike ịgbanwe ya ọzọ n'ime {days, plural, one {ụbọchị #} other {ụbọchị #}}.",
+  "details.slugWarnTitle": "Ị na-agbanwe adreesị webụ store gị",
+  "details.slugWarnLive": "Store gị ga-esi na {old} kwaga {new}. A ga-eduga ndị na-azụ mepere adreesị ochie gaa na nke ọhụrụ, mana melite links ị kesara (bio Instagram, status WhatsApp, flyers, mgbasa ozi) ma gwa ndị ahịa gị na-azụkarị. Ị nwere ike ịgbanwe adreesị gị naanị otu ugboro n'ụbọchị {days} ọ bụla.",
+  "details.slugWarnDraft": "Store gị ga-esi na {old} kwaga {new}. A ga-eduga onye ọ bụla mepere adreesị ochie gaa na nke ọhụrụ. Ozugbo store gị dị ndụ, ị nwere ike ịgbanwe adreesị gị naanị otu ugboro n'ụbọchị {days} ọ bụla.",
+  "details.slugConfirm": "Aghọtara m. Bugaa store m na {new}",
 };
 
 export default ig;

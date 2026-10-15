@@ -56,6 +56,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance da reviews",
   "company-profile.title": "Company profile da settings",
+  "media.title": "Hotuna",
+  "seasonal-campaigns.title": "Campaigns na lokacin biki",
 };
 
 export default ha;

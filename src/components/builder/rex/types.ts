@@ -48,6 +48,8 @@ export type ChatMessage =
       offer?: string;
       /** Results of Rex's tools: pictures, logos, store changes, copy, campaigns. */
       cards?: RexCard[];
+      /** Show a "Buy credits" button (the allowance and credits ran out). */
+      buyCredits?: boolean;
     };
 
 export interface StudioChange {

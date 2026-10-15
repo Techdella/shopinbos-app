@@ -1,11 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
 import { gaMeasurementId } from "@/lib/security/html";
+import { saveSellerBusinessAddress, saveStoreDetails } from "@/lib/seller-settings.server";
+import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -333,27 +334,18 @@ export async function savePeggyMemory(formData: FormData) {
 
 export async function saveStoreSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
-  const store = await db.store.findUnique({ where: { userId: user.id } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  const name = String(formData.get("storeName") || store.name).trim();
-  const slug = String(formData.get("slug") || store.slug).trim();
-  const description = String(formData.get("description") || "").trim();
-  const city = String(formData.get("city") || store.city || "").trim();
-  const tagline = String(formData.get("tagline") || "").trim();
-
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      name,
-      slug,
-      description,
-      city,
-      brandSettings: mergeBrandSettings(store.brandSettings, {
-        // store tagline and other settings can go into brandSettings
-      }),
-    },
+  // Rules shared with the phone app (/api/app/settings/profile): src/lib/seller-settings.server.ts.
+  // A new web address needs the seller to tick "I understand" (the form shows what happens to the old one).
+  const slugInput = String(formData.get("slug") || "");
+  const confirmed = formData.get("confirmSlugChange") === "yes";
+  const saved = await saveStoreDetails(user.id, {
+    name: String(formData.get("storeName") || ""),
+    slug: confirmed ? slugInput : "",
+    description: String(formData.get("description") || ""),
+    city: String(formData.get("city") || ""),
   });
+  if (!saved) redirect("/builder?firstRun=1");
+  if (saved.error) redirect(`/home/settings?tab=Store&error=${encodeURIComponent(saved.error)}`);
 
   redirect("/home/settings?saved=true&tab=Store");
 }
@@ -361,41 +353,34 @@ export async function saveStoreSettings(formData: FormData) {
 /** The store's business name and postal address: the footer of every email it sends (required for marketing email). */
 export async function saveBusinessAddress(formData: FormData) {
   const user = await getSellerUserOrThrow();
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, brandSettings: true } });
-  if (!store) redirect("/builder?firstRun=1");
-  const field = (name: string, max = 160) => String(formData.get(name) ?? "").trim().replace(/\s+/g, " ").slice(0, max);
-  const email = field("addressEmail", 200);
-  const businessAddress = {
+  const field = (name: string) => String(formData.get(name) ?? "");
+  const saved = await saveSellerBusinessAddress(user.id, {
     legalName: field("legalName"),
     line1: field("line1"),
     line2: field("line2"),
-    city: field("addressCity", 80),
-    state: field("addressState", 80),
-    postalCode: field("postalCode", 20),
-    country: field("addressCountry", 80),
-    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email.toLowerCase() : "",
-    phone: field("addressPhone", 40),
-  };
-  const current = store.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings) ? (store.brandSettings as Record<string, unknown>) : {};
-  await db.store.update({ where: { id: store.id }, data: { brandSettings: { ...current, businessAddress } as Prisma.InputJsonValue } });
+    city: field("addressCity"),
+    state: field("addressState"),
+    postalCode: field("postalCode"),
+    country: field("addressCountry"),
+    email: field("addressEmail"),
+    phone: field("addressPhone"),
+  });
+  if (!saved) redirect("/builder?firstRun=1");
   redirect("/home/settings?saved=true&tab=Store#business-address");
 }
 
 export async function saveStoreDomainSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
-  const store = await db.store.findUnique({ where: { userId: user.id } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!store) redirect("/builder?firstRun=1");
 
-  const slug = slugify(String(formData.get("slug") || store.slug));
-
   // A custom domain is never set here: it goes live only after ownership is verified (/api/domains/connect
-  // then /api/domains/verify), so a "customDomain" field in this form is ignored.
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      slug: slug || store.slug,
-    },
-  });
+  // then /api/domains/verify), so a "customDomain" field in this form is ignored. The web address change is
+  // the same checked, rate-limited move as in Settings (the old address keeps redirecting).
+  if (formData.get("confirmSlugChange") === "yes") {
+    const moved = await changeStoreSlug(store.id, String(formData.get("slug") || ""));
+    if (!moved.ok) redirect(`/home/domain?error=${encodeURIComponent(moved.message)}`);
+  }
 
   redirect("/home/domain?saved=true");
 }
@@ -420,7 +405,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       description,
       city,
       country,
-      brandSettings: mergeBrandSettings(store.brandSettings, {
+      brandSettings: mergeBrandSettings((name !== store.name ? clearStaleShopNames(store.brandSettings, store.name, name) : null) ?? store.brandSettings, {
         tagline,
         brandKit: {
           primaryColor: primary,
@@ -429,8 +414,15 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       }),
     },
   });
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name, name);
 
   redirect("/home/brand-kit?saved=true");
+}
+
+/** An https image link from a form field, or "" (anything else is dropped: it ends up in the store's <head>). */
+function httpsImageUrl(value: FormDataEntryValue | null) {
+  const text = String(value || "").trim().slice(0, 2000);
+  return /^https:\/\/\S+$/i.test(text) ? text : "";
 }
 
 export async function saveStoreSeoSettings(formData: FormData) {
@@ -446,7 +438,9 @@ export async function saveStoreSeoSettings(formData: FormData) {
           title: String(formData.get("seoTitle") || "").trim(),
           description: String(formData.get("seoDescription") || "").trim(),
           keywords: String(formData.get("seoKeywords") || "").trim(),
-          socialImage: String(formData.get("socialImage") || "").trim(),
+          socialImage: httpsImageUrl(formData.get("socialImage")),
+          // The browser-tab icon of every store page (src/lib/seo/store-head.ts); empty falls back to the logo.
+          favicon: httpsImageUrl(formData.get("favicon")),
         },
       }),
     },

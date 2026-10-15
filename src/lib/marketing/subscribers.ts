@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma, SubscriberSource } from "@prisma/client";
+import type { Prisma, SubscriberSource, SubscriberStatus } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { clearOptOut } from "./opt-outs";
 import { normalizeEmail, normalizePhone } from "./segment-rules";
@@ -140,4 +140,54 @@ export function consentSummary(metadata: unknown) {
   const last = Array.isArray(history) ? (history[history.length - 1] as Partial<ConsentRecord> | undefined) : undefined;
   if (!last) return null;
   return { email: Boolean(last.email), sms: Boolean(last.sms), whatsapp: Boolean(last.whatsapp), at: last.at ?? null, source: last.source ?? null, text: last.text ?? null };
+}
+
+// ─── The list ───────────────────────────────────────────────────────────────
+
+export const SUBSCRIBER_PAGE_SIZE = 50;
+
+export interface SubscriberListQuery {
+  q?: string | null;
+  status?: SubscriberStatus | null;
+  source?: SubscriberSource | null;
+  tag?: string | null;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * One page of the shop's list, newest first, filtered by status, where they came from, a tag or a search (email,
+ * name or phone), with the counts per status, new active people in the last 30 days and every tag in use.
+ * Used by /home/marketing/subscribers and GET /api/app/marketing/subscribers.
+ */
+export async function listSubscribers(storeId: string, query: SubscriberListQuery = {}) {
+  const q = query.q?.trim().slice(0, 100);
+  const limit = Math.min(100, Math.max(1, query.limit ?? SUBSCRIBER_PAGE_SIZE));
+  const page = Math.max(1, query.page ?? 1);
+  const where: Prisma.SubscriberWhereInput = {
+    storeId,
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.source ? { source: query.source } : {}),
+    ...(query.tag ? { tags: { has: query.tag } } : {}),
+    ...(q ? { OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }, { phone: { contains: q } }] } : {}),
+  };
+  const monthAgo = new Date(Date.now() - 30 * 86_400_000);
+  const [rows, filtered, groups, newThisMonth, tagRows] = await Promise.all([
+    db.subscriber.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+    db.subscriber.count({ where }),
+    db.subscriber.groupBy({ by: ["status"], where: { storeId }, _count: true }),
+    db.subscriber.count({ where: { storeId, status: "active", createdAt: { gte: monthAgo } } }),
+    db.subscriber.findMany({ where: { storeId, NOT: { tags: { isEmpty: true } } }, select: { tags: true }, take: 5000 }),
+  ]);
+  const count = (status?: SubscriberStatus) => groups.filter((row) => !status || row.status === status).reduce((sum, row) => sum + row._count, 0);
+  return {
+    rows,
+    filtered,
+    page,
+    limit,
+    pages: Math.max(1, Math.ceil(filtered / limit)),
+    counts: { all: count(), active: count("active"), unsubscribed: count("unsubscribed"), bounced: count("bounced"), spam: count("spam") },
+    newThisMonth,
+    tags: [...new Set(tagRows.flatMap((row) => row.tags))].sort(),
+  };
 }

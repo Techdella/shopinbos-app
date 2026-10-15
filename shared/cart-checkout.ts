@@ -15,6 +15,8 @@ export interface CartLine {
   image?: string;
   /** Variant label, e.g. "Black / M". Same product with another variant is another line. */
   variant?: string;
+  /** The version's id in the product's variants (shared/product-variants.ts); the label above is shown. */
+  variantId?: string;
   /** Units in stock for this line when the seller tracks it. */
   maxQuantity?: number;
 }
@@ -74,6 +76,7 @@ export function sanitizeLines(value: unknown): CartLine[] {
       quantity: clampQuantity(quantity, maxQuantity),
       ...(typeof entry.image === "string" && entry.image ? { image: entry.image.slice(0, 1000) } : {}),
       ...(typeof entry.variant === "string" && entry.variant ? { variant: entry.variant.slice(0, 120) } : {}),
+      ...(typeof entry.variantId === "string" && entry.variantId ? { variantId: entry.variantId.slice(0, 80) } : {}),
       ...(maxQuantity ? { maxQuantity } : {}),
     });
   }

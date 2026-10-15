@@ -7,6 +7,7 @@ import type { PublishState } from "./editor-logic";
 import { DEVICE_LABELS, DEVICE_WIDTHS, type Device } from "./Canvas";
 import { IconButton, Menu, MenuItem } from "./ui";
 import { useEditorT } from "./i18n";
+import { LiveCampaignChip } from "@/components/campaigns/LiveCampaignChip";
 
 const DEVICE_ICONS: Record<Device, IconName> = { desktop: "monitor", tablet: "cards", mobile: "phone" };
 
@@ -20,7 +21,15 @@ export function StatusPill({ status }: { status: PublishState }) {
     );
   }
   if (status === "changes") {
-    return <span title={tx("Your store is live. These edits aren't published yet.")} className="inline-flex shrink-0 items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 text-[12px] font-bold text-[#8A5A00]">{tx("Unpublished")}</span>;
+    // The store has been published; these edits since then aren't on it yet.
+    return <span title={tx("Your store is live. These edits aren't published yet.")} className="inline-flex shrink-0 items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 text-[12px] font-bold text-[#8A5A00]">{tx("Changes not published")}</span>;
+  }
+  if (status === "offline") {
+    return (
+      <span title={tx("Your design is published, but your store is closed to shoppers. Publish to open it again.")} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold text-app-ink-soft">
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-app-ink-faint" /> {tx("Offline")}
+      </span>
+    );
   }
   return <span title={tx("Not published yet")} className="inline-flex shrink-0 items-center rounded-full bg-[#EAF0FF] px-2.5 py-1 text-[12px] font-bold text-[#2F66F6]">{tx("Draft")}</span>;
 }
@@ -44,6 +53,9 @@ export interface TopBarProps {
   publishing: boolean;
   canPublish: boolean;
   onSave: () => void;
+  /** "Preview store": see the store as shoppers do (hidden while previewing a theme). */
+  onPreviewStore?: () => void;
+  previewingStore?: boolean;
   saving: boolean;
   dirty: boolean;
   phone: boolean;
@@ -59,6 +71,7 @@ export function TopBar(props: TopBarProps) {
       <div className="flex min-w-0 items-center gap-2">
         <span className="hidden max-w-[160px] truncate text-[15px] font-bold text-app-ink xl:inline">{props.themeName}</span>
         <StatusPill status={props.status} />
+        <LiveCampaignChip />
       </div>
       {!props.phone ? (
         <div role="tablist" aria-label={tx("Builder view")} className="ml-1 flex shrink-0 rounded-[12px] bg-app-canvas p-1">
@@ -112,6 +125,22 @@ export function TopBar(props: TopBarProps) {
         </>
       ) : null}
       {props.phone && editor ? <IconButton icon="undo" label="Undo" disabled={!props.canUndo} onClick={props.onUndo} /> : null}
+      {editor && props.onPreviewStore ? (
+        <button
+          type="button"
+          onClick={props.onPreviewStore}
+          aria-pressed={props.previewingStore}
+          aria-label={tx(props.previewingStore ? "Back to editing" : "Preview store")}
+          title={tx(props.previewingStore ? "Back to editing" : "Preview store")}
+          className={cx(
+            "inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-[14px] font-bold transition",
+            props.previewingStore ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+          )}
+        >
+          <Icon name="eye" size={16} />
+          <span aria-hidden className="hidden md:inline">{props.previewingStore ? tx("Back to editing") : tx("Preview store")}</span>
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={props.onPublish}

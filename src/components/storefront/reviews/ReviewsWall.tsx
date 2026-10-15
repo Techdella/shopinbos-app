@@ -1,3 +1,4 @@
+import { StoreFootnote } from "@/components/storefront/shopper/StoreFooterBadges";
 import type { ReviewSummary } from "@/lib/reviews/pure";
 import type { WallReview } from "@/lib/reviews/storefront";
 
@@ -110,6 +111,7 @@ export function ReviewsWall({ store, reviews, summary, basePath, page, pageSize 
           ) : null}
         </div>
       </section>
+      <StoreFootnote muted="rgba(22,20,31,0.62)" border="rgba(22,20,31,0.12)" ink="#16141F" className="mt-12" />
     </main>
   );
 }

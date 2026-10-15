@@ -170,6 +170,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "48 out of 50 deliveries reach on time this week: na 96% on-time rate.",
   "api-key.short": "Secret code wey make another app fit work with your Shopinbos account.",
   "api-key.example": "Paste am inside your dispatch software, and hide am like password.",
+  "media.short": "All the pictures and videos for your shop, for one place so you fit name, describe and use dem again.",
+  "media.example": "Pick the Ankara photo from last month for new banner instead to upload am again.",
+  "seasonal-campaigns.short": "Sale wey you plan once, e go dress your shop for the season, then e go switch back by itself.",
+  "seasonal-campaigns.example": "Black Friday: gold colours, countdown and “BF Deal” badge from Friday reach Sunday night.",
 };
 
 export default pcm;

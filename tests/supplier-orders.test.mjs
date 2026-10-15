@@ -187,13 +187,14 @@ test("saved stock holds round-trip and junk is ignored", () => {
 test("checkout reserves through the holds and saves them on the order", () => {
   const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
   assert.match(checkout, /await reserveStock\(tx, store\.id, priced\.stockHolds\)/);
-  assert.match(checkout, /stockHold: JSON\.parse\(JSON\.stringify\(priced\.stockHolds\)\)/);
+  assert.match(checkout, /const stockHolds = await reserveStock/);
+  assert.match(checkout, /stockHold: JSON\.parse\(JSON\.stringify\(stockHolds\)\)/, "the holds as really taken are saved");
   assert.doesNotMatch(checkout, /currentStock: \{ decrement/);
   const reserve = read("src/lib/commerce/stock.server.ts");
   assert.match(reserve, /stockQuantity: \{ gte: quantity \}/);
-  assert.match(reserve, /currentStock: \{ gte: quantity \}/);
+  assert.match(reserve, /"currentStock" - GREATEST\("reservedStock", 0\) >= \$\{quantity\}/);
   const pricing = read("src/lib/commerce/pricing.server.ts");
-  assert.match(pricing, /stockShortfalls\(products, quantities\)/);
+  assert.match(pricing, /stockShortfallDetails\(products, quantities\)/);
   assert.match(pricing, /maybeExpireUnpaidOrders\(input\.store\.id\)/);
 });
 

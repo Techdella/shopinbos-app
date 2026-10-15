@@ -9,7 +9,7 @@ import { useT } from "@/components/i18n/I18nProvider";
  * Sheet on phones, centred dialog from sm up. Closes on Escape and backdrop click,
  * and moves focus into the dialog when it opens.
  */
-export function Modal({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+export function Modal({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean | "xl" }) {
   const t = useT("common");
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
@@ -35,7 +35,7 @@ export function Modal({ title, onClose, children, wide = false }: { title: strin
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className={cx("flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[22px] bg-white sm:rounded-[22px]", wide ? "sm:max-w-[680px]" : "sm:max-w-[520px]")}
+        className={cx("flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[22px] bg-white sm:rounded-[22px]", wide === "xl" ? "sm:max-w-[1180px]" : wide ? "sm:max-w-[680px]" : "sm:max-w-[520px]")}
       >
         <div className="flex items-center gap-3 border-b border-app-line px-5 py-4">
           <h2 id={titleId} className="m-0 min-w-0 flex-1 truncate text-[18px] font-extrabold">{title}</h2>

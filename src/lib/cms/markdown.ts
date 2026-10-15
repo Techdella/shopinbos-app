@@ -118,3 +118,79 @@ export function markdownToDoc(markdown: string): RichDoc {
   }
   return { type: "doc", content: blocks.length ? blocks : [{ type: "paragraph" }] };
 }
+
+// ─── Document → Markdown-ish plain text ─────────────────────────────────────
+// For editing a page as plain text (the phone app's legal page editor): the inverse of markdownToDoc for what it
+// covers, so text that isn't changed reads back as the same document. Lines starting with # are headings, - or 1.
+// are list items, > is a quote; **bold**, *italic*, ~~strike~~, `code` and [links](https://…) keep their marks.
+
+/** Blocks plain text can't hold (they'd be lost by saving the page as text). A callout keeps its words as a quote. */
+const TEXT_UNSAFE = new Set(["youtube", "button", "productCard"]);
+
+export function docHasRichOnlyBlocks(doc: RichDoc): boolean {
+  const walk = (node: RichNode): boolean => TEXT_UNSAFE.has(node.type) || (node.content ?? []).some(walk);
+  return doc.content.some(walk);
+}
+
+function inlineText(nodes: RichNode[] | undefined): string {
+  return (nodes ?? [])
+    .map((node) => {
+      if (node.type === "hardBreak") return "\n";
+      if (node.type === "image") return `![${String(node.attrs?.alt ?? "")}](${String(node.attrs?.src ?? "")})`;
+      if (node.type !== "text") return inlineText(node.content);
+      let value = node.text ?? "";
+      const marks = node.marks ?? [];
+      const has = (type: string) => marks.some((mark) => mark.type === type);
+      if (has("code")) value = `\`${value}\``;
+      if (has("italic")) value = `*${value}*`;
+      if (has("bold")) value = `**${value}**`;
+      if (has("strike")) value = `~~${value}~~`;
+      const link = marks.find((mark) => mark.type === "link");
+      if (link && typeof link.attrs?.href === "string") value = `[${value}](${link.attrs.href})`;
+      return value;
+    })
+    .join("");
+}
+
+function blockText(node: RichNode): string {
+  switch (node.type) {
+    case "heading":
+      return `${"#".repeat(Math.min(4, Math.max(1, Number(node.attrs?.level) || 2)))} ${inlineText(node.content).replace(/\n/g, " ")}`;
+    case "paragraph":
+      return inlineText(node.content);
+    case "image":
+      return inlineText([node]);
+    case "horizontalRule":
+      return "---";
+    case "codeBlock":
+      return `\`\`\`${String(node.attrs?.language ?? "")}\n${(node.content ?? []).map((child) => child.text ?? "").join("")}\n\`\`\``;
+    case "blockquote":
+    case "callout":
+      return (node.content ?? []).map(blockText).join("\n\n").split("\n").map((line) => `> ${line}`.trimEnd()).join("\n");
+    case "bulletList":
+    case "orderedList": {
+      const start = Number(node.attrs?.start) || 1;
+      return (node.content ?? [])
+        .map((item, index) => {
+          const marker = node.type === "orderedList" ? `${start + index}.` : "-";
+          const lines = (item.content ?? []).map(blockText).join("\n").split("\n").filter((line) => line.trim());
+          return `${marker} ${lines[0] ?? ""}${lines.slice(1).map((line) => `\n  ${line.replace(/^[-*+]\s+|^\d+[.)]\s+/, "")}`).join("")}`;
+        })
+        .join("\n");
+    }
+    case "table": {
+      const rows = (node.content ?? []).map((row) => (row.content ?? []).map((cell) => (cell.content ?? []).map((child) => inlineText(child.content)).join(" ").replace(/\|/g, "/").replace(/\n/g, " ").trim()));
+      if (!rows.length) return "";
+      const width = Math.max(...rows.map((row) => row.length));
+      const line = (cells: string[]) => `| ${Array.from({ length: width }, (_, index) => cells[index] ?? "").join(" | ")} |`;
+      return [line(rows[0]), `|${" --- |".repeat(width)}`, ...rows.slice(1).map(line)].join("\n");
+    }
+    default:
+      // youtube, buttons, product cards: no text form.
+      return (node.content ?? []).map(blockText).join("\n\n");
+  }
+}
+
+export function docToMarkdown(doc: RichDoc): string {
+  return doc.content.map(blockText).filter((text) => text.trim()).join("\n\n");
+}

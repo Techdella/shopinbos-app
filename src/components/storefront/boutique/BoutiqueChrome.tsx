@@ -4,20 +4,41 @@ import { useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront/shopper/StoreFooterBadges";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { BoutiqueLook } from "./look";
+import { StoreBrandMark } from "../StoreBrandMark";
+import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy } from "@shared/placeholder-copy";
+import { englishText, type EditorText } from "../editor-text";
 
 export interface ChromeStore {
   name: string;
   logoUrl?: string | null;
   city?: string | null;
   country?: string | null;
+  /** The footer's line about the store falls back to this when the seller hasn't written one. */
+  description?: string | null;
+  /** For the logo icon, how the header shows the brand and the dark-background logo (Brand kit). */
+  brandSettings?: unknown;
 }
 
-export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean };
-/** A plain link (legal pages live on their own URLs, not ?page=). */
+/** A store page (lives at its own address: /about, /shop). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
+export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean; href?: string };
+
+/** Ordinary clicks switch page in place; Ctrl/⌘/Shift/middle clicks keep the browser's own link behaviour. */
+function pageLinkClick(link: ChromeLink) {
+  return (event: React.MouseEvent<HTMLElement>) => {
+    if (link.href && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    event.preventDefault();
+    link.onSelect();
+  };
+}
+/** A plain link to another route (legal pages, policies). */
 export type ChromeHref = { key: string; label: string; href: string };
 
-export function AnnouncementBar({ text, look }: { text: string | null; look: BoutiqueLook }) {
+/** The bar on the live store. Seller guidance saved by older templates never shows (shopperCopy). */
+export function AnnouncementBar({ text: raw, look }: { text: string | null; look: BoutiqueLook }) {
+  const text = shopperCopy(raw);
   if (!text) return null;
   return (
     <div className="px-4 py-2.5 text-center font-medium" style={look.announcement} role="region" aria-label="Store announcement">
@@ -26,13 +47,23 @@ export function AnnouncementBar({ text, look }: { text: string | null; look: Bou
   );
 }
 
-function Logo({ store, logoText, look, onHome, centred }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean }) {
+/** The colour behind the header: the ink bar for "Bold", else the theme's header colour. */
+export function headerBackground(look: BoutiqueLook, bold: boolean) {
+  return bold ? look.tokens.ink : look.headerBg;
+}
+
+function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean }) {
   return (
-    <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: look.tokens.ink, cursor: "pointer" }} aria-label={`${store.name} home`}>
-      {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
-      <span className="truncate text-[22px] leading-none @3xl:text-[24px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>
-        {logoText}
-      </span>
+    <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: "inherit", cursor: "pointer" }} aria-label={`${store.name} home`}>
+      <StoreBrandMark
+        store={store}
+        background={headerBackground(look, Boolean(bold))}
+        under={look.tokens.paperBg}
+        dark={bold || look.dark}
+        name={logoText}
+        nameClassName={bold ? "text-[24px] leading-none @3xl:text-[28px]" : "text-[22px] leading-none @3xl:text-[24px]"}
+        nameStyle={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}
+      />
     </button>
   );
 }
@@ -108,6 +139,7 @@ export function BoutiqueHeader({
   wishlistCount,
   cartLabel,
   centred,
+  bold = false,
 }: {
   store: ChromeStore;
   logoText: string;
@@ -124,6 +156,8 @@ export function BoutiqueHeader({
   wishlistCount: number;
   cartLabel: string;
   centred: boolean;
+  /** "Bold" header: an inverted bar (ink background) with a heavy uppercase shop name. */
+  bold?: boolean;
 }) {
   const t = look.tokens;
   const nav = (
@@ -132,16 +166,16 @@ export function BoutiqueHeader({
         link.key === "products" ? (
           <ShopMenu key={link.key} look={look} categories={categories} onShopAll={onShopAll} onCategory={onCategory} />
         ) : (
-          <button
+          <a
             key={link.key}
-            type="button"
-            onClick={link.onSelect}
+            href={link.href ?? "#"}
+            onClick={pageLinkClick(link)}
             aria-current={link.current ? "page" : undefined}
             className="border-0 bg-transparent px-1 py-2"
             style={{ color: "inherit", cursor: "pointer", textDecoration: link.current ? "underline" : "none", textUnderlineOffset: 6, ...look.navStyle }}
           >
             {link.label}
-          </button>
+          </a>
         ),
       )}
     </nav>
@@ -165,7 +199,7 @@ export function BoutiqueHeader({
           type="button"
           onClick={onBag}
           className="ml-1 inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13.5px] font-semibold"
-          style={{ borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
+          style={bold ? { borderColor: t.paperBg, color: t.ink, background: t.paperBg, cursor: "pointer" } : { borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
           aria-label={`${cartLabel}, ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
         >
           <span className="bq-only-wide" aria-hidden>{cartLabel}</span>
@@ -179,16 +213,16 @@ export function BoutiqueHeader({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b" style={{ background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
+    <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
-        <div className="bq-wrap grid h-[68px] grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="bq-wrap grid min-h-[68px] py-1.5 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0">{nav}</div>
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred />
+          <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred bold={bold} />
           {tools}
         </div>
       ) : (
-        <div className="bq-wrap flex h-[68px] items-center justify-between gap-4">
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} />
+        <div className="bq-wrap flex min-h-[68px] py-1.5 items-center justify-between gap-4">
+          <Logo store={store} logoText={logoText} look={look} onHome={onHome} bold={bold} />
           {nav}
           {tools}
         </div>
@@ -205,6 +239,9 @@ export function BoutiqueFooter({
   summary,
   onTrackOrder,
   legalLinks = [],
+  showLogo = true,
+  editor = false,
+  say = englishText,
 }: {
   store: ChromeStore;
   look: BoutiqueLook;
@@ -214,27 +251,44 @@ export function BoutiqueFooter({
   onTrackOrder?: () => void;
   /** The store's published legal pages, shown in the bottom row. */
   legalLinks?: ChromeHref[];
+  /** The footer's "Show logo" setting: the logo (its dark-background version on a dark footer) in place of the name. */
+  showLogo?: boolean;
+  /** In the builder: an empty or placeholder summary shows as a dashed "edit me" hint instead. */
+  editor?: boolean;
+  /** The builder's words for that hint (English when absent). */
+  say?: EditorText;
 }) {
   const t = look.tokens;
+  const shown = editor ? (summary ?? "").trim() : footerSummaryForShoppers(summary, { name: store.name, description: store.description, tagline: brandTagline(store.brandSettings) });
+  const summaryHint = editor && (!shown || isPlaceholderCopy(shown, store.name));
   const place = [store.city, store.country].filter(Boolean).join(", ");
   const whatsapp = shopper.whatsappNumber ? `WhatsApp +${shopper.whatsappNumber}` : null;
   const line = [place, whatsapp].filter(Boolean).join(" · ");
+  const storeBadges = useStoreFooterBadges();
   return (
     <footer className="border-t" style={{ borderColor: t.border, background: look.footerBg, color: t.ink }}>
       <div className="bq-wrap grid gap-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-[420px]">
-            <div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>
+            {showLogo ? (
+              <StoreLogo store={store} background={look.footerBg} under={t.paperBg} dark={look.dark} alt={store.name} className="block h-14 w-auto max-w-[220px] rounded-[8px]" fallback={<div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>} />
+            ) : (
+              <div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>
+            )}
             {line ? <p className="mt-2 text-[13.5px]" style={{ color: t.muted }}>{shopper.whatsappNumber ? <a href={`https://wa.me/${shopper.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">{line}</a> : line}</p> : null}
-            {summary ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{summary}</p> : null}
+            {summaryHint ? (
+              <p className="mt-2 rounded-[8px] border border-dashed px-2.5 py-1.5 text-[12.5px] leading-5" style={{ borderColor: t.border, color: t.muted }}>
+                {shown ? <><span style={{ opacity: 0.6 }}>{shown}</span><br />{say("Shoppers won't see this placeholder. Write your own line in the footer settings.")}</> : say("Add a line about your store in the footer settings. Until then shoppers see your store description.")}
+              </p>
+            ) : shown ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{shown}</p> : null}
           </div>
           <nav aria-label="Footer">
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
               {links.map((link) => (
                 <li key={link.key}>
-                  <button type="button" onClick={link.onSelect} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
+                  <a href={link.href ?? "#"} onClick={pageLinkClick(link)} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
                     {link.label}
-                  </button>
+                  </a>
                 </li>
               ))}
               {onTrackOrder ? (
@@ -260,8 +314,10 @@ export function BoutiqueFooter({
               </ul>
             </nav>
           ) : null}
-          {shopper.paymentLabels.length ? <span>{shopper.paymentLabels.join(" · ")}</span> : null}
+          {/* On the storefront: the seller's payment logos and "Built with Shopinbos"; in the builder, the plain labels. */}
+          {storeBadges ? null : shopper.paymentLabels.length ? <span>{shopper.paymentLabels.join(" · ")}</span> : null}
         </div>
+        <StoreFooterBadges muted={t.muted} border={t.border} ink={t.ink} className="-mt-2" />
       </div>
     </footer>
   );

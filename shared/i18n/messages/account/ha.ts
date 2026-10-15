@@ -31,8 +31,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "addr.line2": "Gini, bene ko alama (na zaɓi)",
   "addr.state": "Jiha",
   "addr.postal": "Lambar gidan waya (na zaɓi)",
-  "addr.email": "Email na tuntuɓar kwastoma (na zaɓi)",
-  "addr.phone": "Wayar tuntuɓar kwastoma (na zaɓi)",
+  "addr.email": "Email na shago da masu siye za su iya rubutawa (na zaɓi)",
+  "addr.phone": "Wayar shago da masu siye za su iya kira (na zaɓi)",
+  "addr.contactHelp": "Masu siyenka za su gani a cikin email da shagonka ke aika musu, don su iya tuntuɓarka. Ba na shigarka ba ne.",
   "addr.save": "Ajiye adireshin kasuwanci",
   "contact.title": "Bayanan tuntuɓa",
   email: "Email",
@@ -164,6 +165,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "Ana loda menu ɗinka…",
   "menu.onlyUse": "Ga abin da kake amfani da shi kawai",
   "menu.onlyUseSub": "Kashe wani abu yana ɓoye shi daga menu ɗinka. Ba a share komai ba: bayananka suna nan, kuma kana iya kunna shi a nan a kowane lokaci.",
+  "menu.tips": "Shawarwari da bayanai",
+  "menu.tipsSub": "Ƙananan bayanai idan ka nuna ko ka taɓa kalma, shawarwari a kan menu, da gajerun gabatarwa da ke buɗewa da kansu a sabbin shafuka. Idan ka kashe, za ka iya kallon kowace gabatarwa daga “Learn” a saman shafi.",
   "menu.walkthrough": "Jagora",
   "menu.walkthroughSub": "Sake ganin ɗan gajeren rangadi na menu ɗinka da manyan maɓallai.",
   "menu.replay": "Sake nuna min",
@@ -181,6 +184,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "img.addLogo": "Saka logo",
   "img.uploading": "Ana lodawa…",
   "img.removing": "Ana cirewa…",
+  "details.nameHelp": "Canza sunan store ɗinka ba ya canza adireshinka na yanar gizo.",
+  "details.slugLocked": "Adireshinka na yanar gizo ya canza kwanan nan. Za ka iya sake canza shi nan da {days, plural, one {kwana #} other {kwanaki #}}.",
+  "details.slugWarnTitle": "Kana canza adireshin store ɗinka na yanar gizo",
+  "details.slugWarnLive": "Store ɗinka zai koma daga {old} zuwa {new}. Masu saye da suka buɗe tsohon adireshin za a tura su zuwa sabon, amma ka sabunta links da ka raba (bio na Instagram, status na WhatsApp, takardun talla, tallace-tallace) ka kuma faɗa wa kwastomominka na yau da kullum. Sau ɗaya kawai za ka iya canza adireshinka cikin kowane kwanaki {days}.",
+  "details.slugWarnDraft": "Store ɗinka zai koma daga {old} zuwa {new}. Duk wanda ya buɗe tsohon adireshin za a tura shi zuwa sabon. Da zarar store ɗinka ya fara aiki, sau ɗaya kawai za ka iya canza adireshinka cikin kowane kwanaki {days}.",
+  "details.slugConfirm": "Na fahimta. Matsar da store ɗina zuwa {new}",
 };
 
 export default ha;

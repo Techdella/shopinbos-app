@@ -215,7 +215,7 @@ function convertPage(input: HtmlThemePageInput): TemplatePageSeed {
             content: {
               ...block.content,
               title: headline,
-              body: subline || "Edit this theme copy to match your brand.",
+              body: subline || "",
               primaryCta: "Shop now",
             },
           }

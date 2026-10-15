@@ -5,6 +5,8 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { StoreProductCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
+import { productFieldsData } from "@/lib/products/save-fields.server";
+import { stockTrackingFor } from "@shared/product-stock";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const sp = req.nextUrl.searchParams;
@@ -45,20 +47,27 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
 
-  const { retailPrice, costPrice, variants, ...rest } = parsed.data;
+  const { retailPrice, costPrice, variants, productType, productDetails, relatedProductIds, variantOptions, ...rest } = parsed.data;
+  const fields = await productFieldsData(store.id, { productType, productDetails, relatedProductIds, variants: variants.length ? variants : undefined, variantOptions }, { inventoryType: rest.inventoryType });
+  if (!fields.ok) return apiError("BAD_REQUEST", fields.error);
   const margin = costPrice && retailPrice > costPrice
     ? Math.round(((retailPrice - costPrice) / retailPrice) * 100)
     : null;
 
+  // "Track stock": the seller's choice, else on when they gave a count (or versions with their own counts).
+  const versionTotal = typeof fields.data.currentStock === "number" ? fields.data.currentStock : undefined;
+  const trackStock = stockTrackingFor({ trackStock: rest.trackStock, currentStock: versionTotal ?? rest.currentStock, variantsCounted: versionTotal !== undefined });
+
   const product = await db.storeProduct.create({
     data: {
       ...rest,
+      trackStock,
       storeId: store.id,
       userId: user.id,
       retailPrice,
       costPrice,
       margin,
-      variants: variants && variants.length > 0 ? (variants as any) : undefined,
+      ...(fields.data as Record<string, never>),
     },
   });
 

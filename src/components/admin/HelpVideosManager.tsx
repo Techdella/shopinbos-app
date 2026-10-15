@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useMemo, useRef, useState } from "react";
 import { Card, CardHead, Pill } from "@/components/app-kit";
 import { FieldLabel, Notice, PillButton, TextInput, Toggle, cx } from "@/components/app-ui";
@@ -161,7 +162,7 @@ export function HelpVideosManager({ initial, storageBase, migrationNeeded }: { i
   };
 
   const remove = async () => {
-    if (!draft?.id || !window.confirm("Delete this video? Help stops offering it straight away.")) return;
+    if (!draft?.id || !(await confirmDialog("Delete this video? Help stops offering it straight away."))) return;
     setSaving(true);
     setError(null);
     try {

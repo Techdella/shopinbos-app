@@ -33,7 +33,7 @@ export default async function BrandSheetPage() {
   const font = headingFont(tokens);
   const serif = tokens?.headingStyle === "serif";
   const voice = settings.onboardingMemory?.customerProfile?.vibe;
-  const host = new URL(buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain })).host;
+  const host = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }).replace(/^https?:\/\//, "").replace(/\/$/, "");
   const colours = tokens
     ? [
         ...BRAND_COLOURS.map((colour) => ({ label: t(`colour.${colour.key}.label`), hint: t(`colour.${colour.key}.hint`), value: toHex6(tokens[colour.key]) })),

@@ -212,6 +212,10 @@ model Store {
   userId                     String   @unique
   name                       String
   slug                       String   @unique
+  // Addresses the store had before (newest first). They keep redirecting here and no other store can take them.
+  previousSlugs              String[] @default([])
+  // When the address last changed; changes are limited to one every 30 days (src/lib/store-address.server.ts).
+  slugChangedAt              DateTime?
   description                String?
   logoUrl                    String?
   country                    String
@@ -266,8 +270,10 @@ model Store {
   launchPayments StoreLaunchPayment[]
   affiliates     Affiliate[]
   adCampaigns    AdCampaign[]
+  storeCampaigns StoreCampaign[]
 
   @@index([slug])
+  @@index([previousSlugs], type: Gin)
   @@index([userId])
 }
 
@@ -641,6 +647,13 @@ model StoreProduct {
   sourceType        ProductSourceType? // tracks original source
   categoryId        String?
   variants          Json?
+  // Preset category (shared/product-types.ts); null = "other". Details are { fieldKey: value }.
+  productType       String?
+  productDetails    Json            @default("{}")
+  // Options for the versions in order: [{ name, values }] (shared/product-variants.ts).
+  variantOptions    Json            @default("[]")
+  // "Customers also like": up to 8 of the store's own products.
+  relatedProductIds String[]        @default([])
   tags              String[]
   featured          Boolean         @default(false)
   sortOrder         Int             @default(0)
@@ -652,8 +665,16 @@ model StoreProduct {
   incomingStock     Int             @default(0)
   damagedStock      Int             @default(0)
   lowStockThreshold Int             @default(10)
+  // Explicit stock tracking (shared/product-stock.ts). Off: the product is never sold out and checkout takes no
+  // stock (the count, if any, is ignored). On: shoppers can buy up to currentStock - reservedStock (and each
+  // version's own count). Dropship products always use the supplier's stock instead.
+  trackStock             Boolean    @default(false)
+  // Tracked products only: keep selling at 0 (backorder); the count may then go below zero.
+  continueSellingWhenOut Boolean    @default(false)
 
   // Product page builder
+  // Per-product page settings: { override: true, layout?, buyBox?, sections? } overrides the store's product page
+  // settings (src/components/storefront/boutique/pdp/product-override.ts). Without the marker: store default.
   pageLayout        Json            @default("{}")
   pageVariant       ProductPageVariant @default(shopify)
   descriptionBuilder Json           @default("{}")
@@ -684,6 +705,7 @@ model StoreProduct {
   productSources  ProductSource[]
 
   @@index([storeId])
+  @@index([storeId, productType])
   @@index([supplierProductId])
   @@index([categoryId])
   @@index([sku])
@@ -1560,6 +1582,8 @@ model Discount {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  storeCampaigns StoreCampaign[]
+
   @@unique([storeId, code])
   @@index([storeId])
   @@index([code])
@@ -2102,6 +2126,23 @@ model AdCampaign {
   status         String    @default("draft") // draft | running | paused | ended
   startedAt      DateTime?
   pausedAt       DateTime?
+  // Campaigns (/home/ads/new; docs/migrations/2026-10-31-video-projects-ad-campaigns.sql). Older ads are one
+  // product run by hand ("manual"); campaigns can have several products and run through the Meta Marketing API
+  // ("meta") or be set up by the Shopinbos team ("managed", AdServiceRequest).
+  name           String?
+  mode           String    @default("manual") // manual | meta | managed
+  objective      String? // traffic | whatsapp | awareness
+  productIds     String[]  @default([])
+  audience       Json? // shared/ad-campaigns.ts AdAudience
+  creatives      Json? // shared/ad-campaigns.ts AdCreative[]
+  currency       String    @default("NGN")
+  startAt        DateTime?
+  endAt          DateTime?
+  external       Json? // Meta ids: { campaignId, adSetId, adIds[] }
+  impressions    Int       @default(0)
+  reach          Int       @default(0)
+  lastSyncAt     DateTime?
+  syncError      String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -2109,6 +2150,39 @@ model AdCampaign {
   orders RetailOrder[]
 
   @@index([storeId])
+}
+
+// "Get help with ads": the Shopinbos team sets up a TikTok or Meta campaign for the seller after they share their
+// details and pay the setup fee (Paystack). Admin works them at /admin/ad-requests.
+model AdServiceRequest {
+  id           String    @id @default(cuid())
+  storeId      String
+  userId       String
+  campaignId   String?
+  platform     String // meta | tiktok
+  contactName  String
+  contactPhone String
+  contactEmail String?
+  businessName String
+  handle       String? // TikTok / Instagram handle
+  pageUrl      String? // Facebook page, TikTok profile or shop link
+  website      String?
+  adAccountId  String? // the seller's ad account, when they have one
+  dailyBudget  Float     @default(0)
+  days         Int       @default(7)
+  goals        String?
+  audience     String?
+  notes        String?
+  setupFee     Int // naira
+  paymentRef   String?   @unique
+  paidAt       DateTime?
+  status       String    @default("awaiting_payment") // awaiting_payment | new | in_progress | live | done | cancelled
+  adminNotes   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
 }
 
 // ─── AI usage (daily limits for Rex and Peggy; aiCredits stays the plan tier) ─
@@ -2121,6 +2195,70 @@ model AiUsage {
   createdAt DateTime @default(now())
 
   @@index([userId, kind, createdAt])
+}
+
+// Bought AI credits: spent when a daily plan allowance runs out (src/lib/ai/credits.server.ts). With autoTopUp the
+// card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
+model AiCreditAccount {
+  userId        String   @id
+  balance       Int      @default(0)
+  autoTopUp     Boolean  @default(false)
+  autoPackId    String?
+  // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
+  authorization Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).
+model AiCreditPurchase {
+  reference  String    @id
+  userId     String
+  packId     String
+  credits    Int
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  auto       Boolean   @default(false)
+  saveCard   Boolean   @default(false)
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, createdAt])
+}
+
+// Saved Rex Studio and Peggy conversations, so a seller can pick one up again (src/lib/ai/chats.server.ts).
+// Video studio projects (/home/video): every reel the seller starts, as a draft (the studio's settings, saved as
+// they work), then saved (the recorded video in storage) and published (on a product page, in an ad, or posted).
+model VideoProject {
+  id          String   @id @default(cuid())
+  storeId     String
+  userId      String
+  title       String
+  purpose     String // ad | product | social
+  status      String   @default("draft") // draft | saved | published
+  productId   String?
+  config      Json
+  videoUrl    String?
+  posterUrl   String?
+  seconds     Float?
+  publishedTo Json? // [{ kind: "product" | "ad" | "social", id?, at }]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId, status, updatedAt])
+}
+
+model AiChat {
+  id        String   @id @default(cuid())
+  userId    String
+  assistant String // rex | peggy
+  title     String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, assistant, updatedAt])
 }
 
 // ─── One-minute help videos (Help → "Watch a 1-minute video"; topics in shared/help-videos.ts) ─────
@@ -3120,3 +3258,102 @@ model DomainPurchase {
   @@index([expiresAt])
 }
 // ---- end domain billing ----
+
+// ---- media library ----
+// Every picture (or video) a person has in their library: things they uploaded, and the photos, logo, banners and
+// editor images found in their store (docs/migrations/2026-10-26-media-library.sql backfills, and
+// shopinbos_media_sync(userId) tops it up when the library opens). Removing one only hides it (hiddenAt): the file
+// may still be on a live page. src/lib/media/library.server.ts, /api/app/media.
+model MediaAsset {
+  id        String    @id @default(cuid())
+  userId    String
+  storeId   String?
+  url       String
+  path      String? // storage path in the public bucket, when we stored it
+  name      String? // original file name or the product's name, for search
+  title     String? // the person's own name for it (Media page); shown instead of `name` when set
+  alt       String? // alt text: what the picture shows, for screen readers and search engines
+  kind      String    @default("image") // image | video
+  width     Int?
+  height    Int?
+  bytes     Int?
+  source    String    @default("upload") // upload | product | ai | logo | banner | editor | collection | cms
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
+  @@index([storeId])
+}
+// ---- end media library ----
+
+// ─── Seasonal campaigns (Marketing > Seasonal campaigns) ─────────────────────
+// A scheduled bundle that changes the live store for a while (Black Friday, Detty December…) and reverts by itself.
+// The store's own design is never edited: the look and section changes are stored as differences and merged when
+// the storefront renders (src/lib/store-campaigns/merge.ts). The status is worked out from the dates
+// (src/lib/store-campaigns/status.ts); the *JobRanAt columns only make the start/end side effects run once
+// (/api/cron/seasonal-campaigns). docs/migrations/2026-10-30-campaigns.sql creates the tables.
+
+model StoreCampaign {
+  id                 String    @id @default(cuid())
+  storeId            String
+  name               String
+  preset             String?   // black_friday | christmas | … (src/lib/store-campaigns/presets.ts) or null
+  startsAt           DateTime? // UTC; null = draft
+  endsAt             DateTime? // UTC
+  timezone           String    @default("Africa/Lagos") // IANA, for showing and picking dates
+  priority           Int       @default(0)
+  pausedAt           DateTime?
+  archivedAt         DateTime?
+  endingSoonHours    Int       @default(24)
+  discountId         String?
+  discountAutoToggle Boolean   @default(false) // switch the linked discount on at the start and off at the end
+  themeOverride      Json      @default("{}") // { tokens: Partial<ThemeTokenSet>, logoUrl? }
+  sectionOverrides   Json      @default("[]") // [{ id, page, action: add|hide|replace|reorder, sectionId?, section?, position? }]
+  startJobRanAt      DateTime?
+  endJobRanAt        DateTime?
+  endingSoonSentAt   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  store    Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  discount Discount?            @relation(fields: [discountId], references: [id], onDelete: SetNull)
+  blocks   StoreCampaignBlock[]
+  events   StoreCampaignEvent[]
+
+  @@index([storeId, startsAt, endsAt])
+  @@index([endsAt])
+}
+
+/// Store-wide pieces a campaign adds: announcement bar, pop-up (a StoreForm, so there is one pop-up engine),
+/// product badges and the countdown.
+model StoreCampaignBlock {
+  id         String   @id @default(cuid())
+  campaignId String
+  type       String   // announcement | popup | badge | countdown
+  enabled    Boolean  @default(true)
+  settings   Json     @default("{}")
+  targeting  Json     @default("{}")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, type])
+}
+
+/// Storefront events for campaign reports: page_view, block_view, block_click, popup_shown, popup_closed, popup_converted.
+model StoreCampaignEvent {
+  id         String   @id @default(cuid())
+  storeId    String
+  campaignId String
+  blockId    String?
+  event      String
+  sessionId  String?
+  createdAt  DateTime @default(now())
+
+  campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, event, createdAt])
+}

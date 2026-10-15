@@ -15,6 +15,7 @@ import {
   readGameConfig,
   sliceLabel,
   totalTickets,
+  type ContactChoice,
   type GameKind,
   type GameSlice,
 } from "./logic";
@@ -32,6 +33,12 @@ export interface PlayInput {
   /** Post-purchase: the order the spin is for (identity comes from the order). */
   orderId?: string | null;
   consent?: Record<string, unknown>;
+  /**
+   * Played from a game pop-up (Marketing > Forms and pop-ups): the route read these from the saved pop-up, so the
+   * pop-up's own contact choice and play limit apply, and the game runs even when its Rewards pop-up is off.
+   * Prizes, odds, code length and minimum order still come from the Rewards settings.
+   */
+  viaPopup?: { formId: string; collect: ContactChoice; frequencyDays: number } | null;
 }
 
 export interface PlayResult {
@@ -94,8 +101,11 @@ export async function playGame(input: PlayInput): Promise<PlayResult> {
     email = order.buyerEmail.toLowerCase();
     phone = order.buyerPhone;
   } else {
-    const settings = input.game === "wheel" ? config.wheel : config.scratch;
-    if (!settings.enabled) throw new GameError("This game isn't on right now.");
+    const popup = input.viaPopup ?? null;
+    // Pick a gift box only exists as a pop-up.
+    if (input.game === "box" && !popup) throw new GameError("This game isn't on right now.");
+    const settings = popup ?? (input.game === "wheel" ? config.wheel : config.scratch);
+    if (!popup && !(input.game === "wheel" ? config.wheel : config.scratch).enabled) throw new GameError("This game isn't on right now.");
     if (settings.collect === "email" && !email) throw new GameError("Enter your email to play.");
     if (settings.collect === "whatsapp" && !phone) throw new GameError("Enter your WhatsApp number to play.");
     frequencyDays = settings.frequencyDays;
@@ -135,7 +145,7 @@ export async function playGame(input: PlayInput): Promise<PlayResult> {
           data: {
             storeId: store.id,
             code: candidate,
-            name: `${input.game === "wheel" ? "Spin to win" : input.game === "scratch" ? "Scratch card" : "Next-order spin"}: ${label}`.slice(0, 120),
+            name: `${input.game === "wheel" ? "Spin to win" : input.game === "scratch" ? "Scratch card" : input.game === "box" ? "Gift box" : "Next-order spin"}: ${label}`.slice(0, 120),
             type: prize.type,
             value: prize.value,
             minOrder: config.prizes.minOrder,
@@ -143,7 +153,7 @@ export async function playGame(input: PlayInput): Promise<PlayResult> {
             startsAt: null,
             expiresAt,
             status: "active",
-            config: { automatic: false, productIds: prize.productIds, game: { kind: input.game, sliceId: slice.id, contact: key, ...(input.orderId ? { orderId: input.orderId } : {}) } } as unknown as Prisma.InputJsonValue,
+            config: { automatic: false, productIds: prize.productIds, game: { kind: input.game, sliceId: slice.id, contact: key, ...(input.orderId ? { orderId: input.orderId } : {}), ...(input.viaPopup ? { formId: input.viaPopup.formId } : {}) } } as unknown as Prisma.InputJsonValue,
           },
           select: { id: true, code: true },
         })

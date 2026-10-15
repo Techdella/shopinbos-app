@@ -6,6 +6,9 @@
 import { z } from "zod";
 import { providerSchema } from "../peggy/pure.ts";
 import { FIELD_TYPES, TEMPLATE_IDS } from "../../cms/fields.ts";
+import { PRINT_KINDS, QR_TARGETS } from "../../../../shared/print-labels.ts";
+import { LOGO_SIZES, LOGO_STYLES } from "../../../../shared/store-logo.ts";
+import { MUSIC_MOODS, REEL_TEMPLATE_IDS, VOICE_GENDERS } from "../../../../shared/video-style.ts";
 
 export { providerSchema };
 
@@ -13,7 +16,7 @@ export { providerSchema };
 
 export const REX_MAX_TURNS = 20;
 export const REX_MAX_CHARS = 4000;
-export const REX_MAX_PHOTOS = 4;
+export const REX_MAX_PHOTOS = 6;
 
 const HTTPS_URL = /^https:\/\/\S+$/;
 
@@ -137,12 +140,22 @@ export const REX_TOOL_SPECS = {
   },
   generate_product_image: {
     kind: "image",
-    description: "Generate a new image from a description: a product shot, a banner or a social post picture. Optionally for a product (then it can be saved to that product).",
+    description:
+      "Generate a new image from a description: a product shot, a banner or a social post picture, in the seller's brand. Optionally for a product (then it can be saved to that product, and its main photo is used as a reference). Set brand to \"logo\" when the seller wants their logo on it (\"with my logo\", \"branded\"): their real logo from the brand kit is copied onto the label or packaging.",
     schema: z
       .object({
         prompt: z.string().trim().min(8).max(1500).describe("A full visual description of the image"),
         product: optionalProduct("The product it is for, or null"),
         shape: z.enum(["square", "landscape", "portrait"]).nullable().describe("square for products, landscape for banners, portrait for stories; null for square"),
+        brand: z
+          .enum(["logo", "colours", "none"])
+          .nullable()
+          .describe("logo = their logo on it plus brand colours; colours = brand colours and feel only; none = no branding. null = colours"),
+        referenceImages: z
+          .array(z.string().trim().max(2000))
+          .max(4)
+          .nullable()
+          .describe("Photo URLs to work from: photos or video stills the seller attached, or product photos from list_products. null to use the product's main photo (if any)"),
       })
       .strict(),
   },
@@ -159,11 +172,17 @@ export const REX_TOOL_SPECS = {
   },
   make_product_video: {
     kind: "write",
-    description: "Prepare a short vertical product reel (Instagram, TikTok, WhatsApp status): picks the product's photos and writes the captions, voiceover and end card. The seller opens it in the video studio, where it is recorded in their browser.",
+    description:
+      "Prepare a short vertical product reel (Instagram, TikTok, WhatsApp status) in the store's brand colours and logo: picks the product's photos (or pictures you just made or the seller attached), can first clean them up into reel shots (cut out, studio backdrop or branded ad shot; each costs a picture), picks a template, a Nigerian-accent female or male voice and background music, and writes the captions, voiceover and end card. The seller opens it in the video studio, previews it and records it in their browser.",
     schema: z
       .object({
         product: product("The product to make a reel for"),
         language: z.enum(REX_VIDEO_LANGUAGES).nullable().describe("Language for the captions and voiceover; null for Pidgin"),
+        template: z.enum(REEL_TEMPLATE_IDS).nullable().describe("float = product floating on a soft brand backdrop (premium), bold = giant word behind the product (food, fashion), pop = brand-colour cards with round wipes (fun), words = fast word punches between photos (sales, launches), grid = collage of photos (a range), classic = full-screen slideshow; null for Rex's pick"),
+        shots: z.enum(["original", "cutout", "studio", "brand"]).nullable().describe("original = use the photos as they are; cutout = remove backgrounds (best for float, bold, pop); studio = clean studio backdrop in the brand colour; brand = branded ad shots with the logo; null for original"),
+        photos: z.array(z.string().trim().max(2000).regex(HTTPS_URL)).max(6).nullable().describe("Pictures to use instead of the product's own photos: ones you just made in this chat or the seller attached; null for the product's photos"),
+        voice: z.enum(VOICE_GENDERS).nullable().describe("female or male voice (both Nigerian accent); null for female"),
+        music: z.enum(MUSIC_MOODS.map((mood) => mood.id) as [string, ...string[]]).nullable().describe("afrobeats, amapiano, upbeat, chill or luxury background music; null to match the template"),
       })
       .strict(),
   },
@@ -307,6 +326,48 @@ export const REX_TOOL_SPECS = {
         collection: z.string().trim().min(1).max(80).describe("The collection's name, e.g. Blog"),
         brief: z.string().trim().min(3).max(1500).describe("What to write and anything to include"),
         title: z.string().trim().max(200).nullable().describe("A title, or null to choose one"),
+      })
+      .strict(),
+  },
+  create_brand_book: {
+    kind: "write",
+    description:
+      "Write the store's brand style book: brand colours (taken from the logo when there is one), fonts, voice, words to use and avoid, logo rules, photo style, do's and don'ts. Saved in Brand kit > Style book, printable. With applyColours true it also puts the colours on the store DRAFT (a version with undo).",
+    schema: z
+      .object({
+        direction: z.string().trim().max(400).nullable().describe("What the seller wants, e.g. 'more premium, earthy colours'; null for Rex's call"),
+        applyColours: z.boolean().nullable().describe("true only when the seller asked to change the store's colours too; null/false to just write the book"),
+      })
+      .strict(),
+  },
+  make_brand_icon: {
+    kind: "image",
+    description: "Make the store's logo icon (square mark for app icons and profile pictures) or favicon (browser tab icon) from its logo. Shown with buttons to use it; nothing changes until the seller taps.",
+    schema: z.object({ kind: z.enum(["icon", "favicon"]).describe("icon for the square logo icon, favicon for the browser tab icon") }).strict(),
+  },
+  set_logo_display: {
+    kind: "write",
+    description:
+      "Change how the brand shows in the store header, live at once: logo_text (logo with the store name beside it), logo (the full logo alone, best when the logo already has the name in it), icon_text (square logo icon with the name), icon (icon alone) or text (name only); and the size. Use when the seller says the logo is too small or big, or wants only the logo, icon or name.",
+    schema: z
+      .object({
+        style: z.enum(LOGO_STYLES).nullable().describe("How the brand shows; null to keep the current style"),
+        size: z.enum(LOGO_SIZES).nullable().describe("small, medium or large; null to keep the current size"),
+      })
+      .strict(),
+  },
+  make_print_labels: {
+    kind: "read",
+    description:
+      "Set up printable labels in the Print studio, in the store's brand: hang tags, price/barcode labels, QR code stickers, package (box) labels or thank-you cards. Real barcodes and QR codes; the seller prints on A4 or a label printer, downloads, or emails them to a print shop. For order shipping labels, point to /home/labels.",
+    schema: z
+      .object({
+        kind: z.enum(PRINT_KINDS).describe("tag = hang tag, price = price and barcode label, qr = QR sticker, package = box/package label, thanks = thank-you card"),
+        products: z.array(product("A product")).max(30).nullable().describe("The products to make labels for; null for none (store-wide QR stickers or thank-you cards)"),
+        headline: z.string().trim().max(60).nullable().describe("Short top line, e.g. 'Handmade in Lagos'; null for the default"),
+        note: z.string().trim().max(160).nullable().describe("Small print: ingredients, care, weight, a thank-you line; null for none"),
+        qr: z.enum(QR_TARGETS).nullable().describe("Where the QR code goes: product page, store, WhatsApp chat, reviews page or custom; null for product"),
+        copies: z.number().int().min(1).max(100).nullable().describe("Copies of each; null for 1"),
       })
       .strict(),
   },
@@ -480,6 +541,8 @@ export const RexActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("set_logo"), imageUrl: ownPhoto }).strict(),
   z.object({ action: z.literal("apply_product_copy"), productId: id, description: z.string().trim().min(10, "The description is too short").max(3000, "Keep the description under 3,000 characters") }).strict(),
   z.object({ action: z.literal("activate_automation"), id }).strict(),
+  z.object({ action: z.literal("set_brand_asset"), kind: z.enum(["icon", "favicon"]), url: ownPhoto }).strict(),
+  z.object({ action: z.literal("save_to_media"), url: ownPhoto, kind: z.enum(["image", "video"]).default("image"), name: z.string().trim().max(120).nullable().default(null) }).strict(),
 ]);
 
 export type RexAction = z.infer<typeof RexActionSchema>;

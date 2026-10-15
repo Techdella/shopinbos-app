@@ -25,6 +25,21 @@ export type RexCard =
       product: { id: string; name: string; photos: string[] };
       language: string;
       script: { captions: string[]; voiceover: string; cta: string };
+      /** Reel template, voice and music (older cards have none: the studio picks). */
+      template?: string;
+      voice?: string;
+      music?: string;
+    }
+  | {
+      type: "brand";
+      kind: "book" | "icon" | "favicon" | "print" | "display";
+      title: string;
+      summary: string;
+      href: string;
+      /** Brand colours to show as dots (style book). */
+      swatches?: string[];
+      /** A picture to show (the new icon or favicon). */
+      image?: string | null;
     }
   | { type: "marketing"; kind: "campaign" | "automation" | "segment" | "content" | "template"; id: string; title: string; summary: string; href: string; canActivate: boolean }
   | { type: "health"; score: number; missing: Array<{ label: string; rexPrompt: string | null; href: string | null }> }
@@ -36,6 +51,8 @@ export interface RexReply {
   /** The newest draft when Rex changed the store this turn (for the live preview). */
   draft: StoreEditorSnapshot | null;
   versions: RexVersionSummary[] | null;
+  /** A tool stopped because the AI allowance and credits are used up (the chat offers "Buy credits"). */
+  creditsNeeded?: boolean;
 }
 
 /** Session storage key the video card uses to hand a prepared reel to /home/video. */
@@ -59,6 +76,8 @@ export function cardNote(card: RexCard): string {
       return `[Wrote a description for ${card.product.name}]`;
     case "video":
       return `[Prepared a reel for ${card.product.name}]`;
+    case "brand":
+      return `[${card.kind === "print" ? "Set up labels" : card.kind === "book" ? "Wrote the style book" : `Made a ${card.kind}`}: ${card.title}${card.image ? ` ${card.image}` : ""}]`;
     case "marketing":
       return `[Created ${card.kind} "${card.title}"]`;
     case "health":

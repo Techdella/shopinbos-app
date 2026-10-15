@@ -31,8 +31,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "addr.line2": "Building, floor or landmark (optional)",
   "addr.state": "State",
   "addr.postal": "Postal code (optional)",
-  "addr.email": "Customer contact email (optional)",
-  "addr.phone": "Customer contact phone (optional)",
+  "addr.email": "Shop email wey your buyers fit write (optional)",
+  "addr.phone": "Shop phone wey your buyers fit call (optional)",
+  "addr.contactHelp": "Your buyers go see am for the emails wey your shop dey send them, so dem fit reach you. No be your login.",
   "addr.save": "Save business address",
   "contact.title": "Contact details",
   email: "Email",
@@ -164,6 +165,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "We dey load your menu…",
   "menu.onlyUse": "See only wetin you dey use",
   "menu.onlyUseSub": "If you off something, e go hide from your menu. Nothing go delete: your data go stay, and you fit on am back here any time.",
+  "menu.tips": "Tips and tooltips",
+  "menu.tipsSub": "The small explanation wey dey show when you point or tap word, the tips for menu, and the short intro wey dey open by itself for new page. Off am and you fit still watch any intro from “Learn” for top of page.",
   "menu.walkthrough": "Walkthrough",
   "menu.walkthroughSub": "See the quick tour of your menu and the main buttons again.",
   "menu.replay": "Show me around again",
@@ -181,6 +184,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "img.addLogo": "Add logo",
   "img.uploading": "We dey upload…",
   "img.removing": "We dey remove am…",
+  "details.nameHelp": "If you change your store name, your web address no go change.",
+  "details.slugLocked": "Your web address don change recently. You fit change am again in {days, plural, one {# day} other {# days}}.",
+  "details.slugWarnTitle": "You wan change your store web address",
+  "details.slugWarnLive": "Your store go move from {old} to {new}. Buyers wey open the old address go land for the new one, but update the links wey you don share (Instagram bio, WhatsApp status, flyers, ads) and tell your regular customers. You fit only change your address once every {days} days.",
+  "details.slugWarnDraft": "Your store go move from {old} to {new}. Anybody wey open the old address go land for the new one. Once your store don go live, you fit only change your address once every {days} days.",
+  "details.slugConfirm": "I understand. Move my store to {new}",
 };
 
 export default pcm;

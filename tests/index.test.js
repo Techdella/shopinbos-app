@@ -449,7 +449,8 @@ test("supplier product pages provide a full submit and edit workflow", () => {
   assert.match(form, /Save draft/);
   assert.match(form, /send to review/);
   assert.match(form, /Tier pricing/);
-  assert.match(form, /Image URLs/);
+  assert.match(form, /Product photos/);
+  assert.match(form, /MediaListField id="product-images" name="images"/);
   assert.match(actions, /export async function createSupplierProduct/);
   assert.match(actions, /export async function updateSupplierProduct/);
   assert.match(actions, /SupplierProductCreateSchema/);
@@ -785,13 +786,17 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(goals, /mentioned\(kr\.title, viewer\)/);
   assert.match(goals, /mentioned\(kr\.description, viewer\)/);
 
-  assert.match(schemas, /customFields: z\.array/);
-  assert.match(schemas, /images: z\.array\(z\.string\(\)\)\.default\(\[\]\)/);
+  // Variant rows (with their own photos and custom fields) are checked by the shared schema the product API uses.
+  const variantSchema = read("shared/product-variants-schema.ts");
+  assert.match(schemas, /variants: VariantRowsSchema/);
+  assert.match(variantSchema, /customFields: z\.array/);
+  assert.match(variantSchema, /images: z\.array\(z\.string\(\)/);
   assert.match(productForm, /uploadVariantImages/);
   assert.match(productForm, /Create category/);
   assert.match(productForm, /<Mascot who="peggy"/);
-  assert.match(productDetail, /Variant details/);
-  assert.match(productDetail, /selectedVariantFields/);
+  // Classic stores render the shared product page, which shows the chosen version's own details.
+  assert.match(productDetail, /<ClassicPdp/);
+  assert.match(read("src/components/storefront/boutique/pdp/BoutiquePdp.tsx"), /selected\?\.customFields/);
   assert.match(homeApps, /redirect\("\/home\/marketing"\)/);
 });
 
@@ -883,7 +888,7 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   const client = read("src/app/s/[slug]/StorefrontClient.tsx");
   const productPage = read("src/app/s/[slug]/product/[productId]/page.tsx");
   const domainProductPage = read("src/app/_domain/[domain]/product/[productId]/page.tsx");
-  const productView = read("src/components/storefront/boutique/BoutiqueProductView.tsx");
+  const productView = read("src/components/storefront/boutique/BoutiqueProductView.tsx") + read("src/components/storefront/boutique/pdp/BoutiquePdp.tsx");
   const publicStore = read("src/app/api/public/store/[slug]/route.ts");
   const lookup = read("src/app/api/public/store/[slug]/orders/lookup/route.ts");
 

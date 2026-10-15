@@ -10,7 +10,10 @@ import { useT } from "@/components/i18n/I18nProvider";
 interface SellerBillingSectionProps {
   userEmail: string;
   userName: string;
+  /** The plan tier marker (User.aiCredits): picks the current plan. Not a balance. */
   aiCredits: number;
+  /** The AI credits Rex and Peggy actually spend (AiCreditAccount.balance). */
+  creditBalance: number;
   productCount?: number;
 }
 
@@ -53,7 +56,7 @@ const PLANS = [
   },
 ] as const;
 
-export function SellerBillingSection({ userEmail, userName, aiCredits, productCount = 0 }: SellerBillingSectionProps) {
+export function SellerBillingSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0 }: SellerBillingSectionProps) {
   const t = useT("payments");
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [isPending, startTransition] = useTransition();
@@ -140,6 +143,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
                   {plan.features.map((f, index) => (
                     <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t.dynamic(`plan.${plan.key}.f${index + 1}`, f)}</li>
                   ))}
+                  {/* Any paid plan lets the seller turn the "Built with Shopinbos" badge off in the store editor (src/lib/store-badges.ts). */}
+                  {plan.monthlyPlan && (
+                    <li className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t("plan.noBadge")}</li>
+                  )}
                   {/* Annual Growth and Pro pay for the seller's domain (src/lib/seller-plan.ts); monthly plans don't. */}
                   {billing === "annual" && plan.annualPlan && (
                     <li className="flex gap-2 font-bold text-app-ink"><span aria-hidden className="text-app-success">✓</span>{t("plan.freeDomain")}</li>
@@ -182,7 +189,10 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, productCo
       <section className="grid grid-cols-1 gap-3 rounded-[22px] border border-app-line bg-white p-2 sm:grid-cols-3">
         <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
           <div className="text-[13px] text-app-ink-soft">{t("bill.creditsLeft")}</div>
-          <div className="mt-1 text-[26px] font-extrabold leading-none">{aiCredits}</div>
+          <div className="mt-1 flex items-baseline justify-between gap-2">
+            <span className="text-[26px] font-extrabold leading-none">{creditBalance}</span>
+            <a href="/home/credits" className="text-[13px] font-bold text-app-ink underline underline-offset-2">{t("cr.topUp")}</a>
+          </div>
         </div>
         <div className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
           <div className="text-[13px] text-app-ink-soft">{t("bill.products")}</div>

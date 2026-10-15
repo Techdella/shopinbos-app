@@ -20,7 +20,7 @@ import {
   suggestProducts,
   type CartLine,
 } from "@shared/cart-checkout";
-import { readVariants } from "./catalog";
+import { needsOptions, readVariants } from "./catalog";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
 import { WonCodeBanner } from "@/components/storefront/gamification/Rewards";
@@ -157,6 +157,11 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
   const saved = wishlistOn ? wishlist.productIds.map((id) => productsById.get(id)).filter((product): product is ShopperProduct => Boolean(product)) : [];
 
   function addProduct(product: ShopperProduct) {
+    // Sizes or colours to choose first: open the product page.
+    if (needsOptions(product)) {
+      window.location.assign(productHref(product.id));
+      return;
+    }
     cart.add({ productId: product.id, name: product.name, price: product.retailPrice, image: product.images[0] });
     setNotice(`${product.name} added to your bag.`);
   }
@@ -183,7 +188,7 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
   const lines = cart.items;
 
   return (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={basePath} title="Bag" bagCount={cart.count} wishlistCount={wishlistOn ? wishlist.productIds.length : undefined} showWishlist={wishlistOn}>
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={basePath} title="Bag" bagCount={cart.count} wishlistCount={wishlistOn ? wishlist.productIds.length : undefined} showWishlist={wishlistOn}>
       <p className="sr-only" role="status" aria-live="polite">{notice}</p>
       <PageTitle theme={theme} sub={cart.loaded && lines.length ? `${cart.count} ${cart.count === 1 ? "item" : "items"}` : undefined}>Your bag</PageTitle>
 

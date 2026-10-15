@@ -1,5 +1,6 @@
 "use client";
 
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +24,27 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const media = useMediaLibrary();
+
+  /** The media library first (it uploads new files too); the chosen picture becomes the logo. */
+  async function fromMedia() {
+    const [asset] = await media.open({ accept: "image", title: t("bk.chooseLogo") });
+    if (!asset) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/app/brand-assets", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "logo", url: asset.url }) });
+      const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+      if (!response.ok) throw new Error(json?.error?.message ?? t("bk.didntSave"));
+      broadcastIdentity({ logoUrl: asset.url });
+      setMessage({ tone: "ok", text: t("bk.logoUpdated") });
+      router.refresh();
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("bk.didntSave") });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
     const picked = event.target.files?.[0];
@@ -56,10 +78,11 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
 
   return (
     <span className="relative inline-flex">
-      <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} className={pillWhite}>
+      <button type="button" onClick={() => void fromMedia()} disabled={busy} className={pillWhite}>
         {busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={16} />} {hasLogo ? t("bk.changeLogo") : t("bk.uploadLogo")}
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("bk.chooseLogo")} onChange={(event) => void onChange(event)} />
+      {media.dialog}
       <span role="status" aria-live="polite" className={cx("absolute left-0 top-[calc(100%+4px)] whitespace-nowrap text-[12.5px] font-semibold", message?.tone === "error" ? "text-app-danger" : "text-app-forest")}>
         {busy ? t("bk.uploading") : message?.text ?? ""}
       </span>

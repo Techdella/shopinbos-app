@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
-import { fetchWhatsAppCodes, sendCode, signInWithGoogle, signInWithPassword, syncAccount, type CodeTarget } from "@/lib/auth";
-import { BackButton, Chip, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
+import { explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
+import { BackButton, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
 import { AppIcon } from "@/components/icons";
 import { MascotVideo } from "@/components/MascotVideo";
-import { SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
+import { ROLE_ICON, type SignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
@@ -29,14 +29,17 @@ function GoogleMark() {
   );
 }
 
-// m_auth keys; SIGNUP_ROLES (lib/partner-pure.ts) keeps the English words and is translated here as "role.<role>.*".
-const ROLE_HEADING = { seller: "heading.seller", supplier: "heading.supplier", logistics_partner: "heading.logistics" } as const satisfies Record<SignupRole, string>;
+/** Back to the three "What do you do?" cards on Welcome. */
+function changeRole() {
+  if (router.canGoBack()) router.back();
+  else router.replace("/welcome");
+}
 
 export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller" }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole }) {
   const t = useT("m_auth");
   const [method, setMethod] = useState<Method>(initialMethod);
-  // Who is signing up: "I sell / I supply shops / I deliver" (like the web sign-up). Sets the account's role.
-  const [role, setRole] = useState<SignupRole>(initialRole);
+  // Who is signing up, picked on the Welcome cards (seller, supplier, delivery partner). Sets a new account's role.
+  const role = initialRole;
   // Phone codes go on WhatsApp when the server has it on (GET /api/auth/otp), else SMS; null while asking.
   const [whatsapp, setWhatsapp] = useState<boolean | null>(null);
   useEffect(() => {
@@ -62,7 +65,12 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   async function finish(signedUp: boolean, phoneNumber?: string) {
     const actual = await syncAccount({ fullName: name.trim() || undefined, phone: phoneNumber, signup: signedUp, role });
     await rememberSignedInRole(actual);
-    if (signedUp && actual && actual !== role) Alert.alert(t("form.existingTitle"), t("form.existingBody"));
+    // Google sign-up with an email that already has another kind of account: nothing changed; say so plainly.
+    if (signedUp && actual && actual !== role && (await explainSignupConflict(actual, role, "email")) === "different") {
+      await signOutNow();
+      return;
+    }
+    // Each role opens its own tabs: the launch gate sends sellers home, suppliers to /supplier, delivery to /logistics.
     router.replace("/");
   }
 
@@ -127,29 +135,32 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <LinkButton title={mode === "signup" ? t("form.logIn") : t("form.createShop")} onPress={() => router.replace(mode === "signup" ? "/login" : "/signup")} />
+              <LinkButton title={mode === "signup" ? t("form.logIn") : t("form.createShop")} onPress={() => router.replace(mode === "signup" ? "/login" : "/welcome")} />
               <LanguageButton />
               <HelpButton />
             </View>
           </View>
           {/* Returning sellers: Peggy waves hello (Prototype 10, "Welcome back"). */}
           {mode === "login" && <MascotVideo clip="peggy-hello" size={132} decorative fadeTo={colors.canvas} style={{ marginTop: -12, marginBottom: 6, marginLeft: -10 }} />}
-          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
-            {mode === "signup" ? t(ROLE_HEADING[role]) : t("form.welcomeBack")}
-          </T>
           {mode === "signup" && (
-            <View style={{ marginTop: 16, gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel={t("form.whatDoYouDo")}>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {SIGNUP_ROLES.map((item) => <Chip key={item.role} label={t.dynamic(`role.${item.role}.tab`, item.tab)} on={role === item.role} onPress={() => { setError(null); setRole(item.role); }} />)}
+            // The chosen role, always in sight: "Supplier · Not a supplier? Change".
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 12, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.peach, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <AppIcon name={ROLE_ICON[role]} size={16} color={colors.accentInk} />
+                <T weight="bold" style={{ fontSize: 13.5 }}>{t(`card.${role}.title`)}</T>
               </View>
-              {role === "logistics_partner" && (
-                <Pressable accessibilityRole="link" onPress={() => router.push("/rider/link")} hitSlop={6}>
-                  <T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("form.riderHint")}</T>
-                </Pressable>
-              )}
+              <LinkButton title={t(`change.${role}`)} onPress={changeRole} style={{ minHeight: 44 }} />
             </View>
           )}
-          {mode === "login" && <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>{t("form.loginSub")}</T>}
+          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
+            {mode === "signup" ? t(`as.${role}`) : t("form.welcomeBack")}
+          </T>
+          {mode === "signup" && role === "logistics_partner" && (
+            <Pressable accessibilityRole="link" onPress={() => router.push("/rider/link")} hitSlop={6} style={{ marginTop: 10 }}>
+              <T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("form.riderHint")}</T>
+            </Pressable>
+          )}
+          {mode === "login" && <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>{t("form.loginSub")} {t("form.loginRoles")}</T>}
           <View style={{ marginTop: 22, marginBottom: 22 }}>
             <Segmented value={method} onChange={(value) => { setError(null); setMethod(value); }} options={[{ value: "phone", label: t("form.phone") }, { value: "email", label: t("form.email") }]} />
           </View>

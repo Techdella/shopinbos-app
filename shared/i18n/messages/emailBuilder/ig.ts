@@ -41,6 +41,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "preview.note": "Nlele na-eji onye ahịa ihe atụ (Ada). Links, logo na agba gị si na brand kit gị.",
   "preview.of": "Nlele {label}",
   "preview.thumbnail": "Obere foto {label}",
+  "preview.linksHint": "Njikọ na-arụ ọrụ na email ị zitere.",
   "vars.insert": "Tinye nkọwa onwe onye",
   "flowVar.name": "Aha mbụ ha (ma ọ bụ “enyi m”)",
   "flowVar.full_name": "Aha ha zuru ezu",

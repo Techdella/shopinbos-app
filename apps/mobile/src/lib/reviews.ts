@@ -1,4 +1,7 @@
 import { api, apiBody } from "./api";
+import type { RequestChannel } from "./review-ask";
+
+export type { RequestChannel };
 
 // Reviews (web /home/reviews): every review across the store's own form, Google and imported ones.
 // List: GET /api/app/reviews; drafting: POST /api/app/reviews/draft-reply; replying and review links:
@@ -91,3 +94,45 @@ export function stars(rating: number | null) {
   if (!rating) return "";
   return "★".repeat(rating) + "☆".repeat(5 - rating);
 }
+
+/** Publish / Move to waiting / Hide, or Feature / Stop featuring (featuring also publishes). Returns the review. */
+export async function moderateReview(key: string, change: { status: ReviewItem["status"] } | { featured: boolean }) {
+  const item = await api<ReviewItem>(`/api/app/reviews/${encodeURIComponent(key)}`, { method: "PATCH", json: change });
+  seen.set(item.key, item);
+  return item;
+}
+
+// Ask for reviews now (web /home/reviews/request): /api/app/reviews/requests.
+
+export const REQUEST_CHANNELS: RequestChannel[] = ["email", "sms", "whatsapp", "link"];
+
+export interface AskableOrder {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  status: string;
+  at: string;
+  reach: Record<RequestChannel, boolean>;
+  asked: { channel: string; at: string } | null;
+  reviewed: boolean;
+}
+
+export interface AskData {
+  wall: string;
+  ready: Record<RequestChannel, boolean> & { links: boolean };
+  orders: AskableOrder[];
+}
+
+export interface AskOutcome {
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  status: "sent" | "failed" | "skipped" | "link";
+  reason?: string;
+  whatsappUrl?: string;
+}
+
+export const fetchAskData = () => api<AskData>("/api/app/reviews/requests");
+
+export const askForReviews = (orderIds: string[], channel: RequestChannel, resend: boolean) =>
+  api<{ sent: number; failed: number; skipped: number; results: AskOutcome[] }>("/api/app/reviews/requests", { method: "POST", json: { orderIds, channel, resend } });

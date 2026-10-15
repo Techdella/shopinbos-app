@@ -8,6 +8,8 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { formatMoney, formatNumber } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { productCampaignTimers } from "@/lib/store-campaigns/server";
+import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +19,13 @@ type ProductRow = {
   inventoryType: string;
   currentStock: number;
   lowStockThreshold: number;
+  trackStock: boolean;
 };
 
 const isLive = (p: ProductRow) => p.status === "active" || p.status === "published";
 const isDropship = (p: ProductRow) => p.fulfillmentType === "dropship" || p.inventoryType === "dropshipping";
-const isLow = (p: ProductRow) => !isDropship(p) && p.currentStock <= p.lowStockThreshold;
+// Only counted stock ("Track stock") can run low; untracked products never sell out.
+const isLow = (p: ProductRow) => !isDropship(p) && p.trackStock && p.currentStock <= p.lowStockThreshold;
 
 // Old links used ?status=active|draft|archived; they map onto the new chips.
 const FILTERS: Array<{ key: "all" | "live" | "draft" | "low_stock" | "dropship" | "archived"; test: (p: ProductRow) => boolean }> = [
@@ -87,13 +91,18 @@ export default async function ProductsPage({
       inventoryType: true,
       currentStock: true,
       lowStockThreshold: true,
+      trackStock: true,
       soldStock: true,
       supplierStock: true,
       variants: true,
       featured: true,
+      tags: true,
       category: { select: { name: true } },
     },
   });
+  // Live and upcoming seasonal campaigns that badge a product show a small timer on its row.
+  const campaignNow = new Date();
+  const campaignTimers = await productCampaignTimers(storeId, all, campaignNow);
 
   const needle = query.toLowerCase();
   const products = all.filter(
@@ -191,10 +200,12 @@ export default async function ProductsPage({
         <ListCard>
           {products.map((p) => {
             const dropship = isDropship(p);
-            const stock = {
-              low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
-              label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
-            };
+            const stock = !p.trackStock
+              ? { low: false, label: t("stock.notTracked") }
+              : {
+                  low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
+                  label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
+                };
             const variants = variantCount(p.variants);
             const detail = [variants > 0 ? t("list.variants", { count: variants }) : p.category?.name ?? p.sku, dropship ? t("list.dropship") : t("list.ownStock")].filter(Boolean).join(" · ");
             const statusPill = isLive(p) ? (
@@ -216,6 +227,7 @@ export default async function ProductsPage({
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-[15px] font-extrabold">{p.name}</span>
                         {p.featured && <span className="shrink-0 text-app-accent" title={t("list.featured")}><Icon name="star" size={14} /><span className="sr-only">{t("list.featured")}</span></span>}
+                        {campaignTimers[p.id] ? <ProductCampaignBadge campaign={campaignTimers[p.id]!} serverNow={campaignNow.toISOString()} /> : null}
                       </div>
                       <div className="truncate text-[13px] text-app-ink-soft">
                         {detail}

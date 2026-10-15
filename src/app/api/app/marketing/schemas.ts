@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { POPUP_ANIMATIONS, POPUP_ARTS, POPUP_DECORS, POPUP_TEMPLATE_IDS } from "@/lib/marketing/forms";
+import { CTA_TARGETS, POPUP_GAMES, POPUP_KINDS, readEndsAt, safeCtaUrl, safeDownloadUrl } from "@/lib/marketing/popup-kinds";
 
 // Request bodies for /api/app/marketing/**. Deep validation (segment rules, flow steps) happens in
 // src/lib/marketing, which drops anything it doesn't understand.
@@ -146,11 +148,48 @@ export const FormSchema = z.object({
       imageUrl: z.string().max(1000).optional(),
       consentText: z.string().max(400).optional(),
       askSmsConsent: z.boolean().optional(),
+      eyebrow: z.string().max(40).optional(),
+      imageAlt: z.string().max(160).optional(),
+      ctaLabel: z.string().max(40).optional(),
+      ctaTarget: z.enum(CTA_TARGETS).optional(),
+      ctaUrl: z
+        .string()
+        .max(1000)
+        .optional()
+        .refine((value) => !value || safeCtaUrl(value) !== null, "Use a link that starts with https:// or a page on your store like /products"),
+      // How the pop-up looks (template, colours, corners, font, picture, size, overlay, close button).
+      style: z
+        .object({
+          template: z.enum(POPUP_TEMPLATE_IDS).optional(),
+          background: z.string().max(9).optional(),
+          text: z.string().max(9).optional(),
+          button: z.string().max(9).optional(),
+          buttonText: z.string().max(9).optional(),
+          radius: z.enum(["square", "soft", "round"]).optional(),
+          font: z.enum(["theme", "modern", "elegant", "clean"]).optional(),
+          imagePosition: z.enum(["left", "right", "top", "background", "none"]).optional(),
+          size: z.enum(["small", "medium", "large"]).optional(),
+          overlay: z.number().int().min(0).max(90).optional(),
+          closeStyle: z.enum(["icon", "circle", "text"]).optional(),
+          badgeText: z.string().max(24).optional(),
+          // The finer looks (version 2): touches, motion and picture framing.
+          version: z.union([z.literal(1), z.literal(2)]).optional(),
+          accent: z.string().max(9).optional(),
+          decor: z.enum(POPUP_DECORS).optional(),
+          bigBadge: z.boolean().optional(),
+          animation: z.enum(POPUP_ANIMATIONS).optional(),
+          imageFit: z.enum(["cover", "contain"]).optional(),
+          focusX: z.number().int().min(0).max(100).optional(),
+          focusY: z.number().int().min(0).max(100).optional(),
+          art: z.enum(POPUP_ARTS).optional(),
+          align: z.enum(["left", "center"]).optional(),
+        })
+        .optional(),
     })
     .default({}),
   popupConfig: z
     .object({
-      layout: z.enum(["modal", "flyout", "bar"]).default("modal"),
+      layout: z.enum(["modal", "flyout", "bar", "fullscreen"]).default("modal"),
       trigger: z.enum(["immediate", "delay", "exit_intent", "scroll"]).default("delay"),
       delaySeconds: z.number().int().min(0).max(600).default(8),
       scrollPercent: z.number().int().min(5).max(100).default(50),
@@ -158,10 +197,54 @@ export const FormSchema = z.object({
       frequency: z.enum(["once", "session", "always", "days"]).default("once"),
       frequencyDays: z.number().int().min(1).max(365).default(7),
       devices: z.array(z.enum(["mobile", "desktop"])).min(1).default(["mobile", "desktop"]),
-      // Sign-up reward: a one-use coupon made for each new subscriber.
-      reward: z.object({ type: z.enum(["percentage", "fixed_amount"]), value: z.number().positive().max(10_000_000), days: z.number().int().min(1).max(365).default(14) }).nullable().optional(),
+      // Sign-up reward: the store's own code, or one made here (shared, or one-use per person). See lib/marketing/popup-rewards.
+      reward: z
+        .object({
+          source: z.enum(["new", "existing"]).default("new"),
+          type: z.enum(["percentage", "fixed_amount", "free_shipping", "bogo"]).default("percentage"),
+          value: z.number().min(0).max(10_000_000).default(0),
+          days: z.number().int().min(0).max(365).default(0),
+          minOrder: z.number().min(0).max(100_000_000).default(0),
+          unique: z.boolean().default(true),
+          discountId: z.string().max(64).nullable().optional(),
+          code: z.string().trim().max(40).optional(),
+          prefix: z.string().trim().max(12).optional(),
+          mystery: z.boolean().optional(),
+        })
+        .nullable()
+        .optional(),
+      // What the pop-up is for, and each kind's own settings (see lib/marketing/popup-kinds).
+      kind: z.enum(POPUP_KINDS).default("signup"),
+      game: z.enum(POPUP_GAMES).default("wheel"),
+      collect: z.enum(["email", "whatsapp", "either"]).default("either"),
+      playEveryDays: z.number().int().min(1).max(365).default(7),
+      onlyWithCart: z.boolean().default(false),
+      leadMagnet: z
+        .object({
+          url: z.string().max(1000).refine((value) => safeDownloadUrl(value) !== null, "Upload the file, or use a link that starts with https://"),
+          name: z.string().trim().max(80).default(""),
+          emailIt: z.boolean().default(true),
+        })
+        .nullable()
+        .optional(),
+      endsAt: z
+        .string()
+        .max(40)
+        .nullable()
+        .optional()
+        .refine((value) => !value || readEndsAt(value) !== null, "Pick when the sale ends"),
+      freeDeliveryOver: z.number().min(0).max(100_000_000).default(0),
       afterSubmit: z.enum(["message", "redirect"]).default("message"),
       redirectUrl: z.string().max(1000).optional(),
+      // A seasonal campaign's pop-up (Marketing > Seasonal campaigns): only shows while that campaign runs, and its
+      // countdown follows the campaign's end. Kept when the pop-up is edited here.
+      campaignId: z.string().max(64).regex(/^[\w-]+$/).nullable().optional(),
     })
-    .default({ layout: "modal", trigger: "delay", delaySeconds: 8, scrollPercent: 50, pages: "all", frequency: "once", frequencyDays: 7, devices: ["mobile", "desktop"], afterSubmit: "message" }),
+    .default({ layout: "modal", trigger: "delay", delaySeconds: 8, scrollPercent: 50, pages: "all", frequency: "once", frequencyDays: 7, devices: ["mobile", "desktop"], afterSubmit: "message", kind: "signup", game: "wheel", collect: "either", playEveryDays: 7, onlyWithCart: false, freeDeliveryOver: 0 })
+    .superRefine((config, ctx) => {
+      // Each kind needs its own piece before it can go live.
+      if (config.kind === "lead_magnet" && !config.leadMagnet) ctx.addIssue({ code: "custom", path: ["leadMagnet"], message: "Add the file or link people get" });
+      if (config.kind === "countdown" && !config.endsAt && !config.campaignId) ctx.addIssue({ code: "custom", path: ["endsAt"], message: "Pick when the sale ends" });
+      if (config.kind === "free_delivery" && !(config.freeDeliveryOver > 0)) ctx.addIssue({ code: "custom", path: ["freeDeliveryOver"], message: "Add the order amount that gets free delivery" });
+    }),
 });

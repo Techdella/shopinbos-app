@@ -19,6 +19,8 @@ export async function checkLowStock(storeId: string): Promise<AlertCheckResult> 
     where: {
       storeId,
       inventoryType: "seller",
+      // Only products the seller tracks can run low (untracked ones sit at 0 and never sell out).
+      trackStock: true,
       status: { not: "archived" },
     },
     select: { id: true, name: true, currentStock: true, lowStockThreshold: true },
