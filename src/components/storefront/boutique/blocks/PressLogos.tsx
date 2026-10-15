@@ -16,7 +16,7 @@ export function PressLogos({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-10 text-center">
       <style>{`.bqb-press[data-grey="1"] .bqb-logo{filter:grayscale(1);opacity:.7;transition:filter .2s,opacity .2s}.bqb-press[data-grey="1"] .bqb-logo:hover,.bqb-press[data-grey="1"] .bqb-logo:focus-within{filter:none;opacity:1}`}</style>
-      {sample ? <SampleLabel look={look} /> : null}
+      {sample ? <SampleLabel look={look} say={ctx.say} /> : null}
       <h2 id={headingId} className="m-0 text-[12px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.2em", fontFamily: look.eyebrowFont }}>{str(copy.title) || "As seen in"}</h2>
       <ul className="bqb-press m-0 mt-6 flex list-none flex-wrap items-center justify-center gap-x-10 gap-y-6 p-0" data-grey={grey ? "1" : "0"}>
         {logos.map((logo) => (

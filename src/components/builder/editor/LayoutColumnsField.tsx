@@ -3,6 +3,9 @@
 // Inspector part of a rows / columns / grid section: the column preset (as pictures) and each column's elements,
 // which can be added, picked, edited, moved (up / down, "Move to" another column or another rows / columns section of
 // the page, or dragged by their grip within and between the column lists, like on the canvas), copied and removed.
+// While an element is dragged, an "Other rows" box floats at the bottom of the panel (over the columns, so nothing
+// moves): every other rows / columns section of the page (hidden ones too, marked) with its columns as small drop
+// targets (full ones red); a drop there is the same move as "Move to", and the panel then shows the row it landed in.
 // Selection is shared with the canvas.
 // Everything here shrinks to the panel's width (min-w-0, one minmax(0,1fr) track): a long product name in a select
 // must never widen the panel, or the panel scrolls sideways and every field after this one is cut off on the left.
@@ -15,7 +18,6 @@ import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { SlideLink } from "@/lib/store-templates/section-content";
 import {
   COLUMN_PRESETS,
-  LAYOUT_ROW_KIND,
   LAYOUT_ICONS,
   LAYOUT_ELEMENTS,
   MAX_ELEMENTS_PER_COLUMN,
@@ -23,6 +25,7 @@ import {
   layoutElementLabel,
   moveLayoutElement,
   normaliseLayoutRow,
+  otherRowDropTargets,
   removeLayoutElement,
   setLayoutPreset,
   updateLayoutElement,
@@ -70,22 +73,33 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
   const placeName = (presetId: string, index: number) => (presetId.startsWith("grid") ? t("edk.boxN", { n: index + 1 }) : t("edk.columnN", { n: index + 1 }));
   const columnName = (index: number) => placeName(view.preset.id, index);
   // The other rows / columns sections on this page ("Row 2: Features"), numbered from the top like the canvas.
-  const rows = props.onMoveElement ? (props.pageSections ?? []).filter((entry) => entry.kind === LAYOUT_ROW_KIND) : [];
-  const otherRows = rows
-    .map((entry, at) => ({ section: entry, n: at + 1, view: normaliseLayoutRow(entry) }))
-    .filter((row) => row.section.id !== section.id);
+  const otherRows = props.onMoveElement ? otherRowDropTargets(props.pageSections ?? [], section.id) : [];
+  const rowName = (row: (typeof otherRows)[number]) => {
+    const named = t("edk.rowNamed", { n: row.n, name: tx(row.name) });
+    return row.hidden ? t("edk.hiddenRow", { row: named }) : named;
+  };
   const moveId = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const move = (elementId: string, column: number, index: number, options?: { select?: boolean }) => {
     if (props.onMoveElement) props.onMoveElement(elementId, column, index, options);
     else props.onChange((current) => moveLayoutElement(current, elementId, column, index));
   };
-  const drag = useColumnDrag({ containerRef: listRef, onDrop: (elementId, column, index) => move(elementId, column, index) });
+  const drag = useColumnDrag({
+    containerRef: listRef,
+    // The "Other rows" targets are rows of this panel's own drop scope; the canvas doesn't follow a panel drag.
+    acrossRows: otherRows.length > 0,
+    sharePage: false,
+    onDrop: (elementId, column, index, row) => {
+      if (row && row !== section.id) props.onMoveElement?.(elementId, column, index, { select: true, toSectionId: row });
+      else move(elementId, column, index);
+    },
+  });
   const dragging = drag.state?.moved ? drag.state : null;
+  const ownTarget = dragging?.target && (!dragging.target.row || dragging.target.row === section.id) ? dragging.target : null;
   const dragged = dragging ? view.cells.flatMap((cell) => cell.elements).find((element) => element.id === dragging.id) : undefined;
 
   return (
-    <div className="min-w-0 py-2">
+    <div className="min-w-0 py-2" data-drop-scope="">
       <div role="radiogroup" aria-label={tx("Columns")} className="grid min-w-0 grid-cols-4 gap-1.5">
         {COLUMN_PRESETS.map((preset) => {
           const on = preset.id === view.preset.id;
@@ -107,9 +121,9 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
       </div>
       <p className="mt-1.5 min-w-0 break-words text-[12px] leading-[18px] text-app-ink-soft">{tx(view.preset.label)} · {tx("Fewer columns keep every element: they move into the last column.")}</p>
 
-      <div ref={listRef} className="mt-3 grid min-w-0 grid-cols-1 gap-3">
+      <div ref={listRef} data-drop-row={otherRows.length ? section.id : undefined} className="mt-3 grid min-w-0 grid-cols-1 gap-3">
         {view.cells.map((cell, columnIndex) => {
-          const target = dragging?.target?.column === columnIndex ? dragging.target : null;
+          const target = ownTarget?.column === columnIndex ? ownTarget : null;
           return (
           <div
             key={cell.id}
@@ -210,12 +224,15 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
                                   ))}
                                 </optgroup>
                                 {otherRows.map((row) => (
-                                  <optgroup key={row.section.id} label={t("edk.rowNamed", { n: row.n, name: tx(row.section.name || "Columns") })}>
-                                    {row.view.cells.map((cell, cellIndex) => (
-                                      <option key={cell.id} value={`${row.section.id}:${cellIndex}`} disabled={cell.elements.length >= MAX_ELEMENTS_PER_COLUMN}>
-                                        {t("edk.rowColumn", { row: t("edk.rowN", { n: row.n }), column: placeName(row.view.preset.id, cellIndex) })}
-                                      </option>
-                                    ))}
+                                  <optgroup key={row.id} label={rowName(row)}>
+                                    {row.columns.map((cell) => {
+                                      const where = t("edk.rowColumn", { row: t("edk.rowN", { n: row.n }), column: placeName(row.presetId, cell.index) });
+                                      return (
+                                        <option key={cell.index} value={`${row.id}:${cell.index}`} disabled={cell.full}>
+                                          {row.hidden ? t("edk.hiddenRow", { row: where }) : where}
+                                        </option>
+                                      );
+                                    })}
                                   </optgroup>
                                 ))}
                               </>
@@ -235,6 +252,48 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
           );
         })}
       </div>
+      {dragging && otherRows.length ? (
+        // Shown only mid-drag: drop on a column of another row to move the element there (to the end of it). It floats
+        // at the bottom of the panel's visible area (a zero-height sticky anchor, the box growing upwards over the
+        // columns), so nothing in the panel moves when a drag starts; a long list scrolls inside it.
+        <div className="pointer-events-none sticky bottom-0 z-30 h-0 min-w-0">
+          <div role="group" aria-label={tx("Other rows")} data-drop-overlay="" className="pointer-events-auto absolute inset-x-0 bottom-2 max-h-[45vh] min-w-0 overflow-y-auto overscroll-contain rounded-[12px] border border-[#2F66F6]/60 bg-[#F5F8FF] p-2 shadow-[0_10px_30px_rgba(22,20,31,.22)]">
+          <p className="m-0 px-1 pb-1.5 text-[12px] font-bold text-app-ink">{tx("Other rows")}</p>
+          <div className="grid min-w-0 grid-cols-1 gap-2">
+            {otherRows.map((row) => (
+              <div key={row.id} data-drop-row={row.id} className={cx("min-w-0 rounded-[10px] border bg-white p-1.5", row.hidden ? "border-dashed border-app-line-strong" : "border-app-line")}>
+                <p className="m-0 flex min-w-0 items-center gap-1 truncate px-1 pb-1 text-[12.5px] font-semibold text-app-ink">
+                  {row.hidden ? <Icon name="eye" size={13} className="shrink-0 text-app-ink-soft" /> : null}
+                  <span className="min-w-0 truncate">{rowName(row)}</span>
+                </p>
+                <div className="grid min-w-0 gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(row.columns.length, 3)}, minmax(0, 1fr))` }}>
+                  {row.columns.map((cell) => {
+                    const on = dragging.target?.row === row.id && dragging.target.column === cell.index;
+                    const label = placeName(row.presetId, cell.index);
+                    return (
+                      <div
+                        key={cell.index}
+                        data-drop-column={cell.index}
+                        data-drop-append=""
+                        aria-disabled={cell.full || undefined}
+                        className={cx(
+                          "min-w-0 truncate rounded-[8px] border px-2 py-1.5 text-center text-[12px] font-semibold",
+                          cell.full
+                            ? cx("border-[#E5484D]/60 text-[#C42F35]", on ? "cursor-not-allowed bg-[#FDECEC] ring-1 ring-[#E5484D]" : "bg-white")
+                            : on ? "border-[#2F66F6] bg-[#EAF0FF] text-[#2453D4] ring-1 ring-[#2F66F6]" : "border-dashed border-[#2F66F6]/60 bg-white text-[#2453D4]",
+                        )}
+                      >
+                        {cell.full ? t("edk.columnFull", { column: label }) : label}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          </div>
+        </div>
+      ) : null}
       {dragged ? <DragGhost previewRef={drag.previewRef} label={tx(layoutElementLabel(dragged))} thumb={<InsertThumb kind={`element:${dragged.type}`} className="block h-full w-full" />} /> : null}
     </div>
   );

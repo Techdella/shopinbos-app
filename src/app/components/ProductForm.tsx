@@ -506,13 +506,13 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                 sub="Clear photos on a plain background sell best."
                 action={
                   <>
+                    <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white">
+                      <Icon name="grid" size={15} /> Add from my media
+                    </button>
                     <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
-                      <Icon name="upload" size={15} /> Upload photos
+                      <Icon name="upload" size={15} /> Upload new
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" aria-label="Upload product photos" onChange={(e) => handleUpload(e.target.files)} />
-                    <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
-                      <Icon name="grid" size={15} /> Choose from my media
-                    </button>
                     <MediaLibraryDialog
                       open={libraryOpen}
                       multiple
@@ -537,9 +537,9 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                     ))}
                   </div>
                 ) : (
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="grid w-full place-items-center gap-2 rounded-[18px] border-2 border-dashed border-app-line px-4 py-10 text-[14px] text-app-ink-soft hover:border-app-line-strong">
+                  <button type="button" onClick={() => setLibraryOpen(true)} className="grid w-full place-items-center gap-2 rounded-[18px] border-2 border-dashed border-app-line px-4 py-10 text-[14px] text-app-ink-soft hover:border-app-line-strong">
                     <Icon name="image" size={26} />
-                    No photos yet. Tap to upload.
+                    No photos yet. Tap to pick from your media or upload new ones.
                   </button>
                 )}
               </Section>

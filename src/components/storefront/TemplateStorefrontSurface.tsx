@@ -38,6 +38,7 @@ import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
 import { CampaignBadges } from "@/components/storefront/campaign/CampaignBadges";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy } from "@shared/placeholder-copy";
+import { englishText, type EditorText } from "./editor-text";
 
 export interface SurfaceProduct {
   id: string;
@@ -126,6 +127,8 @@ interface TemplateStorefrontSurfaceProps {
   onSelectElement?: (sectionId: string, elementId: string) => void;
   onAddToColumn?: (sectionId: string, columnIndex: number) => void;
   onMoveElement?: (sectionId: string, elementId: string, toColumn: number, toIndex: number, toSectionId?: string) => void;
+  /** Builder: its words for the hints drawn on the canvas (English text in, the seller's language out). Never on the live store. */
+  editorText?: EditorText;
 }
 
 function hexToRgb(hex: string) {
@@ -858,6 +861,7 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       onSelectElement={props.onSelectElement}
       onAddToColumn={props.onAddToColumn}
       onMoveElement={props.onMoveElement}
+      editorText={props.editorText}
     />
   );
 }
@@ -890,6 +894,7 @@ function ClassicTemplateSurface({
   visitorKey,
   wishlistProductIds = [],
   onToggleWishlist,
+  editorText,
 }: TemplateStorefrontSurfaceProps) {
   const theme = useMemo(() => themeFor(snapshot), [snapshot]);
   // The product page is the shared one (BoutiquePdp) in this template's colours, fonts and shape.
@@ -971,6 +976,8 @@ function ClassicTemplateSurface({
   };
 
   const isEditor = mode === "editor";
+  // Builder-only hints in the builder's words (English when it passes none, and on the live store).
+  const say: EditorText = isEditor && editorText ? editorText : englishText;
 
   useEffect(() => {
     if (typeof window === "undefined" || currentPage !== "products") return;
@@ -1147,8 +1154,8 @@ function ClassicTemplateSurface({
     return (
       <Tag
         className={className}
-        data-editor-hint={hint ? "Shoppers won't see this until you write your own text" : undefined}
-        title={hint ? "Shoppers won't see this until you write your own text" : undefined}
+        data-editor-hint={hint ? say("Shoppers won't see this until you write your own text") : undefined}
+        title={hint ? say("Shoppers won't see this until you write your own text") : undefined}
         style={{ ...style, outline: selectedSectionId === sectionId || hint ? `1px dashed ${rgba(theme.accent, 0.65)}` : undefined, outlineOffset: 3, minWidth: hint ? 40 : undefined, opacity: guidance ? 0.6 : style?.opacity }}
         contentEditable
         suppressContentEditableWarning

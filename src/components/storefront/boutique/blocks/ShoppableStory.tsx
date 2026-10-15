@@ -53,7 +53,7 @@ export function ShoppableStory({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-12">
       <article className="mx-auto max-w-[680px]">
-        {sample ? <SampleLabel look={look} /> : null}
+        {sample ? <SampleLabel look={look} say={ctx.say} /> : null}
         {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.2em", fontFamily: look.eyebrowFont }}>{str(copy.eyebrow)}</p> : null}
         <h2 id={headingId} className="bq-h mt-2 text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{str(copy.title) || "From the journal"}</h2>
         {cover ? <div className="bq-media mt-6" style={{ aspectRatio: "16 / 9", borderRadius: look.cardRadius }}><img src={cover} alt="" width={1200} height={675} loading="lazy" decoding="async" /></div> : null}

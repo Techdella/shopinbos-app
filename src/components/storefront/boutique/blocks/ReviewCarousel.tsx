@@ -62,7 +62,7 @@ export function ReviewCarousel({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} aria-roledescription="carousel" className="bq-wrap py-12" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
       <style>{`.bqb-rev{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px}.bqb-rev::-webkit-scrollbar{display:none}.bqb-rev > li{flex:0 0 85%;scroll-snap-align:start}@container bq (min-width:760px){.bqb-rev > li{flex-basis:calc((100% - 28px)/3)}}`}</style>
-      {sample ? <SampleLabel look={look} /> : null}
+      {sample ? <SampleLabel look={look} say={ctx.say} /> : null}
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{title}</h2>

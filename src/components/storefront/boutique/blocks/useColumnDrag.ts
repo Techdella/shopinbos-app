@@ -10,14 +10,18 @@
 // Across rows (the canvas): with `acrossRows`, every rows / columns section on the canvas is a drop target. Each one
 // marks its outer box with data-drop-row="<section id>" (inside the canvas frame's data-drop-scope); the target then
 // carries the row it is in, and the drag is shared through usePageColumnDrag() so every row can draw its columns as
-// targets while one of them is being dragged from.
+// targets while one of them is being dragged from. The builder panel's column lists use the same rows, inside their
+// own data-drop-scope, with `sharePage: false` so the canvas doesn't react to a drag in the panel. A column marked
+// data-drop-append (a compact target with no element list, like a hidden row's strip) always takes a drop at its end.
+// Rows that float over the page instead of taking room (a hidden row's strip, the panel's "Other rows" box) sit in a
+// data-drop-overlay box: they win when the pointer is right over them, and are clipped to that box when it scrolls.
 //
 // The floating preview: the caller renders a small copy of the element (DragGhost) with `previewRef` once
 // `state.moved`; the hook places it next to the pointer with a transform, once per animation frame.
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type React from "react";
-import { dragPreviewPosition, dropIndexAt, nearestDropColumn, pickDropRow } from "./layout-logic";
+import { MAX_ELEMENTS_PER_COLUMN, dragPreviewPosition, dropIndexAt, nearestDropColumn, pickDropRow, type DropRect } from "./layout-logic";
 
 export interface ColumnDropTarget {
   column: number;
@@ -25,6 +29,8 @@ export interface ColumnDropTarget {
   top: number;
   /** Across rows: the section id of the row the pointer is over. */
   row?: string;
+  /** The row floats over the page (data-drop-overlay): the scroll area doesn't edge-scroll under it. */
+  overlay?: boolean;
 }
 
 export interface ColumnDragState {
@@ -102,6 +108,9 @@ function measureColumns(root: HTMLElement, x: number, y: number): ColumnDropTarg
   if (picked === -1) return null;
   const host = columns[picked]!;
   const hostRect = rects[picked]!;
+  const pickedColumn = Number(host.dataset.dropColumn);
+  // Clamped to the column's end by the move.
+  if (host.hasAttribute("data-drop-append")) return { column: Number.isFinite(pickedColumn) ? pickedColumn : picked, index: MAX_ELEMENTS_PER_COLUMN, top: 0 };
   const items = Array.from(host.querySelectorAll<HTMLElement>("[data-drop-item]")).map((item) => item.getBoundingClientRect());
   const index = dropIndexAt(items.map((rect) => rect.top + rect.height / 2), y);
   // The canvas frame is scaled with a CSS transform: screen pixels → the column's own pixels.
@@ -111,34 +120,44 @@ function measureColumns(root: HTMLElement, x: number, y: number): ColumnDropTarg
     index === 0 ? items[0]!.top - 3 * scale :
     index >= items.length ? items[items.length - 1]!.bottom + 3 * scale :
     (items[index - 1]!.bottom + items[index]!.top) / 2;
-  const column = Number(host.dataset.dropColumn);
-  return { column: Number.isFinite(column) ? column : picked, index, top: (edge - hostRect.top) / (scale || 1) };
+  return { column: Number.isFinite(pickedColumn) ? pickedColumn : picked, index, top: (edge - hostRect.top) / (scale || 1) };
+}
+
+/** A row's box as seen through the box it floats in (nothing left when scrolled out of it). */
+function clipRect(rect: DropRect, box: DropRect | undefined): DropRect {
+  if (!box) return rect;
+  const clipped = { left: Math.max(rect.left, box.left), top: Math.max(rect.top, box.top), right: Math.min(rect.right, box.right), bottom: Math.min(rect.bottom, box.bottom) };
+  return clipped.left > clipped.right || clipped.top > clipped.bottom ? { left: -1e6, top: -1e6, right: -1e6, bottom: -1e6 } : clipped;
 }
 
 function ownRow(root: HTMLElement | null) {
   return root?.closest<HTMLElement>("[data-drop-row]") ?? null;
 }
 
-export function useColumnDrag({ containerRef, onDrop, acrossRows = false }: {
+export function useColumnDrag({ containerRef, onDrop, acrossRows = false, sharePage = acrossRows }: {
   containerRef: React.RefObject<HTMLElement | null>;
   /** The element, its target column and the gap in that column (as drawn, before the move), and across rows the target row. */
   onDrop: (id: string, column: number, index: number, row?: string) => void;
   /** Every data-drop-row on the canvas takes drops (see the note at the top). */
   acrossRows?: boolean;
+  /** Publishes the drag through usePageColumnDrag() (the canvas's rows). Defaults to `acrossRows`. */
+  sharePage?: boolean;
 }) {
   const [state, setState] = useState<ColumnDragState | null>(null);
   const session = useRef<Session | null>(null);
   const preview = useRef<{ node: HTMLElement; width: number; height: number } | null>(null);
   const onDropRef = useRef(onDrop);
   const acrossRowsRef = useRef(acrossRows);
+  const sharePageRef = useRef(sharePage);
   useEffect(() => {
     onDropRef.current = onDrop;
     acrossRowsRef.current = acrossRows;
+    sharePageRef.current = sharePage;
   });
 
   const show = useCallback((next: ColumnDragState | null) => {
     setState(next);
-    if (acrossRowsRef.current) publishPageDrag(next);
+    if (sharePageRef.current) publishPageDrag(next);
   }, []);
 
   const measure = useCallback((x: number, y: number): ColumnDropTarget | null => {
@@ -148,9 +167,14 @@ export function useColumnDrag({ containerRef, onDrop, acrossRows = false }: {
     if (!own) return measureColumns(root, x, y);
     const scope: ParentNode = own.parentElement?.closest("[data-drop-scope]") ?? own.ownerDocument;
     const rows = Array.from(scope.querySelectorAll<HTMLElement>("[data-drop-row]"));
-    const picked = rows[pickDropRow(rows.map((row) => row.getBoundingClientRect()), x, y, rows.indexOf(own))] ?? own;
+    // Rows floating over the page (data-drop-overlay on them or their box) are measured as drawn: clipped to their
+    // box, which can scroll, and preferred when the pointer is right over them.
+    const boxes = rows.map((row) => row.closest<HTMLElement>("[data-drop-overlay]"));
+    const rects = rows.map((row, at) => clipRect(row.getBoundingClientRect(), boxes[at]?.getBoundingClientRect()));
+    const picked = rows[pickDropRow(rects, x, y, rows.indexOf(own), undefined, boxes.map(Boolean))] ?? own;
     const target = measureColumns(picked === own ? root : picked, x, y);
-    return target ? { ...target, row: picked.dataset.dropRow } : null;
+    const overlay = Boolean(boxes[rows.indexOf(picked)]);
+    return target ? { ...target, row: picked.dataset.dropRow, ...(overlay ? { overlay } : {}) } : null;
   }, [containerRef]);
 
   /** Moves the floating preview next to the pointer (transform only: no layout work). */
@@ -212,7 +236,8 @@ export function useColumnDrag({ containerRef, onDrop, acrossRows = false }: {
     const tick = () => {
       frame = 0;
       const current = session.current;
-      if (!current?.moved || !current.scroller) return;
+      // Not while over a floating row (the panel's "Other rows" box sits right at the bottom edge).
+      if (!current?.moved || !current.scroller || current.target?.overlay) return;
       const scroller = current.scroller;
       const page = scroller === document.scrollingElement;
       const top = page ? 0 : scroller.getBoundingClientRect().top;
@@ -304,7 +329,7 @@ export function useColumnDrag({ containerRef, onDrop, acrossRows = false }: {
   useEffect(() => () => {
     if (!session.current) return;
     session.current = null;
-    if (acrossRowsRef.current) publishPageDrag(null);
+    if (sharePageRef.current) publishPageDrag(null);
   }, []);
 
   return { state, start, previewRef };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -21,6 +22,7 @@ export function LogoField({ label, help }: { label: string; help?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const file = useRef<HTMLInputElement>(null);
+  const media = useMediaLibrary();
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +90,7 @@ export function LogoField({ label, help }: { label: string; help?: string }) {
             </figure>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" className={btn} disabled={busy} onClick={() => file.current?.click()}>
+            <button type="button" className={btn} disabled={busy} onClick={() => void media.open({ accept: "image" }).then(([asset]) => asset && run(() => save(asset.url)))}>
               {busy ? <Spinner className="h-3.5 w-3.5" /> : <Icon name="upload" size={13} />} {assets.logoDark ? tx("Replace dark logo") : tx("Upload logo for dark backgrounds")}
             </button>
             {assets.logoDark ? (
@@ -98,6 +100,7 @@ export function LogoField({ label, help }: { label: string; help?: string }) {
         </>
       )}
       {error ? <p role="alert" className="mt-1.5 text-[12.5px] font-bold text-app-danger">{error}</p> : null}
+      {media.dialog}
       <input
         ref={file}
         type="file"

@@ -2101,6 +2101,23 @@ model AdCampaign {
   status         String    @default("draft") // draft | running | paused | ended
   startedAt      DateTime?
   pausedAt       DateTime?
+  // Campaigns (/home/ads/new; docs/migrations/2026-10-31-video-projects-ad-campaigns.sql). Older ads are one
+  // product run by hand ("manual"); campaigns can have several products and run through the Meta Marketing API
+  // ("meta") or be set up by the Shopinbos team ("managed", AdServiceRequest).
+  name           String?
+  mode           String    @default("manual") // manual | meta | managed
+  objective      String? // traffic | whatsapp | awareness
+  productIds     String[]  @default([])
+  audience       Json? // shared/ad-campaigns.ts AdAudience
+  creatives      Json? // shared/ad-campaigns.ts AdCreative[]
+  currency       String    @default("NGN")
+  startAt        DateTime?
+  endAt          DateTime?
+  external       Json? // Meta ids: { campaignId, adSetId, adIds[] }
+  impressions    Int       @default(0)
+  reach          Int       @default(0)
+  lastSyncAt     DateTime?
+  syncError      String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -2108,6 +2125,39 @@ model AdCampaign {
   orders RetailOrder[]
 
   @@index([storeId])
+}
+
+// "Get help with ads": the Shopinbos team sets up a TikTok or Meta campaign for the seller after they share their
+// details and pay the setup fee (Paystack). Admin works them at /admin/ad-requests.
+model AdServiceRequest {
+  id           String    @id @default(cuid())
+  storeId      String
+  userId       String
+  campaignId   String?
+  platform     String // meta | tiktok
+  contactName  String
+  contactPhone String
+  contactEmail String?
+  businessName String
+  handle       String? // TikTok / Instagram handle
+  pageUrl      String? // Facebook page, TikTok profile or shop link
+  website      String?
+  adAccountId  String? // the seller's ad account, when they have one
+  dailyBudget  Float     @default(0)
+  days         Int       @default(7)
+  goals        String?
+  audience     String?
+  notes        String?
+  setupFee     Int // naira
+  paymentRef   String?   @unique
+  paidAt       DateTime?
+  status       String    @default("awaiting_payment") // awaiting_payment | new | in_progress | live | done | cancelled
+  adminNotes   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
 }
 
 // ─── AI usage (daily limits for Rex and Peggy; aiCredits stays the plan tier) ─
@@ -2153,6 +2203,27 @@ model AiCreditPurchase {
 }
 
 // Saved Rex Studio and Peggy conversations, so a seller can pick one up again (src/lib/ai/chats.server.ts).
+// Video studio projects (/home/video): every reel the seller starts, as a draft (the studio's settings, saved as
+// they work), then saved (the recorded video in storage) and published (on a product page, in an ad, or posted).
+model VideoProject {
+  id          String   @id @default(cuid())
+  storeId     String
+  userId      String
+  title       String
+  purpose     String // ad | product | social
+  status      String   @default("draft") // draft | saved | published
+  productId   String?
+  config      Json
+  videoUrl    String?
+  posterUrl   String?
+  seconds     Float?
+  publishedTo Json? // [{ kind: "product" | "ad" | "social", id?, at }]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId, status, updatedAt])
+}
+
 model AiChat {
   id        String   @id @default(cuid())
   userId    String

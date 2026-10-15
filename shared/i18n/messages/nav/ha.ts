@@ -120,6 +120,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.product-news": "Product news",
   "admin.help-videos": "Bidiyon taimako",
   "admin.support-queue": "Tickets",
+  "admin.ad-requests": "Buƙatun talla",
   "admin.support-macros": "Amsoshin da aka ajiye",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",

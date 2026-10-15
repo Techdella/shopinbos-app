@@ -25,7 +25,7 @@ export function TickerBar({ ctx }: { ctx: BlockContext }) {
   let messages = items.map((item) => ({ text: tickerMessage(item, store.name, shopper), link: itemLink(item) })).filter((message) => message.text);
   if (!messages.length) {
     if (!ctx.editor) return null;
-    messages = [{ text: `Welcome to ${store.name}`, link: null }, { text: "Add messages in the panel on the right", link: null }];
+    messages = [{ text: ctx.say("Welcome to {store}", { store: store.name }), link: null }, { text: ctx.say("Add messages in the panel on the right"), link: null }];
   }
   const tone = str(settings.tone);
   const colours: React.CSSProperties = tone === "accent"

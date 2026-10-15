@@ -21,14 +21,17 @@ import {
 import {
   LAYOUT_ROW_KIND,
   addLayoutElement,
+  applyElementMove,
   findLayoutElement,
   layoutElementLabel,
-  moveElementAcrossRows,
   newLayoutElement,
   newLayoutRowSection,
   normaliseLayoutRow,
   type ColumnPresetId,
+  type ElementMoveRequest,
   type LayoutElementType,
+  type RowMove,
+  type RowMoveOutcome,
 } from "@/components/storefront/boutique/blocks/layout-logic";
 import { AppsPanel } from "./AppsPanel";
 import { Canvas, type CanvasToolbarAction, type Device } from "./Canvas";
@@ -73,6 +76,15 @@ import { storefrontHost, useBuilder } from "./useBuilder";
 import { useEditorT } from "./i18n";
 
 type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
+
+/** A move of an element in rows and columns, waiting to be read out once its commit has been drawn. */
+interface PendingMove {
+  token: number;
+  request: ElementMoveRequest;
+  select: boolean;
+  /** What the commit did, on the page it ran on; null until it runs. */
+  ran: { before: TemplateSectionNode[]; outcome: RowMoveOutcome; move: RowMove } | null;
+}
 
 const RAIL: Array<{ id: Exclude<Panel, "rex">; icon: IconName; label: string }> = [
   { id: "sections", icon: "list", label: "Sections" },
@@ -262,41 +274,75 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setFocusField(`element:${element.id}`);
   }, [editSection, select]);
 
+  // Hints drawn on the canvas (rows and columns, empty blocks, samples), in the seller's language: storefront code
+  // has no builder catalog.
+  const editorText = useCallback((english: string, vars?: Record<string, string | number>) => t.dynamic(`ed.${english}`, english, vars), [t]);
+
   // Drag and drop (canvas or panel), up / down and "Move to": one undoable change, read out to screen readers.
   // `select` keeps the moved element picked (canvas drops and "Move to"); up / down leave the selection alone.
   // `toSectionId` moves it into another rows / columns section on the page; it is then picked there.
+  // The move runs inside the commit, on the page as it is then (a drag can outlive an undo or another edit), and
+  // records what it came to (applyElementMove). Once that change has been drawn, the effect below reads the record:
+  // only a real move is announced and selected; otherwise nothing changed, the selection stays and the reason is read
+  // out (the column filled up, the row or element is gone, or it was dropped where it was).
+  const pendingMoves = useRef<PendingMove[]>([]);
+  const lastMoveToken = useRef(0);
+  const [moveToken, setMoveToken] = useState(0);
   const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean; toSectionId?: string }) => {
-    const toSectionId = options?.toSectionId ?? sectionId;
-    const target = sections.find((entry) => entry.id === toSectionId);
-    if (!target || !sections.some((entry) => entry.id === sectionId)) return;
-    const across = toSectionId !== sectionId;
-    const rows = sections.filter((entry) => entry.kind === LAYOUT_ROW_KIND);
-    const rowLabel = (row: TemplateSectionNode) => t("edk.rowNamed", { n: rows.findIndex((entry) => entry.id === row.id) + 1, name: tx(row.name || "Columns") });
-    const columnLabel = (row: TemplateSectionNode, at: number) => {
-      const view = normaliseLayoutRow(row);
-      const n = Math.min(Math.max(0, Math.trunc(at)), view.cells.length - 1) + 1;
-      return view.preset.id.startsWith("grid") ? t("edk.boxN", { n }) : t("edk.columnN", { n });
-    };
-    const say = (text: string) => setAnnouncement((current) => ({ text, n: current.n + 1 }));
-    const result = moveElementAcrossRows(sections, sectionId, elementId, toSectionId, column, index);
-    if (result.sections === sections || !result.elementId) {
-      if (result.reason === "full") say(t("edk.columnFull", { column: across ? t("edk.rowColumn", { row: rowLabel(target), column: columnLabel(target, column) }) : columnLabel(target, column) }));
-      return;
+    lastMoveToken.current += 1;
+    const record: PendingMove = { token: lastMoveToken.current, request: { fromSectionId: sectionId, elementId, toSectionId: options?.toSectionId ?? sectionId, column, index }, select: Boolean(options?.select), ran: null };
+    pendingMoves.current.push(record);
+    editSections((list) => {
+      const applied = applyElementMove(list, record.request);
+      // The updater can run more than once (strict mode, a re-based update): the last run is the one committed.
+      record.ran = { before: list, outcome: applied.outcome, move: applied.move };
+      return applied.next;
+    });
+    // Drawn in the same render as the commit, so the effect below sees the page this move produced.
+    setMoveToken(record.token);
+  }, [editSections]);
+
+  useEffect(() => {
+    // Only moves whose commit this render has drawn (a later one waits for its own render).
+    const done = pendingMoves.current.filter((record) => record.token <= moveToken);
+    if (!done.length) return;
+    pendingMoves.current = pendingMoves.current.filter((record) => record.token > moveToken);
+    for (const { request, select: keepPicked, ran } of done) {
+      const before = ran?.before ?? [];
+      const target = before.find((entry) => entry.id === request.toSectionId);
+      const across = request.toSectionId !== request.fromSectionId;
+      const rows = before.filter((entry) => entry.kind === LAYOUT_ROW_KIND);
+      const rowLabel = (row: TemplateSectionNode) => t("edk.rowNamed", { n: rows.findIndex((entry) => entry.id === row.id) + 1, name: tx(row.name || "Columns") });
+      const columnLabel = (row: TemplateSectionNode, at: number) => {
+        const view = normaliseLayoutRow(row);
+        const n = Math.min(Math.max(0, Math.trunc(at)), view.cells.length - 1) + 1;
+        return view.preset.id.startsWith("grid") ? t("edk.boxN", { n }) : t("edk.columnN", { n });
+      };
+      const say = (text: string) => setAnnouncement((previous) => ({ text, n: previous.n + 1 }));
+      // No run at all: the page itself was gone by then.
+      const outcome = ran?.outcome ?? "row-gone";
+      const movedId = ran?.move.elementId;
+      if (outcome !== "moved" || !movedId || !target) {
+        if (outcome === "full" && target) say(t("edk.columnFull", { column: across ? t("edk.rowColumn", { row: rowLabel(target), column: columnLabel(target, request.column) }) : columnLabel(target, request.column) }));
+        else if (outcome === "row-gone") say(t("edk.rowGone"));
+        else if (outcome === "element-gone") say(t("edk.elementGone"));
+        else say(t("edk.notMoved"));
+        continue;
+      }
+      if (keepPicked) {
+        if (selectedId !== request.toSectionId) select(request.toSectionId);
+        setSelectedElementId(movedId);
+        setFocusField(`element:${movedId}`);
+      }
+      const placed = findLayoutElement(ran.move.sections.find((entry) => entry.id === request.toSectionId) ?? target, movedId);
+      if (!placed) continue;
+      const name = tx(layoutElementLabel(placed.element));
+      const words = across
+        ? t("edk.movedToRow", { name, row: rowLabel(target), column: columnLabel(target, placed.cellIndex), n: placed.index + 1 })
+        : t("edk.movedTo", { name, column: columnLabel(target, placed.cellIndex), n: placed.index + 1 });
+      say(target.visible === false ? t("edk.movedToHiddenRow", { moved: words }) : words);
     }
-    editSections((list) => moveElementAcrossRows(list, sectionId, elementId, toSectionId, column, index).sections);
-    const movedId = result.elementId;
-    if (options?.select) {
-      if (selectedId !== toSectionId) select(toSectionId);
-      setSelectedElementId(movedId);
-      setFocusField(`element:${movedId}`);
-    }
-    const placed = findLayoutElement(result.sections.find((entry) => entry.id === toSectionId) ?? target, movedId);
-    if (!placed) return;
-    const name = tx(layoutElementLabel(placed.element));
-    say(across
-      ? t("edk.movedToRow", { name, row: rowLabel(target), column: columnLabel(target, placed.cellIndex), n: placed.index + 1 })
-      : t("edk.movedTo", { name, column: columnLabel(target, placed.cellIndex), n: placed.index + 1 }));
-  }, [editSections, sections, select, selectedId, t, tx]);
+  }, [moveToken, select, selectedId, t, tx]);
 
   const insertLayout = useCallback((preset: ColumnPresetId) => {
     const section = newLayoutRowSection(newId(LAYOUT_ROW_KIND), preset);
@@ -621,6 +667,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       onSelectElement={editing ? (sectionId, elementId) => { select(sectionId); setSelectedElementId(elementId); setFocusField(`element:${elementId}`); } : undefined}
       onAddToColumn={canvasOverlay ? (sectionId, column) => { select(sectionId); setCanvasInsert({ type: "column", sectionId, column }); } : undefined}
       onMoveElement={editing ? (sectionId, elementId, column, index, toSectionId) => moveElement(sectionId, elementId, column, index, { select: true, toSectionId }) : undefined}
+      editorText={editorText}
       cartCount={0}
     />
   ) : null;

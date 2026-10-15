@@ -17,6 +17,7 @@ import { SOCIAL_TOOL_RUNNERS } from "./social-tools";
 import { REVIEWS_TOOL_RUNNERS } from "./reviews-tools";
 import { MARKETING_TOOL_RUNNERS } from "./marketing-tools";
 import { COMMERCE_TOOL_RUNNERS } from "./commerce-tools";
+import { ADS_TOOL_RUNNERS } from "./ads-tools";
 import { CMS_TOOL_RUNNERS } from "./cms-tools";
 import { EMAIL_TOOL_RUNNERS } from "./email-tools";
 import { LEGAL_TOOL_RUNNERS } from "./legal-tools";
@@ -483,6 +484,7 @@ export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
   ...REVIEWS_TOOL_RUNNERS,
   ...MARKETING_TOOL_RUNNERS,
   ...COMMERCE_TOOL_RUNNERS,
+  ...ADS_TOOL_RUNNERS,
   ...CMS_TOOL_RUNNERS,
   ...EMAIL_TOOL_RUNNERS,
   ...LEGAL_TOOL_RUNNERS,

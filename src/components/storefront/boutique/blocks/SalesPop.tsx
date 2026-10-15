@@ -84,10 +84,10 @@ export function SalesPop({ ctx }: { ctx: BlockContext }) {
           {product ? <PopCard ctx={ctx} pop={sample} product={product} /> : null}
           <p className="m-0 min-w-[200px] flex-1 text-[13px] leading-5" style={{ color: look.tokens.muted }}>
             {!consent
-              ? "Hidden from shoppers until you confirm these are real orders and buyers agreed (switch in the panel)."
+              ? ctx.say("Hidden from shoppers until you confirm these are real orders and buyers agreed (switch in the panel).")
               : pops.length
-                ? `Pops up in the bottom ${right ? "right" : "left"} corner ${Math.round(delay / 1000)} seconds after a page opens, one sale at a time. Only first names and cities show.`
-                : "Add a few recent sales in the panel on the right. Until then nothing shows to shoppers."}
+                ? ctx.say(right ? "Pops up in the bottom right corner {seconds} seconds after a page opens, one sale at a time. Only first names and cities show." : "Pops up in the bottom left corner {seconds} seconds after a page opens, one sale at a time. Only first names and cities show.", { seconds: Math.round(delay / 1000) })
+                : ctx.say("Add a few recent sales in the panel on the right. Until then nothing shows to shoppers.")}
           </p>
         </div>
       </div>

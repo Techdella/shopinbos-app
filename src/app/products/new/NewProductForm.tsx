@@ -1,5 +1,6 @@
 "use client";
 
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -48,6 +49,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const media = useMediaLibrary();
   const [uploading, setUploading] = useState(false);
 
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -387,9 +389,10 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
               <h2 className="m-0 mt-1 mb-4 font-display text-[22px] font-normal text-[var(--ink-900)]">Upload, generate, or enhance product photos.</h2>
 
               <div className="flex flex-wrap gap-3 mb-4">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="dbtn dBtn-ghost dBtn-sm" disabled={uploading}>
-                  {uploading ? "Uploading..." : "Upload images"}
+                <button type="button" onClick={() => void media.open({ multiple: true, accept: "image", title: "Choose product photos" }).then((assets) => setImages((prev) => [...prev, ...assets.map((asset) => asset.url).filter((url) => !prev.includes(url))]))} className="dbtn dBtn-ghost dBtn-sm" disabled={uploading}>
+                  {uploading ? "Uploading..." : "Add from my media"}
                 </button>
+                {media.dialog}
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
 
                 <div className="flex gap-2 items-center">

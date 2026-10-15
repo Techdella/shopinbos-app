@@ -122,6 +122,7 @@ const en = {
   "admin.product-news": "Product news",
   "admin.help-videos": "Help videos",
   "admin.support-queue": "Tickets",
+  "admin.ad-requests": "Ad requests",
   "admin.support-macros": "Saved replies",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",

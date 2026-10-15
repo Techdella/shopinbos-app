@@ -17,7 +17,7 @@ export function UgcGrid({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-12">
       <style>{`.bqb-ugc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}@container bq (min-width:520px){.bqb-ugc{grid-template-columns:repeat(3,minmax(0,1fr))}}@container bq (min-width:760px){.bqb-ugc{grid-template-columns:repeat(var(--bqb-cols),minmax(0,1fr));gap:12px}}.bqb-ugc-tile img{transition:transform .4s ease}.bqb-ugc-tile:hover img{transform:scale(1.05)}@media (prefers-reduced-motion: reduce){.bqb-ugc-tile img{transition:none}.bqb-ugc-tile:hover img{transform:none}}`}</style>
-      {sample ? <SampleLabel look={look}>Sample with your product photos. Add your customers' photos.</SampleLabel> : null}
+      {sample ? <SampleLabel look={look}>{ctx.say("Sample with your product photos. Add your customers' photos.")}</SampleLabel> : null}
       <div className="mb-6 text-center">
         <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{str(copy.title) || "As worn by you"}</h2>
         {str(copy.body) ? <p className="m-0 mt-2 text-[15px]" style={{ color: t.muted }}>{str(copy.body)}</p> : null}

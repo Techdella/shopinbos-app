@@ -1,5 +1,6 @@
 "use client";
 
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -34,6 +35,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
   const [error, setError] = useState<string | null>(null);
   const [needCredits, setNeedCredits] = useState(false);
   const files = useRef<Partial<Record<BrandAssetKind, HTMLInputElement | null>>>({});
+  const media = useMediaLibrary();
 
   async function save(kind: BrandAssetKind, url: string | null) {
     setBusy(`save-${kind}`);
@@ -151,7 +153,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
                 {busy === `make-${kind}` ? <Spinner className="h-4 w-4" /> : <Icon name="sparkle" size={14} />} {t("ba.makeRex")}
               </button>
             )}
-            <button type="button" className={btn} disabled={busy !== null} onClick={() => files.current[kind]?.click()}>
+            <button type="button" className={btn} disabled={busy !== null} onClick={() => void media.open({ accept: "image" }).then(([asset]) => asset && save(kind, asset.url))}>
               {busy === `up-${kind}` ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={14} />} {own ? t("ba.replace") : t("ba.upload")}
             </button>
             {shown ? (
@@ -204,6 +206,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
         <h2 id="brand-assets" className="m-0 text-[17px] font-extrabold">{t("ba.title")}</h2>
         <p className="m-0 text-[12.5px] text-app-ink-soft">{t("ba.cost")}</p>
       </div>
+      {media.dialog}
       <div className="grid gap-3 md:grid-cols-3">{(["logo", "icon", "favicon"] as const).map(tile)}</div>
       {error ? (
         <div className="flex flex-wrap items-center gap-3">

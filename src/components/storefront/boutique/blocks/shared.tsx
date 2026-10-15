@@ -14,6 +14,7 @@ import { needsOptions, type ShopperProduct } from "../../shopper/catalog";
 import type { BoutiqueLook } from "../look";
 import { ProductTile } from "../ProductTile";
 import { sectionCopyOf, str } from "./block-logic";
+import { englishText, type EditorText } from "../../editor-text";
 
 export interface BlockStore {
   name: string;
@@ -51,6 +52,8 @@ export interface BlockContext {
   wished: string[];
   toggleWish?: (productId: string) => void;
   visitorKey?: string;
+  /** Builder-only hints in the seller's language: the builder's words on its canvas, the English everywhere else. */
+  say: EditorText;
   /** Dashed box with a setup tip, shown in the builder only. */
   editorHint: (message: string) => React.ReactNode;
 }
@@ -96,10 +99,10 @@ export function useMediaMatch(query: string) {
 }
 
 /** "Sample · only you see this" on builder previews of blocks that are still empty. */
-export function SampleLabel({ look, children }: { look: BoutiqueLook; children?: React.ReactNode }) {
+export function SampleLabel({ look, children, say = englishText }: { look: BoutiqueLook; children?: React.ReactNode; say?: EditorText }) {
   return (
     <p className="m-0 mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-semibold" style={{ background: `${look.tokens.accent}22`, color: look.tokens.ink }}>
-      <Icon name="eye" size={12} /> {children ?? "Sample. Only you see this until you add your own."}
+      <Icon name="eye" size={12} /> {children ?? say("Sample. Only you see this until you add your own.")}
     </p>
   );
 }

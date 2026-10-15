@@ -16,6 +16,7 @@ import { CMS_TOOL_SPECS } from "./cms-specs.ts";
 import { EMAIL_TOOL_SPECS } from "./email-specs.ts";
 import { LEGAL_TOOL_SPECS } from "./legal-specs.ts";
 import { PRODUCTS_TOOL_SPECS } from "./products-specs.ts";
+import { ADS_TOOL_SPECS } from "./ads-specs.ts";
 import { CATALOG_TOOL_SPECS } from "./catalog-specs.ts";
 
 const DAY = 86_400_000;
@@ -198,6 +199,7 @@ export const PEGGY_TOOL_SPECS = {
   ...EMAIL_TOOL_SPECS,
   ...LEGAL_TOOL_SPECS,
   ...PRODUCTS_TOOL_SPECS,
+  ...ADS_TOOL_SPECS,
   ...CATALOG_TOOL_SPECS,
 } as const;
 
