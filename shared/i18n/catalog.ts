@@ -43,6 +43,7 @@ import m_productedit from "./messages/m_productedit/index.ts";
 import m_label from "./messages/m_label/index.ts";
 import m_settings from "./messages/m_settings/index.ts";
 import m_paylinks from "./messages/m_paylinks/index.ts";
+import m_campaigns from "./messages/m_campaigns/index.ts";
 import verification from "./messages/verification/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
@@ -120,6 +121,7 @@ export const CATALOGS = {
   m_label,
   m_settings,
   m_paylinks,
+  m_campaigns,
   verification,
   marketing,
   emailBuilder,

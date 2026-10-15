@@ -50,6 +50,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     title: "Grow",
     links: [
       { id: "marketing", label: "Marketing", icon: "megaphone", path: "app:/marketing", hint: "Campaigns, discount codes and ads" },
+      { id: "campaigns", label: "Seasonal campaigns", icon: "clock", path: "app:/campaigns", hint: "Black Friday, Christmas and more, with a countdown" },
       { id: "reviews", label: "Reviews", icon: "star", path: "app:/reviews", hint: "What customers say, and asking for more" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
       { id: "rex", label: "Rex Studio", icon: "sparkle", path: "app:/rex", hint: "Pictures, logo and words for your shop" },

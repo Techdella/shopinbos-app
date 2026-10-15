@@ -4,6 +4,8 @@ import type en from "./en.ts";
 const ha: Partial<Record<keyof typeof en, string>> = {
   "webOnly.look.title": "Canza theme ɗinka a babban allo",
   "webOnly.look.body": "Canza theme, launuka, hotuna da tsarin shagonka ya fi sauƙi a kwamfuta ko tablet. Kana iya buɗe shi a wannan waya ma. Ko ka ce Rex ya canza maka.",
+  "webOnly.campaign.title": "Canza kamannin campaign a babban allo",
+  "webOnly.campaign.body": "Canza launuka, tutoci, pop-up da badges na wannan campaign ya fi sauƙi a kwamfuta ko tablet. Kana iya buɗe shi a wannan waya ma.",
   "webOnly.askRex": "Ka ce Rex ya yi",
   "legal.title": "Shafukan doka",
   "legal.sub": "Shafukan mayar da kaya, sirri da sharuɗɗanka. Taɓa ɗaya don gyara shi a web.",
@@ -36,6 +38,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.marketing.hint": "Campaigns, lambobin rangwame da ads",
   "link.customers.label": "Kwastomomi",
   "link.customers.hint": "Duk wanda ya saya daga gare ka, da saƙo ga kowanne",
+  "link.campaigns.label": "Campaigns na lokacin biki",
+  "link.campaigns.hint": "Black Friday, Kirsimeti da sauransu, tare da agogon ƙirgawa",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "Abin da abokan ciniki ke faɗi, da neman ƙari",
   "link.paymentLinks.label": "Payment links",

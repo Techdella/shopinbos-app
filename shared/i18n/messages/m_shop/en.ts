@@ -3,6 +3,8 @@ const en = {
   // "Do this on the web" (app/web-only.tsx)
   "webOnly.look.title": "Change your theme on a bigger screen",
   "webOnly.look.body": "Changing your theme, colours, pictures and the layout of your shop is easier on a computer or tablet. You can open it on this phone too. Or ask Rex to change it for you.",
+  "webOnly.campaign.title": "Change the campaign look on a bigger screen",
+  "webOnly.campaign.body": "The colours, banners, pop-up and badges of this campaign are easier to change on a computer or tablet. You can open it on this phone too.",
   "webOnly.askRex": "Ask Rex to do it",
   // Legal pages (app/legal.tsx)
   "legal.title": "Legal pages",
@@ -37,6 +39,8 @@ const en = {
   "link.marketing.hint": "Campaigns, discount codes and ads",
   "link.customers.label": "Customers",
   "link.customers.hint": "Everyone who bought from you, and a message to each",
+  "link.campaigns.label": "Seasonal campaigns",
+  "link.campaigns.hint": "Black Friday, Christmas and more, with a countdown",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "What customers say, and asking for more",
   "link.paymentLinks.label": "Payment links",

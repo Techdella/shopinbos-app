@@ -4,6 +4,8 @@ import type en from "./en.ts";
 const ig: Partial<Record<keyof typeof en, string>> = {
   "webOnly.look.title": "Gbanwee theme gị na ihuenyo buru ibu",
   "webOnly.look.body": "Ịgbanwe theme, agba, foto na nhazi ụlọ ahịa gị dị mfe na kọmputa ma ọ bụ tablet. Ị nwekwara ike imepe ya na ekwentị a. Ma ọ bụ gwa Rex ka ọ gbanwere gị ya.",
+  "webOnly.campaign.title": "Gbanwee ọdịdị campaign na ihuenyo buru ibu",
+  "webOnly.campaign.body": "Ịgbanwe agba, bọọdụ, pop-up na badges nke campaign a dị mfe na kọmputa ma ọ bụ tablet. Ị nwekwara ike imepe ya na ekwentị a.",
   "webOnly.askRex": "Gwa Rex ka o mee ya",
   "legal.title": "Ibe iwu",
   "legal.sub": "Ibe nloghachi, nzuzo na usoro gị. Pịa otu ka ị dezie ya na web.",
@@ -36,6 +38,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.marketing.hint": "Campaigns, koodu mbelata na ads",
   "link.customers.label": "Ndị ahịa",
   "link.customers.hint": "Onye ọ bụla zụrụ ihe n'aka gị, na ozi nye onye ọ bụla",
+  "link.campaigns.label": "Campaigns oge ememe",
+  "link.campaigns.hint": "Black Friday, Krismas na ndị ọzọ, nwere elekere ngụda",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "Ihe ndị ahịa na-ekwu, na ịrịọ maka ọzọ",
   "link.paymentLinks.label": "Payment links",

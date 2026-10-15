@@ -12,7 +12,8 @@ import { colors } from "@/theme";
 // can open it there (signed in) or ask us to do it. Without it, admin accounts land here: the admin panel is web only.
 
 // title and body are m_shop or m_channels keys. The admin screen below stays in English (admin only).
-const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.bio.title" | "email.domainTitle"; body: "webOnly.look.body" | "webOnly.bio.body" | "email.domainBody"; path: string; ask?: string; askLabel?: "webOnly.askRex" | "email.askUs" }> = {
+// A path's ":id" is filled from ?id= (e.g. one seasonal campaign's look and blocks); `ask` is optional.
+const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.bio.title" | "webOnly.campaign.title" | "email.domainTitle"; body: "webOnly.look.body" | "webOnly.bio.body" | "webOnly.campaign.body" | "email.domainBody"; path: string; ask?: string; askLabel?: "webOnly.askRex" | "email.askUs" }> = {
   look: {
     title: "webOnly.look.title",
     body: "webOnly.look.body",
@@ -34,10 +35,15 @@ const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.bio.title" 
     body: "webOnly.bio.body",
     path: "/home/social/link-in-bio",
   },
+  campaign: {
+    title: "webOnly.campaign.title",
+    body: "webOnly.campaign.body",
+    path: "/home/campaigns/:id",
+  },
 };
 
 export default function WebOnly() {
-  const { what } = useLocalSearchParams<{ what?: string }>();
+  const { what, id } = useLocalSearchParams<{ what?: string; id?: string }>();
   const tool = what ? TOOLS[String(what)] : undefined;
   const t = useT("m_shop", "m_ui", "m_channels");
 
@@ -52,7 +58,7 @@ export default function WebOnly() {
           <T weight="extrabold" style={{ fontSize: 24, textAlign: "center", letterSpacing: -0.4 }} accessibilityRole="header">{t(tool.title)}</T>
           <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 16, lineHeight: 23, maxWidth: 340 }}>{t(tool.body)}</T>
         </View>
-        <PillButton title={t("openInBrowser")} onPress={() => void openWeb(tool.path)} />
+        <PillButton title={t("openInBrowser")} onPress={() => void openWeb(tool.path.replace(":id", encodeURIComponent(String(id ?? ""))))} />
         {tool.ask && tool.askLabel ? <LinkButton title={t(tool.askLabel)} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} /> : null}
       </SafeAreaView>
     );

@@ -55,6 +55,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "expiry.3days": "Kwana 3",
   "expiry.week": "Mako 1",
   "expiry.month": "Wata 1",
+  "link.seasonal": "Campaigns na lokacin biki",
+  "link.seasonalHint": "Rangwame tare da agogon ƙirgawa don Black Friday, Kirsimeti da sauransu",
   "link.templates": "Email templates",
   "link.templatesHint": "Emails da aka shirya don ciniki, sabon kaya da godiya",
   "link.subscribers": "Subscribers",

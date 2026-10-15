@@ -19,6 +19,7 @@ import { openPath } from "@/lib/web";
 import { colors } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
+import { CampaignsCard } from "@/components/CampaignsCard";
 import { useT } from "@/lib/i18n";
 
 // Seller Home (build spec 8A, "Simple app" prototype): today's sales, at most three "Do these next" items and one
@@ -154,6 +155,8 @@ export default function Home() {
                   <T style={{ fontSize: 15, lineHeight: 22 }}>{t("nothingNext")}</T>
                 </View>
               )}
+
+              <CampaignsCard />
 
               <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, paddingVertical: 6 }}>
                 <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={36} />
