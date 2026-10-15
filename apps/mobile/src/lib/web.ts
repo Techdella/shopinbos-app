@@ -51,6 +51,8 @@ const APP_SCREENS: Record<string, string> = {
   "/home/settings": "/settings",
   "/channels": "/channels",
   "/home/marketing/subscribers": "/marketing/subscribers",
+  "/home/payment-links": "/payment-links",
+  "/home/social/link-in-bio": "/link-in-bio",
 };
 
 /** Opens a web-app path, but in the app when the app has that screen (orders, inbox, find products, reviews…). */

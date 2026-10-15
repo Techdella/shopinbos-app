@@ -19,3 +19,9 @@ export async function shareShop(): Promise<"shared" | "dismissed" | "no-link"> {
 export function openShop(url: string) {
   return WebBrowser.openBrowserAsync(url);
 }
+
+/** The phone's share sheet with any message (a payment link, the link in bio page). True when it was sent somewhere. */
+export async function shareText(message: string): Promise<boolean> {
+  const result = await Share.share({ message }).catch(() => null);
+  return Boolean(result && result.action !== Share.dismissedAction);
+}

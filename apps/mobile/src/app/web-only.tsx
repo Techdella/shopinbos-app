@@ -12,7 +12,7 @@ import { colors } from "@/theme";
 // can open it there (signed in) or ask us to do it. Without it, admin accounts land here: the admin panel is web only.
 
 // title and body are m_shop or m_channels keys. The admin screen below stays in English (admin only).
-const TOOLS: Record<string, { title: "webOnly.look.title" | "email.domainTitle"; body: "webOnly.look.body" | "email.domainBody"; path: string; ask: string; askLabel: "webOnly.askRex" | "email.askUs" }> = {
+const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.bio.title" | "email.domainTitle"; body: "webOnly.look.body" | "webOnly.bio.body" | "email.domainBody"; path: string; ask?: string; askLabel?: "webOnly.askRex" | "email.askUs" }> = {
   look: {
     title: "webOnly.look.title",
     body: "webOnly.look.body",
@@ -27,6 +27,12 @@ const TOOLS: Record<string, { title: "webOnly.look.title" | "email.domainTitle";
     path: EMAIL_SETUP_PATH,
     ask: "/ask-us?what=channels",
     askLabel: "email.askUs",
+  },
+  // Link in bio colours, photo and the blocks the phone doesn't edit (app/link-in-bio.tsx).
+  bio: {
+    title: "webOnly.bio.title",
+    body: "webOnly.bio.body",
+    path: "/home/social/link-in-bio",
   },
 };
 
@@ -47,7 +53,7 @@ export default function WebOnly() {
           <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 16, lineHeight: 23, maxWidth: 340 }}>{t(tool.body)}</T>
         </View>
         <PillButton title={t("openInBrowser")} onPress={() => void openWeb(tool.path)} />
-        <LinkButton title={t(tool.askLabel)} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} />
+        {tool.ask && tool.askLabel ? <LinkButton title={t(tool.askLabel)} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} /> : null}
       </SafeAreaView>
     );
   }
