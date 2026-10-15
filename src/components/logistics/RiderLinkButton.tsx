@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, useTransition } from "react";
 import { createRiderLink, type RiderLinkResult } from "@/app/actions/logistics";
 import { Notice, PillButton } from "@/components/app-ui";
@@ -16,8 +17,8 @@ export function RiderLinkButton({ teamMemberId, riderName, hasLink }: { teamMemb
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function make() {
-    if (hasLink && !result && !window.confirm(t("riderLink.confirmNew", { name: riderName }))) return;
+  async function make() {
+    if (hasLink && !result && !(await confirmDialog(t("riderLink.confirmNew", { name: riderName })))) return;
     setCopied(false);
     startTransition(async () => setResult(await createRiderLink(teamMemberId)));
   }

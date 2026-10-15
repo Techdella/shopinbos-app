@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -48,8 +49,8 @@ export function MacroManager({ macros }: { macros: MacroRow[] }) {
     });
   };
 
-  const remove = (id: string) => {
-    if (!window.confirm("Delete this saved reply?")) return;
+  const remove = async (id: string) => {
+    if (!(await confirmDialog("Delete this saved reply?"))) return;
     startTransition(async () => {
       await fetch(`/api/admin/support/macros/${id}`, { method: "DELETE" }).catch(() => null);
       router.refresh();

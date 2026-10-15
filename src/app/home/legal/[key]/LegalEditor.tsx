@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -76,10 +77,14 @@ export function LegalEditor(props: {
       if (!dirtyRef.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
       const link = (event.target as HTMLElement | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
       if (!link || link.target === "_blank" || link.closest("[data-legal-editor-body]")) return;
-      if (!window.confirm(tRef.current("ed.leave"))) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      // Hold the click, ask in-app, then follow the link ourselves if they choose to leave.
+      event.preventDefault();
+      event.stopPropagation();
+      void confirmDialog(tRef.current("ed.leave")).then((leave) => {
+        if (!leave) return;
+        dirtyRef.current = false;
+        link.click();
+      });
     };
     window.addEventListener("beforeunload", warn);
     document.addEventListener("click", click, true);
@@ -141,16 +146,16 @@ export function LegalEditor(props: {
     }
   }
 
-  function applyTemplate() {
+  async function applyTemplate() {
     const doc = legalTemplate(props.page.key, props.templateContext);
     if (!doc) return;
-    if (!empty && !window.confirm(t("ed.replaceTemplate"))) return;
+    if (!empty && !(await confirmDialog(t("ed.replaceTemplate")))) return;
     set({ doc });
     setNotice({ tone: "info", text: t("ed.templateAdded") });
   }
 
   async function askPeggy() {
-    if (!empty && !window.confirm(t("ed.replacePeggy"))) return;
+    if (!empty && !(await confirmDialog(t("ed.replacePeggy")))) return;
     setBusy("peggy");
     setNotice(null);
     try {
@@ -171,7 +176,7 @@ export function LegalEditor(props: {
   }
 
   async function remove() {
-    if (!window.confirm(t("ed.confirmDelete", { title: draft.title }))) return;
+    if (!(await confirmDialog(t("ed.confirmDelete", { title: draft.title })))) return;
     setBusy("delete");
     try {
       const res = await fetch(`/api/app/legal/${props.page.key}`, { method: "DELETE" });

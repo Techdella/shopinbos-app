@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -53,7 +54,7 @@ export function CampaignList({ campaigns, requests }: { campaigns: CampaignRow[]
   const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(locale === "en" ? "en-NG" : undefined, { day: "numeric", month: "short" }) : "");
 
   async function act(id: string, action: string) {
-    if (action === "end" && !window.confirm(t("c.confirmEnd"))) return;
+    if (action === "end" && !(await confirmDialog(t("c.confirmEnd")))) return;
     setBusy(`${id}:${action}`);
     setError(null);
     try {
@@ -139,7 +140,7 @@ export function CampaignList({ campaigns, requests }: { campaigns: CampaignRow[]
               {campaign.syncError ? <p className="m-0 rounded-[12px] bg-app-danger-tint px-3 py-2 text-[13px] font-bold text-app-danger">{t("c.metaSaid", { message: campaign.syncError })}</p> : null}
               <div className="flex flex-wrap items-center justify-end gap-3 text-[13px] font-bold">
                 {campaign.status === "running" || campaign.status === "paused" ? <button type="button" className="text-app-ink-soft" onClick={() => void act(campaign.id, "end")}>{t("end")}</button> : null}
-                {campaign.status !== "running" ? <button type="button" className="text-app-danger" onClick={() => { if (window.confirm(t("confirmDelete"))) void act(campaign.id, "delete"); }}>{t("c.delete")}</button> : null}
+                {campaign.status !== "running" ? <button type="button" className="text-app-danger" onClick={async () => { if ((await confirmDialog(t("confirmDelete")))) void act(campaign.id, "delete"); }}>{t("c.delete")}</button> : null}
               </div>
             </div>
           </article>

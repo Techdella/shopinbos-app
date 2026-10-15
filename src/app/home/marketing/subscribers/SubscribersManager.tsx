@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, EmptyState, Pill, type Tone } from "@/components/app-kit";
@@ -223,8 +224,8 @@ export function SubscribersManager({
   const allOnPage = rows.length > 0 && rows.every((row) => selected.includes(row.id));
 
   async function bulk(action: "tag" | "untag" | "unsubscribe" | "delete") {
-    if (action === "unsubscribe" && !window.confirm(t("subs.bulk.confirmUnsub", { count: selected.length }))) return;
-    if (action === "delete" && !window.confirm(t("subs.bulk.confirmRemove", { count: selected.length }))) return;
+    if (action === "unsubscribe" && !(await confirmDialog(t("subs.bulk.confirmUnsub", { count: selected.length })))) return;
+    if (action === "delete" && !(await confirmDialog(t("subs.bulk.confirmRemove", { count: selected.length })))) return;
     if ((action === "tag" || action === "untag") && !tag.trim()) return setError(t("subs.bulk.typeTag"));
     setBusy(true);
     setError(null);

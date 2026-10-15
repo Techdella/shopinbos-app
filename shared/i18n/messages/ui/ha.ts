@@ -33,6 +33,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "portalNote.supplier": "Kana da account na mai kawo kaya, don haka mun buɗe portal ɗinka.",
   "portalNote.logistics_partner": "Kana da account na abokin isar da kaya, don haka mun buɗe portal ɗinka.",
   "portalNote.admin": "Kana da account na admin, don haka mun buɗe admin panel.",
+  "dialog.ok": "To",
+  "dialog.continue": "Ci gaba",
+  "dialog.done": "An gama",
+  "dialog.copy": "Kwafa",
+  "dialog.copied": "An kwafa",
 };
 
 export default ha;

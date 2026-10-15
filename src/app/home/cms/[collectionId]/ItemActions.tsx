@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -38,7 +39,7 @@ export function ItemActions({ id, title, status, editHref }: { id: string; title
   }
 
   async function remove() {
-    if (!window.confirm(t("ia.confirmDelete", { title }))) return;
+    if (!(await confirmDialog(t("ia.confirmDelete", { title })))) return;
     setBusy("delete");
     const res = await fetch(`/api/app/cms/items/${id}`, { method: "DELETE" });
     setBusy("");

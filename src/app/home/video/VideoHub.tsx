@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +42,7 @@ export function VideoHub({ videos }: { videos: HubVideo[] }) {
   }
 
   async function remove(video: HubVideo) {
-    if (!window.confirm(t("hub.confirmDelete", { title: video.title }))) return;
+    if (!(await confirmDialog(t("hub.confirmDelete", { title: video.title })))) return;
     setBusy(video.id);
     try {
       const response = await fetch(`/api/app/videos/${video.id}`, { method: "DELETE" });

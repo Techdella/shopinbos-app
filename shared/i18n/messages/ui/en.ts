@@ -39,6 +39,11 @@ const en = {
   "portalNote.supplier": "You have a supplier account, so we opened your supplier portal.",
   "portalNote.logistics_partner": "You have a delivery partner account, so we opened your delivery portal.",
   "portalNote.admin": "You have an admin account, so we opened the admin panel.",
+  "dialog.ok": "OK",
+  "dialog.continue": "Continue",
+  "dialog.done": "Done",
+  "dialog.copy": "Copy",
+  "dialog.copied": "Copied",
 } satisfies Record<string, string>;
 
 export default en;
