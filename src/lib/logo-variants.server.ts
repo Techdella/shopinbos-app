@@ -7,8 +7,10 @@ import { uploadFileServer } from "@/lib/supabase/storage.server";
 import {
   analyseLogoPixels,
   isSvgLogo,
+  hasDarkNeutralInk,
   knockOutForDark,
   readLogoVariantsRecord,
+  relightDarkInk,
   recolourSvgForDark,
   type LogoAnalysis,
   type LogoVariantsRecord,
@@ -65,6 +67,17 @@ export async function deriveLogoVariants(logoUrl: string, userId: string): Promi
   if (analysis.background === "plain" && analysis.mono && analysis.ink === "dark" && analysis.backgroundColour && analysis.inkColour) {
     const full = await sharp(bytes).ensureAlpha().resize(768, 768, { fit: "inside", withoutEnlargement: true }).raw().toBuffer({ resolveWithObject: true });
     const pixels = knockOutForDark(full.data, analysis.backgroundColour, analysis.inkColour);
+    const png = await sharp(Buffer.from(pixels.buffer), { raw: { width: full.info.width, height: full.info.height, channels: 4 } }).png().toBuffer();
+    const stored = await uploadFileServer("brand", new Blob([new Uint8Array(png)], { type: "image/png" }), variantPath(userId, "png"));
+    result.onDark = stored.publicUrl;
+    return result;
+  }
+
+  // See-through, several colours, dark lettering (a black wordmark with a coloured accent, Rex's usual): the
+  // lettering is re-inked light and the accents keep their colour. One-colour see-through marks need no file.
+  if (analysis.background === "transparent" && !analysis.mono && hasDarkNeutralInk(small.data)) {
+    const full = await sharp(bytes).ensureAlpha().resize(768, 768, { fit: "inside", withoutEnlargement: true }).raw().toBuffer({ resolveWithObject: true });
+    const pixels = relightDarkInk(full.data);
     const png = await sharp(Buffer.from(pixels.buffer), { raw: { width: full.info.width, height: full.info.height, channels: 4 } }).png().toBuffer();
     const stored = await uploadFileServer("brand", new Blob([new Uint8Array(png)], { type: "image/png" }), variantPath(userId, "png"));
     result.onDark = stored.publicUrl;
