@@ -25,6 +25,7 @@ import {
   layoutElementLabel,
   moveElementAcrossRows,
   newLayoutElement,
+  rowMoveOutcome,
   newLayoutRowSection,
   normaliseLayoutRow,
   type ColumnPresetId,
@@ -262,28 +263,39 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setFocusField(`element:${element.id}`);
   }, [editSection, select]);
 
+  // The page's sections as last drawn, read when a drop lands: a drag can outlive an undo or another edit.
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+
   // Drag and drop (canvas or panel), up / down and "Move to": one undoable change, read out to screen readers.
   // `select` keeps the moved element picked (canvas drops and "Move to"); up / down leave the selection alone.
-  // `toSectionId` moves it into another rows / columns section on the page; it is then picked there.
-  const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean; toSectionId?: string }) => {
+  // `toSectionId` moves it into another rows / columns section on the page; it is then picked there. The move is
+  // checked against the page as it is now: when it can't happen any more (the column filled up, the row or element
+  // is gone) nothing changes, the selection stays, the reason is read out and it returns false.
+  const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean; toSectionId?: string }): boolean => {
+    const current = sectionsRef.current;
     const toSectionId = options?.toSectionId ?? sectionId;
-    const target = sections.find((entry) => entry.id === toSectionId);
-    if (!target || !sections.some((entry) => entry.id === sectionId)) return;
+    const target = current.find((entry) => entry.id === toSectionId);
     const across = toSectionId !== sectionId;
-    const rows = sections.filter((entry) => entry.kind === LAYOUT_ROW_KIND);
+    const rows = current.filter((entry) => entry.kind === LAYOUT_ROW_KIND);
     const rowLabel = (row: TemplateSectionNode) => t("edk.rowNamed", { n: rows.findIndex((entry) => entry.id === row.id) + 1, name: tx(row.name || "Columns") });
     const columnLabel = (row: TemplateSectionNode, at: number) => {
       const view = normaliseLayoutRow(row);
       const n = Math.min(Math.max(0, Math.trunc(at)), view.cells.length - 1) + 1;
       return view.preset.id.startsWith("grid") ? t("edk.boxN", { n }) : t("edk.columnN", { n });
     };
-    const say = (text: string) => setAnnouncement((current) => ({ text, n: current.n + 1 }));
-    const result = moveElementAcrossRows(sections, sectionId, elementId, toSectionId, column, index);
-    if (result.sections === sections || !result.elementId) {
-      if (result.reason === "full") say(t("edk.columnFull", { column: across ? t("edk.rowColumn", { row: rowLabel(target), column: columnLabel(target, column) }) : columnLabel(target, column) }));
-      return;
+    const say = (text: string) => setAnnouncement((previous) => ({ text, n: previous.n + 1 }));
+    const result = moveElementAcrossRows(current, sectionId, elementId, toSectionId, column, index);
+    const outcome = rowMoveOutcome(result);
+    if (outcome !== "moved" || !result.elementId || !target) {
+      if (outcome === "full" && target) say(t("edk.columnFull", { column: across ? t("edk.rowColumn", { row: rowLabel(target), column: columnLabel(target, column) }) : columnLabel(target, column) }));
+      else if (outcome === "row-gone") say(t("edk.rowGone"));
+      else if (outcome === "element-gone") say(t("edk.elementGone"));
+      else say(t("edk.notMoved"));
+      return false;
     }
-    editSections((list) => moveElementAcrossRows(list, sectionId, elementId, toSectionId, column, index).sections);
+    // The commit starts from the latest page: the same move again, unless it's the page this result came from.
+    editSections((list) => (list === current ? result.sections : moveElementAcrossRows(list, sectionId, elementId, toSectionId, column, index).sections));
     const movedId = result.elementId;
     if (options?.select) {
       if (selectedId !== toSectionId) select(toSectionId);
@@ -291,12 +303,14 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       setFocusField(`element:${movedId}`);
     }
     const placed = findLayoutElement(result.sections.find((entry) => entry.id === toSectionId) ?? target, movedId);
-    if (!placed) return;
+    if (!placed) return true;
     const name = tx(layoutElementLabel(placed.element));
-    say(across
+    const words = across
       ? t("edk.movedToRow", { name, row: rowLabel(target), column: columnLabel(target, placed.cellIndex), n: placed.index + 1 })
-      : t("edk.movedTo", { name, column: columnLabel(target, placed.cellIndex), n: placed.index + 1 }));
-  }, [editSections, sections, select, selectedId, t, tx]);
+      : t("edk.movedTo", { name, column: columnLabel(target, placed.cellIndex), n: placed.index + 1 });
+    say(target.visible === false ? t("edk.movedToHiddenRow", { moved: words }) : words);
+    return true;
+  }, [editSections, select, selectedId, t, tx]);
 
   const insertLayout = useCallback((preset: ColumnPresetId) => {
     const section = newLayoutRowSection(newId(LAYOUT_ROW_KIND), preset);

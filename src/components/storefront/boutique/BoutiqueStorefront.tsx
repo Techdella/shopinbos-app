@@ -37,8 +37,8 @@ import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
 import { faqAnswer, faqSectionStyle } from "./faq/faq-logic";
 import { FaqList } from "./faq/FaqList";
-import { LAYOUT_ROW_KIND } from "./blocks/layout-logic";
-import { LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
+import { LAYOUT_ROW_KIND, drawnSections, isHiddenLayoutRow } from "./blocks/layout-logic";
+import { HiddenLayoutRowDrop, LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
 import { shopperCopy } from "@shared/placeholder-copy";
 import { CheckoutPreview } from "../checkout/CheckoutPreview";
 import { checkoutNavLinks, readCheckoutPageSettings } from "../checkout/checkout-layout";
@@ -199,11 +199,14 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   // Builder: the checkout page is previewed as the real checkout, which has its own slim header (CheckoutPreview), so
   // the store's announcement bar, header and footer aren't drawn around it (the live checkout doesn't show them).
   const checkoutPreview = !live && page?.pageType === "checkout";
-  const sections = (page?.sections ?? []).filter((entry) => entry.visible !== false && !(checkoutPreview && ["announcement-bar", "header", "footer"].includes(entry.kind)));
+  // Builder with drag and drop: hidden rows / columns sections stay in place as drop strips (drawn only mid-drag).
+  const hiddenRowDrops = !live && !props.demo && Boolean(props.onMoveElement);
+  const sections = drawnSections(page?.sections ?? [], hiddenRowDrops).filter((entry) => !(checkoutPreview && ["announcement-bar", "header", "footer"].includes(entry.kind)));
   const announcementSection = sections.find((entry) => entry.kind === "announcement-bar");
   const headerSection = sections.find((entry) => entry.kind === "header");
   const footerSection = [...sections].reverse().find((entry) => entry.kind === "footer");
   const content = sections.filter((entry) => !["announcement-bar", "header", "footer"].includes(entry.kind));
+  const shownContent = content.filter((entry) => !isHiddenLayoutRow(entry));
   const headerCopy = copyOf(headerSection);
   const headerLayout = text(headerSection?.settings?.layout);
   const pageTypes = new Set(snapshot.pages.map((entry) => entry.pageType as string));
@@ -1628,9 +1631,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         />
       )) : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>
-        {content.map((section) => wrap(section, render(section)))}
+        {content.map((section) => (isHiddenLayoutRow(section) ? <HiddenLayoutRowDrop key={section.id} section={section} /> : wrap(section, render(section))))}
         {/* Builder: room for the "Add your first section" button on an empty page. */}
-        {!live && !props.demo && content.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
+        {!live && !props.demo && shownContent.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
         <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} />
