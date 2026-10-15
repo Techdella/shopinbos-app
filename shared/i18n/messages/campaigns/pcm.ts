@@ -289,6 +289,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "widget.section": "Store section",
   "widget.empty": "No sale dey run or plan. Plan one for the next big season.",
   "widget.create": "Plan campaign",
+  "builder.liveChip": "Live: {name}",
+  "builder.liveHint": "Your store dey show this campaign look on top this design until e end. Change the campaign look inside the campaign.",
 
   "countdown.endsLabel": "Offer go end {date}",
   "countdown.left.days": "{count, plural, one {# day remain} other {# days remain}}",

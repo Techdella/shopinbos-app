@@ -289,6 +289,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "widget.section": "Apá ṣọ́ọ̀bù",
   "widget.empty": "Kò sí sale tó ń lọ tàbí tí a ṣètò. Ṣètò ọ̀kan fún àsìkò ńlá tó ń bọ̀.",
   "widget.create": "Ṣètò campaign",
+  "builder.liveChip": "Ń lọ: {name}",
+  "builder.liveHint": "Ṣọ́ọ̀bù rẹ ń fi ìrísí campaign yìí hàn lórí àwòṣe yìí títí yóò fi parí. Yí ìrísí campaign padà nínú campaign náà.",
 
   "countdown.endsLabel": "Ìpèsè yóò parí {date}",
   "countdown.left.days": "{count, plural, other {Ọjọ́ # ló kù}}",

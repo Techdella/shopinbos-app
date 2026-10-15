@@ -297,6 +297,8 @@ const en = {
   "widget.section": "Store section",
   "widget.empty": "No sale running or planned. Plan one for the next big season.",
   "widget.create": "Plan a campaign",
+  "builder.liveChip": "Live: {name}",
+  "builder.liveHint": "Your store shows this campaign's look on top of this design until it ends. Change the campaign look in the campaign.",
 
   // Storefront
   "countdown.endsLabel": "Offer ends {date}",

@@ -72,7 +72,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   );
   const res = withCors(req, ok({ popups }), CORS);
   // Previews are personal; campaign pop-ups appear within a minute of their campaign starting.
-  res.headers.set("Cache-Control", preview ? "private, no-store" : "public, max-age=60, stale-while-revalidate=300");
+  // A store with campaign pop-ups caches briefly, so they come and go close to the campaign's start and end.
+  res.headers.set("Cache-Control", preview ? "private, no-store" : campaigns.size ? "public, max-age=30" : "public, max-age=60, stale-while-revalidate=300");
   return res;
 }
 

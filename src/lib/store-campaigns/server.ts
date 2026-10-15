@@ -20,7 +20,7 @@ import {
   type CampaignJob,
 } from "./status";
 import { orphanedOverrides, readSectionOverrides, readThemeOverride, type CampaignSectionOverride } from "./merge";
-import { BLOCK_TYPES, readAnnouncementSettings, readBadgeSettings, readCountdownSettings, readPopupBlockSettings, type CampaignBlockType } from "./blocks";
+import { BLOCK_TYPES, badgeMatches, readAnnouncementSettings, readBadgeSettings, readCountdownSettings, readPopupBlockSettings, type CampaignBlockType } from "./blocks";
 import { campaignPreset, firstHeroSectionId, presetBlocks, presetSectionOverrides, suggestedPresetDates, type CampaignPreset } from "./presets";
 import { DEFAULT_CAMPAIGN_TIME_ZONE, safeTimeZone } from "./time";
 import { PREVIEW_PARAM, PREVIEW_TOKEN_PARAM, signPreviewToken } from "./preview-token";
@@ -676,6 +676,52 @@ export async function campaignAnalytics(store: SellerStore, id: string, now = ne
     previousOrders: previous.orders,
     previousRevenue: previous.revenue,
   };
+}
+
+// ─── Product list timer badges ────────────────────────────────────────────────
+
+export interface ProductCampaignTimer {
+  campaignId: string;
+  name: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: ReturnType<typeof computeCampaignStatus>;
+  timezone: string;
+}
+
+/**
+ * For the seller's product list: which live or upcoming campaign has a badge on each product (highest priority
+ * first). Two small queries, only when the store has such campaigns.
+ */
+export async function productCampaignTimers(storeId: string, products: Array<{ id: string; retailPrice: number; compareAtPrice: number | null; tags?: string[] | null }>, now = new Date()) {
+  const out: Record<string, ProductCampaignTimer> = {};
+  const campaigns = await db.storeCampaign
+    .findMany({
+      where: { storeId, archivedAt: null, startsAt: { not: null }, endsAt: { gt: now }, blocks: { some: { type: "badge", enabled: true } } },
+      select: { id: true, name: true, priority: true, startsAt: true, endsAt: true, pausedAt: true, archivedAt: true, endingSoonHours: true, timezone: true, blocks: { where: { type: "badge", enabled: true }, select: { settings: true } } },
+      take: 20,
+    })
+    .catch(() => []);
+  if (!campaigns.length) return out;
+  campaigns.sort((a, b) => b.priority - a.priority || (toMs(b.startsAt) ?? 0) - (toMs(a.startsAt) ?? 0));
+  const badges = campaigns.flatMap((campaign) => campaign.blocks.map((block) => ({ campaign, settings: readBadgeSettings(block.settings) })));
+  const collectionIds = [...new Set(badges.filter((badge) => badge.settings.appliesTo === "collection" && badge.settings.collectionId).map((badge) => badge.settings.collectionId))];
+  const links = collectionIds.length ? await db.collectionProduct.findMany({ where: { collectionId: { in: collectionIds } }, select: { collectionId: true, productId: true } }) : [];
+  const members = new Map<string, Set<string>>();
+  for (const link of links) members.set(link.collectionId, (members.get(link.collectionId) ?? new Set()).add(link.productId));
+  for (const product of products) {
+    const match = badges.find((badge) => badgeMatches(badge.settings, product, members.get(badge.settings.collectionId) ?? null));
+    if (!match) continue;
+    out[product.id] = {
+      campaignId: match.campaign.id,
+      name: match.campaign.name,
+      startsAt: iso(match.campaign.startsAt),
+      endsAt: iso(match.campaign.endsAt),
+      status: computeCampaignStatus(match.campaign, now.getTime()),
+      timezone: match.campaign.timezone,
+    };
+  }
+  return out;
 }
 
 // ─── Countdowns in the backend ────────────────────────────────────────────────

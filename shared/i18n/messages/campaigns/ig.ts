@@ -289,6 +289,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "widget.section": "Ngalaba ụlọ ahịa",
   "widget.empty": "Enweghị sale na-aga ma ọ bụ ahaziri. Hazie otu maka nnukwu oge na-abịa.",
   "widget.create": "Hazie campaign",
+  "builder.liveChip": "Na-aga: {name}",
+  "builder.liveHint": "Ụlọ ahịa gị na-egosi ọdịdị campaign a n'elu imewe a ruo mgbe ọ gwụrụ. Gbanwee ọdịdị campaign n'ime campaign ahụ.",
 
   "countdown.endsLabel": "Onyinye ga-agwụ {date}",
   "countdown.left.days": "{count, plural, other {Ụbọchị # fọdụrụ}}",

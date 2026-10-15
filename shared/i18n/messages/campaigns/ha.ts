@@ -289,6 +289,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "widget.section": "Sashen shago",
   "widget.empty": "Babu sale mai gudana ko da aka tsara. Tsara ɗaya don babban lokaci mai zuwa.",
   "widget.create": "Tsara campaign",
+  "builder.liveChip": "Yana gudana: {name}",
+  "builder.liveHint": "Shagonka yana nuna kamannin wannan campaign a kan wannan zane har sai ya ƙare. Canza kamannin campaign a cikin campaign ɗin.",
 
   "countdown.endsLabel": "Tayin zai ƙare {date}",
   "countdown.left.days": "{count, plural, one {Saura kwana #} other {Saura kwanaki #}}",
