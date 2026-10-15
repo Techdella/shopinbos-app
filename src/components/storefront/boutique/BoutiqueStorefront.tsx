@@ -37,6 +37,8 @@ import { isShopGridSection, readOptionalProductLimit, readProductCardOptions, re
 import type { GameSectionKind } from "@/lib/gamification/logic";
 import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
+import { LAYOUT_ROW_KIND } from "./blocks/layout-logic";
+import { LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
 
 export interface BoutiqueStore {
   id?: string;
@@ -74,6 +76,10 @@ export interface BoutiqueStorefrontProps {
   initialQuery?: string;
   /** Theme gallery previews: sample products, no editor outlines or "add this" hints. */
   demo?: boolean;
+  /** Builder only: picking and adding elements inside rows and columns (layout-row sections). */
+  selectedElementId?: string | null;
+  onSelectElement?: LayoutRowEditing["onSelectElement"];
+  onAddToColumn?: LayoutRowEditing["onAddToColumn"];
 }
 
 const PAGE_LABELS: Record<string, string> = { home: "Home", products: "Shop", about: "About", contact: "Contact", faq: "FAQ", wishlist: "Wishlist" };
@@ -1507,6 +1513,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function render(section: TemplateSectionNode): React.ReactNode {
     if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
+    if (section.kind === LAYOUT_ROW_KIND) {
+      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn };
+      return <LayoutRow ctx={blockContext(section)} editing={editing} />;
+    }
     switch (section.kind) {
       case "hero-split":
         return hero(section);
@@ -1616,6 +1626,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       )) : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>
         {content.map((section) => wrap(section, render(section)))}
+        {/* Builder: room for the "Add your first section" button on an empty page. */}
+        {!live && !props.demo && content.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
         <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} />

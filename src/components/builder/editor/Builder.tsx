@@ -18,8 +18,18 @@ import {
   type TemplateSectionNode,
   type ThemeTokenSet,
 } from "@/lib/store-templates";
+import {
+  LAYOUT_ROW_KIND,
+  addLayoutElement,
+  findLayoutElement,
+  newLayoutElement,
+  newLayoutRowSection,
+  type ColumnPresetId,
+  type LayoutElementType,
+} from "@/components/storefront/boutique/blocks/layout-logic";
 import { AppsPanel } from "./AppsPanel";
 import { Canvas, type CanvasToolbarAction, type Device } from "./Canvas";
+import { CanvasInserter } from "./CanvasInserter";
 import {
   buildPageList,
   canDuplicateSection,
@@ -28,6 +38,9 @@ import {
   findPageEntry,
   insertLabel,
   insertSection,
+  insertSectionAt,
+  insertSlots,
+  slotBelow,
   moveSection,
   moveSectionTo,
   newBoutiqueSection,
@@ -98,6 +111,10 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [entryId, setEntryId] = useState("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** An element inside a rows-and-columns section, picked on the canvas or in the panel. */
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  /** The canvas "+" inserter: open at a spot between sections, or for one column of a row. */
+  const [canvasInsert, setCanvasInsert] = useState<{ type: "slot"; slotKey: string } | { type: "column"; sectionId: string; column: number } | null>(null);
   const [focusField, setFocusField] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"settings" | "style">("settings");
   const [device, setDevice] = useState<Device>("desktop");
@@ -131,6 +148,14 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   useEffect(() => {
     if (selectedId && !selected) setSelectedId(null);
   }, [selected, selectedId]);
+  // Undo, a removed element or another section: the element selection only stays while it exists.
+  useEffect(() => {
+    if (selectedElementId && (!selected || selected.kind !== LAYOUT_ROW_KIND || !findLayoutElement(selected, selectedElementId))) setSelectedElementId(null);
+  }, [selected, selectedElementId]);
+  // The canvas inserter belongs to one page.
+  useEffect(() => {
+    setCanvasInsert(null);
+  }, [pageType, preview]);
   useEffect(() => {
     if (draft && !draft.pages.some((candidate) => candidate.pageType === pageType)) setEntryId(draft.pages[0]?.pageType ?? "home");
   }, [draft, pageType]);
@@ -147,6 +172,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   const select = useCallback((id: string | null, from: "canvas" | "tree" = "canvas") => {
     setSelectedId(id);
+    setSelectedElementId(null);
     if (id) {
       setInspectorTab("settings");
       if (from === "tree") setScrollToken((token) => token + 1);
@@ -180,10 +206,15 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setTimeout(() => insertSearchRef.current?.focus(), 30);
   }, []);
 
-  const insert = useCallback((kind: string) => {
+  const createSection = useCallback((kind: string) => {
     const id = newId(kind);
     const section = renderer === "boutique" ? newBoutiqueSection(kind, id) : { ...createSectionFromLibrary(kind), id };
     if (renderer !== "boutique") section.name = section.name || insertLabel(kind);
+    return section;
+  }, [renderer]);
+
+  /** Insert panel: above the chosen section, below the selected one, or at the end of the page body. */
+  const insertNode = useCallback((section: TemplateSectionNode) => {
     let beforeId = insertTarget.beforeId;
     if (!beforeId && insertTarget.group === "template" && selected && sectionGroup(selected.kind) === "template") {
       const index = sections.findIndex((entry) => entry.id === selected.id);
@@ -191,13 +222,62 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     }
     editSections((list) => insertSection(list, section, beforeId));
     setInsertTarget({ group: "template", beforeId: null });
-    select(id, "tree");
-    b.showToast(`${section.name} added`);
-  }, [b, editSections, insertTarget, renderer, sections, select, selected]);
+    select(section.id, "tree");
+    b.showToast(t("edk.added", { name: tx(section.name) }));
+  }, [b, editSections, insertTarget, sections, select, selected, t, tx]);
+
+  const insert = useCallback((kind: string) => insertNode(createSection(kind)), [createSection, insertNode]);
+
+  /** Canvas "+": at that exact spot (looked up again in the current page, so an undo in between can't misplace it). */
+  const placeAtSlot = useCallback((section: TemplateSectionNode, slotKey: string, elementId?: string) => {
+    editSections((list) => {
+      const slot = insertSlots(list).find((entry) => entry.key === slotKey);
+      return slot ? insertSectionAt(list, section, slot.index) : insertSection(list, section, null);
+    });
+    setCanvasInsert(null);
+    select(section.id, "tree");
+    if (elementId) {
+      setSelectedElementId(elementId);
+      setFocusField(`element:${elementId}`);
+    }
+    b.showToast(t("edk.added", { name: tx(section.name) }));
+  }, [b, editSections, select, t, tx]);
+
+  const addElementToColumn = useCallback((sectionId: string, column: number, type: LayoutElementType) => {
+    const element = newLayoutElement(type, newId("el"));
+    editSection(sectionId, (current) => addLayoutElement(current, column, element));
+    setCanvasInsert(null);
+    select(sectionId, "tree");
+    setSelectedElementId(element.id);
+    setFocusField(`element:${element.id}`);
+  }, [editSection, select]);
+
+  const insertLayout = useCallback((preset: ColumnPresetId) => {
+    const section = newLayoutRowSection(newId(LAYOUT_ROW_KIND), preset);
+    if (canvasInsert?.type === "slot") placeAtSlot(section, canvasInsert.slotKey);
+    else insertNode(section);
+  }, [canvasInsert, insertNode, placeAtSlot]);
+
+  const insertElement = useCallback((type: LayoutElementType) => {
+    if (canvasInsert?.type === "column") {
+      addElementToColumn(canvasInsert.sectionId, canvasInsert.column, type);
+      return;
+    }
+    if (canvasInsert?.type !== "slot") return;
+    // A single element gets its own one-column row, so more can go beside it later.
+    const element = newLayoutElement(type, newId("el"));
+    placeAtSlot(newLayoutRowSection(newId(LAYOUT_ROW_KIND), "1", element), canvasInsert.slotKey, element.id);
+  }, [addElementToColumn, canvasInsert, placeAtSlot]);
 
   const addBlock = useCallback((sectionId: string, blockId: string) => {
     const section = sections.find((entry) => entry.id === sectionId);
     if (!section) return;
+    if (section.kind === LAYOUT_ROW_KIND && blockId.startsWith("element:")) {
+      // Into the column of the picked element, else the first column.
+      const column = selectedId === sectionId && selectedElementId ? findLayoutElement(section, selectedElementId)?.cellIndex ?? 0 : 0;
+      addElementToColumn(sectionId, column, blockId.slice("element:".length) as LayoutElementType);
+      return;
+    }
     select(sectionId, "tree");
     if (blockId === "image") { setFocusField("media"); return; }
     if (blockId === "product") { setFocusField("items"); return; }
@@ -225,7 +305,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     if (!item) return;
     editSection(sectionId, (current) => ({ ...current, items: [...(current.items ?? []), item] }));
     setFocusField(`item-${(section.items ?? []).length}`);
-  }, [editSection, sections, select]);
+  }, [addElementToColumn, editSection, sections, select, selectedElementId, selectedId]);
 
   const addableFor = useCallback((section: TemplateSectionNode) => sectionSchema(section.kind, renderer, themeId).addable, [renderer, themeId]);
 
@@ -327,13 +407,15 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       } else if (mod && key === "f" && !phone) {
         event.preventDefault();
         openInsert(insertTarget.group, insertTarget.beforeId);
+      } else if (event.key === "Escape" && selectedElementId) {
+        setSelectedElementId(null);
       } else if (event.key === "Escape" && selectedId) {
         setSelectedId(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [b, insertTarget, openInsert, phone, selectedId, view]);
+  }, [b, insertTarget, openInsert, phone, selectedElementId, selectedId, view]);
 
   // ── Themes ──────────────────────────────────────────────────────────────
 
@@ -379,7 +461,12 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   }, [b.store.shopper.collections, b.surfaceStore, entry?.collectionId, entry?.productId]);
 
   const editing = !preview;
+  // The canvas "+" spots: 2026 themes, while editing on a computer (the same as the selection outline).
+  const canvasOverlay = renderer === "boutique" && editing && !phone;
+  const slots = useMemo(() => (canvasOverlay ? insertSlots(sections) : undefined), [canvasOverlay, sections]);
+  const belowSelected = selected ? slotBelow(sections, selected.id) : null;
   const toolbar: CanvasToolbarAction[] = selected ? [
+    ...(canvasOverlay ? [{ id: "add", icon: "plus" as IconName, label: "Add below", disabled: !belowSelected, onClick: () => { if (belowSelected) setCanvasInsert({ type: "slot", slotKey: belowSelected.key }); } }] : []),
     { id: "up", icon: "arrowUp", label: "Move up", disabled: !canMoveSection(sections, selected.id, "up"), onClick: () => sectionAction(selected.id, "up") },
     { id: "down", icon: "arrowDown", label: "Move down", disabled: !canMoveSection(sections, selected.id, "down"), onClick: () => sectionAction(selected.id, "down") },
     { id: "duplicate", icon: "copy", label: "Duplicate", disabled: !canDuplicateSection(selected), onClick: () => sectionAction(selected.id, "duplicate") },
@@ -409,6 +496,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       onUpdateStoreLogo={editing ? (url) => void updateStoreLogo(url) : undefined}
       onUpdateSectionItem={editing ? (id, index, changes) => editSection(id, (section) => ({ ...section, items: (section.items ?? []).map((item, i) => (i === index ? { ...item, ...changes } : item)) })) : undefined}
       onUpdateImageBlock={editing ? (id, blockId, url) => editSection(id, (section) => ({ ...section, blocks: section.blocks.map((block) => (block.id === blockId ? { ...block, content: { ...block.content, originalSrc: url, resolvedSrc: url } } : block)) })) : undefined}
+      selectedElementId={editing ? selectedElementId : null}
+      onSelectElement={editing ? (sectionId, elementId) => { select(sectionId); setSelectedElementId(elementId); setFocusField(`element:${elementId}`); } : undefined}
+      onAddToColumn={canvasOverlay ? (sectionId, column) => { select(sectionId); setCanvasInsert({ type: "column", sectionId, column }); } : undefined}
       cartCount={0}
     />
   ) : null;
@@ -477,6 +567,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       onAddBlock={(blockId) => selected && addBlock(selected.id, blockId)}
       onClose={wide ? undefined : () => { if (phone) setSheet(null); else setInspectorOpen(false); }}
       compact={phone}
+      selectedElementId={selectedElementId}
+      onSelectElement={setSelectedElementId}
+      onAddLayoutElement={(column, type) => selected && addElementToColumn(selected.id, column, type)}
     />
   ) : null;
 
@@ -486,7 +579,11 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       sections={sections}
       selectedId={selectedId}
       onSelect={(id) => select(id, "tree")}
-      onSelectBlock={(id, block: SectionBlockRow) => { select(id, "tree"); setFocusField(block.field ?? (block.itemIndex !== undefined ? "items" : null)); }}
+      onSelectBlock={(id, block: SectionBlockRow) => {
+        select(id, "tree");
+        if (block.field?.startsWith("element:")) setSelectedElementId(block.field.slice("element:".length));
+        setFocusField(block.field ?? (block.itemIndex !== undefined ? "items" : null));
+      }}
       onToggleHidden={(id) => sectionAction(id, "hide")}
       onMove={(id, direction) => sectionAction(id, direction)}
       onDrop={(id, targetId, place) => editSections((list) => moveSectionTo(list, id, targetId, place))}
@@ -513,6 +610,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
           ? t("edk.addsAbove", { name: tx(sections.find((section) => section.id === insertTarget.beforeId)?.name ?? "the chosen section") })
           : insertTarget.group === "header" ? tx("Adds to the header") : selected && sectionGroup(selected.kind) === "template" ? t("edk.addsBelow", { name: tx(selected.name) }) : t("edk.addsToEnd", { name: tx(currentLabel) })}
         onInsert={insert}
+        onInsertLayout={renderer === "boutique" ? insertLayout : undefined}
         selectedName={selected?.name ?? null}
         elements={selected ? addableFor(selected) : []}
         onAddElement={(id) => selected && addBlock(selected.id, id)}
@@ -558,17 +656,46 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     </div>
   ) : null;
 
+  const insertSlot = canvasInsert?.type === "slot" ? slots?.find((slot) => slot.key === canvasInsert.slotKey) ?? null : null;
+  const columnSection = canvasInsert?.type === "column" ? sections.find((section) => section.id === canvasInsert.sectionId) ?? null : null;
+  const canvasInserter = canvasOverlay && (insertSlot || columnSection) && canvasInsert ? {
+    anchor: canvasInsert.type === "slot"
+      ? { slotKey: canvasInsert.slotKey }
+      : { selector: `[data-column-add="${CSS.escape(`${canvasInsert.sectionId}:${canvasInsert.column}`)}"]` },
+    node: (
+      <CanvasInserter
+        key={canvasInsert.type === "slot" ? canvasInsert.slotKey : `${canvasInsert.sectionId}:${canvasInsert.column}`}
+        renderer={renderer}
+        existingKinds={sections.map((section) => section.kind)}
+        mode={canvasInsert.type}
+        placeLabel={canvasInsert.type === "column"
+          ? t("edk.addsToColumn", { n: canvasInsert.column + 1, name: tx(columnSection?.name ?? "Columns") })
+          : insertSlot?.beforeId && sections.find((section) => section.id === insertSlot.beforeId && sectionGroup(section.kind) !== "footer")
+            ? t("edk.addsAbove", { name: tx(sections.find((section) => section.id === insertSlot.beforeId)?.name ?? "") })
+            : t("edk.addsToEnd", { name: tx(currentLabel) })}
+        onInsertSection={(kind) => { if (canvasInsert.type === "slot") placeAtSlot(createSection(kind), canvasInsert.slotKey); }}
+        onInsertLayout={insertLayout}
+        onInsertElement={insertElement}
+        onClose={() => setCanvasInsert(null)}
+      />
+    ),
+  } : null;
+
   const canvas = snapshot ? (
     <Canvas
       device={phone ? "mobile" : device}
       fit={phone}
       selectedId={editing ? selectedId : null}
       selectedName={selected?.name ?? null}
-      overlay={renderer === "boutique" && editing && !phone}
+      overlay={canvasOverlay}
       actions={toolbar}
       layoutVersion={snapshot}
       scrollToken={scrollToken}
       onBackgroundClick={() => setSelectedId(null)}
+      slots={slots}
+      onOpenSlot={(slot) => setCanvasInsert({ type: "slot", slotKey: slot.key })}
+      emptyPage={slots?.length === 1}
+      inserter={canvasInserter}
     >
       {surface}
     </Canvas>

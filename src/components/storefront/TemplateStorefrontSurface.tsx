@@ -109,6 +109,10 @@ interface TemplateStorefrontSurfaceProps {
   onToggleWishlist?: (productId: string) => void;
   /** ?q= from the storefront URL (search sheet on the 2026 themes). */
   initialQuery?: string;
+  /** Builder, 2026 themes: elements inside rows and columns (layout-row sections). */
+  selectedElementId?: string | null;
+  onSelectElement?: (sectionId: string, elementId: string) => void;
+  onAddToColumn?: (sectionId: string, columnIndex: number) => void;
 }
 
 function hexToRgb(hex: string) {
@@ -780,6 +784,9 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       wishlistProductIds={props.wishlistProductIds ?? []}
       onToggleWishlist={props.onToggleWishlist}
       initialQuery={props.initialQuery}
+      selectedElementId={props.selectedElementId}
+      onSelectElement={props.onSelectElement}
+      onAddToColumn={props.onAddToColumn}
     />
   );
 }

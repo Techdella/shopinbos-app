@@ -8,6 +8,7 @@ import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
 import { classicPdpSchemaGroups, pdpSchemaGroups } from "./pdp-schema.ts";
 import { storeBlockMeta } from "../../storefront/boutique/blocks/block-catalog.ts";
+import { LAYOUT_ELEMENTS, LAYOUT_ROW_KIND } from "../../storefront/boutique/blocks/layout-logic.ts";
 
 export type FieldTarget =
   | { scope: "copy"; key: string }
@@ -76,7 +77,9 @@ export type SchemaField =
   | (FieldBase & { type: "repeater"; itemName: string; addLabel: string; max: number; fields: ItemField[]; template: Record<string, unknown>; titleKeys: string[] })
   /** The store-wide "Built with Shopinbos" badge switch (saved through /api/app/store/badge, not in the section). */
   | (FieldBase & { type: "badge" })
-  | (FieldBase & { type: "note" });
+  | (FieldBase & { type: "note" })
+  /** Rows, columns and grids: the column preset and each column's elements (layout-row sections). */
+  | (FieldBase & { type: "layoutColumns" });
 
 export interface FieldGroup {
   title?: string;
@@ -296,6 +299,17 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
   const block = storeBlockMeta(kind);
   if (block) return plain(block.schema(themeId));
   switch (kind) {
+    case LAYOUT_ROW_KIND:
+      return plain([
+        { fields: [{ id: "columns", type: "layoutColumns", label: "Columns" }] },
+        { title: "Row layout", fields: [
+          { id: "gap", type: "segmented", label: "Space between columns", target: setting("gap"), fallback: "medium", options: [{ value: "none", label: "None" }, { value: "small", label: "Small" }, { value: "medium", label: "Medium" }, { value: "large", label: "Large" }] },
+          { id: "align", type: "select", label: "Line up columns", target: setting("align"), fallback: "top", options: [{ value: "top", label: "Top" }, { value: "center", label: "Middle" }, { value: "bottom", label: "Bottom" }, { value: "stretch", label: "Same height" }] },
+          { id: "stackOnMobile", type: "toggle", label: "Stack columns on phones", target: setting("stackOnMobile"), fallback: true, help: "Off keeps two columns side by side on phones." },
+          { id: "background", type: "select", label: "Background", target: setting("background"), fallback: "none", options: [{ value: "none", label: "None" }, { value: "paper", label: "Page colour" }, { value: "card", label: "Card colour" }, { value: "accent", label: "Accent tint" }, { value: "dark", label: "Dark" }] },
+          { id: "padding", type: "segmented", label: "Space above and below", target: setting("padding"), fallback: "medium", options: [{ value: "none", label: "None" }, { value: "small", label: "Small" }, { value: "medium", label: "Medium" }, { value: "large", label: "Large" }] },
+        ] },
+      ], LAYOUT_ELEMENTS.map((element) => ({ id: `element:${element.type}`, label: element.label })));
     case "announcement-bar":
       return plain([{ fields: [area("text", "Message", { help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." }), sharedNote("announcement bar")] }]);
     case "header":

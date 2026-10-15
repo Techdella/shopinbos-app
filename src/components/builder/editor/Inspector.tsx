@@ -24,6 +24,8 @@ import type { BuilderProduct } from "./useBuilder";
 import { FieldShell, IconButton, inputClass, Menu, MenuItem, PillGroup, textareaClass } from "./ui";
 import { useEditorT } from "./i18n";
 import { moveInOrder, toggleInOrder } from "@/components/storefront/boutique/pdp/pdp-logic";
+import { LAYOUT_ROW_KIND, type LayoutElementType } from "@/components/storefront/boutique/blocks/layout-logic";
+import { LayoutColumnsField } from "./LayoutColumnsField";
 
 export type SectionAction = "duplicate" | "up" | "down" | "hide" | "remove";
 
@@ -54,6 +56,10 @@ export interface InspectorProps {
   onAddBlock: (blockId: string) => void;
   onClose?: () => void;
   compact?: boolean;
+  /** Rows and columns: the element picked on the canvas or in the panel. */
+  selectedElementId?: string | null;
+  onSelectElement?: (elementId: string | null) => void;
+  onAddLayoutElement?: (columnIndex: number, type: LayoutElementType) => void;
 }
 
 function writeTarget(section: TemplateSectionNode, target: FieldTarget, value: unknown): TemplateSectionNode {
@@ -180,7 +186,7 @@ export function Inspector(props: InspectorProps) {
             ))}
           </div>
         ))}
-        {props.tab === "settings" && schema.addable.length ? (
+        {props.tab === "settings" && schema.addable.length && section.kind !== LAYOUT_ROW_KIND ? (
           <div className="mt-2 border-t border-app-line pt-3">
             <h3 className="pb-2 text-[14px] font-bold text-app-ink">{tx("Add block")}</h3>
             <div className="flex flex-wrap gap-2">
@@ -439,6 +445,18 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
       return <ImageBlocksField section={section} sectionKey={sectionKey} {...props} />;
     case "items":
       return <ItemsField section={section} sectionKey={sectionKey} {...props} />;
+    case "layoutColumns":
+      return (
+        <LayoutColumnsField
+          section={section}
+          onChange={props.onChange}
+          products={props.products}
+          selectedElementId={props.selectedElementId ?? null}
+          onSelectElement={(elementId) => props.onSelectElement?.(elementId)}
+          onAddElement={(columnIndex, type) => props.onAddLayoutElement?.(columnIndex, type)}
+          renderLink={(link) => <LinkControl label={link.label} value={link.value} onChange={link.onChange} products={props.products} pageTypes={props.pageTypes} />}
+        />
+      );
     default:
       return null;
   }
