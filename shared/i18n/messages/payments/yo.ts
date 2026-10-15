@@ -245,9 +245,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.buySub": "Sanwó lẹ́ẹ̀kan pẹ̀lú káàdì, ìfiránṣẹ́ owó tàbí USSD nípasẹ̀ Paystack. Kírẹ́dítì kò ní parí.",
   "cr.badge.medium": "Èyí tí wọ́n fẹ́ràn jù",
   "cr.badge.large": "Ìye tó dára jù",
-  "cr.pack.small": "Small chops",
-  "cr.pack.medium": "Ọjọ́ ọjà",
-  "cr.pack.large": "Ìwọ̀n òwàmbẹ̀",
+  "cr.pack.small": "Àfikún kíákíá",
+  "cr.pack.medium": "Àpò iṣẹ́",
+  "cr.pack.large": "Àpò alágbára",
   "cr.credits": "kírẹ́dítì",
   "cr.each": "{price} fún kírẹ́dítì kan",
   "cr.buyPack": "Ra ní {price}",
@@ -281,6 +281,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.settingsLine": "{count, plural, other {Kírẹ́dítì # ló kù}}. Ra sí i kí Rex àti Peggy máa bá iṣẹ́ lọ.",
   "cr.topUp": "Fi kún un",
   "cr.fromPlan": "Láti inú ètò rẹ",
+  "cr.outLine": "Kírẹ́dítì rẹ ti tán. Ìpín ọ̀fẹ́ ojoojúmọ́ rẹ ṣì ń ṣiṣẹ́; ra àpò kan láti máa bá a lọ lẹ́yìn rẹ̀.",
 };
 
 export default yo;

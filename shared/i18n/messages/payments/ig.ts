@@ -245,9 +245,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.buySub": "Kwụọ otu ugboro site na kaadị, mbufe ego ma ọ bụ USSD site na Paystack. Kredit anaghị agwụ.",
   "cr.badge.medium": "Nke kacha ewu ewu",
   "cr.badge.large": "Uru kacha mma",
-  "cr.pack.small": "Small chops",
-  "cr.pack.medium": "Ụbọchị ahịa",
-  "cr.pack.large": "Nha owambe",
+  "cr.pack.small": "Mgbakwunye ngwa ngwa",
+  "cr.pack.medium": "Ngwugwu azụmahịa",
+  "cr.pack.large": "Ngwugwu ike",
   "cr.credits": "kredit",
   "cr.each": "{price} maka otu kredit",
   "cr.buyPack": "Zụta na {price}",
@@ -281,6 +281,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.settingsLine": "{count, plural, other {Kredit # fọdụrụ}}. Zụta ọzọ ka Rex na Peggy gaa n'ihu.",
   "cr.topUp": "Gbakwunye",
   "cr.fromPlan": "Site na atụmatụ gị",
+  "cr.outLine": "Kredit gị agwụla. Oke n'efu kwa ụbọchị gị ka na-arụ ọrụ; zụta ngwugwu ka ị gaa n'ihu mgbe ọ gwụchara.",
 };
 
 export default ig;

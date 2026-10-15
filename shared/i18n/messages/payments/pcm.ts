@@ -245,9 +245,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.buySub": "Pay once with card, transfer or USSD through Paystack. Credits no dey expire.",
   "cr.badge.medium": "Na dis one people like pass",
   "cr.badge.large": "Best value",
-  "cr.pack.small": "Small chops",
-  "cr.pack.medium": "Market day",
-  "cr.pack.large": "Owambe size",
+  "cr.pack.small": "Quick top-up",
+  "cr.pack.medium": "Business pack",
+  "cr.pack.large": "Power pack",
   "cr.credits": "credits",
   "cr.each": "{price} for one credit",
   "cr.buyPack": "Buy am {price}",
@@ -281,6 +281,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.settingsLine": "{count, plural, one {# credit remain} other {# credits remain}}. Buy more make Rex and Peggy continue after today allowance.",
   "cr.topUp": "Top up",
   "cr.fromPlan": "From your plan",
+  "cr.outLine": "Your credits don finish. Your free daily allowance still dey work; buy pack to continue after am.",
 };
 
 export default pcm;
