@@ -71,7 +71,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/collections/[id]", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","products","rex","seo","settings","shell","support","tour","ui","verification"]],
   ["/home/commerce/cart", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],
   ["/home/credits", ["auth","common","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
-  ["/home/customers", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/home/customers", ["auth","common","customers","emailBuilder","glossary","help","inbox","introTitles","learn","nav","notifications","orders","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/discounts", ["auth","common","discounts","emailBuilder","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/domain", ["auth","common","domain","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/dropship", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
