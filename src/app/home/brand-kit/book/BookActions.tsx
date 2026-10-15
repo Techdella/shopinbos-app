@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { PillButton, Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
-import { creditsChanged } from "@/components/credits/CreditsBadge";
+import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { bookToThemeTokens, type BrandBook } from "@shared/brand-book";
 
 async function readError(response: Response, fallback: string) {
-  const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-  return json?.error?.message ?? fallback;
+  const json = (await response.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+  return Object.assign(new Error(json?.error?.message ?? fallback), { code: json?.error?.code });
 }
+
+const needsCredits = (error: unknown) => isCreditsError((error as { code?: string } | null)?.code);
 
 /** Style book toolbar: make or remake it with Rex (with an optional direction), use its colours, print. */
 export function BookActions({ hasBook, colours, headingStyle }: { hasBook: boolean; colours: BrandBook["colours"] | null; headingStyle: "serif" | "grotesk" | null }) {
@@ -19,18 +21,18 @@ export function BookActions({ hasBook, colours, headingStyle }: { hasBook: boole
   const router = useRouter();
   const [direction, setDirection] = useState("");
   const [busy, setBusy] = useState<null | "make" | "apply">(null);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string; credits?: boolean } | null>(null);
 
   async function make() {
     setBusy("make");
     setNote(null);
     try {
       const response = await fetch("/api/ai/brand-book", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ direction: direction.trim() || undefined }) });
-      if (!response.ok) throw new Error(await readError(response, t("book.failed")));
+      if (!response.ok) throw await readError(response, t("book.failed"));
       setDirection("");
       router.refresh();
     } catch (error) {
-      setNote({ ok: false, text: error instanceof Error ? error.message : t("book.failed") });
+      setNote({ ok: false, text: error instanceof Error ? error.message : t("book.failed"), credits: needsCredits(error) });
     } finally {
       setBusy(null);
       creditsChanged();
@@ -47,7 +49,7 @@ export function BookActions({ hasBook, colours, headingStyle }: { hasBook: boole
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ops: [{ op: "update-theme", changes: bookToThemeTokens(colours, headingStyle ?? undefined) }] }),
       });
-      if (!response.ok) throw new Error(await readError(response, t("book.failed")));
+      if (!response.ok) throw await readError(response, t("book.failed"));
       setNote({ ok: true, text: t("book.applied") });
     } catch (error) {
       setNote({ ok: false, text: error instanceof Error ? error.message : t("book.failed") });
@@ -81,6 +83,7 @@ export function BookActions({ hasBook, colours, headingStyle }: { hasBook: boole
         </>
       ) : null}
       {note ? <p role="status" className={note.ok ? "m-0 w-full text-right text-[13px] font-bold text-app-success" : "m-0 w-full text-right text-[13px] font-bold text-app-danger"}>{note.text}</p> : null}
+      {note?.credits ? <BuyCreditsButton /> : null}
     </div>
   );
 }

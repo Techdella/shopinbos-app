@@ -9,6 +9,15 @@ import type { AiChatAssistant } from "@shared/ai-chats";
 // Saved Rex and Peggy chats (/api/app/ai-chats): the conversation saves itself after each answer, and the History
 // menu reopens an old one or starts a new one.
 
+interface Creation {
+  id: string;
+  url: string;
+  kind: "logo" | "image" | "edit" | "banner" | "video";
+  createdAt: string;
+}
+
+type CreationFilter = "all" | "logo" | "image";
+
 interface ChatSummary {
   id: string;
   title: string;
@@ -58,7 +67,10 @@ export function useChatAutosave(assistant: AiChatAssistant, messages: unknown[],
   return { chatId, adopt };
 }
 
-/** "History" button with the saved chats: tap one to reopen it, or start a new chat. */
+/**
+ * "History" button with the saved chats: tap one to reopen it, or start a new chat. With `creations` (Rex) a
+ * second tab shows the logos and pictures made so far, to download or use again.
+ */
 export function ChatHistoryMenu({
   assistant,
   currentId,
@@ -66,6 +78,8 @@ export function ChatHistoryMenu({
   onNew,
   className,
   tone = "light",
+  creations = false,
+  onUseCreation,
 }: {
   assistant: AiChatAssistant;
   currentId: string | null;
@@ -73,6 +87,9 @@ export function ChatHistoryMenu({
   onNew: () => void;
   className?: string;
   tone?: "light" | "plain";
+  creations?: boolean;
+  /** "Use with Rex": attach the picture to the chat box. */
+  onUseCreation?: (url: string) => void;
 }) {
   const t = useT("common");
   const locale = useLocale();
@@ -80,7 +97,25 @@ export function ChatHistoryMenu({
   const [chats, setChats] = useState<ChatSummary[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"chats" | "creations">("chats");
+  const [filter, setFilter] = useState<CreationFilter>("all");
+  const [made, setMade] = useState<Creation[] | null>(null);
+  const [picked, setPicked] = useState<Creation | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || tab !== "creations") return;
+    let cancelled = false;
+    setMade(null);
+    setPicked(null);
+    fetch(`/api/app/ai-creations?limit=36${filter === "all" ? "" : `&kind=${filter}`}`)
+      .then((response) => readJson<Creation[]>(response))
+      .then((list) => !cancelled && setMade(list))
+      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, tab, filter, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -144,7 +179,7 @@ export function ChatHistoryMenu({
         <span className="sr-only sm:hidden">{t("chats.history")}</span>
       </button>
       {open ? (
-        <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-[min(320px,calc(100vw-32px))] rounded-[18px] border border-app-line bg-white p-1.5 text-left shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
+        <div role="menu" className={cx("absolute right-0 top-full z-40 mt-2 rounded-[18px] border border-app-line bg-white p-1.5 text-left shadow-[0_18px_50px_rgba(22,20,31,0.14)]", creations ? "w-[min(380px,calc(100vw-32px))]" : "w-[min(320px,calc(100vw-32px))]")}>
           <button
             type="button"
             role="menuitem"
@@ -157,8 +192,97 @@ export function ChatHistoryMenu({
             <Icon name="plus" size={16} /> {t("chats.new")}
           </button>
           <div className="my-1 border-t border-app-line" />
+          {creations ? (
+            <div role="tablist" aria-label={t("chats.history")} className="mx-1 mb-1 grid grid-cols-2 gap-1 rounded-full bg-app-canvas p-1">
+              {(["chats", "creations"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === key}
+                  onClick={() => setTab(key)}
+                  className={cx("min-h-[34px] rounded-full text-[13px] font-bold", tab === key ? "bg-white shadow-sm" : "text-app-ink-soft")}
+                >
+                  {key === "chats" ? t("chats.tabChats") : t("chats.tabMade")}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {creations && tab === "creations" ? (
+            <div className="px-1.5 pb-1.5">
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {(["all", "logo", "image"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={filter === key}
+                    onClick={() => setFilter(key)}
+                    className={cx("min-h-[30px] rounded-full border px-3 text-[12.5px] font-bold", filter === key ? "border-app-ink bg-app-ink text-white" : "border-app-line hover:border-app-line-strong")}
+                  >
+                    {t(`chats.made.${key}`)}
+                  </button>
+                ))}
+              </div>
+              {picked ? (
+                <div className="mb-2 rounded-[14px] border border-app-line p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={picked.url} alt={t(`chats.kind.${picked.kind}`)} className="max-h-[220px] w-full rounded-[10px] bg-app-canvas object-contain" />
+                  <p className="m-0 mt-1.5 text-[12px] text-app-ink-soft">{t(`chats.kind.${picked.kind}`)} · {when(picked.createdAt)}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {onUseCreation && picked.kind !== "video" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUseCreation(picked.url);
+                          setOpen(false);
+                        }}
+                        className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full bg-app-ink px-3 text-[12.5px] font-bold text-white"
+                      >
+                        <Icon name="sparkle" size={13} /> {t("chats.useWithRex")}
+                      </button>
+                    ) : null}
+                    <a href={picked.url} download target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline">
+                      <Icon name="download" size={13} /> {t("chats.download")}
+                    </a>
+                    {picked.kind === "logo" ? (
+                      <a href="/home/brand-kit" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline">
+                        <Icon name="tag" size={13} /> {t("chats.brandKit")}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+              {made === null && !error ? (
+                <p className="m-0 flex items-center gap-2 px-1.5 py-3 text-[13px] text-app-ink-soft"><Spinner className="h-4 w-4" /> {t("chats.loading")}</p>
+              ) : made?.length === 0 ? (
+                <p className="m-0 px-1.5 py-3 text-[13px] text-app-ink-soft">{t("chats.madeEmpty")}</p>
+              ) : (
+                <ul className="m-0 grid max-h-[300px] list-none grid-cols-3 gap-1.5 overflow-y-auto p-0">
+                  {made?.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => setPicked(item)}
+                        aria-label={`${t(`chats.kind.${item.kind}`)}, ${when(item.createdAt)}`}
+                        className={cx("relative block aspect-square w-full overflow-hidden rounded-[10px] border-2 bg-app-canvas", picked?.id === item.id ? "border-app-ink" : "border-transparent")}
+                      >
+                        {item.kind === "video" ? (
+                          <video src={item.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.url} alt="" loading="lazy" className={cx("h-full w-full", item.kind === "logo" ? "bg-white object-contain p-1" : "object-cover")} />
+                        )}
+                        <span className="absolute bottom-1 left-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold">{t(`chats.kind.${item.kind}`)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <a href="/home/media" className="mt-2 block px-1.5 text-[12.5px] font-bold text-app-ink underline underline-offset-2">{t("chats.allMedia")}</a>
+            </div>
+          ) : null}
           {error ? <p className="m-0 px-3 py-2 text-[13px] text-app-danger">{error}</p> : null}
-          {chats === null && !error ? (
+          {creations && tab === "creations" ? null : chats === null && !error ? (
             <p className="m-0 flex items-center gap-2 px-3 py-3 text-[13px] text-app-ink-soft"><Spinner className="h-4 w-4" /> {t("chats.loading")}</p>
           ) : chats?.length === 0 ? (
             <p className="m-0 px-3 py-3 text-[13px] text-app-ink-soft">{t("chats.empty")}</p>

@@ -1746,6 +1746,7 @@ const en = {
   "rex.br.icon": "Logo icon",
   "rex.br.favicon": "Favicon",
   "rex.br.print": "Print studio",
+  "rex.br.display": "Store header",
   "rex.br.useIcon": "Use as logo icon",
   "rex.br.useFavicon": "Use as favicon",
   "rex.br.openPrint": "Open and print",

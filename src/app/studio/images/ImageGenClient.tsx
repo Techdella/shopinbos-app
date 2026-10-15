@@ -1,6 +1,6 @@
 "use client";
 
-import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
+import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
@@ -57,6 +57,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<{ url: string; style: string | null; size: string; usedLogo: boolean } | null>(null);
   const [error, setError] = useState("");
+  const [needCredits, setNeedCredits] = useState(false);
   const [note, setNote] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
   const [pictures, setPictures] = useState<{ used: number; limit: number } | null>(null);
@@ -72,6 +73,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
     if (!p) return;
     setLoading(true);
     setError("");
+    setNeedCredits(false);
     setNote("");
     setImage(null);
     try {
@@ -83,6 +85,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
       const data = await res.json();
       if (!res.ok) {
         setError(data.error?.message ?? t("img.failed"));
+        setNeedCredits(isCreditsError(data.error?.code));
         return;
       }
       setImage({ ...data.image, usedLogo: Boolean(data.usedLogo) });
@@ -107,6 +110,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
     }
     setUploading(true);
     setError("");
+    setNeedCredits(false);
     try {
       for (const file of Array.from(files)) {
         if (room <= 0) break;
@@ -355,11 +359,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
 
         {note && <Notice>{note}</Notice>}
         {error && <Notice>{error}</Notice>}
-        {error.includes("/home/credits") ? (
-          <Link href="/home/credits" onClick={(event) => { if (openTopUp()) event.preventDefault(); }} className="inline-flex min-h-[44px] w-fit items-center gap-1.5 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">
-            <Icon name="sparkle" size={15} /> {t("img.buyCredits")}
-          </Link>
-        ) : null}
+        {error && needCredits ? <BuyCreditsButton className="min-h-[44px] px-5 text-[14px]" label={t("img.buyCredits")} /> : null}
       </div>
     </div>
   );

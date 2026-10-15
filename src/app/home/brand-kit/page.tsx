@@ -1,5 +1,7 @@
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { BrandAssetsPanel } from "./BrandAssets";
+import { LogoDisplayPanel } from "./LogoDisplay";
+import { readLogoDisplay } from "@shared/store-logo";
 import { readBrandAssets } from "@shared/brand-assets";
 import { readBrandBook } from "@shared/brand-book";
 import Link from "next/link";
@@ -119,6 +121,8 @@ export default async function BrandKitPage() {
           </figure>
 
           <BrandAssetsPanel initial={readBrandAssets(store)} storeName={store.name} accent={accent} fileBase={fileBase} />
+
+          <LogoDisplayPanel initial={readLogoDisplay(store.brandSettings)} logoUrl={store.logoUrl} brandSettings={store.brandSettings} storeName={store.name} />
 
           <Card className="p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">

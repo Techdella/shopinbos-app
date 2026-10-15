@@ -7,13 +7,14 @@ import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront/shopper/StoreFooterBadges";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { BoutiqueLook } from "./look";
+import { StoreBrandMark } from "../StoreBrandMark";
 
 export interface ChromeStore {
   name: string;
   logoUrl?: string | null;
   city?: string | null;
   country?: string | null;
-  /** For the logo's dark-background version (brandSettings.logoVariants). */
+  /** For the logo icon, how the header shows the brand and the dark-background logo (Brand kit). */
   brandSettings?: unknown;
 }
 
@@ -48,10 +49,15 @@ export function headerBackground(look: BoutiqueLook, bold: boolean) {
 function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean }) {
   return (
     <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: "inherit", cursor: "pointer" }} aria-label={`${store.name} home`}>
-      <StoreLogo store={store} background={headerBackground(look, Boolean(bold))} under={look.tokens.paperBg} dark={bold || look.dark} className="h-9 w-9 shrink-0 rounded-[8px]" />
-      <span className={bold ? "truncate text-[24px] leading-none @3xl:text-[28px]" : "truncate text-[22px] leading-none @3xl:text-[24px]"} style={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}>
-        {logoText}
-      </span>
+      <StoreBrandMark
+        store={store}
+        background={headerBackground(look, Boolean(bold))}
+        under={look.tokens.paperBg}
+        dark={bold || look.dark}
+        name={logoText}
+        nameClassName={bold ? "text-[24px] leading-none @3xl:text-[28px]" : "text-[22px] leading-none @3xl:text-[24px]"}
+        nameStyle={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}
+      />
     </button>
   );
 }
@@ -203,13 +209,13 @@ export function BoutiqueHeader({
   return (
     <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
-        <div className="bq-wrap grid h-[68px] grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="bq-wrap grid min-h-[68px] py-1.5 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0">{nav}</div>
           <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred bold={bold} />
           {tools}
         </div>
       ) : (
-        <div className="bq-wrap flex h-[68px] items-center justify-between gap-4">
+        <div className="bq-wrap flex min-h-[68px] py-1.5 items-center justify-between gap-4">
           <Logo store={store} logoText={logoText} look={look} onHome={onHome} bold={bold} />
           {nav}
           {tools}

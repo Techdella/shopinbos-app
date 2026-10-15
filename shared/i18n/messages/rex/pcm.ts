@@ -183,6 +183,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "logo.usingIt": "E don save as your store logo",
   "logo.seeStore": "See am for my store",
   "logo.brandKit": "Brand kit",
+  "logo.howShows": "Logo size and style for my store",
   "logo.dashboard": "Dashboard",
   "logo.moreLike": "More like this",
   "logo.newIdeas": "New ideas",

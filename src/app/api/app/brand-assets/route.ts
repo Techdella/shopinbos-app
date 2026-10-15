@@ -3,14 +3,16 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { isOwnImageUrl } from "@/lib/ai/images";
 import { db } from "@/lib/db/client";
-import { setBrandAsset } from "@/lib/brand-assets.server";
+import { setBrandAsset, setLogoDisplay } from "@/lib/brand-assets.server";
+import { isLogoSize, isLogoStyle } from "@shared/store-logo";
 import { BRAND_ASSET_KINDS, readBrandAssets, type BrandAssetKind } from "@shared/brand-assets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // The store's logo, logo icon, favicon and logo for dark backgrounds (Brand kit, the builder's header and footer).
-// GET reads them; PATCH { kind, url } sets one (a picture already in our storage, e.g. uploaded or made by Rex);
+// GET reads them; PATCH { logoDisplay: { style, size } } sets how the store header shows the brand;
+// PATCH { kind, url } sets one (a picture already in our storage, e.g. uploaded or made by Rex);
 // url null clears the icon or favicon (they fall back to the logo) or the dark logo (the automatic one is used).
 export const GET = withSeller(async (_req: NextRequest, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { logoUrl: true, brandSettings: true } });
@@ -19,7 +21,14 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
 });
 
 export const PATCH = withSeller(async (req: NextRequest, { user }) => {
-  const body = (await req.json().catch(() => null)) as { kind?: unknown; url?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { kind?: unknown; url?: unknown; logoDisplay?: { style?: unknown; size?: unknown } } | null;
+  if (body?.logoDisplay) {
+    const { style, size } = body.logoDisplay;
+    if (!isLogoStyle(style) || !isLogoSize(size)) return apiError("BAD_REQUEST", "Pick a logo style and size.");
+    const saved = await setLogoDisplay(user.id, { style, size });
+    if (!saved) return apiError("NOT_FOUND", "Set up your store first.", 404);
+    return ok(saved);
+  }
   const kind = body?.kind as BrandAssetKind;
   if (!BRAND_ASSET_KINDS.includes(kind)) return apiError("BAD_REQUEST", "Say which picture: logo, icon or favicon.");
   const url = body?.url === null ? null : typeof body?.url === "string" ? body.url.trim() : undefined;

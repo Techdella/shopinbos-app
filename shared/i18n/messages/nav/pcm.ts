@@ -195,6 +195,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "credits.topUp": "Top up",
   "credits.autoOnBuy": "Top me up by itself when credits finish (max 3 times a day)",
   "credits.manage": "Manage credits and history",
+  "credits.buyTitle": "Buy AI credits",
+  "credits.youHave": "{count, plural, other {You get # credits}}",
+  "credits.close": "Close am",
+  "credits.packCredits": "{count, plural, other {# credits}}",
+  "credits.loading": "Packs dey load…",
+  "credits.paystack": "Safe payment with Paystack",
+  "credits.buyButton": "Buy credits",
+  "credits.pack.small": "Small top-up",
+  "credits.pack.medium": "Business pack",
+  "credits.pack.large": "Power pack",
+  "credits.badge.medium": "Na im people like pass",
+  "credits.badge.large": "Best value",
 };
 
 export default pcm;

@@ -333,7 +333,7 @@ function BrandCard({ card }: { card: Extract<RexCard, { type: "brand" }> } & Rex
       <div className="flex items-start gap-3">
         {card.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={card.image} alt={card.title} className="h-20 w-20 shrink-0 rounded-[16px] border border-app-line object-cover" />
+          <img src={card.image} alt={card.title} className={cx("h-20 w-20 shrink-0 rounded-[16px] border border-app-line", card.kind === "display" ? "bg-white object-contain p-1.5" : "object-cover")} />
         ) : (
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-app-peach"><Icon name={icon} size={17} /></span>
         )}
@@ -357,7 +357,7 @@ function BrandCard({ card }: { card: Extract<RexCard, { type: "brand" }> } & Rex
         <Link href={card.href} className={card.kind === "print" || card.kind === "book" ? primary : secondary}>
           {card.kind === "print" ? t("rex.br.openPrint") : card.kind === "book" ? t("rex.br.openBook") : t("rex.br.openKit")}
         </Link>
-        {card.image ? (
+        {card.image && card.kind !== "display" ? (
           <a href={card.image} target="_blank" rel="noopener noreferrer" download className={secondary}><Icon name="download" size={15} /> {t("rex.cd.download")}</a>
         ) : null}
       </div>

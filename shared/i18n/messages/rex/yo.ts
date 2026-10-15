@@ -183,6 +183,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "logo.usingIt": "A ti fi pamọ́ gẹ́gẹ́ bí lógò ilé-ìtajà rẹ",
   "logo.seeStore": "Wò ó lórí ilé-ìtajà mi",
   "logo.brandKit": "Àmì-ìdánimọ̀",
+  "logo.howShows": "Ìwọ̀n àti ọ̀nà àmì lórí ilé ìtajà mi",
   "logo.dashboard": "Pátákó",
   "logo.moreLike": "Púpọ̀ sí i bí èyí",
   "logo.newIdeas": "Èrò tuntun",

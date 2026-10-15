@@ -121,6 +121,14 @@ export function aiImageOwner(path: string): string | null {
   return match ? match[1]! : null;
 }
 
+export type AiCreationKind = "logo" | "image" | "edit" | "banner";
+
+/** What Rex made, from the picture's storage path (Rex's History > Creations). */
+export function aiCreationKind(path: string | null | undefined): AiCreationKind {
+  const folder = (path ?? "").split("/")[0];
+  return folder === "logos" ? "logo" : folder === "banners" ? "banner" : folder === "enhanced" ? "edit" : "image";
+}
+
 /**
  * A title or alt text as saved: control characters, line breaks and angle brackets become spaces, runs of spaces
  * collapse, ends are trimmed, and it is cut to `max`. Empty (or not a string) is null, which clears it.

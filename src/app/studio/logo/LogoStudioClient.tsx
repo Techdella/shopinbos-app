@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { uploadStudioPhoto } from "@/components/builder/rex/api";
 import { isVideoFile, videoFrames } from "@/components/builder/rex/video-frames";
-import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
+import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { Icon } from "@/components/ui/Icon";
 import { FieldLabel, Notice, PillButton, Spinner, TextInput, cx } from "@/components/app-ui";
 import { AssistantNote, Pill } from "@/components/app-kit";
@@ -44,6 +44,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [round, setRound] = useState(0);
   const [error, setError] = useState("");
+  const [needCredits, setNeedCredits] = useState(false);
   const [chosen, setChosen] = useState<LogoResult | null>(null);
   const [storeLogo, setStoreLogo] = useState<string | null>(currentLogo);
   const [saving, setSaving] = useState(false);
@@ -55,6 +56,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
     const nextRound = likeUrl ? round : round + 1;
     setLoading(likeUrl ? "like" : "ideas");
     setError("");
+    setNeedCredits(false);
     try {
       const res = await fetch("/api/ai/generate-logo", {
         method: "POST",
@@ -72,6 +74,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
       const data = await res.json();
       if (!res.ok) {
         setError(data.error?.message ?? t("logo.failed"));
+        setNeedCredits(isCreditsError(data.error?.code));
         return;
       }
       setRound(nextRound);
@@ -94,6 +97,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
     if (room <= 0) return;
     setUploading(true);
     setError("");
+    setNeedCredits(false);
     try {
       for (const file of Array.from(files)) {
         if (room <= 0) break;
@@ -116,6 +120,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
   async function useAsLogo(logo: LogoResult) {
     setSaving(true);
     setError("");
+    setNeedCredits(false);
     try {
       const res = await fetch("/api/app/store", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logoUrl: logo.url }) });
       if (!res.ok) throw new Error();
@@ -241,7 +246,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
               {credits !== null ? (
                 <p className="m-0">
                   {t("studio.credits", { count: credits })} ·{" "}
-                  <Link href="/home/credits" onClick={(event) => { if (openTopUp()) event.preventDefault(); }} className="font-bold text-app-ink underline underline-offset-2">{t("logo.topUp")}</Link>
+                  <BuyCreditsButton variant="link" label={t("logo.topUp")} />
                 </p>
               ) : null}
             </div>
@@ -249,6 +254,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
         </section>
 
         {error && <Notice>{error}</Notice>}
+        {error && needCredits ? <BuyCreditsButton className="mx-auto min-h-[44px] px-5 text-[14px]" /> : null}
 
         <AssistantNote who="rex">
           <strong>{t("logo.tipLead")}</strong> {t("logo.tip")}
@@ -295,6 +301,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
               <li className="flex flex-wrap items-center gap-2">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-canvas text-[12px] font-extrabold">2</span>
                 <Link href="/studio?preview=1" className={nextLink}><Icon name="eye" size={14} /> {t("logo.seeStore")}</Link>
+                <Link href="/home/brand-kit#logo-display" className={nextLink}><Icon name="layers" size={14} /> {t("logo.howShows")}</Link>
                 <Link href="/home/brand-kit" className={nextLink}><Icon name="tag" size={14} /> {t("logo.brandKit")}</Link>
                 <Link href="/home" className={nextLink}><Icon name="home" size={14} /> {t("logo.dashboard")}</Link>
               </li>

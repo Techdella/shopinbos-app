@@ -1490,6 +1490,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rex.br.icon": "Akara logo",
   "rex.br.favicon": "Favicon",
   "rex.br.print": "Ụlọ mbipụta",
+  "rex.br.display": "Isi ụlọ ahịa",
   "rex.br.useIcon": "Jiri ya dị ka akara logo",
   "rex.br.useFavicon": "Jiri ya dị ka favicon",
   "rex.br.openPrint": "Mepee wee bipụta",

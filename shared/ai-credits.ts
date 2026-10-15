@@ -86,6 +86,6 @@ export function creditsUrlFor(role: string | null | undefined) {
 }
 
 /** The message when the allowance and credits are both used up. */
-export function outOfCreditsMessage(limitWords: string, cost: number, balance: number, url = "/home/credits") {
-  return `You've used today's ${limitWords}${balance > 0 ? ` and this needs ${cost} credits (you have ${balance})` : ""}. Buy AI credits at ${url} to carry on right now, or wait for your allowance to reset.`;
+export function outOfCreditsMessage(limitWords: string, cost: number, balance: number) {
+  return `You've used today's ${limitWords}${balance > 0 ? ` and this needs ${cost} credits (you have ${balance})` : ""}. Buy AI credits to carry on right now, or wait for your allowance to reset.`;
 }

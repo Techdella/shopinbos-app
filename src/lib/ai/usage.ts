@@ -59,7 +59,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
       if (left === null) {
         const balance = await creditBalance(userId);
         return NextResponse.json(
-          { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(`${limit} ${KIND_WORD[kind]}`, cost, balance, creditsUrlFor(user?.role)), buyUrl: creditsUrlFor(user?.role), cost, balance } },
+          { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(`${limit} ${KIND_WORD[kind]}`, cost, balance), buyUrl: creditsUrlFor(user?.role), cost, balance } },
           { status: 402 },
         );
       }

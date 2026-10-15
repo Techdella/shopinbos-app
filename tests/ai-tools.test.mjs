@@ -463,6 +463,7 @@ const REX_VALID = {
   cms_write_item: { collection: "Blog", brief: "How to tie a gele", title: null },
   create_brand_book: { direction: null, applyColours: null },
   make_brand_icon: { kind: "favicon" },
+  set_logo_display: { style: "logo", size: "large" },
   make_print_labels: { kind: "tag", products: ["pa1"], headline: "Handmade in Lagos", note: null, qr: "product", copies: 2 },
 };
 

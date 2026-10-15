@@ -8,6 +8,7 @@ import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnIma
 import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-book.server";
 import { bookToThemeTokens } from "@shared/brand-book";
 import { PRINT_SPECS } from "@shared/print-labels";
+import { readLogoDisplay } from "@shared/store-logo";
 import { loadBrandContext } from "@/lib/ai/brand-context.server";
 import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
@@ -59,14 +60,16 @@ export interface RexToolOutput {
 
 /** A problem the model should hear about (and can usually fix or explain), sent back as an error result. */
 export class RexToolError extends Error {}
+/** The allowance and credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
+export class RexCreditsError extends RexToolError {}
 
 const money = (amount: number) => naira(Number(amount) || 0);
 
 async function meter(ctx: RexToolContext, kind: AiKind, units = 1) {
   const limited = await meterAi(ctx.userId, kind, units);
   if (!limited) return;
-  const body = (await limited.json().catch(() => null)) as { error?: { message?: string } } | null;
-  throw new RexToolError(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
+  const body = (await limited.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+  throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
 }
 
 async function logActivity(ctx: RexToolContext, event: { type: string; title: string; description?: string; tool: RexToolName; link?: string; data?: Record<string, unknown> }) {
@@ -512,6 +515,22 @@ async function makeBrandIcon(ctx: RexToolContext, input: RexToolInput<"make_bran
   };
 }
 
+const LOGO_STYLE_WORDS = { logo_text: "the logo with the store name beside it", logo: "the full logo on its own", icon_text: "the logo icon with the store name", icon: "the logo icon on its own", text: "the store name only" } as const;
+
+async function setLogoDisplay(ctx: RexToolContext, input: RexToolInput<"set_logo_display">): Promise<RexToolOutput> {
+  const store = await db.store.findUnique({ where: { id: ctx.storeId }, select: { brandSettings: true, logoUrl: true } });
+  if (!store) throw new RexToolError("The store couldn't be loaded.");
+  const settings = store.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings) ? (store.brandSettings as Record<string, unknown>) : {};
+  const current = readLogoDisplay(settings);
+  const next = { style: input.style ?? current.style, size: input.size ?? current.size };
+  await db.store.update({ where: { id: ctx.storeId }, data: { brandSettings: { ...settings, logoDisplay: next } as Prisma.InputJsonValue } });
+  const noLogo = next.style !== "text" && !store.logoUrl ? " The store has no logo yet, so the name shows until one is added (offer generate_logo)." : "";
+  return {
+    content: `The store header now shows ${LOGO_STYLE_WORDS[next.style]}, ${next.size} size, live on the store already (no publish needed). The seller can change it any time in Brand kit.${noLogo}`,
+    card: { type: "brand", kind: "display", title: "Logo on your store", summary: `${LOGO_STYLE_WORDS[next.style][0].toUpperCase()}${LOGO_STYLE_WORDS[next.style].slice(1)}, ${next.size}.`, href: "/home/brand-kit", image: store.logoUrl ?? null },
+  };
+}
+
 async function makePrintLabels(ctx: RexToolContext, input: RexToolInput<"make_print_labels">): Promise<RexToolOutput> {
   const ids: string[] = [];
   const names: string[] = [];
@@ -564,6 +583,7 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   improve_email_copy: improveEmailCopy,
   create_brand_book: createBrandBook,
   make_brand_icon: makeBrandIcon,
+  set_logo_display: setLogoDisplay,
   make_print_labels: makePrintLabels,
 };
 

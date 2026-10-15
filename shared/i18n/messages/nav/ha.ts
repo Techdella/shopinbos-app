@@ -195,6 +195,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "credits.topUp": "Ƙara",
   "credits.autoOnBuy": "Ƙara mini ta atomatik idan kiredit sun ƙare (sau 3 a rana a mafi yawa)",
   "credits.manage": "Sarrafa kiredit da tarihi",
+  "credits.buyTitle": "Sayi kiredit na AI",
+  "credits.youHave": "{count, plural, other {Kana da kiredit #}}",
+  "credits.close": "Rufe",
+  "credits.packCredits": "{count, plural, other {kiredit #}}",
+  "credits.loading": "Ana loda fakiti…",
+  "credits.paystack": "Biya mai tsaro ta Paystack",
+  "credits.buyButton": "Sayi kiredit",
+  "credits.pack.small": "Ƙaramin ƙari",
+  "credits.pack.medium": "Fakitin kasuwanci",
+  "credits.pack.large": "Fakitin ƙarfi",
+  "credits.badge.medium": "Wanda aka fi so",
+  "credits.badge.large": "Mafi araha",
 };
 
 export default ha;

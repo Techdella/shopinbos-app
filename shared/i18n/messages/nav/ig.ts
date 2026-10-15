@@ -195,6 +195,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "credits.topUp": "Gbakwunye",
   "credits.autoOnBuy": "Gbakwunye m n'onwe ya mgbe kredit gwụrụ (ugboro 3 kachasị n'ụbọchị)",
   "credits.manage": "Jikwaa kredit na akụkọ",
+  "credits.buyTitle": "Zụta kredit AI",
+  "credits.youHave": "{count, plural, other {Ị nwere kredit #}}",
+  "credits.close": "Mechie",
+  "credits.packCredits": "{count, plural, other {kredit #}}",
+  "credits.loading": "Ngwugwu na-ebu…",
+  "credits.paystack": "Ịkwụ ụgwọ nchekwa site na Paystack",
+  "credits.buyButton": "Zụta kredit",
+  "credits.pack.small": "Mgbakwunye ngwa ngwa",
+  "credits.pack.medium": "Ngwugwu azụmahịa",
+  "credits.pack.large": "Ngwugwu ike",
+  "credits.badge.medium": "Nke a kacha amasị",
+  "credits.badge.large": "Uru kachasị mma",
 };
 
 export default ig;

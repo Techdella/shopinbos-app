@@ -2682,7 +2682,8 @@ test("AI credits: packs, costs and an auto top-up that can't run away", async ()
   assert.equal(c.shouldAutoTopUp({ ...base, hasCard: false }), false);
   assert.equal(c.shouldAutoTopUp({ ...base, autoChargesToday: c.AUTO_TOP_UP_PER_DAY }), false, "capped per day");
   assert.equal(c.shouldAutoTopUp({ ...base, packId: "small", need: 500 }), false, "a pack that can't cover it isn't bought");
-  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /Buy AI credits to carry on/);
+  assert.doesNotMatch(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
 });
 
 test("Rex and Peggy chats save with a title from the seller's first words, within limits", async () => {
@@ -3029,7 +3030,6 @@ test("Suppliers buy and are pointed to AI credits in their own portal", async ()
   const c = await import("../shared/ai-credits.ts");
   assert.equal(c.creditsUrlFor("supplier"), "/supplier/credits");
   assert.equal(c.creditsUrlFor("seller"), "/home/credits");
-  assert.match(c.outOfCreditsMessage("8 images", 5, 0, "/supplier/credits"), /\/supplier\/credits/);
   assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
 });
 
@@ -3088,6 +3088,29 @@ test("Style book colours become readable store colours; brand marks fall back to
   const icon = "https://x.supabase.co/storage/v1/object/public/brand/icon.png";
   assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: icon } }).shown.favicon, icon, "favicon falls back to the icon first");
   assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: "javascript:x" } }).icon, null);
+});
+
+test("Rex's creations are labelled by what he made", async () => {
+  const m = await import("../shared/media.ts");
+  assert.equal(m.aiCreationKind("logos/user_123456/logo-1.webp"), "logo");
+  assert.equal(m.aiCreationKind("enhanced/user_123456/x.webp"), "edit");
+  assert.equal(m.aiCreationKind("banners/user_123456/x.webp"), "banner");
+  assert.equal(m.aiCreationKind("generated/user_123456/x.webp"), "image");
+  assert.equal(m.aiCreationKind(null), "image");
+});
+
+test("The store header shows the logo, icon or name the seller picked, never nothing", async () => {
+  const l = await import("../shared/store-logo.ts");
+  const logo = "https://x.supabase.co/storage/v1/object/public/brand/logo.png";
+  const icon = "https://x.supabase.co/storage/v1/object/public/brand/icon.png";
+  assert.deepEqual(l.readLogoDisplay({}), { style: "logo_text", size: "medium" });
+  assert.deepEqual(l.readLogoDisplay({ logoDisplay: { style: "nope", size: "large" } }), { style: "logo_text", size: "large" });
+  const store = { logoUrl: logo, brandSettings: { logoIcon: icon, logoDisplay: { style: "logo", size: "large" } } };
+  assert.deepEqual(l.storeLogoView(store), { image: logo, shape: "logo", height: 60, showName: false });
+  assert.deepEqual(l.storeLogoView(store, { style: "icon_text", size: "small" }), { image: icon, shape: "icon", height: 32, showName: true });
+  assert.equal(l.storeLogoView({ logoUrl: logo, brandSettings: {} }, { style: "icon", size: "medium" }).image, logo, "no icon: the logo stands in");
+  assert.deepEqual(l.storeLogoView({ logoUrl: null }, { style: "logo", size: "medium" }), { image: null, shape: null, height: 44, showName: true }, "no picture: the name shows");
+  assert.equal(l.storeLogoView(store, { style: "text", size: "medium" }).image, null);
 });
 
 test("builder status: publishing's own SEO defaults aren't unpublished changes; a closed store shows offline", async () => {

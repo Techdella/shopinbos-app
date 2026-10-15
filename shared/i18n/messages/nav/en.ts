@@ -197,6 +197,18 @@ const en = {
   "credits.topUp": "Top up",
   "credits.autoOnBuy": "Top me up automatically when credits run out (max 3 times a day)",
   "credits.manage": "Manage credits and history",
+  "credits.buyTitle": "Buy AI credits",
+  "credits.youHave": "{count, plural, one {You have # credit} other {You have # credits}}",
+  "credits.close": "Close",
+  "credits.packCredits": "{count, plural, one {# credit} other {# credits}}",
+  "credits.loading": "Loading packs…",
+  "credits.paystack": "Secure payment with Paystack",
+  "credits.buyButton": "Buy credits",
+  "credits.pack.small": "Quick top-up",
+  "credits.pack.medium": "Business pack",
+  "credits.pack.large": "Power pack",
+  "credits.badge.medium": "Most popular",
+  "credits.badge.large": "Best value",
 } satisfies Record<string, string>;
 
 export default en;

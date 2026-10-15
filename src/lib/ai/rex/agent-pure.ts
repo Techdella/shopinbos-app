@@ -7,6 +7,7 @@ import { z } from "zod";
 import { providerSchema } from "../peggy/pure.ts";
 import { FIELD_TYPES, TEMPLATE_IDS } from "../../cms/fields.ts";
 import { PRINT_KINDS, QR_TARGETS } from "../../../../shared/print-labels.ts";
+import { LOGO_SIZES, LOGO_STYLES } from "../../../../shared/store-logo.ts";
 
 export { providerSchema };
 
@@ -336,6 +337,17 @@ export const REX_TOOL_SPECS = {
     kind: "image",
     description: "Make the store's logo icon (square mark for app icons and profile pictures) or favicon (browser tab icon) from its logo. Shown with buttons to use it; nothing changes until the seller taps.",
     schema: z.object({ kind: z.enum(["icon", "favicon"]).describe("icon for the square logo icon, favicon for the browser tab icon") }).strict(),
+  },
+  set_logo_display: {
+    kind: "write",
+    description:
+      "Change how the brand shows in the store header, live at once: logo_text (logo with the store name beside it), logo (the full logo alone, best when the logo already has the name in it), icon_text (square logo icon with the name), icon (icon alone) or text (name only); and the size. Use when the seller says the logo is too small or big, or wants only the logo, icon or name.",
+    schema: z
+      .object({
+        style: z.enum(LOGO_STYLES).nullable().describe("How the brand shows; null to keep the current style"),
+        size: z.enum(LOGO_SIZES).nullable().describe("small, medium or large; null to keep the current size"),
+      })
+      .strict(),
   },
   make_print_labels: {
     kind: "read",

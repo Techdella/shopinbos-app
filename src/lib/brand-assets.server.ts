@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { recordMedia } from "@/lib/media/library.server";
 import { readBrandAssets, type BrandAssetKind } from "@shared/brand-assets";
 import { refreshLogoVariants, setDarkLogo } from "@/lib/logo-variants.server";
+import type { LogoDisplay } from "@shared/store-logo";
 
 // Saves the store's logo, logo icon, favicon or logo for dark backgrounds (Brand kit, Rex's cards, the builder).
 // The url must already be in our storage (checked by the callers); null clears the icon or favicon so it falls
@@ -40,4 +41,13 @@ export async function setBrandAsset(userId: string, kind: BrandAssetKind, url: s
   if (url) await recordMedia({ userId, storeId: store.id, url, kind: "image", name: kind === "logo" ? "Logo" : kind === "icon" ? "Logo icon" : "Favicon", source: "logo" });
   const updated = await db.store.findUnique({ where: { id: store.id }, select: { logoUrl: true, brandSettings: true } });
   return readBrandAssets(updated ?? {});
+}
+
+/** How the store header shows the brand (brandSettings.logoDisplay); live at once, no publish needed. */
+export async function setLogoDisplay(userId: string, display: LogoDisplay) {
+  const store = await db.store.findUnique({ where: { userId }, select: { id: true, brandSettings: true } });
+  if (!store) return null;
+  const settings = store.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings) ? (store.brandSettings as Record<string, unknown>) : {};
+  await db.store.update({ where: { id: store.id }, data: { brandSettings: { ...settings, logoDisplay: { style: display.style, size: display.size } } as Prisma.InputJsonValue } });
+  return display;
 }
