@@ -37,9 +37,10 @@ import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
 import { faqAnswer, faqSectionStyle } from "./faq/faq-logic";
 import { FaqList } from "./faq/FaqList";
-import { LAYOUT_ROW_KIND, drawnSections, isHiddenLayoutRow } from "./blocks/layout-logic";
-import { HiddenLayoutRowDrop, LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
+import { LAYOUT_ROW_KIND, drawnSections, groupHiddenRows, isHiddenLayoutRow } from "./blocks/layout-logic";
+import { HiddenLayoutRowDrops, LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
 import { shopperCopy } from "@shared/placeholder-copy";
+import { englishText, type EditorText } from "../editor-text";
 import { CheckoutPreview } from "../checkout/CheckoutPreview";
 import { checkoutNavLinks, readCheckoutPageSettings } from "../checkout/checkout-layout";
 import { checkoutThemeFromLook } from "../checkout/checkout-theme";
@@ -87,6 +88,8 @@ export interface BoutiqueStorefrontProps {
   onSelectElement?: LayoutRowEditing["onSelectElement"];
   onAddToColumn?: LayoutRowEditing["onAddToColumn"];
   onMoveElement?: LayoutRowEditing["onMoveElement"];
+  /** The builder's words for the hints drawn on its canvas (English when absent; never passed on the live store). */
+  editorText?: EditorText;
 }
 
 const PAGE_LABELS: Record<string, string> = { home: "Home", products: "Shop", about: "About", contact: "Contact", faq: "FAQ", wishlist: "Wishlist" };
@@ -171,6 +174,8 @@ function Countdown({ settings, look, copy, onShop, editor }: { settings: unknown
 export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const { themeId, store, snapshot, mode } = props;
   const live = mode === "live";
+  // Builder-only hints on the canvas: the builder's words, else (and on the live store, which never shows them) English.
+  const say: EditorText = !live && !props.demo && props.editorText ? props.editorText : englishText;
   const look = useMemo(() => boutiqueLook(themeId, snapshot.themeTokens), [themeId, snapshot.themeTokens]);
   const t = look.tokens;
   const shopper = useMemo(() => readShopperInfo(store.shopper), [store.shopper]);
@@ -308,11 +313,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
   }
 
-  function editorHint(message: string) {
+  function editorHint(message: string, vars?: Record<string, string | number>) {
     if (live || props.demo) return null;
     return (
       <div className="bq-wrap py-6">
-        <div className="rounded-[12px] border border-dashed px-4 py-5 text-center text-[13px]" style={{ borderColor: t.border, color: t.muted }}>{message}</div>
+        <div className="rounded-[12px] border border-dashed px-4 py-5 text-center text-[13px]" style={{ borderColor: t.border, color: t.muted }}>{say(message, vars)}</div>
       </div>
     );
   }
@@ -470,7 +475,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 ) : null}
                 {ctaButton(whatsapp ? { background: "transparent", color: t.heroText, border: `1.5px solid ${t.heroText}` } : look.primaryButton)}
               </div>
-              {!whatsapp && !live && !props.demo ? <p className="text-[12.5px] opacity-70">Add your WhatsApp number in Live chat settings to show Order on WhatsApp here.</p> : null}
+              {!whatsapp && !live && !props.demo ? <p className="text-[12.5px] opacity-70">{say("Add your WhatsApp number in Live chat settings to show Order on WhatsApp here.")}</p> : null}
             </div>
             <div className="relative mx-auto aspect-square w-full max-w-[440px]">
               <div className="absolute inset-0 rounded-full" style={{ background: `${t.accent}33` }} aria-hidden />
@@ -1465,7 +1470,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const copy = copyOf(section);
     const title = text(copy.title);
     const body = text(copy.body) || text(copy.summary);
-    if (!title && !body) return editorHint(`"${section.name}" isn't part of the ${snapshot.templateName} theme yet, so shoppers won't see it.`);
+    if (!title && !body) return editorHint("\"{name}\" isn't part of the {theme} theme yet, so shoppers won't see it.", { name: section.name, theme: snapshot.templateName });
     return (
       <section className="bq-wrap py-10">
         <div className="mx-auto max-w-[720px]">
@@ -1502,13 +1507,14 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       toggleWish,
       visitorKey: props.visitorKey,
       editorHint,
+      say,
     };
   }
 
   function render(section: TemplateSectionNode): React.ReactNode {
     if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
     if (section.kind === LAYOUT_ROW_KIND) {
-      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn, onMoveElement: props.onMoveElement };
+      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn, onMoveElement: props.onMoveElement, text: say };
       return <LayoutRow ctx={blockContext(section)} editing={editing} />;
     }
     switch (section.kind) {
@@ -1608,7 +1614,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to products</a>
       {announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live || props.demo ? null : (
-        <div className="px-4 py-2 text-center text-[12px]" style={{ ...look.announcement, opacity: 0.55 }}>Announcement shows your free-delivery and pay-on-delivery settings (none set yet)</div>
+        <div className="px-4 py-2 text-center text-[12px]" style={{ ...look.announcement, opacity: 0.55 }}>{say("Announcement shows your free-delivery and pay-on-delivery settings (none set yet)")}</div>
       )) : null}
       {headerSection ? wrap(headerSection, (
         <BoutiqueHeader
@@ -1631,12 +1637,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         />
       )) : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>
-        {content.map((section) => (isHiddenLayoutRow(section) ? <HiddenLayoutRowDrop key={section.id} section={section} /> : wrap(section, render(section))))}
+        {groupHiddenRows(content).map((entry) => ("hidden" in entry ? <HiddenLayoutRowDrops key={`hidden:${entry.hidden[0]!.id}`} sections={entry.hidden} text={say} /> : wrap(entry.section, render(entry.section))))}
         {/* Builder: room for the "Add your first section" button on an empty page. */}
         {!live && !props.demo && shownContent.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
-        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} />
+        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} say={say} />
       )) : null}
       {showNav ? (
         <ShopperBottomNav

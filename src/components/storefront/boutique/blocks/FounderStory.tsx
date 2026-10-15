@@ -53,7 +53,7 @@ export function FounderStory({ ctx }: { ctx: BlockContext }) {
           </div>
         </div>
         <div className="flex flex-col gap-4">
-          {sampleLetter ? <SampleLabel look={look}>Write your letter in the panel on the right.</SampleLabel> : null}
+          {sampleLetter ? <SampleLabel look={look}>{ctx.say("Write your letter in the panel on the right.")}</SampleLabel> : null}
           {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.2em", fontFamily: look.eyebrowFont }}>{str(copy.eyebrow)}</p> : null}
           <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{str(copy.title) || `Why we started ${store.name}`}</h2>
           <div className="grid gap-3 text-[16px] leading-7" style={{ color: t.ink }}>
