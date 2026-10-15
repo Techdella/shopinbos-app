@@ -2,6 +2,7 @@
 const en = {
   "segments.title": "Segments",
   "campaigns.title": "Campaigns",
+  "seasonal-campaigns.title": "Seasonal campaigns",
   "automations.title": "Automations",
   "analytics.title": "Analytics",
   "subscribers.title": "Subscribers",

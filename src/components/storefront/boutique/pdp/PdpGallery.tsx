@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import type { BoutiqueLook } from "../look";
 import type { PdpVideo } from "./pdp-logic";
+import { CampaignBadges } from "../../campaign/CampaignBadges";
 
 type Media = { kind: "image"; src: string } | { kind: "video"; video: PdpVideo; poster?: string };
 
@@ -20,6 +21,8 @@ interface Props {
   resetKey?: string;
   /** Gallery stack layout: also render every photo down the page (shown on wide screens only). */
   stack?: boolean;
+  /** For seasonal campaign badges on the photo. */
+  productId?: string;
 }
 
 function VideoFrame({ video, name }: { video: PdpVideo; name: string }) {
@@ -34,7 +37,7 @@ function setZoomOrigin(event: React.MouseEvent<HTMLElement>) {
 }
 
 /** Photos (and the product video) with swipe on phones, thumbnails or dots, hover zoom and a full-screen lightbox. */
-export function PdpGallery({ images, video, name, look, zoom, interactive, resetKey, stack }: Props) {
+export function PdpGallery({ images, video, name, look, zoom, interactive, resetKey, stack, productId }: Props) {
   const t = look.tokens;
   const media: Media[] = [...images.map((src) => ({ kind: "image" as const, src })), ...(video ? [{ kind: "video" as const, video, poster: images[0] }] : [])];
   const [index, setIndex] = useState(0);
@@ -97,6 +100,7 @@ export function PdpGallery({ images, video, name, look, zoom, interactive, reset
     <>
       <div className="bq-pdp2-gal">
         <div className="bq-pdp2-viewer">
+          <CampaignBadges productId={productId} size="md" offsetRight={media.length > 1 ? 34 : 0} />
           <div ref={trackRef} className="bq-pdp2-track" onScroll={onScroll} aria-roledescription="carousel" aria-label={`${name} photos`} tabIndex={0}>
             {media.map((item, i) => slide(item, i, i === 0))}
           </div>

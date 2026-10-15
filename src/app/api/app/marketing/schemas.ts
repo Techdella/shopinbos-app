@@ -236,12 +236,15 @@ export const FormSchema = z.object({
       freeDeliveryOver: z.number().min(0).max(100_000_000).default(0),
       afterSubmit: z.enum(["message", "redirect"]).default("message"),
       redirectUrl: z.string().max(1000).optional(),
+      // A seasonal campaign's pop-up (Marketing > Seasonal campaigns): only shows while that campaign runs, and its
+      // countdown follows the campaign's end. Kept when the pop-up is edited here.
+      campaignId: z.string().max(64).regex(/^[\w-]+$/).nullable().optional(),
     })
     .default({ layout: "modal", trigger: "delay", delaySeconds: 8, scrollPercent: 50, pages: "all", frequency: "once", frequencyDays: 7, devices: ["mobile", "desktop"], afterSubmit: "message", kind: "signup", game: "wheel", collect: "either", playEveryDays: 7, onlyWithCart: false, freeDeliveryOver: 0 })
     .superRefine((config, ctx) => {
       // Each kind needs its own piece before it can go live.
       if (config.kind === "lead_magnet" && !config.leadMagnet) ctx.addIssue({ code: "custom", path: ["leadMagnet"], message: "Add the file or link people get" });
-      if (config.kind === "countdown" && !config.endsAt) ctx.addIssue({ code: "custom", path: ["endsAt"], message: "Pick when the sale ends" });
+      if (config.kind === "countdown" && !config.endsAt && !config.campaignId) ctx.addIssue({ code: "custom", path: ["endsAt"], message: "Pick when the sale ends" });
       if (config.kind === "free_delivery" && !(config.freeDeliveryOver > 0)) ctx.addIssue({ code: "custom", path: ["freeDeliveryOver"], message: "Add the order amount that gets free delivery" });
     }),
 });

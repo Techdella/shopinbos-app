@@ -8,6 +8,8 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { formatMoney, formatNumber } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { productCampaignTimers } from "@/lib/store-campaigns/server";
+import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -94,9 +96,13 @@ export default async function ProductsPage({
       supplierStock: true,
       variants: true,
       featured: true,
+      tags: true,
       category: { select: { name: true } },
     },
   });
+  // Live and upcoming seasonal campaigns that badge a product show a small timer on its row.
+  const campaignNow = new Date();
+  const campaignTimers = await productCampaignTimers(storeId, all, campaignNow);
 
   const needle = query.toLowerCase();
   const products = all.filter(
@@ -221,6 +227,7 @@ export default async function ProductsPage({
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-[15px] font-extrabold">{p.name}</span>
                         {p.featured && <span className="shrink-0 text-app-accent" title={t("list.featured")}><Icon name="star" size={14} /><span className="sr-only">{t("list.featured")}</span></span>}
+                        {campaignTimers[p.id] ? <ProductCampaignBadge campaign={campaignTimers[p.id]!} serverNow={campaignNow.toISOString()} /> : null}
                       </div>
                       <div className="truncate text-[13px] text-app-ink-soft">
                         {detail}

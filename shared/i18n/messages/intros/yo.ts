@@ -634,6 +634,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "media.4.sub": "Lẹ ìjápọ̀ àwòrán sínú WhatsApp, ímeèlì tàbí ibikíbi tí o ti ń tà.",
   "media.5.caption": "Rí i padà kíákíá.",
   "media.5.sub": "Fún àwọn àwòrán ní àkọlé, lẹ́yìn náà wá wọn pẹ̀lú orúkọ tàbí ṣàlẹ̀ àwòrán àti fídíò.",
+  "seasonal-campaigns.title": "Campaigns ìgbà ọdún",
+  "seasonal-campaigns.cta": "Ṣètò campaign",
+  "seasonal-campaigns.1.caption": "Ṣe ṣọ́ọ̀bù rẹ lọ́ṣọ̀ọ́ fún àsìkò náà.",
+  "seasonal-campaigns.1.sub": "Black Friday, Detty December tàbí Sallah: àwọ̀ tuntun àti banner countdown ńlá, fún ọjọ́ wọ̀nyẹn nìkan.",
+  "seasonal-campaigns.2.caption": "Ṣètò rẹ̀ lẹ́ẹ̀kan, kí o sinmi.",
+  "seasonal-campaigns.2.sub": "Yan ìbẹ̀rẹ̀ àti ìparí. Ṣọ́ọ̀bù rẹ yóò yí padà fúnra rẹ̀, yóò sì padà sí bó ṣe wà nígbà tó bá parí.",
+  "seasonal-campaigns.3.caption": "Ìlà òkè, pop-up àti badge lẹ́ẹ̀kan náà.",
+  "seasonal-campaigns.3.sub": "Ìlà òkè pẹ̀lú aago, pop-up “dúró, má lọ” àti badge “BF Deal” lórí ọjà sale.",
+  "seasonal-campaigns.4.caption": "Wo aago láti dashboard rẹ.",
+  "seasonal-campaigns.4.sub": "Gbogbo campaign tó ń lọ àti tó ń bọ̀ ń ka lórí ojú-ìwé ilé rẹ, kí o lè mọ ohun tó ń lọ nígbà gbogbo.",
+  "seasonal-campaigns.5.caption": "Wo ohun tó mú wá.",
+  "seasonal-campaigns.5.sub": "Ìbẹ̀wò, ìforúkọsílẹ̀ pop-up, order àti owó tí o pa nígbà tó ń lọ, ní ẹ̀gbẹ́ àwọn ọjọ́ tó ṣáájú.",
 };
 
 export default yo;

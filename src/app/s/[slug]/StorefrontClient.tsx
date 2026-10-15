@@ -27,6 +27,7 @@ import {
   STORE_TEMPLATE_MANIFESTS,
   type StoreEditorSnapshot,
 } from "@/lib/store-templates";
+import { applyCampaignToSnapshot, type CampaignLook } from "@/lib/store-campaigns/merge";
 
 interface StoreProduct {
   id: string;
@@ -96,6 +97,11 @@ interface Store {
   pages?: StorePageRecord[];
   /** StorefrontShopperInfo from the public store API. */
   shopper?: unknown;
+  /**
+   * A live seasonal campaign's section changes, for stores published without a builder snapshot (stores with one get
+   * it merged on the server already). See src/lib/store-campaigns/merge.ts.
+   */
+  campaignLook?: CampaignLook;
 }
 
 interface Props {
@@ -619,7 +625,7 @@ export function StorefrontClient({
     if (store.brandSettings?.editor?.published) return store.brandSettings.editor.published;
     if (!previewMode) {
       const published = buildPublishedPagesSnapshot(store);
-      if (published) return published;
+      if (published) return store.campaignLook ? applyCampaignToSnapshot(published, store.campaignLook).snapshot : published;
       // The owner previewing a store with nothing published yet sees its draft or template, not a blank page.
       if (!ownerPreview) return buildEmptyPublishedSnapshot(store);
     }

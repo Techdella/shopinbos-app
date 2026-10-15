@@ -634,6 +634,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "media.4.sub": "Paste picture link for WhatsApp, email or anywhere else wey you dey sell.",
   "media.5.caption": "Find am again quick.",
   "media.5.sub": "Give pictures title, then search by name or filter pictures and videos.",
+  "seasonal-campaigns.title": "Seasonal campaigns",
+  "seasonal-campaigns.cta": "Plan campaign",
+  "seasonal-campaigns.1.caption": "Dress your shop for the season.",
+  "seasonal-campaigns.1.sub": "Black Friday, Detty December or Sallah: new colours and big countdown banner, just for those days.",
+  "seasonal-campaigns.2.caption": "Plan am once, then relax.",
+  "seasonal-campaigns.2.sub": "Pick when e go start and end. Your shop go change by itself, then go back normal when e end.",
+  "seasonal-campaigns.3.caption": "Top bar, pop-up and badges at once.",
+  "seasonal-campaigns.3.sub": "Top bar with the timer, “wait, no go” pop-up and “BF Deal” badge for sale items.",
+  "seasonal-campaigns.4.caption": "Watch the clock from your dashboard.",
+  "seasonal-campaigns.4.sub": "Every live and upcoming campaign dey tick for your home screen, so you go always know wetin dey run.",
+  "seasonal-campaigns.5.caption": "See wetin e bring.",
+  "seasonal-campaigns.5.sub": "Visits, pop-up sign-ups, orders and sales while e dey run, side by side with the days before.",
 };
 
 export default pcm;

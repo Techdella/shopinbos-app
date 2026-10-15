@@ -172,6 +172,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "api-key.example": "Paste am inside your dispatch software, and hide am like password.",
   "media.short": "All the pictures and videos for your shop, for one place so you fit name, describe and use dem again.",
   "media.example": "Pick the Ankara photo from last month for new banner instead to upload am again.",
+  "seasonal-campaigns.short": "Sale wey you plan once, e go dress your shop for the season, then e go switch back by itself.",
+  "seasonal-campaigns.example": "Black Friday: gold colours, countdown and “BF Deal” badge from Friday reach Sunday night.",
 };
 
 export default pcm;

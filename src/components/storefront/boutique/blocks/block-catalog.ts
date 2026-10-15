@@ -18,7 +18,7 @@ export const BLOCK_CATEGORY_ORDER: BlockCategory[] = ["Banners", "Products", "Tr
 /** Icon names from src/components/ui/Icon.tsx (kept as strings so this file stays pure). */
 export type BlockIcon =
   | "layers" | "image" | "megaphone" | "play" | "grid" | "cards" | "list" | "pin" | "filter" | "shield" | "flag"
-  | "star" | "users" | "bell" | "truck" | "percent" | "user" | "book" | "eye" | "heart" | "target" | "search";
+  | "star" | "users" | "bell" | "truck" | "percent" | "user" | "book" | "eye" | "heart" | "target" | "search" | "clock" | "tag";
 
 export interface BlockDefaults {
   copy: Record<string, unknown>;
@@ -98,6 +98,16 @@ function productPickers(fallback: string): SchemaField[] {
     { id: "products-picked", type: "products", label: "Products to show", help: "Only these show, in this order.", when: settingIs("source", ["picked"], fallback) },
   ];
 }
+
+const TONES: ChoiceOption[] = [{ value: "dark", label: "Dark" }, { value: "accent", label: "Accent" }, { value: "light", label: "Light" }];
+
+/** The countdown fields of the campaign sections: inside a campaign the timer follows the campaign's end. */
+const CAMPAIGN_TIMER_FIELDS: SchemaField[] = [
+  seg("timer", "Counts down to", [{ value: "campaign", label: "The campaign's end" }, { value: "custom", label: "A set time" }], "campaign", { help: "Outside a seasonal campaign, pick a set time." }),
+  { id: "endsAt", type: "datetime", label: "Ends at", target: setting("endsAt"), when: settingIs("timer", ["custom"], "campaign") },
+  seg("expiry", "When the time is up", [{ value: "hide", label: "Hide it" }, { value: "message", label: "Show a message" }], "hide"),
+  { id: "endedText", type: "text", label: "Message", target: copy("endedText"), placeholder: "This offer has ended", when: settingIs("expiry", ["message"], "hide") },
+];
 
 // ─── The blocks ──────────────────────────────────────────────────────────────
 
@@ -649,6 +659,130 @@ export const STORE_BLOCKS: StoreBlockMeta[] = [
         text("buttonLabel", "Button label"),
         text("discountCode", "Discount code", { help: "Optional. Create the code in Marketing › Discounts first, so it works at checkout." }),
         text("successText", "Thank-you text"),
+      ] },
+    ],
+  },
+
+  // Seasonal campaign sections (also usable on their own). Inside a running campaign their timers follow the
+  // campaign's dates and the promo strip shows the campaign's discount code (src/lib/store-campaigns).
+  {
+    kind: "campaign-countdown-hero",
+    label: "Countdown banner",
+    description: "A big banner with a live countdown to the end of your sale.",
+    category: "Banners",
+    icon: "clock",
+    defaults: () => ({
+      copy: { eyebrow: "", title: "The sale is on", body: "", primaryCta: "Shop the sale", mediaUrl: "", endedText: "" },
+      settings: { timer: "campaign", endsAt: "", expiry: "hide", tone: "dark", height: "medium", action: "products" },
+    }),
+    schema: () => [
+      { fields: [...CAMPAIGN_TIMER_FIELDS] },
+      { title: "Content", fields: [
+        image("mediaUrl", "Picture or video", "media", { help: "Optional. Words sit on the campaign colour when there is no picture." }),
+        text("eyebrow", "Eyebrow"),
+        area("title", "Heading"),
+        area("body", "Text"),
+        text("primaryCta", "Button label", { help: "Leave empty for no button." }),
+        select("action", "Button opens", PAGE_TARGETS, "products"),
+      ] },
+      { title: "Look", fields: [
+        seg("tone", "Colour", TONES, "dark"),
+        seg("height", "Height", HEIGHT, "medium"),
+      ] },
+    ],
+  },
+  {
+    kind: "campaign-promo-strip",
+    label: "Promo code strip",
+    description: "A slim band with your discount code and a copy button.",
+    category: "Banners",
+    icon: "tag",
+    defaults: () => ({
+      copy: { text: "Use this code at checkout", code: "" },
+      settings: { tone: "accent" },
+    }),
+    schema: () => [
+      { fields: [
+        area("text", "Text"),
+        text("code", "Discount code", { help: "Leave empty to use the code of the discount linked to the campaign. Create codes in Marketing › Discounts first, so they work at checkout." }),
+        seg("tone", "Colour", TONES, "accent"),
+      ] },
+    ],
+  },
+  {
+    kind: "campaign-deal-grid",
+    label: "Deal grid",
+    description: "Sale products with was and now prices and their badges.",
+    category: "Products",
+    icon: "percent",
+    defaults: () => ({
+      copy: { title: "Deals", cta: "Shop all" },
+      settings: { source: "sale", limit: 8, showBadges: true },
+    }),
+    schema: () => [
+      { fields: [
+        text("title", "Heading"),
+        text("cta", "Link label", { help: "Leave empty for no link." }),
+        select("source", "Products", PRODUCT_SOURCES, "sale", { help: "On sale shows products with a compare-at price." }),
+        ...productPickers("sale"),
+        number("limit", "How many", 2, 24, 8),
+        toggle("showBadges", "Show campaign badges", true),
+      ] },
+    ],
+  },
+  {
+    kind: "campaign-featured-deal",
+    label: "Featured deal",
+    description: "One product in the spotlight, with a countdown and add to bag.",
+    category: "Products",
+    icon: "star",
+    defaults: () => ({
+      copy: { eyebrow: "Deal of the day", title: "", body: "", cta: "Add to bag", endedText: "" },
+      settings: { timer: "campaign", endsAt: "", expiry: "hide" },
+      items: [],
+    }),
+    schema: () => [
+      { fields: [
+        { id: "products", type: "products", label: "Product", max: 1, help: "No product picked? The one with the biggest discount is shown." },
+        text("eyebrow", "Eyebrow"),
+        area("title", "Heading", { help: "Leave empty to use the product name." }),
+        area("body", "Text"),
+        text("cta", "Button label"),
+      ] },
+      { title: "Countdown", fields: [...CAMPAIGN_TIMER_FIELDS] },
+    ],
+  },
+  {
+    kind: "campaign-gift-guide",
+    label: "Gift guide",
+    description: "Tiles that send shoppers to gift ideas, like For him or Under ₦20,000.",
+    category: "Products",
+    icon: "heart",
+    defaults: () => ({
+      copy: { title: "Gift guide", body: "" },
+      settings: { columns: "4" },
+      items: [],
+    }),
+    schema: () => [
+      { fields: [
+        text("title", "Heading"),
+        area("body", "Text"),
+        seg("columns", "Tiles per row on computers", [{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }], "4"),
+        repeater({
+          id: "tiles",
+          label: "Tiles",
+          itemName: "Tile",
+          addLabel: "Add tile",
+          max: 8,
+          help: "No tiles yet? Your collections show here.",
+          template: { label: "", link: { type: "url", value: "" }, imageUrl: "" },
+          titleKeys: ["label"],
+          fields: [
+            { key: "label", type: "text", label: "Label", placeholder: "For him" },
+            { key: "link", type: "link", label: "Opens when tapped" },
+            { key: "imageUrl", type: "media", label: "Picture", accept: "image" },
+          ],
+        }),
       ] },
     ],
   },

@@ -151,6 +151,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "marketing-overview", label: "Overview", href: "/home/marketing" },
             { id: "campaigns", label: "Campaigns", href: "/home/marketing/campaigns" },
+            { id: "seasonal-campaigns", label: "Seasonal campaigns", href: "/home/campaigns" },
             { id: "automations", label: "Automations", href: "/home/automations" },
             { id: "email-templates", label: "Email templates", href: "/home/marketing/templates" },
             { id: "mkt-forms", label: "Forms and pop-ups", href: "/home/marketing/forms" },

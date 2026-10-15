@@ -84,6 +84,10 @@ export const NOTIFY_EVENTS = {
   "customer.message": { category: "messages", collapse: { key: "message.new", one: "new message", many: "new messages" } },
   "review.new": { category: "marketing", collapse: { key: "review.new", one: "new review", many: "new reviews" } },
   "campaign.finished": { category: "marketing" },
+  // Seasonal campaigns (Marketing > Seasonal campaigns): went live, ending soon, ended with a summary.
+  "store_campaign.live": { category: "marketing" },
+  "store_campaign.ending_soon": { category: "marketing" },
+  "store_campaign.ended": { category: "marketing" },
   "tip": { category: "marketing" },
   "payout.sent": { category: "money" },
   "payout.failed": { category: "money" },

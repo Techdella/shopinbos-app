@@ -10,6 +10,8 @@ import { StoreBrandProvider } from "@/components/errors/StoreBrandContext";
 import { resolveShopperTheme } from "@/components/storefront/shopper/theme";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadStoreBrand } from "@/lib/storefront/public-store.server";
+import { loadStorefrontCampaigns } from "@/lib/store-campaigns/storefront.server";
+import { CampaignLayer } from "@/components/storefront/campaign/CampaignLayer";
 
 // Every storefront page gets the store's chat box (it hides itself in the builder preview and when the
 // seller hasn't turned live chat on), and the store's name and colours for its 404 and error pages.
@@ -36,12 +38,15 @@ export default async function StorefrontLayout({ children, params }: { children:
       if (target) permanentRedirect(target);
     }
   }
+  const basePath = getStorefrontBasePathForHost(host, slug);
+  // Seasonal campaigns: one small query; stores with no live campaign render exactly as before.
+  const campaigns = brand?.active ? await loadStorefrontCampaigns(brand.id) : null;
   const value = brand
-    ? { name: brand.name, logoUrl: brand.logoUrl, basePath: getStorefrontBasePathForHost(host, slug), theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
+    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
     : null;
   return (
     <StoreBrandProvider value={value}>
-      {children}
+      {campaigns ? <CampaignLayer view={campaigns.view} slug={slug} basePath={basePath}>{children}</CampaignLayer> : children}
       <LiveChatWidget slug={slug} />
     </StoreBrandProvider>
   );
