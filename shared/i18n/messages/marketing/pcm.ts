@@ -886,7 +886,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "forms.pictureHint": "No picture yet? The design own picture go show until you add your own.",
   "forms.picture.right": "For right",
   "forms.art": "Ready-made picture",
-  "forms.artHint": "E dey drawn for your pop-up colours. Your own photo go always fine pass.",
+  "forms.artHint": "Real photo wey fit this design. Add your own product photo make e be your own.",
   "forms.art.none": "None",
   "forms.art.bag": "Shopping bag",
   "forms.art.fashion": "Fashion",

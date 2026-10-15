@@ -902,7 +902,7 @@ const en = {
   "forms.pictureHint": "No picture yet? The design's built-in picture shows until you add your own.",
   "forms.picture.right": "On the right",
   "forms.art": "Built-in picture",
-  "forms.artHint": "Drawn in your pop-up's colours. Your own photo always looks better.",
+  "forms.artHint": "A real photo that suits this design. Add your own product photo to make it yours.",
   "forms.art.none": "None",
   "forms.art.bag": "Shopping bag",
   "forms.art.fashion": "Fashion",

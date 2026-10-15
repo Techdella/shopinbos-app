@@ -281,7 +281,13 @@ test("renderer: version 1 looks keep their old drawing; motion respects reduced 
   assert.match(view, /FESTIVE_STRIP/, "the old festive stripes");
   assert.match(view, /aria-label="Close"/);
   assert.match(view, /role="timer"/);
-  assert.doesNotMatch(read("src/components/storefront/marketing/PopupArt.tsx"), /https?:\/\/(?!www\.w3\.org)/, "built-in pictures load nothing from outside");
+  // Built-in pictures are real photos from images.unsplash.com only (allowed by the CSP), one per picture, each with alt text.
+  for (const art of forms.POPUP_ARTS.filter(Boolean)) {
+    const url = forms.popupArtPhotoUrl(art);
+    assert.match(url, /^https:\/\/images\.unsplash\.com\/photo-[0-9]+-[0-9a-f]+\?/, art);
+    assert.ok(forms.POPUP_ART_PHOTOS[art].alt.length > 5, art);
+  }
+  assert.equal(forms.popupArtPhotoUrl(""), null);
 });
 
 test("words: every new editor word exists in all five languages", async () => {

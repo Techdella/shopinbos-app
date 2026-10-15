@@ -886,7 +886,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "forms.pictureHint": "Babu hoto tukuna? Hoton da ke cikin zanen zai nuna har sai ka saka naka.",
   "forms.picture.right": "A dama",
   "forms.art": "Hoton da aka tanada",
-  "forms.artHint": "An zana shi da launukan pop-up ɗinka. Hotonka koyaushe ya fi kyau.",
+  "forms.artHint": "Hoto na gaske da ya dace da wannan zane. Ƙara hoton kayanka don ya zama naka.",
   "forms.art.none": "Babu",
   "forms.art.bag": "Jakar siyayya",
   "forms.art.fashion": "Kayan ado",

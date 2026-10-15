@@ -103,9 +103,35 @@ export type PopupImagePosition = "left" | "right" | "top" | "background" | "none
 /** A finishing touch drawn over the pop-up: stripes, a gold edge, confetti, hearts… */
 export const POPUP_DECORS = ["none", "strip", "edge", "confetti", "hearts", "stars", "crescent", "flash", "ticket", "glow"] as const;
 export type PopupDecor = (typeof POPUP_DECORS)[number];
-/** Built-in pictures shown when the seller hasn't added their own (drawn in the browser, nothing to download). */
+/** Built-in pictures shown when the seller hasn't added their own (real photos, see POPUP_ART_PHOTOS). */
 export const POPUP_ARTS = ["", "bag", "fashion", "beauty", "food", "gift", "fabric", "festive", "crescent", "hearts", "bolt", "truck", "book"] as const;
 export type PopupArt = (typeof POPUP_ARTS)[number];
+
+/**
+ * The real photo behind each built-in picture: an Unsplash photo id (people, products and moments that fit the
+ * template), each viewed before use. Unsplash's licence allows this and asks for images.unsplash.com links, not
+ * copies. The seller's own photo always replaces it.
+ */
+export const POPUP_ART_PHOTOS: Record<Exclude<PopupArt, "">, { id: string; alt: string }> = {
+  bag: { id: "1691480150204-66dd1eb77391", alt: "A brown leather handbag" },
+  fashion: { id: "1523825036634-aab3cce05919", alt: "A woman in a pink and blue print dress" },
+  beauty: { id: "1646457417455-77a66a9fcf34", alt: "A smiling woman putting cream on her face" },
+  food: { id: "1665332195309-9d75071138f0", alt: "Jollof rice with grilled chicken and fish" },
+  gift: { id: "1549465220-1a8b9238cd48", alt: "A pink gift box tied with a gold ribbon" },
+  fabric: { id: "1787779350563-29cf5a87c6c7", alt: "A woman in a blue gown and headwrap" },
+  festive: { id: "1681545303529-b6beb2e19f02", alt: "Three friends in matching ankara and gele" },
+  crescent: { id: "1774870814205-f8ffee37616c", alt: "A smiling woman in a red hijab at a perfume stall" },
+  hearts: { id: "1661332306744-70f9ed1a7f40", alt: "A couple in matching traditional wedding outfits" },
+  bolt: { id: "1607082349566-187342175e2f", alt: "Red sale tags and a gift on a dark background" },
+  truck: { id: "1617347454431-f49d7ff5c3b1", alt: "A delivery rider on a motorbike at night" },
+  book: { id: "1687422808289-e721259c9eb4", alt: "A tailor sewing at his machine" },
+};
+
+/** A built-in picture's photo link, sized for a pop-up (the box crops it like a cover photo). */
+export function popupArtPhotoUrl(art: PopupArt, width = 900): string | null {
+  const photo = art ? POPUP_ART_PHOTOS[art] : null;
+  return photo ? `https://images.unsplash.com/photo-${photo.id}?auto=format&fit=crop&w=${width}&h=${Math.round(width * 0.9)}&q=72` : null;
+}
 export const POPUP_ANIMATIONS = ["none", "fade", "rise", "zoom", "slide"] as const;
 export type PopupAnimation = (typeof POPUP_ANIMATIONS)[number];
 

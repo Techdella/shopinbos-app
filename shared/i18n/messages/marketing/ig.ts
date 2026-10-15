@@ -886,7 +886,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "forms.pictureHint": "Enweghị foto ugbu a? Foto dị n'ụdị ga-egosi ruo mgbe ị tinyere nke gị.",
   "forms.picture.right": "N'aka nri",
   "forms.art": "Foto e mere ọhụrụ",
-  "forms.artHint": "E sere ya n'agba pop-up gị. Foto nke gị na-adị mma karịa.",
+  "forms.artHint": "Foto n'ezie dabara na nhazi a. Tinye foto ngwaahịa gị ka ọ bụrụ nke gị.",
   "forms.art.none": "Ọ dịghị",
   "forms.art.bag": "Akpa ahịa",
   "forms.art.fashion": "Ejiji",

@@ -886,7 +886,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "forms.pictureHint": "Kò sí àwòrán síbẹ̀? Àwòrán inú àwòṣe máa hàn títí o fi fi tìrẹ kún un.",
   "forms.picture.right": "Ní ọ̀tún",
   "forms.art": "Àwòrán tó wà nínú",
-  "forms.artHint": "A yà á ní àwọ̀ pop-up rẹ. Fọ́tò tìrẹ máa ń dára jù.",
+  "forms.artHint": "Fọ́tò gidi tí ó bá àpẹẹrẹ yìí mu. Fi fọ́tò ọjà tìrẹ kún un kí ó jẹ́ tìrẹ.",
   "forms.art.none": "Kò sí",
   "forms.art.bag": "Àpò ọjà",
   "forms.art.fashion": "Aṣọ àṣà",
