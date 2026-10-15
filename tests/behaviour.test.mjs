@@ -2708,3 +2708,34 @@ test("Plans put their AI credits into the same balance Rex and Peggy spend", asy
   assert.equal(c.planCreditGrant("PLN_unknown"), null);
   assert.equal(c.planCreditGrant(null), null);
 });
+
+test("product CSV import reads loose headers, photo links and uploaded photo names", async () => {
+  const imp = await import("../shared/product-import.ts");
+  assert.equal(imp.importHeadersProblem(["Index", "Name", "Price"]), null);
+  assert.match(imp.importHeadersProblem(["Name", "Stock"]), /price/);
+
+  const row = {
+    Index: "1", Name: "Compact Printer", Description: "Small printer", Brand: "Garner, Boyle and Flynn", Category: "Books & Stationery",
+    Price: "265", Currency: "usd", Stock: "774", EAN: "2091465262179", Color: "ForestGreen", Size: "Large",
+    Availability: "pre_order", "Internal ID": "56",
+    "Image URL": "https://cdn.example.com/a.jpg | https://cdn.example.com/a.jpg; printer-side.JPG", "Image 2": "https://cdn.example.com/b.png",
+  };
+  const product = imp.mapImportRow(row, "NGN");
+  assert.equal(product.name, "Compact Printer");
+  assert.equal(product.retailPrice, 265);
+  assert.equal(product.currency, "USD");
+  assert.equal(product.currentStock, 774);
+  assert.equal(product.barcode, "2091465262179");
+  assert.equal(product.sku, "56");
+  assert.equal(product.status, "published");
+  assert.deepEqual(product.tags, ["Books & Stationery", "Garner, Boyle and Flynn"]);
+  assert.deepEqual(product.specifications, [{ name: "Brand", value: "Garner, Boyle and Flynn" }, { name: "Color", value: "ForestGreen" }, { name: "Size", value: "Large" }]);
+  assert.deepEqual(product.imageRefs, ["https://cdn.example.com/a.jpg", "printer-side.JPG", "https://cdn.example.com/b.png"]);
+  assert.equal(imp.imageFileKey("photos/Printer-Side.JPG"), "printer-side.jpg");
+
+  assert.equal(imp.mapImportRow({ name: "Old", retailPrice: "₦12,500", availability: "discontinued" }, "NGN").status, "draft");
+  assert.equal(imp.mapImportRow({ name: "Old", retailPrice: "₦12,500" }, "NGN").retailPrice, 12500);
+  assert.equal(imp.mapImportRow({ name: "Shirt", retailPrice: "10", status: "active" }, "NGN").status, "published", "legacy 'active' imports as live");
+  assert.deepEqual(imp.mapImportRow({ name: "", price: "10" }, "NGN"), { error: "missing name" });
+  assert.deepEqual(imp.splitImageCell("https://x.example/w_10,h_10/a.jpg, b.png,c.webp"), ["https://x.example/w_10,h_10/a.jpg", "b.png", "c.webp"]);
+});

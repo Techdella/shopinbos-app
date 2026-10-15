@@ -8,17 +8,50 @@ import { useT } from "@/components/i18n/I18nProvider";
 
 // Built here so the download always matches the columns the importer reads.
 const SAMPLE_CSV = [
-  "name,description,retailPrice,costPrice,status",
-  "Linen shirt,White linen shirt in size M,18500,9000,active",
-  "Ankara tote bag,Hand-made tote with leather straps,12000,5500,draft",
+  "name,description,retailPrice,costPrice,stock,sku,category,status,images",
+  "Linen shirt,White linen shirt in size M,18500,9000,24,LS-001,Clothing,published,https://example.com/photos/linen-shirt.jpg",
+  "Ankara tote bag,Hand-made tote with leather straps,12000,5500,10,AT-002,Bags,draft,ankara-tote-front.jpg | ankara-tote-back.jpg",
 ].join("\n");
+
+const PHOTO_UPLOADS_AT_ONCE = 3;
+
+type ImportResult = { imported: number; withImages?: number; errors: string[] };
+
+/** Uploads the chosen photos to the media library; returns { "file.jpg": url } plus per-file problems. */
+async function uploadPhotos(files: File[], onProgress: (done: number) => void) {
+  const urls: Record<string, string> = {};
+  const failures: { name: string; reason: string }[] = [];
+  let next = 0;
+  let done = 0;
+  const worker = async () => {
+    while (next < files.length) {
+      const file = files[next++]!;
+      const body = new FormData();
+      body.append("file", file);
+      body.append("folder", "products");
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.data?.publicUrl) urls[file.name] = data.data.publicUrl;
+        else failures.push({ name: file.name, reason: data?.error?.message ?? `HTTP ${res.status}` });
+      } catch {
+        failures.push({ name: file.name, reason: "network error" });
+      }
+      onProgress(++done);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PHOTO_UPLOADS_AT_ONCE, files.length) }, worker));
+  return { urls, failures };
+}
 
 export function ImportForm() {
   const t = useT("products", "common");
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
+  const [photoCount, setPhotoCount] = useState(0);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,25 +68,43 @@ export function ImportForm() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("csv", file);
+    const photoInput = form.elements.namedItem("photos") as HTMLInputElement;
+    const photos = Array.from(photoInput.files ?? []);
 
     try {
+      let photoErrors: string[] = [];
+      let imageMap: Record<string, string> = {};
+      if (photos.length) {
+        setProgress({ done: 0, total: photos.length });
+        const uploaded = await uploadPhotos(photos, (done) => setProgress({ done, total: photos.length }));
+        imageMap = uploaded.urls;
+        photoErrors = uploaded.failures.map((f) => t("import.photoFailed", { name: f.name, reason: f.reason }));
+        setProgress(null);
+      }
+
+      const formData = new FormData();
+      formData.append("csv", file);
+      if (Object.keys(imageMap).length) formData.append("imageMap", JSON.stringify(imageMap));
+
       const res = await fetch("/api/products/import", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
       if (res.ok) {
-        setResult(data.data ?? data);
+        const out: ImportResult = data.data ?? data;
+        setResult({ ...out, errors: [...photoErrors, ...(out.errors ?? [])] });
         fileInput.value = "";
+        photoInput.value = "";
         setFileName("");
+        setPhotoCount(0);
       } else {
         setError(data?.error?.message ?? (typeof data?.error === "string" ? data.error : t("import.failed")));
       }
     } catch {
       setError(t("import.uploadError"));
     } finally {
+      setProgress(null);
       setUploading(false);
     }
   };
@@ -67,6 +118,9 @@ export function ImportForm() {
           <div className="text-[16px] font-extrabold text-app-success">
             {t("import.complete", { count: result.imported })}
           </div>
+          {!!result.withImages && (
+            <div className="text-[13.5px] text-app-success">{t("import.withImages", { count: result.withImages })}</div>
+          )}
           {result.errors.length > 0 && (
             <div className="text-[13.5px] text-app-danger">
               {t("import.rowErrors", { count: result.errors.length })}
@@ -87,7 +141,7 @@ export function ImportForm() {
         <div>
           <h2 className="m-0 text-[17px] font-extrabold">{t("import.csvFile")}</h2>
           <p className="m-0 mt-1 max-w-[640px] text-[14px] leading-[1.55] text-app-ink-soft">
-            {t("import.useColumns")} <code className="rounded bg-app-canvas px-1.5 py-0.5 text-[13px]">name, description, retailPrice, costPrice, status</code>{t("import.headerRow")}
+            {t("import.useColumns")} <code className="rounded bg-app-canvas px-1.5 py-0.5 text-[13px]">name, price</code>{t("import.headerRow")} {t("import.optionalColumns")}
           </p>
         </div>
         <label className="grid cursor-pointer place-items-center gap-2 rounded-[18px] border-2 border-dashed border-app-line px-4 py-10 text-center hover:border-app-line-strong focus-within:border-app-ink">
@@ -96,6 +150,19 @@ export function ImportForm() {
           <span className="text-[13px] text-app-ink-soft">{t("import.from")}</span>
           <input type="file" name="csv" accept=".csv" required className="sr-only" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")} />
         </label>
+        <div className="grid gap-2">
+          <h3 className="m-0 text-[15px] font-extrabold">{t("import.photos")}</h3>
+          <p className="m-0 max-w-[640px] text-[13.5px] leading-[1.55] text-app-ink-soft">{t("import.photosHelp")}</p>
+          <label className="grid cursor-pointer place-items-center gap-2 rounded-[18px] border-2 border-dashed border-app-line px-4 py-6 text-center hover:border-app-line-strong focus-within:border-app-ink">
+            <Icon name="image" size={22} />
+            <span className="text-[14.5px] font-bold">{photoCount ? t("import.photosChosen", { count: photoCount }) : t("import.choosePhotos")}</span>
+            <span className="text-[13px] text-app-ink-soft">{t("import.photosFrom")}</span>
+            <input type="file" name="photos" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="sr-only" onChange={(e) => setPhotoCount(e.target.files?.length ?? 0)} />
+          </label>
+        </div>
+        {progress && (
+          <div className="text-[13.5px] font-bold text-app-ink-soft" role="status">{t("import.uploadingPhotos", { done: progress.done, total: progress.total })}</div>
+        )}
         <div className="flex flex-wrap gap-2">
           <PillButton type="submit" tone="accent" size="md" busy={uploading}>{t("import.upload")}</PillButton>
           <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(SAMPLE_CSV)}`} download="sample-products.csv" className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[15px] font-bold text-app-ink no-underline hover:border-app-line-strong">
