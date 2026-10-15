@@ -35,6 +35,8 @@ import { HeroSlider, slideAlign } from "../HeroSlider";
 import { readHeroSlides, readProductLimit, readSlideLink, readSlideTiming, type HeroSlide, type SlideLink } from "@/lib/store-templates/section-content";
 import { isShopGridSection, readOptionalProductLimit, readProductCardOptions, readShopGridOptions } from "@/lib/store-templates/section-content";
 import type { GameSectionKind } from "@/lib/gamification/logic";
+import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
+import { filterFaq } from "./blocks/block-logic";
 
 export interface BoutiqueStore {
   id?: string;
@@ -188,6 +190,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (category) setFilter((prev) => ({ ...prev, category: category.slice(0, 80) }));
   }, [live]);
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [faqQuery, setFaqQuery] = useState<Record<string, string>>({});
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
   const railRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1222,13 +1225,28 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const layout = text(section.settings?.layout);
     const title = text(copy.title) || "Questions";
     const missing = "Write your answer in the editor. Until then this question stays hidden from shoppers.";
+    // Optional search box (FAQ settings): filters questions and answers as the shopper types.
+    const searchable = section.settings?.searchable === true;
+    const query = faqQuery[section.id] ?? "";
+    const shown = searchable ? filterFaq(items, query) : items;
+    const searchBox = searchable ? (
+      <>
+        <label className="mt-5 flex h-12 items-center gap-2 rounded-full border px-4" style={{ borderColor: t.border }}>
+          <Icon name="search" size={16} color={t.muted} />
+          <span className="sr-only">{text(copy.searchPlaceholder) || "Search questions"}</span>
+          <input type="search" value={query} onChange={(event) => setFaqQuery((prev) => ({ ...prev, [section.id]: event.target.value }))} placeholder={text(copy.searchPlaceholder) || "Search questions"} className="h-full w-full bg-transparent text-[15px] outline-none" style={{ color: t.ink }} />
+        </label>
+        {query.trim() ? <p className="m-0 mt-2 text-[13px]" role="status" style={{ color: t.muted }}>{shown.length ? `${shown.length} ${shown.length === 1 ? "answer" : "answers"}` : "No answers match. Try another word, or contact us."}</p> : null}
+      </>
+    ) : null;
     if (layout === "cards") {
       // Every answer open, in cards: quick to scan on a dedicated FAQ page.
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-12">
           <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
+          {searchBox ? <div className="mx-auto max-w-[720px]">{searchBox}</div> : null}
           <div className="mt-8 grid gap-3 @3xl:grid-cols-2">
-            {items.map((item) => (
+            {shown.map((item) => (
               <div key={item.id} className="p-5" style={{ background: look.raised, borderRadius: look.cardRadius }}>
                 <h3 className="m-0 text-[15.5px] font-semibold" style={{ color: t.ink }}>{item.question}</h3>
                 <p className="mb-0 mt-2 text-[14.5px] leading-7" style={{ color: t.muted }}>{item.answer || missing}</p>
@@ -1240,7 +1258,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
     const accordion = (
       <div className={layout === "two-column" ? "" : "mt-6"}>
-        {items.map((item) => {
+        {shown.map((item) => {
           const open = openFaq === item.id;
           return (
             <div key={item.id} className="border-b" style={{ borderColor: t.border }}>
@@ -1270,7 +1288,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 <button type="button" className="bq-btn mt-1" style={look.secondaryButton} onClick={() => go("contact")}>Contact us</button>
               ) : null}
             </div>
-            {accordion}
+            <div>
+              {searchBox}
+              {accordion}
+            </div>
           </div>
         </section>
       );
@@ -1279,6 +1300,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <div className="mx-auto max-w-[720px]">
           <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
+          {searchBox}
           {accordion}
         </div>
       </section>
@@ -1454,7 +1476,37 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
   }
 
+  /** What the ready-made blocks (./blocks) get to draw with: the same data and actions as the sections above. */
+  function blockContext(section: TemplateSectionNode): BlockContext {
+    return {
+      section,
+      copy: copyOf(section),
+      settings: section.settings ?? {},
+      items: section.items ?? [],
+      look,
+      store,
+      shopper,
+      products,
+      live,
+      editor: !live && !props.demo,
+      headingId: `${uid}-${section.id}`,
+      currentPage: current,
+      go,
+      openProduct,
+      productHref,
+      shopCollection,
+      shopCategory,
+      addToCart: live ? props.onAddToCart : undefined,
+      openCart: props.onOpenCart,
+      wished,
+      toggleWish,
+      visitorKey: props.visitorKey,
+      editorHint,
+    };
+  }
+
   function render(section: TemplateSectionNode): React.ReactNode {
+    if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
     switch (section.kind) {
       case "hero-split":
         return hero(section);

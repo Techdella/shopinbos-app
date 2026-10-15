@@ -7,6 +7,7 @@
 import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
 import { pdpSchemaGroups } from "./pdp-schema.ts";
+import { storeBlockMeta } from "../../storefront/boutique/blocks/block-catalog.ts";
 
 export type FieldTarget =
   | { scope: "copy"; key: string }
@@ -44,6 +45,8 @@ export type ItemField =
   | { key: string; type: "media"; label: string; accept: "image" | "media"; help?: string; when?: When }
   | { key: string; type: "select" | "segmented"; label: string; options: ChoiceOption[]; fallback: string; help?: string; when?: When }
   | { key: string; type: "color"; label: string; help?: string; when?: When }
+  /** A number typed into one entry (pin position, size-chart measurement). Stored as a string. */
+  | { key: string; type: "number"; label: string; min: number; max: number; placeholder?: string; help?: string; when?: When }
   /** A page, a product or a web address. */
   | { key: string; type: "link"; label: string; help?: string; when?: When };
 
@@ -58,6 +61,8 @@ export type SchemaField =
   | (FieldBase & { type: "list"; target: FieldTarget; fallback: string[] })
   /** The seller's collections (2026 themes). */
   | (FieldBase & { type: "collection"; target: FieldTarget })
+  /** One picture (or video) URL stored at `target`, for sections whose items hold something else (ready-made blocks). */
+  | (FieldBase & { type: "image"; target: FieldTarget; accept?: "image" | "media" })
   /** Pictures stored on section.items (first `max` are used). */
   | (FieldBase & { type: "media"; max: number; accept?: "image" | "media" })
   /** Store products picked onto section.items (mappedStoreProductId). */
@@ -287,6 +292,9 @@ function heroLayoutOptions(themeId: string): ChoiceOption[] {
 function boutiqueSchema(kind: string, themeId: string): SectionSchema {
   const heroDefault = heroDefaultLayout("boutique", themeId);
   const plain = (settings: FieldGroup[], addable: SectionSchema["addable"] = []): SectionSchema => ({ settings, style: [THEME_STYLE_NOTE], addable });
+  // Ready-made blocks carry their own fields (blocks/block-catalog.ts).
+  const block = storeBlockMeta(kind);
+  if (block) return plain(block.schema(themeId));
   switch (kind) {
     case "announcement-bar":
       return plain([{ fields: [area("text", "Message", { help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." }), sharedNote("announcement bar")] }]);
@@ -414,11 +422,17 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       ]);
     }
     case "faq":
-      return plain([{ fields: [
-        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "accordion", options: [{ value: "accordion", label: "Accordion" }, { value: "two-column", label: "Two columns" }, { value: "cards", label: "Open cards" }] },
-        text("title", "Heading"),
-        { id: "faq", type: "faq", label: "Questions", help: "Blank delivery and payment answers are filled from your settings." },
-      ] }], [{ id: "question", label: "Question" }]);
+      return plain([
+        { fields: [
+          { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "accordion", options: [{ value: "accordion", label: "Accordion" }, { value: "two-column", label: "Two columns" }, { value: "cards", label: "Open cards" }] },
+          text("title", "Heading"),
+          { id: "faq", type: "faq", label: "Questions", help: "Blank delivery and payment answers are filled from your settings." },
+        ] },
+        { title: "Search", fields: [
+          { id: "searchable", type: "toggle", label: "Search box", target: setting("searchable"), fallback: false, help: "Lets shoppers type to find an answer. Handy for long lists." },
+          text("searchPlaceholder", "Search hint", { placeholder: "Search questions", when: { scope: "settings", key: "searchable", in: ["true"], fallback: "false" } }),
+        ] },
+      ], [{ id: "question", label: "Question" }]);
     case "newsletter":
       return plain([{ fields: [text("title", "Heading"), area("body", "Text"), text("placeholder", "Field hint"), text("buttonLabel", "Button label")] }]);
     case "contact-form":

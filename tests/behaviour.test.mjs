@@ -1319,7 +1319,7 @@ test("advanced builder: page list, insert options and apps follow the store's re
   assert.deepEqual(bare.map((entry) => entry.label), ["Home page"], "no products page, no Products or Collections entries");
 
   const boutique = logic.insertOptions({ renderer: "boutique", target: "template", existingKinds: [] });
-  assert.deepEqual(boutique.map((group) => group.group), ["Banners", "Products", "Story", "Grow"]);
+  assert.deepEqual(boutique.map((group) => group.group), ["Banners", "Products", "Trust", "Story", "Grow", "Extras"], "the ready-made blocks add Trust and Extras");
   assert.ok(boutique.flatMap((group) => group.items).every((item) => item.renderers.includes("boutique")), "only sections the theme can draw");
   assert.deepEqual(logic.insertOptions({ renderer: "boutique", target: "header", existingKinds: ["header"] }).flatMap((group) => group.items.map((item) => item.kind)), ["announcement-bar"]);
   assert.deepEqual(logic.insertOptions({ renderer: "classic", target: "template", existingKinds: [], query: "countdown" }), [], "the countdown needs a 2026 theme");

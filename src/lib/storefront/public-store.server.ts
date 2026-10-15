@@ -44,6 +44,12 @@ function storeSelect(productStatuses: readonly string[]) {
         category: { select: { id: true, name: true, slug: true } },
         variants: true,
         supplierProduct: { select: { stockQuantity: true, moq: true } },
+        // Already public on each product page; the store blocks use them for "You may also like" and the
+        // comparison table.
+        productType: true,
+        tags: true,
+        productDetails: true,
+        specifications: true,
       },
       orderBy: { createdAt: "desc" as const },
     },
