@@ -270,6 +270,7 @@ model Store {
   launchPayments StoreLaunchPayment[]
   affiliates     Affiliate[]
   adCampaigns    AdCampaign[]
+  storeCampaigns StoreCampaign[]
 
   @@index([slug])
   @@index([previousSlugs], type: Gin)
@@ -1555,6 +1556,8 @@ model Discount {
   config      Json           @default("{}") // marketing: { automatic, buyQuantity, getQuantity, getPercent, productIds, segmentId, oncePerCustomer }
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+
+  storeCampaigns StoreCampaign[]
 
   @@unique([storeId, code])
   @@index([storeId])
@@ -3187,3 +3190,74 @@ model MediaAsset {
   @@index([storeId])
 }
 // ---- end media library ----
+
+// ─── Seasonal campaigns (Marketing > Seasonal campaigns) ─────────────────────
+// A scheduled bundle that changes the live store for a while (Black Friday, Detty December…) and reverts by itself.
+// The store's own design is never edited: the look and section changes are stored as differences and merged when
+// the storefront renders (src/lib/store-campaigns/merge.ts). The status is worked out from the dates
+// (src/lib/store-campaigns/status.ts); the *JobRanAt columns only make the start/end side effects run once
+// (/api/cron/seasonal-campaigns). docs/migrations/2026-10-30-campaigns.sql creates the tables.
+
+model StoreCampaign {
+  id                 String    @id @default(cuid())
+  storeId            String
+  name               String
+  preset             String?   // black_friday | christmas | … (src/lib/store-campaigns/presets.ts) or null
+  startsAt           DateTime? // UTC; null = draft
+  endsAt             DateTime? // UTC
+  timezone           String    @default("Africa/Lagos") // IANA, for showing and picking dates
+  priority           Int       @default(0)
+  pausedAt           DateTime?
+  archivedAt         DateTime?
+  endingSoonHours    Int       @default(24)
+  discountId         String?
+  discountAutoToggle Boolean   @default(false) // switch the linked discount on at the start and off at the end
+  themeOverride      Json      @default("{}") // { tokens: Partial<ThemeTokenSet>, logoUrl? }
+  sectionOverrides   Json      @default("[]") // [{ id, page, action: add|hide|replace|reorder, sectionId?, section?, position? }]
+  startJobRanAt      DateTime?
+  endJobRanAt        DateTime?
+  endingSoonSentAt   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  store    Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  discount Discount?            @relation(fields: [discountId], references: [id], onDelete: SetNull)
+  blocks   StoreCampaignBlock[]
+  events   StoreCampaignEvent[]
+
+  @@index([storeId, startsAt, endsAt])
+  @@index([endsAt])
+}
+
+/// Store-wide pieces a campaign adds: announcement bar, pop-up (a StoreForm, so there is one pop-up engine),
+/// product badges and the countdown.
+model StoreCampaignBlock {
+  id         String   @id @default(cuid())
+  campaignId String
+  type       String   // announcement | popup | badge | countdown
+  enabled    Boolean  @default(true)
+  settings   Json     @default("{}")
+  targeting  Json     @default("{}")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, type])
+}
+
+/// Storefront events for campaign reports: page_view, block_view, block_click, popup_shown, popup_closed, popup_converted.
+model StoreCampaignEvent {
+  id         String   @id @default(cuid())
+  storeId    String
+  campaignId String
+  blockId    String?
+  event      String
+  sessionId  String?
+  createdAt  DateTime @default(now())
+
+  campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, event, createdAt])
+}

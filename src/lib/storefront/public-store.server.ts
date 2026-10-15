@@ -8,6 +8,7 @@ import { showsShopinbosBadge } from "@/lib/store-badges";
 import { forShoppers } from "@shared/product-stock";
 import { loadShopperInfo } from "./shopper-info.server";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason, storefrontAccess, type StoreUnavailableReason } from "./store-visibility";
+import { withCampaignLook } from "@/lib/store-campaigns/storefront.server";
 
 // The public store payload (what /api/public/store/[slug] returns), loaded straight from the database.
 // Server components use this instead of calling the app's own API over HTTP, which breaks whenever
@@ -141,6 +142,9 @@ export const loadPublicStore = cache(async (slug: string): Promise<PublicStoreRe
 
 /** Name, logo and colours for a store that isn't open yet (the "not open yet" page and storefront 404s). */
 export interface StoreBrand extends StoreBadges {
+  /** For the storefront layout's seasonal-campaign layer (only open stores show campaigns). */
+  id: string;
+  active: boolean;
   name: string;
   slug: string;
   logoUrl: string | null;
@@ -150,10 +154,12 @@ export interface StoreBrand extends StoreBadges {
 /** Also what the storefront layouts hand every page's footer: the "Built with Shopinbos" badge and payment logos. */
 export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | null> => {
   const store = await db.store
-    .findUnique({ where: { slug }, select: { name: true, slug: true, logoUrl: true, brandSettings: true, user: { select: { planStatus: true, planPaidUntil: true } } } })
+    .findUnique({ where: { slug }, select: { id: true, status: true, name: true, slug: true, logoUrl: true, brandSettings: true, user: { select: { planStatus: true, planPaidUntil: true } } } })
     .catch(() => null);
   if (!store) return null;
   return {
+    id: store.id,
+    active: store.status === "active",
     name: store.name,
     slug: store.slug,
     logoUrl: store.logoUrl,
@@ -175,7 +181,8 @@ export type StorefrontView =
 export const resolveStorefront = cache(async (slug: string): Promise<StorefrontView> => {
   const result = await loadPublicStore(slug);
   if (result.kind === "missing") return { access: "missing" };
-  if (result.kind === "live") return { access: "live", store: result.store };
+  // A live seasonal campaign changes the look (merged on top: the store's own design is untouched).
+  if (result.kind === "live") return { access: "live", store: await withCampaignLook(result.store) };
 
   const user = await getCurrentAppUser().catch(() => null);
   if (storefrontAccess(false, Boolean(user && user.id === result.ownerId)) === "preview") {

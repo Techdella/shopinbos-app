@@ -59,6 +59,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sell-everywhere": "Sell everywhere",
   "marketing-overview": "Overview",
   campaigns: "Campaigns",
+  "seasonal-campaigns": "Seasonal campaigns",
   automations: "Automations",
   "email-templates": "Email templates",
   "mkt-forms": "Forms and pop-ups",

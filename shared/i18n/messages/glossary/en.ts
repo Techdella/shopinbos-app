@@ -5,6 +5,8 @@ const en = {
   "segments.example": "Everyone in Lagos who bought shoes twice this year.",
   "campaigns.short": "One message you send to many customers at once, by email, WhatsApp or SMS.",
   "campaigns.example": "A Friday WhatsApp message to your VIPs: “New ankara just landed, 10% off till Sunday.”",
+  "seasonal-campaigns.short": "A sale you plan once that dresses up your shop for a season, then switches back by itself.",
+  "seasonal-campaigns.example": "Black Friday: gold colours, a countdown and a “BF Deal” badge from Friday to Sunday night.",
   "automations.short": "Messages and tasks that run by themselves when something happens in your shop.",
   "automations.example": "When someone buys, send “Thank you, Ada!” and ask for a review 5 days later.",
   "subscribers.short": "People who said yes to getting your messages, so you can market to them.",

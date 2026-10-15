@@ -634,6 +634,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "media.4.sub": "Liƙa hanyar haɗin hoto a WhatsApp, imel ko duk inda kake sayarwa.",
   "media.5.caption": "Samu shi da sauri.",
   "media.5.sub": "Ba hotuna take, sannan ka nema da suna ko ka tace hotuna da bidiyo.",
+  "seasonal-campaigns.title": "Campaigns na lokacin biki",
+  "seasonal-campaigns.cta": "Tsara campaign",
+  "seasonal-campaigns.1.caption": "Ƙawata shagonka don lokacin.",
+  "seasonal-campaigns.1.sub": "Black Friday, Detty December ko Sallah: sabbin launuka da babban banner na ƙidayar lokaci, don waɗannan kwanakin kawai.",
+  "seasonal-campaigns.2.caption": "Tsara shi sau ɗaya, sannan ka huta.",
+  "seasonal-campaigns.2.sub": "Zaɓi farko da ƙarshe. Shagonka zai canza da kansa, sannan ya koma yadda yake idan ya ƙare.",
+  "seasonal-campaigns.3.caption": "Layin sama, pop-up da badges a lokaci ɗaya.",
+  "seasonal-campaigns.3.sub": "Layin sama mai agogo, pop-up na “jira, kada ka tafi” da badge “BF Deal” a kan kayan sale.",
+  "seasonal-campaigns.4.caption": "Kalli agogo daga dashboard ɗinka.",
+  "seasonal-campaigns.4.sub": "Kowane campaign mai gudana da mai zuwa yana ƙidaya a shafin farko, don ka san abin da ke gudana koyaushe.",
+  "seasonal-campaigns.5.caption": "Duba abin da ya kawo.",
+  "seasonal-campaigns.5.sub": "Ziyara, rajistar pop-up, orders da cinikin da aka yi lokacin da yake gudana, kusa da kwanakin da suka gabata.",
 };
 
 export default ha;

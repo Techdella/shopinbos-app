@@ -634,6 +634,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "media.4.sub": "Mado njikọ foto na WhatsApp, email ma ọ bụ ebe ọ bụla ị na-ere.",
   "media.5.caption": "Chọta ya ọzọ ngwa ngwa.",
   "media.5.sub": "Nye foto aha, wee chọọ site n'aha ma ọ bụ họchaa foto na vidiyo.",
+  "seasonal-campaigns.title": "Campaigns oge ememe",
+  "seasonal-campaigns.cta": "Hazie campaign",
+  "seasonal-campaigns.1.caption": "Chọọ ụlọ ahịa gị mma maka oge ahụ.",
+  "seasonal-campaigns.1.sub": "Black Friday, Detty December ma ọ bụ Sallah: agba ọhụrụ na banner countdown buru ibu, naanị maka ụbọchị ndị ahụ.",
+  "seasonal-campaigns.2.caption": "Hazie ya otu ugboro, wee zuru ike.",
+  "seasonal-campaigns.2.sub": "Họrọ mmalite na njedebe. Ụlọ ahịa gị ga-agbanwe n'onwe ya, wee laghachi ka ọ dị mgbe ọ gwụrụ.",
+  "seasonal-campaigns.3.caption": "Ahịrị elu, pop-up na badges otu mgbe.",
+  "seasonal-campaigns.3.sub": "Ahịrị elu nwere elekere, pop-up “chere, alala” na badge “BF Deal” na ngwaahịa sale.",
+  "seasonal-campaigns.4.caption": "Lelee elekere site na dashboard gị.",
+  "seasonal-campaigns.4.sub": "Campaign ọ bụla na-aga na nke na-abịa na-agụ na ihuenyo ụlọ gị, ka ị mara ihe na-aga mgbe niile.",
+  "seasonal-campaigns.5.caption": "Hụ ihe o wetara.",
+  "seasonal-campaigns.5.sub": "Nleta, ndebanye aha pop-up, orders na ego e retara mgbe ọ na-aga, n'akụkụ ụbọchị ndị bu ya ụzọ.",
 };
 
 export default ig;

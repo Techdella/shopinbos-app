@@ -59,6 +59,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sell-everywhere": "Tà níbi gbogbo",
   "marketing-overview": "Àkópọ̀",
   campaigns: "Campaigns",
+  "seasonal-campaigns": "Campaigns ìgbà ọdún",
   automations: "Automations",
   "email-templates": "Email templates",
   "mkt-forms": "Forms àti pop-ups",

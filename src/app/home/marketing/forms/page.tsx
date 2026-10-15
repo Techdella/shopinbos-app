@@ -26,7 +26,8 @@ function rewardText(reward: ReturnType<typeof readPopupConfig>["reward"], discou
   return rewardLabel(reward);
 }
 
-export default async function FormsPage() {
+export default async function FormsPage({ searchParams }: { searchParams?: Promise<{ edit?: string }> }) {
+  const openId = (await searchParams)?.edit ?? null;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, status: true, brandSettings: true } });
@@ -109,7 +110,7 @@ export default async function FormsPage() {
       }
     >
       <div className="grid gap-5">
-        <FormsManager forms={forms} storeSlug={store?.slug ?? ""} theme={theme} discounts={discounts} extras={extras} />
+        <FormsManager forms={forms} storeSlug={store?.slug ?? ""} theme={theme} discounts={discounts} extras={extras} openId={openId} />
         <AssistantNote>{t("forms.note")}</AssistantNote>
       </div>
     </SellerPage>

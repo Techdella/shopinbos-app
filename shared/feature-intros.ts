@@ -114,6 +114,22 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "seasonal-campaigns",
+    term: "seasonal-campaigns",
+    title: "Seasonal campaigns",
+    roles: ["seller"],
+    paths: ["/home/campaigns"],
+    helpTopic: "get_customers",
+    cta: { label: "Plan a campaign", href: "/home/campaigns?create=1" },
+    scenes: [
+      { art: "theme-swap", caption: "Dress your shop up for the season.", sub: "Black Friday, Detty December or Sallah: new colours and a big countdown banner, just for those days.", durationMs: S, label: "Black Friday" },
+      { art: "flow-nodes", caption: "Plan it once, then relax.", sub: "Pick the start and end. Your shop changes by itself, then goes back to normal when it ends.", durationMs: S, chips: ["Fri 00:00", "Sun 23:59"] },
+      { art: "discount-ticket", caption: "Bar, pop-up and badges in one go.", sub: "A top bar with the timer, a “wait, don't go” pop-up and a “BF Deal” badge on sale items.", durationMs: S, label: "BF Deal", value: "02:14:33" },
+      { art: "dashboard-tiles", caption: "Watch the clock from your dashboard.", sub: "Every live and upcoming campaign ticks on your home screen, so you always know what's running.", durationMs: S, label: "Ends in 2d 04:13" },
+      { art: "chart-grow", caption: "See what it brought in.", sub: "Visits, pop-up sign-ups, orders and sales while it ran, next to the days before.", durationMs: S, value: "₦1.2m" },
+    ],
+  },
+  {
     key: "automations",
     term: "automations",
     title: "Automations",

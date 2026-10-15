@@ -16,6 +16,7 @@ import type { StorefrontShopperInfo } from "./shopper-info";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { forShoppers } from "@shared/product-stock";
+import { withCampaignLook } from "@/lib/store-campaigns/storefront.server";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
 
@@ -178,8 +179,10 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   ]);
 
   const templateId = resolveStoreTemplateId(store.brandSettings);
-  const { status: _status, brandSettings, ...rest } = store;
+  const { status: _status, ...withoutStatus } = store;
   void _status;
+  // A live seasonal campaign's look (colours, sections, logo) on top of the store's own.
+  const { brandSettings, ...rest } = preview ? withoutStatus : await withCampaignLook(withoutStatus);
   const publicStore = { ...rest, brandSettings: publicBrandSettings(brandSettings) };
   const { status: _productStatus, ...productRow } = product;
   void _productStatus;
@@ -223,8 +226,9 @@ export const loadStoreChrome = cache(async (slug: string) => {
     db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 }).catch(() => []),
     loadShopperInfo(store.id, store.brandSettings),
   ]);
-  const { status: _status, brandSettings, ...rest } = store;
+  const { status: _status, ...withoutStatus } = store;
   void _status;
+  const { brandSettings, ...rest } = await withCampaignLook(withoutStatus);
   return {
     themeId: templateId,
     snapshot: boutiqueSnapshotFor(templateId, brandSettings),

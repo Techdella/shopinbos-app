@@ -31,6 +31,7 @@ import { checkoutThemeFromLook } from "@/components/storefront/checkout/checkout
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
+import { CampaignBadges } from "@/components/storefront/campaign/CampaignBadges";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy } from "@shared/placeholder-copy";
 
 export interface SurfaceProduct {
@@ -692,6 +693,8 @@ function ProductCard({
         {product.soldOut ? (
           <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: theme.ink, color: "#fff" }}>Sold out</span>
         ) : null}
+        <CampaignBadges productId={product.id} offsetLeft={product.soldOut ? 32 : 0} offsetRight={mode === "live" && product.purchasable && onToggleWishlist ? 44 : 0} />
+
         {mode === "live" && product.purchasable && onToggleWishlist ? (
           <button
             type="button"
