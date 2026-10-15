@@ -2762,3 +2762,46 @@ test("store web address: normalized, reserved names refused, 30-day limit, old a
   assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna?page=about", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi?page=about");
   assert.equal(a.renamedStoreTarget({ host: "other.mybos.store", path: "/", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), null);
 });
+
+// ─── Media page: title and alt text ──────────────────────────────────────────────────────────────────
+
+test("media title and alt text are cleaned, length-checked, and only saved on the person's own entries", async () => {
+  const media = await import("../shared/media.ts");
+  const { MediaDetailsSchema } = await import("../shared/media-details.ts");
+
+  assert.equal(media.cleanMediaText("  Red   Ankara\n dress  ", 120), "Red Ankara dress");
+  assert.equal(media.cleanMediaText("<b>bold</b>\u0000", 120), "b bold /b", "no tags or control characters");
+  assert.equal(media.cleanMediaText("   ", 120), null, "blank clears it");
+  assert.equal(media.cleanMediaText(42, 120), null);
+  assert.equal(media.cleanMediaText("abcdef", 3), "abc");
+  assert.equal(media.mediaLabel({ title: " Hero ", name: "IMG_2041" }), "Hero");
+  assert.equal(media.mediaLabel({ title: "", name: "IMG_2041" }), "IMG_2041");
+  assert.equal(media.mediaLabel({ title: null, name: null }), null);
+  assert.equal(media.mediaSizeLabel(512), "512 B");
+  assert.equal(media.mediaSizeLabel(860_000), "840 KB");
+  assert.equal(media.mediaSizeLabel(2.4 * 1024 * 1024), "2.4 MB");
+  assert.equal(media.mediaSizeLabel(null), "");
+
+  assert.deepEqual(MediaDetailsSchema.parse({ title: "  Hero banner ", alt: "Woman in a red dress\n" }), { title: "Hero banner", alt: "Woman in a red dress" });
+  assert.deepEqual(MediaDetailsSchema.parse({ alt: "" }), { alt: null }, "empty clears, missing title is left alone");
+  assert.deepEqual(MediaDetailsSchema.parse({ title: null }), { title: null });
+  assert.equal(MediaDetailsSchema.safeParse({}).success, false, "must change something");
+  assert.equal(MediaDetailsSchema.safeParse({ alt: "x".repeat(media.MEDIA_ALT_MAX + 1) }).success, false);
+  assert.equal(MediaDetailsSchema.safeParse({ title: "x".repeat(media.MEDIA_TITLE_MAX + 1) }).success, false);
+  assert.equal(MediaDetailsSchema.safeParse({ alt: "x".repeat(media.MEDIA_ALT_MAX) }).success, true);
+  assert.equal(MediaDetailsSchema.safeParse({ alt: 5 }).success, false);
+  assert.equal(MediaDetailsSchema.safeParse({ alt: "ok", userId: "someone-else" }).success, false, "no other fields");
+
+  const route = readFileSync(new URL("../src/app/api/app/media/[id]/route.ts", import.meta.url), "utf8");
+  const lib = readFileSync(new URL("../src/lib/media/library.server.ts", import.meta.url), "utf8");
+  assert.match(route, /export const PATCH = withAuth\(/);
+  assert.match(route, /MediaDetailsSchema\.safeParse\(body\)/);
+  assert.match(route, /updateMediaDetails\(user\.id, id, parsed\.data\)/);
+  assert.match(lib, /updateMany\(\{ where: \{ id, userId, hiddenAt: null \}, data \}\)/, "owner-scoped, hidden ones stay untouched");
+  const sql = readFileSync(new URL("../docs/migrations/2026-10-29-media-alt-title.sql", import.meta.url), "utf8");
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "title" TEXT/);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "alt" TEXT/);
+  assert.doesNotMatch(sql, /\bDROP\b|\bTRUNCATE\b|\bDELETE FROM\b|NOT NULL/i);
+  const nav = readFileSync(new URL("../src/lib/nav.ts", import.meta.url), "utf8");
+  assert.match(nav, /id: "brand-kit"[^\n]*\n\s*\{ id: "media", label: "Media", icon: "image", href: "\/home\/media" \}/);
+});

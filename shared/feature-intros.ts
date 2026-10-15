@@ -504,6 +504,21 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "media",
+    term: "media",
+    title: "Media",
+    roles: ["seller"],
+    paths: ["/home/media"],
+    cta: { label: "Open my media", href: "/home/media" },
+    scenes: [
+      { art: "store-card", caption: "Every picture in your shop, in one place.", sub: "Product photos, your logo, banners and Rex's designs all land here by themselves.", durationMs: S, label: "My media" },
+      { art: "video-reel", caption: "Upload once, use it anywhere.", sub: "Pick the same photo for a product, a banner or a blog post. No uploading twice.", durationMs: S },
+      { art: "search-rank", caption: "Alt text helps Google find you.", sub: "Say what each picture shows, like “Red Ankara wrap dress”. Search engines read it.", durationMs: S, value: "Red Ankara wrap dress" },
+      { art: "link-share", caption: "Copy a link in one tap.", sub: "Paste a picture's link into WhatsApp, an email or anywhere else you sell.", durationMs: S },
+      { art: "dots-sort", caption: "Find it again fast.", sub: "Give pictures a title, then search by name or filter pictures and videos.", durationMs: S, chips: ["Pictures", "Videos"] },
+    ],
+  },
+  {
     key: "rex-studio",
     term: "studio",
     title: "Rex Studio",

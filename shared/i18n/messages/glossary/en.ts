@@ -109,6 +109,8 @@ const en = {
   "content.example": "“5 ways to keep your wig fresh in Harmattan.”",
   "brand-kit.short": "Your logo, colours and fonts in one place, so everything you make looks like you.",
   "brand-kit.example": "Your mint green, your logo and your tagline on every flyer Rex makes.",
+  "media.short": "Every picture and video in your shop, kept in one place to name, describe and use again.",
+  "media.example": "Pick last month’s Ankara photo for a new banner instead of uploading it again.",
   "studio.short": "Rex, the AI designer, makes product photos, logos and posts for you.",
   "studio.example": "Turn a phone photo of a cake into a clean white-background picture.",
   "domain.short": "Your shop’s own web address that people type to find you.",

@@ -853,7 +853,11 @@ function ImageBlocksField({ section, ...props }: FieldProps) {
       <h3 className="pb-1 pt-3 text-[14px] font-bold text-app-ink">{tx("Images")}</h3>
       {blocks.map((block, index) => (
         <div key={block.id} data-field={`image:${block.id}`} className="mb-2 rounded-[14px] border border-app-line p-2.5">
-          <MediaPicker compact accept="any" label={t("edk.imageLink", { n: index + 1 })} value={str(block.content.originalSrc)} onChange={(url) => update(block.id, "originalSrc", url)} />
+          <MediaPicker compact accept="any" label={t("edk.imageLink", { n: index + 1 })} value={str(block.content.originalSrc)} onChange={(url, asset) => {
+            update(block.id, "originalSrc", url);
+            // A picture from the library brings its alt text along when this block has none yet.
+            if (asset?.alt && !str(block.content.alt)) update(block.id, "alt", asset.alt);
+          }} />
           <FieldShell label="Alt text" help="Describes the image for people who can't see it.">
             <input className={inputClass} value={str(block.content.alt)} onChange={(event) => update(block.id, "alt", event.target.value)} aria-label={t("edk.imageAlt", { n: index + 1 })} />
           </FieldShell>
