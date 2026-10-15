@@ -13,12 +13,13 @@ export const CREDITS_URL = "/home/credits";
 // aiCredits is the plan tier elsewhere in the app (see plan-limits.ts), so it is read here, never spent.
 
 // "speech" is voice typing (speech to text, POST /api/ai/transcribe): short and frequent, so its own allowance.
-export type AiKind = "text" | "image" | "voice" | "build" | "speech";
+// "video" is a finished reel from the video studio (the pictures and voice in it are metered on their own).
+export type AiKind = "text" | "image" | "voice" | "build" | "speech" | "video";
 
 const DAILY: Record<"starter" | "growth" | "pro", Record<AiKind, number>> = {
-  starter: { text: 60, image: 8, voice: 10, build: 6, speech: 60 },
-  growth: { text: 300, image: 40, voice: 40, build: 20, speech: 200 },
-  pro: { text: 1500, image: 150, voice: 150, build: 60, speech: 600 },
+  starter: { text: 60, image: 8, voice: 10, build: 6, speech: 60, video: 2 },
+  growth: { text: 300, image: 40, voice: 40, build: 20, speech: 200, video: 10 },
+  pro: { text: 1500, image: 150, voice: 150, build: 60, speech: 600, video: 40 },
 };
 
 export function aiTier(aiCredits: number | null | undefined): keyof typeof DAILY {
@@ -30,7 +31,7 @@ export function dailyLimit(kind: AiKind, aiCredits: number | null | undefined) {
   return DAILY[aiTier(aiCredits)][kind];
 }
 
-const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images", voice: "voiceovers", build: "store builds", speech: "voice typing recordings" };
+const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images", voice: "voiceovers", build: "store builds", speech: "voice typing recordings", video: "videos" };
 
 /**
  * Checks and records one use. Returns a 429 response when over the limit (or bursting), else null.
@@ -72,7 +73,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
   return null;
 }
 
-const ALLOWANCE_LABEL: Record<AiKind, string> = { text: "Peggy & Rex requests", image: "Pictures", voice: "Voiceovers", build: "Store builds", speech: "Voice typing" };
+const ALLOWANCE_LABEL: Record<AiKind, string> = { text: "Peggy & Rex requests", image: "Pictures", voice: "Voiceovers", build: "Store builds", speech: "Voice typing", video: "Videos" };
 
 /** What the seller has used of each daily AI allowance (last 24 hours), for Settings. Null if it can't be read. */
 export async function aiAllowanceToday(userId: string, aiCredits: number | null | undefined) {

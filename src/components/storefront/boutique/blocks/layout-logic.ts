@@ -291,15 +291,85 @@ export function updateLayoutElement(section: TemplateSectionNode, elementId: str
   return withCells(section, cells.map((cell) => ({ ...cell, elements: cell.elements.map((element) => (element.id === elementId ? normaliseLayoutElement({ ...element, ...changes, id: element.id, type: element.type }, element.id) ?? element : element)) })));
 }
 
-export function moveLayoutElement(section: TemplateSectionNode, elementId: string, direction: "up" | "down"): TemplateSectionNode {
+/**
+ * Moves an element one step up or down inside its column, or (with a column and an index) to any spot in any column:
+ * `toIndex` is the gap in the target column as it is now drawn (0 = above the first element, `length` = at the end),
+ * which is what a drop line between elements points at. Within one column, dropping just above or below the element
+ * itself changes nothing. Out-of-range columns and indexes are clamped; an unknown id, a full target column or a move
+ * that changes nothing returns the same section object, so callers can skip the commit.
+ */
+export function moveLayoutElement(section: TemplateSectionNode, elementId: string, direction: "up" | "down"): TemplateSectionNode;
+export function moveLayoutElement(section: TemplateSectionNode, elementId: string, toColumn: number, toIndex: number): TemplateSectionNode;
+export function moveLayoutElement(section: TemplateSectionNode, elementId: string, target: "up" | "down" | number, toIndex?: number): TemplateSectionNode {
   const found = findLayoutElement(section, elementId);
   if (!found) return section;
-  const to = found.index + (direction === "up" ? -1 : 1);
-  if (to < 0 || to >= found.count) return section;
+  if (target === "up" || target === "down") {
+    const to = found.index + (target === "up" ? -1 : 1);
+    if (to < 0 || to >= found.count) return section;
+    // One step down is the gap below the next element.
+    return moveLayoutElement(section, elementId, found.cellIndex, target === "up" ? to : to + 1);
+  }
+  if (typeof target !== "number" || typeof toIndex !== "number" || !Number.isFinite(target) || !Number.isFinite(toIndex)) return section;
   const cells = cellsOf(section);
-  const elements = [...cells[found.cellIndex]!.elements];
-  [elements[found.index], elements[to]] = [elements[to]!, elements[found.index]!];
-  return withCells(section, cells.map((cell, index) => (index === found.cellIndex ? { ...cell, elements } : cell)));
+  const column = Math.min(Math.max(0, Math.trunc(target)), cells.length - 1);
+  const destination = cells[column]!.elements;
+  let index = Math.min(Math.max(0, Math.trunc(toIndex)), destination.length);
+  if (column === found.cellIndex) {
+    // The element leaves its own spot first, so every gap below it moves up by one.
+    if (index > found.index) index -= 1;
+    if (index === found.index) return section;
+  } else if (destination.length >= MAX_ELEMENTS_PER_COLUMN) {
+    return section;
+  }
+  const next = cells.map((cell) => ({ ...cell, elements: cell.elements.filter((element) => element.id !== found.element.id) }));
+  next[column]!.elements.splice(index, 0, found.element);
+  return withCells(section, next);
+}
+
+/** Can `elementId` go to `toColumn` at all (false when it's unknown or that column is full)? */
+export function canMoveLayoutElementTo(section: TemplateSectionNode, elementId: string, toColumn: number): boolean {
+  const found = findLayoutElement(section, elementId);
+  if (!found || !Number.isFinite(toColumn)) return false;
+  const cells = cellsOf(section);
+  const column = Math.min(Math.max(0, Math.trunc(toColumn)), cells.length - 1);
+  return column === found.cellIndex || cells[column]!.elements.length < MAX_ELEMENTS_PER_COLUMN;
+}
+
+// ─── Drag and drop geometry (the builder) ────────────────────────────────────
+
+export interface DropRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * The column under (or nearest to) a pointer: columns side by side, stacked on phones, or in a grid. Columns whose
+ * width spans the pointer win (a short column still takes a drop below its last element); among them, and when the
+ * pointer is in a gap between columns, the nearest one. -1: none.
+ */
+export function nearestDropColumn(rects: DropRect[], x: number, y: number): number {
+  let best = -1;
+  let bestDistance = Infinity;
+  const spanning = rects.some((rect) => x >= rect.left && x <= rect.right);
+  rects.forEach((rect, index) => {
+    if (spanning && (x < rect.left || x > rect.right)) return;
+    const dx = Math.max(rect.left - x, 0, x - rect.right);
+    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+    const distance = dx * dx + dy * dy;
+    if (distance < bestDistance) {
+      best = index;
+      bestDistance = distance;
+    }
+  });
+  return best;
+}
+
+/** The gap a pointer points at in a column, from the vertical middles of its elements (top to bottom). */
+export function dropIndexAt(middles: number[], y: number): number {
+  const index = middles.findIndex((middle) => y < middle);
+  return index === -1 ? middles.length : index;
 }
 
 export function removeLayoutElement(section: TemplateSectionNode, elementId: string): TemplateSectionNode {
@@ -323,4 +393,134 @@ export function layoutElementLabel(element: LayoutElement): string {
   const label = layoutElementMeta(element.type)?.label ?? "Element";
   if (!own) return label;
   return own.length > 32 ? `${own.slice(0, 30)}…` : own;
+}
+
+// ─── Moving between rows (the builder) ───────────────────────────────────────
+
+/** Why a move between rows changed nothing. */
+export type RowMoveRefusal = "unknown" | "full" | "unchanged";
+
+export interface RowMove {
+  /** The page's sections after the move: the very same array when nothing changed. */
+  sections: TemplateSectionNode[];
+  /** The moved element's id in its new spot (a new one when its id was taken there), null when nothing moved. */
+  elementId: string | null;
+  /** Where it landed (column, and position in that column); -1 when nothing moved. */
+  column: number;
+  index: number;
+  reason?: RowMoveRefusal;
+}
+
+/**
+ * Moves an element from one rows / columns section of a page into another (or, when both ids are the same section,
+ * inside it through moveLayoutElement). `toIndex` is the gap in the target column as it is drawn. Columns and indexes
+ * are clamped like moveLayoutElement's. The element keeps its id unless another element on the page (or a column of
+ * the target row) already uses it; then it becomes `<id>-2`, `<id>-3`… A full target column, an unknown section or
+ * element, or a move that changes nothing returns the same array with a reason: never a half-done move. Inputs are
+ * never changed, so the result can be one undoable commit.
+ */
+export function moveElementAcrossRows(
+  sections: TemplateSectionNode[],
+  fromSectionId: string,
+  elementId: string,
+  toSectionId: string,
+  toColumn: number,
+  toIndex: number,
+): RowMove {
+  const none = (reason: RowMoveRefusal): RowMove => ({ sections, elementId: null, column: -1, index: -1, reason });
+  if (!Array.isArray(sections)) return none("unknown");
+  const fromAt = sections.findIndex((section) => section?.id === fromSectionId && section.kind === LAYOUT_ROW_KIND);
+  const toAt = sections.findIndex((section) => section?.id === toSectionId && section.kind === LAYOUT_ROW_KIND);
+  if (fromAt === -1 || toAt === -1 || typeof toColumn !== "number" || typeof toIndex !== "number" || !Number.isFinite(toColumn) || !Number.isFinite(toIndex)) return none("unknown");
+  const from = sections[fromAt]!;
+  const found = findLayoutElement(from, elementId);
+  if (!found) return none("unknown");
+
+  if (fromAt === toAt) {
+    const next = moveLayoutElement(from, elementId, toColumn, toIndex);
+    if (next === from) return none(canMoveLayoutElementTo(from, elementId, toColumn) ? "unchanged" : "full");
+    const placed = findLayoutElement(next, elementId)!;
+    return { sections: sections.map((section, at) => (at === fromAt ? next : section)), elementId: placed.element.id, column: placed.cellIndex, index: placed.index };
+  }
+
+  const to = sections[toAt]!;
+  const cells = cellsOf(to);
+  const column = Math.min(Math.max(0, Math.trunc(toColumn)), cells.length - 1);
+  if (column < 0) return none("unknown");
+  const destination = cells[column]!.elements;
+  if (destination.length >= MAX_ELEMENTS_PER_COLUMN) return none("full");
+  const index = Math.min(Math.max(0, Math.trunc(toIndex)), destination.length);
+
+  // Ids stay unique on the page (the editor selects elements by id) and among the target row's column ids.
+  const taken = new Set<string>();
+  sections.forEach((section, at) => {
+    if (section?.kind !== LAYOUT_ROW_KIND) return;
+    for (const cell of at === toAt ? cells : cellsOf(section)) {
+      if (at === toAt) taken.add(cell.id);
+      for (const element of cell.elements) if (!(at === fromAt && element.id === found.element.id)) taken.add(element.id);
+    }
+  });
+  let id = found.element.id;
+  for (let n = 2; taken.has(id); n += 1) id = `${found.element.id}-${n}`;
+
+  const moved: LayoutElement = { ...JSON.parse(JSON.stringify(found.element)), id };
+  const nextCells = cells.map((cell, at) => (at === column ? { ...cell, elements: [...cell.elements.slice(0, index), moved, ...cell.elements.slice(index)] } : cell));
+  const nextFrom = removeLayoutElement(from, found.element.id);
+  const nextTo = withCells(to, nextCells);
+  return {
+    sections: sections.map((section, at) => (at === fromAt ? nextFrom : at === toAt ? nextTo : section)),
+    elementId: id,
+    column,
+    index,
+  };
+}
+
+/** Can `elementId` (in `fromSectionId`) go to that column of `toSectionId`? False when either is unknown or the column is full. */
+export function canMoveElementAcrossRows(sections: TemplateSectionNode[], fromSectionId: string, elementId: string, toSectionId: string, toColumn: number): boolean {
+  const from = sections.find((section) => section?.id === fromSectionId && section.kind === LAYOUT_ROW_KIND);
+  if (!from || !findLayoutElement(from, elementId)) return false;
+  if (fromSectionId === toSectionId) return canMoveLayoutElementTo(from, elementId, toColumn);
+  const to = sections.find((section) => section?.id === toSectionId && section.kind === LAYOUT_ROW_KIND);
+  if (!to || !Number.isFinite(toColumn)) return false;
+  const cells = cellsOf(to);
+  const column = Math.min(Math.max(0, Math.trunc(toColumn)), cells.length - 1);
+  return column >= 0 && cells[column]!.elements.length < MAX_ELEMENTS_PER_COLUMN;
+}
+
+/**
+ * The row a pointer is over while dragging on the canvas: the row whose box (grown by `reach` pixels) holds the
+ * pointer, the nearest one when grown boxes overlap, the dragged element's own row (`own`) on a tie. Outside every
+ * row it stays the own row, so a drop over another kind of section still lands where it did before. -1: no rows.
+ */
+export function pickDropRow(rows: DropRect[], x: number, y: number, own: number, reach = 24): number {
+  let best = -1;
+  let bestDistance = Infinity;
+  rows.forEach((rect, index) => {
+    const dx = Math.max(rect.left - x, 0, x - rect.right);
+    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+    if (dx > reach || dy > reach) return;
+    const distance = dx * dx + dy * dy;
+    if (distance < bestDistance || (distance === bestDistance && index === own)) {
+      best = index;
+      bestDistance = distance;
+    }
+  });
+  if (best !== -1) return best;
+  return own >= 0 && own < rows.length ? own : rows.length ? 0 : -1;
+}
+
+/**
+ * Where the floating drag preview goes (its top-left corner, in window pixels): below and to the right of the
+ * pointer, `offset` away so the drop line at the pointer stays in sight; flipped to the left or above near the
+ * window's right or bottom edge, and always inside the window.
+ */
+export function dragPreviewPosition(x: number, y: number, size: { width: number; height: number }, viewport: { width: number; height: number }, offset = 18): { left: number; top: number } {
+  const margin = 4;
+  let left = x + offset;
+  let top = y + offset;
+  if (left + size.width > viewport.width - margin) left = x - offset - size.width;
+  if (top + size.height > viewport.height - margin) top = y - offset - size.height;
+  left = Math.max(margin, Math.min(left, viewport.width - margin - size.width));
+  top = Math.max(margin, Math.min(top, viewport.height - margin - size.height));
+  return { left: Math.round(left), top: Math.round(top) };
 }

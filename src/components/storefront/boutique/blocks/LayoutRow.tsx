@@ -2,33 +2,70 @@
 
 // Rows, columns and grids (layout-row sections) on the 2026 themes: the seller's own elements in columns, themed with
 // the look tokens. Columns stack on phones unless the seller turns that off. In the builder each element can be
-// clicked to edit it and every column has its own "+" to add an element.
+// clicked to edit it and every column has its own "+" to add an element; its grip (top-left, on hover or when picked)
+// drags it to another spot in its column or into another column. Columns are drop targets in their own order, so
+// dragging works the same when they stack on phones. An element can also be dragged into any other rows / columns
+// section on the page: while one is dragged, every row outlines its columns, and a small copy of it follows the pointer.
 
+import { useRef } from "react";
 import type React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { mediaKind, youTubeEmbedUrl } from "@/lib/store-templates/section-content";
 import {
   LAYOUT_GAPS,
   LAYOUT_PADDING,
+  MAX_ELEMENTS_PER_COLUMN,
   columnTemplate,
   iconListLines,
+  layoutElementLabel,
   layoutElementMeta,
   normaliseLayoutRow,
   type LayoutElement,
   type LayoutRowView,
 } from "./layout-logic";
 import { BlockProductCard, ItemLink, itemLink, Paragraphs, type BlockContext } from "./shared";
+import { DragGhost } from "./DragGhost";
+import { useColumnDrag, usePageColumnDrag } from "./useColumnDrag";
 import { isPlaceholderCopy } from "@shared/placeholder-copy";
 
 export interface LayoutRowEditing {
   selectedElementId?: string | null;
   onSelectElement?: (sectionId: string, elementId: string) => void;
   onAddToColumn?: (sectionId: string, columnIndex: number) => void;
+  /**
+   * Drag and drop: the element, its new column and the gap in that column it was dropped in (as drawn), and when it
+   * was dropped into another rows / columns section on the page, that section's id.
+   */
+  onMoveElement?: (sectionId: string, elementId: string, toColumn: number, toIndex: number, toSectionId?: string) => void;
+}
+
+const EDIT_BLUE = "#2F66F6";
+const FULL_RED = "#E5484D";
+
+const ELEMENT_ICONS: Record<string, IconName> = { heading: "edit", text: "document", image: "image", button: "link", video: "play", spacer: "layers", divider: "minus", "icon-list": "list", product: "tag" };
+
+/** The picture on the floating drag card: the element's own image, else its icon. */
+function GhostThumb({ element }: { element: LayoutElement }) {
+  const url = element.type === "image" ? str(element.imageUrl) : "";
+  if (url) return <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
+  return <Icon name={ELEMENT_ICONS[element.type] ?? "layers"} size={16} />;
 }
 
 const ALIGN_ITEMS: Record<LayoutRowView["align"], React.CSSProperties["alignItems"]> = { top: "start", center: "center", bottom: "end", stretch: "stretch" };
 const RATIOS: Record<string, string | undefined> = { square: "1 / 1", portrait: "4 / 5", landscape: "16 / 10", auto: undefined };
 const ROW_CSS = `.bql-row{display:grid;grid-template-columns:var(--bql-mobile);gap:var(--bql-gap)}@container bq (min-width:760px){.bql-row{grid-template-columns:var(--bql-cols)}}.bql-col{display:flex;flex-direction:column;gap:14px;min-width:0}`;
+// The grip shows on hover and on the picked element (phones have no hover: only the picked one), and can't be grabbed
+// while hidden.
+const GRIP_CSS = `.bql-grip{opacity:0;pointer-events:none;transition:opacity .12s}.bql-el:hover>.bql-grip,.bql-el[aria-pressed="true"]>.bql-grip{opacity:1;pointer-events:auto}`;
+
+/** The ⋮⋮ drag grip (canvas and the builder panel's column lists). */
+export function GripDots() {
+  return (
+    <svg width="12" height="14" viewBox="0 0 12 14" aria-hidden focusable="false" fill="currentColor">
+      {[3, 7, 11].flatMap((y) => [3, 9].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.4" />))}
+    </svg>
+  );
+}
 
 function str(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -124,6 +161,14 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
   const { section, look, editor } = ctx;
   const t = look.tokens;
   const view = normaliseLayoutRow(section);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const drag = useColumnDrag({
+    containerRef: rowRef,
+    acrossRows: true,
+    onDrop: (elementId, column, index, row) => editing?.onMoveElement?.(section.id, elementId, column, index, row && row !== section.id ? row : undefined),
+  });
+  // The drag on this page, from this row or another one.
+  const pageDrag = usePageColumnDrag();
   const hasContent = view.cells.some((cell) => cell.elements.length > 0);
   if (!hasContent && !editor) return null;
   const dark = view.background === "dark";
@@ -141,13 +186,38 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
     alignItems: ALIGN_ITEMS[view.align],
   } as React.CSSProperties;
   const canEdit = editor && editing?.onSelectElement;
+  const canDrag = Boolean(canEdit && editing?.onMoveElement);
+  const dragging = canDrag && pageDrag?.moved ? pageDrag : null;
+  const dragged = canDrag && drag.state?.moved ? view.cells.flatMap((cell) => cell.elements).find((element) => element.id === drag.state?.id) : undefined;
 
   return (
-    <section aria-label={section.name || "Columns"} style={{ background, color: dark ? t.paperBg : t.ink, paddingTop: pad, paddingBottom: pad }}>
-      <style>{ROW_CSS}</style>
-      <div className="bq-wrap bql-row" style={rowStyle}>
-        {view.cells.map((cell, columnIndex) => (
-          <div key={cell.id} className="bql-col" style={view.align === "stretch" ? { height: "100%" } : undefined}>
+    <section aria-label={section.name || "Columns"} data-drop-row={canDrag ? section.id : undefined} style={{ background, color: dark ? t.paperBg : t.ink, paddingTop: pad, paddingBottom: pad }}>
+      <style>{canDrag ? ROW_CSS + GRIP_CSS : ROW_CSS}</style>
+      <div ref={rowRef} className="bq-wrap bql-row" style={rowStyle}>
+        {view.cells.map((cell, columnIndex) => {
+          const target = dragging?.target?.row === section.id && dragging.target.column === columnIndex ? dragging.target : null;
+          // Another row's element can't come into a full column: it shows red, with no drop line.
+          const full = Boolean(dragging && dragging.from !== section.id && cell.elements.length >= MAX_ELEMENTS_PER_COLUMN);
+          return (
+          <div
+            key={cell.id}
+            className="bql-col"
+            data-drop-column={canDrag ? columnIndex : undefined}
+            style={{
+              ...(view.align === "stretch" ? { height: "100%" } : {}),
+              ...(canDrag ? { position: "relative" } : {}),
+              // While dragging every column (even an empty one) is a visible target; the one under the pointer lights up.
+              ...(dragging ? {
+                minHeight: 56,
+                borderRadius: 10,
+                outline: target ? `2px solid ${full ? FULL_RED : EDIT_BLUE}` : `1px dashed ${dark ? "rgba(255,255,255,.45)" : "rgba(47,102,246,.45)"}`,
+                outlineOffset: 6,
+                background: target ? (full ? "rgba(229,72,77,.07)" : "rgba(47,102,246,.07)") : undefined,
+                cursor: target && full ? "not-allowed" : undefined,
+              } : {}),
+            }}
+          >
+            {target && !full ? <div aria-hidden className="pointer-events-none absolute inset-x-0 z-20 h-[3px] rounded-full" style={{ top: target.top - 1.5, background: EDIT_BLUE, boxShadow: "0 0 0 2px rgba(255,255,255,.85)" }} /> : null}
             {cell.elements.map((element) => {
               const body = <ElementView ctx={ctx} element={element} dark={dark} />;
               if (!canEdit) return <div key={element.id} className="min-w-0">{body}</div>;
@@ -156,12 +226,13 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
                 <div
                   key={element.id}
                   data-element-id={element.id}
+                  data-drop-item={canDrag ? "" : undefined}
                   role="button"
                   tabIndex={0}
                   aria-label={`Edit ${layoutElementMeta(element.type)?.label ?? "element"}`}
                   aria-pressed={selected}
-                  className="relative min-w-0 rounded-[6px]"
-                  style={{ outline: selected ? "2px solid #2F66F6" : "1px dashed transparent", outlineOffset: 4, cursor: "pointer" }}
+                  className="bql-el relative min-w-0 rounded-[6px]"
+                  style={{ outline: selected ? "2px solid #2F66F6" : "1px dashed transparent", outlineOffset: 4, cursor: "pointer", opacity: dragging && dragging.from === section.id && dragging.id === element.id ? 0.35 : undefined }}
                   onMouseEnter={(event) => { if (!selected) event.currentTarget.style.outline = "1px dashed #2F66F6"; }}
                   onMouseLeave={(event) => { if (!selected) event.currentTarget.style.outline = "1px dashed transparent"; }}
                   onClickCapture={(event) => {
@@ -177,6 +248,17 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
                     }
                   }}
                 >
+                  {canDrag ? (
+                    <span
+                      aria-hidden
+                      title="Drag to move"
+                      className="bql-grip absolute z-10 grid h-6 w-6 place-items-center rounded-[7px] text-white shadow-[0_2px_8px_rgba(22,20,31,.25)]"
+                      style={{ top: -14, left: -14, background: EDIT_BLUE, cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
+                      onPointerDown={(event) => drag.start(event, element.id)}
+                    >
+                      <GripDots />
+                    </span>
+                  ) : null}
                   {body}
                 </div>
               );
@@ -198,8 +280,10 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
               </button>
             ) : null}
           </div>
-        ))}
+          );
+        })}
       </div>
+      {dragged ? <DragGhost previewRef={drag.previewRef} label={layoutElementLabel(dragged)} thumb={<GhostThumb element={dragged} />} /> : null}
     </section>
   );
 }

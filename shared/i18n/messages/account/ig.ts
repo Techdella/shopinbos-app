@@ -187,8 +187,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "details.nameHelp": "Ịgbanwe aha store gị anaghị agbanwe adreesị webụ gị.",
   "details.slugLocked": "Adreesị webụ gị gbanwere n'oge na-adịbeghị anya. Ị nwere ike ịgbanwe ya ọzọ n'ime {days, plural, one {ụbọchị #} other {ụbọchị #}}.",
   "details.slugWarnTitle": "Ị na-agbanwe adreesị webụ store gị",
-  "details.slugWarnLive": "Store gị ga-esi na {old} kwaga {new}. A ga-ezigara ndị na-azụ mepere adreesị ochie na nke ọhụrụ, mana melite links ị kesara (bio Instagram, status WhatsApp, flyers, mgbasa ozi) ma gwa ndị ahịa gị oge niile. Ị nwere ike ịgbanwe adreesị gị naanị otu ugboro n'ụbọchị {days} ọ bụla.",
-  "details.slugWarnDraft": "Store gị ga-esi na {old} kwaga {new}. A ga-ezigara onye ọ bụla mepere adreesị ochie na nke ọhụrụ. Ozugbo store gị dị ndụ, ị nwere ike ịgbanwe adreesị gị naanị otu ugboro n'ụbọchị {days} ọ bụla.",
+  "details.slugWarnLive": "Store gị ga-esi na {old} kwaga {new}. A ga-eduga ndị na-azụ mepere adreesị ochie gaa na nke ọhụrụ, mana melite links ị kesara (bio Instagram, status WhatsApp, flyers, mgbasa ozi) ma gwa ndị ahịa gị na-azụkarị. Ị nwere ike ịgbanwe adreesị gị naanị otu ugboro n'ụbọchị {days} ọ bụla.",
+  "details.slugWarnDraft": "Store gị ga-esi na {old} kwaga {new}. A ga-eduga onye ọ bụla mepere adreesị ochie gaa na nke ọhụrụ. Ozugbo store gị dị ndụ, ị nwere ike ịgbanwe adreesị gị naanị otu ugboro n'ụbọchị {days} ọ bụla.",
   "details.slugConfirm": "Aghọtara m. Bugaa store m na {new}",
 };
 

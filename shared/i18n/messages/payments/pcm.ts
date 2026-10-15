@@ -276,6 +276,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.voice": "One voiceover",
   "cr.kind.image": "One picture or photo edit",
   "cr.kind.build": "One full store build",
+  "cr.kind.video": "One finished video (reel)",
   "cr.cost": "{count, plural, one {# credit} other {# credits}}",
   "cr.today": "Today allowance",
   "cr.settingsLine": "{count, plural, one {# credit remain} other {# credits remain}}. Buy more make Rex and Peggy continue after today allowance.",

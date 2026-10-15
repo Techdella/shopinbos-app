@@ -62,6 +62,8 @@ export interface InspectorProps {
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string | null) => void;
   onAddLayoutElement?: (columnIndex: number, type: LayoutElementType) => void;
+  /** `toSectionId`: into another rows / columns section of the page. */
+  onMoveLayoutElement?: (elementId: string, toColumn: number, toIndex: number, options?: { select?: boolean; toSectionId?: string }) => void;
 }
 
 function writeTarget(section: TemplateSectionNode, target: FieldTarget, value: unknown): TemplateSectionNode {
@@ -89,9 +91,13 @@ export function Inspector(props: InspectorProps) {
   useEffect(() => {
     if (!props.focusField || !section) return;
     const frame = requestAnimationFrame(() => {
-      const target = bodyRef.current?.querySelector<HTMLElement>(`[data-field="${CSS.escape(props.focusField!)}"]`);
-      if (target) {
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      const body = bodyRef.current;
+      const target = body?.querySelector<HTMLElement>(`[data-field="${CSS.escape(props.focusField!)}"]`);
+      if (body && target) {
+        // Up or down only: scrollIntoView would also scroll the panel sideways and cut off every field's left edge.
+        const offset = target.getBoundingClientRect().top - body.getBoundingClientRect().top;
+        body.scrollTo({ top: body.scrollTop + offset - Math.max(0, (body.clientHeight - target.offsetHeight) / 2), behavior: "smooth" });
+        body.scrollLeft = 0;
         target.querySelector<HTMLElement>("input, textarea, select, button")?.focus({ preventScroll: true });
       }
       props.onFocusHandled();
@@ -114,7 +120,7 @@ export function Inspector(props: InspectorProps) {
   const change: InspectorProps["onChange"] = (updater, changeKey) => props.onChange((current) => migrateSection(updater(current), { heroDefault }), changeKey);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex items-start gap-2 px-4 pt-4">
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-medium text-app-ink-soft">{tx("Section")}</p>
@@ -171,7 +177,7 @@ export function Inspector(props: InspectorProps) {
           ))}
         </div>
       ) : null}
-      <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
+      <div ref={bodyRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 pt-2">
         {section.visible === false ? (
           <div className="mt-2 flex items-center justify-between gap-2 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] text-app-ink-soft">
             {tx("Hidden from shoppers")}
@@ -230,7 +236,7 @@ function PageSettings(props: InspectorProps & { page: TemplatePageSeed | null })
   }
   const slug = page.slug && page.slug !== "home" ? page.slug : "";
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex items-start gap-2 px-4 pt-4">
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-medium text-app-ink-soft">{tx("Page")}</p>
@@ -245,7 +251,7 @@ function PageSettings(props: InspectorProps & { page: TemplatePageSeed | null })
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
         {tab === "page" ? (
           <>
             <p className="mt-2 rounded-[12px] bg-app-canvas px-3 py-2.5 text-[12.5px] leading-5 text-app-ink-soft">{tx("Select a section on the page, or in the list, to edit it.")}</p>
@@ -459,6 +465,8 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
           selectedElementId={props.selectedElementId ?? null}
           onSelectElement={(elementId) => props.onSelectElement?.(elementId)}
           onAddElement={(columnIndex, type) => props.onAddLayoutElement?.(columnIndex, type)}
+          onMoveElement={props.onMoveLayoutElement}
+          pageSections={props.page?.sections}
           renderLink={(link) => <LinkControl label={link.label} value={link.value} onChange={link.onChange} products={props.products} pageTypes={props.pageTypes} />}
         />
       );

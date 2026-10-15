@@ -346,6 +346,7 @@ globalThis.__aiMocks = {
     draftBrandBook: record("draftBrandBook", { paletteName: "Lagos Sunset", tagline: "Good things, well made", colours: { primary: "#E2541B", secondary: "#0E2A38", accent: "#F2A93B", background: "#FAF7F1", surface: "#FFFFFF", text: "#16141F" }, typography: { headings: "Fraunces", body: "Inter", style: "serif", note: "x" }, voice: { traits: ["warm"] } }),
     saveBrandBook: record("saveBrandBook", (storeId, book) => ({ ...book, updatedAt: "2026-10-15" })),
   },
+  "@/lib/ai/reel-shots.server": { makeReelShot: record("makeReelShot", "https://proj.supabase.co/storage/v1/object/public/brand/shot.webp") },
   "@/lib/ai/brand-image.server": {
     makeBrandImage: record("makeBrandImage", { url: "https://proj.supabase.co/storage/v1/object/public/brand/new.webp", usedLogo: false, usedReferences: 0, logoProblem: null }),
   },
@@ -475,7 +476,7 @@ const REX_VALID = {
   lifestyle_photo: { product: "Ankara tote", imageIndex: null, imageUrl: null, scene: null },
   generate_product_image: { prompt: "A bright banner of Ankara fabric rolls", product: null, shape: "landscape", brand: null, referenceImages: null },
   generate_logo: { businessName: null, about: null, paletteHint: null },
-  make_product_video: { product: "Ankara tote", language: null },
+  make_product_video: { product: "Ankara tote", language: null, template: null, shots: null, photos: null, voice: null, music: null },
   edit_store_section: { instruction: "Rewrite the banner in Pidgin", page: "home" },
   rebuild_section: { page: "about", section: "our story", direction: null },
   switch_theme: { themeId: "noir" },
@@ -906,7 +907,16 @@ test("Rex video, copy and store tools make drafts and cards, scoped to the selle
   const video = await runRex("make_product_video", REX_VALID.make_product_video);
   assert.equal(video.card.type, "video");
   assert.equal(video.card.language, "pidgin");
-  await assert.rejects(runRex("make_product_video", { product: "Leather bag", language: null }), /No product matches/);
+  assert.equal(video.card.template, "pop", "Rex picks a template");
+  assert.equal(video.card.voice, "female");
+  calls.length = 0;
+  const shot = await runRex("make_product_video", { ...REX_VALID.make_product_video, shots: "cutout", voice: "male", music: "afrobeats" });
+  assert.equal(shot.card.template, "float", "cut-outs float");
+  assert.equal(shot.card.voice, "male");
+  assert.equal(shot.card.music, "afrobeats");
+  assert.ok(called("makeReelShot").length > 0, "the photos were made into reel shots");
+  assert.ok(shot.card.product.photos.every((url) => url.endsWith("shot.webp")));
+  await assert.rejects(runRex("make_product_video", { ...REX_VALID.make_product_video, product: "Leather bag" }), /No product matches/);
 
   aiReply = "Soft and strong.\n- Hand-stitched";
   const copy = await runRex("write_product_copy", REX_VALID.write_product_copy);

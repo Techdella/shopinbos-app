@@ -178,6 +178,7 @@ export function Canvas(props: CanvasProps) {
       >
         <div
           ref={frameRef}
+          data-drop-scope=""
           className="absolute left-0 top-0 overflow-hidden"
           style={{ width: frameWidth, minHeight, transform: scale === 1 ? undefined : `scale(${scale})`, transformOrigin: "top left" }}
         >
