@@ -59,6 +59,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
+  const [pictures, setPictures] = useState<{ used: number; limit: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // "…with my logo" or "branded" turns the logo on, until the seller sets the switch themselves.
@@ -88,6 +89,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
       if (data.logoProblem === "no_logo") setNote(t("img.noLogoNote"));
       if (data.logoProblem === "unreadable") setNote(t("img.badLogoNote"));
       setCredits(data.creditsRemaining ?? null);
+      setPictures(data.pictures ?? null);
     } catch {
       setError(t("studio.offline"));
     } finally {
@@ -288,7 +290,12 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
           <PillButton tone="accent" size="md" className="mt-5 w-full" onClick={() => void generateImage()} disabled={loading || uploading || !prompt.trim()}>
             {loading ? <><Spinner /> {t("img.making")}</> : <><Icon name="sparkle" size={16} /> {t("img.make")}</>}
           </PillButton>
-          {credits !== null && <p className="mb-0 mt-2 text-center text-[13px] text-app-ink-soft">{t("studio.credits", { count: credits })}</p>}
+          {credits !== null && (
+            <p className="mb-0 mt-2 text-center text-[13px] text-app-ink-soft">
+              {pictures ? `${t("logo.freeUsed", { used: pictures.used, limit: pictures.limit })} · ` : ""}
+              {t("studio.credits", { count: credits })}
+            </p>
+          )}
         </section>
 
         <section className="rounded-[22px] border border-app-line bg-white p-5">

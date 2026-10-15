@@ -242,7 +242,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/store/[storeSlug]/product/[productSlug]", ["common","nav","ui"]],
   ["/studio", ["builder","common","nav","payments","rex","ui"]],
   ["/studio/images", ["auth","builder","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
-  ["/studio/logo", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/studio/logo", ["auth","builder","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/supplier", ["common","nav","shell","ui"]],
   ["/supplier/analytics", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/supplier/buyers", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","supplier","support","tour","ui","verification"]],
