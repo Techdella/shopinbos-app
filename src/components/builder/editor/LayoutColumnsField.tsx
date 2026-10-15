@@ -1,8 +1,9 @@
 "use client";
 
 // Inspector part of a rows / columns / grid section: the column preset (as pictures) and each column's elements,
-// which can be added, picked, edited, moved (up / down, "Move to" another column, or dragged by their grip within and
-// between the column lists, like on the canvas), copied and removed. Selection is shared with the canvas.
+// which can be added, picked, edited, moved (up / down, "Move to" another column or another rows / columns section of
+// the page, or dragged by their grip within and between the column lists, like on the canvas), copied and removed.
+// Selection is shared with the canvas.
 // Everything here shrinks to the panel's width (min-w-0, one minmax(0,1fr) track): a long product name in a select
 // must never widen the panel, or the panel scrolls sideways and every field after this one is cut off on the left.
 
@@ -14,6 +15,7 @@ import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { SlideLink } from "@/lib/store-templates/section-content";
 import {
   COLUMN_PRESETS,
+  LAYOUT_ROW_KIND,
   LAYOUT_ICONS,
   LAYOUT_ELEMENTS,
   MAX_ELEMENTS_PER_COLUMN,
@@ -28,6 +30,7 @@ import {
   type LayoutElementType,
 } from "@/components/storefront/boutique/blocks/layout-logic";
 import { useColumnDrag } from "@/components/storefront/boutique/blocks/useColumnDrag";
+import { DragGhost } from "@/components/storefront/boutique/blocks/DragGhost";
 import { GripDots } from "@/components/storefront/boutique/blocks/LayoutRow";
 import { InsertThumb } from "./insert-thumbnails";
 import type { BuilderProduct } from "./useBuilder";
@@ -43,8 +46,13 @@ export interface LayoutColumnsFieldProps {
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
   onAddElement: (columnIndex: number, type: LayoutElementType) => void;
-  /** Moves an element (one undoable change, announced to screen readers). Without it the move is a plain onChange. */
-  onMoveElement?: (elementId: string, toColumn: number, toIndex: number, options?: { select?: boolean }) => void;
+  /**
+   * Moves an element (one undoable change, announced to screen readers), with `toSectionId` into another rows /
+   * columns section of the page. Without it the move is a plain onChange, inside this section only.
+   */
+  onMoveElement?: (elementId: string, toColumn: number, toIndex: number, options?: { select?: boolean; toSectionId?: string }) => void;
+  /** The page's sections, so "Move to" can offer the other rows / columns sections. */
+  pageSections?: TemplateSectionNode[];
   renderLink: (props: { label: string; value: SlideLink; onChange: (link: SlideLink) => void }) => ReactNode;
 }
 
@@ -59,7 +67,13 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
   const { section } = props;
   const view = normaliseLayoutRow(section);
   const [adding, setAdding] = useState<number | null>(null);
-  const columnName = (index: number) => (view.preset.id.startsWith("grid") ? t("edk.boxN", { n: index + 1 }) : t("edk.columnN", { n: index + 1 }));
+  const placeName = (presetId: string, index: number) => (presetId.startsWith("grid") ? t("edk.boxN", { n: index + 1 }) : t("edk.columnN", { n: index + 1 }));
+  const columnName = (index: number) => placeName(view.preset.id, index);
+  // The other rows / columns sections on this page ("Row 2: Features"), numbered from the top like the canvas.
+  const rows = props.onMoveElement ? (props.pageSections ?? []).filter((entry) => entry.kind === LAYOUT_ROW_KIND) : [];
+  const otherRows = rows
+    .map((entry, at) => ({ section: entry, n: at + 1, view: normaliseLayoutRow(entry) }))
+    .filter((row) => row.section.id !== section.id);
   const moveId = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const move = (elementId: string, column: number, index: number, options?: { select?: boolean }) => {
@@ -67,7 +81,8 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
     else props.onChange((current) => moveLayoutElement(current, elementId, column, index));
   };
   const drag = useColumnDrag({ containerRef: listRef, onDrop: (elementId, column, index) => move(elementId, column, index) });
-  const dragging = drag.state?.target ? drag.state : null;
+  const dragging = drag.state?.moved ? drag.state : null;
+  const dragged = dragging ? view.cells.flatMap((cell) => cell.elements).find((element) => element.id === dragging.id) : undefined;
 
   return (
     <div className="min-w-0 py-2">
@@ -168,19 +183,44 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
                         <IconButton icon="copy" label={t("edk.duplicateName", { name })} className="h-8 w-8" size={14} disabled={cell.elements.length >= MAX_ELEMENTS_PER_COLUMN} onClick={() => { const id = newElementId(); props.onChange((current) => duplicateLayoutElement(current, element.id, id)); props.onSelectElement(id); }} />
                         <IconButton icon="trash" label={t("edk.removeName", { name })} className="h-8 w-8" size={14} onClick={() => { props.onChange((current) => removeLayoutElement(current, element.id)); if (open) props.onSelectElement(null); }} />
                       </div>
-                      {open && view.cells.length > 1 ? (
-                        // Keyboard-friendly alternative to dragging between columns: it goes to the end of that column.
+                      {open && (view.cells.length > 1 || otherRows.length > 0) ? (
+                        // Keyboard-friendly alternative to dragging: it goes to the end of that column, in this row or
+                        // another rows / columns section of the page (full columns can't be picked).
                         <div className="flex min-w-0 items-center gap-2 px-2 pt-1">
                           <label htmlFor={`${moveId}-${element.id}`} className="shrink-0 text-[13px] font-semibold text-app-ink">{tx("Move to")}</label>
                           <select
                             id={`${moveId}-${element.id}`}
                             aria-label={t("edk.moveToColumn", { name })}
                             className={cx(inputClass, "h-9")}
-                            value={columnIndex}
-                            onChange={(event) => move(element.id, Number(event.target.value), MAX_ELEMENTS_PER_COLUMN, { select: true })}
+                            value={`${section.id}:${columnIndex}`}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              const split = value.lastIndexOf(":");
+                              const toSectionId = value.slice(0, split);
+                              const column = Number(value.slice(split + 1));
+                              if (toSectionId === section.id) move(element.id, column, MAX_ELEMENTS_PER_COLUMN, { select: true });
+                              else props.onMoveElement?.(element.id, column, MAX_ELEMENTS_PER_COLUMN, { select: true, toSectionId });
+                            }}
                           >
-                            {view.cells.map((other, otherIndex) => (
-                              <option key={other.id} value={otherIndex} disabled={otherIndex !== columnIndex && other.elements.length >= MAX_ELEMENTS_PER_COLUMN}>{columnName(otherIndex)}</option>
+                            {otherRows.length ? (
+                              <>
+                                <optgroup label={tx("This row")}>
+                                  {view.cells.map((other, otherIndex) => (
+                                    <option key={other.id} value={`${section.id}:${otherIndex}`} disabled={otherIndex !== columnIndex && other.elements.length >= MAX_ELEMENTS_PER_COLUMN}>{columnName(otherIndex)}</option>
+                                  ))}
+                                </optgroup>
+                                {otherRows.map((row) => (
+                                  <optgroup key={row.section.id} label={t("edk.rowNamed", { n: row.n, name: tx(row.section.name || "Columns") })}>
+                                    {row.view.cells.map((cell, cellIndex) => (
+                                      <option key={cell.id} value={`${row.section.id}:${cellIndex}`} disabled={cell.elements.length >= MAX_ELEMENTS_PER_COLUMN}>
+                                        {t("edk.rowColumn", { row: t("edk.rowN", { n: row.n }), column: placeName(row.view.preset.id, cellIndex) })}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                ))}
+                              </>
+                            ) : view.cells.map((other, otherIndex) => (
+                              <option key={other.id} value={`${section.id}:${otherIndex}`} disabled={otherIndex !== columnIndex && other.elements.length >= MAX_ELEMENTS_PER_COLUMN}>{columnName(otherIndex)}</option>
                             ))}
                           </select>
                         </div>
@@ -195,6 +235,7 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
           );
         })}
       </div>
+      {dragged ? <DragGhost previewRef={drag.previewRef} label={tx(layoutElementLabel(dragged))} thumb={<InsertThumb kind={`element:${dragged.type}`} className="block h-full w-full" />} /> : null}
     </div>
   );
 }

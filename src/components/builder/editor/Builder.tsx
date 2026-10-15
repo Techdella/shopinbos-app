@@ -21,10 +21,9 @@ import {
 import {
   LAYOUT_ROW_KIND,
   addLayoutElement,
-  canMoveLayoutElementTo,
   findLayoutElement,
   layoutElementLabel,
-  moveLayoutElement,
+  moveElementAcrossRows,
   newLayoutElement,
   newLayoutRowSection,
   normaliseLayoutRow,
@@ -265,28 +264,39 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   // Drag and drop (canvas or panel), up / down and "Move to": one undoable change, read out to screen readers.
   // `select` keeps the moved element picked (canvas drops and "Move to"); up / down leave the selection alone.
-  const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean }) => {
-    const section = sections.find((entry) => entry.id === sectionId);
-    if (!section) return;
-    const view = normaliseLayoutRow(section);
-    const columnLabel = (at: number) => (view.preset.id.startsWith("grid") ? t("edk.boxN", { n: at + 1 }) : t("edk.columnN", { n: at + 1 }));
+  // `toSectionId` moves it into another rows / columns section on the page; it is then picked there.
+  const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean; toSectionId?: string }) => {
+    const toSectionId = options?.toSectionId ?? sectionId;
+    const target = sections.find((entry) => entry.id === toSectionId);
+    if (!target || !sections.some((entry) => entry.id === sectionId)) return;
+    const across = toSectionId !== sectionId;
+    const rows = sections.filter((entry) => entry.kind === LAYOUT_ROW_KIND);
+    const rowLabel = (row: TemplateSectionNode) => t("edk.rowNamed", { n: rows.findIndex((entry) => entry.id === row.id) + 1, name: tx(row.name || "Columns") });
+    const columnLabel = (row: TemplateSectionNode, at: number) => {
+      const view = normaliseLayoutRow(row);
+      const n = Math.min(Math.max(0, Math.trunc(at)), view.cells.length - 1) + 1;
+      return view.preset.id.startsWith("grid") ? t("edk.boxN", { n }) : t("edk.columnN", { n });
+    };
     const say = (text: string) => setAnnouncement((current) => ({ text, n: current.n + 1 }));
-    const next = moveLayoutElement(section, elementId, column, index);
-    if (next === section) {
-      if (findLayoutElement(section, elementId) && !canMoveLayoutElementTo(section, elementId, column)) {
-        say(t("edk.columnFull", { column: columnLabel(Math.min(Math.max(0, Math.trunc(column)), view.cells.length - 1)) }));
-      }
+    const result = moveElementAcrossRows(sections, sectionId, elementId, toSectionId, column, index);
+    if (result.sections === sections || !result.elementId) {
+      if (result.reason === "full") say(t("edk.columnFull", { column: across ? t("edk.rowColumn", { row: rowLabel(target), column: columnLabel(target, column) }) : columnLabel(target, column) }));
       return;
     }
-    editSection(sectionId, (current) => moveLayoutElement(current, elementId, column, index));
+    editSections((list) => moveElementAcrossRows(list, sectionId, elementId, toSectionId, column, index).sections);
+    const movedId = result.elementId;
     if (options?.select) {
-      if (selectedId !== sectionId) select(sectionId);
-      setSelectedElementId(elementId);
-      setFocusField(`element:${elementId}`);
+      if (selectedId !== toSectionId) select(toSectionId);
+      setSelectedElementId(movedId);
+      setFocusField(`element:${movedId}`);
     }
-    const placed = findLayoutElement(next, elementId);
-    if (placed) say(t("edk.movedTo", { name: tx(layoutElementLabel(placed.element)), column: columnLabel(placed.cellIndex), n: placed.index + 1 }));
-  }, [editSection, sections, select, selectedId, t, tx]);
+    const placed = findLayoutElement(result.sections.find((entry) => entry.id === toSectionId) ?? target, movedId);
+    if (!placed) return;
+    const name = tx(layoutElementLabel(placed.element));
+    say(across
+      ? t("edk.movedToRow", { name, row: rowLabel(target), column: columnLabel(target, placed.cellIndex), n: placed.index + 1 })
+      : t("edk.movedTo", { name, column: columnLabel(target, placed.cellIndex), n: placed.index + 1 }));
+  }, [editSections, sections, select, selectedId, t, tx]);
 
   const insertLayout = useCallback((preset: ColumnPresetId) => {
     const section = newLayoutRowSection(newId(LAYOUT_ROW_KIND), preset);
@@ -610,7 +620,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       selectedElementId={editing ? selectedElementId : null}
       onSelectElement={editing ? (sectionId, elementId) => { select(sectionId); setSelectedElementId(elementId); setFocusField(`element:${elementId}`); } : undefined}
       onAddToColumn={canvasOverlay ? (sectionId, column) => { select(sectionId); setCanvasInsert({ type: "column", sectionId, column }); } : undefined}
-      onMoveElement={editing ? (sectionId, elementId, column, index) => moveElement(sectionId, elementId, column, index, { select: true }) : undefined}
+      onMoveElement={editing ? (sectionId, elementId, column, index, toSectionId) => moveElement(sectionId, elementId, column, index, { select: true, toSectionId }) : undefined}
       cartCount={0}
     />
   ) : null;

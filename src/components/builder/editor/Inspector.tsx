@@ -61,7 +61,8 @@ export interface InspectorProps {
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string | null) => void;
   onAddLayoutElement?: (columnIndex: number, type: LayoutElementType) => void;
-  onMoveLayoutElement?: (elementId: string, toColumn: number, toIndex: number, options?: { select?: boolean }) => void;
+  /** `toSectionId`: into another rows / columns section of the page. */
+  onMoveLayoutElement?: (elementId: string, toColumn: number, toIndex: number, options?: { select?: boolean; toSectionId?: string }) => void;
 }
 
 function writeTarget(section: TemplateSectionNode, target: FieldTarget, value: unknown): TemplateSectionNode {
@@ -463,6 +464,7 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
           onSelectElement={(elementId) => props.onSelectElement?.(elementId)}
           onAddElement={(columnIndex, type) => props.onAddLayoutElement?.(columnIndex, type)}
           onMoveElement={props.onMoveLayoutElement}
+          pageSections={props.page?.sections}
           renderLink={(link) => <LinkControl label={link.label} value={link.value} onChange={link.onChange} products={props.products} pageTypes={props.pageTypes} />}
         />
       );
