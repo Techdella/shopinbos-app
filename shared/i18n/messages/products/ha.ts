@@ -169,12 +169,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cat.emptySub": "Rukunai suna taimakawa wajen tsara kayayyakinka kuma suna bar kwastomomi su duba bisa nau'i.",
   "import.optionalColumns": "Na zaɓi: description, costPrice, compareAtPrice, stock, sku, barcode, category, brand, status da images. Sauran ginshiƙai (kamar color ko size) za su zama bayanan kaya.",
   "import.photos": "Hotunan kaya (na zaɓi)",
-  "import.photosHelp": "Saka links na hotuna a ginshiƙin images, ko ka upload hotunan a nan ka rubuta sunan kowane fayil a ginshiƙin images (raba da yawa da |). Hoton da aka sa wa sunan SKU ko sunan kaya za a haɗa shi kai tsaye.",
+  "import.photosHelp": "Saka links na hotuna a ginshiƙin images, ko ka loda hotunan a nan ka rubuta sunan kowane fayil a ginshiƙin images (raba da yawa da |). Hoton da aka sa wa sunan SKU ko sunan kaya za a haɗa shi kai tsaye.",
   "import.choosePhotos": "Zaɓi hotuna",
   "import.photosChosen": "{count, plural, one {An zaɓi hoto #} other {An zaɓi hotuna #}}",
   "import.photosFrom": "JPG, PNG, WebP ko GIF, har zuwa 10MB kowanne",
-  "import.uploadingPhotos": "Ana upload hotuna {done} cikin {total}…",
-  "import.photoFailed": "Ba a iya upload hoton {name} ba: {reason}",
+  "import.uploadingPhotos": "Ana loda hotuna {done} cikin {total}…",
+  "import.photoFailed": "Ba a iya loda hoton {name} ba: {reason}",
   "import.withImages": "{count, plural, one {Kaya # yana da hotuna} other {Kayayyaki # suna da hotuna}}",
 };
 
