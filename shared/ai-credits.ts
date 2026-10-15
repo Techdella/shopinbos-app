@@ -80,7 +80,12 @@ export function shouldAutoTopUp(input: { autoTopUp: boolean; hasCard: boolean; p
   return input.balance < input.need && input.balance + pack.credits >= input.need;
 }
 
+/** Where each kind of account buys AI credits (suppliers have their own page in the supplier portal). */
+export function creditsUrlFor(role: string | null | undefined) {
+  return role === "supplier" ? "/supplier/credits" : "/home/credits";
+}
+
 /** The message when the allowance and credits are both used up. */
-export function outOfCreditsMessage(limitWords: string, cost: number, balance: number) {
-  return `You've used today's ${limitWords}${balance > 0 ? ` and this needs ${cost} credits (you have ${balance})` : ""}. Buy AI credits at /home/credits to carry on right now, or wait for your allowance to reset.`;
+export function outOfCreditsMessage(limitWords: string, cost: number, balance: number, url = "/home/credits") {
+  return `You've used today's ${limitWords}${balance > 0 ? ` and this needs ${cost} credits (you have ${balance})` : ""}. Buy AI credits at ${url} to carry on right now, or wait for your allowance to reset.`;
 }

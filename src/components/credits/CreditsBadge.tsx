@@ -35,7 +35,7 @@ interface Summary {
   allowance: Array<{ kind: string; used: number; limit: number }>;
 }
 
-export function CreditsBadge({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function CreditsBadge({ className, compact = false, manageHref = "/home/credits" }: { className?: string; compact?: boolean; manageHref?: string }) {
   const t = useT("nav");
   const locale = useLocale();
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -197,7 +197,7 @@ export function CreditsBadge({ className, compact = false }: { className?: strin
               <span>{t("credits.autoOnBuy")}</span>
             </label>
           )}
-          <Link href="/home/credits" onClick={() => setOpen(false)} className="mt-3 inline-flex text-[13px] font-bold text-app-ink underline underline-offset-2">
+          <Link href={manageHref} onClick={() => setOpen(false)} className="mt-3 inline-flex text-[13px] font-bold text-app-ink underline underline-offset-2">
             {t("credits.manage")}
           </Link>
         </div>

@@ -282,6 +282,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.topUp": "Fi kún un",
   "cr.fromPlan": "Láti inú ètò rẹ",
   "cr.outLine": "Kírẹ́dítì rẹ ti tán. Ìpín ọ̀fẹ́ ojoojúmọ́ rẹ ṣì ń ṣiṣẹ́; ra àpò kan láti máa bá a lọ lẹ́yìn rẹ̀.",
+  "sm.credits": "Kírẹ́dítì AI 100 lóṣooṣù",
 };
 
 export default yo;

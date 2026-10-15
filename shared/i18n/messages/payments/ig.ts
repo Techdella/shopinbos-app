@@ -282,6 +282,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.topUp": "Gbakwunye",
   "cr.fromPlan": "Site na atụmatụ gị",
   "cr.outLine": "Kredit gị agwụla. Oke n'efu kwa ụbọchị gị ka na-arụ ọrụ; zụta ngwugwu ka ị gaa n'ihu mgbe ọ gwụchara.",
+  "sm.credits": "Kredit AI 100 kwa ọnwa",
 };
 
 export default ig;
