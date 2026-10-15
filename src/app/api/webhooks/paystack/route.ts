@@ -3,6 +3,8 @@ import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.serve
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
 import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
 import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
+import { PRINT_ORDER_REFERENCE_PREFIX } from "@shared/print-orders";
+import { completePrintOrderPayment } from "@/lib/packaging/print-orders.server";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
@@ -145,6 +147,12 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith(AD_SETUP_REFERENCE_PREFIX)) {
         await completeAdSetupPayment(ref).catch((error) => {
           console.error("Ad setup payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
+        await completePrintOrderPayment(ref).catch((error) => {
+          console.error("Print order payment completion failed:", error);
         });
         return NextResponse.json({ received: true });
       }

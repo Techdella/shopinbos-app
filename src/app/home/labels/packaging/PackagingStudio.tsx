@@ -279,6 +279,11 @@ export function PackagingStudio({
     }
   }
 
+  async function orderPrints() {
+    const savedId = id && !dirty ? id : await save();
+    if (savedId) router.push(`/home/labels/order?design=${savedId}`);
+  }
+
   async function requestPrint() {
     const savedId = id && !dirty ? id : await save();
     if (savedId) router.push(`/home/labels/request?design=${savedId}`);
@@ -378,6 +383,9 @@ export function PackagingStudio({
         </PillButton>
         <PillButton size="sm" tone="white" busy={busy === "png"} disabled={Boolean(busy)} onClick={() => void download("png")}>PNG</PillButton>
         <PillButton size="sm" tone="white" busy={busy === "svg"} disabled={Boolean(busy)} onClick={() => void download("svg")}>SVG</PillButton>
+        <PillButton size="sm" tone="accent" disabled={Boolean(busy)} onClick={() => void orderPrints()}>
+          <Icon name="cart" size={14} /> {t("order.cta")}
+        </PillButton>
         <PillButton size="sm" tone="ghost" disabled={Boolean(busy)} onClick={() => void requestPrint()}>
           <Icon name="truck" size={14} /> {t("getPrinted")}
         </PillButton>
