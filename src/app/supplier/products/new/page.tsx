@@ -1,4 +1,5 @@
 import { db } from "@/lib/db/client";
+import { creditBalance } from "@/lib/ai/credits.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
@@ -47,7 +48,7 @@ export default async function NewSupplierProductPage({
               {t("newProduct.limitBody", { count: productCount })}
             </p>
           </Card>
-          <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} />
+          <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} creditBalance={await creditBalance(user.id)} />
         </div>
       ) : (
         <>

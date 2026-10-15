@@ -282,6 +282,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.topUp": "Ƙara",
   "cr.fromPlan": "Daga tsarinka",
   "cr.outLine": "Kiredit ɗinka sun ƙare. Kason kyauta na yau da kullum yana aiki; sayi fakiti don ci gaba bayansa.",
+  "sm.credits": "Kiredit na AI 100 kowane wata",
 };
 
 export default ha;

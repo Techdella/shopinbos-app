@@ -1486,6 +1486,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rex.cd.addPick": "Fi kún un",
   "rex.cd.noProducts": "O kò tíì ní ọjà kankan. Fi ọ̀kan kún un kọ́kọ́.",
   "rex.ch.buyCredits": "Ra kírẹ́dítì AI",
+  "rex.br.book": "Ìwé àṣà",
+  "rex.br.icon": "Àmì lógò",
+  "rex.br.favicon": "Favicon",
+  "rex.br.print": "Ilé-ìtẹ̀wé",
+  "rex.br.useIcon": "Lò ó bí àmì lógò",
+  "rex.br.useFavicon": "Lò ó bí favicon",
+  "rex.br.openPrint": "Ṣí i kí o tẹ̀ ẹ́",
+  "rex.br.openBook": "Ṣí ìwé àṣà",
+  "rex.br.openKit": "Àmì-ìdánimọ̀",
 };
 
 export default yo;

@@ -26,6 +26,17 @@ export type RexCard =
       language: string;
       script: { captions: string[]; voiceover: string; cta: string };
     }
+  | {
+      type: "brand";
+      kind: "book" | "icon" | "favicon" | "print";
+      title: string;
+      summary: string;
+      href: string;
+      /** Brand colours to show as dots (style book). */
+      swatches?: string[];
+      /** A picture to show (the new icon or favicon). */
+      image?: string | null;
+    }
   | { type: "marketing"; kind: "campaign" | "automation" | "segment" | "content" | "template"; id: string; title: string; summary: string; href: string; canActivate: boolean }
   | { type: "health"; score: number; missing: Array<{ label: string; rexPrompt: string | null; href: string | null }> }
   | { type: "preview"; page: string | null };
@@ -59,6 +70,8 @@ export function cardNote(card: RexCard): string {
       return `[Wrote a description for ${card.product.name}]`;
     case "video":
       return `[Prepared a reel for ${card.product.name}]`;
+    case "brand":
+      return `[${card.kind === "print" ? "Set up labels" : card.kind === "book" ? "Wrote the style book" : `Made a ${card.kind}`}: ${card.title}${card.image ? ` ${card.image}` : ""}]`;
     case "marketing":
       return `[Created ${card.kind} "${card.title}"]`;
     case "health":

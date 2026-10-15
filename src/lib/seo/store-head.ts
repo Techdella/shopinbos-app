@@ -10,6 +10,9 @@ export function storeFaviconUrl(brand: { logoUrl?: string | null; brandSettings?
   const seo = brand.brandSettings?.seo;
   const favicon = seo && typeof seo === "object" ? (seo as Record<string, unknown>).favicon : null;
   if (typeof favicon === "string" && HTTPS_IMAGE.test(favicon.trim())) return favicon.trim();
+  // Then the square logo icon (Brand kit), then the logo.
+  const icon = brand.brandSettings?.logoIcon;
+  if (typeof icon === "string" && HTTPS_IMAGE.test(icon.trim())) return icon.trim();
   if (brand.logoUrl && HTTPS_IMAGE.test(brand.logoUrl)) return brand.logoUrl;
   return null;
 }

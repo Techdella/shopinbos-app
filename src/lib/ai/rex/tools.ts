@@ -4,7 +4,10 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi, type AiKind } from "@/lib/ai/usage";
-import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl } from "@/lib/ai/images";
+import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl, loadReferences } from "@/lib/ai/images";
+import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-book.server";
+import { bookToThemeTokens } from "@shared/brand-book";
+import { PRINT_SPECS } from "@shared/print-labels";
 import { loadBrandContext } from "@/lib/ai/brand-context.server";
 import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
@@ -449,6 +452,92 @@ async function improveEmailCopy(ctx: RexToolContext, input: RexToolInput<"improv
   }
 }
 
+// ─── Brand: style book, icon and favicon, print studio ───────────────────────
+
+async function createBrandBook(ctx: RexToolContext, input: RexToolInput<"create_brand_book">): Promise<RexToolOutput> {
+  await meter(ctx, "text", 2);
+  let book: Awaited<ReturnType<typeof saveBrandBook>>;
+  try {
+    book = await saveBrandBook(ctx.storeId, await draftBrandBook(ctx.storeId, input.direction));
+  } catch (error) {
+    if (error instanceof BrandBookError) throw new RexToolError(error.message);
+    throw error;
+  }
+  let applied = "";
+  if (input.applyColours) {
+    const store = await studioStore(ctx);
+    const plan = parseRexStudioPlan({ reply: "", tokens: bookToThemeTokens(book.colours, book.typography.style), tokensSummary: `Brand colours from the style book (${book.paletteName})` });
+    const result = plan ? await applyStudioPlan(store, plan, `Brand colours: ${book.paletteName}`) : null;
+    if (result?.draft) {
+      ctx.draft = result.draft;
+      ctx.versions = result.versions ?? ctx.versions;
+      applied = ` Applied the colours to the store DRAFT (version ${result.version?.n ?? "?"}); shoppers see nothing until Publish.`;
+    }
+  }
+  await logActivity(ctx, { type: "brand", title: `Rex wrote the brand style book (${book.paletteName})`, tool: "create_brand_book", link: "/home/brand-kit/book" });
+  return {
+    content: `Wrote the style book "${book.paletteName}": tagline "${book.tagline}", colours ${Object.values(book.colours).join(", ")}, fonts ${book.typography.headings} and ${book.typography.body}, voice: ${book.voice.traits.join(", ")}.${applied} It's at /home/brand-kit/book, ready to print.${applied ? "" : " The store's colours are unchanged; the seller can apply them from the book or ask you."}`,
+    card: {
+      type: "brand",
+      kind: "book",
+      title: `${book.paletteName} style book`,
+      summary: `${book.tagline} · ${book.typography.headings} + ${book.typography.body} · ${book.voice.traits.join(", ")}`,
+      href: "/home/brand-kit/book",
+      swatches: [book.colours.primary, book.colours.secondary, book.colours.accent, book.colours.background, book.colours.text],
+    },
+  };
+}
+
+const ICON_PROMPTS = {
+  icon: "Turn this logo into a square brand icon (like an app icon or profile picture): keep the brand's symbol or initial and its colours, centred with generous padding on a solid brand-coloured or white square background. Bold, simple, readable at 64 pixels. Keep any letters exactly as in the logo; no new words.",
+  favicon: "Turn this logo into a favicon for browser tabs: the simplest recognisable mark from the logo (its symbol or first letter) in its strongest brand colour, very bold, high contrast, filling a square with a little padding. Must read clearly at 16 to 32 pixels. No small text, no thin lines.",
+} as const;
+
+async function makeBrandIcon(ctx: RexToolContext, input: RexToolInput<"make_brand_icon">): Promise<RexToolOutput> {
+  const store = await db.store.findUnique({ where: { id: ctx.storeId }, select: { logoUrl: true } });
+  if (!store?.logoUrl || !isOwnImageUrl(store.logoUrl)) throw new RexToolError("The store has no logo yet. Offer generate_logo or uploading one in Brand kit first.");
+  const references = await loadReferences([store.logoUrl]);
+  if (!references.length) throw new RexToolError("The logo file can't be read (it needs to be a PNG, JPG or WebP). Ask the seller to upload a PNG logo in Brand kit.");
+  await meter(ctx, "image");
+  let url: string;
+  try {
+    url = await generateImage({ prompt: ICON_PROMPTS[input.kind], size: "1024x1024", references, path: `logos/${ctx.userId}/${input.kind}-${Date.now()}` });
+  } catch (error) {
+    imageFailure(error);
+  }
+  const what = input.kind === "icon" ? "logo icon" : "favicon";
+  return {
+    content: `Made the ${what} from the logo: ${url}. The seller taps "Use as ${what}" on the card to keep it; nothing changed yet.`,
+    card: { type: "brand", kind: input.kind, title: input.kind === "icon" ? "New logo icon" : "New favicon", summary: input.kind === "icon" ? "Square mark for app icons and profile pictures." : "Shows in browser tabs and bookmarks.", href: "/home/brand-kit", image: url },
+  };
+}
+
+async function makePrintLabels(ctx: RexToolContext, input: RexToolInput<"make_print_labels">): Promise<RexToolOutput> {
+  const ids: string[] = [];
+  const names: string[] = [];
+  for (const query of input.products ?? []) {
+    const product = await findProduct(ctx, query);
+    if (!ids.includes(product.id)) {
+      ids.push(product.id);
+      names.push(product.name);
+    }
+  }
+  if (PRINT_SPECS[input.kind].perProduct && !ids.length) throw new RexToolError(`${input.kind} labels are for products: say which products (use list_products).`);
+  const params = new URLSearchParams({ kind: input.kind });
+  if (ids.length) params.set("products", ids.join(","));
+  if (input.headline) params.set("headline", input.headline);
+  if (input.note) params.set("note", input.note);
+  if (input.qr) params.set("qr", input.qr);
+  if (input.copies) params.set("copies", String(input.copies));
+  const href = `/home/labels/studio?${params.toString()}`;
+  const label = { tag: "Hang tags", price: "Price & barcode labels", qr: "QR code stickers", package: "Package labels", thanks: "Thank-you cards" }[input.kind];
+  const count = Math.max(1, ids.length) * (input.copies ?? 1);
+  return {
+    content: `Set up ${count} ${label.toLowerCase()} ${names.length ? `for ${names.join(", ")}` : "for the store"} in the Print studio, in the store's brand, with real barcodes and QR codes. The seller opens the card to check them, then prints (A4 or a label printer), downloads a 300 dpi file, or emails it to a print shop.`,
+    card: { type: "brand", kind: "print", title: label, summary: `${count} label${count === 1 ? "" : "s"}${names.length ? ` · ${names.slice(0, 3).join(", ")}${names.length > 3 ? "…" : ""}` : ""}${input.headline ? ` · "${input.headline}"` : ""}`, href },
+  };
+}
+
 type Runner<N extends RexToolName> = (ctx: RexToolContext, input: RexToolInput<N>) => Promise<RexToolOutput>;
 
 export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
@@ -473,6 +562,9 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   cms_write_item: cmsWriteItem,
   draft_email_template: draftEmailTemplate,
   improve_email_copy: improveEmailCopy,
+  create_brand_book: createBrandBook,
+  make_brand_icon: makeBrandIcon,
+  make_print_labels: makePrintLabels,
 };
 
 export { MarketingError };

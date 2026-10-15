@@ -9,11 +9,14 @@ import { useT } from "@/components/i18n/I18nProvider";
 interface PlanUpgradeSectionProps {
   userEmail: string;
   userName: string;
+  /** The plan tier marker (User.aiCredits): picks Free or Supplier Max. Not a balance. */
   aiCredits: number;
+  /** The AI credits the supplier actually spends (welcome, plan and bought credits). */
+  creditBalance: number;
   productCount?: number;
 }
 
-export function PlanUpgradeSection({ userEmail, userName, aiCredits, productCount = 0 }: PlanUpgradeSectionProps) {
+export function PlanUpgradeSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0 }: PlanUpgradeSectionProps) {
   const t = useT("payments", "account");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -64,6 +67,7 @@ export function PlanUpgradeSection({ userEmail, userName, aiCredits, productCoun
             <li>{t("sm.f1")}</li>
             <li>{t("sm.f2")}</li>
             <li>{t("sm.f3")}</li>
+            <li>{t("plan.starter.f1")}</li>
             <li>{t("plan.starter.f4")}</li>
           </ul>
         </div>
@@ -105,6 +109,7 @@ export function PlanUpgradeSection({ userEmail, userName, aiCredits, productCoun
             <li>{t("plan.pro.f2")}</li>
             <li>{t("sm.f5")}</li>
             <li>{t("sm.f6")}</li>
+            <li>{t("sm.credits")}</li>
             <li>{t("plan.pro.f4")}</li>
           </ul>
 
@@ -142,8 +147,9 @@ export function PlanUpgradeSection({ userEmail, userName, aiCredits, productCoun
           <div style={{ fontSize: 10.5, color: "var(--ink-500)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
             {t("store.credits")}
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, fontFamily: "var(--font-accent)" }}>
-            {aiCredits}
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ fontSize: 28, fontWeight: 700, fontFamily: "var(--font-accent)" }}>{creditBalance}</span>
+            <a href="/supplier/credits" style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-900)", textDecoration: "underline" }}>{t("cr.topUp")}</a>
           </div>
         </div>
       </div>

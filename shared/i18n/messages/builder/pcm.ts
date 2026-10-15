@@ -1486,6 +1486,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rex.cd.addPick": "Add",
   "rex.cd.noProducts": "You never get product. Add one first, then come back.",
   "rex.ch.buyCredits": "Buy AI credits",
+  "rex.br.book": "Style book",
+  "rex.br.icon": "Logo icon",
+  "rex.br.favicon": "Favicon",
+  "rex.br.print": "Print studio",
+  "rex.br.useIcon": "Use am as logo icon",
+  "rex.br.useFavicon": "Use am as favicon",
+  "rex.br.openPrint": "Open am and print",
+  "rex.br.openBook": "Open style book",
+  "rex.br.openKit": "Brand kit",
 };
 
 export default pcm;

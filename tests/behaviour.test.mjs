@@ -3024,3 +3024,68 @@ test("builder: product section fields follow the layout, and every layout offere
   const chromeNote = schema.visibleFields({ id: "h", kind: "header", name: "Header", visible: true, blocks: [], settings: {} }, "boutique", "breeze")[0];
   assert.match(chromeNote.label, /same on every page/);
 });
+
+test("Suppliers buy and are pointed to AI credits in their own portal", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.creditsUrlFor("supplier"), "/supplier/credits");
+  assert.equal(c.creditsUrlFor("seller"), "/home/credits");
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0, "/supplier/credits"), /\/supplier\/credits/);
+  assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
+});
+
+test("Logo prompts carry the seller's notes and inspiration, and never copy another brand", async () => {
+  const { logoContext } = await import("../src/lib/ai/rex/logo.ts");
+  assert.equal(logoContext({}), "");
+  const withBoth = logoContext({ notes: "Rexi means king. No gold.", inspiration: 2 });
+  assert.match(withBoth, /Rexi means king/);
+  assert.match(withBoth, /inspiration/);
+  assert.match(withBoth, /never copy another brand/);
+  assert.match(logoContext({ inspiration: 1 }, 1), /after the first/, "variations: the first reference is the chosen logo");
+});
+
+test("Barcodes: EAN-13 for retail numbers, Code 128 for everything else", async () => {
+  const b = await import("../shared/barcodes.ts");
+  assert.equal(b.normaliseEan13("400638133393"), "4006381333931", "adds the check digit");
+  assert.equal(b.normaliseEan13("4006381333932"), null, "wrong check digit");
+  assert.equal(b.ean13Modules("4006381333931").length, 95);
+  assert.equal(b.barcodeKindFor("4006381333931"), "ean13");
+  assert.equal(b.barcodeKindFor("SKU-RED-42"), "code128");
+  const widths = b.code128Widths("SKU-RED-42");
+  assert.equal(widths.slice(0, -7).reduce((a, c) => a + c, 0), (1 + 10 + 1) * 11, "start, 10 characters and checksum, 11 modules each");
+  assert.throws(() => b.code128Widths("naïra"), /simple symbols/);
+  assert.match(b.barcodeSvg("SKU-RED-42"), /^<svg[^>]*viewBox/);
+  assert.doesNotMatch(b.barcodeSvg("<b>&"), /<b>/, "text is escaped");
+});
+
+test("Print studio: real sizes, sheet counts, QR targets and label lists", async () => {
+  const p = await import("../shared/print-labels.ts");
+  assert.equal(p.labelsPerSheet("price"), 3 * 10, "50x25mm price labels on A4");
+  assert.equal(p.labelsPerSheet("package"), 1 * 3);
+  const store = { name: "Mama Put", url: "https://mamaput.shopinbos.com/", whatsapp: "+234 803 000 0000", reviewsUrl: "https://mamaput.shopinbos.com/reviews" };
+  const product = { id: "prod_123456789abc", name: "Plantain chips", price: "₦3,500", url: "https://mamaput.shopinbos.com/product/p1", barcode: "400638133393", sku: null };
+  assert.equal(p.qrTargetUrl("whatsapp", store, product, ""), "https://wa.me/2348030000000?text=Hi%2C%20I'd%20like%20Plantain%20chips");
+  assert.equal(p.qrTargetUrl("custom", store, product, "javascript:alert(1)"), store.url, "only http(s) custom links");
+  assert.equal(p.barcodeValueFor(product), "4006381333931");
+  assert.equal(p.barcodeValueFor({ id: "prod_123456789abc", barcode: null, sku: null }), "3456789ABC", "no barcode or SKU: a short id");
+  assert.equal(p.barcodeValueFor({ id: "x", barcode: null, sku: "RED-42" }), "RED-42");
+  assert.equal(p.buildPrintItems({ kind: "price", products: [product], copies: 3, target: "product", custom: "", store }).length, 3);
+  assert.equal(p.buildPrintItems({ kind: "thanks", products: [], copies: 4, target: "store", custom: "", store }).length, 4, "store-wide cards with no product");
+  assert.equal(p.buildPrintItems({ kind: "price", products: Array(10).fill(product), copies: 100, target: "product", custom: "", store }).length, 300, "capped");
+  assert.match(p.pageCss("price", "roll"), /size: 50mm 25mm/);
+});
+
+test("Style book colours become readable store colours; brand marks fall back to the logo", async () => {
+  const bb = await import("../shared/brand-book.ts");
+  const tokens = bb.bookToThemeTokens({ primary: "#F2A93B", secondary: "#0E2A38", accent: "#E86A4F", background: "#FAF7F1", surface: "#FFFFFF", text: "#EEEEEE" }, "serif");
+  assert.equal(tokens.ctaText, "#111111", "dark text on a light button");
+  assert.equal(tokens.heroText, "#FFFFFF", "white text on a dark banner");
+  assert.equal(tokens.ink, "#111111", "unreadable body text is replaced");
+  assert.equal(tokens.headingStyle, "serif");
+  assert.equal(bb.readBrandBook({ paletteName: "x" }), null, "an incomplete book isn't shown");
+  const a = await import("../shared/brand-assets.ts");
+  const logo = "https://x.supabase.co/storage/v1/object/public/brand/logo.png";
+  assert.deepEqual(a.readBrandAssets({ logoUrl: logo, brandSettings: {} }).shown, { icon: logo, favicon: logo });
+  const icon = "https://x.supabase.co/storage/v1/object/public/brand/icon.png";
+  assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: icon } }).shown.favicon, icon, "favicon falls back to the icon first");
+  assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: "javascript:x" } }).icon, null);
+});
