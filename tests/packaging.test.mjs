@@ -150,3 +150,33 @@ test("sample designs exist for every product type and style, and Rex can design 
   assert.match(tools, /make_creative: makeCreative/);
   assert.match(tools, /saveLabelDesign\(/, "Rex's print labels are saved to Labels and print");
 });
+
+test("print orders: prices scale with quantity, size, material and delivery, and the minimum applies", async () => {
+  const po = await import("../shared/print-orders.ts");
+  const size = pack.PACK_FORMAT_INFO.pouch.sizes[1];
+  const small = po.quotePrint({ format: "pouch", size, quantity: 100, zone: "lagos" });
+  const big = po.quotePrint({ format: "pouch", size, quantity: 5000, zone: "lagos" });
+  assert.ok(big.unitPrice < small.unitPrice, "bigger runs cost less each");
+  assert.equal(small.total, small.printCost + small.setupFee + small.deliveryFee);
+  assert.equal(po.quotePrint({ format: "sachet", size: pack.PACK_FORMAT_INFO.sachet.sizes[1], quantity: 10, zone: "lagos" }).quantity, 1000, "minimum run");
+  const large = po.quotePrint({ format: "pouch", size: pack.PACK_FORMAT_INFO.pouch.sizes[2], quantity: 500, zone: "lagos" });
+  assert.ok(large.unitPrice > po.quotePrint({ format: "pouch", size, quantity: 500, zone: "lagos" }).unitPrice, "bigger packs cost more");
+  const foil = po.quotePrint({ format: "pouch", size, quantity: 500, finish: "foil", material: "clear_window", zone: "lagos" });
+  assert.equal(foil.material.id, "clear_window");
+  assert.ok(foil.unitPrice > po.quotePrint({ format: "pouch", size, quantity: 500, zone: "lagos" }).unitPrice);
+  assert.equal(po.quotePrint({ format: "pouch", size, quantity: 500, material: "made-up", zone: "pickup" }).material.id, "kraft_zip", "unknown material falls back");
+  assert.equal(po.quotePrint({ format: "pouch", size, quantity: 500, zone: "pickup" }).deliveryFee, 0);
+  assert.ok(po.quotePrint({ format: "pouch", size, quantity: 500, zone: "rest" }).days > po.quotePrint({ format: "pouch", size, quantity: 500, zone: "lagos" }).days);
+  for (const format of pack.PACK_FORMATS) assert.ok(po.PRINT_MATERIALS[format].length > 0, format);
+  assert.equal(po.PrintOrderSchema.safeParse({ designId: "d1", quantity: 500, zone: "lagos", contactName: "Ada", contactPhone: "08031234567", proofOk: false }).success, false, "the seller must check the proof");
+  assert.equal(po.PrintOrderSchema.safeParse({ designId: "d1", quantity: 500, zone: "lagos", contactName: "Ada", contactPhone: "08031234567", proofOk: true }).success, true);
+});
+
+test("print orders are priced on the server from the saved design and paid through the Paystack webhook", async () => {
+  const { readFileSync } = await import("node:fs");
+  const server = readFileSync(new URL("../src/lib/packaging/print-orders.server.ts", import.meta.url), "utf8");
+  assert.match(server, /quotePrint\(\{ format: design\.format, size: design\.size/);
+  assert.match(server, /Number\(verified\.amount\) < row\.total \* 100/, "underpayment is refused");
+  const webhook = readFileSync(new URL("../src/app/api/webhooks/paystack/route.ts", import.meta.url), "utf8");
+  assert.match(webhook, /PRINT_ORDER_REFERENCE_PREFIX/);
+});

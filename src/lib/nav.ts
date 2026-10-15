@@ -194,6 +194,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "labels-designs", label: "Designs and shipping", href: "/home/labels" },
             { id: "labels-packaging", label: "Packaging designer", href: "/home/labels/packaging" },
             { id: "labels-studio", label: "Labels and tags", href: "/home/labels/studio" },
+            { id: "labels-orders", label: "Print orders", href: "/home/labels/orders" },
             { id: "labels-request", label: "Custom packaging", href: "/home/labels/request" },
           ],
         },
@@ -358,6 +359,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
         { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
         { id: "packaging-requests", label: "Packaging requests", icon: "package", href: "/admin/packaging-requests", core: true },
+        { id: "print-orders", label: "Print orders", icon: "truck", href: "/admin/print-orders", core: true },
       ],
     },
     {

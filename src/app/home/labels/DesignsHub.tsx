@@ -62,9 +62,14 @@ export function DesignsHub({ designs, migrationNeeded }: { designs: HubDesign[];
             <h2 className="m-0 text-[18px] font-extrabold">{t("hub.saved")}</h2>
             <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">{t("hub.savedSub")}</p>
           </div>
+          <div className="flex flex-wrap gap-2">
+          <Link href="/home/labels/orders" className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink no-underline">
+            <Icon name="truck" size={14} /> {t("orders.title")}
+          </Link>
           <Link href="/studio?prompt=Design%20packaging%20for%20my%20best%20seller" className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink no-underline">
             <Icon name="sparkle" size={14} /> {t("hub.askRex")}
           </Link>
+          </div>
         </div>
         {migrationNeeded ? <p className="m-0 rounded-[14px] bg-app-canvas p-3 text-[13px]">{t("hub.migration")}</p> : null}
         {error ? <p role="alert" className="m-0 text-[13px] font-bold text-app-danger">{error}</p> : null}
@@ -81,6 +86,11 @@ export function DesignsHub({ designs, migrationNeeded }: { designs: HubDesign[];
                     {design.kind === "packaging" ? t("hub.kindPackaging") : t("hub.kindLabels")}
                     {design.source === "rex" ? <span className="rounded-full bg-app-canvas px-1.5 py-0.5 text-[10.5px] font-bold">{t("hub.byRex")}</span> : null}
                   </p>
+                  {design.kind === "packaging" ? (
+                    <Link href={`/home/labels/order?design=${design.id}`} className="mt-1 inline-flex items-center gap-1 text-[12.5px] font-bold text-app-accent no-underline">
+                      <Icon name="cart" size={12} /> {t("order.cta")}
+                    </Link>
+                  ) : null}
                 </div>
                 <button type="button" onClick={() => void remove(design)} aria-label={t("hub.delete")} className="absolute right-3.5 top-3.5 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-app-ink-soft opacity-0 shadow transition group-hover:opacity-100 focus:opacity-100">
                   <Icon name="trash" size={14} />
