@@ -354,16 +354,39 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
   );
 }
 
+/** Email has its own page (Inbox → Email): Gmail, the store's own domain, or the Shopinbos inbox address. */
+function EmailChannelCard({ view }: { view: ChannelView }) {
+  const t = useT("inbox");
+  const connected = view.status === "connected";
+  return (
+    <Card className="grid content-start gap-3 p-5">
+      <div className="flex items-start gap-3">
+        <ChannelMark channel="email" size={44} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="m-0 text-[16px] font-extrabold">{t("ch.email.title")}</h2>
+            {connected ? <Pill tone={view.lastError ? "warning" : "success"} dot>{view.lastError ? t("ch.attention") : t("ch.connected")}</Pill> : <Pill tone="muted">{t("ch.notConnected")}</Pill>}
+          </div>
+          <p className="mb-0 mt-1 break-words text-[13.5px] leading-[1.5] text-app-ink-soft">{connected && view.displayName ? t("email.card.sendsFrom", { address: view.displayName }) : t("email.card.blurb")}</p>
+        </div>
+      </div>
+      <div>
+        <Link href="/home/inbox/email" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline hover:bg-black">
+          {connected ? t("email.card.manage") : t("email.card.connect")}
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
 export function ChannelsClient({
   initial,
   platform,
-  inboxAddress,
   liveChat,
   forwardCallsTo,
 }: {
   initial: ChannelView[];
   platform: { encryption: boolean; resend: boolean; resendInbound: boolean; emailDomain: string | null; metaAppSecret: boolean; metaVerifyToken: boolean };
-  inboxAddress: string | null;
   liveChat: { on: boolean; mode: string };
   forwardCallsTo: string;
 }) {
@@ -416,15 +439,8 @@ export function ChannelsClient({
       <section aria-label={t("ch.toConnect")} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {ORDER.map((key) => {
           const view = views.find((v) => v.channel === key)!;
+          if (key === "email") return <EmailChannelCard key={key} view={view} />;
           let extra: ReactNode = null;
-          if (key === "email") {
-            extra = (
-              <div className="grid gap-2">
-                {inboxAddress ? <CopyRow label={t("ch.inboxAddress")} value={inboxAddress} /> : <p className="m-0 text-[13px] text-app-ink-soft">{t("ch.noInbound")}</p>}
-                {!platform.resend && <p className="m-0 text-[13px] font-semibold text-app-danger">{t("ch.noResend")}</p>}
-              </div>
-            );
-          }
           if (key === "voice" && view.status === "connected") {
             extra = (
               <div className="grid gap-2">

@@ -214,7 +214,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
     // The widget polls for replies. If the shopper has left the page, also email the reply when we can.
     const away = !conversation.visitorSeenAt || Date.now() - conversation.visitorSeenAt.getTime() > LIVECHAT_EMAIL_AFTER_MS;
     if (away && conversation.contactEmail) {
-      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, replyTo: sellerEmail });
+      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, replyTo: sellerEmail, conversationId: conversation.id });
       return emailed.ok ? { ok: true, externalId: emailed.externalId, via: "livechat+email" } : { ok: true, externalId: null, via: "livechat" };
     }
     return { ok: true, externalId: null, via: "livechat" };
@@ -223,7 +223,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (channel === "email" || channel === "form") {
     if (conversation.contactEmail) {
       const subject = conversation.subject ?? (channel === "form" ? `Your message to ${store.name}` : null);
-      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail, exactSubject: firstEmail })), via: "email" };
+      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail, exactSubject: firstEmail, conversationId: conversation.id })), via: "email" };
     }
     if (channel === "form" && conversation.contactPhone) {
       const sms = await getChannel(store.id, "sms");
@@ -297,7 +297,7 @@ export async function sendRecorded(
   const saved = await db.inboxMessage.update({
     where: { id: message.id },
     data: result.ok
-      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null, ...(input.meta ?? {}) } }
+      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null, ...(result.meta ?? {}), ...(input.meta ?? {}) } }
       : { status: "failed", error: result.error.slice(0, 300), ...(input.meta ? { meta: input.meta } : {}) },
   });
   await db.inboxConversation.update({

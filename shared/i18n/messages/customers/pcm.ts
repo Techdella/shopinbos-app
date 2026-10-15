@@ -91,8 +91,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "chat.placeholder": "Write your message…",
   "chat.send": "Send",
   "chat.sentOk": "E don go. You go see am for your Inbox too.",
-  "chat.emailTo": "E go reach {email} from your store email.",
-  "chat.emailNoInbox": "To see their replies here and for your Inbox, connect email for your Inbox settings.",
   "chat.connectEmail": "Connect email",
   "chat.emailNotReady": "Email sending never set up yet. Abeg contact Shopinbos support.",
   "chat.noEmail": "This customer no give email address.",
@@ -120,6 +118,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "chat.err.OPTED_OUT": "This customer talk say make you no send am these WhatsApp messages, so e no go.",
   "chat.err.NO_PICTURE": "This template need picture. Add product photo or your logo first.",
   "chat.err.RATE_LIMITED": "You don send plenty messages for short time. Wait small, then try again.",
+  "drawer.writeEmail": "Write email give {email}",
+  "chat.emailFrom": "E go reach {email} from {from}.",
+  "chat.emailToOnly": "E go reach {email} from your store email.",
+  "chat.ownAddressNudge": "This one dey comot from your Shopinbos inbox address.",
+  "chat.ownAddressLink": "Send from my own email",
+  "chat.connectFirst.title": "Connect your email make you fit write customers from here",
+  "chat.connectFirst.domain_auto": "You buy {domain} for Shopinbos, so address like hello@{domain} na just one click. Customers' replies go come back your Inbox.",
+  "chat.connectFirst.domain_dns": "Send from your own address, like hello@{domain}. We go show you the small settings to add where you buy your domain. You fit connect Gmail too.",
+  "chat.connectFirst.gmail": "Connect your Gmail and your emails go comot from am. Customers' replies go come back your Inbox. Your own domain go give you address wey look more professional.",
+  "chat.connectFirst.oneClick": "Set up email for {domain}",
+  "chat.connectFirst.gmailAction": "Connect Gmail",
+  "chat.err.EMAIL_NOT_CONNECTED": "Connect your email first.",
 };
 
 export default pcm;

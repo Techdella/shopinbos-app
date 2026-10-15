@@ -44,6 +44,13 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
     store.id,
   );
 
+  // The Inbox conversation for each address (a form message, or an email thread), to reply from there.
+  const emails = [...new Set(submissions.map((item) => item.email?.trim().toLowerCase()).filter((v): v is string => Boolean(v)))];
+  const threads = emails.length
+    ? await db.inboxConversation.findMany({ where: { storeId: store.id, channel: { in: ["form", "email"] }, externalThreadId: { in: emails } }, select: { id: true, channel: true, externalThreadId: true }, orderBy: { lastMessageAt: "desc" } })
+    : [];
+  const threadFor = (email: string) => threads.find((c) => c.externalThreadId === email.trim().toLowerCase())?.id ?? null;
+
   const contactCount = submissions.filter((item) => item.type === "contact").length;
   const newsletterCount = submissions.filter((item) => item.type === "newsletter").length;
   const newCount = submissions.filter((item) => item.status === "new").length;
@@ -99,7 +106,8 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
                   </div>
                   {(submission.email || submission.phone) && (
                     <div className="mt-0.5 flex flex-wrap gap-x-3 text-[13.5px]">
-                      {submission.email && <a href={`mailto:${submission.email}`} className="break-all text-app-ink-soft no-underline hover:text-app-ink hover:underline">{submission.email}</a>}
+                      {/* Reply in the Inbox (sent from the store's connected email), never the device's mail app. */}
+                      {submission.email && (threadFor(submission.email) ? <a href={`/home/messages?c=${threadFor(submission.email)}`} className="break-all text-app-ink-soft no-underline hover:text-app-ink hover:underline">{submission.email}</a> : <span className="break-all text-app-ink-soft">{submission.email}</span>)}
                       {submission.phone && <a href={`tel:${submission.phone}`} className="text-app-ink-soft no-underline hover:text-app-ink hover:underline">{submission.phone}</a>}
                     </div>
                   )}

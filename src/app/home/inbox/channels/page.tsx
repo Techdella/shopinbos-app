@@ -4,7 +4,6 @@ import { PillLink } from "@/components/app-kit";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { db } from "@/lib/db/client";
 import { channelViews, platformReadiness } from "@/lib/inbox/connect";
-import { inboxAddress } from "@/lib/inbox/channels/email";
 import { requireRole } from "@/lib/server-auth";
 import { ChannelsClient } from "./ChannelsClient";
 import { getT } from "@/lib/i18n/server";
@@ -39,7 +38,6 @@ export default async function InboxChannelsPage() {
       <ChannelsClient
         initial={views}
         platform={platformReadiness()}
-        inboxAddress={inboxAddress(store.slug)}
         liveChat={{ on: Boolean(chat) && chatMode !== "whatsapp", mode: chatMode }}
         forwardCallsTo={settings?.forwardCallsTo ?? ""}
       />

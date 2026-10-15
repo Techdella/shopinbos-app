@@ -2427,7 +2427,7 @@ model InboxChannel {
   displayName   String?
   credentials   String? // AES-256-GCM encrypted JSON (src/lib/inbox/crypto.ts); never sent to the browser
   webhookSecret String? // per-channel random secret (Meta verify token, Telegram secret token)
-  settings      Json      @default("{}")
+  settings      Json      @default("{}") // email: { provider: platform | resend_domain | gmail, address, fromName, domain, gmail } (src/lib/email-channel)
   lastError     String?
   connectedAt   DateTime?
   createdAt     DateTime  @default(now())
