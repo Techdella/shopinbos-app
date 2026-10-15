@@ -1,7 +1,8 @@
 // Where an order came from. Storefront links carry ?ref= (our share buttons) or ?utm_source=; checkout
 // stores the normalised value on RetailOrder.channel and the seller dashboard groups orders by it.
 
-export const ORDER_CHANNELS = ["whatsapp", "instagram", "facebook", "tiktok", "google", "email", "online_store", "in_person"] as const;
+// "payment_link": paid through a payment link (src/lib/payment-links) that wasn't opened from a known app.
+export const ORDER_CHANNELS = ["whatsapp", "instagram", "facebook", "tiktok", "google", "email", "online_store", "in_person", "payment_link"] as const;
 export type OrderChannel = (typeof ORDER_CHANNELS)[number];
 
 /** Channels a storefront link can claim at checkout ("in person" is only for sales the seller records). */
@@ -21,6 +22,7 @@ export const CHANNEL_LABEL: Record<OrderChannel, string> = {
   email: "Email",
   online_store: "Online store",
   in_person: "In person",
+  payment_link: "Payment link",
 };
 
 const ALIASES: Record<string, LinkChannel> = {

@@ -29,6 +29,9 @@ import { ShopLayoutThumb } from "./ShopLayoutThumb";
 import { moveInOrder, toggleInOrder } from "@/components/storefront/boutique/pdp/pdp-logic";
 import { LAYOUT_ROW_KIND, type LayoutElementType } from "@/components/storefront/boutique/blocks/layout-logic";
 import { LayoutColumnsField } from "./LayoutColumnsField";
+import { MenuField } from "./MenuField";
+import { MenuStyleThumb } from "./MenuStyleThumb";
+import { menuPageKeys, readMenu } from "@/lib/storefront/menu";
 
 export type SectionAction = "duplicate" | "up" | "down" | "hide" | "remove";
 
@@ -348,7 +351,7 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
           <div role="radiogroup" aria-label={tx(field.label)} className="grid grid-cols-2 gap-2">
             {field.options.map((option) => (
               <button key={option.value} type="button" role="radio" aria-checked={value === option.value} onClick={() => set(option.value)} className={cx("rounded-[12px] border p-2.5 text-left", value === option.value ? "border-[#2F66F6] bg-[#EAF0FF]" : "border-app-line hover:border-app-line-strong")}>
-                {field.thumbs === "faq" ? <FaqStyleThumb value={option.value} /> : field.thumbs === "shop" ? <ShopLayoutThumb value={option.value} /> : null}
+                {field.thumbs === "faq" ? <FaqStyleThumb value={option.value} /> : field.thumbs === "shop" ? <ShopLayoutThumb value={option.value} /> : field.thumbs === "menu" ? <MenuStyleThumb value={option.value} /> : null}
                 <span className="block text-[13px] font-semibold text-app-ink">{tx(option.label)}</span>
                 {option.hint ? <span className="mt-0.5 block text-[11.5px] leading-4 text-app-ink-soft">{tx(option.hint)}</span> : null}
               </button>
@@ -393,6 +396,18 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
             })}
           </div>
         </FieldShell>
+      );
+    }
+    case "menu": {
+      const copyNow = (section.blocks?.find((block) => block.type === "copy")?.content ?? {}) as Record<string, unknown>;
+      return (
+        <MenuField
+          value={readMenu(copyNow, field.fallback)}
+          pageTypes={props.pageTypes ?? []}
+          products={props.products}
+          // The menu, plus its pages as navLinks for anything that still reads the older list (checkout header).
+          onChange={(menu) => props.onChange((current) => setSectionCopy(setSectionCopy(current, "menu", menu), "navLinks", menuPageKeys(menu)), sectionKey(field.id))}
+        />
       );
     }
     case "list": {

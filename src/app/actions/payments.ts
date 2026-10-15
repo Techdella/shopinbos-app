@@ -10,6 +10,7 @@ import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
 
 interface PaystackTransaction {
@@ -136,6 +137,7 @@ export async function updateOrderPayment(
     if (expired) {
       const outcome = await recoverExpiredOrderPayment(orderId, { reference });
       if (outcome === "reinstated") await creditCampaignConversion(orderId).catch(() => null);
+      if (outcome === "reinstated") await settlePaymentLinkForOrder(orderId);
       revalidatePath("/home/orders");
       return outcome === "needs_refund"
         ? { success: false, error: "This order expired before the payment arrived and the items have sold out. The store will refund you." }
@@ -155,6 +157,7 @@ export async function updateOrderPayment(
     if (moved.count === 1) await notifyOrderCustomer(orderId, "payment_received"); // WhatsApp/SMS to the buyer, if switched on (sent once)
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
+    await settlePaymentLinkForOrder(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };

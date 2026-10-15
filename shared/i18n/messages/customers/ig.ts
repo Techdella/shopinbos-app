@@ -91,8 +91,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "chat.placeholder": "Dee ozi gị…",
   "chat.send": "Zipu",
   "chat.sentOk": "Ezipụla ya. Ị ga-ahụkwa ya n'Inbox gị.",
-  "chat.emailTo": "Ọ ga-aga {email} site na email store gị.",
-  "chat.emailNoInbox": "Iji hụ azịza ha ebe a na n'Inbox gị, jikọọ email na ntọala Inbox gị.",
   "chat.connectEmail": "Jikọọ email",
   "chat.emailNotReady": "Edobebeghị izipu email. Biko kpọtụrụ Shopinbos support.",
   "chat.noEmail": "Onye ahịa a enyeghị adreesị email.",
@@ -120,6 +118,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "chat.err.OPTED_OUT": "Onye ahịa a kwuru ka ị ghara iziga ya ụdị ozi WhatsApp ndị a, ya mere ezipughị ya.",
   "chat.err.NO_PICTURE": "Template a chọrọ foto. Buru ụzọ tinye foto ngwa ahịa ma ọ bụ logo gị.",
   "chat.err.RATE_LIMITED": "Ị zipuru ọtụtụ ozi n'obere oge. Chere nkeji ole na ole, wee nwaa ọzọ.",
+  "drawer.writeEmail": "Dee email zigara {email}",
+  "chat.emailFrom": "Ọ ga-aga {email} site na {from}.",
+  "chat.emailToOnly": "Ọ ga-aga {email} site na email store gị.",
+  "chat.ownAddressNudge": "Nke a na-esi n'adreesị inbox Shopinbos gị apụ.",
+  "chat.ownAddressLink": "Zipu site na email nke m",
+  "chat.connectFirst.title": "Jikọọ email gị ka i nwee ike ide ndị ahịa ebe a",
+  "chat.connectFirst.domain_auto": "Ị zụrụ {domain} na Shopinbos, ya mere adreesị dị ka hello@{domain} bụ otu ịpị. Azịza ndị ahịa ga-alaghachi n'Inbox gị.",
+  "chat.connectFirst.domain_dns": "Zipu site n'adreesị nke gị, dị ka hello@{domain}. Anyị ga-egosi gị ntọala ole na ole ị ga-etinye ebe ị zụtara domain gị. Ị nwekwara ike ijikọ Gmail.",
+  "chat.connectFirst.gmail": "Jikọọ Gmail gị, email gị ga-esi na ya apụ. Azịza ndị ahịa ga-alaghachi n'Inbox gị. Domain nke gị ga-enye gị adreesị ka mma.",
+  "chat.connectFirst.oneClick": "Hazie email maka {domain}",
+  "chat.connectFirst.gmailAction": "Jikọọ Gmail",
+  "chat.err.EMAIL_NOT_CONNECTED": "Buru ụzọ jikọọ email gị.",
 };
 
 export default ig;

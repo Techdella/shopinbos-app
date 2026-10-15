@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
@@ -10,6 +9,8 @@ import type { BoutiqueLook } from "./look";
 import { StoreBrandMark } from "../StoreBrandMark";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy } from "@shared/placeholder-copy";
 import { englishText, type EditorText } from "../editor-text";
+import { StoreMenuBar, StoreMenuButton, type MenuColors, type ShownMenuItem } from "../StoreMenu";
+import type { MenuStyle, MobileMenuStyle } from "@/lib/storefront/menu";
 
 export interface ChromeStore {
   name: string;
@@ -68,70 +69,16 @@ function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeS
   );
 }
 
-function ShopMenu({ look, categories, onShopAll, onCategory }: { look: BoutiqueLook; categories: Array<{ slug: string; name: string }>; onShopAll: () => void; onCategory: (slug: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const menuId = useId();
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(event: MouseEvent) {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-  if (!categories.length) {
-    return (
-      <button type="button" onClick={onShopAll} className="border-0 bg-transparent px-1 py-2" style={{ color: "inherit", cursor: "pointer", ...look.navStyle }}>
-        Shop
-      </button>
-    );
-  }
-  const pick = (fn: () => void) => () => {
-    setOpen(false);
-    fn();
-  };
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-expanded={open} aria-controls={menuId} onClick={() => setOpen((value) => !value)} className="inline-flex items-center gap-1 border-0 bg-transparent px-1 py-2" style={{ color: "inherit", cursor: "pointer", ...look.navStyle }}>
-        Shop <Icon name="chevDown" size={14} />
-      </button>
-      {open ? (
-        <ul id={menuId} className="absolute left-1/2 top-full z-40 mt-1 min-w-[200px] -translate-x-1/2 rounded-[12px] border p-1.5 shadow-xl" style={{ background: look.dark ? look.raised : "#fff", borderColor: look.tokens.border }}>
-          <li>
-            <button type="button" onClick={pick(onShopAll)} className="w-full rounded-[8px] px-3 py-2 text-left text-[14px] font-semibold" style={{ color: look.tokens.ink }}>
-              All products
-            </button>
-          </li>
-          {categories.map((category) => (
-            <li key={category.slug}>
-              <button type="button" onClick={pick(() => onCategory(category.slug))} className="w-full rounded-[8px] px-3 py-2 text-left text-[14px]" style={{ color: look.tokens.ink }}>
-                {category.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
-  );
-}
-
 export function BoutiqueHeader({
   store,
   logoText,
   look,
-  links,
-  categories,
+  menu,
+  menuStyle = "classic",
+  mobileMenu = "drawer",
+  mobileExtra,
+  interactive = true,
   onHome,
-  onShopAll,
-  onCategory,
   onSearch,
   onWishlist,
   onBag,
@@ -144,11 +91,15 @@ export function BoutiqueHeader({
   store: ChromeStore;
   logoText: string;
   look: BoutiqueLook;
-  links: ChromeLink[];
-  categories: Array<{ slug: string; name: string }>;
+  /** The main menu, resolved (StoreMenu resolveMenu). */
+  menu: ShownMenuItem[];
+  menuStyle?: MenuStyle;
+  mobileMenu?: MobileMenuStyle;
+  /** Links under the phone menu (track an order). */
+  mobileExtra?: ShownMenuItem[];
+  /** Builder previews: the ☰ button shows but doesn't open. */
+  interactive?: boolean;
   onHome: () => void;
-  onShopAll: () => void;
-  onCategory: (slug: string) => void;
   onSearch?: () => void;
   onWishlist?: () => void;
   onBag?: () => void;
@@ -160,25 +111,20 @@ export function BoutiqueHeader({
   bold?: boolean;
 }) {
   const t = look.tokens;
-  const nav = (
-    <nav aria-label="Main" className="bq-nav-desktop items-center gap-6">
-      {links.map((link) =>
-        link.key === "products" ? (
-          <ShopMenu key={link.key} look={look} categories={categories} onShopAll={onShopAll} onCategory={onCategory} />
-        ) : (
-          <a
-            key={link.key}
-            href={link.href ?? "#"}
-            onClick={pageLinkClick(link)}
-            aria-current={link.current ? "page" : undefined}
-            className="border-0 bg-transparent px-1 py-2"
-            style={{ color: "inherit", cursor: "pointer", textDecoration: link.current ? "underline" : "none", textUnderlineOffset: 6, ...look.navStyle }}
-          >
-            {link.label}
-          </a>
-        ),
-      )}
-    </nav>
+  const menuColors: MenuColors = { ink: bold ? t.paperBg : t.ink, muted: t.muted, accent: t.accent, accentText: look.onAccent, panel: look.dark ? look.raised : "#fff", panelInk: t.ink, border: t.border };
+  const nav = <StoreMenuBar items={menu} style={menuStyle} colors={menuColors} className="bq-nav-desktop" font={look.navStyle} />;
+  const burger = (
+    <StoreMenuButton
+      items={menu}
+      extra={mobileExtra}
+      style={mobileMenu}
+      colors={{ ...menuColors, ink: t.ink }}
+      storeName={store.name}
+      className="bq-only-narrow bq-burger"
+      font={{ fontFamily: "inherit" }}
+      headingFont={look.logoFont}
+      interactive={interactive}
+    />
   );
 
   const tools = (
@@ -216,13 +162,16 @@ export function BoutiqueHeader({
     <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
         <div className="bq-wrap grid min-h-[68px] py-1.5 grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <div className="min-w-0">{nav}</div>
+          <div className="flex min-w-0 items-center">{burger}{nav}</div>
           <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred bold={bold} />
           {tools}
         </div>
       ) : (
         <div className="bq-wrap flex min-h-[68px] py-1.5 items-center justify-between gap-4">
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} bold={bold} />
+          <div className="flex min-w-0 items-center gap-1">
+            {burger}
+            <Logo store={store} logoText={logoText} look={look} onHome={onHome} bold={bold} />
+          </div>
           {nav}
           {tools}
         </div>
@@ -266,7 +215,7 @@ export function BoutiqueFooter({
   const line = [place, whatsapp].filter(Boolean).join(" · ");
   const storeBadges = useStoreFooterBadges();
   return (
-    <footer className="border-t" style={{ borderColor: t.border, background: look.footerBg, color: t.ink }}>
+    <footer className="bq-footer border-t" style={{ borderColor: t.border, background: look.footerBg, color: t.ink }}>
       <div className="bq-wrap grid gap-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-[420px]">

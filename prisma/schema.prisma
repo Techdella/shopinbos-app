@@ -271,6 +271,8 @@ model Store {
   affiliates     Affiliate[]
   adCampaigns    AdCampaign[]
   storeCampaigns StoreCampaign[]
+  paymentLinks   PaymentLink[]
+  bioPage        BioPage?
 
   @@index([slug])
   @@index([previousSlugs], type: Gin)
@@ -1927,6 +1929,8 @@ model RetailOrder {
   ownShippedAt       DateTime?
   ownDeliveredAt     DateTime?
   partlySentAt       DateTime?
+  // The payment link (src/lib/payment-links) this order was paid through, if any.
+  paymentLinkId      String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -1943,6 +1947,7 @@ model RetailOrder {
   @@index([affiliateId])
   @@index([adCampaignId])
   @@index([refundId])
+  @@index([paymentLinkId])
 }
 
 model AbandonedCartEvent {
@@ -2452,7 +2457,7 @@ model InboxChannel {
   displayName   String?
   credentials   String? // AES-256-GCM encrypted JSON (src/lib/inbox/crypto.ts); never sent to the browser
   webhookSecret String? // per-channel random secret (Meta verify token, Telegram secret token)
-  settings      Json      @default("{}")
+  settings      Json      @default("{}") // email: { provider: platform | resend_domain | gmail, address, fromName, domain, gmail } (src/lib/email-channel)
   lastError     String?
   connectedAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -3356,4 +3361,85 @@ model StoreCampaignEvent {
   campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId, event, createdAt])
+}
+
+// ─── Payment links and link in bio ────────────────────────────────────────────
+
+/// A link a seller (or Peggy) shares so a customer can pay for exact products from a chat or a bio:
+/// https://<store>/pay/<code>. Paying goes through the normal checkout (src/lib/payment-links/service.server.ts).
+model PaymentLink {
+  id             String    @id @default(cuid())
+  storeId        String
+  /// Public, unguessable (12 characters from a 29-letter alphabet, src/lib/payment-links/pure.ts).
+  code           String    @unique
+  title          String?
+  /// [{ productId, variantId?, quantity, name, price, image? }]: what the link sells, with the price when it was made.
+  items          Json      @default("[]")
+  /// An agreed price for the items (before delivery), set by the seller; null = the product prices.
+  customAmount   Float?
+  note           String?
+  buyerName      String?
+  buyerPhone     String?
+  buyerEmail     String?
+  /// One-time links close once paid; reusable ones (link in bio) keep selling.
+  oneTime        Boolean   @default(true)
+  /// How many the buyer may choose on a single-product link.
+  maxQuantity    Int       @default(10)
+  expiresAt      DateTime?
+  status         String    @default("active") // active | paid | expired | cancelled
+  /// The order that paid a one-time link (the latest paid order for reusable ones).
+  orderId        String?
+  paidCount      Int       @default(0)
+  paidAt         DateTime?
+  cancelledAt    DateTime?
+  /// seller | peggy_seller | peggy_customer | bio
+  createdBy      String    @default("seller")
+  /// For links Peggy made in a customer chat: the inbox conversation and the customer's phone or handle.
+  conversationId String?
+  customerRef    String?
+  /// The chat channel the link was sent on (whatsapp, livechat…), used for the order's channel.
+  channel        String?
+  views          Int       @default(0)
+  lastViewedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status])
+  @@index([conversationId, createdAt])
+}
+
+/// The store's link in bio page: https://<store>/links. One per store.
+model BioPage {
+  id        String   @id @default(cuid())
+  storeId   String   @unique
+  published Boolean  @default(true)
+  title     String?
+  bio       String?
+  avatarUrl String?
+  /// { preset, background, text, button, buttonText } (src/lib/bio/pure.ts)
+  theme     Json     @default("{}")
+  /// Ordered blocks: product, collection, link, socials, whatsapp, signup (src/lib/bio/pure.ts).
+  blocks    Json     @default("[]")
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store  Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  clicks BioPageClick[]
+}
+
+/// Taps per link in bio block (a lightweight counter).
+model BioPageClick {
+  id        String   @id @default(cuid())
+  bioPageId String
+  blockId   String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  bioPage BioPage @relation(fields: [bioPageId], references: [id], onDelete: Cascade)
+
+  @@unique([bioPageId, blockId])
 }

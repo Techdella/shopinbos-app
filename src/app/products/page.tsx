@@ -10,6 +10,9 @@ import { formatMoney, formatNumber } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { productCampaignTimers } from "@/lib/store-campaigns/server";
 import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadge";
+import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
+import { linkProductView } from "@/lib/payment-links/pure";
+import { paymentReadiness } from "@/lib/payment-links/service.server";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +105,7 @@ export default async function ProductsPage({
   });
   // Live and upcoming seasonal campaigns that badge a product show a small timer on its row.
   const campaignNow = new Date();
-  const campaignTimers = await productCampaignTimers(storeId, all, campaignNow);
+  const [campaignTimers, readiness] = await Promise.all([productCampaignTimers(storeId, all, campaignNow), paymentReadiness(storeId)]);
 
   const needle = query.toLowerCase();
   const products = all.filter(
@@ -219,7 +222,12 @@ export default async function ProductsPage({
               ? p.supplierStock ? t("list.atSupplier", { count: p.supplierStock }) : t("list.supplierStock")
               : stock.label;
             return (
-              <ListRow key={p.id} href={`/products/${p.id}`}>
+              <ListRow
+                key={p.id}
+                href={`/products/${p.id}`}
+                // A payment link to send in a chat (published products only: the pay page shows public products).
+                aside={p.status === "published" ? <PaymentLinkButton compact product={linkProductView(p)} storeName={workspace.store!.name} ready={readiness.ready} /> : undefined}
+              >
                 <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
                   <Thumb src={p.images[0]} label={p.name} />
                   <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_auto] xl:grid-cols-[minmax(0,2fr)_110px_minmax(0,0.9fr)_minmax(0,0.8fr)_120px]">

@@ -217,9 +217,11 @@ export function ListCard({ children, className }: { children: ReactNode; classNa
   return <Card className={cx("overflow-hidden", className)}><ul className="m-0 list-none divide-y divide-app-line p-0">{children}</ul></Card>;
 }
 
-export function ListRow({ href, children, className }: { href?: string; children: ReactNode; className?: string }) {
-  const inner = cx("flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 text-app-ink no-underline sm:flex-nowrap sm:px-5", href && "hover:bg-app-canvas", className);
-  return <li>{href ? <Link href={href} className={inner}>{children}</Link> : <div className={inner}>{children}</div>}</li>;
+/** A list row; `aside` sits beside the row's link (for a button that mustn't be inside the link). */
+export function ListRow({ href, children, className, aside }: { href?: string; children: ReactNode; className?: string; aside?: ReactNode }) {
+  const inner = cx("flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 text-app-ink no-underline sm:flex-nowrap sm:px-5", href && "hover:bg-app-canvas", aside ? "min-w-0 flex-1 pr-2 sm:pr-2" : null, className);
+  const row = href ? <Link href={href} className={inner}>{children}</Link> : <div className={inner}>{children}</div>;
+  return <li className={aside ? "flex items-center pr-3 sm:pr-4" : undefined}>{row}{aside}</li>;
 }
 
 export function EmptyState({ icon = "sparkle", title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {

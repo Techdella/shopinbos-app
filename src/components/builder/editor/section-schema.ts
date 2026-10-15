@@ -4,6 +4,7 @@
 // a field (or a list's item field) with `when` only shows while that setting has one of the listed values.
 // Pure data: loaded by tests without a bundler.
 
+import { MENU_STYLES, MOBILE_MENU_STYLES } from "../../../lib/storefront/menu.ts";
 import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
 import { classicPdpSchemaGroups, pdpSchemaGroups } from "./pdp-schema.ts";
@@ -59,12 +60,14 @@ export type SchemaField =
   | (FieldBase & { type: "text" | "textarea"; target: FieldTarget; placeholder?: string })
   | (FieldBase & { type: "number"; target: FieldTarget; min: number; max: number; fallback: number })
   /** `thumbs`: the cards picker draws a small picture of each option (FAQ styles, shop page styles). */
-  | (FieldBase & { type: "segmented" | "select" | "cards"; target: FieldTarget; options: ChoiceOption[]; fallback: string; thumbs?: "faq" | "shop" })
+  | (FieldBase & { type: "segmented" | "select" | "cards"; target: FieldTarget; options: ChoiceOption[]; fallback: string; thumbs?: "faq" | "shop" | "menu" })
   | (FieldBase & { type: "toggle"; target: FieldTarget; fallback: boolean })
   | (FieldBase & { type: "color"; target: FieldTarget; placeholder?: string })
   | (FieldBase & { type: "datetime"; target: FieldTarget })
   | (FieldBase & { type: "pages"; target: FieldTarget; options: ChoiceOption[]; fallback: string[] })
   | (FieldBase & { type: "list"; target: FieldTarget; fallback: string[] })
+  /** The header's menu (copy `menu`): pages, categories, products and own links, with dropdowns. Keeps `navLinks` in step. */
+  | (FieldBase & { type: "menu"; target: FieldTarget; fallback: string[] })
   /** The seller's collections (2026 themes). */
   | (FieldBase & { type: "collection"; target: FieldTarget })
   /** One picture (or video) URL stored at `target`, for sections whose items hold something else (ready-made blocks). */
@@ -105,6 +108,15 @@ const setting = (key: string): FieldTarget => ({ scope: "settings", key });
 
 const text = (key: string, label: string, extra: Partial<FieldBase> & { placeholder?: string } = {}): SchemaField => ({ id: key, type: "text", label, target: copy(key), ...extra });
 const area = (key: string, label: string, extra: Partial<FieldBase> & { placeholder?: string } = {}): SchemaField => ({ id: key, type: "textarea", label, target: copy(key), ...extra });
+
+/** The header's menu: the WordPress-style editor plus how it looks on computers and phones. */
+const MENU_FIELDS = (fallback: string[], styleFallback: string): FieldGroup[] => [
+  { title: "Menu", fields: [{ id: "menu", type: "menu", label: "Menu", target: copy("menu"), fallback }] },
+  { title: "Menu style", fields: [
+    { id: "menuStyle", type: "cards", label: "On computers", target: setting("menuStyle"), fallback: styleFallback, thumbs: "menu", options: MENU_STYLES.map((entry) => ({ value: entry.value, label: entry.label, hint: entry.hint })) },
+    { id: "mobileMenu", type: "cards", label: "On phones (the ☰ button)", target: setting("mobileMenu"), fallback: "drawer", thumbs: "menu", options: MOBILE_MENU_STYLES.map((entry) => ({ value: entry.value, label: entry.label, hint: entry.hint })) },
+  ] },
+];
 
 export const BOUTIQUE_PAGE_LINKS: ChoiceOption[] = [
   { value: "home", label: "Home" },
@@ -386,7 +398,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           text("cartLabel", "Bag label", { placeholder: "My bag" }),
           { id: "layout", type: "segmented", label: "Logo position", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Left" }, { value: "centered", label: "Centre" }, { value: "bold", label: "Bold" }] },
         ] },
-        { title: "Menu", fields: [{ id: "navLinks", type: "pages", label: "Pages in the menu", target: copy("navLinks"), options: BOUTIQUE_PAGE_LINKS, fallback: ["home", "products", "about", "contact"], help: "Only pages your store has are shown to shoppers." }] },
+        ...MENU_FIELDS(["home", "products", "about", "contact"], "classic"),
         { fields: [STORE_LOGO] },
       ]);
     case "footer":
@@ -839,9 +851,8 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
         { id: "search", type: "toggle", label: "Search", target: setting("search"), fallback: true },
         { id: "wishlist", type: "toggle", label: "Wishlist", target: setting("wishlist"), fallback: true },
         { id: "cart", type: "toggle", label: "Cart", target: setting("cart"), fallback: true },
-        { id: "navLinks", type: "list", label: "Menu links", target: copy("navLinks"), fallback: ["home", "products", "about", "contact"], help: "Page names separated by commas." },
-        { id: "utilityLinks", type: "list", label: "Utility links", target: copy("utilityLinks"), fallback: ["wishlist", "cart"] },
-      ] }, { fields: [STORE_LOGO] }];
+        { id: "utilityLinks", type: "pages", label: "Extra links after the menu", target: copy("utilityLinks"), fallback: ["categories", "wishlist", "cart"], options: [{ value: "categories", label: "Categories" }, { value: "wishlist", label: "Wishlist" }, { value: "cart", label: "Cart" }] },
+      ] }, ...MENU_FIELDS(["home", "products", "about", "blog", "faq", "contact"], "caps"), { fields: [STORE_LOGO] }];
     case "footer":
       return [{ title: "Footer", fields: [
         sharedNote("footer"),

@@ -17,6 +17,8 @@ import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "
 import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import type { ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
+import { resolveMenu } from "../StoreMenu";
+import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { shopperCopy } from "@shared/placeholder-copy";
@@ -68,10 +70,6 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
 
   const pageHref = (page: string, params?: URLSearchParams) => storefrontPageHref(storeBasePath, page, params) ?? getPublicStorefrontPath(storeBasePath, "/");
   const go = (page: string) => router.push(pageHref(page));
-  const navKeys = (Array.isArray(headerCopy.navLinks) ? (headerCopy.navLinks as unknown[]) : ["home", "products", "about", "contact"])
-    .map((entry) => (String(entry) === "shop" ? "products" : String(entry)))
-    .filter((key, index, all) => LABELS[key] && (key === "home" || pageTypes.has(key)) && all.indexOf(key) === index);
-  const links: ChromeLink[] = navKeys.map((key) => ({ key, label: LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
@@ -80,12 +78,24 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
     for (const entry of catalog) if (entry.category?.slug) map.set(entry.category.slug, { slug: entry.category.slug, name: entry.category.name });
     return [...map.values()];
   }, [catalog]);
+  const menu = resolveMenu(readMenu(headerCopy), {
+    hasPage: (key) => Boolean(LABELS[key]) && pageTypes.has(key),
+    pageLabel: (key) => LABELS[key],
+    pageHref: (key) => pageHref(key),
+    goPage: go,
+    categories,
+    categoryHref: (slug) => pageHref("products", new URLSearchParams({ category: slug })),
+    goCategory: (slug) => router.push(pageHref("products", new URLSearchParams({ category: slug }))),
+    products: catalog,
+    productHref: (id) => getPublicStorefrontPath(storeBasePath, `/product/${id}`),
+    goProduct: (id) => router.push(getPublicStorefrontPath(storeBasePath, `/product/${id}`)),
+  });
 
   const logoText = text(headerCopy.logoText) && text(headerCopy.logoText) !== "Store" ? text(headerCopy.logoText) : store.name;
   const cartLabel = text(headerCopy.cartLabel) && text(headerCopy.cartLabel) !== "Cart" ? text(headerCopy.cartLabel) : "My bag";
 
   return (
-    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} style={{ ...lookVars(look), minHeight: "100vh" }}>
+    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-floating-nav="" style={{ ...lookVars(look), minHeight: "100vh" }}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to content</a>
       <AnnouncementBar text={announcement} look={look} />
@@ -93,11 +103,11 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
         store={store}
         logoText={logoText}
         look={look}
-        links={links}
-        categories={categories}
+        menu={menu}
+        menuStyle={menuStyleOf(headerSection?.settings?.menuStyle)}
+        mobileMenu={mobileMenuStyleOf(headerSection?.settings?.mobileMenu)}
+        mobileExtra={[{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }]}
         onHome={() => go("home")}
-        onShopAll={() => go("products")}
-        onCategory={(slug) => router.push(pageHref("products", new URLSearchParams({ category: slug })))}
         onSearch={() => setSheet("search")}
         onWishlist={cartSettings.wishlist ? () => setSheet("wishlist") : undefined}
         onBag={() => setCartOpen(true)}

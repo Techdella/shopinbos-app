@@ -21,6 +21,7 @@ import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
 import { notifyOrderPaid } from "@/lib/notifications/events.server";
+import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
 
 // The plan itself (code, monthly/annual, status, paid-until) is recorded on User for the free-domain rule
@@ -193,6 +194,8 @@ export async function POST(req: NextRequest) {
       // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
         await ensureSupplierOrdersSafely(ref);
+        // Paid through a payment link: the link counts the sale (a one-time link closes). Idempotent.
+        await settlePaymentLinkForOrder(ref);
       }
 
       const resendKey = process.env.RESEND_API_KEY;
