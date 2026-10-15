@@ -120,6 +120,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "admin.dashboard": "Òní",
   "admin.support": "Support",
   "admin.product-news": "Product news",
+  "admin.leads": "Àwọn leads láti website",
   "admin.help-videos": "Fídíò ìrànlọ́wọ́",
   "admin.support-queue": "Tickets",
   "admin.ad-requests": "Àwọn ìbéèrè ìpolówó",

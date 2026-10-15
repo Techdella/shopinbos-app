@@ -122,6 +122,7 @@ const en = {
   "admin.dashboard": "Today",
   "admin.support": "Support",
   "admin.product-news": "Product news",
+  "admin.leads": "Website leads",
   "admin.help-videos": "Help videos",
   "admin.support-queue": "Tickets",
   "admin.ad-requests": "Ad requests",
