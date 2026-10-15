@@ -57,6 +57,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.empty": "Enweghị ngwaahịa ka ugbu a. Pịa \"Tinye ngwaahịa\", see foto, Rex ga-ede ndị fọdụrụ.",
   "list.soldOut": "Ọ gwụla",
   "list.left": "{count} fọdụrụ",
+  "cat.all": "Niile",
+  "cat.chip": "{name} ({count})",
+  "cat.empty": "Enweghị ngwaahịa na {name} ka ọ dị ugbu a.",
 };
 
 export default ig;

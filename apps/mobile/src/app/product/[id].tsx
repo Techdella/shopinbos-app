@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -27,7 +27,8 @@ import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { Card, Field, Label, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { setPaused } from "@/lib/dropship";
 import { saleBreakdown } from "@/lib/find-pure";
-import { archiveProduct, fetchEditProduct, saveProduct, uploadProductPhoto, type EditProduct } from "@/lib/products";
+import { cleanCategoryName, categoryOptions, sameNameCategory, type CategoryLite } from "@/lib/categories-pure";
+import { archiveProduct, createCategory, fetchAllCategories, fetchEditProduct, fetchStoreCategories, saveProduct, uploadProductPhoto, type EditProduct } from "@/lib/products";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
@@ -70,6 +71,14 @@ export default function EditProductScreen() {
   const [variantEdits, setVariantEdits] = useState<VariantEdits>({});
   const [details, setDetails] = useState<Record<string, string>>({});
   const [columns, setColumns] = useState({ careInstructions: "", warranty: "" });
+  // Category: the one picked (saved as categoryId), the picker sheet and its choices (loaded when it opens).
+  const [category, setCategory] = useState<CategoryLite | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [choices, setChoices] = useState<{ own: CategoryLite[]; all: CategoryLite[] } | null>(null);
+  const [choicesError, setChoicesError] = useState<string | null>(null);
+  const [categoryQ, setCategoryQ] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -79,6 +88,7 @@ export default function EditProductScreen() {
       setVariantEdits(variantEditsFrom(next.variants));
       setDetails({ ...next.productDetails });
       setColumns({ careInstructions: next.careInstructions ?? "", warranty: next.warranty ?? "" });
+      setCategory(next.category ?? null);
       setVisible(isLive(next) ? "live" : "hidden");
       setLoadError(null);
     } catch (e) {
@@ -135,6 +145,7 @@ export default function EditProductScreen() {
       ...(changedDetails ? { productDetails: changedDetails } : {}),
       ...(columns.careInstructions.trim() !== (product.careInstructions ?? "").trim() ? { careInstructions: columns.careInstructions.trim() } : {}),
       ...(columns.warranty.trim() !== (product.warranty ?? "").trim() ? { warranty: columns.warranty.trim() } : {}),
+      ...(category && category.id !== (product.categoryId ?? product.category?.id ?? null) ? { categoryId: category.id } : {}),
     };
     const wantLive = visible === "live";
     const statusChanged = wantLive !== isLive(product);
@@ -151,6 +162,41 @@ export default function EditProductScreen() {
       setError(e instanceof Error ? e.message : t("edit.saveFailed"));
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function openCategories() {
+    setPicking(true);
+    setCategoryQ("");
+    setNewCategory("");
+    setChoicesError(null);
+    try {
+      const [own, all] = await Promise.all([fetchStoreCategories(), fetchAllCategories().catch(() => [] as CategoryLite[])]);
+      setChoices({ own, all });
+    } catch (e) {
+      setChoicesError(e instanceof Error ? e.message : t("edit.categoryLoadFailed"));
+    }
+  }
+
+  function pickCategory(next: CategoryLite) {
+    setCategory({ id: next.id, name: next.name });
+    setPicking(false);
+    setSaved(false);
+  }
+
+  async function addCategory() {
+    const name = cleanCategoryName(newCategory);
+    if (!name) return setChoicesError(t("edit.categoryShort"));
+    const twin = sameNameCategory([...(choices?.own ?? []), ...(choices?.all ?? [])], name);
+    if (twin) return pickCategory(twin);
+    setCreating(true);
+    setChoicesError(null);
+    try {
+      pickCategory(await createCategory(name));
+    } catch (e) {
+      setChoicesError(e instanceof Error ? e.message : t("edit.categoryAddFailed"));
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -310,6 +356,21 @@ export default function EditProductScreen() {
       </View>
 
       <View>
+        <Label>{t("edit.category")}</Label>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t("edit.category")}: ${category?.name ?? t("edit.noCategory")}`}
+          onPress={() => void openCategories()}
+          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingHorizontal: 16, borderRadius: radii.field, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, opacity: pressed ? 0.8 : 1 })}
+        >
+          <AppIcon name="grid" size={18} color={colors.inkSoft} />
+          <T weight={category ? "bold" : "regular"} style={{ flex: 1, fontSize: 16, color: category ? colors.ink : colors.inkSoft }} numberOfLines={1}>{category?.name ?? t("edit.noCategory")}</T>
+          <T weight="bold" style={{ fontSize: 15, color: colors.accentInk }}>{t("edit.categoryChange")}</T>
+        </Pressable>
+        <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("edit.categoryHint")}</T>
+      </View>
+
+      <View>
         <Label>{t("edit.status")}</Label>
         <Segmented<Visible>
           options={[{ value: "live", label: t("edit.live") }, { value: "hidden", label: t("edit.hidden") }]}
@@ -385,6 +446,39 @@ export default function EditProductScreen() {
 
       <LinkButton title={t("edit.moreOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/products/${product.id}`)} />
       <LinkButton title={busy === "remove" ? t("edit.removing") : t("edit.remove")} color={colors.danger} onPress={confirmRemove} />
+
+      <Sheet visible={picking} onClose={() => setPicking(false)} title={t("edit.categoryTitle")}>
+        {choicesError ? <Notice>{choicesError}</Notice> : null}
+        {!choices && !choicesError ? <LoadingBlock /> : null}
+        {choices ? (
+          <>
+            <Field value={categoryQ} onChangeText={setCategoryQ} placeholder={t("edit.categorySearch")} returnKeyType="search" accessibilityLabel={t("edit.categorySearch")} style={{ height: 48 }} />
+            <ScrollView style={{ maxHeight: 280 }} keyboardShouldPersistTaps="handled">
+              {categoryOptions(choices.own, choices.all, categoryQ).map((option) => {
+                const on = option.id === category?.id;
+                return (
+                  <Pressable
+                    key={option.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => pickCategory(option)}
+                    style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line, opacity: pressed ? 0.7 : 1 })}
+                  >
+                    <T weight={on ? "extrabold" : "semibold"} style={{ flex: 1, fontSize: 16 }} numberOfLines={1}>{option.name}</T>
+                    {option.own ? <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("edit.categoryYours")}</T> : null}
+                    {on ? <AppIcon name="check" size={18} color={colors.success} /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Label>{t("edit.categoryNew")}</Label>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <Field value={newCategory} onChangeText={setNewCategory} maxLength={60} placeholder={t("edit.categoryNewPlaceholder")} accessibilityLabel={t("edit.categoryNew")} style={{ flex: 1, height: 48 }} />
+              <PillButton title={t("edit.categoryAdd")} size="sm" busy={creating} disabled={!newCategory.trim()} onPress={() => void addCategory()} />
+            </View>
+          </>
+        ) : null}
+      </Sheet>
 
       <Sheet visible={photo !== null} onClose={() => setPhoto(null)} title={t("edit.photoTitle", { number: (photo ?? 0) + 1 })}>
         {photo !== null && photo > 0 ? (

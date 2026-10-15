@@ -59,6 +59,9 @@ const en = {
   "list.empty": "No products yet. Tap \"Add a product\", take a photo, and Rex writes the rest.",
   "list.soldOut": "Sold out",
   "list.left": "{count} left",
+  "cat.all": "All",
+  "cat.chip": "{name} ({count})",
+  "cat.empty": "No products in {name} yet.",
 } satisfies Record<string, string>;
 
 export default en;

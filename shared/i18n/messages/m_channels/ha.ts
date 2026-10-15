@@ -42,6 +42,23 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "post.title": "Post & share",
   "post.sub": "Rubuta post game da kayayyakinka ka raba shi ko'ina. Yana buɗewa a browser ɗinka",
   openFailed: "Ba mu iya buɗe sign-in ba. Duba network ɗinka ka sake gwadawa.",
+  "email.title": "Email a Inbox ɗinka",
+  "email.name": "Email",
+  "email.sub": "Kwastomomi za su sami email daga adireshinka. Amsoshinsu za su shigo Chats.",
+  "email.off": "Ba a haɗa ba tukuna.",
+  "email.attention": "Email ɗinka yana buƙatar dubawa. Buɗe shi a web don gyarawa.",
+  "email.gmailExpired": "Shigar Gmail ɗinka ta ƙare, don haka email ba za su iya fita ba. Sake haɗa Gmail.",
+  "email.domainWaiting": "{domain} yana ci gaba da shiryawa. Zai iya ɗaukar har awa ɗaya.",
+  "email.gmail": "Haɗa Gmail",
+  "email.gmailAgain": "Sake haɗa Gmail",
+  "email.gmailHint": "Zai buɗe Google a browser ɗinka. Idan ya ce an haɗa Gmail, rufe shi don dawowa.",
+  "email.gmailNotReady": "Ba a kunna haɗa Gmail a Shopinbos ba tukuna.",
+  "email.domain": "Yi amfani da email na domain ɗinka",
+  "email.confirm": "A daina aika email daga wannan adireshi? Tattaunawarka za su ci gaba da kasancewa a Inbox ɗinka.",
+  "email.disconnected": "An cire email.",
+  "email.domainTitle": "Saita email na domain ɗinka a babban allo",
+  "email.domainBody": "Email kamar hello@yourshop.com yana buƙatar ƙara wasu saituna a domain ɗinka. Ya fi sauƙi a kwamfuta, amma za ka iya buɗe shi a wannan wayar ma. Ko ka tambaye mu, mu saita maka.",
+  "email.askUs": "Tambaye mu mu saita maka",
 };
 
 export default ha;
