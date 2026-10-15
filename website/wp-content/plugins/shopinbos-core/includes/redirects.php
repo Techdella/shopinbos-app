@@ -11,6 +11,8 @@ function sib_redirects(): array {
 	return apply_filters( 'sib_redirects', [
 		'/legal/privacy-2/'       => '/legal/privacy/',
 		'/legal/terms-2/'         => '/legal/terms/',
+		'/legal/cookies-2/'       => '/legal/cookies/',
+		'/partners/agencies-2/'   => '/partners/agencies/',
 		'/legal/ndpr/'            => '/legal/data-protection/',
 		'/blog/bakery-40-orders-a-day/' => '/blog/snack-brand-40-orders-a-day/',
 		'/privacy-policy/'        => '/legal/privacy/',
@@ -24,6 +26,7 @@ function sib_redirects(): array {
 		'/partners/supplier-2/'   => '/for-suppliers/',
 		'/ecommerce-partnerships/' => '/partners/',
 		'/status/'                => '/help/',
+		'/coming-soon/'           => '/waitlist/',
 		'/solutions/fashion-apparel/' => '/solutions/fashion/',
 	] );
 }

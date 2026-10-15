@@ -74,6 +74,7 @@ function sib_schema_graph(): array {
 		$faq = sib_schema_faq( $blocks );
 		if ( count( $faq ) >= 2 ) {
 			$graph[] = [ '@type' => 'FAQPage', 'mainEntity' => $faq ];
+			$GLOBALS['sib_faq_in_head'] = true;
 		}
 		if ( is_singular( 'post' ) && ! $plug ) {
 			$author  = get_userdata( (int) $post->post_author );
@@ -152,3 +153,38 @@ function sib_schema_steps( array $blocks ): array {
 	}
 	return [];
 }
+
+/* ---------- Questions in designed sections (home, pricing, features, compare, contact, waitlist) ----------
+   Those sections are not core blocks, so collect their question/answer pairs as they render and print one
+   FAQPage at the end of the page. Answer engines (Google, Bing, ChatGPT search) read it. */
+function sib_faq_collect( string $html ): void {
+	if ( ! str_contains( $html, 'item.toggle' ) ) {
+		return;
+	}
+	if ( preg_match_all( '#<button[^>]*data-cv="item\.toggle"[^>]*>(.*?)<span[^>]*>[^<]*</span>\s*</button>\s*<p[^>]*class="p qa-a"[^>]*>(.*?)</p>#s', $html, $m, PREG_SET_ORDER ) ) {
+		foreach ( $m as [ , $q, $a ] ) {
+			$q = trim( html_entity_decode( wp_strip_all_tags( $q ), ENT_QUOTES, 'UTF-8' ) );
+			$a = trim( html_entity_decode( wp_strip_all_tags( $a ), ENT_QUOTES, 'UTF-8' ) );
+			if ( $q && $a && ! str_contains( $q, '{{' ) && ! str_contains( $a, '{{' ) ) {
+				$GLOBALS['sib_faq_pairs'][ $q ] = $a;
+			}
+		}
+	}
+}
+add_filter( 'render_block', function ( $html, $block ) {
+	if ( in_array( $block['blockName'], [ 'shopinbos/canvas', 'shopinbos/contact-page', 'shopinbos/coming-soon', 'shopinbos/investors-page' ], true ) ) {
+		sib_faq_collect( (string) $html );
+	}
+	return $html;
+}, 20, 2 );
+add_action( 'wp_footer', function () {
+	$pairs = $GLOBALS['sib_faq_pairs'] ?? [];
+	if ( count( $pairs ) < 2 || ! empty( $GLOBALS['sib_faq_in_head'] ) || ! is_singular() ) {
+		return;
+	}
+	$items = [];
+	foreach ( array_slice( $pairs, 0, 12, true ) as $q => $a ) {
+		$items[] = [ '@type' => 'Question', 'name' => $q, 'acceptedAnswer' => [ '@type' => 'Answer', 'text' => $a ] ];
+	}
+	echo '<script type="application/ld+json">' . wp_json_encode( [ '@context' => 'https://schema.org', '@type' => 'FAQPage', 'url' => get_permalink(), 'mainEntity' => $items ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . "</script>\n";
+}, 5 );

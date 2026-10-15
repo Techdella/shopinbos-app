@@ -137,6 +137,11 @@ function sib_zone_label( string $key ): string {
 /* ---------- Request handling ---------- */
 
 /** Context for the current virtual page, read by SEO, schema and breadcrumbs. */
+/** A marketplace page title with the brand when it fits in 60 characters. */
+function sib_virtual_title( string $t ): string {
+	return mb_strlen( $t ) <= 48 ? $t . ' | Shopinbos' : $t;
+}
+
 function sib_virtual(): ?array {
 	return $GLOBALS['sib_virtual'] ?? null;
 }
@@ -161,7 +166,7 @@ add_action( 'template_redirect', function () {
 	if ( $ctx['status'] >= 400 ) {
 		nocache_headers();
 	}
-	add_filter( 'pre_get_document_title', fn() => $ctx['title'] . ' | Shopinbos' );
+	add_filter( 'pre_get_document_title', fn() => sib_virtual_title( $ctx['title'] ) );
 	add_filter( 'body_class', fn( $c ) => array_merge( array_diff( $c, [ 'error404', 'home', 'blog' ] ), [ 'sib-virtual', 'sib-' . $ctx['view'] ] ) );
 
 	echo sib_view( 'layout', [ 'ctx' => $ctx ] ); // phpcs:ignore WordPress.Security.EscapeOutput

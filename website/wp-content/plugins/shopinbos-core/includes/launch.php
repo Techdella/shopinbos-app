@@ -217,7 +217,6 @@ function sib_render_waitlist_page(): string {
 		$out .= '<div class="card" style="border-radius:20px"><button data-cv="item.toggle" aria-expanded="' . ( $i ? 'false' : 'true' ) . '" style="width:100%;background:none;border:0;padding:20px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;text-align:left;font-weight:800;font-size:16.5px;color:#16141F">' . esc_html( $q ) . '<span style="font-size:22px;color:#6B6779;flex:0 0 auto">' . ( $i ? '+' : '−' ) . '</span></button><p class="p qa-a"' . ( $i ? ' hidden' : '' ) . ' style="padding:0 22px 20px">' . esc_html( $a ) . '</p></div>';
 	}
 	$out .= '</div></div></section>';
-	$out .= '<script type="application/ld+json">' . wp_json_encode( [ '@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map( fn( $f ) => [ '@type' => 'Question', 'name' => $f[0], 'acceptedAnswer' => [ '@type' => 'Answer', 'text' => $f[1] ] ], $faq ) ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . '</script>';
 	return $out;
 }
 

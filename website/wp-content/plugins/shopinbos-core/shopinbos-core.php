@@ -39,6 +39,8 @@ foreach ( [
 	'gist',
 	'launch',
 	'investors',
+	'seo-map',
+	'media',
 	'admin-menu',
 	'schema',
 	'seo',

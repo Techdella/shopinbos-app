@@ -39,6 +39,10 @@ class Sib_CLI {
 		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
 		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
 		$cs = $this->refresh_page( 'waitlist', 'Join the waitlist', "<!-- wp:shopinbos/coming-soon /-->\n\n<!-- wp:shopinbos/gist-rail /-->\n", 'page-canvas', 'Join the Shopinbos waitlist before we open on November 1. For sellers, suppliers and delivery partners in Nigeria. Free, with setup help.' );
+		// The old Coming soon page is now /waitlist/ (redirects.php sends its address there).
+		if ( ( $old_cs = get_page_by_path( 'coming-soon' ) ) && 'publish' === $old_cs->post_status ) {
+			wp_update_post( [ 'ID' => $old_cs->ID, 'post_status' => 'draft' ] );
+		}
 		// The site is never hidden any more: the old "show only Coming soon" switch is gone.
 		$opts = (array) get_option( 'sib_settings', [] );
 		if ( isset( $opts['site_coming_soon'] ) ) {
@@ -103,6 +107,7 @@ class Sib_CLI {
 		$this->blog_q4();
 		$this->store_templates();
 		$this->tools();
+		$this->integration_pages();
 		if ( ! empty( $assoc['samples'] ) ) {
 			$this->samples();
 		}
@@ -112,6 +117,9 @@ class Sib_CLI {
 		sib_marketplace_rewrite_rules();
 		flush_rewrite_rules();
 		sib_build_sitemap();
+		$this->seo_meta();
+		[ $webp, $alts ] = sib_media_optimise();
+		WP_CLI::log( "Images: {$webp} WebP copies made, {$alts} alt texts filled in" );
 		WP_CLI::success( 'Shopinbos is set up. Front page: ' . get_permalink( $home ) );
 	}
 
@@ -269,6 +277,49 @@ class Sib_CLI {
 		update_post_meta( $id, '_sib_seed_hash', md5( (string) get_post_field( 'post_content', $id, 'raw' ) ) );
 	}
 
+	/**
+	 * Search title, description and focus keyword for every page and post (seo-map.php), written into Yoast's and
+	 * Rank Math's fields so the team sees and edits them there. Fields a person has changed are left alone:
+	 * we only fill empty ones, or ones still holding what setup wrote last time.
+	 */
+	private function seo_meta(): void {
+		$types = array_merge( [ 'page', 'post' ], array_keys( sib_content_types() ), [ 'sib_lesson' ] );
+		$ids   = get_posts( [ 'post_type' => $types, 'post_status' => [ 'publish', 'future' ], 'numberposts' => -1, 'fields' => 'ids' ] );
+		$done  = 0;
+		foreach ( $ids as $id ) {
+			$post = get_post( $id );
+			if ( get_post_meta( $id, 'sib_noindex', true ) ) {
+				continue;
+			}
+			[ $title, $desc, $kw ] = sib_seo_auto( $post ) + [ '', '', '' ];
+			$prev = (array) get_post_meta( $id, '_sib_seo_auto', true );
+			$set  = [
+				'_yoast_wpseo_title'      => $title,
+				'_yoast_wpseo_metadesc'   => $desc,
+				'_yoast_wpseo_focuskw'    => $kw,
+				'rank_math_title'         => $title,
+				'rank_math_description'   => $desc,
+				'rank_math_focus_keyword' => $kw,
+			];
+			$changed = false;
+			foreach ( $set as $key => $value ) {
+				$current = (string) get_post_meta( $id, $key, true );
+				if ( '' === $value || $current === $value ) {
+					continue;
+				}
+				if ( '' === $current || ( $prev[ $key ] ?? null ) === $current ) {
+					update_post_meta( $id, $key, $value );
+					$changed = true;
+				}
+			}
+			if ( $changed ) {
+				update_post_meta( $id, '_sib_seo_auto', $set );
+				$done++;
+			}
+		}
+		WP_CLI::log( "Search titles and descriptions filled in for {$done} pages" );
+	}
+
 	/** Two published pages at one URL (the old site has a few): keep the oldest. */
 	private function dedupe_pages(): void {
 		foreach ( [ 'legal/cookies', 'legal/privacy', 'legal/terms', 'legal/acceptable-use', 'partners/agencies' ] as $path ) {
@@ -322,6 +373,51 @@ class Sib_CLI {
 			$content = preg_replace_callback( '#<!-- wp:pattern \{"slug":"([^"]+)"\} /-->#', fn( $m ) => $this->pattern( $m[1], $depth + 1 ), $content );
 		}
 		return $content;
+	}
+
+	/** Integration pages with a real hero (H1), what it does, setup steps and questions. Only replaces the first
+	 *  one-line version or a version this command wrote and nobody has edited. */
+	private function integration_pages(): void {
+		$pages = [
+			'paystack' => [ 'Paystack', 'Paystack + Shopinbos: card, transfer and USSD payments', 'Card, bank transfer and USSD payments at checkout and on payment links. Built in, with nothing to set up, and your money is paid to your bank every Friday.', 'Card, bank transfer and USSD at checkout',
+				[ 'Customers pay by card (Visa, Mastercard, Verve), bank transfer or USSD at your store checkout.', 'Send a Paystack payment link in WhatsApp or Instagram DMs and Peggy confirms the payment for you.', 'The fee is 1.5% + ₦100 per payment, capped at ₦2,000. The ₦100 is waived on payments under ₦2,500.', 'Payments land in your Shopinbos balance straight away and are paid to your bank every Friday.' ],
+				[ 'Open your store | Paystack is switched on for every Shopinbos store.', 'Add your bank account | Under Payouts, add the account your money should go to.', 'Share your store link | Customers choose card, transfer or USSD at checkout.' ],
+				[ 'Do I need my own Paystack account? | No. Payments run through Shopinbos’s Paystack account and are paid out to your bank every Friday.', 'How much does Paystack charge? | 1.5% + ₦100 per payment, capped at ₦2,000. On payments under ₦2,500 the ₦100 is waived.', 'Can customers still pay on delivery? | Yes. Pay on delivery works alongside Paystack for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt.' ] ],
+			'whatsapp' => [ 'WhatsApp Business', 'WhatsApp Business + Shopinbos: sell in chats', 'Sync your catalogue, answer every chat in one inbox, send payment links and order updates, and let Peggy reply to “how much?” while you rest.', 'Catalogue, chats, payment links and order updates',
+				[ 'Your Shopinbos products show in your WhatsApp Business catalogue, with prices and photos kept in sync.', 'Chats from WhatsApp, Instagram and Facebook arrive in one Shopinbos inbox.', 'Send a payment link or an order link in the chat, and the order is created when the customer pays.', 'Customers get order, delivery and pay on delivery code updates on WhatsApp automatically.' ],
+				[ 'Connect WhatsApp Business | In the app, go to Sales channels and connect your WhatsApp Business number.', 'Sync your catalogue | Choose the products to show in your WhatsApp catalogue.', 'Turn on Peggy | Let Peggy answer common questions and send pay links when you are busy.' ],
+				[ 'Do I need the WhatsApp Business app? | Yes, use a WhatsApp Business number. It is free to download from the Play Store or App Store.', 'Will my customers know a bot is replying? | Peggy replies in your shop’s name and hands over to you whenever a customer asks for a person.', 'Can I send broadcasts? | Yes, to customers who saved your number or agreed to hear from you. Shopinbos keeps track of opt-outs.' ] ],
+			'tiktok-shop' => [ 'TikTok Shop', 'TikTok + Shopinbos: sell in videos and lives', 'Turn TikTok views into orders: link products in your videos and lives, send buyers to your Shopinbos store and keep orders, stock and delivery in one app.', 'Sell in videos and lives',
+				[ 'Add your Shopinbos store link to your TikTok bio and video captions.', 'Product links in your posts open straight to checkout with card, transfer or pay on delivery.', 'Orders from TikTok land in the same app as WhatsApp and Instagram, with stock kept in sync.', 'Peggy can write captions and hooks for your next video.' ],
+				[ 'Add your store link | Put yourname.shopinbos.com in your TikTok bio.', 'Post product videos | Show the product in use and put the price in the caption.', 'Apply for TikTok Shop | Where TikTok Shop is available, apply from the Sales channels page in the app.' ],
+				[ 'Is TikTok Shop available in Nigeria? | TikTok Shop is rolling out by country. Until it is open to you, sell with your Shopinbos store link in your bio and captions.', 'Do I need many followers? | No. Short, clear videos of the product in use can sell from your first posts.', 'Where do TikTok orders show? | In your Shopinbos orders, with the other channels, so you pack and deliver them the same way.' ] ],
+		];
+		foreach ( $pages as $slug => [ $name, $h1, $lead, $excerpt, $points, $steps, $faq ] ) {
+			$post = get_page_by_path( $slug, OBJECT, 'sib_integration' );
+			if ( ! $post ) {
+				continue;
+			}
+			$content = sib_block_group_open( 'land-hero', 'section' ) . sib_block_group_open( 'wrap col-22 mw-760', 'div', [ 'top' => '56px', 'bottom' => '40px' ] )
+				. sib_block_p( 'Integration', 'eyebrow' ) . sib_block_h( 1, esc_html( $h1 ), 'disp h1 h1-58' ) . sib_block_p( esc_html( $lead ), 'lead' )
+				. sib_block_buttons( [ [ 'Start your shop', '/go/signup?intent=integration_' . $slug, 'accent' ], [ 'See all features', '/features/', 'ghost' ] ] )
+				. sib_block_group_close() . sib_block_group_close( 'section' )
+				. sib_block_group_open( 'wrap prose-sec', 'div', [ 'top' => '24px', 'bottom' => '56px' ] )
+				. sib_block_h( 2, esc_html( 'What you can do with ' . $name ), 'disp h2' )
+				. "<!-- wp:list -->\n<ul class=\"wp-block-list\">" . implode( '', array_map( fn( $p ) => "<!-- wp:list-item -->\n<li>" . esc_html( $p ) . "</li>\n<!-- /wp:list-item -->", $points ) ) . "</ul>\n<!-- /wp:list -->\n\n"
+				. sib_seed_b( 'steps', [ 'title' => 'Set it up', 'items' => implode( "\n", $steps ), 'schema' => true ] )
+				. sib_seed_b( 'faq', [ 'title' => 'Questions about ' . $name, 'items' => implode( "\n", $faq ), 'openFirst' => true ] )
+				. sib_block_group_close();
+			$old = $this->text_page( wp_strip_all_tags( $post->post_content ) );
+			$is_first = trim( $post->post_content ) === trim( $old ) && mb_strlen( wp_strip_all_tags( $post->post_content ) ) < 200;
+			if ( $is_first || $this->replaceable( $post ) ) {
+				if ( md5( $content ) !== get_post_meta( $post->ID, '_sib_seed_src', true ) ) {
+					wp_update_post( wp_slash( [ 'ID' => $post->ID, 'post_content' => $content, 'post_excerpt' => $excerpt ] ) );
+					update_post_meta( $post->ID, '_sib_seed_src', md5( $content ) );
+					$this->fingerprint( $post->ID );
+					WP_CLI::log( "Updated integration {$slug}" );
+				}
+			}
+		}
 	}
 
 	private function text_page( string $text ): string {
@@ -600,7 +696,7 @@ class Sib_CLI {
 		$retire = [ 'features/logistics', 'features/payments', 'features/peggy-ai', 'features/social-selling', 'features/store-management', 'features/storefront', 'features',
 			'solutions/beauty', 'solutions/electronics', 'solutions/fashion', 'solutions/food', 'solutions',
 			'partners/logistics', 'partners/logistics-2', 'partners/supplier', 'partners/supplier-2',
-			'legal/privacy-2', 'legal/terms-2', 'legal/ndpr',
+			'legal/privacy-2', 'legal/terms-2', 'legal/ndpr', 'legal/cookies-2', 'partners/agencies-2',
 			'help', 'templates', 'tools', 'marketplace', 'status', 'academy' ];
 		foreach ( $retire as $path ) {
 			foreach ( $this->pages_at( $path ) as $old ) {

@@ -15,8 +15,10 @@ require_once __DIR__ . '/inc/icons.php';
 require_once __DIR__ . '/inc/chrome.php';
 require_once __DIR__ . '/inc/canvas.php';
 require_once __DIR__ . '/inc/pattern-helpers.php';
+require_once __DIR__ . '/inc/perf.php';
 
 add_action( 'after_setup_theme', function () {
+	add_theme_support( 'title-tag' ); // the marketplace pages print their own head and need it too
 	add_theme_support( 'wp-block-styles' );
 	add_theme_support( 'editor-styles' );
 	add_theme_support( 'responsive-embeds' );
