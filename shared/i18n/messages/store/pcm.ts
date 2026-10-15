@@ -466,6 +466,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "book.dosDonts": "Do and no do",
   "book.do": "Do",
   "book.dont": "No do",
+  "ba.onDark": "For dark background",
+  "ba.onDarkAuto": "We make am from your logo",
+  "ba.onDarkYours": "Your own version",
+  "ba.onDarkTile": "E go show for white box until you add one",
+  "ba.uploadDark": "Upload for dark",
+  "ba.useAuto": "Use automatic",
 };
 
 export default pcm;

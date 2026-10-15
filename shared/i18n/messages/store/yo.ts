@@ -466,6 +466,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "book.dosDonts": "Ohun tí ó yẹ àti èyí tí kò yẹ",
   "book.do": "Ṣe",
   "book.dont": "Má ṣe",
+  "ba.onDark": "Lórí àwọ̀ dúdú",
+  "ba.onDarkAuto": "A ṣe é láti inú logo rẹ",
+  "ba.onDarkYours": "Ẹ̀yà tìrẹ",
+  "ba.onDarkTile": "Yóò hàn lórí àpótí funfun títí o fi fi ọ̀kan kún un",
+  "ba.uploadDark": "Gbé ti dúdú sókè",
+  "ba.useAuto": "Lo ti aládàáṣe",
 };
 
 export default yo;

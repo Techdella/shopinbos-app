@@ -466,6 +466,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "book.dosDonts": "Abin yi da abin gujewa",
   "book.do": "Yi",
   "book.dont": "Kada ka yi",
+  "ba.onDark": "A kan bango mai duhu",
+  "ba.onDarkAuto": "An yi shi daga tambarinka",
+  "ba.onDarkYours": "Naka na kanka",
+  "ba.onDarkTile": "Za a nuna shi a kan farin akwati har sai ka ƙara ɗaya",
+  "ba.uploadDark": "Ɗora na duhu",
+  "ba.useAuto": "Yi amfani da na atomatik",
 };
 
 export default ha;

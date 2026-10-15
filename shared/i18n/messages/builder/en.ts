@@ -1821,6 +1821,21 @@ const en = {
   "ed.Icon list": "Icon list",
   "ed.Short points with an icon each.": "Short points with an icon each.",
   "ed.One of your products with its price.": "One of your products with its price.",
+  "ed.Changes not published": "Changes not published",
+  "ed.Offline": "Offline",
+  "ed.Your design is published, but your store is closed to shoppers. Publish to open it again.": "Your design is published, but your store is closed to shoppers. Publish to open it again.",
+  "ed.On a dark header or footer, your logo for dark backgrounds shows instead.": "On a dark header or footer, your logo for dark backgrounds shows instead.",
+  "ed.Show logo": "Show logo",
+  "ed.Your logo in the footer. Without a logo, your store name shows.": "Your logo in the footer. Without a logo, your store name shows.",
+  "ed.The logo couldn't be saved. Try again.": "The logo couldn't be saved. Try again.",
+  "ed.No logo yet. Add one in Brand kit, or click the logo spot in the header.": "No logo yet. Add one in Brand kit, or click the logo spot in the header.",
+  "ed.Brand kit": "Brand kit",
+  "ed.Light backgrounds": "Light backgrounds",
+  "ed.Dark backgrounds (yours)": "Dark backgrounds (yours)",
+  "ed.Dark backgrounds (automatic)": "Dark backgrounds (automatic)",
+  "ed.Replace dark logo": "Replace dark logo",
+  "ed.Upload logo for dark backgrounds": "Upload logo for dark backgrounds",
+  "ed.Use automatic": "Use automatic",
 } satisfies Record<string, string>;
 
 export default en;

@@ -1630,7 +1630,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {!live && !props.demo && content.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
-        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} />
+        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} />
       )) : null}
       {showNav ? (
         <ShopperBottomNav

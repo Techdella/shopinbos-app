@@ -466,6 +466,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "book.dosDonts": "Ihe ime na ihe ịghara ime",
   "book.do": "Mee",
   "book.dont": "Emela",
+  "ba.onDark": "N'elu ndabere gbara ọchịchịrị",
+  "ba.onDarkAuto": "E mere ya site na logo gị",
+  "ba.onDarkYours": "Nke gị",
+  "ba.onDarkTile": "A ga-egosi ya n'igbe ọcha ruo mgbe ị tinyere otu",
+  "ba.uploadDark": "Bulite nke ọchịchịrị",
+  "ba.useAuto": "Jiri nke akpaka",
 };
 
 export default ig;

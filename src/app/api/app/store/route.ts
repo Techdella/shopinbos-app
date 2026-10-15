@@ -5,6 +5,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { mergeBrandSettings, slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
 import { clearStaleShopNames, clearStaleShopNamesInStorePages, isStoreSlugTaken } from "@/lib/store-address.server";
+import { refreshLogoVariants } from "@/lib/logo-variants.server";
 
 async function uniqueStoreSlug(baseName: string, userId: string, currentStoreId?: string) {
   const base = slugify(baseName) || "store";
@@ -168,6 +169,8 @@ export const PATCH = withSeller(async (req: NextRequest, { user }: { user: AuthU
     data: updateData as any,
   });
   if (updateData.name) await clearStaleShopNamesInStorePages(store.id, store.name);
+  // A new logo is measured for dark headers and footers (and gets its re-inked version when it can).
+  if ("logoUrl" in updateData && updateData.logoUrl !== store.logoUrl) await refreshLogoVariants(store.id, user.id, updateData.logoUrl as string | null);
 
   return ok(updated);
 });
