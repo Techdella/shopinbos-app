@@ -24,12 +24,13 @@ export async function emailBodyHtml(body: string, store: { id: string; name: str
   return inboxReplyEmail({ appUrl: appBase(), store: sender, body });
 }
 
-export async function sendInboxEmail(input: SendInput & { replyTo?: string | null }): Promise<SendResult> {
+/** `exactSubject`: the seller is starting a new email thread, so the subject goes out as is (not "Re: …"). */
+export async function sendInboxEmail(input: SendInput & { replyTo?: string | null; exactSubject?: boolean }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, error: "Email sending isn't set up on this server (RESEND_API_KEY)." };
   const address = inboxAddress(input.store.slug);
   const from = address ? `${input.store.name.replace(/["<>]/g, "")} <${address}>` : formatFromAddress(input.store.name);
-  const subject = input.subject ? (/^re:/i.test(input.subject) ? input.subject : `Re: ${input.subject}`) : `A reply from ${input.store.name}`;
+  const subject = input.subject ? (input.exactSubject || /^re:/i.test(input.subject) ? input.subject : `Re: ${input.subject}`) : `A reply from ${input.store.name}`;
   const { data, error } = await new Resend(apiKey).emails.send({
     from,
     to: [input.to],

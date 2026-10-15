@@ -202,9 +202,11 @@ export interface ReplyInput {
   meta?: Record<string, string | boolean | null>;
   /** WhatsApp only: send this list or button message; `body` is what the inbox shows. */
   interactive?: WhatsAppInteractive | null;
+  /** Email only: the seller is starting this thread, so the conversation's subject goes out as is (no "Re:"). */
+  firstEmail?: boolean;
 }
 
-async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null): Promise<SendResult & { via?: string }> {
+async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null, firstEmail = false): Promise<SendResult & { via?: string }> {
   const channel = conversation.channel as InboxChannelKey;
   const base = { body, store: { id: store.id, name: store.name, slug: store.slug } };
 
@@ -221,7 +223,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (channel === "email" || channel === "form") {
     if (conversation.contactEmail) {
       const subject = conversation.subject ?? (channel === "form" ? `Your message to ${store.name}` : null);
-      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail })), via: "email" };
+      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail, exactSubject: firstEmail })), via: "email" };
     }
     if (channel === "form" && conversation.contactPhone) {
       const sms = await getChannel(store.id, "sms");
@@ -264,6 +266,21 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
 
 /** Sends a reply on the conversation's own channel and records it (sent or failed, never pretend). */
 export async function sendReply(input: ReplyInput) {
+  return sendRecorded(input, ({ store, conversation, body, sellerEmail }) => deliver(store, conversation, body, sellerEmail, input.interactive, input.firstEmail));
+}
+
+type RecordedConversation = NonNullable<Awaited<ReturnType<typeof db.inboxConversation.findFirst>>>;
+
+/**
+ * Records an outbound message in its conversation the way every inbox reply is recorded: saved as "queued", then
+ * "sent" with the provider's id or "failed" with its reason, and the conversation's preview updated. `send` does
+ * the sending: sendReply's channel adapters, or a caller with its own payload (an approved WhatsApp template
+ * sent from the customer drawer).
+ */
+export async function sendRecorded(
+  input: Omit<ReplyInput, "interactive" | "firstEmail">,
+  send: (ctx: { store: StoreRef; conversation: RecordedConversation; body: string; sellerEmail: string | null }) => Promise<SendResult & { via?: string }>,
+) {
   const body = input.body.trim().slice(0, 4000);
   if (!body) return { ok: false as const, error: "Write a message first." };
   const [store, conversation] = await Promise.all([
@@ -276,7 +293,7 @@ export async function sendReply(input: ReplyInput) {
   const message = await db.inboxMessage.create({
     data: { conversationId: conversation.id, storeId: store.id, direction: "outbound", kind: input.kind ?? "text", body, status: "queued", authorName: input.authorName },
   });
-  const result = await deliver(store, conversation, body, seller?.email ?? null, input.interactive).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
+  const result = await send({ store, conversation, body, sellerEmail: seller?.email ?? null }).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
   const saved = await db.inboxMessage.update({
     where: { id: message.id },
     data: result.ok

@@ -5,7 +5,8 @@ import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { BoutiqueLook } from "../look";
 import { productDetailRows } from "@shared/product-types";
-import { detailPanels, readFaqs, type PdpDetailsStyle, type PdpPanelId, type PdpProductContent } from "./pdp-logic";
+import { FaqList } from "../faq/FaqList";
+import { detailPanels, type FaqRow, type PdpDetailsStyle, type PdpFaqSettings, type PdpPanelId, type PdpProductContent } from "./pdp-logic";
 
 interface Props {
   product: PdpProductContent & { sku?: string | null; productType?: string | null; productDetails?: unknown };
@@ -17,15 +18,17 @@ interface Props {
   hasWhatsapp: boolean;
   /** Builder preview: say which panels are hidden because the product has nothing for them. */
   editor: boolean;
+  /** The questions (the product's own, plus the store's when switched on) and how they show. */
+  faq: { items: FaqRow[]; settings: PdpFaqSettings };
 }
 
 /** Description, specifications, care, shipping and returns, warranty and FAQs, as an accordion or tabs. */
-export function PdpDetails({ product, sku, look, style, deliveryLines, storeName, hasWhatsapp, editor }: Props) {
+export function PdpDetails({ product, sku, look, style, deliveryLines, storeName, hasWhatsapp, editor, faq }: Props) {
   const t = look.tokens;
   const uid = useId();
   // Type details (fabric, size guide…) and the seller's own rows; care and warranty have their own panels.
   const specRows = productDetailRows(product);
-  const panels = detailPanels(product, deliveryLines.length, specRows.length);
+  const panels = detailPanels(product, deliveryLines.length, specRows.length, { count: faq.items.length, title: faq.settings.title, inDetails: faq.settings.placement === "tab" });
   const [tab, setTab] = useState<PdpPanelId | null>(null);
   const active = panels.find((panel) => panel.id === tab)?.id ?? panels[0]?.id ?? null;
 
@@ -37,6 +40,8 @@ export function PdpDetails({ product, sku, look, style, deliveryLines, storeName
     ) : null;
   }
 
+  // The questions' heading can be typed over on the builder canvas (InlineTextEditor, copy key faqTitle).
+  const panelTitle = (panel: { id: PdpPanelId; title: string }) => (panel.id === "faqs" ? <span data-inline-key="faqTitle">{panel.title}</span> : panel.title);
   const prose = "whitespace-pre-line text-[14.5px] leading-7";
   function body(id: PdpPanelId): React.ReactNode {
     switch (id) {
@@ -90,15 +95,15 @@ export function PdpDetails({ product, sku, look, style, deliveryLines, storeName
           </div>
         );
       case "faqs":
+        // The style picked in the builder (product page settings, else the store's FAQ section).
         return (
-          <dl className="grid gap-4">
-            {readFaqs(product.faqs).map((faq) => (
-              <div key={faq.question}>
-                <dt className="text-[14.5px] font-semibold">{faq.question}</dt>
-                <dd className="m-0 mt-1 whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{faq.answer}</dd>
-              </div>
-            ))}
-          </dl>
+          <FaqList
+            items={faq.items.map((item, i) => ({ id: `faq-${i}`, question: item.question, answer: item.answer }))}
+            style={faq.settings.style}
+            look={look}
+            firstOpen={faq.settings.firstOpen}
+            level={4}
+          />
         );
     }
   }
@@ -127,7 +132,7 @@ export function PdpDetails({ product, sku, look, style, deliveryLines, storeName
               className="shrink-0 border-0 bg-transparent px-0 pb-3 text-[15px]"
               style={{ color: active === panel.id ? t.ink : t.muted, fontWeight: active === panel.id ? 600 : 400, borderBottom: `2px solid ${active === panel.id ? t.ink : "transparent"}`, cursor: "pointer" }}
             >
-              {panel.title}
+              {panelTitle(panel)}
             </button>
           ))}
         </div>
@@ -143,7 +148,7 @@ export function PdpDetails({ product, sku, look, style, deliveryLines, storeName
       {panels.map((panel, i) => (
         <details key={panel.id} className="bq-pdp2-acc border-b" style={{ borderColor: t.border }} open={i === 0}>
           <summary className="flex min-h-14 items-center justify-between gap-4 py-3 text-[16px] font-semibold" style={{ fontFamily: look.headingFont }}>
-            {panel.title}
+            {panelTitle(panel)}
             <Icon name="chevDown" size={16} className="bq-pdp2-chev shrink-0" />
           </summary>
           <div className="pb-5 text-left">{body(panel.id)}</div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
+import { ImportPeggyReview, type ImportResult } from "./ImportPeggyReview";
 
 // Built here so the download always matches the columns the importer reads.
 const SAMPLE_CSV = [
@@ -15,7 +16,6 @@ const SAMPLE_CSV = [
 
 const PHOTO_UPLOADS_AT_ONCE = 3;
 
-type ImportResult = { imported: number; withImages?: number; errors: string[]; notices?: string[] };
 
 /** Uploads the chosen photos to the media library; returns { "file.jpg": url } plus per-file problems. */
 async function uploadPhotos(files: File[], onProgress: (done: number) => void) {
@@ -52,6 +52,40 @@ export function ImportForm() {
   const [fileName, setFileName] = useState("");
   const [photoCount, setPhotoCount] = useState(0);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [review, setReview] = useState<{ file: File; imageMap: Record<string, string>; photoErrors: string[] } | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  /** "Let Peggy check and fill in": uploads the photos, then hands the file to the review step. */
+  const handleCheck = async (form: HTMLFormElement | null) => {
+    if (!form) return;
+    const fileInput = form.elements.namedItem("csv") as HTMLInputElement;
+    const file = fileInput.files?.[0];
+    setError("");
+    setResult(null);
+    if (!file) {
+      setError(t("import.selectFile"));
+      return;
+    }
+    const photoInput = form.elements.namedItem("photos") as HTMLInputElement;
+    const photos = Array.from(photoInput.files ?? []);
+    setChecking(true);
+    try {
+      let imageMap: Record<string, string> = {};
+      let photoErrors: string[] = [];
+      if (photos.length) {
+        setProgress({ done: 0, total: photos.length });
+        const uploaded = await uploadPhotos(photos, (done) => setProgress({ done, total: photos.length }));
+        imageMap = uploaded.urls;
+        photoErrors = uploaded.failures.map((f) => t("import.photoFailed", { name: f.name, reason: f.reason }));
+      }
+      setReview({ file, imageMap, photoErrors });
+    } catch {
+      setError(t("import.uploadError"));
+    } finally {
+      setProgress(null);
+      setChecking(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -109,6 +143,28 @@ export function ImportForm() {
     }
   };
 
+  if (review) {
+    return (
+      <ImportPeggyReview
+        file={review.file}
+        imageMap={review.imageMap}
+        photoErrors={review.photoErrors}
+        onBack={() => {
+          // The form comes back empty, so the chosen file is shown as not chosen.
+          setReview(null);
+          setFileName("");
+          setPhotoCount(0);
+        }}
+        onDone={(out) => {
+          setReview(null);
+          setResult(out);
+          setFileName("");
+          setPhotoCount(0);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="grid gap-4">
       {error && <Notice>{error}</Notice>}
@@ -121,6 +177,9 @@ export function ImportForm() {
           {result.notices?.map((notice, i) => (
             <div key={i} className="text-[13.5px] font-bold text-app-ink">{notice}</div>
           ))}
+          {!!result.enhanced && (
+            <div className="text-[13.5px] text-app-success">{t("importAi.enhanced", { count: result.enhanced })}</div>
+          )}
           {!!result.withImages && (
             <div className="text-[13.5px] text-app-success">{t("import.withImages", { count: result.withImages })}</div>
           )}
@@ -163,11 +222,13 @@ export function ImportForm() {
             <input type="file" name="photos" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="sr-only" onChange={(e) => setPhotoCount(e.target.files?.length ?? 0)} />
           </label>
         </div>
+        <p className="m-0 max-w-[640px] text-[13.5px] leading-[1.55] text-app-ink-soft">{t("importAi.checkHelp")}</p>
         {progress && (
           <div className="text-[13.5px] font-bold text-app-ink-soft" role="status">{t("import.uploadingPhotos", { done: progress.done, total: progress.total })}</div>
         )}
         <div className="flex flex-wrap gap-2">
-          <PillButton type="submit" tone="accent" size="md" busy={uploading}>{t("import.upload")}</PillButton>
+          <PillButton tone="accent" size="md" busy={checking} disabled={uploading} onClick={(e) => handleCheck(e.currentTarget.form)}>{t("importAi.check")}</PillButton>
+          <PillButton type="submit" tone="white" size="md" busy={uploading} disabled={checking}>{t("import.upload")}</PillButton>
           <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(SAMPLE_CSV)}`} download="sample-products.csv" className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[15px] font-bold text-app-ink no-underline hover:border-app-line-strong">
             <Icon name="download" size={16} /> {t("import.sample")}
           </a>
