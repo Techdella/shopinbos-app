@@ -35,12 +35,15 @@ import m_auth from "./messages/m_auth/index.ts";
 import m_notifications from "./messages/m_notifications/index.ts";
 import m_help from "./messages/m_help/index.ts";
 import m_reviews from "./messages/m_reviews/index.ts";
+import m_customers from "./messages/m_customers/index.ts";
 import m_rex from "./messages/m_rex/index.ts";
 import m_channels from "./messages/m_channels/index.ts";
 import m_legal from "./messages/m_legal/index.ts";
 import m_productedit from "./messages/m_productedit/index.ts";
 import m_label from "./messages/m_label/index.ts";
 import m_settings from "./messages/m_settings/index.ts";
+import m_paylinks from "./messages/m_paylinks/index.ts";
+import m_campaigns from "./messages/m_campaigns/index.ts";
 import verification from "./messages/verification/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
@@ -111,12 +114,15 @@ export const CATALOGS = {
   m_notifications,
   m_help,
   m_reviews,
+  m_customers,
   m_rex,
   m_channels,
   m_legal,
   m_productedit,
   m_label,
   m_settings,
+  m_paylinks,
+  m_campaigns,
   verification,
   marketing,
   emailBuilder,

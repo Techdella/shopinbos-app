@@ -62,6 +62,19 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "edit.removeYes": "Wepụ ya",
   "edit.keep": "Hapụ ya",
   "edit.removeFailed": "Anyị ewepụghị ya. Lelee network gị, nwaa ọzọ.",
+  "edit.category": "Ụdị",
+  "edit.noCategory": "Enweghị ụdị",
+  "edit.categoryChange": "Gbanwee",
+  "edit.categoryHint": "Ndị ahịa nwere ike ịchọta ya site n'ụdị n'ụlọ ahịa gị.",
+  "edit.categoryTitle": "Họrọ ụdị",
+  "edit.categorySearch": "Chọọ ụdị",
+  "edit.categoryYours": "N'ụlọ ahịa gị",
+  "edit.categoryNew": "Ma ọ bụ mepụta ọhụrụ",
+  "edit.categoryNewPlaceholder": "dịka Akpụkpọ ụkwụ",
+  "edit.categoryAdd": "Tinye",
+  "edit.categoryShort": "Dee aha nwere opekata mpe mkpụrụedemede 2.",
+  "edit.categoryLoadFailed": "Anyị enweghị ike ibulite ụdị. Lelee njikọ gị ma nwaa ọzọ.",
+  "edit.categoryAddFailed": "Anyị enweghị ike itinye ụdị ahụ. Nwaa ọzọ.",
 };
 
 export default ig;

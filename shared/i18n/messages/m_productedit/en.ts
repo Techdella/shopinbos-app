@@ -60,6 +60,19 @@ const en = {
   "edit.removeYes": "Remove",
   "edit.keep": "Keep it",
   "edit.removeFailed": "Couldn't remove it. Check your connection and try again.",
+  "edit.category": "Category",
+  "edit.noCategory": "No category",
+  "edit.categoryChange": "Change",
+  "edit.categoryHint": "Customers can find it by category in your shop.",
+  "edit.categoryTitle": "Pick a category",
+  "edit.categorySearch": "Search categories",
+  "edit.categoryYours": "In your shop",
+  "edit.categoryNew": "Or make a new one",
+  "edit.categoryNewPlaceholder": "e.g. Shoes",
+  "edit.categoryAdd": "Add",
+  "edit.categoryShort": "Write a name with at least 2 letters.",
+  "edit.categoryLoadFailed": "Couldn't load categories. Check your connection and try again.",
+  "edit.categoryAddFailed": "Couldn't add that category. Try again.",
 };
 
 export default en;

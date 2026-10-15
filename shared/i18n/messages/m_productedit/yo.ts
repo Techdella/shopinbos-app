@@ -62,6 +62,19 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "edit.removeYes": "Yọ ọ́ kúrò",
   "edit.keep": "Fi sílẹ̀",
   "edit.removeFailed": "A kò lè yọ ọ́ kúrò. Ṣàyẹ̀wò network rẹ, kí o tún gbìyànjú.",
+  "edit.category": "Ẹ̀ka",
+  "edit.noCategory": "Kò sí ẹ̀ka",
+  "edit.categoryChange": "Yí i padà",
+  "edit.categoryHint": "Àwọn oníbàárà lè rí i nípasẹ̀ ẹ̀ka nínú ṣọ́ọ̀bù rẹ.",
+  "edit.categoryTitle": "Yan ẹ̀ka kan",
+  "edit.categorySearch": "Wá ẹ̀ka",
+  "edit.categoryYours": "Nínú ṣọ́ọ̀bù rẹ",
+  "edit.categoryNew": "Tàbí ṣe tuntun",
+  "edit.categoryNewPlaceholder": "bí àpẹẹrẹ Bàtà",
+  "edit.categoryAdd": "Fi kún un",
+  "edit.categoryShort": "Kọ orúkọ tó ní lẹ́tà méjì ó kéré tán.",
+  "edit.categoryLoadFailed": "A kò lè gbé àwọn ẹ̀ka wá. Ṣàyẹ̀wò network rẹ kí o tún gbìyànjú.",
+  "edit.categoryAddFailed": "A kò lè fi ẹ̀ka yẹn kún un. Tún gbìyànjú.",
 };
 
 export default yo;

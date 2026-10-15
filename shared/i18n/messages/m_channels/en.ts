@@ -40,6 +40,23 @@ const en = {
   "post.title": "Post & share",
   "post.sub": "Write a post about your products and share it everywhere. Opens in your browser",
   openFailed: "Couldn't open the sign-in. Check your connection and try again.",
+  "email.title": "Email in your Inbox",
+  "email.name": "Email",
+  "email.sub": "Customers get emails from your address. Their replies come into Chats.",
+  "email.off": "Not connected yet.",
+  "email.attention": "Your email needs a look. Open it on the web to fix it.",
+  "email.gmailExpired": "Your Gmail sign-in ran out, so emails can't go out. Connect Gmail again.",
+  "email.domainWaiting": "{domain} is still getting ready. This can take up to an hour.",
+  "email.gmail": "Connect Gmail",
+  "email.gmailAgain": "Connect Gmail again",
+  "email.gmailHint": "Opens Google in your browser. When it says Gmail is connected, close it to come back.",
+  "email.gmailNotReady": "Connecting Gmail isn't switched on for Shopinbos yet.",
+  "email.domain": "Use your own domain email",
+  "email.confirm": "Stop sending email from this address? Your chats stay in your Inbox.",
+  "email.disconnected": "Email is disconnected.",
+  "email.domainTitle": "Set up your domain email on a bigger screen",
+  "email.domainBody": "Email like hello@yourshop.com needs a few settings added to your domain. It's easier on a computer, but you can open it on this phone too. Or ask us and we'll set it up.",
+  "email.askUs": "Ask us to set it up",
 } satisfies Record<string, string>;
 
 export default en;

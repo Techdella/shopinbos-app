@@ -62,6 +62,19 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "edit.removeYes": "Cire",
   "edit.keep": "Bar shi",
   "edit.removeFailed": "Ba a cire shi ba. Duba network ɗinka, ka sake gwadawa.",
+  "edit.category": "Rukuni",
+  "edit.noCategory": "Babu rukuni",
+  "edit.categoryChange": "Canza",
+  "edit.categoryHint": "Kwastomomi za su iya samun sa ta rukuni a shagonka.",
+  "edit.categoryTitle": "Zaɓi rukuni",
+  "edit.categorySearch": "Nemi rukuni",
+  "edit.categoryYours": "A shagonka",
+  "edit.categoryNew": "Ko ka yi sabo",
+  "edit.categoryNewPlaceholder": "misali Takalma",
+  "edit.categoryAdd": "Ƙara",
+  "edit.categoryShort": "Rubuta suna mai haruffa 2 aƙalla.",
+  "edit.categoryLoadFailed": "Ba mu iya loda rukunai ba. Duba haɗin intanet ɗinka ka sake gwadawa.",
+  "edit.categoryAddFailed": "Ba mu iya ƙara wannan rukuni ba. Sake gwadawa.",
 };
 
 export default ha;

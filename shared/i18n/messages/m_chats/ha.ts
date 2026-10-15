@@ -130,6 +130,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bot.faqs": "Tambayoyi da amsoshi",
   "bot.faqsCount": "Tambayoyi da amsoshi ({count})",
   "bot.faqsHint": "Canza su ka gwada Peggy a browser ɗinka",
+  "list.email": "Email",
+  "list.emailHint": "Karanta ka amsa email na kwastomomi a nan",
+  "thread.subject": "Take",
+  "thread.emailPlaceholder": "Rubuta amsar email ɗinka",
+  "thread.emailGoesAs": "Zai fita a matsayin email: {subject}",
+  "thread.emailGoes": "Zai fita a matsayin email zuwa ga kwastoma",
 };
 
 export default ha;

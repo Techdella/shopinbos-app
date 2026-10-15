@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 // One of the seller's products for the phone's product editor (apps/mobile/src/app/product/[id].tsx): the fields
 // it edits, the versions (price and stock editable, saved as variantUpdates), the type and its details and, for
-// dropship products, the supplier and what each sale leaves.
+// dropship products, the supplier and what each sale leaves, and its category (categoryId + { id, name }).
 // Saving and archiving go to PATCH / DELETE /api/store/products/[id], the same route and rules as the web form;
 // pausing a dropship product goes to POST /api/mobile/dropship. Auth: Bearer (or the web session), role seller.
 
@@ -37,6 +37,8 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
       productDetails: true,
       careInstructions: true,
       warranty: true,
+      categoryId: true,
+      category: { select: { id: true, name: true } },
       updatedAt: true,
       dropship: {
         select: {

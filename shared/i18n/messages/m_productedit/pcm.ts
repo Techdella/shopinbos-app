@@ -62,6 +62,19 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "edit.removeYes": "Comot am",
   "edit.keep": "Leave am",
   "edit.removeFailed": "E no comot. Check your network, then try again.",
+  "edit.category": "Category",
+  "edit.noCategory": "No category",
+  "edit.categoryChange": "Change",
+  "edit.categoryHint": "Customers fit find am by category for your shop.",
+  "edit.categoryTitle": "Pick category",
+  "edit.categorySearch": "Search categories",
+  "edit.categoryYours": "For your shop",
+  "edit.categoryNew": "Or make new one",
+  "edit.categoryNewPlaceholder": "e.g. Shoes",
+  "edit.categoryAdd": "Add",
+  "edit.categoryShort": "Write name wey get at least 2 letters.",
+  "edit.categoryLoadFailed": "We no fit load categories. Check your network, try again.",
+  "edit.categoryAddFailed": "We no fit add that category. Try again.",
 };
 
 export default pcm;

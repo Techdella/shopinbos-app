@@ -57,6 +57,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.empty": "Kò sí ọjà síbẹ̀. Tẹ \"Fi ọjà kún un\", ya fọ́tò, Rex yóò sì kọ ìyókù.",
   "list.soldOut": "Ó ti tán",
   "list.left": "{count} ló kù",
+  "cat.all": "Gbogbo rẹ̀",
+  "cat.chip": "{name} ({count})",
+  "cat.empty": "Kò sí ọjà nínú {name} síbẹ̀.",
 };
 
 export default yo;
