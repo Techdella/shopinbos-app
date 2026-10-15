@@ -146,7 +146,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[15px] font-bold">{name}</div>
                           <div className="text-[13px] text-app-ink-soft">
-                            {item.variant ? `${item.variant} · ` : ""}
+                            {/* Newer orders name the size / colour in the item name ("Ankara dress · L / Red"). */}
+                            {item.variant && !name.includes(item.variant) ? `${item.variant} · ` : ""}
                             {quantity} × {money(price)}
                           </div>
                         </div>

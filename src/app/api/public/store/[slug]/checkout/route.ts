@@ -55,6 +55,7 @@ const CheckoutSchema = z.object({
     quantity: z.number().int().positive().max(999),
     image: z.string().optional(),
     variant: z.string().max(120).optional(),
+    variantId: z.string().max(80).optional(),
   })).min(1, "Your bag is empty."),
   notes: z.string().max(1000).optional(),
   giftMessage: z.string().max(500).optional(),

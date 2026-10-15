@@ -10,6 +10,14 @@ import { SeoTab } from "@/components/seo/SeoTab";
 import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useT } from "@/components/i18n/I18nProvider";
+import { ProductTypeDetails, ProductTypePicker } from "@/app/components/product-form/ProductTypeFields";
+import { VariantsEditor } from "@/app/components/product-form/VariantsEditor";
+import { RelatedPicker, type RelatedOption } from "@/app/components/product-form/RelatedPicker";
+import { ProductPeggy, type ProductPeggyHandle } from "@/app/components/product-form/ProductPeggy";
+import { isProductTypeKey, readProductDetails, type ProductTypeKey } from "@shared/product-types";
+import { normalizeVariants, readVariantOptions, serializeVariants, totalVariantStock, type ProductVariant, type VariantOption } from "@shared/product-variants";
+import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
 
 interface Category {
   id: string;
@@ -48,6 +56,11 @@ interface Product {
   categoryId: string | null;
   tags: string[];
   featured: boolean;
+  productType?: string | null;
+  productDetails?: unknown;
+  variants?: unknown;
+  variantOptions?: unknown;
+  relatedProductIds?: string[];
   currentStock: number;
   reservedStock: number;
   lowStockThreshold: number;
@@ -65,6 +78,8 @@ interface ProductFormProps {
   /** For the SEO tab's previews: the storefront origin and store name. */
   storeOrigin?: string;
   storeName?: string;
+  /** The store's other products, for "Customers also like". */
+  storeProducts?: RelatedOption[];
 }
 
 const TABS = ["Details", "Visibility and channels", "Price and stock", "Description", "Product page", "SEO"];
@@ -145,8 +160,10 @@ function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export function ProductForm({ product, categories, isEdit, storeOrigin = "", storeName = "Your store" }: ProductFormProps) {
+export function ProductForm({ product, categories, isEdit, storeOrigin = "", storeName = "Your store", storeProducts = [] }: ProductFormProps) {
   const router = useRouter();
+  const t = useT("productTypes");
+  const peggyRef = useRef<ProductPeggyHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState(0);
@@ -212,10 +229,96 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [warranty, setWarranty] = useState(product?.warranty ?? "");
   const [supportInfo, setSupportInfo] = useState(product?.supportInfo ?? "");
 
+  // Type (preset category) and its details, the versions (sizes, colours…) and "Customers also like".
+  const [productType, setProductType] = useState<ProductTypeKey | null>(isProductTypeKey(product?.productType) ? product.productType : product ? "other" : null);
+  const [details, setDetails] = useState<Record<string, string>>(() => readProductDetails(product?.productDetails));
+  const [variants, setVariants] = useState<ProductVariant[]>(() => normalizeVariants(product?.variants));
+  const [options, setOptions] = useState<VariantOption[]>(() => readVariantOptions(product?.variantOptions, normalizeVariants(product?.variants)));
+  const [relatedIds, setRelatedIds] = useState<string[]>(product?.relatedProductIds ?? []);
+  const [peggyNote, setPeggyNote] = useState("");
+
   const [pageVariant, setPageVariant] = useState(product?.pageVariant ?? "shopify");
   const [enabledModules, setEnabledModules] = useState<string[]>(product?.enabledModules ?? [
     "image_gallery", "price", "quantity", "stock_status", "description", "reviews",
   ]);
+
+  /** A new main price: versions that simply followed it follow it again. */
+  function changeRetailPrice(next: string) {
+    const before = parseFloat(retailPrice);
+    const after = parseFloat(next);
+    setRetailPrice(next);
+    if (Number.isFinite(before) && Number.isFinite(after)) {
+      setVariants((rows) => rows.map((row) => (row.price === before ? { ...row, price: after } : row)));
+    }
+  }
+
+  const basePrice = Number.isFinite(parseFloat(retailPrice)) ? parseFloat(retailPrice) : null;
+  const countsStock = inventoryType === "seller";
+  const variantStock = countsStock ? totalVariantStock(variants) : null;
+  const usableOptions = options.filter((option) => option.name.trim() && option.values.length);
+
+  /** The variant-related fields as the API takes them. */
+  function variantPayload(state: { options: VariantOption[]; variants: ProductVariant[] }) {
+    const opts = state.options.filter((option) => option.name.trim() && option.values.length).map((option) => ({ name: option.name.trim(), values: option.values }));
+    return { variantOptions: opts, variants: serializeVariants(state.variants, opts) };
+  }
+
+  /** The form as Peggy reads it. */
+  function assistantState(): AssistantFormState {
+    return {
+      name,
+      description,
+      productType,
+      basePrice,
+      options: usableOptions,
+      variants,
+      details: { ...details, ...(careInstructions ? { care: careInstructions } : {}), ...(warranty ? { warranty } : {}) },
+      customDetails: specs.filter((spec) => spec.name.trim()).map((spec) => ({ name: spec.name, value: spec.value })),
+    };
+  }
+
+  /** Peggy's suggestion into the form; on a saved product the changed parts are saved straight away. */
+  async function applyPeggy(suggestion: SuggestionInput): Promise<string | null> {
+    const { state } = applySuggestion(assistantState(), suggestion);
+    setProductType(state.productType);
+    if (state.name !== name) setName(state.name);
+    if (state.description !== description) setDescription(state.description);
+    if (state.basePrice !== basePrice && state.basePrice !== null) setRetailPrice(String(state.basePrice));
+    setOptions(state.options);
+    setVariants(state.variants);
+    const { care, warranty: warrantyText, ...rest } = state.details;
+    setDetails(rest);
+    if (care !== undefined) setCareInstructions(care);
+    if (warrantyText !== undefined) setWarranty(warrantyText);
+    setSpecs(state.customDetails.map((detail) => ({ id: uid(), ...detail })));
+    setPeggyNote(t("peggy.filledNote"));
+    if (!isEdit || !product) return t("peggy.appliedNew");
+    try {
+      const res = await fetch(`/api/store/products/${product.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...variantPayload(state),
+          productType: state.productType,
+          productDetails: rest,
+          ...(care !== undefined ? { careInstructions: care } : {}),
+          ...(warrantyText !== undefined ? { warranty: warrantyText } : {}),
+          specifications: state.customDetails.filter((detail) => detail.name.trim() && detail.value.trim()),
+          ...(state.basePrice !== null ? { retailPrice: state.basePrice } : {}),
+          ...(state.name.trim().length >= 2 ? { name: state.name.trim() } : {}),
+          ...(state.description ? { description: state.description } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        return t("peggy.saveFailed", { reason: err?.error?.message ?? "" });
+      }
+      router.refresh();
+      return t("peggy.appliedSaved");
+    } catch {
+      return t("peggy.saveFailed", { reason: "" });
+    }
+  }
 
   const handleUpload = useCallback(async (files: FileList | null) => {
     if (!files?.length) return;
@@ -293,13 +396,18 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       categoryId: categoryId || undefined,
       tags,
       featured,
-      currentStock: parseInt(currentStock) || 0,
+      currentStock: variantStock ?? (parseInt(currentStock) || 0),
       reservedStock: parseInt(reservedStock) || 0,
       lowStockThreshold: parseInt(lowStockThreshold) || 10,
       pageVariant,
       enabledModules,
       seoTitle: seo.metaTitle.slice(0, 70) || undefined,
       seoDescription: seo.metaDescription.slice(0, 160) || undefined,
+      // Type, details, versions and related products (the API checks and normalizes them).
+      productType: productType ?? "other",
+      productDetails: Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())),
+      ...variantPayload({ options, variants }),
+      relatedProductIds: relatedIds,
     };
 
     try {
@@ -336,6 +444,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   return (
     <div className="grid gap-4">
       {error && <Notice>{error}</Notice>}
+      {peggyNote && !error ? <Notice tone="success">{peggyNote}</Notice> : null}
+      <ProductPeggy ref={peggyRef} isEdit={isEdit} productId={product?.id ?? null} getState={assistantState} onApply={applyPeggy} />
 
       <div role="tablist" aria-label="Product sections" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         {TABS.map((tab, i) => (
@@ -371,6 +481,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                     <input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} className={field.input} placeholder="e.g. leather, premium, bags" />
                   </Field>
                 </div>
+                <ProductTypePicker value={productType} onChange={setProductType} />
                 <Field label="Description">
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={field.textarea} rows={4} placeholder="Describe your product, materials, sizing, features, and what makes it special." />
                   <VoiceInputButton value={description} onChange={setDescription} context="a product description" className="mt-2" />
@@ -431,6 +542,58 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                     No photos yet. Tap to upload.
                   </button>
                 )}
+              </Section>
+              <Section
+                title={productType ? t("details.title", { type: t.dynamic(`type.${productType}`, productType) }) : t("details.titleNoType")}
+                sub={t("details.sub")}
+              >
+                {productType ? (
+                  <ProductTypeDetails
+                    productType={productType}
+                    details={details}
+                    onDetail={(key, value) => setDetails((current) => ({ ...current, [key]: value }))}
+                    columns={{ careInstructions, warranty }}
+                    onColumn={(key, value) => (key === "careInstructions" ? setCareInstructions(value) : setWarranty(value))}
+                  />
+                ) : (
+                  <p className="m-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">{t("details.pickType")}</p>
+                )}
+                <div className="grid gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="m-0 text-[15px] font-extrabold">{t("custom.title")}</h3>
+                      <p className="m-0 text-[13px] text-app-ink-soft">{t("custom.sub")}</p>
+                    </div>
+                    <button type="button" onClick={addSpec} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
+                      <Icon name="plus" size={14} /> {t("custom.add")}
+                    </button>
+                  </div>
+                  {specs.map((spec, index) => (
+                    <div key={spec.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                      <input value={spec.name} onChange={(e) => updateSpec(spec.id, "name", e.target.value)} className={cx(field.input, "flex-1 basis-[40%]")} placeholder={t("custom.namePlaceholder")} aria-label={t("custom.nameLabel", { number: index + 1 })} maxLength={100} />
+                      <input value={spec.value} onChange={(e) => updateSpec(spec.id, "value", e.target.value)} className={cx(field.input, "flex-1 basis-[40%]")} placeholder={t("custom.valuePlaceholder")} aria-label={t("custom.valueLabel", { number: index + 1 })} maxLength={500} />
+                      <button type="button" onClick={() => removeSpec(spec.id)} aria-label={t("custom.remove", { number: index + 1 })} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-app-danger hover:bg-app-danger-tint">
+                        <Icon name="trash" size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+
+              <Section title={t("v.title")} sub={t("v.sub")}>
+                <VariantsEditor
+                  productType={productType}
+                  options={options}
+                  variants={variants}
+                  basePrice={basePrice}
+                  images={images}
+                  countsStock={countsStock}
+                  onChange={(nextOptions, nextVariants) => {
+                    setOptions(nextOptions);
+                    setVariants(nextVariants);
+                  }}
+                  onAskPeggy={(prompt) => peggyRef.current?.ask(prompt)}
+                />
               </Section>
             </>
           )}
@@ -509,7 +672,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
               <Section title="Price" sub="What buyers pay, and what it costs you.">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field label="Selling price (₦) *">
-                    <input value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} type="number" inputMode="decimal" className={field.input} required min={1} step="0.01" placeholder="25000" />
+                    <input value={retailPrice} onChange={(e) => changeRetailPrice(e.target.value)} type="number" inputMode="decimal" className={field.input} required min={1} step="0.01" placeholder="25000" />
                   </Field>
                   <Field label="Cost price (₦)">
                     <input value={costPrice} onChange={(e) => setCostPrice(e.target.value)} type="number" inputMode="decimal" className={field.input} min={0} step="0.01" placeholder="15000" />
@@ -527,8 +690,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
 
               <Section title="Stock" sub="Track how many you have.">
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="In stock">
-                    <input value={currentStock} onChange={(e) => setCurrentStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
+                  <Field label="In stock" hint={variantStock !== null ? t("stock.fromOptions") : undefined}>
+                    <input value={variantStock ?? currentStock} onChange={(e) => setCurrentStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} disabled={variantStock !== null} />
                   </Field>
                   <Field label="Reserved">
                     <input value={reservedStock} onChange={(e) => setReservedStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
@@ -553,13 +716,16 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Weight">
                     <div className="flex gap-2">
-                      <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" inputMode="decimal" className={cx(field.input, "flex-1")} min={0} step="0.01" placeholder="0.5" aria-label="Weight" />
-                      <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className={cx(field.select, "w-[88px] shrink-0")} aria-label="Weight unit">
-                        <option value="kg">kg</option>
-                        <option value="g">g</option>
-                        <option value="lb">lb</option>
-                        <option value="oz">oz</option>
-                      </select>
+                      <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" inputMode="decimal" className={cx(field.input, "min-w-0 flex-1")} min={0} step="0.01" placeholder="0.5" aria-label="Weight" />
+                      {/* The unit sits in a fixed-width box: field.select is w-full, which used to squeeze the number box to nothing. */}
+                      <div className="w-[96px] shrink-0">
+                        <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className={field.select} aria-label="Weight unit">
+                          <option value="kg">kg</option>
+                          <option value="g">g</option>
+                          <option value="lb">lb</option>
+                          <option value="oz">oz</option>
+                        </select>
+                      </div>
                     </div>
                   </Field>
                   <Field label="SKU">
@@ -587,34 +753,6 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                 <Field label="Long description">
                   <textarea value={longDescription} onChange={(e) => setLongDescription(e.target.value)} className={field.textarea} rows={8} placeholder="Full product description with details about materials, sizing, care, and features..." />
                 </Field>
-              </Section>
-
-              <Section
-                title="Specifications"
-                sub="Short facts like material or size."
-                action={
-                  <button type="button" onClick={addSpec} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
-                    <Icon name="plus" size={14} /> Add spec
-                  </button>
-                }
-              >
-                {specs.length === 0 ? (
-                  <p className="m-0 rounded-[16px] border-2 border-dashed border-app-line px-4 py-6 text-center text-[14px] text-app-ink-soft">
-                    No specifications yet. Add specs like material, dimensions, or care instructions.
-                  </p>
-                ) : (
-                  <div className="grid gap-2">
-                    {specs.map((spec, index) => (
-                      <div key={spec.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-                        <input value={spec.name} onChange={(e) => updateSpec(spec.id, "name", e.target.value)} className={cx(field.input, "flex-1 basis-[40%]")} placeholder="e.g. Material" aria-label={`Specification ${index + 1} name`} />
-                        <input value={spec.value} onChange={(e) => updateSpec(spec.id, "value", e.target.value)} className={cx(field.input, "flex-1 basis-[40%]")} placeholder="e.g. 100% Cotton" aria-label={`Specification ${index + 1} value`} />
-                        <button type="button" onClick={() => removeSpec(spec.id)} aria-label={`Remove specification ${index + 1}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-app-danger hover:bg-app-danger-tint">
-                          <Icon name="trash" size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </Section>
 
               <Section
@@ -672,6 +810,10 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
           {/* Tab 5 - Product Page */}
           {activeTab === 4 && (
             <>
+              <Section title={t("related.title")} sub={t("related.sub")}>
+                <RelatedPicker products={storeProducts.filter((entry) => entry.id !== product?.id)} value={relatedIds} onChange={setRelatedIds} />
+              </Section>
+
               <Section title="Page layout" sub="Choose a layout for this product's page.">
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7" role="radiogroup" aria-label="Page layout">
                   {PAGE_VARIANTS.map((v) => (

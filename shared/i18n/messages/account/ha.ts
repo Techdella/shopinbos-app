@@ -165,6 +165,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "Ana loda menu ɗinka…",
   "menu.onlyUse": "Ga abin da kake amfani da shi kawai",
   "menu.onlyUseSub": "Kashe wani abu yana ɓoye shi daga menu ɗinka. Ba a share komai ba: bayananka suna nan, kuma kana iya kunna shi a nan a kowane lokaci.",
+  "menu.tips": "Shawarwari da bayanai",
+  "menu.tipsSub": "Ƙananan bayanai idan ka nuna ko ka taɓa kalma, shawarwari a kan menu, da gajerun gabatarwa da ke buɗewa da kansu a sabbin shafuka. Idan ka kashe, za ka iya kallon kowace gabatarwa daga “Learn” a saman shafi.",
   "menu.walkthrough": "Jagora",
   "menu.walkthroughSub": "Sake ganin ɗan gajeren rangadi na menu ɗinka da manyan maɓallai.",
   "menu.replay": "Sake nuna min",

@@ -145,6 +145,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "set.help": "Ìrànlọ́wọ́",
   "set.helpHint": "Ènìyàn kan, tàbí Peggy",
   "set.more": "Ètò mìíràn lórí wẹ́ẹ̀bù",
+  "set.tips": "Àwọn ìmọ̀ràn àti àlàyé kékeré",
+  "set.tipsHint": "Àlàyé ọ̀rọ̀ àti ìfihàn tí ó ń ṣí fúnra rẹ̀",
   "set.moreHint": "Ẹgbẹ́, ìsanwó, ààbò àti títi ṣọ́ọ̀bù rẹ. Yóò ṣí nínú browser rẹ",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Àwọn logo ìsanwó lórí ṣọ́ọ̀bù rẹ",

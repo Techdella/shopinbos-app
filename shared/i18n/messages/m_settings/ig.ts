@@ -145,6 +145,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "set.help": "Enyemaka",
   "set.helpHint": "Mmadụ, ma ọ bụ Peggy",
   "set.more": "Ntọala ndị ọzọ na weebụ",
+  "set.tips": "Ndụmọdụ na nkọwa nta",
+  "set.tipsHint": "Nkọwa okwu na mmalite na-emepe onwe ha",
   "set.moreHint": "Otu, ịkwụ ụgwọ, nchekwa na imechi ụlọ ahịa gị. Ọ ga-emepe na browser gị",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Logo ịkwụ ụgwọ n'ụlọ ahịa gị",

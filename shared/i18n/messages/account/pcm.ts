@@ -165,6 +165,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "We dey load your menu…",
   "menu.onlyUse": "See only wetin you dey use",
   "menu.onlyUseSub": "If you off something, e go hide from your menu. Nothing go delete: your data go stay, and you fit on am back here any time.",
+  "menu.tips": "Tips and tooltips",
+  "menu.tipsSub": "The small explanation wey dey show when you point or tap word, the tips for menu, and the short intro wey dey open by itself for new page. Off am and you fit still watch any intro from “Learn” for top of page.",
   "menu.walkthrough": "Walkthrough",
   "menu.walkthroughSub": "See the quick tour of your menu and the main buttons again.",
   "menu.replay": "Show me around again",

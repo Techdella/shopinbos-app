@@ -41,6 +41,7 @@ const MAX_CHARS = 4000;
 const ACTION_ICON: Record<string, IconName> = {
   create_discount: "tag",
   update_product: "box",
+  set_product_variants: "layers",
   mark_order: "package",
   draft_blog_post: "edit",
   draft_broadcast: "send",

@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LanguageRow } from "@/components/LanguagePicker";
+import { TipsRow } from "@/components/learn/TipsRow";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, Initials, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -182,6 +183,7 @@ function SettingsForm({ initial }: { initial: SellerProfile }) {
 
       <Card style={{ paddingVertical: 2 }}>
         <LanguageRow first />
+        <TipsRow />
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />
         <LinkRow icon="help" label={t("set.help")} hint={t("set.helpHint")} onPress={() => router.push("/help")} />
         <LinkRow icon="globe" label={t("set.more")} hint={t("set.moreHint")} onPress={() => void openWeb("/home/settings")} right={<AppIcon name="share" size={18} color={colors.inkSoft} />} />

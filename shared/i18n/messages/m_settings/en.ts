@@ -148,6 +148,8 @@ const en = {
   "set.help": "Help",
   "set.helpHint": "A person, or Peggy",
   "set.more": "More settings on the web",
+  "set.tips": "Tips and tooltips",
+  "set.tipsHint": "Word explanations and intros that open by themselves",
   "set.moreHint": "Team, billing, security and closing your shop. Opens in your browser",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Payment logos on your store",

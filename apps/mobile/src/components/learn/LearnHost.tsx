@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import { fonts } from "@/theme";
 import { onOpenFeatureIntro, openFeatureIntro } from "./events";
 import { FeatureIntroSheet } from "./FeatureIntroSheet";
-import { introsSeenOnPhone, loadIntrosSeen, markIntroSeen } from "./prefs";
+import { introsSeenOnPhone, loadIntrosSeen, markIntroSeen, useTipsOnPhone } from "./prefs";
 import { LC, MONO } from "./scenes";
 
 // Mounted once in app/_layout.tsx. Shows a screen's 60-second intro by itself the first time the person opens
@@ -24,6 +24,8 @@ export function LearnHost() {
   const [seen, setSeen] = useState<string[] | null>(null);
   const [open, setOpen] = useState<FeatureIntro | null>(null);
   const shown = useRef(new Set<string>());
+  // Tips and tooltips switched off: intros only open when asked for.
+  const tipsOn = useTipsOnPhone();
 
   // The server's list for this account (or the phone's when offline).
   useEffect(() => {
@@ -49,7 +51,7 @@ export function LearnHost() {
   const current = role ? introForPath(path, role) : null;
   const key = current?.key ?? null;
   useEffect(() => {
-    if (!key || !uid || !seen || open || seen.includes(key) || shown.current.has(key)) return;
+    if (!key || !uid || !seen || !tipsOn || open || seen.includes(key) || shown.current.has(key)) return;
     const timer = setTimeout(() => {
       shown.current.add(key);
       setOpen(introByKey(key));
@@ -57,7 +59,7 @@ export function LearnHost() {
       setSeen((list) => [...(list ?? []), key]);
     }, AUTO_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [key, uid, seen, open]);
+  }, [key, uid, seen, tipsOn, open]);
 
   if (!open) return null;
   return (

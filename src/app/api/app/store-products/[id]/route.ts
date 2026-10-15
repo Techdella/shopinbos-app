@@ -4,12 +4,14 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 import { saleBreakdown } from "@/lib/marketplace/find";
-import { productKind, tracksStock, variantRows } from "@shared/product-edit";
+import { editableVariantRows, productKind, tracksStock } from "@shared/product-edit";
+import { productTypeKey, readProductDetails } from "@shared/product-types";
 
 export const dynamic = "force-dynamic";
 
 // One of the seller's products for the phone's product editor (apps/mobile/src/app/product/[id].tsx): the fields
-// it edits, the variants (read-only) and, for dropship products, the supplier and what each sale leaves.
+// it edits, the versions (price and stock editable, saved as variantUpdates), the type and its details and, for
+// dropship products, the supplier and what each sale leaves.
 // Saving and archiving go to PATCH / DELETE /api/store/products/[id], the same route and rules as the web form;
 // pausing a dropship product goes to POST /api/mobile/dropship. Auth: Bearer (or the web session), role seller.
 
@@ -31,6 +33,10 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
       status: true,
       inventoryType: true,
       variants: true,
+      productType: true,
+      productDetails: true,
+      careInstructions: true,
+      warranty: true,
       updatedAt: true,
       dropship: {
         select: {
@@ -44,12 +50,14 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
   });
   if (!product || product.status === "archived") return apiError("NOT_FOUND", "That product couldn't be found.", 404);
 
-  const { dropship, variants, ...rest } = product;
+  const { dropship, variants, productType, productDetails, ...rest } = product;
   return ok({
     ...rest,
     kind: productKind(product),
     tracksStock: tracksStock(product.inventoryType),
-    variants: variantRows(variants),
+    variants: editableVariantRows(variants),
+    productType: productTypeKey(productType),
+    productDetails: readProductDetails(productDetails),
     dropship: dropship
       ? {
           relationshipId: dropship.id,

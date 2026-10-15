@@ -5,8 +5,15 @@
 // the seller dropships takes the supplier's stock (SupplierProduct.stockQuantity): the seller holds none of it.
 // The order keeps the list (RetailOrder.stockHold) so expiry gives back exactly what was taken.
 
+/** Units taken from one version of a product when its stock is counted per version (shared/product-variants.ts). */
+export interface VariantHold {
+  id: string;
+  quantity: number;
+  name: string;
+}
+
 export type StockHold =
-  | { source: "store"; productId: string; quantity: number; name: string }
+  | { source: "store"; productId: string; quantity: number; name: string; variants?: VariantHold[] }
   | { source: "supplier"; productId: string; supplierProductId: string; quantity: number; name: string };
 
 export interface StockProduct {
@@ -23,16 +30,36 @@ export function isDropshipProduct(product: Pick<StockProduct, "fulfillmentType" 
   return product.fulfillmentType === "dropship" && Boolean(product.supplierProductId) && Boolean(product.supplierProduct);
 }
 
-/** One hold per store product, from the quantities in the bag. */
-export function buildStockHolds(products: StockProduct[], quantities: Map<string, number>): StockHold[] {
+/**
+ * One hold per store product, from the quantities in the bag. `variantQuantities` (product id → versions) names the
+ * versions whose stock is counted per version; the store's own stock then also takes from those versions.
+ */
+export function buildStockHolds(products: StockProduct[], quantities: Map<string, number>, variantQuantities?: Map<string, VariantHold[]>): StockHold[] {
   return products.flatMap((product): StockHold[] => {
     const quantity = quantities.get(product.id) ?? 0;
     if (quantity <= 0) return [];
     if (isDropshipProduct(product)) {
       return [{ source: "supplier", productId: product.id, supplierProductId: product.supplierProduct!.id, quantity, name: product.name }];
     }
-    return [{ source: "store", productId: product.id, quantity, name: product.name }];
+    const variants = variantQuantities?.get(product.id)?.filter((hold) => hold.quantity > 0);
+    return [{ source: "store", productId: product.id, quantity, name: product.name, ...(variants?.length ? { variants } : {}) }];
   });
+}
+
+/** Versions to take stock from, per product, summed across holds (two holds can name the same version). */
+export function variantHoldTotals(holds: StockHold[]) {
+  const out = new Map<string, Map<string, VariantHold>>();
+  for (const hold of holds) {
+    if (hold.source !== "store" || !hold.variants?.length) continue;
+    const map = out.get(hold.productId) ?? new Map<string, VariantHold>();
+    for (const variant of hold.variants) {
+      const entry = map.get(variant.id);
+      if (entry) entry.quantity += variant.quantity;
+      else map.set(variant.id, { ...variant });
+    }
+    out.set(hold.productId, map);
+  }
+  return out;
 }
 
 /** Units each stock pool must give: store products by id, supplier products by id (two lines can share one). */
@@ -80,7 +107,18 @@ export function parseStockHold(value: unknown): StockHold[] {
     if (hold.source === "supplier" && typeof hold.supplierProductId === "string" && hold.supplierProductId) {
       return [{ source: "supplier", productId, supplierProductId: hold.supplierProductId, quantity, name }];
     }
-    if (hold.source === "store") return [{ source: "store", productId, quantity, name }];
+    if (hold.source === "store") {
+      const variants = Array.isArray(hold.variants)
+        ? hold.variants.flatMap((raw): VariantHold[] => {
+            if (!raw || typeof raw !== "object") return [];
+            const entry = raw as Record<string, unknown>;
+            const count = Math.floor(Number(entry.quantity));
+            if (typeof entry.id !== "string" || !entry.id || !Number.isFinite(count) || count <= 0) return [];
+            return [{ id: entry.id, quantity: count, name: typeof entry.name === "string" ? entry.name : "Option" }];
+          })
+        : [];
+      return [{ source: "store", productId, quantity, name, ...(variants.length ? { variants } : {}) }];
+    }
     return [];
   });
 }

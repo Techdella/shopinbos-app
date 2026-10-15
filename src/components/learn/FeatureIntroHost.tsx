@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { introByKey, introForPath, type FeatureIntro as Intro } from "@shared/feature-intros";
 import { introsSeenLocally, usePreferences } from "@/components/shell/useShellCounts";
+import { tipsOn } from "@shared/preferences";
 // The full 60-second scripts (and their words, the "intros" namespace) load only when an intro opens.
 const FeatureIntro = lazy(() => import("./FeatureIntro").then((mod) => ({ default: mod.FeatureIntro })));
 import { OPEN_INTRO_EVENT, openFeatureIntro } from "./Term";
@@ -53,9 +54,11 @@ export function FeatureIntroHost({ role }: { role: string }) {
   // First visit.
   const key = current?.key ?? null;
   const tourPending = prefs?.tour !== "done" && TOUR_HOMES.includes(pathname);
+  // Tips and tooltips switched off: intros only open when asked for ("Learn · 60s").
+  const autoOn = tipsOn(prefs);
   const seen = Boolean(key && (prefs?.introsSeen?.includes(key) || autoOpened.has(key)));
   useEffect(() => {
-    if (!key || !confirmed || !prefs || seen || tourPending || open) return;
+    if (!key || !confirmed || !prefs || !autoOn || seen || tourPending || open) return;
     if (introsSeenLocally().includes(key)) return;
     let tries = 0;
     let timer = window.setTimeout(function attempt() {
@@ -70,7 +73,7 @@ export function FeatureIntroHost({ role }: { role: string }) {
       void markRef.current(key);
     }, AUTO_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [key, confirmed, prefs, seen, tourPending, open]);
+  }, [key, confirmed, prefs, autoOn, seen, tourPending, open]);
 
   // Leaving the page closes the intro (its CTA navigates).
   useEffect(() => {

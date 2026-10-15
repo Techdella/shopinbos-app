@@ -145,6 +145,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "set.help": "Help",
   "set.helpHint": "Person, or Peggy",
   "set.more": "More settings for web",
+  "set.tips": "Tips and tooltips",
+  "set.tipsHint": "Word explanation and intro wey dey open by itself",
   "set.moreHint": "Team, billing, security and to close your shop. E go open for your browser",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Payment logos for your store",

@@ -28,6 +28,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   eg: "Àpẹẹrẹ: {example}",
   thatsIt: "Ó parí. O ti mọ {term} báyìí.",
   replayHint: "O lè tún un wò nígbàkúùgbà láti “Kọ́ ẹ̀kọ́ · 60s” lókè ojú-ewé yìí.",
+  tipsOffLead: "O kò nílò ìmọ̀ràn?",
+  tipsOffLink: "Pa á ní Settings",
   watchIntro: "Wo àlàyé ìṣẹ́jú kan",
   watchIntroLong: "Wo àlàyé ìṣẹ́jú kan",
   whatItMeans: "{term}: ohun tó túmọ̀ sí",

@@ -28,6 +28,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   eg: "Ọmụmaatụ: {example}",
   thatsIt: "Ọ bụ ya. Ị maarala {term} ugbu a.",
   replayHint: "Ị nwere ike ikiri ya ọzọ oge ọ bụla site na “Mụta · 60s” n'elu peeji a.",
+  tipsOffLead: "Ịchọghị ndụmọdụ?",
+  tipsOffLink: "Gbanyụọ ha na Settings",
   watchIntro: "Lee nkọwa otu nkeji",
   watchIntroLong: "Lee nkọwa otu nkeji",
   whatItMeans: "{term}: ihe ọ pụtara",
