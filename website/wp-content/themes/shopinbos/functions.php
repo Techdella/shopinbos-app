@@ -51,6 +51,15 @@ add_action( 'wp_enqueue_scripts', function () {
 	wp_enqueue_script( 'sib-site', get_theme_file_uri( 'assets/js/site.js' ), [], SIB_THEME_VERSION . '.' . filemtime( $js ), [ 'strategy' => 'defer', 'in_footer' => true ] );
 } );
 
+/* LiteSpeed Cache: keep caching pages, but don't let it rewrite our CSS and JS. Its "Remove unused CSS" builds a
+   reduced stylesheet once and keeps serving it after the theme changes, which breaks new sections (it broke the
+   home video section and the store badges). The theme does its own image lazy loading and WebP (inc/perf.php). */
+add_action( 'init', function () {
+	if ( ! is_admin() && ! defined( 'LITESPEED_NO_OPTM' ) ) {
+		define( 'LITESPEED_NO_OPTM', true );
+	}
+}, 1 );
+
 /* Keep page caches (LiteSpeed "Delay JS" and similar) from holding back the site scripts: forms, pop-ups and the
    waitlist must work on the first tap. */
 add_filter( 'script_loader_tag', function ( $tag, $handle ) {
