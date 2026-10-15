@@ -445,6 +445,61 @@
 			});
 		}
 
+		// Launch: until launch day, sign-up buttons open the waitlist pop-up (log-in still goes to the app).
+		var L = window.SIB_LAUNCH || { at: 0, live: true };
+		var prelaunch = function () { return !L.live && Date.now() < L.at; };
+		var wlAs = function (href) { return /\/go\/supplier/.test(href) ? 'supplier' : (/\/go\/partner/.test(href) ? 'delivery' : 'seller'); };
+		function setAs(form, as) {
+			var r = form && $('input[name=as][value="' + as + '"]', form);
+			if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
+		}
+		document.addEventListener('click', function (e) {
+			var a = e.target.closest('a[href*="/go/signup"], a[href*="/go/supplier"], a[href*="/go/partner"]');
+			if (!a || !prelaunch()) return;
+			var pop = pops && $('[data-pop="waitlist"]', pops);
+			if (!pop) return;
+			e.preventDefault();
+			var f = $('form', pop), as = wlAs(a.getAttribute('href'));
+			setAs(f, as);
+			var intent = (a.getAttribute('href').match(/[?&]intent=([^&]+)/) || [])[1] || '';
+			var hi = f && $('input[name=intent]', f);
+			if (hi) hi.value = decodeURIComponent(intent);
+			if (window.SIBGist) window.SIBGist.close();
+			openPop('waitlist');
+			track('waitlist_open', { as: as, path: location.pathname });
+		}, true);
+		// The audience switch changes what the optional field asks.
+		document.addEventListener('change', function (e) {
+			var r = e.target.closest && e.target.closest('input[name=as][data-wl-ph]');
+			if (!r) return;
+			var fld = $('[data-wl-field]', r.form);
+			if (fld) fld.placeholder = r.getAttribute('data-wl-ph');
+		});
+		// "Join as …" on the waitlist page picks the audience and jumps to the form.
+		document.addEventListener('click', function (e) {
+			var b = e.target.closest('[data-wl-join]');
+			var form = document.getElementById('wl-form');
+			if (!b || !form) return;
+			e.preventDefault();
+			setAs(form, b.getAttribute('data-wl-join'));
+			form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			setTimeout(function () { var c = $('[name=contact]', form); if (c) c.focus({ preventScroll: true }); }, 450);
+		});
+		// Countdown, kept current on cached pages; after launch the waitlist page sends people to sign up.
+		if (L.at) {
+			var days = Math.max(0, Math.ceil((L.at - Date.now()) / 864e5));
+			$$('[data-wl-count]').forEach(function (el) {
+				var t = el.lastChild;
+				if (t && t.nodeType === 3) t.textContent = (days > 1 ? 'Opens in ' + days + ' days' : days === 1 ? 'Opens tomorrow' : 'Open now') + t.textContent.replace(/^[^·]*/, ' ');
+			});
+			if (!prelaunch()) {
+				document.documentElement.classList.add('sib-is-live');
+				$$('[data-prelaunch]').forEach(function (el) { el.hidden = true; el.style.display = 'none'; });
+				$$('[data-postlaunch]').forEach(function (el) { el.hidden = false; });
+				if (/^\/waitlist\/?$/.test(location.pathname) && !document.body.classList.contains('logged-in')) { var as = new URLSearchParams(location.search).get('as'); location.replace(as === 'supplier' ? '/go/supplier' : as === 'delivery' ? '/go/partner' : '/go/signup'); }
+			}
+		}
+
 		// Lead forms (Starter Kit, exit, weekly trending): sent without leaving the page.
 		document.addEventListener('submit', function (e) {
 			var f = e.target.closest('form[data-cv-lead]');
@@ -454,6 +509,8 @@
 			if (err) err.remove();
 			f.classList.add('is-busy');
 			var contact = (f.querySelector('[name=contact]') || {}).value || '';
+			var back = f.querySelector('[name=back]');
+			if (back) back.value = location.href;
 			fetch(f.getAttribute('action'), { method: 'POST', body: new FormData(f), headers: { Accept: 'application/json' }, credentials: 'same-origin' })
 				.then(function (r) { return r.json(); })
 				.catch(function () { return null; })
@@ -475,7 +532,7 @@
 						f.replaceWith(p);
 						return;
 					}
-					if (f.closest('.cv-pops')) {
+					if (f.closest('.cv-pops') && f.getAttribute('data-cv-lead') === 'download') {
 						openPop('pdf-done');
 						done = $('[data-pop="pdf-done"]', pops);
 					} else {
@@ -500,5 +557,36 @@
 					}
 				});
 		});
+	})();
+
+	/* After a form is sent without JavaScript, the server sends people back here with ?sib_lead=ok|error: say so. */
+	(function () {
+		var q = new URLSearchParams(location.search), st = q.get('sib_lead');
+		if (!st) return;
+		var kind = q.get('sib_form') || '', msg;
+		var ok = {
+			waitlist: 'You’re on the waitlist! We’ll message you the moment Shopinbos opens on November 1.',
+			app_notify: 'Done. We’ll tell you the day the app is live.',
+			download: 'Your guide is on its way. Check your email or WhatsApp.',
+			newsletter: 'Check your email and tap the link to confirm.',
+			contact: 'Thanks! We’ll get back to you within one working day.',
+			investor: 'Thank you. We’ll reply within two working days.'
+		};
+		msg = st === 'ok' ? (ok[kind] || 'Thanks, we got it.') : (q.get('sib_msg') || 'That didn’t go through. Please try again.');
+		var t = document.createElement('div');
+		t.className = 'sib-toast ' + (st === 'ok' ? 'is-ok' : 'is-err');
+		t.setAttribute('role', 'status');
+		t.innerHTML = '<span></span><button type="button" aria-label="Close">×</button>';
+		t.firstChild.textContent = msg;
+		var dl = q.get('sib_dl');
+		if (st === 'ok' && dl) {
+			try { var u = new URL(dl, location.href); if (u.host === location.host) { var a = document.createElement('a'); a.href = u.href; a.textContent = 'Download the PDF'; a.rel = 'nofollow'; t.firstChild.appendChild(document.createTextNode(' ')); t.firstChild.appendChild(a); } } catch (e) {}
+		}
+		t.lastChild.addEventListener('click', function () { t.remove(); });
+		document.body.appendChild(t);
+		setTimeout(function () { t.classList.add('is-in'); }, 30);
+		['sib_lead', 'sib_form', 'sib_msg', 'sib_dl'].forEach(function (k) { q.delete(k); });
+		history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + (location.hash === '#sib-done' ? '' : location.hash));
+		track('lead_return', { kind: kind, ok: st === 'ok' });
 	})();
 })();

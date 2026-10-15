@@ -49,6 +49,15 @@ add_action( 'wp_enqueue_scripts', function () {
 	wp_enqueue_script( 'sib-site', get_theme_file_uri( 'assets/js/site.js' ), [], SIB_THEME_VERSION . '.' . filemtime( $js ), [ 'strategy' => 'defer', 'in_footer' => true ] );
 } );
 
+/* Keep page caches (LiteSpeed "Delay JS" and similar) from holding back the site scripts: forms, pop-ups and the
+   waitlist must work on the first tap. */
+add_filter( 'script_loader_tag', function ( $tag, $handle ) {
+	if ( in_array( $handle, [ 'sib-site', 'sib-gist' ], true ) && ! str_contains( $tag, 'data-no-optimize' ) ) {
+		$tag = str_replace( '<script ', '<script data-no-optimize="1" data-no-defer="1" data-cfasync="false" ', $tag );
+	}
+	return $tag;
+}, 10, 2 );
+
 /* Preload the two fonts every page uses above the fold. */
 add_action( 'wp_head', function () {
 	foreach ( [ 'plus-jakarta-sans-latin.woff2', 'bricolage-grotesque-latin.woff2' ] as $font ) {

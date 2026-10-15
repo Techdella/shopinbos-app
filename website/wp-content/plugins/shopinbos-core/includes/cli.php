@@ -38,8 +38,14 @@ class Sib_CLI {
 		$blog  = $this->page( 'blog', 'Blog', '' );
 		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
 		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
-		$cs = $this->refresh_page( 'coming-soon', 'Coming soon', "<!-- wp:shopinbos/coming-soon /-->\n\n<!-- wp:shopinbos/gist-rail /-->\n", 'page-canvas', 'Shopinbos is almost here. Join the waitlist and we’ll tell you the moment your shop can go live.' );
-		update_post_meta( $cs, 'sib_noindex', 1 );
+		$cs = $this->refresh_page( 'waitlist', 'Join the waitlist', "<!-- wp:shopinbos/coming-soon /-->\n\n<!-- wp:shopinbos/gist-rail /-->\n", 'page-canvas', 'Join the Shopinbos waitlist before we open on November 1. For sellers, suppliers and delivery partners in Nigeria. Free, with setup help.' );
+		// The site is never hidden any more: the old "show only Coming soon" switch is gone.
+		$opts = (array) get_option( 'sib_settings', [] );
+		if ( isset( $opts['site_coming_soon'] ) ) {
+			unset( $opts['site_coming_soon'] );
+			update_option( 'sib_settings', $opts );
+		}
+		delete_post_meta( $cs, 'sib_noindex' );
 		if ( $made = sib_gist_import() ) {
 			WP_CLI::log( "Added {$made} Gist stories (edit them under Website > Gist stories)" );
 		}

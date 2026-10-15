@@ -289,12 +289,26 @@ add_action( 'admin_post_sib_lead', 'sib_handle_lead' );
 function sib_handle_lead(): void {
 	$json   = str_contains( (string) ( $_SERVER['HTTP_ACCEPT'] ?? '' ), 'application/json' );
 	$kind   = sanitize_key( wp_unslash( $_POST['kind'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification -- public form, protected by honeypot + rate limit + origin check
-	$back   = wp_validate_redirect( esc_url_raw( wp_unslash( $_POST['back'] ?? '' ) ), home_url( '/' ) ); // phpcs:ignore
+	// Back to the page the form was on: the form's "back" field, else the referring page, else the home page.
+	// (An empty "back" used to send people to a blank admin-post.php.)
+	$back = esc_url_raw( wp_unslash( $_POST['back'] ?? '' ) ); // phpcs:ignore
+	$back = $back ?: (string) wp_get_referer();
+	$back = wp_validate_redirect( $back, home_url( '/' ) );
+	if ( ! $back || str_contains( $back, '/wp-admin/' ) ) {
+		$back = home_url( '/' );
+	}
 	$result = sib_process_lead( $kind, wp_unslash( $_POST ) ); // phpcs:ignore
 	if ( $json ) {
 		wp_send_json( $result, $result['ok'] ? 200 : 400 );
 	}
-	wp_safe_redirect( add_query_arg( [ 'sib_lead' => $result['ok'] ? 'ok' : 'error', 'sib_form' => $kind ], $back ) . '#' );
+	$args = [ 'sib_lead' => $result['ok'] ? 'ok' : 'error', 'sib_form' => $kind ];
+	if ( ! $result['ok'] && ! empty( $result['message'] ) ) {
+		$args['sib_msg'] = rawurlencode( mb_substr( (string) $result['message'], 0, 140 ) );
+	}
+	if ( ! empty( $result['download'] ) ) {
+		$args['sib_dl'] = rawurlencode( (string) $result['download'] );
+	}
+	wp_safe_redirect( add_query_arg( $args, remove_query_arg( [ 'sib_lead', 'sib_form', 'sib_msg', 'sib_dl' ], $back ) ) . '#sib-done', 303 );
 	exit;
 }
 
@@ -415,7 +429,7 @@ function sib_process_lead_form( string $kind, array $in ): array {
 				return $fail( __( 'Add your WhatsApp number or email.', 'shopinbos' ) );
 			}
 			sib_log_consent( $email ?: $phone, $kind, 'waitlist' === $kind ? 'waitlist' : 'app_notify_' . sanitize_key( (string) ( $in['platform'] ?? '' ) ), __( 'Tell me when Shopinbos is live. One message, no spam.', 'shopinbos' ) );
-			return [ 'ok' => true, 'message' => 'waitlist' === $kind ? __( 'You’re on the list! We’ll message you the moment your shop can go live.', 'shopinbos' ) : __( 'Done. We’ll tell you the day the app is live.', 'shopinbos' ) ];
+			return [ 'ok' => true, 'message' => 'waitlist' === $kind ? __( 'You’re on the waitlist! We’ll message you the moment Shopinbos opens on November 1.', 'shopinbos' ) : __( 'Done. We’ll tell you the day the app is live.', 'shopinbos' ) ];
 
 		case 'investor':
 			if ( ! $name || ! $email ) {

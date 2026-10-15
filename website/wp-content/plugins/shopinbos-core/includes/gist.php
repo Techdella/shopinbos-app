@@ -26,6 +26,14 @@ function sib_gist_defaults(): array {
 		'instagram-tiktok' => [ '/academy/instagram-tiktok-and-ads/', 'IG and TikTok lessons', 'c/p-fashion.webp' ],
 		'repeat-customers' => [ '/academy/grow-and-keep-customers/', 'Keep customers', 'c/d-cashew.webp' ],
 		'festive-season'   => [ '/academy/run-it-like-a-business/', 'Plan your season', 'c/s-heels.webp' ],
+		'launch'           => [ '/waitlist/', 'Join the waitlist', 'gist/launch.webp' ],
+		'meet-peggy'       => [ '/waitlist/', 'Join the waitlist', 'gist/peggy.webp' ],
+		'broadcasts'       => [ '/academy/sell-on-whatsapp/', 'Sell on WhatsApp', 'c/p-gadgets.webp' ],
+		'trust'            => [ '/features/pay-on-delivery/', 'Pay on delivery', 'c/p-ctal.webp' ],
+		'packaging'        => [ '/academy/get-paid-and-deliver/', 'Packing checklist', 'c/f-bag.webp' ],
+		'returns'          => [ '/help/', 'Help centre', 'c/s-sandal.webp' ],
+		'cash-flow'        => [ '/tools/break-even-calculator/', 'Break-even calculator', 'c/d-jar.webp' ],
+		'tiktok-live'      => [ '/academy/instagram-tiktok-and-ads/', 'IG and TikTok lessons', 'c/e-phones.webp' ],
 	];
 }
 
@@ -65,6 +73,15 @@ function sib_gist_groups(): array {
 		$g['cta']    = ( $g['cta'] ?? '' ) ?: $label;
 		$g['img']    = ! empty( $g['thumb'] ) ? $g['thumb'] : sib_img( $img );
 		$g['share']  = home_url( '/gist/#' . $g['slug'] );
+		// Video slides: theme-relative paths (video/…) become full URLs.
+		foreach ( $g['slides'] as &$sl ) {
+			foreach ( [ 'video', 'poster' ] as $k ) {
+				if ( ! empty( $sl[ $k ] ) && ! preg_match( '#^(https?:)?//|^/#', $sl[ $k ] ) ) {
+					$sl[ $k ] = get_theme_file_uri( 'assets/' . ltrim( $sl[ $k ], '/' ) );
+				}
+			}
+		}
+		unset( $sl );
 		unset( $g['thumb'] );
 	}
 	unset( $g );
@@ -86,7 +103,7 @@ add_action( 'init', function () {
 } );
 
 function sib_gist_slide_types(): array {
-	return [ 'cover' => __( 'Cover', 'shopinbos' ), 'tip' => __( 'Tip', 'shopinbos' ), 'list' => __( 'List', 'shopinbos' ), 'number' => __( 'Big number', 'shopinbos' ), 'myth' => __( 'Myth and truth', 'shopinbos' ), 'do-dont' => __( 'Do and don’t', 'shopinbos' ), 'cta' => __( 'Last slide (button)', 'shopinbos' ) ];
+	return [ 'cover' => __( 'Cover', 'shopinbos' ), 'video' => __( 'Video (9:16)', 'shopinbos' ), 'tip' => __( 'Tip', 'shopinbos' ), 'list' => __( 'List', 'shopinbos' ), 'number' => __( 'Big number', 'shopinbos' ), 'myth' => __( 'Myth and truth', 'shopinbos' ), 'do-dont' => __( 'Do and don’t', 'shopinbos' ), 'cta' => __( 'Last slide (button)', 'shopinbos' ) ];
 }
 
 add_action( 'add_meta_boxes_sib_gist', function () {
@@ -111,7 +128,7 @@ function sib_gist_meta_box( WP_Post $post ): void {
 	echo '<tr><th>' . esc_html__( 'Circle image', 'shopinbos' ) . '</th><td>' . esc_html__( 'Set the Featured image (right-hand side). A square photo works best.', 'shopinbos' ) . '</td></tr></table>';
 	echo '<p><strong>' . esc_html__( 'Slides', 'shopinbos' ) . '</strong> ' . esc_html__( '(empty slides are skipped; keep it to 5 to 8)', 'shopinbos' ) . '</p>';
 	foreach ( $slides as $i => $s ) {
-		$s    = (array) $s + [ 'type' => '', 'eyebrow' => '', 'headline' => '', 'text' => '', 'items' => [], 'number' => '', 'do' => '', 'dont' => '' ];
+		$s    = (array) $s + [ 'type' => '', 'eyebrow' => '', 'headline' => '', 'text' => '', 'items' => [], 'number' => '', 'do' => '', 'dont' => '', 'video' => '', 'poster' => '' ];
 		$name = fn( $k ) => 'sib_gist[slides][' . $i . '][' . $k . ']';
 		echo '<details class="sibg-slide"' . ( $s['type'] && $i < 3 ? ' open' : '' ) . '><summary>' . esc_html( sprintf( __( 'Slide %d', 'shopinbos' ), $i + 1 ) ) . ( $s['type'] ? ': ' . esc_html( sib_gist_slide_types()[ $s['type'] ] ?? $s['type'] ) . ( $s['headline'] ? ' · ' . esc_html( $s['headline'] ) : '' ) : ' ' . esc_html__( '(empty)', 'shopinbos' ) ) . '</summary><table style="width:100%"><tr><td style="width:180px"><select name="' . $name( 'type' ) . '"><option value="">' . esc_html__( '— Not used —', 'shopinbos' ) . '</option>';
 		foreach ( sib_gist_slide_types() as $k => $l ) {
@@ -121,6 +138,7 @@ function sib_gist_meta_box( WP_Post $post ): void {
 		echo '<tr><td colspan="2"><input name="' . $name( 'headline' ) . '" value="' . esc_attr( $s['headline'] ) . '" placeholder="' . esc_attr__( 'Headline', 'shopinbos' ) . '"></td></tr>';
 		echo '<tr><td colspan="2"><textarea rows="2" name="' . $name( 'text' ) . '" placeholder="' . esc_attr__( 'Text', 'shopinbos' ) . '">' . esc_textarea( $s['text'] ) . '</textarea></td></tr>';
 		echo '<tr><td><input name="' . $name( 'number' ) . '" value="' . esc_attr( $s['number'] ) . '" placeholder="' . esc_attr__( 'Big number, e.g. ₦4,000', 'shopinbos' ) . '"></td><td><textarea rows="2" name="' . $name( 'items' ) . '" placeholder="' . esc_attr__( 'List items, one per line', 'shopinbos' ) . '">' . esc_textarea( implode( "\n", (array) $s['items'] ) ) . '</textarea></td></tr>';
+		echo '<tr><td colspan="2" style="display:flex;gap:8px"><input name="' . $name( 'video' ) . '" value="' . esc_attr( (string) ( $s['video'] ?? '' ) ) . '" placeholder="' . esc_attr__( 'Video slide: MP4 link (upload in Media, copy its URL)', 'shopinbos' ) . '"><input name="' . $name( 'poster' ) . '" value="' . esc_attr( (string) ( $s['poster'] ?? '' ) ) . '" placeholder="' . esc_attr__( 'Cover image link (optional)', 'shopinbos' ) . '"></td></tr>';
 		echo '<tr><td colspan="2" style="display:flex;gap:8px"><input name="' . $name( 'do' ) . '" value="' . esc_attr( $s['do'] ) . '" placeholder="' . esc_attr__( 'Do…', 'shopinbos' ) . '"><input name="' . $name( 'dont' ) . '" value="' . esc_attr( $s['dont'] ) . '" placeholder="' . esc_attr__( 'Don’t…', 'shopinbos' ) . '"></td></tr></table></details>';
 	}
 	echo '</div>';
@@ -155,7 +173,16 @@ add_action( 'save_post_sib_gist', function ( int $id ) {
 			'number'   => sanitize_text_field( (string) ( $s['number'] ?? '' ) ),
 			'do'       => sanitize_text_field( (string) ( $s['do'] ?? '' ) ),
 			'dont'     => sanitize_text_field( (string) ( $s['dont'] ?? '' ) ),
+			'video'    => sanitize_text_field( (string) ( $s['video'] ?? '' ) ),
+			'poster'   => sanitize_text_field( (string) ( $s['poster'] ?? '' ) ),
 		];
+		$last = count( $g['slides'] ) - 1;
+		foreach ( [ 'video', 'poster' ] as $k ) {
+			$v = $g['slides'][ $last ][ $k ];
+			if ( $v && ! preg_match( '#^(https?://|/|video/)[^"<>\s]*$#', $v ) ) {
+				$g['slides'][ $last ][ $k ] = '';
+			}
+		}
 	}
 	update_post_meta( $id, 'sib_gist', $g );
 } );
@@ -167,7 +194,7 @@ function sib_gist_import(): int {
 		if ( get_page_by_path( $g['slug'], OBJECT, 'sib_gist' ) ) {
 			continue;
 		}
-		$id = wp_insert_post( [ 'post_type' => 'sib_gist', 'post_status' => 'publish', 'post_title' => $g['title'], 'post_name' => $g['slug'], 'menu_order' => $i ] );
+		$id = wp_insert_post( [ 'post_type' => 'sib_gist', 'post_status' => 'publish', 'post_title' => $g['title'], 'post_name' => $g['slug'], 'menu_order' => (int) ( $g['order'] ?? $i ) ] );
 		if ( $id && ! is_wp_error( $id ) ) {
 			update_post_meta( $id, 'sib_gist', array_intersect_key( $g, array_flip( [ 'label', 'bg', 'fg', 'accent', 'slides' ] ) ) );
 			$made++;
@@ -190,7 +217,7 @@ function sib_render_gist_rail( array $a ): string {
 	$out .= '<div class="gist-row" role="list">';
 	foreach ( $groups as $g ) {
 		$out .= '<button type="button" class="gist-item" role="listitem" data-gist="' . esc_attr( $g['slug'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Watch: %s', 'shopinbos' ), $g['title'] ) ) . '">'
-			. '<span class="gist-ring"><span class="gist-av" style="background:' . esc_attr( $g['bg'] ) . '"><img src="' . esc_url( $g['img'] ) . '" alt="" loading="lazy" width="80" height="80"></span></span>'
+			. '<span class="gist-ring"><span class="gist-av" style="background:' . esc_attr( $g['bg'] ) . '"><img src="' . esc_url( $g['img'] ) . '" alt="' . esc_attr( $g['title'] ) . '" loading="lazy" width="80" height="80"></span>' . ( in_array( 'video', array_column( (array) $g['slides'], 'type' ), true ) ? '<span class="gist-play" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg></span>' : '' ) . '</span>'
 			. '<span class="gist-label">' . esc_html( $g['label'] ) . '</span>'
 			. ( $grid ? '<span class="gist-sub">' . esc_html( sprintf( _n( '%d slide', '%d slides', count( $g['slides'] ), 'shopinbos' ), count( $g['slides'] ) ) ) . '</span>' : '' ) . '</button>';
 	}

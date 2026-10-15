@@ -841,3 +841,27 @@ body.site { overflow-x: clip; }
 	.cv-hdr .navcta { padding: 0 6px !important; }
 }
 @media (max-width: 640px) { section.cv.ahero.inv-hero { padding: 36px 0 56px; } }
+
+/* Message after a form is sent without JavaScript */
+.sib-toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; z-index: 120; display: flex; gap: 12px; align-items: flex-start; max-width: min(520px, calc(100% - 32px)); padding: 16px 18px; border-radius: 16px; background: #16141F; color: #fff; font-weight: 600; font-size: 15px; line-height: 1.45; box-shadow: 0 24px 50px -20px rgba(0,0,0,.55); transition: transform .3s ease, opacity .3s ease; }
+.sib-toast.is-in { transform: translate(-50%, 0); opacity: 1; }
+.sib-toast.is-ok { border-left: 4px solid #25D366; }
+.sib-toast.is-err { border-left: 4px solid #E86A4F; }
+.sib-toast a { color: #8BE3D3; text-decoration: underline; }
+.sib-toast button { background: none; border: 0; color: #C9C6D3; font-size: 20px; line-height: 1; cursor: pointer; padding: 0 2px; }
+
+/* Waitlist form (page and pop-up) */
+.wl-form { display: flex; flex-direction: column; gap: 10px; }
+.wl-as { border: 0; margin: 0 0 4px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #F6F5F9; border-radius: 999px; padding: 4px; }
+.wl-as legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.wl-as label { position: relative; cursor: pointer; }
+.wl-as input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.wl-as span { display: flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 8px; border-radius: 999px; font-weight: 800; font-size: 13.5px; color: #6B6779; text-align: center; line-height: 1.15; transition: background .2s, color .2s; }
+.wl-as input:checked + span { background: #16141F; color: #fff; }
+.wl-as input:focus-visible + span { outline: 2px solid #FF6A2B; outline-offset: 2px; }
+.wl-count { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; min-height: 32px; padding: 0 14px; border-radius: 999px; background: #16141F; color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .02em; }
+.wl-modal { width: 100%; max-width: 460px; padding: 26px; display: flex; flex-direction: column; gap: 12px; position: relative; }
+.wl-modal > b.disp { font-size: 26px; line-height: 1.1; }
+.wl-modal > .p { font-size: 14.5px; }
+@media (max-width: 420px) { .wl-as span { font-size: 12px; } }
+[data-postlaunch][hidden], [data-prelaunch][hidden] { display: none !important; }

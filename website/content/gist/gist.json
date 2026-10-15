@@ -1,5 +1,86 @@
 [
  {
+  "slug": "launch",
+  "title": "Shopinbos opens Nov 1",
+  "label": "Nov 1",
+  "bg": "#16141F",
+  "fg": "#FFFFFF",
+  "accent": "#FF6A2B",
+  "order": -2,
+  "slides": [
+   {
+    "type": "video",
+    "eyebrow": "",
+    "headline": "For the people who sell online in Nigeria",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": "",
+    "video": "video/shopinbos-launch.mp4",
+    "poster": "video/shopinbos-launch.webp"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Get in first",
+    "text": "We open on November 1. Join the waitlist and we’ll save your spot, with free setup help for early sellers.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "meet-peggy",
+  "title": "Meet Peggy",
+  "label": "Peggy",
+  "bg": "#FF6A2B",
+  "fg": "#16141F",
+  "accent": "#FFFFFF",
+  "order": -1,
+  "slides": [
+   {
+    "type": "video",
+    "eyebrow": "",
+    "headline": "Peggy runs the shop. You grow the business.",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": "",
+    "video": "video/meet-peggy.mp4",
+    "poster": "video/meet-peggy.webp"
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "What Peggy does for you",
+    "text": "",
+    "items": [
+     "Answers customers, day and night",
+     "Sends pay links and confirms payment",
+     "Books the rider and tracks delivery",
+     "Tells you before stock runs out"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Let Peggy run your shop",
+    "text": "Peggy comes with every Shopinbos store. Join the waitlist and meet her on November 1.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
   "slug": "first-order",
   "title": "Get your first order",
   "label": "First order",
@@ -831,6 +912,450 @@
     "eyebrow": "",
     "headline": "Plan your season",
     "text": "The Academy track Grow and keep customers shows how to plan offers, discounts and follow-ups.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "broadcasts",
+  "title": "WhatsApp broadcasts",
+  "label": "Broadcasts",
+  "bg": "#E2F5EA",
+  "fg": "#16141F",
+  "accent": "#16794A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Broadcasts",
+    "headline": "Broadcasts that sell, not spam",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Only people who saved your number see it",
+    "text": "Ask customers to save your number first. A broadcast never reaches people who haven’t.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "One useful broadcast a week keeps you in mind. Five sales messages a day gets you muted.",
+    "items": [],
+    "number": "1 a week",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "A broadcast that works",
+    "text": "",
+    "items": [
+     "One product, one clear photo",
+     "The price in naira",
+     "How to order: a link or reply",
+     "A reason to buy now"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Send new arrivals, restocks and real offers",
+    "dont": "Forward chain messages or send at midnight"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Run broadcasts properly",
+    "text": "The Academy track Sell on WhatsApp covers broadcasts, lists and follow-ups.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "trust",
+  "title": "Build trust",
+  "label": "Trust",
+  "bg": "#0C4A44",
+  "fg": "#FFFFFF",
+  "accent": "#8BE3D3",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Trust",
+    "headline": "Why buyers don’t pay, and how to fix it",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Strangers fear paying first",
+    "text": "Most people have heard of “what I ordered vs what I got”. Your job is to remove that fear.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Five trust builders",
+    "text": "",
+    "items": [
+     "Real photos, not supplier pictures",
+     "Reviews and customer videos",
+     "Pay on delivery for first orders",
+     "A store link with your name",
+     "Fast, polite replies"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: only big brands get trusted",
+    "text": "Truth: buyers trust sellers who show proof, answer fast and keep promises. Size doesn’t matter.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Post a packed parcel before it leaves",
+    "dont": "Delete negative comments instead of fixing the problem"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Turn trust into orders",
+    "text": "Pay on delivery with a delivery code protects you and your buyer.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "packaging",
+  "title": "Packaging",
+  "label": "Packaging",
+  "bg": "#FFF1E8",
+  "fg": "#16141F",
+  "accent": "#FF6A2B",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Packaging",
+    "headline": "The unboxing is part of the product",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Pack for the road",
+    "text": "Parcels ride on okadas, in rain and traffic. Wrap twice, seal well and use a strong bag or box.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "A thank-you card, tape and a branded sticker cost about this much, and customers remember them.",
+    "items": [],
+    "number": "₦300",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Inside every parcel",
+    "text": "",
+    "items": [
+     "A thank-you note with your store link",
+     "Care or usage instructions",
+     "A small discount for next time"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Photograph every parcel before it leaves",
+    "dont": "Reuse dirty or torn bags"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Pack like a big brand",
+    "text": "The Academy track Get paid and deliver has a packing checklist.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "returns",
+  "title": "Returns and refusals",
+  "label": "Returns",
+  "bg": "#16141F",
+  "fg": "#FFFFFF",
+  "accent": "#E8457A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Returns",
+    "headline": "When a buyer says “I no want am again”",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Write your rule before you need it",
+    "text": "For example: exchanges within 3 days for the wrong size, item unused, tags on. Put it on your store.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Confirm before you send",
+    "text": "A quick WhatsApp check on size, colour and address stops most refusals at the gate.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "If a buyer refuses a pay on delivery parcel, the rider brings it back. You pay only the return delivery.",
+    "items": [],
+    "number": "1 fee",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Stay calm and offer an exchange",
+    "dont": "Argue in public comments"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Fewer returns, happier buyers",
+    "text": "Read our help guide: a customer refused the parcel at the gate.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "cash-flow",
+  "title": "Money and cash flow",
+  "label": "Cash flow",
+  "bg": "#5B3FD6",
+  "fg": "#FFFFFF",
+  "accent": "#FFE27A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Money",
+    "headline": "Sales are not profit. Profit is not cash.",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Separate your money",
+    "text": "Open a separate account for the business. Mixing it with personal money hides what the shop really makes.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Three numbers every Friday",
+    "text": "",
+    "items": [
+     "Orders this week",
+     "What you kept after costs",
+     "Cash in the bank today"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: more sales always means more money",
+    "text": "Truth: discounts, free delivery and refunds can turn busy weeks into losses. Check what you kept.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Shopinbos pays your balance to your bank every Friday, so you can plan restocks.",
+    "items": [],
+    "number": "Every Friday",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Know your numbers",
+    "text": "Use the free break-even calculator to see how many sales you need.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "tiktok-live",
+  "title": "Sell on TikTok",
+  "label": "TikTok",
+  "bg": "#FCE4EC",
+  "fg": "#16141F",
+  "accent": "#E8457A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · TikTok",
+    "headline": "Short videos, real orders",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Show the product in use",
+    "text": "Try it on, open it, pour it, switch it on. People buy what they can see working.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Easy video ideas",
+    "text": "",
+    "items": [
+     "Packing an order",
+     "Before and after",
+     "Three ways to wear it",
+     "Answering a customer’s question"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "That’s how long you have. Start with the product, not your intro.",
+    "items": [],
+    "number": "3 seconds",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Put the price and your store link in the caption",
+    "dont": "Make people beg for the price in comments"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Grow on TikTok",
+    "text": "The Academy track Instagram, TikTok and ads shows you how to film and post.",
     "items": [],
     "number": "",
     "do": "",

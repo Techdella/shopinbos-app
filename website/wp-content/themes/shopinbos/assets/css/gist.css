@@ -77,3 +77,10 @@ html.gv-open { overflow: hidden; }
 .gs-pic img { width: 100%; height: 100%; object-fit: cover; display: block; background: color-mix(in srgb, var(--g-fg) 10%, transparent); }
 .sib .wp-block-post-content > .gist { padding: 28px 0 72px; }
 @media (max-height: 700px) and (min-width: 641px) { .gs { padding: 80px 24px 28px; gap: 12px; } .gs-h { font-size: 28px; } .gs-h-xl, .gs-is-cover .gs-h-xl { font-size: 38px; } .gs-t { font-size: 16px; } .gs-num { font-size: 60px; } .gs-list li { padding: 10px 14px; font-size: 15px; } .gs-pic { width: 100px; height: 100px; } }
+/* Video slides */
+.gs.gs-is-video { padding: 0; justify-content: flex-end; background: #000; }
+.gs > .gs-video { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gs-vcap { position: relative; z-index: 1; margin: 0; padding: 120px 22px 28px; color: #fff; font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 22px; line-height: 1.15; background: linear-gradient(transparent, rgba(0,0,0,.65)); pointer-events: none; }
+.gs > .gs-mute { position: absolute; z-index: 4; right: 14px; top: 70px; width: 38px; height: 38px; border-radius: 999px; border: 0; background: rgba(0,0,0,.45); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.gist-play { position: absolute; right: -2px; bottom: 2px; width: 24px; height: 24px; border-radius: 999px; background: #FF6A2B; color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.gist-ring { position: relative; }
