@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.shopinbos.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of your products, and proof of delivery photos.",
-        "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop."
+        "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
