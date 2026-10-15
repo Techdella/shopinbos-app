@@ -21,6 +21,26 @@ export const CREDIT_PACKS: CreditPack[] = [
 
 export const DEFAULT_AUTO_PACK = "medium";
 
+/** Credits every new account starts with ("5 AI credits to get started" on the Starter plan). */
+export const WELCOME_CREDITS = 5;
+
+/**
+ * Credits a paid plan adds to the balance each time it is paid (Paystack plan codes). Monthly plans add the
+ * month's credits; annual plans add twelve months' worth up front. The daily allowance comes from the plan too.
+ */
+export const PLAN_CREDIT_GRANTS: Record<string, { credits: number; label: string }> = {
+  PLN_8ou289e71czicvm: { credits: 50, label: "Growth plan" },
+  PLN_q1k3ssxpx7rxxuz: { credits: 600, label: "Growth plan (year)" },
+  PLN_2gph11w3yd0250y: { credits: 200, label: "Seller Pro plan" },
+  PLN_9gma70ofldhbj4r: { credits: 2_400, label: "Seller Pro plan (year)" },
+  PLN_q78304vgj7p35o6: { credits: 100, label: "Supplier Max plan" },
+  PLN_0a6z6ns429ohli1: { credits: 1_200, label: "Supplier Max plan (year)" },
+};
+
+export function planCreditGrant(planCode: string | null | undefined) {
+  return planCode ? PLAN_CREDIT_GRANTS[planCode] ?? null : null;
+}
+
 /** Credits per request once the day's allowance is used: a picture costs more than a chat message. */
 export const CREDIT_COST = { text: 1, speech: 1, voice: 2, image: 5, build: 15 } as const;
 export type CreditKind = keyof typeof CREDIT_COST;

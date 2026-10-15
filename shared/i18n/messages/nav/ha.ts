@@ -180,6 +180,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "tab.logistics.jobs": "Ayyuka",
   "tab.logistics.riders": "Riders",
   "tab.logistics.earnings": "Kuɗi",
+  "credits.title": "Kiredit na AI",
+  "credits.aria": "{count, plural, other {Kiredit na AI # sun rage}}. Buɗe don ƙarawa.",
+  "credits.short": "kiredit",
+  "credits.added": "An karɓi kuɗin. Kiredit ɗinka sun shiga.",
+  "credits.pending": "Paystack yana tabbatarwa. Kiredit ɗinka za su bayyana nan ba da jimawa ba.",
+  "credits.notPaid": "Biyan bai wuce ba, ba a cire komai ba.",
+  "credits.failed": "An kasa fara biyan. Sake gwadawa.",
+  "credits.autoOn": "Ƙari ta atomatik yana kunne",
+  "credits.freeToday": "Kyauta a tsarinka yau",
+  "credits.replies": "Amsoshin Rex da Peggy",
+  "credits.pictures": "Hotuna",
+  "credits.how": "Idan kason kyauta na yau ya ƙare, kiredit ne ke biyan kowace buƙata.",
+  "credits.topUp": "Ƙara",
+  "credits.autoOnBuy": "Ƙara mini ta atomatik idan kiredit sun ƙare (sau 3 a rana a mafi yawa)",
+  "credits.manage": "Sarrafa kiredit da tarihi",
 };
 
 export default ha;

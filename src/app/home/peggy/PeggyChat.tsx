@@ -1,5 +1,6 @@
 "use client";
 
+import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -124,6 +125,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
       setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? error.message : t("err.short") }]);
     } finally {
       setBusy(false);
+      creditsChanged();
       inputRef.current?.focus();
     }
   }
@@ -292,6 +294,16 @@ function LinkedText({ text }: { text: string }) {
               <Link href={path} className="my-1 inline-flex max-w-full items-center gap-1.5 rounded-full bg-app-ink px-3.5 py-1.5 text-[13px] font-bold text-white no-underline hover:opacity-90">
                 <Icon name="sparkle" size={14} className="shrink-0" />
                 <span className="truncate">{t("askRex", { request: ask.length > 60 ? `${ask.slice(0, 57)}…` : ask })}</span>
+              </Link>
+            ) : path === "/home/credits" ? (
+              <Link
+                href={path}
+                onClick={(event) => {
+                  if (openTopUp()) event.preventDefault();
+                }}
+                className="my-1 inline-flex items-center gap-1.5 rounded-full bg-app-ink px-3.5 py-1.5 text-[13px] font-bold text-white no-underline hover:opacity-90"
+              >
+                <Icon name="sparkle" size={14} /> {t("buyCredits")}
               </Link>
             ) : (
               <Link href={path} className="font-bold text-app-ink underline underline-offset-2">{path}</Link>

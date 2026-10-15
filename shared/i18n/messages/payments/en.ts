@@ -277,6 +277,8 @@ const en = {
   "cr.cost": "{count, plural, one {# credit} other {# credits}}",
   "cr.today": "Today's allowance",
   "cr.settingsLine": "{count, plural, one {# credit left} other {# credits left}}. Buy more so Rex and Peggy keep going after today's allowance.",
+  "cr.topUp": "Top up",
+  "cr.fromPlan": "From your plan",
 } satisfies Record<string, string>;
 
 export default en;

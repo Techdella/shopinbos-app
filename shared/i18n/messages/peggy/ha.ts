@@ -39,6 +39,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "neverAlone": "Ba ta aika saƙonni, ba ta wallafa posts, ba ta fara ads da kanta; tana ajiye su a matsayin draft don ka duba.",
   "didThis": "Peggy ce ta yi wannan",
   "askRex": "Tambayi Rex: {request}",
+  "buyCredits": "Sayi kiredit na AI",
 };
 
 export default ha;

@@ -61,6 +61,8 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const aiCredits = dbUser?.aiCredits ?? 5;
   // The daily AI allowance (src/lib/ai/usage.ts) is what Peggy and Rex actually spend; aiCredits sets its size.
   const aiAllowance = await aiAllowanceToday(user.id, dbUser?.aiCredits);
+  // The spendable AI credits (welcome, plan and bought credits), the one number shown as "AI credits".
+  const credits = await creditBalance(user.id);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const brandSettings = (store?.brandSettings ?? {}) as Record<string, any>;
   const launchBilling = brandSettings.launchBilling && typeof brandSettings.launchBilling === "object"
@@ -283,7 +285,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                 <Card className="p-5">
                   <CardHead
                     title={tPay("cr.title")}
-                    sub={tPay("cr.settingsLine", { count: await creditBalance(user.id) })}
+                    sub={tPay("cr.settingsLine", { count: credits })}
                     action={<PillLink href="/home/credits" size="sm" tone="ink" icon="sparkle">{tPay("cr.buy")}</PillLink>}
                   />
                 </Card>
@@ -291,6 +293,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                   userEmail={billingEmail(user)}
                   userName={user.name}
                   aiCredits={aiCredits}
+                  creditBalance={credits}
                   productCount={productCount}
                 />
                 {store && <SupplierSwitchCard settings={switchSettings(await db.store.findUnique({ where: { id: store.id }, select: { autoSwitchSupplier: true, switchCostRule: true, switchMaxIncreasePct: true, switchMinMarginPct: true } }))} />}
@@ -329,7 +332,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                     <div key={row.kind} className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">{t("store.today", { label: row.label })}</dt><dd className="m-0 font-extrabold">{t("store.usedOf", { used: row.used, limit: row.limit })}</dd></div>
                   ))
                 ) : (
-                  <div className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">{t("store.credits")}</dt><dd className="m-0 font-extrabold">{aiCredits}</dd></div>
+                  <div className="flex justify-between gap-3 py-2.5 text-[14px]"><dt className="text-app-ink-soft">{t("store.credits")}</dt><dd className="m-0 font-extrabold">{credits}</dd></div>
                 )}
               </dl>
             </Card>

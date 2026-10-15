@@ -1,5 +1,6 @@
 "use server";
 
+import { grantPlanCredits } from "@/lib/ai/credits.server";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
@@ -437,7 +438,9 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
       throw error;
     }
 
-    for (const path of paths) revalidatePath(path);
+    // The plan's credits go into the same balance Rex and Peggy spend (once per payment reference).
+    await grantPlanCredits(user.id, planCode, reference).catch((error) => console.error("[payments] plan credits not added", error));
+    for (const path of [...paths, "/home/credits"]) revalidatePath(path);
     return { success: true };
   } catch (e) {
     return { success: false, error: String(e) };

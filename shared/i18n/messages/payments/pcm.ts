@@ -279,6 +279,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.cost": "{count, plural, one {# credit} other {# credits}}",
   "cr.today": "Today allowance",
   "cr.settingsLine": "{count, plural, one {# credit remain} other {# credits remain}}. Buy more make Rex and Peggy continue after today allowance.",
+  "cr.topUp": "Top up",
+  "cr.fromPlan": "From your plan",
 };
 
 export default pcm;

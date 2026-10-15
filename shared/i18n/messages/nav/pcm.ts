@@ -180,6 +180,21 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "tab.logistics.jobs": "Jobs",
   "tab.logistics.riders": "Riders",
   "tab.logistics.earnings": "Money",
+  "credits.title": "AI credits",
+  "credits.aria": "{count, plural, one {# AI credit remain} other {# AI credits remain}}. Open am to top up.",
+  "credits.short": "credits",
+  "credits.added": "Payment don land. Your credits don enter.",
+  "credits.pending": "Paystack still dey confirm. Your credits go show soon.",
+  "credits.notPaid": "The payment no go, so dem no charge you.",
+  "credits.failed": "Payment no start. Try again.",
+  "credits.autoOn": "Auto top-up dey on",
+  "credits.freeToday": "Free for your plan today",
+  "credits.replies": "Rex & Peggy replies",
+  "credits.pictures": "Pictures",
+  "credits.how": "When today free allowance finish, credits go pay for each request.",
+  "credits.topUp": "Top up",
+  "credits.autoOnBuy": "Top me up by itself when credits finish (max 3 times a day)",
+  "credits.manage": "Manage credits and history",
 };
 
 export default pcm;

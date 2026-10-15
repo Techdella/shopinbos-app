@@ -279,6 +279,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.cost": "{count, plural, other {kírẹ́dítì #}}",
   "cr.today": "Ìpín òní",
   "cr.settingsLine": "{count, plural, other {Kírẹ́dítì # ló kù}}. Ra sí i kí Rex àti Peggy máa bá iṣẹ́ lọ.",
+  "cr.topUp": "Fi kún un",
+  "cr.fromPlan": "Láti inú ètò rẹ",
 };
 
 export default yo;

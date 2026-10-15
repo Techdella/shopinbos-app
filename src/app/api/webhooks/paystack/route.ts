@@ -1,5 +1,5 @@
 import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
-import { completeCreditPurchase } from "@/lib/ai/credits.server";
+import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
@@ -115,6 +115,10 @@ export async function POST(req: NextRequest) {
         where: { email: customerEmail },
         data: { aiCredits: credits },
       });
+      // Each paid renewal adds the plan's credits to the balance (once per invoice).
+      const payer = await db.user.findFirst({ where: { email: { equals: customerEmail, mode: "insensitive" } }, select: { id: true } });
+      const reference = (event.data?.transaction?.reference as string | undefined) ?? (event.data?.invoice_code as string | undefined);
+      if (payer && reference) await grantPlanCredits(payer.id, planCode, reference).catch((error) => console.error("Plan credits not added:", error));
     }
     await recordPlan(recordInvoicePaid(event.data ?? {}));
   }

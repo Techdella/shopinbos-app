@@ -180,6 +180,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "tab.logistics.jobs": "Ọrụ",
   "tab.logistics.riders": "Riders",
   "tab.logistics.earnings": "Ego",
+  "credits.title": "Kredit AI",
+  "credits.aria": "{count, plural, other {Kredit AI # fọdụrụ}}. Mepee ka ịgbakwunye.",
+  "credits.short": "kredit",
+  "credits.added": "Anatara ụgwọ. Kredit gị abanyela.",
+  "credits.pending": "Paystack ka na-akwado. Kredit gị ga-apụta n'oge na-adịghị anya.",
+  "credits.notPaid": "Ụgwọ ahụ agaghị, ewepụtaghị ihe ọ bụla.",
+  "credits.failed": "Enweghị ike ịmalite ịkwụ ụgwọ. Nwaa ọzọ.",
+  "credits.autoOn": "Mgbakwunye akpaghị aka dị",
+  "credits.freeToday": "N'efu na atụmatụ gị taa",
+  "credits.replies": "Nzaghachi Rex na Peggy",
+  "credits.pictures": "Foto",
+  "credits.how": "Mgbe oke n'efu nke taa gwụrụ, kredit na-akwụ ụgwọ maka arịrịọ ọ bụla.",
+  "credits.topUp": "Gbakwunye",
+  "credits.autoOnBuy": "Gbakwunye m n'onwe ya mgbe kredit gwụrụ (ugboro 3 kachasị n'ụbọchị)",
+  "credits.manage": "Jikwaa kredit na akụkọ",
 };
 
 export default ig;

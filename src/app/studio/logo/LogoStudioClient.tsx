@@ -1,5 +1,6 @@
 "use client";
 
+import { creditsChanged } from "@/components/credits/CreditsBadge";
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { FieldLabel, Notice, PillButton, Spinner, TextInput, cx } from "@/components/app-ui";
@@ -50,6 +51,7 @@ export function LogoStudioClient({ storeName }: { storeName: string }) {
       setError(t("studio.offline"));
     } finally {
       setLoading(false);
+      creditsChanged();
     }
   };
 

@@ -2698,3 +2698,13 @@ test("Rex and Peggy chats save with a title from the seller's first words, withi
   const weird = h.parseAiChatSave({ id: "../../etc", assistant: "rex", messages: [{}] });
   assert.equal(weird.ok && weird.save.id, null, "odd ids start a new chat");
 });
+
+test("Plans put their AI credits into the same balance Rex and Peggy spend", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.WELCOME_CREDITS, 5, "Starter: 5 AI credits to get started");
+  assert.equal(c.planCreditGrant("PLN_8ou289e71czicvm").credits, 50, "Growth monthly");
+  assert.equal(c.planCreditGrant("PLN_2gph11w3yd0250y").credits, 200, "Pro monthly");
+  assert.equal(c.planCreditGrant("PLN_q1k3ssxpx7rxxuz").credits, 600, "Growth annual: twelve months up front");
+  assert.equal(c.planCreditGrant("PLN_unknown"), null);
+  assert.equal(c.planCreditGrant(null), null);
+});

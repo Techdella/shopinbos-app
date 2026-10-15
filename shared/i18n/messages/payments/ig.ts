@@ -279,6 +279,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.cost": "{count, plural, other {kredit #}}",
   "cr.today": "Oke taa",
   "cr.settingsLine": "{count, plural, other {Kredit # fọdụrụ}}. Zụta ọzọ ka Rex na Peggy gaa n'ihu.",
+  "cr.topUp": "Gbakwunye",
+  "cr.fromPlan": "Site na atụmatụ gị",
 };
 
 export default ig;
