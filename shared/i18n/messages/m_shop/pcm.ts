@@ -34,6 +34,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.partners.hint": "Suppliers and delivery partners",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaigns, discount codes and ads",
+  "link.customers.label": "Customers",
+  "link.customers.hint": "Everybody wey don buy from you, and message to each person",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "Wetin customers talk, and to ask for more",
   "link.rex.label": "Rex Studio",

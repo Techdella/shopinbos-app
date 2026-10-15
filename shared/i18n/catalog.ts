@@ -35,6 +35,7 @@ import m_auth from "./messages/m_auth/index.ts";
 import m_notifications from "./messages/m_notifications/index.ts";
 import m_help from "./messages/m_help/index.ts";
 import m_reviews from "./messages/m_reviews/index.ts";
+import m_customers from "./messages/m_customers/index.ts";
 import m_rex from "./messages/m_rex/index.ts";
 import m_channels from "./messages/m_channels/index.ts";
 import m_legal from "./messages/m_legal/index.ts";
@@ -110,6 +111,7 @@ export const CATALOGS = {
   m_notifications,
   m_help,
   m_reviews,
+  m_customers,
   m_rex,
   m_channels,
   m_legal,

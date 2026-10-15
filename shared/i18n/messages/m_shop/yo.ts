@@ -34,6 +34,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.partners.hint": "Supplier àti delivery partner",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaign, kóòdù ẹ̀dínwó àti ads",
+  "link.customers.label": "Àwọn oníbàárà",
+  "link.customers.hint": "Gbogbo ẹni tó ti rà lọ́wọ́ rẹ, àti ọ̀rọ̀ sí ẹnìkọ̀ọ̀kan",
   "link.reviews.label": "Àwọn review",
   "link.reviews.hint": "Ohun tí oníbàárà ń sọ, àti bíbéèrè fún síi",
   "link.rex.label": "Rex Studio",

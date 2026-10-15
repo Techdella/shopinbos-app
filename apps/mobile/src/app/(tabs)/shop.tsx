@@ -28,6 +28,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     title: "Sell",
     links: [
       { id: "products", label: "My products", icon: "box", path: "app:/products", hint: "Prices, photos, inventory" },
+      { id: "customers", label: "Customers", icon: "users", path: "app:/customers", hint: "Everyone who bought from you, and a message to each" },
       { id: "dropship", label: "Dropship", icon: "truck", path: "app:/dropship", hint: "Sell products a supplier sends for you" },
       { id: "find", label: "Find products to sell", icon: "search", path: "app:/find", hint: "From suppliers in Nigeria and China" },
       { id: "themes", label: "Themes", icon: "image", path: "app:/web-only?what=look", hint: "How your shop looks: colours, logo and pictures" },

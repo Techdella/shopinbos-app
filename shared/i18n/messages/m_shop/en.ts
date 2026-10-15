@@ -35,6 +35,8 @@ const en = {
   "link.partners.hint": "Suppliers and delivery partners",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaigns, discount codes and ads",
+  "link.customers.label": "Customers",
+  "link.customers.hint": "Everyone who bought from you, and a message to each",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "What customers say, and asking for more",
   "link.rex.label": "Rex Studio",

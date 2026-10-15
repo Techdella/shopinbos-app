@@ -38,6 +38,7 @@ const APP_SCREENS: Record<string, string> = {
   "/home/inbox/chatbot": "/inbox/chatbot",
   "/marketplace": "/find",
   "/home/reviews": "/reviews",
+  "/home/customers": "/customers",
   "/home/marketing": "/marketing",
   "/home/marketing/campaigns": "/marketing",
   "/home/discounts": "/marketing",

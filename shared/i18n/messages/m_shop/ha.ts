@@ -34,6 +34,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.partners.hint": "Suppliers da delivery partners",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaigns, lambobin rangwame da ads",
+  "link.customers.label": "Kwastomomi",
+  "link.customers.hint": "Duk wanda ya saya daga gare ka, da saƙo ga kowanne",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "Abin da abokan ciniki ke faɗi, da neman ƙari",
   "link.rex.label": "Rex Studio",

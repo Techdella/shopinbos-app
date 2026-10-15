@@ -34,6 +34,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.partners.hint": "Suppliers na delivery partners",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaigns, koodu mbelata na ads",
+  "link.customers.label": "Ndị ahịa",
+  "link.customers.hint": "Onye ọ bụla zụrụ ihe n'aka gị, na ozi nye onye ọ bụla",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "Ihe ndị ahịa na-ekwu, na ịrịọ maka ọzọ",
   "link.rex.label": "Rex Studio",
