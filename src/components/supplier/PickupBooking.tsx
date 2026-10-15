@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import type { PickupSlot } from "@shared/supplier-pickup";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -100,7 +101,7 @@ export function PickupBooking({ initial, shop }: { initial: PickupView; shop: st
         {pickup.changeable ? (
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => { setEditing(true); setAddress(pickup.address); }} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14.5px] font-extrabold">{t("pickup.changeTime")}</button>
-            <button type="button" disabled={Boolean(busy)} onClick={() => { if (window.confirm(t("pickup.cancelConfirm"))) void call("DELETE", undefined, "cancel"); }} className="inline-flex min-h-[44px] items-center rounded-full px-4 text-[14.5px] font-bold text-app-ink-soft underline underline-offset-4">
+            <button type="button" disabled={Boolean(busy)} onClick={async () => { if ((await confirmDialog(t("pickup.cancelConfirm")))) void call("DELETE", undefined, "cancel"); }} className="inline-flex min-h-[44px] items-center rounded-full px-4 text-[14.5px] font-bold text-app-ink-soft underline underline-offset-4">
               {busy === "cancel" ? t("pickup.cancelling") : t("pickup.cancel")}
             </button>
           </div>

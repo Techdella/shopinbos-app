@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -74,8 +75,8 @@ export function ConnectCard({
     });
   }
 
-  function disconnect() {
-    if (!window.confirm(t("card.confirm", { name }))) return;
+  async function disconnect() {
+    if (!(await confirmDialog(t("card.confirm", { name })))) return;
     startTransition(async () => {
       await disconnectAction(platform);
       router.refresh();

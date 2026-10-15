@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, EmptyState, Pill } from "@/components/app-kit";
@@ -224,7 +225,7 @@ export function SegmentsManager({ segments, products, tags }: { segments: Segmen
   const [error, setError] = useState<string | null>(null);
 
   async function remove(segment: Segment) {
-    if (!window.confirm(t("seg.confirmDelete", { name: segment.name }))) return;
+    if (!(await confirmDialog(t("seg.confirmDelete", { name: segment.name })))) return;
     setError(null);
     try {
       await api(`/api/app/marketing/segments/${segment.id}`, "DELETE");

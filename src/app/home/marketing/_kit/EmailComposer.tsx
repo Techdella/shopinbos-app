@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useRef, useState } from "react";
 import { AdvancedFold } from "@/components/simple/Fold";
 import { Icon } from "@/components/ui/Icon";
@@ -61,7 +62,7 @@ export function EmailComposer({ value, onChange, variables }: { value: string; o
     commit(blocks.map((b, i) => (i === target.index ? ({ ...b, ...(target.field === "label" ? { label: next } : { text: next }) } as EmailBlock) : b)));
   }
 
-  function switchMode(next: "visual" | "html") {
+  async function switchMode(next: "visual" | "html") {
     if (next === mode) return;
     if (next === "html") {
       onChange(blocksToHtml(blocks));
@@ -74,7 +75,7 @@ export function EmailComposer({ value, onChange, variables }: { value: string; o
       setMode("visual");
       return;
     }
-    if (value.trim() && !window.confirm(t("composer.confirmFresh"))) return;
+    if (value.trim() && !(await confirmDialog(t("composer.confirmFresh")))) return;
     commit(STARTER);
     setMode("visual");
   }

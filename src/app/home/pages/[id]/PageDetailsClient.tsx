@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -274,7 +275,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
   }, [page.id, localScheduling.publishAt, router, t]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm(t("pages.confirmDelete"))) return;
+    if (!(await confirmDialog(t("pages.confirmDelete")))) return;
     try {
       const res = await fetch(`/api/store/pages/${page.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("delete failed");

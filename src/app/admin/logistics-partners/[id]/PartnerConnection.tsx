@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, useTransition, type ReactNode } from "react";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -74,8 +75,8 @@ export function ApiKeysPanel({ partnerId, keys, canCreate }: { partnerId: string
       } else setError(result.error);
     });
 
-  const revoke = (id: string) => {
-    if (!window.confirm("Revoke this key? Anything using it stops working straight away.")) return;
+  const revoke = async (id: string) => {
+    if (!(await confirmDialog("Revoke this key? Anything using it stops working straight away."))) return;
     setBusyId(id);
     start(async () => {
       const result = await revokeApiKeyAction(partnerId, id);
@@ -84,8 +85,8 @@ export function ApiKeysPanel({ partnerId, keys, canCreate }: { partnerId: string
     });
   };
 
-  const rotate = (id: string) => {
-    if (!window.confirm("Rotate this key? We make a new key now and the old one stops working straight away.")) return;
+  const rotate = async (id: string) => {
+    if (!(await confirmDialog("Rotate this key? We make a new key now and the old one stops working straight away."))) return;
     setBusyId(`rotate:${id}`);
     start(async () => {
       setError(null);
@@ -190,8 +191,8 @@ export function WebhooksPanel({ partnerId, hooks }: { partnerId: string; hooks: 
       }));
     });
 
-  const remove = (id: string) => {
-    if (!window.confirm("Remove this webhook? We'll stop sending events to it.")) return;
+  const remove = async (id: string) => {
+    if (!(await confirmDialog("Remove this webhook? We'll stop sending events to it."))) return;
     run(`remove:${id}`, async () => {
       const result = await removeWebhookAction(partnerId, id);
       if (!result.ok) setError(result.error);

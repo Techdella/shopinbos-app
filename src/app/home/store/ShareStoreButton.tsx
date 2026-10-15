@@ -1,5 +1,6 @@
 "use client";
 
+import { promptDialog } from "@/components/ui/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -35,7 +36,7 @@ export function ShareStoreButton({ url, storeName }: { url: string; storeName: s
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt(t("share.copyPrompt"), url);
+      await promptDialog({ title: t("share.copyPrompt"), defaultValue: url, readOnly: true, icon: "link" });
     }
   }
 

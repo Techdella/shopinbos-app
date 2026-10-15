@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { EmailPreviewIframe } from "@/app/home/marketing/_kit/EmailFrame";
 import { Card, CardHead, Pill, type Tone } from "@/components/app-kit";
@@ -229,7 +230,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
     const question = at
       ? `Schedule "${draft.subject}" for ${when(at.toISOString())} (Lagos time) to about ${n(count)} people?`
       : `Send "${draft.subject}" to ${n(count)} ${count === 1 ? "person" : "people"} now? This can't be undone.`;
-    if (!window.confirm(question)) return;
+    if (!(await confirmDialog(question))) return;
     const id = await save();
     const result = await call<{ broadcast: BroadcastRow; progress: { status: string; sent?: number; skipped?: number; failed?: number; queued?: number } }>(`/api/admin/product-news/${id}/send`, {
       method: "POST",
@@ -253,7 +254,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
       if (action === "retry") await call(`/api/admin/product-news/${row.id}/retry`, { method: "POST", body: "{}" });
       if (action === "unschedule") await call(`/api/admin/product-news/${row.id}`, { method: "PATCH", body: JSON.stringify({ unschedule: true }) });
       if (action === "delete") {
-        if (!window.confirm(`Delete the draft "${row.subject}"?`)) return;
+        if (!(await confirmDialog(`Delete the draft "${row.subject}"?`))) return;
         await call(`/api/admin/product-news/${row.id}`, { method: "DELETE" });
         if (editingId === row.id) startNew();
       }

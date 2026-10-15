@@ -1,5 +1,6 @@
 "use client";
 
+import { alertDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/growth/kit";
@@ -21,7 +22,7 @@ export function TemplateCopyButton({ templateKey }: { templateKey: string }) {
           const copy = await api<{ id: string }>("/api/app/marketing/templates", "POST", { copy: templateKey });
           router.push(`/home/marketing/templates/${copy.id}`);
         } catch (error) {
-          window.alert(errorText(error));
+          await alertDialog(errorText(error));
           setBusy(false);
         }
       }}

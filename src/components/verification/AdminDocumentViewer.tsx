@@ -1,5 +1,6 @@
 "use client";
 
+import { promptDialog } from "@/components/ui/dialogs";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -41,7 +42,7 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
     setError(null);
 
     const rejectionReason = action === "reject"
-      ? prompt("Rejection reason (optional):") ?? undefined
+      ? (await promptDialog({ title: "Reject this document?", message: "Tell them what to fix (optional).", placeholder: "Rejection reason", optional: true, multiline: true, confirmLabel: "Reject", tone: "danger" })) ?? undefined
       : undefined;
 
     if (action === "reject" && rejectionReason === undefined) {

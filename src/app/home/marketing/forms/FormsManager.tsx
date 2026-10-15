@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, EmptyState, ListCard, ListRow, Pill } from "@/components/app-kit";
@@ -467,7 +468,7 @@ export function FormsManager({ forms, storeSlug, theme, discounts, extras }: { f
   }
 
   async function remove(form: ManagedForm) {
-    if (!window.confirm(t("forms.confirmDelete", { name: form.name }))) return;
+    if (!(await confirmDialog(t("forms.confirmDelete", { name: form.name })))) return;
     try {
       await api(`/api/app/marketing/forms/${form.id}`, "DELETE");
       router.refresh();

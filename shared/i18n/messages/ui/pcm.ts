@@ -33,6 +33,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "portalNote.supplier": "You get supplier account, so we open your supplier portal.",
   "portalNote.logistics_partner": "You get delivery partner account, so we open your delivery portal.",
   "portalNote.admin": "You get admin account, so we open admin panel.",
+  "dialog.ok": "OK",
+  "dialog.continue": "Continue",
+  "dialog.done": "E don do",
+  "dialog.copy": "Copy am",
+  "dialog.copied": "E don copy",
 };
 
 export default pcm;

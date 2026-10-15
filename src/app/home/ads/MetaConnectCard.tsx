@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Notice, PillButton, Spinner, cx } from "@/components/app-ui";
@@ -62,7 +63,7 @@ export function MetaConnectCard({ status, compact = false }: { status: MetaStatu
   }
 
   async function disconnect() {
-    if (!window.confirm(t("m.confirmDisconnect"))) return;
+    if (!(await confirmDialog(t("m.confirmDisconnect")))) return;
     setBusy(true);
     await fetch("/api/app/ads/meta", { method: "DELETE" }).catch(() => null);
     setBusy(false);

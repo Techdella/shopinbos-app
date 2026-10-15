@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead, Pill, SplitLayout } from "@/components/app-kit";
@@ -185,10 +186,10 @@ export function CampaignEditor({
     }
   }
 
-  function applyTemplate(id: string) {
+  async function applyTemplate(id: string) {
     const template = templates.find((item) => item.id === id);
     if (!template) return;
-    if (draft.bodyHtml.trim() && !window.confirm(t("editor.confirmReplace", { name: template.name }))) return;
+    if (draft.bodyHtml.trim() && !(await confirmDialog(t("editor.confirmReplace", { name: template.name })))) return;
     set({ subject: template.subject, preheader: template.preheader, bodyHtml: template.bodyHtml, name: draft.name || template.name });
     setComposerKey((key) => key + 1);
   }
@@ -219,10 +220,10 @@ export function CampaignEditor({
                   <Segmented
                     options={(["email", "sms", "whatsapp"] as Channel[]).map((value) => ({ value, label: CHANNEL_LABEL[value] }))}
                     value={draft.channel}
-                    onChange={(channel) => {
+                    onChange={async (channel) => {
                       // Emails and texts are written differently, so switching between them starts a fresh message.
                       const crossing = (channel === "email") !== (draft.channel === "email");
-                      if (crossing && draft.bodyHtml.trim() && !window.confirm(t("editor.confirmCrossing"))) return;
+                      if (crossing && draft.bodyHtml.trim() && !(await confirmDialog(t("editor.confirmCrossing")))) return;
                       set({ channel, bodyHtml: crossing ? "" : draft.bodyHtml });
                       setComposerKey((key) => key + 1);
                     }}
