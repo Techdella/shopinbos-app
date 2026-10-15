@@ -2,7 +2,7 @@
 
 import { mediaFileProblem, mediaKindOfType, type MediaAssetView, type MediaKind } from "@shared/media";
 
-// Browser side of the media library (/api/app/media). Used by MediaPicker and MediaLibraryDialog.
+// Browser side of the media library (/api/app/media). Used by MediaPicker, MediaLibraryDialog and the Media page.
 
 export type { MediaAssetView };
 
@@ -59,6 +59,19 @@ export async function uploadToMyMedia(file: File, allow: "image" | "any" = "imag
 export async function removeFromMyMedia(id: string): Promise<void> {
   const response = await fetch(`/api/app/media/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "same-origin" });
   if (!response.ok) throw new Error(await readError(response, "Couldn't remove that. Try again."));
+}
+
+/** Saves a title and / or alt text (null or "" clears one) and returns the updated entry. */
+export async function updateMyMedia(id: string, details: { title?: string | null; alt?: string | null }): Promise<MediaAssetView> {
+  const response = await fetch(`/api/app/media/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+    credentials: "same-origin",
+  });
+  if (!response.ok) throw new Error(await readError(response, "Couldn't save that. Try again."));
+  const json = (await response.json()) as { data: MediaAssetView };
+  return json.data;
 }
 
 /** The accept= string for a file input. */

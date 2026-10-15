@@ -272,7 +272,7 @@ function ImageInput({ label, value, onChange }: { label: string; value: MediaVal
         </div>
         {upload.error && <p className="m-0 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
       </div>
-      <MediaLibraryDialog open={libraryOpen} onClose={() => setLibraryOpen(false)} onSelect={([asset]) => asset && onChange({ url: asset.url, alt: value?.alt ?? "" })} />
+      <MediaLibraryDialog open={libraryOpen} onClose={() => setLibraryOpen(false)} onSelect={([asset]) => asset && onChange({ url: asset.url, alt: asset.alt || value?.alt || "" })} />
     </div>
   );
 }
@@ -315,7 +315,7 @@ function GalleryInput({ label, value, onChange }: { label: string; value: MediaV
         </div>
         {upload.error && <p className="m-0 mt-1.5 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
       </div>
-      <MediaLibraryDialog open={libraryOpen} multiple onClose={() => setLibraryOpen(false)} onSelect={(assets) => onChange([...value, ...assets.filter((asset) => !value.some((photo) => photo.url === asset.url)).map((asset) => ({ url: asset.url, alt: "" }))].slice(0, 60))} />
+      <MediaLibraryDialog open={libraryOpen} multiple onClose={() => setLibraryOpen(false)} onSelect={(assets) => onChange([...value, ...assets.filter((asset) => !value.some((photo) => photo.url === asset.url)).map((asset) => ({ url: asset.url, alt: asset.alt ?? "" }))].slice(0, 60))} />
     </div>
   );
 }

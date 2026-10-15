@@ -188,7 +188,8 @@ test("JSON-LD can't close its <script> and the GA ID can't inject script", () =>
   assert.equal(gaMeasurementId("G-ABC123XYZ"), "G-ABC123XYZ");
   assert.equal(gaMeasurementId(" g-abc123 "), "G-ABC123");
   for (const bad of ["G-1');alert(document.cookie);//", "UA-12345-1", "", null, 42, "G-"]) assert.equal(gaMeasurementId(bad), "", String(bad));
-  const page = read("src/app/s/[slug]/page.tsx");
+  // The storefront's JSON-LD and GA tags live in the shared route renderer (page.tsx and [collection] use it).
+  const page = read("src/app/s/[slug]/storefront-route.tsx");
   assert.match(page, /__html: scriptSafeJson\(item\)/);
   assert.match(page, /googleAnalyticsId: gaMeasurementId\(i\.googleAnalyticsId\)/);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductPageView.tsx"), /__html: scriptSafeJson\(/);

@@ -9,6 +9,7 @@ import type {
   TemplateSectionNode,
   ThemeTokenSet,
 } from "./types";
+import { propagateChrome } from "./chrome";
 
 export interface StoreConfigLike {
   name: string;
@@ -92,7 +93,8 @@ function section(
 function blankHeader(storeName: string) {
   return section("blank-header", "header", "Header", [
     block("blank-header-copy", "copy", {
-      logoText: storeName,
+      // Empty: the header shows the store name from Settings, and follows it when it changes.
+      logoText: "",
       navLinks: ["home", "products", "about", "contact"],
       utilityLinks: ["cart"],
       cartLabel: "Cart",
@@ -542,7 +544,8 @@ export function applyEditorPatchOps(snapshot: StoreEditorSnapshot, ops: StoreEdi
   }
 
   next.updatedAt = new Date().toISOString();
-  return next;
+  // The header, announcement bar and footer are shared by every page: an op on one page's copy applies to all.
+  return propagateChrome(snapshot, next);
 }
 
 export function syncSnapshotFromStoreConfig(snapshot: StoreEditorSnapshot, store: StoreConfigLike) {

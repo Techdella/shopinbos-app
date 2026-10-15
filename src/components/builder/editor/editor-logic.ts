@@ -1,7 +1,8 @@
 // Pure helpers for the advanced builder: undo history, section moves, the page list and the insert catalogue.
-// No runtime imports, so tests/behaviour.test.mjs can load this file directly with Node's type stripping.
+// Only relative .ts runtime imports, so tests/behaviour.test.mjs can load this file directly with Node's type stripping.
 
 import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from "@/lib/store-templates";
+import { STORE_BLOCKS, newStoreBlockSection, type BlockCategory, type BlockIcon } from "../../storefront/boutique/blocks/block-catalog.ts";
 
 // ─── Undo history ────────────────────────────────────────────────────────────
 
@@ -381,9 +382,11 @@ export type RendererKind = "boutique" | "classic";
 export interface InsertItem {
   kind: string;
   label: string;
-  group: "Header" | "Banners" | "Products" | "Story" | "Grow";
+  group: "Header" | BlockCategory;
   hint: string;
   renderers: RendererKind[];
+  /** Ready-made blocks show their own icon in the Insert panel. */
+  icon?: BlockIcon;
 }
 
 const BOTH: RendererKind[] = ["boutique", "classic"];
@@ -411,9 +414,11 @@ export const INSERT_CATALOG: InsertItem[] = [
   { kind: "scratch-card", label: "Scratch card", group: "Grow", hint: "Shoppers scratch to reveal a mystery discount.", renderers: BOTH },
   { kind: "reward-progress", label: "Reward progress", group: "Grow", hint: "How close the bag is to free delivery and rewards.", renderers: BOTH },
   { kind: "loyalty-banner", label: "Loyalty points", group: "Grow", hint: "How points work, the tiers and a balance check.", renderers: BOTH },
+  // Ready-made blocks for the 2026 themes (src/components/storefront/boutique/blocks/block-catalog.ts).
+  ...STORE_BLOCKS.map((block): InsertItem => ({ kind: block.kind, label: block.label, group: block.category, hint: block.description, renderers: ["boutique"], icon: block.icon })),
 ];
 
-export const INSERT_GROUP_ORDER: InsertItem["group"][] = ["Header", "Banners", "Products", "Story", "Grow"];
+export const INSERT_GROUP_ORDER: InsertItem["group"][] = ["Header", "Banners", "Products", "Trust", "Story", "Grow", "Extras"];
 
 /** Sections that fit the spot: header sections only into the header (and only when missing), body sections elsewhere. */
 export function insertOptions(input: { renderer: RendererKind; target: SectionGroup; existingKinds: string[]; query?: string }) {
@@ -447,6 +452,8 @@ export function newBoutiqueSection(kind: string, id: string): TemplateSectionNod
     blocks: [{ id: `${id}-copy`, type: "copy", content: copy }],
     ...extra,
   });
+  const block = newStoreBlockSection(kind, id);
+  if (block) return block;
   switch (kind) {
     case "announcement-bar":
       return make("Announcement bar", { text: "" }, { settings: { source: "store-settings" } });

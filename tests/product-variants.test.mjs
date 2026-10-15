@@ -282,13 +282,14 @@ test("product page: picking options greys out what can't be bought and moves to 
   assert.equal(v.matchSelection(rows, { Size: "L", Colour: "Black" }, names).stock, 3);
   assert.equal(v.matchSelection(rows, { Size: "S", Colour: "Black" }, names), null);
 
-  for (const file of ["src/components/storefront/boutique/BoutiqueProductView.tsx", "src/app/s/[slug]/product/[productId]/ProductDetailClient.tsx"]) {
-    const src = read(file);
-    assert.match(src, /useVariantPicker\(product\)/, `${file} picks versions with the shared picker`);
-    assert.match(src, /productDetailRows\(product/, `${file} shows the Details table`);
-    assert.match(src, /picker\.line/, `${file} puts the version id in the bag`);
-    assert.match(src, /Customers also like/);
-  }
+  // Every theme (2026 and classic) renders the shared product page in src/components/storefront/boutique/pdp/.
+  const pdpPage = read("src/components/storefront/boutique/pdp/BoutiquePdp.tsx");
+  assert.match(pdpPage, /useVariantPicker\(product\)/, "the product page picks versions with the shared picker");
+  assert.match(pdpPage, /picker\.line/, "the product page puts the version id in the bag");
+  assert.match(read("src/components/storefront/boutique/pdp/PdpDetails.tsx"), /productDetailRows\(product/, "the product page shows the Details table");
+  assert.match(read("src/components/storefront/boutique/pdp/pdp-logic.ts"), /Customers also like/);
+  assert.match(read("src/components/storefront/boutique/BoutiqueProductView.tsx"), /<BoutiquePdp /);
+  assert.match(read("src/app/s/[slug]/product/[productId]/ProductDetailClient.tsx"), /<ClassicPdp/, "classic stores use the same product page");
   assert.match(read("src/components/storefront/shopper/useVariantPicker.ts"), /variantCompareAt/);
   assert.match(read("src/lib/storefront/product-page.server.ts"), /relatedProducts\(publicProduct, catalog\)/);
 });

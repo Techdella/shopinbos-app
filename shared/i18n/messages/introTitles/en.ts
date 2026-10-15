@@ -27,6 +27,7 @@ const en = {
   "imports.title": "Imports from China",
   "collections.title": "Collections and categories",
   "brand-kit.title": "Brand kit",
+  "media.title": "Media",
   "rex-studio.title": "Rex Studio",
   "video-studio.title": "Video studio",
   "discounts.title": "Discounts and codes",

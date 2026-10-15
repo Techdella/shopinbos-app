@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { findStorefrontPage, storefrontPageHref } from "@shared/storefront-pages";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
 import {
@@ -23,14 +24,19 @@ import {
 import { bestSellers, productCategories, relatedProducts, searchProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
-import { BoutiqueProductView } from "./BoutiqueProductView";
+import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
+import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
+import { samplePdpProduct } from "./pdp/sample-product";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
 import { GameSection } from "../gamification/GameSection";
 import { HeroSlider, slideAlign } from "../HeroSlider";
 import { readHeroSlides, readProductLimit, readSlideLink, readSlideTiming, type HeroSlide, type SlideLink } from "@/lib/store-templates/section-content";
+import { isShopGridSection, readOptionalProductLimit, readProductCardOptions, readShopGridOptions } from "@/lib/store-templates/section-content";
 import type { GameSectionKind } from "@/lib/gamification/logic";
+import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
+import { filterFaq } from "./blocks/block-logic";
 
 export interface BoutiqueStore {
   id?: string;
@@ -177,14 +183,23 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const [sheet, setSheet] = useState<ShopperSheet>(live && props.initialQuery ? "search" : null);
   const [filter, setFilter] = useState<{ category: string; collection: string; q: string; sort: string }>({ category: "all", collection: "", q: "", sort: "featured" });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  // /shop?category=bags (old category links, the product page's category menu) opens the shop filtered.
+  useEffect(() => {
+    if (!live) return;
+    const category = new URLSearchParams(window.location.search).get("category")?.trim();
+    if (category) setFilter((prev) => ({ ...prev, category: category.slice(0, 80) }));
+  }, [live]);
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [faqQuery, setFaqQuery] = useState<Record<string, string>>({});
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
   const railRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  /** Shop grids with "Products shown at first": how many each one shows now (Show more adds a page). */
+  const [shopShown, setShopShown] = useState<Record<string, number>>({});
   const uid = useId();
 
   const current = normalizePage(props.currentPage);
-  const page = snapshot.pages.find((entry) => entry.pageType === current) ?? snapshot.pages.find((entry) => entry.pageType === "home") ?? snapshot.pages[0];
+  const page = findStorefrontPage(snapshot.pages, current) ?? snapshot.pages.find((entry) => entry.pageType === "home") ?? snapshot.pages[0];
   const sections = (page?.sections ?? []).filter((entry) => entry.visible !== false);
   const announcementSection = sections.find((entry) => entry.kind === "announcement-bar");
   const headerSection = sections.find((entry) => entry.kind === "header");
@@ -808,7 +823,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <section aria-labelledby={headingId} className="bq-wrap pt-8">
         <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
-        <div className="bq-cats">
+        <div className="bq-cats" data-shape={section.settings?.layout === "boutique-circles" ? "circles" : undefined}>
           {tiles.slice(0, themeId === "breeze" ? 6 : 8).map((tile) => (
             <button key={tile.key} type="button" className="bq-cat" onClick={tile.onSelect}>
               <span className="bq-media block">
@@ -838,10 +853,20 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return [...mapped, ...bestSellers(products).filter((product) => !mapped.includes(product))];
   }
 
+  /** Card extras the seller turned on for a product section (rating, quick add, second photo on hover). */
+  function cardOptions(section: TemplateSectionNode) {
+    const options = readProductCardOptions(section.settings);
+    const quickAdd = options.quickAdd ? (live ? props.onAddToCart : () => undefined) : undefined;
+    return { showRating: options.showRating, hoverImage: options.hoverImage, onQuickAdd: quickAdd };
+  }
+
   function productRail(section: TemplateSectionNode) {
     const copy = copyOf(section);
     const railLayout = text(section.settings?.layout);
-    const list = sectionProducts(section).slice(0, readProductLimit(section.settings, railLayout === "dense" ? 12 : 8));
+    // An explicit "How many products" is shown in full; without one the layout keeps its own cap (CSS, per screen).
+    const explicitLimit = readOptionalProductLimit(section.settings);
+    const list = sectionProducts(section).slice(0, explicitLimit ?? readProductLimit(section.settings, railLayout === "dense" ? 12 : 8));
+    const card = cardOptions(section);
     const headingId = `${uid}-${section.id}`;
     if (!list.length) {
       return live ? (
@@ -881,9 +906,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10" style={look.dark ? { background: t.paperBg } : undefined}>
         <SectionTitle look={look} id={headingId} action={railLayout === "tiles" || railLayout === "dense" ? shopAllAlways : <>{shopAll}{arrows}</>}>{text(copy.title) || "Best sellers"}</SectionTitle>
-        <div className={railLayout === "tiles" ? "bq-tiles" : railLayout === "dense" ? "bq-dense" : "bq-rail"} ref={(el) => { railRefs.current[section.id] = el; }}>
+        <div className={railLayout === "tiles" ? "bq-tiles" : railLayout === "dense" ? "bq-dense" : "bq-rail"} data-limit={explicitLimit ?? undefined} ref={(el) => { railRefs.current[section.id] = el; }}>
           {list.map((product, i) => (
-            <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} />
+            <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} {...card} />
           ))}
         </div>
       </section>
@@ -936,6 +961,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function shopGrid(section: TemplateSectionNode) {
     const copy = copyOf(section);
+    const options = readShopGridOptions(section.settings);
+    const card = cardOptions(section);
     const collection = shopper.collections.find((entry) => entry.id === filter.collection);
     let list = searchProducts(products, filter.q);
     if (collection) list = list.filter((product) => collection.productIds.includes(product.id));
@@ -943,50 +970,132 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (filter.sort === "price-low") list = [...list].sort((a, b) => a.retailPrice - b.retailPrice);
     if (filter.sort === "price-high") list = [...list].sort((a, b) => b.retailPrice - a.retailPrice);
     if (filter.sort === "rating") list = bestSellers(list);
+    const shownCount = options.pageSize ? Math.max(options.pageSize, shopShown[section.id] ?? 0) : list.length;
+    const visible = list.slice(0, shownCount);
     const headingId = `${uid}-${section.id}`;
+    const sidebar = options.filters === "sidebar";
     const chip = (key: string, label: string, active: boolean, onClick: () => void) => (
-      <button key={key} type="button" aria-pressed={active} onClick={onClick} className="shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium" style={{ borderColor: active ? t.ink : t.border, background: active ? t.ink : "transparent", color: active ? t.paperBg : t.ink, cursor: "pointer" }}>
+      <button key={key} type="button" aria-pressed={active} onClick={onClick} className={sidebar ? "w-full rounded-[10px] border-0 px-3 py-2 text-left text-[14px]" : "shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium"} style={sidebar ? { background: active ? look.raised : "transparent", color: t.ink, fontWeight: active ? 600 : 400, cursor: "pointer" } : { borderColor: active ? t.ink : t.border, background: active ? t.ink : "transparent", color: active ? t.paperBg : t.ink, cursor: "pointer" }}>
         {label}
       </button>
     );
-    return (
-      <section aria-labelledby={headingId} className="bq-wrap py-8">
-        <SectionTitle look={look} id={headingId}>{collection?.name ?? (filter.category !== "all" ? categories.find((entry) => entry.slug === filter.category)?.name : null) ?? (text(copy.title) || "Shop all")}</SectionTitle>
-        <div className="mb-5 grid gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border px-4" style={{ borderColor: t.border }}>
-              <Icon name="search" size={16} color={t.muted} />
-              <span className="sr-only">Search products</span>
-              <input type="search" value={filter.q} onChange={(event) => setFilter((prev) => ({ ...prev, q: event.target.value }))} placeholder="Search products" className="h-full w-full bg-transparent text-[14.5px] outline-none" style={{ color: t.ink }} />
-            </label>
-            <label className="flex items-center gap-2 text-[13.5px]" style={{ color: t.muted }}>
-              Sort
-              <select value={filter.sort} onChange={(event) => setFilter((prev) => ({ ...prev, sort: event.target.value }))} className="h-11 rounded-full border bg-transparent px-3 text-[14px]" style={{ borderColor: t.border, color: t.ink }}>
-                <option value="featured">Newest</option>
-                <option value="rating">Best rated</option>
-                <option value="price-low">Price: low to high</option>
-                <option value="price-high">Price: high to low</option>
-              </select>
-            </label>
-          </div>
-          {categories.length || shopper.collections.length ? (
-            <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filter by category">
-              {chip("all", "All", filter.category === "all" && !filter.collection, () => setFilter((prev) => ({ ...prev, category: "all", collection: "" })))}
-              {shopper.collections.map((entry) => chip(`c-${entry.id}`, entry.name, filter.collection === entry.id, () => setFilter((prev) => ({ ...prev, collection: entry.id, category: "all" }))))}
-              {categories.map((entry) => chip(entry.slug, entry.name, filter.category === entry.slug && !filter.collection, () => setFilter((prev) => ({ ...prev, category: entry.slug, collection: "" }))))}
-            </div>
+    const search = (
+      <label className={`flex h-11 min-w-0 items-center gap-2 rounded-full border px-4 ${sidebar ? "w-full" : "flex-1"}`} style={{ borderColor: t.border }}>
+        <Icon name="search" size={16} color={t.muted} />
+        <span className="sr-only">Search products</span>
+        <input type="search" value={filter.q} onChange={(event) => setFilter((prev) => ({ ...prev, q: event.target.value }))} placeholder="Search products" className="h-full w-full bg-transparent text-[14.5px] outline-none" style={{ color: t.ink }} />
+      </label>
+    );
+    const sort = (
+      <label className={`flex items-center gap-2 text-[13.5px] ${sidebar ? "w-full" : ""}`} style={{ color: t.muted }}>
+        Sort
+        <select value={filter.sort} onChange={(event) => setFilter((prev) => ({ ...prev, sort: event.target.value }))} className={`h-11 rounded-full border bg-transparent px-3 text-[14px] ${sidebar ? "min-w-0 flex-1" : ""}`} style={{ borderColor: t.border, color: t.ink }}>
+          <option value="featured">Newest</option>
+          <option value="rating">Best rated</option>
+          <option value="price-low">Price: low to high</option>
+          <option value="price-high">Price: high to low</option>
+        </select>
+      </label>
+    );
+    const hasGroups = categories.length > 0 || shopper.collections.length > 0;
+    const chips = hasGroups ? (
+      <div className={sidebar ? "grid gap-0.5" : "flex gap-2 overflow-x-auto pb-1"} role="group" aria-label="Filter by category">
+        {chip("all", sidebar ? "All products" : "All", filter.category === "all" && !filter.collection, () => setFilter((prev) => ({ ...prev, category: "all", collection: "" })))}
+        {shopper.collections.map((entry) => chip(`c-${entry.id}`, entry.name, filter.collection === entry.id, () => setFilter((prev) => ({ ...prev, collection: entry.id, category: "all" }))))}
+        {categories.map((entry) => chip(entry.slug, entry.name, filter.category === entry.slug && !filter.collection, () => setFilter((prev) => ({ ...prev, category: entry.slug, collection: "" }))))}
+      </div>
+    ) : null;
+    const tile = (product: ShopperProduct, i: number) => (
+      <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 4} size={options.view === "large" ? "large" : "regular"} {...card} />
+    );
+    const row = (product: ShopperProduct, i: number) => {
+      const inner = (
+        <>
+          <span className="bq-media block">
+            {product.images[0] ? <img src={product.images[0]} alt="" width={280} height={280} loading={i < 4 ? "eager" : "lazy"} decoding="async" /> : null}
+          </span>
+          <span className="flex min-w-0 flex-col gap-1">
+            <span className="text-[16px] font-semibold leading-snug" style={{ fontFamily: look.headingFont }}>{product.name}</span>
+            {text(product.description) ? <span className="line-clamp-2 text-[13.5px] leading-5" style={{ color: t.muted }}>{text(product.description)}</span> : null}
+            {card.showRating && product.avgRating && product.reviewCount ? (
+              <span className="text-[12.5px]" style={{ color: t.muted }}><span aria-hidden style={{ color: "#F2A93B" }}>★</span> {product.avgRating.toFixed(1)} ({product.reviewCount})</span>
+            ) : null}
+            <span className="mt-1 text-[15px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span>
+          </span>
+          <span className="bq-shop-row-side">
+            <span className="text-[13px] font-semibold underline underline-offset-4">View</span>
+          </span>
+        </>
+      );
+      const href = productHref(product.id);
+      return (
+        <div key={product.id} className="grid gap-2">
+          {href ? (
+            <Link href={href} prefetch={false} className="bq-shop-row">{inner}</Link>
+          ) : (
+            <button type="button" className="bq-shop-row" onClick={live ? undefined : () => openProduct(product.id)}>{inner}</button>
+          )}
+          {card.onQuickAdd ? (
+            <button type="button" className="bq-btn justify-self-start" style={{ ...look.primaryButton, minHeight: 40, fontSize: 13.5 }} onClick={() => card.onQuickAdd?.(product.id)} aria-label={`Add ${product.name} to bag`}>
+              <Icon name="bag" size={15} aria-hidden /> Add to bag
+            </button>
           ) : null}
         </div>
+      );
+    };
+    const results = (
+      <div className="min-w-0">
         <p className="mb-3 text-[13px]" style={{ color: t.muted }} aria-live="polite">{list.length} {list.length === 1 ? "product" : "products"}</p>
-        {list.length ? (
-          <div className="bq-shop-grid">
-            {list.map((product, i) => (
-              <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 4} />
-            ))}
-          </div>
+        {visible.length ? (
+          options.view === "list" ? (
+            <div className="bq-shop-list">{visible.map(row)}</div>
+          ) : (
+            <div className="bq-shop-grid" data-view={options.view === "large" ? "large" : undefined} data-cols={options.view === "grid" && options.columns !== "auto" ? options.columns : undefined}>
+              {visible.map(tile)}
+            </div>
+          )
         ) : (
           <p className="py-10 text-center text-[14.5px]" style={{ color: t.muted }}>{products.length ? "Nothing matches. Try another word or category." : "Products are on the way. Check back soon."}</p>
         )}
+        {visible.length < list.length ? (
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <p className="m-0 text-[13px]" style={{ color: t.muted }}>Showing {visible.length} of {list.length}</p>
+            <button type="button" className="bq-btn" style={look.secondaryButton} onClick={(event) => { event.stopPropagation(); setShopShown((prev) => ({ ...prev, [section.id]: shownCount + (options.pageSize ?? list.length) })); }}>
+              Show more
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+    const title = <SectionTitle look={look} id={headingId}>{collection?.name ?? (filter.category !== "all" ? categories.find((entry) => entry.slug === filter.category)?.name : null) ?? (text(copy.title) || "Shop all")}</SectionTitle>;
+    if (sidebar) {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-8">
+          {title}
+          <div className="bq-shop-layout">
+            <aside className="bq-shop-aside grid gap-4" aria-label="Filters">
+              {search}
+              {sort}
+              {chips}
+            </aside>
+            {results}
+          </div>
+        </section>
+      );
+    }
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-8">
+        {title}
+        {options.filters === "top" ? (
+          <div className="mb-5 grid gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {search}
+              {sort}
+            </div>
+            {chips}
+          </div>
+        ) : null}
+        {results}
       </section>
     );
   }
@@ -1040,6 +1149,36 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
     // "Picture right" moves the picture after the words on wide screens; phones keep the picture on top.
     const pictureRight = section.settings?.imagePosition === "right";
+    const eyebrow = text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: look.dark ? t.accent : t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null;
+    if (section.settings?.layout === "centered") {
+      // Words only, centred: for a short statement or an About page that leads with the story.
+      return (
+        <section aria-labelledby={headingId} className="py-14 @3xl:py-24" style={{ background: look.storyBg }}>
+          <div className="bq-wrap mx-auto flex max-w-[820px] flex-col items-center gap-4 text-center">
+            {eyebrow}
+            <h2 id={headingId} className="bq-h text-[34px] @3xl:text-[52px]" style={{ ...look.headingStyle, lineHeight: 1.06 }}>{text(copy.title) || store.name}</h2>
+            {body ? <p className="max-w-[640px] whitespace-pre-line text-[16px] leading-8" style={{ color: t.muted }}>{body}</p> : null}
+            {storyButton}
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "banner") {
+      // A wide picture across the page, the words centred under it.
+      return (
+        <section aria-labelledby={headingId} style={{ background: look.storyBg }}>
+          <div className="bq-media w-full" style={{ aspectRatio: "21 / 9", minHeight: 220 }}>
+            {image ? <img src={image} alt="" width={1600} height={686} loading="lazy" /> : null}
+          </div>
+          <div className="bq-wrap mx-auto flex max-w-[760px] flex-col items-center gap-4 py-12 text-center @3xl:py-16">
+            {eyebrow}
+            <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[42px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{text(copy.title) || store.name}</h2>
+            {body ? <p className="max-w-[620px] whitespace-pre-line text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            {storyButton}
+          </div>
+        </section>
+      );
+    }
     if (section.settings?.layout === "editorial") {
       return (
         <section aria-labelledby={headingId} className="py-12 @3xl:py-16" style={{ background: look.storyBg }}>
@@ -1083,28 +1222,86 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       .filter((item) => item.question && (item.answer || (!live && !props.demo)));
     if (!items.length) return editorHint("Add questions and answers for shoppers.");
     const headingId = `${uid}-${section.id}`;
+    const layout = text(section.settings?.layout);
+    const title = text(copy.title) || "Questions";
+    const missing = "Write your answer in the editor. Until then this question stays hidden from shoppers.";
+    // Optional search box (FAQ settings): filters questions and answers as the shopper types.
+    const searchable = section.settings?.searchable === true;
+    const query = faqQuery[section.id] ?? "";
+    const shown = searchable ? filterFaq(items, query) : items;
+    const searchBox = searchable ? (
+      <>
+        <label className="mt-5 flex h-12 items-center gap-2 rounded-full border px-4" style={{ borderColor: t.border }}>
+          <Icon name="search" size={16} color={t.muted} />
+          <span className="sr-only">{text(copy.searchPlaceholder) || "Search questions"}</span>
+          <input type="search" value={query} onChange={(event) => setFaqQuery((prev) => ({ ...prev, [section.id]: event.target.value }))} placeholder={text(copy.searchPlaceholder) || "Search questions"} className="h-full w-full bg-transparent text-[15px] outline-none" style={{ color: t.ink }} />
+        </label>
+        {query.trim() ? <p className="m-0 mt-2 text-[13px]" role="status" style={{ color: t.muted }}>{shown.length ? `${shown.length} ${shown.length === 1 ? "answer" : "answers"}` : "No answers match. Try another word, or contact us."}</p> : null}
+      </>
+    ) : null;
+    if (layout === "cards") {
+      // Every answer open, in cards: quick to scan on a dedicated FAQ page.
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-12">
+          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
+          {searchBox ? <div className="mx-auto max-w-[720px]">{searchBox}</div> : null}
+          <div className="mt-8 grid gap-3 @3xl:grid-cols-2">
+            {shown.map((item) => (
+              <div key={item.id} className="p-5" style={{ background: look.raised, borderRadius: look.cardRadius }}>
+                <h3 className="m-0 text-[15.5px] font-semibold" style={{ color: t.ink }}>{item.question}</h3>
+                <p className="mb-0 mt-2 text-[14.5px] leading-7" style={{ color: t.muted }}>{item.answer || missing}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    const accordion = (
+      <div className={layout === "two-column" ? "" : "mt-6"}>
+        {shown.map((item) => {
+          const open = openFaq === item.id;
+          return (
+            <div key={item.id} className="border-b" style={{ borderColor: t.border }}>
+              <h3 className="m-0">
+                <button type="button" aria-expanded={open} aria-controls={`${item.id}-a`} onClick={() => setOpenFaq(open ? null : item.id)} className="flex w-full items-center justify-between gap-4 border-0 bg-transparent py-4 text-left text-[15px] font-medium" style={{ color: t.ink, cursor: "pointer" }}>
+                  {item.question}
+                  <Icon name={open ? "minus" : "plus"} size={16} />
+                </button>
+              </h3>
+              <div id={`${item.id}-a`} role="region" hidden={!open} className="pb-4 text-[14.5px] leading-7" style={{ color: t.muted }}>
+                {item.answer || missing}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+    if (layout === "two-column") {
+      // Heading and a way to get in touch on the left, the questions on the right.
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-12">
+          <div className="grid gap-6 @3xl:grid-cols-[0.8fr_1.2fr] @3xl:gap-14">
+            <div className="flex flex-col items-start gap-3">
+              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[36px]" style={look.headingStyle}>{title}</h2>
+              <p className="m-0 text-[14.5px]" style={{ color: t.muted }}>Can&apos;t find your answer? We&apos;re happy to help.</p>
+              {pageTypes.has("contact") ? (
+                <button type="button" className="bq-btn mt-1" style={look.secondaryButton} onClick={() => go("contact")}>Contact us</button>
+              ) : null}
+            </div>
+            <div>
+              {searchBox}
+              {accordion}
+            </div>
+          </div>
+        </section>
+      );
+    }
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <div className="mx-auto max-w-[720px]">
-          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{text(copy.title) || "Questions"}</h2>
-          <div className="mt-6">
-            {items.map((item) => {
-              const open = openFaq === item.id;
-              return (
-                <div key={item.id} className="border-b" style={{ borderColor: t.border }}>
-                  <h3 className="m-0">
-                    <button type="button" aria-expanded={open} aria-controls={`${item.id}-a`} onClick={() => setOpenFaq(open ? null : item.id)} className="flex w-full items-center justify-between gap-4 border-0 bg-transparent py-4 text-left text-[15px] font-medium" style={{ color: t.ink, cursor: "pointer" }}>
-                      {item.question}
-                      <Icon name={open ? "minus" : "plus"} size={16} />
-                    </button>
-                  </h3>
-                  <div id={`${item.id}-a`} role="region" hidden={!open} className="pb-4 text-[14.5px] leading-7" style={{ color: t.muted }}>
-                    {item.answer || "Write your answer in the editor. Until then this question stays hidden from shoppers."}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
+          {searchBox}
+          {accordion}
         </div>
       </section>
     );
@@ -1139,38 +1336,78 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const copy = copyOf(section);
     const status = formStatus.contact ?? "idle";
     const headingId = `${uid}-${section.id}`;
+    const layout = text(section.settings?.layout);
     const field = (key: "name" | "email" | "phone", label: string, type = "text") => (
       <label className="grid gap-1 text-[13.5px] font-medium">
         {label}
         <input type={type} value={form[key]} onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))} className="h-11 rounded-[10px] border bg-transparent px-3 text-[14.5px]" style={{ borderColor: t.border, color: t.ink }} autoComplete={key === "name" ? "name" : key === "email" ? "email" : "tel"} />
       </label>
     );
+    const whatsappButton = shopper.whatsappNumber ? (
+      <a href={live ? whatsappLink(shopper.whatsappNumber, `Hi ${store.name}`) : undefined} target="_blank" rel="noopener noreferrer" className="bq-btn mt-5" style={{ background: "#25D366", color: "#fff", border: "1.5px solid #25D366" }}>
+        <Icon name="whatsapp" size={17} /> Chat on WhatsApp
+      </a>
+    ) : null;
+    const place = [store.city, store.country].filter(Boolean).join(", ");
+    const formEl = (
+      <form className={layout === "split" ? "grid gap-3" : "mt-6 grid gap-3"} onSubmit={(event) => { event.preventDefault(); void submitForm("contact"); }}>
+        {field("name", "Name")}
+        <div className="grid gap-3 @3xl:grid-cols-2">{field("email", "Email", "email")}{field("phone", "Phone", "tel")}</div>
+        <label className="grid gap-1 text-[13.5px] font-medium">
+          Message
+          <textarea required value={form.message} onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))} rows={5} className="rounded-[10px] border bg-transparent px-3 py-2 text-[14.5px]" style={{ borderColor: t.border, color: t.ink }} />
+        </label>
+        <div>
+          <button type="submit" className="bq-btn" style={look.solidButton} disabled={status === "sending" || (!form.email.trim() && !form.phone.trim())}>
+            {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Send message"}
+          </button>
+        </div>
+        <p role="status" className="min-h-5 text-[13px]" style={{ color: status === "error" ? "#B42318" : t.muted }}>
+          {status === "sent" ? "Thanks. We'll get back to you soon." : status === "error" ? "That didn't send. Please try again." : !form.email.trim() && !form.phone.trim() ? "Add an email or phone so we can reply." : ""}
+        </p>
+      </form>
+    );
+    if (layout === "split") {
+      // The invitation on a panel in the theme's banner colours, the form beside it.
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-12">
+          <div className="grid gap-6 @3xl:grid-cols-[0.9fr_1.1fr] @3xl:gap-10">
+            <div className="flex flex-col items-start p-6 @3xl:p-10" style={{ background: t.heroBg, color: t.heroText, borderRadius: look.cardRadius + 4 }}>
+              <h1 id={headingId} className="bq-h text-[32px] @3xl:text-[40px]" style={look.headingStyle}>{text(copy.title) || "Get in touch"}</h1>
+              {text(copy.body) ? <p className="mt-3 text-[15px] leading-7 opacity-85">{text(copy.body)}</p> : null}
+              {place ? <p className="mt-4 flex items-center gap-2 text-[14px] opacity-85"><Icon name="pin" size={15} /> {place}</p> : null}
+              {whatsappButton}
+            </div>
+            {formEl}
+          </div>
+        </section>
+      );
+    }
+    const intro = (
+      <>
+        <h1 id={headingId} className="bq-h text-[32px]" style={look.headingStyle}>{text(copy.title) || "Get in touch"}</h1>
+        {text(copy.body) ? <p className="mt-2 text-[15px]" style={{ color: t.muted }}>{text(copy.body)}</p> : null}
+        {whatsappButton}
+      </>
+    );
+    if (layout === "card") {
+      // The form in a raised card on the theme's tint.
+      return (
+        <section aria-labelledby={headingId} className="py-12 @3xl:py-16" style={{ background: t.cardBg }}>
+          <div className="bq-wrap">
+            <div className="mx-auto max-w-[640px] p-6 @3xl:p-10" style={{ background: t.paperBg, borderRadius: look.cardRadius + 6, boxShadow: "0 18px 50px rgba(0,0,0,.08)" }}>
+              {intro}
+              {formEl}
+            </div>
+          </div>
+        </section>
+      );
+    }
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <div className="mx-auto max-w-[620px]">
-          <h1 id={headingId} className="bq-h text-[32px]" style={look.headingStyle}>{text(copy.title) || "Get in touch"}</h1>
-          {text(copy.body) ? <p className="mt-2 text-[15px]" style={{ color: t.muted }}>{text(copy.body)}</p> : null}
-          {shopper.whatsappNumber ? (
-            <a href={live ? whatsappLink(shopper.whatsappNumber, `Hi ${store.name}`) : undefined} target="_blank" rel="noopener noreferrer" className="bq-btn mt-5" style={{ background: "#25D366", color: "#fff", border: "1.5px solid #25D366" }}>
-              <Icon name="whatsapp" size={17} /> Chat on WhatsApp
-            </a>
-          ) : null}
-          <form className="mt-6 grid gap-3" onSubmit={(event) => { event.preventDefault(); void submitForm("contact"); }}>
-            {field("name", "Name")}
-            <div className="grid gap-3 @3xl:grid-cols-2">{field("email", "Email", "email")}{field("phone", "Phone", "tel")}</div>
-            <label className="grid gap-1 text-[13.5px] font-medium">
-              Message
-              <textarea required value={form.message} onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))} rows={5} className="rounded-[10px] border bg-transparent px-3 py-2 text-[14.5px]" style={{ borderColor: t.border, color: t.ink }} />
-            </label>
-            <div>
-              <button type="submit" className="bq-btn" style={look.solidButton} disabled={status === "sending" || (!form.email.trim() && !form.phone.trim())}>
-                {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Send message"}
-              </button>
-            </div>
-            <p role="status" className="min-h-5 text-[13px]" style={{ color: status === "error" ? "#B42318" : t.muted }}>
-              {status === "sent" ? "Thanks. We'll get back to you soon." : status === "error" ? "That didn't send. Please try again." : !form.email.trim() && !form.phone.trim() ? "Add an email or phone so we can reply." : ""}
-            </p>
-          </form>
+          {intro}
+          {formEl}
         </div>
       </section>
     );
@@ -1197,7 +1434,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   }
 
   function productDetail() {
-    const product = (selectedProductId ? products.find((entry) => entry.id === selectedProductId) : null) ?? products[0];
+    const own: BoutiqueProductDetail | undefined = (selectedProductId ? products.find((entry) => entry.id === selectedProductId) : null) ?? products[0];
+    // The builder shows a sample product until the store has one, so the product page can still be designed.
+    const product = own ?? (live || props.demo ? undefined : samplePdpProduct(themeId, store.currency));
     if (!product) return editorHint("Add a product to preview the product page.");
     const related = relatedProducts(product, products);
     return (
@@ -1215,6 +1454,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         wishlistIds={wished}
         crumbs={[{ label: "Home", onSelect: () => go("home") }, { label: "Shop", onSelect: () => go("products") }, ...(product.category ? [{ label: product.category.name, onSelect: () => shopCategory(product.category!.slug) }] : []), { label: product.name }]}
         interactive={false}
+        settings={pdpSettingsForSnapshot(snapshot, themeId)}
+        catalog={products}
+        notice={own || props.demo ? undefined : "Sample product. Your own products show here once you add them."}
       />
     );
   }
@@ -1234,7 +1476,37 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
   }
 
+  /** What the ready-made blocks (./blocks) get to draw with: the same data and actions as the sections above. */
+  function blockContext(section: TemplateSectionNode): BlockContext {
+    return {
+      section,
+      copy: copyOf(section),
+      settings: section.settings ?? {},
+      items: section.items ?? [],
+      look,
+      store,
+      shopper,
+      products,
+      live,
+      editor: !live && !props.demo,
+      headingId: `${uid}-${section.id}`,
+      currentPage: current,
+      go,
+      openProduct,
+      productHref,
+      shopCollection,
+      shopCategory,
+      addToCart: live ? props.onAddToCart : undefined,
+      openCart: props.onOpenCart,
+      wished,
+      toggleWish,
+      visitorKey: props.visitorKey,
+      editorHint,
+    };
+  }
+
   function render(section: TemplateSectionNode): React.ReactNode {
+    if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
     switch (section.kind) {
       case "hero-split":
         return hero(section);
@@ -1242,7 +1514,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       case "category-list":
         return categoryTiles(section);
       case "featured-products":
-        if (section.settings?.layout === "grid" || current === "products") return shopGrid(section);
+        if (isShopGridSection(section, current)) return shopGrid(section);
         if (section.settings?.source === "related") return null;
         return productRail(section);
       case "testimonials":
@@ -1304,10 +1576,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const navKeys = (Array.isArray(headerCopy.navLinks) ? (headerCopy.navLinks as unknown[]) : ["home", "products", "about", "contact"])
     .map((entry) => normalizePage(String(entry)))
     .filter((entry, index, all) => PAGE_LABELS[entry] && (entry === "home" || pageTypes.has(entry)) && all.indexOf(entry) === index);
-  const links: ChromeLink[] = navKeys.map((key) => ({ key, label: PAGE_LABELS[key]!, onSelect: () => go(key), current: current === key }));
+  const pageHref = (key: string) => (live ? storefrontPageHref(basePath, key) ?? undefined : undefined);
+  const links: ChromeLink[] = navKeys.map((key) => ({ key, label: PAGE_LABELS[key]!, onSelect: () => go(key), current: current === key, href: pageHref(key) }));
   const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
-    .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key) }));
+    .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const policyLinks: ChromeHref[] = live ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(basePath, legalPagePath(link.key)) })) : [];
   const announcementText = text(copyOf(announcementSection).text) || shopper.announcement;
   const logoText = text(headerCopy.logoText) && text(headerCopy.logoText) !== "Store" ? text(headerCopy.logoText) : store.name;
@@ -1338,6 +1611,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           wishlistCount={wished.length}
           cartLabel={text(headerCopy.cartLabel) && text(headerCopy.cartLabel) !== "Cart" ? text(headerCopy.cartLabel) : "My bag"}
           centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
+          bold={headerLayout === "bold"}
         />
       )) : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>

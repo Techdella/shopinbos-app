@@ -1,5 +1,4 @@
-import { notFound, redirect } from "next/navigation";
-import { publishedPageSlug } from "@/lib/cms/server";
+import { notFound } from "next/navigation";
 import { CmsCollectionView, CmsItemView } from "@/components/cms/storefront/CmsPages";
 import { cmsCanonical, itemReferences, storefrontCollection, storefrontItem } from "@/lib/cms/storefront";
 import { loadStoreChrome } from "@/lib/storefront/product-page.server";
@@ -9,12 +8,8 @@ import { loadStoreChrome } from "@/lib/storefront/product-page.server";
 
 export async function CollectionRoute({ storeSlug, collectionSlug, basePath, customDomain }: { storeSlug: string; collectionSlug: string; basePath: string; customDomain?: string | null }) {
   const found = await storefrontCollection(storeSlug, collectionSlug);
-  if (!found) {
-    // /about, /contact…: store pages live on the home route as ?page=.
-    const page = await publishedPageSlug(storeSlug, collectionSlug);
-    if (page) redirect(`${basePath}/?page=${page}`);
-    notFound();
-  }
+  // Store pages (/about, /contact…) are matched before collections, by the routes that call this.
+  if (!found) notFound();
   const { store, collection, items, fields, settings } = found;
   const chrome = await loadStoreChrome(storeSlug);
   return (

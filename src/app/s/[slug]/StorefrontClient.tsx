@@ -17,6 +17,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { needsOptions } from "@/components/storefront/shopper/catalog";
 import { readCartSettings } from "@shared/cart-checkout";
+import { normalizeStorefrontPageKey, storefrontPageHref, storefrontPageKeyFromLocation } from "@shared/storefront-pages";
 import {
   createSnapshotFromTemplate,
   getTemplateManifest,
@@ -105,6 +106,10 @@ interface Props {
   onSelectPage?: (page: string) => void;
   selectedSectionId?: string | null;
   onSelectSection?: (sectionId: string | null) => void;
+  /** The page the address names (/about → "about"), so the server renders that page rather than flashing home first. */
+  initialPage?: string;
+  /** The live storefront route: page changes write the page's own address (/about, /shop) and Back/Forward follow it. */
+  syncAddress?: boolean;
 }
 
 const velourFallbackImages = [
@@ -554,6 +559,8 @@ export function StorefrontClient({
   onSelectPage,
   selectedSectionId,
   onSelectSection,
+  initialPage,
+  syncAddress = false,
 }: Props) {
   const templateRootRef = useRef<HTMLDivElement>(null);
   // Capture ?sib_c from email campaign links (no-op in the editor preview).
@@ -565,20 +572,42 @@ export function StorefrontClient({
   const cartSettings = readCartSettings(store.brandSettings);
   // Sellers can turn wishlists off; hearts and the wishlist tab then disappear on the live store.
   const wishlistOn = previewMode || cartSettings.wishlist;
-  // Live storefronts own the current page so the phone bottom nav can go Home, and ?page= / ?q= links work.
-  const [livePage, setLivePage] = useState("home");
+  // Live storefronts own the current page so the phone bottom nav can go Home, and page addresses / ?q= links work.
+  const [livePage, setLivePage] = useState(() => normalizeStorefrontPageKey(initialPage) ?? "home");
   const [initialQuery, setInitialQuery] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (previewMode) return;
-    const params = new URLSearchParams(window.location.search);
-    const requested = params.get("page");
-    if (requested && /^[a-z-]{2,20}$/.test(requested)) setLivePage(requested);
-    const q = params.get("q")?.trim();
+    const q = new URLSearchParams(window.location.search).get("q")?.trim();
     if (q) setInitialQuery(q.slice(0, 80));
   }, [previewMode]);
+  // Back/Forward move between the pages a shopper opened (each one is its own address: /about, /shop…).
+  useEffect(() => {
+    if (!syncAddress) return;
+    const onPop = () => setLivePage(storefrontPageKeyFromLocation(window.location.pathname, storeBasePath) ?? "home");
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [syncAddress, storeBasePath]);
   function selectLivePage(page: string) {
     setLivePage(page);
-    if (page === "home") window.scrollTo({ top: 0 });
+    if (syncAddress) {
+      // Every page gets its own address (/about, /shop), so it can be shared, bookmarked and refreshed. The base is
+      // the store's ("" on its own domain, /s/<slug> on the app host), never read back from the changing path.
+      const params = new URLSearchParams(window.location.search);
+      params.delete("page");
+      if (page !== "products") {
+        params.delete("category");
+        params.delete("sort");
+        params.delete("q");
+      }
+      const next = storefrontPageHref(storeBasePath, page, params);
+      // A page without an address of its own (the in-place product view) leaves the address bar alone.
+      if (next) {
+        const current = storefrontPageKeyFromLocation(window.location.pathname, storeBasePath);
+        if (current !== normalizeStorefrontPageKey(page)) window.history.pushState({ page }, "", next);
+        else window.history.replaceState({ page }, "", next);
+      }
+    }
+    window.scrollTo({ top: 0 });
   }
 
   const snapshot = useMemo(() => {

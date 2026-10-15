@@ -5,7 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Spinner, cx } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
 import { isHttpsMediaUrl } from "@shared/media";
-import { acceptFor, chooseFile, isVideoUrl, uploadToMyMedia } from "./media-client";
+import { acceptFor, chooseFile, isVideoUrl, uploadToMyMedia, type MediaAssetView } from "./media-client";
 import { MediaLibraryDialog } from "./MediaLibraryDialog";
 
 // One picture field for the whole app: a thumbnail with "Upload", "Choose from my media" and "Remove", plus a small
@@ -23,7 +23,8 @@ export interface MediaPickerProps {
   /** Controlled value. Leave undefined to let the field keep its own (starting from defaultValue). */
   value?: string | null;
   defaultValue?: string | null;
-  onChange?: (url: string) => void;
+  /** `asset` is the library entry when one was uploaded or picked (its alt text can prefill an alt field). */
+  onChange?: (url: string, asset?: MediaAssetView) => void;
   label?: string;
   help?: string;
   /** "image" (default): pictures only. "any": pictures or videos. */
@@ -65,10 +66,10 @@ export function MediaPicker({
   const [linkOpen, setLinkOpen] = useState(false);
   const [draft, setDraft] = useState("");
 
-  const set = (next: string) => {
+  const set = (next: string, asset?: MediaAssetView) => {
     setError("");
     if (!controlled) setOwn(next);
-    onChange?.(next);
+    onChange?.(next, asset);
   };
 
   const upload = async () => {
@@ -78,7 +79,7 @@ export function MediaPicker({
     setError("");
     try {
       const asset = await uploadToMyMedia(file, accept);
-      set(asset.url);
+      set(asset.url, asset);
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : t("field.uploadFailed"));
     } finally {
@@ -181,7 +182,7 @@ export function MediaPicker({
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}
         accept={accept}
-        onSelect={(assets) => assets[0] && set(assets[0].url)}
+        onSelect={(assets) => assets[0] && set(assets[0].url, assets[0])}
       />
     </div>
   );

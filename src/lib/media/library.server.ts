@@ -11,6 +11,7 @@ import {
   type MediaQuery,
   type MediaSource,
 } from "@shared/media";
+import type { MediaDetails } from "@shared/media-details";
 
 // The media library (MediaAsset): everything a person has uploaded or already uses in their store, so a picture is
 // uploaded once and picked again anywhere. Rules live in shared/media.ts; the table and the sync function in
@@ -19,9 +20,9 @@ import {
 
 export class MediaRejectedError extends Error {}
 
-const SELECT = { id: true, url: true, kind: true, name: true, width: true, height: true, bytes: true, source: true, createdAt: true } as const;
+const SELECT = { id: true, url: true, kind: true, name: true, title: true, alt: true, width: true, height: true, bytes: true, source: true, createdAt: true } as const;
 
-type Row = { id: string; url: string; kind: string; name: string | null; width: number | null; height: number | null; bytes: number | null; source: string; createdAt: Date };
+type Row = { id: string; url: string; kind: string; name: string | null; title: string | null; alt: string | null; width: number | null; height: number | null; bytes: number | null; source: string; createdAt: Date };
 
 export function toView(row: Row): MediaAssetView {
   return {
@@ -29,6 +30,8 @@ export function toView(row: Row): MediaAssetView {
     url: row.url,
     kind: row.kind === "video" ? "video" : "image",
     name: row.name,
+    title: row.title,
+    alt: row.alt,
     width: row.width,
     height: row.height,
     bytes: row.bytes,
@@ -105,7 +108,16 @@ export async function listMedia(userId: string, query: MediaQuery): Promise<{ ro
     userId,
     hiddenAt: null,
     ...(query.kind ? { kind: query.kind } : {}),
-    ...(query.q ? { OR: [{ name: { contains: query.q, mode: "insensitive" as const } }, { source: { contains: query.q.toLowerCase() } }] } : {}),
+    ...(query.q
+      ? {
+          OR: [
+            { name: { contains: query.q, mode: "insensitive" as const } },
+            { title: { contains: query.q, mode: "insensitive" as const } },
+            { alt: { contains: query.q, mode: "insensitive" as const } },
+            { source: { contains: query.q.toLowerCase() } },
+          ],
+        }
+      : {}),
   };
   const [rows, total] = await Promise.all([
     db.mediaAsset.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (query.page - 1) * query.limit, take: query.limit, select: SELECT }),
@@ -141,12 +153,29 @@ export async function uploadToLibrary(
     url: stored.publicUrl,
     kind,
     name: mediaDisplayName(file.name),
+    title: null,
+    alt: null,
     width: meta.width ?? null,
     height: meta.height ?? null,
     bytes: file.size,
     source: "upload",
     createdAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Saves a title and / or alt text on one of the person's own, visible entries (already cleaned by
+ * MediaDetailsSchema; a missing key is left alone). Null when it isn't theirs (or is hidden).
+ */
+export async function updateMediaDetails(userId: string, id: string, details: MediaDetails): Promise<MediaAssetView | null> {
+  const data = {
+    ...(details.title !== undefined ? { title: details.title } : {}),
+    ...(details.alt !== undefined ? { alt: details.alt } : {}),
+  };
+  const result = await db.mediaAsset.updateMany({ where: { id, userId, hiddenAt: null }, data });
+  if (!result.count) return null;
+  const row = await db.mediaAsset.findFirst({ where: { id, userId }, select: SELECT });
+  return row ? toView(row) : null;
 }
 
 /**

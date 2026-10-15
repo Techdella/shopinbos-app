@@ -137,6 +137,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "brand-kit", label: "Brand kit", icon: "tag", href: "/home/brand-kit" },
+        { id: "media", label: "Media", icon: "image", href: "/home/media" },
         { id: "templates", label: "Templates", icon: "grid", href: "/builder/templates" },
         { id: "domain", label: "Domain", icon: "globe", href: "/home/domain" },
       ],

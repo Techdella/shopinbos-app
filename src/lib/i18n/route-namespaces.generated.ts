@@ -110,6 +110,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/marketing/templates", ["auth","common","emailBuilder","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/marketing/templates/[id]", ["auth","common","emailBuilder","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/marketing/whatsapp", ["auth","common","emailBuilder","glossary","help","introTitles","learn","marketing","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/home/media", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/messages", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/messages/partners", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/navigation", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],

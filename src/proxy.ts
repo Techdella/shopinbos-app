@@ -78,7 +78,10 @@ async function routeStoreHost(request: NextRequest, route: Exclude<ReturnType<ty
   if (action.action === "not-found") return notFound(pathname);
   const url = request.nextUrl.clone();
   url.pathname = action.pathname;
-  return NextResponse.rewrite(url);
+  // The shopper's own path, so a store that moved address can redirect to the same page (s/[slug]/layout.tsx).
+  const headers = new Headers(request.headers);
+  headers.set(REQUEST_PATH_HEADER, `${pathname}${request.nextUrl.search}`);
+  return NextResponse.rewrite(url, { request: { headers } });
 }
 
 function hasSupabaseAuthCookie(request: NextRequest) {
@@ -103,7 +106,12 @@ function trustedOrigins() {
 export async function proxy(request: NextRequest) {
   const route = hostRoute(request);
   if (route.kind !== "app") return routeStoreHost(request, route);
-  if (skippedOnAppHost(request.nextUrl.pathname)) return NextResponse.next();
+  if (skippedOnAppHost(request.nextUrl.pathname)) {
+    if (!request.nextUrl.pathname.startsWith("/s/")) return NextResponse.next();
+    const headers = new Headers(request.headers);
+    headers.set(REQUEST_PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return NextResponse.next({ request: { headers } });
+  }
 
   const { pathname, search } = request.nextUrl;
   const isApi = pathname.startsWith("/api/");
