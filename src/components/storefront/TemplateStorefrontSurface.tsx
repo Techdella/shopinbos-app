@@ -24,6 +24,8 @@ import type { BoutiqueProductDetail } from "@/components/storefront/boutique/Bou
 import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
 import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
 import { readClassicPdpSettings } from "@/components/storefront/boutique/pdp/classic-pdp";
+import { faqAnswer, readFaqStyle, storeFaqSection } from "@/components/storefront/boutique/faq/faq-logic";
+import { FaqList } from "@/components/storefront/boutique/faq/FaqList";
 import { samplePdpProduct } from "@/components/storefront/boutique/pdp/sample-product";
 import { CheckoutPreview } from "@/components/storefront/checkout/CheckoutPreview";
 import { checkoutNavLinks, readClassicCheckoutSettings } from "@/components/storefront/checkout/checkout-layout";
@@ -2268,7 +2270,7 @@ function ClassicTemplateSurface({
       const pageSections = page?.sections ?? [];
       const relatedSection = pageSections.find((entry) => entry.kind === "featured-products" && entry.settings?.source === "related");
       const relatedTitle = String(relatedSection?.blocks.find((entry) => entry.type === "copy")?.content?.title ?? "").trim();
-      const settings = readClassicPdpSettings(kindSection, { relatedFallback: relatedTitle });
+      const settings = readClassicPdpSettings(kindSection, { relatedFallback: relatedTitle, faqSection: storeFaqSection(snapshot) });
       const addLine = () => onAddToCart?.(product.id);
       return (
         <ClassicPdp
@@ -2865,6 +2867,21 @@ function ClassicTemplateSurface({
 
     if (kindSection.kind === "faq") {
       const layout = String(kindSection.settings?.layout ?? "accordion");
+      // A question style picked in the builder (shared with the product page) replaces the template's own rows.
+      const faqStyle = readFaqStyle(kindSection.settings?.faqStyle);
+      if (faqStyle) {
+        const items = (kindSection.items ?? [])
+          .map((item, index) => ({ id: `${kindSection.id}-${index}`, question: String(item.question ?? "").trim(), answer: faqAnswer(item, shopperInfo, store.currency) }))
+          .filter((item) => item.question && (item.answer || isEditor));
+        return (
+          <section key={kindSection.id} className="px-5 py-14 sm:px-8">
+            <div className={`mx-auto ${faqStyle === "cards" || faqStyle === "split" ? "max-w-[1100px]" : "max-w-[820px]"}`}>
+              <SectionHeading eyebrow="FAQ" title={cleanCustomerCopy(copy.title, "Common questions")} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
+              <FaqList key={faqStyle} items={items} style={faqStyle} look={pdpLook} missing="Write your answer in the editor. Until then this question stays hidden from shoppers." className="mt-8" />
+            </div>
+          </section>
+        );
+      }
       if (layout === "cards") {
         return (
           <section key={kindSection.id} className="px-5 py-14 sm:px-8">

@@ -11,16 +11,13 @@ import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
 import {
   countdownParts,
-  deliveryLines,
   formatStoreMoney,
-  freeDeliveryPromise,
   lagosDayLabel,
   paydayLastDay,
   paydayWindow,
   readPaydaySettings,
   readShopperInfo,
   whatsappLink,
-  type StorefrontShopperInfo,
 } from "@/lib/storefront/shopper-info";
 import { bestSellers, productCategories, relatedProducts, searchProducts, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
@@ -38,6 +35,8 @@ import { isShopGridSection, readOptionalProductLimit, readProductCardOptions, re
 import type { GameSectionKind } from "@/lib/gamification/logic";
 import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
+import { faqAnswer, faqSectionStyle } from "./faq/faq-logic";
+import { FaqList } from "./faq/FaqList";
 import { LAYOUT_ROW_KIND } from "./blocks/layout-logic";
 import { LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
 import { shopperCopy } from "@shared/placeholder-copy";
@@ -110,25 +109,8 @@ function normalizePage(page: string) {
   return page;
 }
 
-/** Faq answers left blank by the seller come from their own delivery and payment settings. */
-export function faqAnswer(item: Record<string, unknown>, shopper: StorefrontShopperInfo, currency: string) {
-  const written = text(item.answer);
-  if (written) return written;
-  if (item.answerSource === "delivery") {
-    const lines = deliveryLines(shopper, currency);
-    if (!lines.length) return "";
-    const promise = freeDeliveryPromise(shopper.delivery);
-    return `${lines.map((line) => `${line.place}: ${line.detail}`).join(". ")}.${promise ? ` ${promise}.` : ""}`;
-  }
-  if (item.answerSource === "payment") {
-    const others = shopper.paymentLabels.filter((label) => label !== "Pay on delivery");
-    if (shopper.payOnDelivery) {
-      return `Yes. Pay on delivery is available${shopper.payOnDeliveryLimit ? ` for orders up to ${formatStoreMoney(shopper.payOnDeliveryLimit, currency)}` : ""}.${others.length ? ` You can also pay by ${others.join(", ").toLowerCase()}.` : ""}`;
-    }
-    return others.length ? `Not at the moment. You can pay by ${others.join(", ").toLowerCase()} at checkout.` : "";
-  }
-  return "";
-}
+/** Faq answers left blank by the seller come from their own delivery and payment settings (faq/faq-logic.ts). */
+export { faqAnswer };
 
 function Countdown({ settings, look, copy, onShop, editor }: { settings: unknown; look: BoutiqueLook; copy: Record<string, unknown>; onShop: () => void; editor: boolean }) {
   const [now, setNow] = useState<Date | null>(null);
@@ -203,7 +185,6 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const category = new URLSearchParams(window.location.search).get("category")?.trim();
     if (category) setFilter((prev) => ({ ...prev, category: category.slice(0, 80) }));
   }, [live]);
-  const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [faqQuery, setFaqQuery] = useState<Record<string, string>>({});
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
@@ -292,7 +273,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       if (!editCopy) return;
       const found = inlineTargetFor(event.target as Element, event.currentTarget, copyOf(section));
       if (!found) return;
-      const inControl = Boolean(found.element.closest("a, button"));
+      const inControl = Boolean(found.element.closest("a, button, summary"));
       if (inControl !== viaDouble) return;
       event.preventDefault();
       setInline({ sectionId: section.id, container: event.currentTarget, key: found.key, element: found.element, value: (found.element.textContent ?? "").replace(/\s+/g, " ").trim() });
@@ -1278,43 +1259,19 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {query.trim() ? <p className="m-0 mt-2 text-[13px]" role="status" style={{ color: t.muted }}>{shown.length ? `${shown.length} ${shown.length === 1 ? "answer" : "answers"}` : "No answers match. Try another word, or contact us."}</p> : null}
       </>
     ) : null;
+    // How the questions look (FAQ style in the builder); the product page follows the same style by default.
+    const style = faqSectionStyle(section, "boutique");
     if (layout === "cards") {
       // Every answer open, in cards: quick to scan on a dedicated FAQ page.
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-12">
           <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
           {searchBox ? <div className="mx-auto max-w-[720px]">{searchBox}</div> : null}
-          <div className="mt-8 grid gap-3 @3xl:grid-cols-2">
-            {shown.map((item) => (
-              <div key={item.id} className="p-5" style={{ background: look.raised, borderRadius: look.cardRadius }}>
-                <h3 className="m-0 text-[15.5px] font-semibold" style={{ color: t.ink }}>{item.question}</h3>
-                <p className="mb-0 mt-2 text-[14.5px] leading-7" style={{ color: t.muted }}>{item.answer || missing}</p>
-              </div>
-            ))}
-          </div>
+          <FaqList items={shown} style="cards" look={look} missing={missing} className="mt-8" />
         </section>
       );
     }
-    const accordion = (
-      <div className={layout === "two-column" ? "" : "mt-6"}>
-        {shown.map((item) => {
-          const open = openFaq === item.id;
-          return (
-            <div key={item.id} className="border-b" style={{ borderColor: t.border }}>
-              <h3 className="m-0">
-                <button type="button" aria-expanded={open} aria-controls={`${item.id}-a`} onClick={() => setOpenFaq(open ? null : item.id)} className="flex w-full items-center justify-between gap-4 border-0 bg-transparent py-4 text-left text-[15px] font-medium" style={{ color: t.ink, cursor: "pointer" }}>
-                  {item.question}
-                  <Icon name={open ? "minus" : "plus"} size={16} />
-                </button>
-              </h3>
-              <div id={`${item.id}-a`} role="region" hidden={!open} className="pb-4 text-[14.5px] leading-7" style={{ color: t.muted }}>
-                {item.answer || missing}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
+    const accordion = <FaqList key={style} items={shown} style={style} look={look} missing={missing} className={layout === "two-column" ? "" : "mt-6"} />;
     if (layout === "two-column") {
       // Heading and a way to get in touch on the left, the questions on the right.
       return (
@@ -1337,7 +1294,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
-        <div className="mx-auto max-w-[720px]">
+        <div className={`mx-auto ${style === "cards" || style === "split" ? "max-w-[960px]" : "max-w-[720px]"}`}>
           <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
           {searchBox}
           {accordion}

@@ -10,6 +10,7 @@ import { classicPdpSchemaGroups, pdpSchemaGroups } from "./pdp-schema.ts";
 import { checkoutSchemaGroups, classicCheckoutSchemaGroups } from "./checkout-schema.ts";
 import { storeBlockMeta } from "../../storefront/boutique/blocks/block-catalog.ts";
 import { LAYOUT_ELEMENTS, LAYOUT_ROW_KIND } from "../../storefront/boutique/blocks/layout-logic.ts";
+import { DEFAULT_FAQ_STYLE, FAQ_STYLE_OPTIONS } from "../../storefront/boutique/faq/faq-logic.ts";
 
 export type FieldTarget =
   | { scope: "copy"; key: string }
@@ -55,7 +56,8 @@ export type ItemField =
 export type SchemaField =
   | (FieldBase & { type: "text" | "textarea"; target: FieldTarget; placeholder?: string })
   | (FieldBase & { type: "number"; target: FieldTarget; min: number; max: number; fallback: number })
-  | (FieldBase & { type: "segmented" | "select" | "cards"; target: FieldTarget; options: ChoiceOption[]; fallback: string })
+  /** `thumbs`: the cards picker draws a small picture of each option (FAQ styles). */
+  | (FieldBase & { type: "segmented" | "select" | "cards"; target: FieldTarget; options: ChoiceOption[]; fallback: string; thumbs?: "faq" })
   | (FieldBase & { type: "toggle"; target: FieldTarget; fallback: boolean })
   | (FieldBase & { type: "color"; target: FieldTarget; placeholder?: string })
   | (FieldBase & { type: "datetime"; target: FieldTarget })
@@ -449,6 +451,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       return plain([
         { fields: [
           { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "accordion", options: [{ value: "accordion", label: "Accordion" }, { value: "two-column", label: "Two columns" }, { value: "cards", label: "Open cards" }] },
+          { id: "faqStyle", type: "cards", label: "FAQ style", target: setting("faqStyle"), fallback: DEFAULT_FAQ_STYLE, options: FAQ_STYLE_OPTIONS, thumbs: "faq", help: "Your product pages use the same style unless you pick another in the Product page settings.", when: { scope: "settings", key: "layout", notIn: ["cards"], fallback: "accordion" } },
           text("title", "Heading"),
           { id: "faq", type: "faq", label: "Questions", help: "Blank delivery and payment answers are filled from your settings." },
         ] },
@@ -911,7 +914,10 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
       ];
     case "faq":
       return [
-        { fields: [heading()] },
+        { fields: [
+          heading(),
+          { id: "faqStyle", type: "cards", label: "FAQ style", target: setting("faqStyle"), fallback: "", options: [{ value: "", label: "Template style", hint: "The look of the layout you picked." }, ...FAQ_STYLE_OPTIONS], thumbs: "faq", help: "Your product pages use the same style unless you pick another in the Product page settings." },
+        ] },
         { fields: [{
           id: "items", type: "repeater", label: "Questions", itemName: "Question", addLabel: "Add question", max: 20,
           template: { question: "New question", answer: "" }, titleKeys: ["question"],
