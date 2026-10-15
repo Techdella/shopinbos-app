@@ -778,6 +778,7 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       currentPage={props.selectedPage ?? ownPage}
       onNavigate={props.onSelectPage ?? setOwnPage}
       selectedSectionId={props.selectedSectionId}
+      onUpdateSectionCopy={props.onUpdateSectionCopy}
       onSelectSection={props.onSelectSection}
       cartCount={props.cartCount ?? 0}
       onOpenCart={props.onOpenCart}

@@ -170,6 +170,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "Deliveries 48 cikin 50 sun isa a kan lokaci a wannan mako: on-time rate 96%.",
   "api-key.short": "Lambar sirri da ke bari wata app ta yi aiki da account ɗinka na Shopinbos.",
   "api-key.example": "Liƙa ta a cikin dispatch software ɗinka, kuma ka ɓoye ta kamar password.",
+  "media.short": "Duk hotuna da bidiyon shagonka, a wuri ɗaya don ka sa musu suna, ka bayyana su, ka sake amfani da su.",
+  "media.example": "Zaɓi hoton Ankara na watan jiya don sabon banner maimakon sake ɗora shi.",
 };
 
 export default ha;

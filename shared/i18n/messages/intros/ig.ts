@@ -622,6 +622,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "company-profile.4.sub": "Zoo ngwaọrụ ị na-ejibeghị. Weghachi ha n'oge ọ bụla.",
   "company-profile.5.caption": "Nweta verification site ebe a.",
   "company-profile.5.sub": "Verification dị n'ime company settings gị. Partners e kwadoro na-enweta orders ka ukwuu.",
+  "media.title": "Mgbasa",
+  "media.cta": "Mepee mgbasa m",
+  "media.1.caption": "Foto niile nke ụlọ ahịa gị, n'otu ebe.",
+  "media.1.sub": "Foto ngwaahịa, akara gị, banner na atụmatụ Rex na-abịa ebe a n'onwe ha.",
+  "media.2.caption": "Bugo otu ugboro, jiri ya ebe ọ bụla.",
+  "media.2.sub": "Họrọ otu foto maka ngwaahịa, banner ma ọ bụ edemede blọọgụ. Ọ dịghị ibugo ugboro abụọ.",
+  "media.3.caption": "Ederede alt na-enyere Google aka ịchọta gị.",
+  "media.3.sub": "Kọwaa ihe foto ọ bụla na-egosi, dịka “Uwe Ankara uhie”. Igwe nchọta na-agụ ya.",
+  "media.4.caption": "Detuo njikọ n'otu mpịaka.",
+  "media.4.sub": "Mado njikọ foto na WhatsApp, email ma ọ bụ ebe ọ bụla ị na-ere.",
+  "media.5.caption": "Chọta ya ọzọ ngwa ngwa.",
+  "media.5.sub": "Nye foto aha, wee chọọ site n'aha ma ọ bụ họchaa foto na vidiyo.",
 };
 
 export default ig;

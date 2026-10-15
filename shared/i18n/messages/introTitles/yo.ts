@@ -56,6 +56,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance àti reviews",
   "company-profile.title": "Company profile àti settings",
+  "media.title": "Àwọn àwòrán",
 };
 
 export default yo;

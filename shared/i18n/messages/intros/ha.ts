@@ -622,6 +622,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "company-profile.4.sub": "Ɓoye kayan aikin da ba ka amfani da su tukuna. Dawo da su a kowane lokaci.",
   "company-profile.5.caption": "Samu verification daga nan.",
   "company-profile.5.sub": "Verification yana cikin company settings ɗinka. Partners da aka tantance suna samun ƙarin orders.",
+  "media.title": "Hotuna",
+  "media.cta": "Buɗe hotunana",
+  "media.1.caption": "Duk hotunan shagonka, a wuri ɗaya.",
+  "media.1.sub": "Hotunan kaya, tambarinka, banners da zanen Rex suna zuwa nan da kansu.",
+  "media.2.caption": "Ɗora sau ɗaya, yi amfani a ko'ina.",
+  "media.2.sub": "Zaɓi hoto ɗaya don kaya, banner ko rubutun blog. Babu ɗorawa sau biyu.",
+  "media.3.caption": "Rubutun alt yana taimaka wa Google samunka.",
+  "media.3.sub": "Faɗi abin da kowane hoto ke nunawa, kamar “Rigar Ankara ja”. Injinan bincike suna karanta shi.",
+  "media.4.caption": "Kwafi hanyar haɗi da taɓawa ɗaya.",
+  "media.4.sub": "Liƙa hanyar haɗin hoto a WhatsApp, imel ko duk inda kake sayarwa.",
+  "media.5.caption": "Samu shi da sauri.",
+  "media.5.sub": "Ba hotuna take, sannan ka nema da suna ko ka tace hotuna da bidiyo.",
 };
 
 export default ha;

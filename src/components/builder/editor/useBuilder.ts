@@ -95,6 +95,35 @@ function isLiveStatus(status: string | null) {
 
 const AUTOSAVE_MS = 5000;
 
+// Edits not yet saved to the server are also kept in this browser (a lost connection or a closed tab doesn't lose
+// them); the next visit brings them back. Cleared once the server has them, or when the seller leaves without saving.
+const backupKey = (slug: string) => `shopinbos:editor-backup:${slug}`;
+
+interface DraftBackup {
+  at: string;
+  snapshot: StoreEditorSnapshot;
+}
+
+function readBackup(slug: string): DraftBackup | null {
+  if (!slug) return null;
+  try {
+    const raw = JSON.parse(localStorage.getItem(backupKey(slug)) ?? "null") as DraftBackup | null;
+    return raw && typeof raw.at === "string" && raw.snapshot && Array.isArray(raw.snapshot.pages) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeBackup(slug: string, snapshot: StoreEditorSnapshot | null) {
+  if (!slug) return;
+  try {
+    if (snapshot) localStorage.setItem(backupKey(slug), JSON.stringify({ at: new Date().toISOString(), snapshot } satisfies DraftBackup));
+    else localStorage.removeItem(backupKey(slug));
+  } catch {
+    // Private mode or full storage: autosave to the server still runs.
+  }
+}
+
 const EMPTY_STORE: BuilderStore = {
   name: "My store",
   slug: "",
@@ -183,14 +212,35 @@ export function useBuilder() {
         logoVariants: raw.brandSettings && typeof raw.brandSettings === "object" ? (raw.brandSettings as Record<string, unknown>).logoVariants ?? null : null,
       });
       const nextDraft = upgradeSnapshot((json.data.draft as StoreEditorSnapshot | null | undefined) ?? null);
-      resetDraft(nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null);
+      const serverDraft = nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null;
+      resetDraft(serverDraft);
+      // Edits from last time that never reached the server come back (and autosave saves them a moment later),
+      // unless the saved draft is newer (edited on another device since).
+      const slug = typeof raw.slug === "string" ? raw.slug : "";
+      const backup = readBackup(slug);
+      if (backup) {
+        const restored = upgradeSnapshot(backup.snapshot);
+        const serverAt = Date.parse(serverDraft?.updatedAt ?? "") || 0;
+        if (restored && snapshotKey(restored) !== snapshotKey(serverDraft) && Date.parse(backup.at) >= serverAt) {
+          setHistory(createHistory<StoreEditorSnapshot | null>(restored));
+          showToast(tx("We brought back edits that hadn't saved yet."), "ok", {
+            label: tx("Undo"),
+            run: () => {
+              writeBackup(slug, null);
+              resetDraft(serverDraft);
+            },
+          });
+        } else {
+          writeBackup(slug, null);
+        }
+      }
       setPublished(upgradeSnapshot((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : tx("Your store couldn't be loaded."));
     } finally {
       setLoading(false);
     }
-  }, [resetDraft]);
+  }, [resetDraft, showToast]);
 
   useEffect(() => {
     void load();
@@ -230,6 +280,7 @@ export function useBuilder() {
 
   // An autosave that failed isn't retried for the same content; the next edit (or Save) tries again.
   const failedKey = useRef<string | null>(null);
+  const pageHidden = useRef(false);
 
   const save = useCallback(async (options: { quiet?: boolean } = {}) => {
     const snapshot = draftRef.current;
@@ -242,7 +293,9 @@ export function useBuilder() {
       return true;
     } catch (error) {
       failedKey.current = snapshotKey(snapshot);
-      showToast(error instanceof Error ? error.message : tx("Your changes couldn't be saved."), "error");
+      // fetch() throws a TypeError when there's no connection: say so plainly (the edits are kept on this device).
+      const offline = error instanceof TypeError;
+      showToast(offline ? tx("No connection. Your edits are kept on this device and will save when you're back online.") : error instanceof Error ? error.message : tx("Your changes couldn't be saved."), "error");
       return false;
     } finally {
       setSaving(false);
@@ -255,6 +308,55 @@ export function useBuilder() {
     const timer = setTimeout(() => { void save({ quiet: true }); }, AUTOSAVE_MS);
     return () => clearTimeout(timer);
   }, [dirty, draftKey, saving, save]);
+
+  // The browser copy: kept while there are unsaved edits (written a moment after typing stops), dropped once saved.
+  useEffect(() => {
+    if (loading || !store.slug) return;
+    if (!dirty) {
+      writeBackup(store.slug, null);
+      return;
+    }
+    const timer = setTimeout(() => writeBackup(store.slug, draftRef.current), 600);
+    return () => clearTimeout(timer);
+  }, [dirty, draftKey, loading, store.slug]);
+
+  // Back online: try the save that failed again (autosave doesn't retry the same edits on its own).
+  useEffect(() => {
+    if (!dirty) return;
+    const retry = () => {
+      failedKey.current = null;
+      void save({ quiet: true });
+    };
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [dirty, save]);
+
+  // Closing or hiding the tab: browsers don't let a page show its own box then, so the save is sent right away
+  // with keepalive (the browser finishes it after the page is gone; it caps such requests at 64 KB, so a larger
+  // store relies on the browser copy above). Switching tabs just saves early.
+  useEffect(() => {
+    if (!dirty) return;
+    const flush = () => {
+      if (document.visibilityState !== "hidden" && !pageHidden.current) return;
+      const snapshot = draftRef.current;
+      if (!snapshot) return;
+      const body = JSON.stringify({ snapshot });
+      if (body.length > 60_000) return;
+      void fetch("/api/store/editor", { method: "PATCH", headers: { "Content-Type": "application/json" }, body, keepalive: true })
+        .then((response) => { if (response.ok) setSavedKey(snapshotKey(snapshot)); })
+        .catch(() => undefined);
+    };
+    const onPageHide = () => { pageHidden.current = true; flush(); };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [dirty]);
+
+  /** Leaving without saving: the unsaved edits are dropped for good (no "brought back" next time). */
+  const forgetUnsaved = useCallback(() => writeBackup(store.slug, null), [store.slug]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -418,6 +520,7 @@ export function useBuilder() {
     undo,
     redo,
     save,
+    forgetUnsaved,
     publish,
     startBlank,
     applyOps,

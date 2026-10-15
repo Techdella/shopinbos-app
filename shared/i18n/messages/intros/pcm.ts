@@ -622,6 +622,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "company-profile.4.sub": "Hide the tools wey you never dey use. Bring dem back any time.",
   "company-profile.5.caption": "Get verified from here.",
   "company-profile.5.sub": "Verification dey inside your company settings. Verified partners dey get more orders.",
+  "media.title": "Media",
+  "media.cta": "Open my media",
+  "media.1.caption": "All the pictures for your shop, for one place.",
+  "media.1.sub": "Product photos, your logo, banners and Rex designs dey land here by demself.",
+  "media.2.caption": "Upload once, use am anywhere.",
+  "media.2.sub": "Pick the same photo for product, banner or blog post. No need to upload am two times.",
+  "media.3.caption": "Alt text dey help Google find you.",
+  "media.3.sub": "Talk wetin each picture show, like “Red Ankara wrap dress”. Search engines dey read am.",
+  "media.4.caption": "Copy link with one tap.",
+  "media.4.sub": "Paste picture link for WhatsApp, email or anywhere else wey you dey sell.",
+  "media.5.caption": "Find am again quick.",
+  "media.5.sub": "Give pictures title, then search by name or filter pictures and videos.",
 };
 
 export default pcm;

@@ -1,5 +1,6 @@
 "use client";
 
+import { InlineTextEditor, inlineTargetFor, type InlineEdit } from "./InlineTextEditor";
 import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type React from "react";
@@ -66,6 +67,8 @@ export interface BoutiqueStorefrontProps {
   onNavigate: (page: string) => void;
   selectedSectionId?: string | null;
   onSelectSection?: (sectionId: string | null) => void;
+  /** Builder only: click a heading, paragraph or label to type over it (InlineTextEditor). */
+  onUpdateSectionCopy?: (sectionId: string, key: string, value: string) => void;
   cartCount: number;
   onOpenCart?: () => void;
   onAddToCart?: (productId: string) => void;
@@ -187,6 +190,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const products = store.storeProducts;
   const basePath = props.storeBasePath ?? "";
   const [sheet, setSheet] = useState<ShopperSheet>(live && props.initialQuery ? "search" : null);
+  const [inline, setInline] = useState<(InlineEdit & { sectionId: string; container: HTMLElement }) | null>(null);
   const [filter, setFilter] = useState<{ category: string; collection: string; q: string; sort: string }>({ category: "all", collection: "", q: "", sort: "featured" });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   // /shop?category=bags (old category links, the product page's category menu) opens the shop filtered.
@@ -275,6 +279,17 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (!node) return null;
     if (live || props.demo) return <div key={section.id}>{node}</div>;
     const selected = props.selectedSectionId === section.id;
+    const editCopy = props.onUpdateSectionCopy;
+    // Words open for typing on a click; inside a button or link (which still works as one) on a double-click.
+    const startInline = (event: React.MouseEvent<HTMLDivElement>, viaDouble: boolean) => {
+      if (!editCopy) return;
+      const found = inlineTargetFor(event.target as Element, event.currentTarget, copyOf(section));
+      if (!found) return;
+      const inControl = Boolean(found.element.closest("a, button"));
+      if (inControl !== viaDouble) return;
+      event.preventDefault();
+      setInline({ sectionId: section.id, container: event.currentTarget, key: found.key, element: found.element, value: (found.element.textContent ?? "").replace(/\s+/g, " ").trim() });
+    };
     return (
       <div
         key={section.id}
@@ -282,10 +297,21 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         onClick={(event) => {
           event.stopPropagation();
           props.onSelectSection?.(section.id);
+          startInline(event, false);
         }}
+        onDoubleClick={(event) => startInline(event, true)}
         style={{ outline: selected ? "2.5px solid #0E9E85" : "2px solid transparent", outlineOffset: -2, cursor: "pointer", position: "relative" }}
       >
         {node}
+        {inline && inline.sectionId === section.id && editCopy ? (
+          <InlineTextEditor
+            key={`${inline.key}-${inline.value}`}
+            edit={inline}
+            container={inline.container}
+            onSave={(value) => editCopy(section.id, inline.key, value)}
+            onClose={() => setInline(null)}
+          />
+        ) : null}
       </div>
     );
   }

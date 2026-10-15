@@ -52,6 +52,9 @@ export interface TopBarProps {
   publishing: boolean;
   canPublish: boolean;
   onSave: () => void;
+  /** "Preview store": see the store as shoppers do (hidden while previewing a theme). */
+  onPreviewStore?: () => void;
+  previewingStore?: boolean;
   saving: boolean;
   dirty: boolean;
   phone: boolean;
@@ -120,6 +123,22 @@ export function TopBar(props: TopBarProps) {
         </>
       ) : null}
       {props.phone && editor ? <IconButton icon="undo" label="Undo" disabled={!props.canUndo} onClick={props.onUndo} /> : null}
+      {editor && props.onPreviewStore ? (
+        <button
+          type="button"
+          onClick={props.onPreviewStore}
+          aria-pressed={props.previewingStore}
+          aria-label={tx(props.previewingStore ? "Back to editing" : "Preview store")}
+          title={tx(props.previewingStore ? "Back to editing" : "Preview store")}
+          className={cx(
+            "inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-[14px] font-bold transition",
+            props.previewingStore ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+          )}
+        >
+          <Icon name="eye" size={16} />
+          <span aria-hidden className="hidden md:inline">{props.previewingStore ? tx("Back to editing") : tx("Preview store")}</span>
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={props.onPublish}

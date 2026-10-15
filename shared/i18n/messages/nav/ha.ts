@@ -207,6 +207,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "credits.pack.large": "Fakitin ƙarfi",
   "credits.badge.medium": "Wanda aka fi so",
   "credits.badge.large": "Mafi araha",
+  media: "Hotuna",
 };
 
 export default ha;

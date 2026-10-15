@@ -207,6 +207,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "credits.pack.large": "Power pack",
   "credits.badge.medium": "Na im people like pass",
   "credits.badge.large": "Best value",
+  media: "Media",
 };
 
 export default pcm;

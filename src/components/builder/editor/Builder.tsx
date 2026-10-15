@@ -121,6 +121,11 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const [scrollToken, setScrollToken] = useState(0);
   const [sheet, setSheet] = useState<"section" | "sections" | null>(null);
   const [phoneNote, setPhoneNote] = useState(true);
+  /** "Preview store": the page as shoppers see it, no editing tools (unsaved edits included). */
+  const [storePreview, setStorePreview] = useState(false);
+  /** Where "Leave" was going while the save-or-lose prompt is open. */
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const [leaveSaving, setLeaveSaving] = useState(false);
   const insertSearchRef = useRef<HTMLInputElement>(null);
 
   const snapshot = preview?.snapshot ?? draft;
@@ -376,13 +381,84 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   // ── Leaving, keyboard ───────────────────────────────────────────────────
 
+  // Unsaved edits: ask first (save and leave, leave and lose them, or keep editing). Autosave usually got there.
   const leave = useCallback(async (destination: string) => {
     if (b.dirty) {
-      const ok = await b.save({ quiet: true });
-      if (!ok) return;
+      setLeaving(destination);
+      return;
     }
     router.push(destination);
   }, [b, router]);
+
+  // The browser's back button: an extra history entry catches it, so unsaved edits get the same question.
+  // "back" as the destination means "go where Back was going" (two steps: past the catch entry and the editor).
+  const dirtyRef = useRef(b.dirty);
+  dirtyRef.current = b.dirty;
+  const passBack = useRef(false);
+  useEffect(() => {
+    window.history.pushState({ ...(window.history.state ?? {}), editorGuard: true }, "", window.location.href);
+    const onPop = () => {
+      if (passBack.current) return;
+      if (dirtyRef.current) {
+        window.history.pushState({ ...(window.history.state ?? {}), editorGuard: true }, "", window.location.href);
+        setLeaving("back");
+        return;
+      }
+      passBack.current = true;
+      window.history.back();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const go = useCallback((destination: string) => {
+    if (destination === "back") {
+      passBack.current = true;
+      window.history.go(-2);
+    } else {
+      router.push(destination);
+    }
+  }, [router]);
+
+  const saveAndLeave = useCallback(async () => {
+    if (!leaving) return;
+    setLeaveSaving(true);
+    const ok = await b.save({ quiet: true });
+    setLeaveSaving(false);
+    if (ok) go(leaving);
+  }, [b, go, leaving]);
+
+  const leaveWithoutSaving = useCallback(() => {
+    if (!leaving) return;
+    b.forgetUnsaved();
+    go(leaving);
+  }, [b, go, leaving]);
+
+  // Pick up where they stopped: the page and section they were on come back next time.
+  const placeKey = b.store.slug ? `shopinbos:editor-place:${b.store.slug}` : null;
+  const placeRestored = useRef(false);
+  useEffect(() => {
+    if (!placeKey || !draft || placeRestored.current) return;
+    placeRestored.current = true;
+    try {
+      const place = JSON.parse(localStorage.getItem(placeKey) ?? "null") as { page?: string; section?: string | null } | null;
+      const target = place?.page ? draft.pages.find((entry) => entry.pageType === place.page) : null;
+      if (target) {
+        setEntryId(target.pageType);
+        if (place?.section && target.sections.some((section) => section.id === place.section)) setSelectedId(place.section);
+      }
+    } catch {
+      // Nothing saved here yet.
+    }
+  }, [draft, placeKey]);
+  useEffect(() => {
+    if (!placeKey || !placeRestored.current) return;
+    try {
+      localStorage.setItem(placeKey, JSON.stringify({ page: entryId, section: selectedId }));
+    } catch {
+      // Private mode: they start on the home page next time.
+    }
+  }, [entryId, placeKey, selectedId]);
 
   useEffect(() => {
     const handler = (event: Event) => { void leave(String((event as CustomEvent).detail ?? "/home/store")); };
@@ -409,6 +485,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       } else if (mod && key === "f" && !phone) {
         event.preventDefault();
         openInsert(insertTarget.group, insertTarget.beforeId);
+      } else if (event.key === "Escape" && storePreview) {
+        setStorePreview(false);
       } else if (event.key === "Escape" && selectedElementId) {
         setSelectedElementId(null);
       } else if (event.key === "Escape" && selectedId) {
@@ -417,7 +495,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [b, insertTarget, openInsert, phone, selectedElementId, selectedId, view]);
+  }, [b, insertTarget, openInsert, phone, selectedElementId, selectedId, storePreview, view]);
 
   // ── Themes ──────────────────────────────────────────────────────────────
 
@@ -462,7 +540,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     return base;
   }, [b.store.shopper.collections, b.surfaceStore, entry?.collectionId, entry?.productId]);
 
-  const editing = !preview;
+  const editing = !preview && !storePreview;
   // The canvas "+" spots: 2026 themes, while editing on a computer (the same as the selection outline).
   const canvasOverlay = renderer === "boutique" && editing && !phone;
   const slots = useMemo(() => (canvasOverlay ? insertSlots(sections) : undefined), [canvasOverlay, sections]);
@@ -650,6 +728,33 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     </div>
   );
 
+  const storePreviewBar = storePreview ? (
+    <div role="status" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-app-line bg-app-mint px-4 py-2 text-[13.5px]">
+      <Icon name="eye" size={16} />
+      <span className="min-w-0 flex-1"><strong>{tx("Previewing your store.")}</strong> {tx("This is how shoppers see it, including edits you haven't published yet.")}</span>
+      {b.status === "live" && b.store.storefrontUrl ? (
+        <a href={b.store.storefrontUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-full border border-app-ink/15 bg-white px-3 font-semibold text-app-ink no-underline">{tx("Open live store")}</a>
+      ) : null}
+      <button type="button" onClick={() => setStorePreview(false)} className="min-h-9 rounded-full bg-app-ink px-3 font-semibold text-white">{tx("Back to editing")}</button>
+    </div>
+  ) : null;
+
+  const leavePrompt = leaving ? (
+    <div className="fixed inset-0 z-[700] grid place-items-center bg-black/35 p-4" role="presentation" onClick={() => !leaveSaving && setLeaving(null)}>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="leave-title" aria-describedby="leave-body" onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] rounded-[22px] bg-white p-5 shadow-[0_24px_60px_-20px_rgba(22,20,31,0.45)]">
+        <h2 id="leave-title" className="m-0 text-[18px] font-extrabold">{tx("Save your changes?")}</h2>
+        <p id="leave-body" className="mb-0 mt-2 text-[14.5px] leading-[1.55] text-app-ink-soft">{tx("You have edits that aren't saved yet. Save them before you go, or leave and lose them.")}</p>
+        <div className="mt-5 grid gap-2">
+          <button type="button" autoFocus disabled={leaveSaving} onClick={() => void saveAndLeave()} className="min-h-11 rounded-full bg-app-ink px-4 text-[14.5px] font-bold text-white disabled:opacity-60">
+            {leaveSaving ? tx("Saving…") : tx("Save and leave")}
+          </button>
+          <button type="button" disabled={leaveSaving} onClick={leaveWithoutSaving} className="min-h-11 rounded-full border border-app-line bg-white px-4 text-[14.5px] font-bold text-app-danger disabled:opacity-60">{tx("Leave without saving")}</button>
+          <button type="button" disabled={leaveSaving} onClick={() => setLeaving(null)} className="min-h-11 rounded-full px-4 text-[14.5px] font-bold text-app-ink-soft hover:text-app-ink">{tx("Keep editing")}</button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const previewBar = preview ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-peach px-4 py-2 text-[13.5px] text-app-ink">
       <span className="min-w-0 flex-1"><strong>{t("edk.previewing", { name: preview.name })}</strong> {tx("Your products show in it; nothing changes until you use it.")}</span>
@@ -733,6 +838,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         publishing={b.publishing}
         canPublish={Boolean(draft) && (b.status !== "live" || b.dirty)}
         onSave={() => void b.save()}
+        onPreviewStore={draft && !preview ? () => { setSelectedId(null); setSheet(null); setStorePreview((on) => !on); } : undefined}
+        previewingStore={storePreview}
         saving={b.saving}
         dirty={b.dirty}
         phone={phone}
@@ -751,6 +858,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         </div>
       ) : phone ? (
         <div className="relative flex min-h-0 flex-1 flex-col">
+          {storePreviewBar}
           {previewBar}
           {phoneNote ? (
             <div className="flex items-start gap-2 border-b border-app-line bg-app-mint px-3 py-2 text-[12.5px] leading-5 text-app-forest">
@@ -815,6 +923,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
           ) : null}
           {leftPanel ? <aside aria-label={tx("Builder panel")} className="w-[264px] shrink-0 border-r border-app-line bg-white xl:w-[280px]">{leftPanel}</aside> : null}
           <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={tx("Page preview")}>
+            {storePreviewBar}
             {previewBar}
             <div className="min-h-0 flex-1">{canvas}</div>
           </main>
@@ -829,6 +938,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       )}
 
       {toast}
+      {leavePrompt}
       <StoreLaunchBillingModal open={Boolean(b.launchPricing)} pricing={b.launchPricing} onClose={b.clearLaunchPricing} />
     </div>
   );
