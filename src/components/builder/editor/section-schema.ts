@@ -76,6 +76,8 @@ export type SchemaField =
   | (FieldBase & { type: "repeater"; itemName: string; addLabel: string; max: number; fields: ItemField[]; template: Record<string, unknown>; titleKeys: string[] })
   /** The store-wide "Built with Shopinbos" badge switch (saved through /api/app/store/badge, not in the section). */
   | (FieldBase & { type: "badge" })
+  /** The store's logo and its version for dark backgrounds (store-wide, saved through /api/app/brand-assets). */
+  | (FieldBase & { type: "logo" })
   | (FieldBase & { type: "note" });
 
 export interface FieldGroup {
@@ -136,6 +138,8 @@ const PAYDAY_COPY: SchemaField[] = [
 ];
 
 const SHOPINBOS_BADGE: SchemaField = { id: "shopinbosBadge", type: "badge", label: "Built with Shopinbos badge", help: "A small badge at the bottom of every page of your store." };
+const STORE_LOGO: SchemaField = { id: "storeLogo", type: "logo", label: "Logo", help: "On a dark header or footer, your logo for dark backgrounds shows instead." };
+const FOOTER_SHOW_LOGO: SchemaField = { id: "showLogo", type: "toggle", label: "Show logo", target: setting("showLogo"), fallback: true, help: "Your logo in the footer. Without a logo, your store name shows." };
 
 /** Announcement bar, header and footer are shared by every page (src/lib/store-templates/chrome.ts). */
 const sharedNote = (what: string): SchemaField => ({ id: "shared-note", type: "note", label: `The ${what} is the same on every page: changes here apply to your whole store.` });
@@ -307,10 +311,12 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           { id: "layout", type: "segmented", label: "Logo position", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Left" }, { value: "centered", label: "Centre" }, { value: "bold", label: "Bold" }] },
         ] },
         { title: "Menu", fields: [{ id: "navLinks", type: "pages", label: "Pages in the menu", target: copy("navLinks"), options: BOUTIQUE_PAGE_LINKS, fallback: ["home", "products", "about", "contact"], help: "Only pages your store has are shown to shoppers." }] },
+        { fields: [STORE_LOGO] },
       ]);
     case "footer":
       return plain([
         { fields: [sharedNote("footer"), area("summary", "About text", { help: "A line about your store. Contact, delivery and payment details come from your settings." })] },
+        { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] },
         { fields: [SHOPINBOS_BADGE] },
       ]);
     case "hero-split": {
@@ -755,7 +761,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
         { id: "cart", type: "toggle", label: "Cart", target: setting("cart"), fallback: true },
         { id: "navLinks", type: "list", label: "Menu links", target: copy("navLinks"), fallback: ["home", "products", "about", "contact"], help: "Page names separated by commas." },
         { id: "utilityLinks", type: "list", label: "Utility links", target: copy("utilityLinks"), fallback: ["wishlist", "cart"] },
-      ] }];
+      ] }, { fields: [STORE_LOGO] }];
     case "footer":
       return [{ title: "Footer", fields: [
         sharedNote("footer"),
@@ -765,7 +771,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
         text("email", "Contact email"),
         text("phone", "Contact phone"),
         text("whatsappLabel", "WhatsApp button label"),
-      ] }, { fields: [SHOPINBOS_BADGE] }];
+      ] }, { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] }, { fields: [SHOPINBOS_BADGE] }];
     case "hero-split": {
       const mosaic = ["editorial-mosaic", "carousel-cards"];
       const split = ["split-editorial", "full-bleed", "text-overlay"];

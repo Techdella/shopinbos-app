@@ -1495,6 +1495,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rex.br.openPrint": "Ṣí i kí o tẹ̀ ẹ́",
   "rex.br.openBook": "Ṣí ìwé àṣà",
   "rex.br.openKit": "Àmì-ìdánimọ̀",
+  "ed.Changes not published": "A kò tíì tẹ àwọn àyípadà jáde",
+  "ed.Offline": "Kò sí lórí ayélujára",
+  "ed.Your design is published, but your store is closed to shoppers. Publish to open it again.": "A ti tẹ àwòṣe rẹ jáde, ṣùgbọ́n store rẹ ti tì fún àwọn oníbàárà. Tẹ̀ ẹ́ jáde láti ṣí i padà.",
+  "ed.On a dark header or footer, your logo for dark backgrounds shows instead.": "Lórí orí tàbí ìsàlẹ̀ dúdú, logo rẹ fún àwọ̀ dúdú ni yóò hàn.",
+  "ed.Show logo": "Fi logo hàn",
+  "ed.Your logo in the footer. Without a logo, your store name shows.": "Logo rẹ ní ìsàlẹ̀ ojú-ìwé. Láìsí logo, orúkọ store rẹ ni yóò hàn.",
+  "ed.The logo couldn't be saved. Try again.": "A kò lè fi logo pamọ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "ed.No logo yet. Add one in Brand kit, or click the logo spot in the header.": "Kò sí logo síbẹ̀. Fi ọ̀kan kún un ní Brand kit, tàbí tẹ ibi logo ní orí ojú-ìwé.",
+  "ed.Brand kit": "Brand kit",
+  "ed.Light backgrounds": "Àwọ̀ ìmọ́lẹ̀",
+  "ed.Dark backgrounds (yours)": "Àwọ̀ dúdú (tìrẹ)",
+  "ed.Dark backgrounds (automatic)": "Àwọ̀ dúdú (aládàáṣe)",
+  "ed.Replace dark logo": "Pààrọ̀ logo dúdú",
+  "ed.Upload logo for dark backgrounds": "Gbé logo fún àwọ̀ dúdú sókè",
+  "ed.Use automatic": "Lo ti aládàáṣe",
 };
 
 export default yo;

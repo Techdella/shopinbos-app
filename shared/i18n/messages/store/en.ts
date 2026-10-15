@@ -445,6 +445,12 @@ const en = {
   "book.dosDonts": "Do's and don'ts",
   "book.do": "Do",
   "book.dont": "Don't",
+  "ba.onDark": "On dark backgrounds",
+  "ba.onDarkAuto": "Made from your logo",
+  "ba.onDarkYours": "Your own version",
+  "ba.onDarkTile": "Shown on a light tile until you add one",
+  "ba.uploadDark": "Upload for dark",
+  "ba.useAuto": "Use automatic",
 } satisfies Record<string, string>;
 
 export default en;

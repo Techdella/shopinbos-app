@@ -19,6 +19,7 @@ import type { ShopperProduct } from "@/components/storefront/shopper/catalog";
 import type { AddToBagInput, BoutiqueProductDetail, ProductReviewEntry } from "@/components/storefront/boutique/BoutiqueProductView";
 import type { BoutiqueLook } from "@/components/storefront/boutique/look";
 import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { PdpSettings } from "@/components/storefront/boutique/pdp/pdp-logic";
 
 interface ProductDetailClientProps {
@@ -94,7 +95,7 @@ export function ProductDetailClient({
       <nav aria-label="Store" style={{ borderBottom: `1px solid ${t.border}`, background: t.cardBg, position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 24px", height: 60, display: "flex", alignItems: "center", gap: 12 }}>
           <Link href={home} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-            {store.logoUrl && <img src={store.logoUrl} alt="" style={{ width: 26, height: 26, borderRadius: 6, objectFit: "cover" }} />}
+            <StoreLogo store={store} background={t.cardBg} style={{ width: 26, height: 26, borderRadius: 6 }} />
             <span style={{ fontWeight: 700, fontSize: 15, color: t.ink, fontFamily: look.headingFont }}>{store.name}</span>
           </Link>
         </div>

@@ -20,7 +20,15 @@ export function StatusPill({ status }: { status: PublishState }) {
     );
   }
   if (status === "changes") {
-    return <span title={tx("Your store is live. These edits aren't published yet.")} className="inline-flex shrink-0 items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 text-[12px] font-bold text-[#8A5A00]">{tx("Unpublished")}</span>;
+    // The store has been published; these edits since then aren't on it yet.
+    return <span title={tx("Your store is live. These edits aren't published yet.")} className="inline-flex shrink-0 items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 text-[12px] font-bold text-[#8A5A00]">{tx("Changes not published")}</span>;
+  }
+  if (status === "offline") {
+    return (
+      <span title={tx("Your design is published, but your store is closed to shoppers. Publish to open it again.")} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold text-app-ink-soft">
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-app-ink-faint" /> {tx("Offline")}
+      </span>
+    );
   }
   return <span title={tx("Not published yet")} className="inline-flex shrink-0 items-center rounded-full bg-[#EAF0FF] px-2.5 py-1 text-[12px] font-bold text-[#2F66F6]">{tx("Draft")}</span>;
 }

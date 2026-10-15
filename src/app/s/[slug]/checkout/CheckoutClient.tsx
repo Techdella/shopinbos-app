@@ -415,7 +415,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   );
 
   const shell = (children: React.ReactNode) => (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Checkout" footPayments={false}>
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={storeBasePath} title="Checkout" footPayments={false}>
       {children}
     </ShopperShell>
   );

@@ -8,6 +8,7 @@ import { parseRexAction, productImagesAfterSave } from "@/lib/ai/rex/agent-pure"
 import { rexActivateAutomation } from "@/lib/ai/rex/marketing.server";
 import { recordMedia } from "@/lib/media/library.server";
 import { setBrandAsset } from "@/lib/brand-assets.server";
+import { refreshLogoVariants } from "@/lib/logo-variants.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     }
     case "set_logo": {
       await db.store.update({ where: { id: store.id }, data: { logoUrl: action.imageUrl } });
+      // Also works out how it shows on dark headers and footers (a re-inked version when it can).
+      await refreshLogoVariants(store.id, user.id, action.imageUrl);
       await activity("brand", "Changed the store logo with Rex", "/home/brand-kit", {});
       return ok({ message: "That's your logo now. It shows on your store and receipts.", href: "/home/brand-kit" });
     }

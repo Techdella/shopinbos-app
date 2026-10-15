@@ -1495,6 +1495,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rex.br.openPrint": "Mepee wee bipụta",
   "rex.br.openBook": "Mepee akwụkwọ ụdị",
   "rex.br.openKit": "Ngwa akara",
+  "ed.Changes not published": "Ebipụtabeghị mgbanwe",
+  "ed.Offline": "Anọghị n'ịntanetị",
+  "ed.Your design is published, but your store is closed to shoppers. Publish to open it again.": "E bipụtala imewe gị, mana ụlọ ahịa gị mechiri emechi nye ndị na-azụ ahịa. Bipụta ka i meghee ya ọzọ.",
+  "ed.On a dark header or footer, your logo for dark backgrounds shows instead.": "N'isi ma ọ bụ ala gbara ọchịchịrị, logo gị maka ndabere gbara ọchịchịrị ga-egosi.",
+  "ed.Show logo": "Gosi logo",
+  "ed.Your logo in the footer. Without a logo, your store name shows.": "Logo gị n'ala ibe. Ọ bụrụ na enweghị logo, aha ụlọ ahịa gị ga-egosi.",
+  "ed.The logo couldn't be saved. Try again.": "Enweghị ike ịchekwa logo ahụ. Nwaa ọzọ.",
+  "ed.No logo yet. Add one in Brand kit, or click the logo spot in the header.": "Enwebeghị logo. Tinye otu na Brand kit, ma ọ bụ pịa ebe logo dị n'isi.",
+  "ed.Brand kit": "Brand kit",
+  "ed.Light backgrounds": "Ndabere na-enwu enwu",
+  "ed.Dark backgrounds (yours)": "Ndabere gbara ọchịchịrị (nke gị)",
+  "ed.Dark backgrounds (automatic)": "Ndabere gbara ọchịchịrị (akpaka)",
+  "ed.Replace dark logo": "Gbanwee logo ọchịchịrị",
+  "ed.Upload logo for dark backgrounds": "Bulite logo maka ndabere gbara ọchịchịrị",
+  "ed.Use automatic": "Jiri nke akpaka",
 };
 
 export default ig;

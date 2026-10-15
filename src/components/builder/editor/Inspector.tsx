@@ -23,6 +23,7 @@ import {
 import type { BuilderProduct } from "./useBuilder";
 import { FieldShell, IconButton, inputClass, Menu, MenuItem, PillGroup, textareaClass } from "./ui";
 import { useEditorT } from "./i18n";
+import { LogoField } from "./LogoField";
 import { moveInOrder, toggleInOrder } from "@/components/storefront/boutique/pdp/pdp-logic";
 
 export type SectionAction = "duplicate" | "up" | "down" | "hide" | "remove";
@@ -425,6 +426,8 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
       return <RepeaterField field={field} section={section} sectionKey={sectionKey} {...props} />;
     case "badge":
       return <BadgeField label={field.label} help={field.help} />;
+    case "logo":
+      return <LogoField label={field.label} help={field.help} />;
     case "order":
       return <OrderField field={field} value={readTarget(section, field.target)} onChange={set} />;
     case "note":

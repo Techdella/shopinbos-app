@@ -16,6 +16,7 @@ import {
   createHistory,
   publishState,
   pushHistory,
+  replacePresent,
   redoHistory,
   snapshotKey,
   undoHistory,
@@ -70,6 +71,26 @@ export interface BuilderStore {
   products: BuilderProduct[];
   shopper: StorefrontShopperInfo;
   rawShopper: unknown;
+  /** Store.status: "active" (or "published") is open to shoppers; "draft" is closed. */
+  status: string | null;
+  /** brandSettings.logoVariants: the logo's dark-background version, for the preview's header and footer. */
+  logoVariants: unknown;
+}
+
+/** Brand kit and the builder's logo settings announce new logos with this event (detail: BrandAssets). */
+export const BRAND_ASSETS_EVENT = "shopinbos:brand-assets";
+
+/**
+ * Older saves are upgraded in memory (slides get their own words, renamed layouts…), and every page shares the
+ * home page's header and footer. Drafts and published copies go through the same upgrade so the upgrade alone
+ * never shows as unpublished changes.
+ */
+function upgradeSnapshot(snapshot: StoreEditorSnapshot | null) {
+  return normalizeChrome(migrateSnapshot(snapshot, { heroDefault: snapshot ? heroDefaultLayout(isBoutiqueTheme(snapshot.templateId) ? "boutique" : "classic", snapshot.templateId) : undefined }));
+}
+
+function isLiveStatus(status: string | null) {
+  return status === "active" || status === "published";
 }
 
 const AUTOSAVE_MS = 5000;
@@ -86,6 +107,8 @@ const EMPTY_STORE: BuilderStore = {
   products: [],
   shopper: readShopperInfo(null),
   rawShopper: null,
+  status: null,
+  logoVariants: null,
 };
 
 export type ToastAction = { label: string; href?: string; run?: () => void };
@@ -156,14 +179,12 @@ export function useBuilder() {
         products: Array.isArray(raw.storeProducts) ? (raw.storeProducts as BuilderProduct[]) : [],
         shopper: readShopperInfo(raw.shopper),
         rawShopper: raw.shopper ?? null,
+        status: typeof raw.status === "string" ? raw.status : null,
+        logoVariants: raw.brandSettings && typeof raw.brandSettings === "object" ? (raw.brandSettings as Record<string, unknown>).logoVariants ?? null : null,
       });
-      // Older saves are upgraded in memory (slides get their own words, renamed layouts…); the published copy is
-      // upgraded the same way so the upgrade alone never shows as unpublished changes.
-      // Older saves could also carry a different header or footer per page: every page now shares the home page's.
-      const upgrade = (snapshot: StoreEditorSnapshot | null) => normalizeChrome(migrateSnapshot(snapshot, { heroDefault: snapshot ? heroDefaultLayout(isBoutiqueTheme(snapshot.templateId) ? "boutique" : "classic", snapshot.templateId) : undefined }));
-      const nextDraft = upgrade((json.data.draft as StoreEditorSnapshot | null | undefined) ?? null);
+      const nextDraft = upgradeSnapshot((json.data.draft as StoreEditorSnapshot | null | undefined) ?? null);
       resetDraft(nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null);
-      setPublished(upgrade((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
+      setPublished(upgradeSnapshot((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : tx("Your store couldn't be loaded."));
     } finally {
@@ -247,10 +268,11 @@ export function useBuilder() {
     setPublishing(true);
     try {
       // Publishing reads the saved draft, so the latest edits are saved first.
-      if (snapshotKey(draftRef.current) !== savedKey) await persist(draftRef.current);
+      const sent = draftRef.current;
+      if (snapshotKey(sent) !== savedKey) await persist(sent);
       const response = await fetch("/api/store/editor/publish", { method: "POST" });
       const json = await response.json().catch(() => null) as {
-        data?: { published?: StoreEditorSnapshot | null };
+        data?: { published?: StoreEditorSnapshot | null; draft?: StoreEditorSnapshot | null };
         billing?: StoreLaunchPricing;
         error?: { message?: string; blockers?: string[] };
       } | null;
@@ -259,7 +281,18 @@ export function useBuilder() {
         return;
       }
       if (!response.ok) throw new Error(json?.error?.blockers?.[0] ?? json?.error?.message ?? tx("Your store couldn't be published."));
-      setPublished(json?.data?.published ?? draftRef.current);
+      // The server publishes its own copy of the draft (blank page SEO filled in, one shared header): that copy,
+      // upgraded like a fresh load, becomes both the published snapshot and, unless the seller kept editing while
+      // it published, the draft. Otherwise the pill compared against a different copy and kept saying "changes".
+      const published = upgradeSnapshot(json?.data?.published ?? sent);
+      const serverDraft = json?.data?.draft ? upgradeSnapshot(json.data.draft) : published;
+      setPublished(published);
+      if (serverDraft && draftRef.current && snapshotKey(draftRef.current) === snapshotKey(sent)) {
+        setHistory((current) => replacePresent(current, serverDraft));
+        setSavedKey(snapshotKey(serverDraft));
+      }
+      // Publishing also opens the store (after the launch payment check above).
+      setStore((current) => ({ ...current, status: "active" }));
       const host = storefrontHost(store.storefrontUrl);
       showToast(host ? wordsRef.current.t("edk.publishedTo", { host }) : tx("Published"), "ok", store.storefrontUrl ? { href: store.storefrontUrl, label: tx("View store") } : undefined);
     } catch (error) {
@@ -307,6 +340,8 @@ export function useBuilder() {
     country: store.country,
     currency: store.currency,
     shopper: store.rawShopper ?? undefined,
+    // Only the logo's dark-background facts: the preview's header and footer pick the right logo from them.
+    brandSettings: store.logoVariants ? { logoVariants: store.logoVariants } : undefined,
     storeProducts: store.products.map((product) => ({
       id: product.id,
       name: product.name,
@@ -341,7 +376,27 @@ export function useBuilder() {
     })),
   }), [store]);
 
-  const status = useMemo(() => publishState(draft, published), [draft, published]);
+  const status = useMemo(
+    () => publishState(draft, published, { storeName: store.name, storeLive: store.status === null ? undefined : isLiveStatus(store.status) }),
+    [draft, published, store.name, store.status],
+  );
+
+  // A new logo (or dark-background logo) from the header and footer settings, or the builder's logo picker.
+  const applyBrandAssets = useCallback((assets: { logo?: string | null; logoVariants?: unknown } | null | undefined) => {
+    if (!assets) return;
+    setStore((current) => ({ ...current, logoUrl: assets.logo ?? current.logoUrl, logoVariants: assets.logoVariants ?? null }));
+  }, []);
+  useEffect(() => {
+    const onAssets = (event: Event) => applyBrandAssets((event as CustomEvent).detail);
+    window.addEventListener(BRAND_ASSETS_EVENT, onAssets);
+    return () => window.removeEventListener(BRAND_ASSETS_EVENT, onAssets);
+  }, [applyBrandAssets]);
+  /** Re-reads the logo and its dark-background version (after the logo changed). */
+  const refreshLogo = useCallback(async () => {
+    const response = await fetch("/api/app/brand-assets", { cache: "no-store" }).catch(() => null);
+    const json = response?.ok ? await response.json().catch(() => null) as { data?: { logo?: string | null; logoVariants?: unknown } } | null : null;
+    applyBrandAssets(json?.data);
+  }, [applyBrandAssets]);
 
   return {
     loading,
@@ -353,6 +408,7 @@ export function useBuilder() {
     draft,
     published,
     status,
+    refreshLogo,
     dirty,
     saving,
     publishing,

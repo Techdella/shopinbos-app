@@ -250,6 +250,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       const response = await fetch("/api/app/store", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logoUrl: url }) });
       if (!response.ok) throw new Error();
       b.showToast(tx("Logo updated"));
+      // The server works out the new logo's dark-background version; the preview picks it up.
+      void b.refreshLogo();
     } catch {
       b.showToast(tx("The logo shows here but couldn't be saved. Try again."), "error");
     }
