@@ -87,6 +87,7 @@ export interface BoutiqueStorefrontProps {
   selectedElementId?: string | null;
   onSelectElement?: LayoutRowEditing["onSelectElement"];
   onAddToColumn?: LayoutRowEditing["onAddToColumn"];
+  onMoveElement?: LayoutRowEditing["onMoveElement"];
 }
 
 const PAGE_LABELS: Record<string, string> = { home: "Home", products: "Shop", about: "About", contact: "Contact", faq: "FAQ", wishlist: "Wishlist" };
@@ -1547,7 +1548,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   function render(section: TemplateSectionNode): React.ReactNode {
     if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
     if (section.kind === LAYOUT_ROW_KIND) {
-      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn };
+      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn, onMoveElement: props.onMoveElement };
       return <LayoutRow ctx={blockContext(section)} editing={editing} />;
     }
     switch (section.kind) {
