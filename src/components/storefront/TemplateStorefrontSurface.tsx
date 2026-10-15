@@ -17,6 +17,7 @@ import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
 import { itemMediaUrl, readCountdownEnd, readHeroSlides, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
+import { findStorefrontPage } from "@shared/storefront-pages";
 
 export interface SurfaceProduct {
   id: string;
@@ -817,7 +818,7 @@ function ClassicTemplateSurface({
 
   const currentPage = selectedPage ?? internalPage;
   const policyLinks = mode === "live" ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath ?? "", legalPagePath(link.key)) })) : [];
-  const page = snapshot.pages.find((entry) => entry.pageType === currentPage) ?? snapshot.pages[0];
+  const page = findStorefrontPage(snapshot.pages, currentPage) ?? snapshot.pages[0];
   const sections = page?.sections.filter((entry) => entry.visible !== false) ?? [];
 
   const announcement = sections.find((entry) => entry.kind === "announcement-bar");
