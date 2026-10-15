@@ -6,10 +6,13 @@
 // drags it to another spot in its column or into another column. Columns are drop targets in their own order, so
 // dragging works the same when they stack on phones. An element can also be dragged into any other rows / columns
 // section on the page: while one is dragged, every row outlines its columns, and a small copy of it follows the pointer.
+// Hidden rows aren't drawn, except as a slim labelled strip (HiddenLayoutRowDrop) while a drag is in progress, so they
+// can take drops too; the element stays hidden with its row.
 
 import { useRef } from "react";
 import type React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import type { TemplateSectionNode } from "@/lib/store-templates";
 import { mediaKind, youTubeEmbedUrl } from "@/lib/store-templates/section-content";
 import {
   LAYOUT_GAPS,
@@ -284,6 +287,56 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
         })}
       </div>
       {dragged ? <DragGhost previewRef={drag.previewRef} label={layoutElementLabel(dragged)} thumb={<GhostThumb element={dragged} />} /> : null}
+    </section>
+  );
+}
+
+/**
+ * A hidden rows / columns section on the builder's canvas: nothing, except while an element is being dragged there.
+ * Then a slim, dimmed strip in the row's place ("Hidden row: <name> — drop here") with its columns as compact drop
+ * targets (full ones red). The drop itself is handled by the dragged element's own row, like any other row's.
+ */
+export function HiddenLayoutRowDrop({ section }: { section: TemplateSectionNode }) {
+  const drag = usePageColumnDrag();
+  if (!drag?.moved) return null;
+  const view = normaliseLayoutRow(section);
+  const name = section.name || "Columns";
+  const grid = view.preset.id.startsWith("grid");
+  return (
+    <section
+      aria-label={`Hidden row: ${name}`}
+      data-drop-row={section.id}
+      data-hidden-row=""
+      style={{ padding: "10px 0", background: "repeating-linear-gradient(135deg, rgba(22,20,31,.035) 0 8px, transparent 8px 16px)", borderTop: "1px dashed rgba(22,20,31,.18)", borderBottom: "1px dashed rgba(22,20,31,.18)", opacity: 0.85 }}
+    >
+      <div className="bq-wrap">
+        <p className="m-0 mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "#5B5966" }}>
+          <Icon name="eye" size={14} /> <span className="truncate">Hidden row: {name} — drop here</span>
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(view.cells.length, 6)}, minmax(0, 1fr))`, gap: 8 }}>
+          {view.cells.map((cell, columnIndex) => {
+            const target = drag.target?.row === section.id && drag.target.column === columnIndex;
+            const full = cell.elements.length >= MAX_ELEMENTS_PER_COLUMN;
+            return (
+              <div
+                key={cell.id}
+                data-drop-column={columnIndex}
+                data-drop-append=""
+                className="grid min-w-0 place-items-center truncate rounded-[8px] px-2 text-[12px] font-semibold"
+                style={{
+                  minHeight: 36,
+                  border: target ? `2px solid ${full ? FULL_RED : EDIT_BLUE}` : `1px dashed ${full ? FULL_RED : "rgba(47,102,246,.5)"}`,
+                  background: target ? (full ? "rgba(229,72,77,.08)" : "rgba(47,102,246,.08)") : "rgba(255,255,255,.7)",
+                  color: full ? FULL_RED : EDIT_BLUE,
+                  cursor: target && full ? "not-allowed" : undefined,
+                }}
+              >
+                {grid ? `Box ${columnIndex + 1}` : `Column ${columnIndex + 1}`}{full ? " · full" : ""}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }

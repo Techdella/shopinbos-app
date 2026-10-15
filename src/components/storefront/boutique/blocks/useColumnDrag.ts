@@ -10,14 +10,16 @@
 // Across rows (the canvas): with `acrossRows`, every rows / columns section on the canvas is a drop target. Each one
 // marks its outer box with data-drop-row="<section id>" (inside the canvas frame's data-drop-scope); the target then
 // carries the row it is in, and the drag is shared through usePageColumnDrag() so every row can draw its columns as
-// targets while one of them is being dragged from.
+// targets while one of them is being dragged from. The builder panel's column lists use the same rows, inside their
+// own data-drop-scope, with `sharePage: false` so the canvas doesn't react to a drag in the panel. A column marked
+// data-drop-append (a compact target with no element list, like a hidden row's strip) always takes a drop at its end.
 //
 // The floating preview: the caller renders a small copy of the element (DragGhost) with `previewRef` once
 // `state.moved`; the hook places it next to the pointer with a transform, once per animation frame.
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type React from "react";
-import { dragPreviewPosition, dropIndexAt, nearestDropColumn, pickDropRow } from "./layout-logic";
+import { MAX_ELEMENTS_PER_COLUMN, dragPreviewPosition, dropIndexAt, nearestDropColumn, pickDropRow } from "./layout-logic";
 
 export interface ColumnDropTarget {
   column: number;
@@ -102,6 +104,9 @@ function measureColumns(root: HTMLElement, x: number, y: number): ColumnDropTarg
   if (picked === -1) return null;
   const host = columns[picked]!;
   const hostRect = rects[picked]!;
+  const pickedColumn = Number(host.dataset.dropColumn);
+  // Clamped to the column's end by the move.
+  if (host.hasAttribute("data-drop-append")) return { column: Number.isFinite(pickedColumn) ? pickedColumn : picked, index: MAX_ELEMENTS_PER_COLUMN, top: 0 };
   const items = Array.from(host.querySelectorAll<HTMLElement>("[data-drop-item]")).map((item) => item.getBoundingClientRect());
   const index = dropIndexAt(items.map((rect) => rect.top + rect.height / 2), y);
   // The canvas frame is scaled with a CSS transform: screen pixels → the column's own pixels.
@@ -111,34 +116,37 @@ function measureColumns(root: HTMLElement, x: number, y: number): ColumnDropTarg
     index === 0 ? items[0]!.top - 3 * scale :
     index >= items.length ? items[items.length - 1]!.bottom + 3 * scale :
     (items[index - 1]!.bottom + items[index]!.top) / 2;
-  const column = Number(host.dataset.dropColumn);
-  return { column: Number.isFinite(column) ? column : picked, index, top: (edge - hostRect.top) / (scale || 1) };
+  return { column: Number.isFinite(pickedColumn) ? pickedColumn : picked, index, top: (edge - hostRect.top) / (scale || 1) };
 }
 
 function ownRow(root: HTMLElement | null) {
   return root?.closest<HTMLElement>("[data-drop-row]") ?? null;
 }
 
-export function useColumnDrag({ containerRef, onDrop, acrossRows = false }: {
+export function useColumnDrag({ containerRef, onDrop, acrossRows = false, sharePage = acrossRows }: {
   containerRef: React.RefObject<HTMLElement | null>;
   /** The element, its target column and the gap in that column (as drawn, before the move), and across rows the target row. */
   onDrop: (id: string, column: number, index: number, row?: string) => void;
   /** Every data-drop-row on the canvas takes drops (see the note at the top). */
   acrossRows?: boolean;
+  /** Publishes the drag through usePageColumnDrag() (the canvas's rows). Defaults to `acrossRows`. */
+  sharePage?: boolean;
 }) {
   const [state, setState] = useState<ColumnDragState | null>(null);
   const session = useRef<Session | null>(null);
   const preview = useRef<{ node: HTMLElement; width: number; height: number } | null>(null);
   const onDropRef = useRef(onDrop);
   const acrossRowsRef = useRef(acrossRows);
+  const sharePageRef = useRef(sharePage);
   useEffect(() => {
     onDropRef.current = onDrop;
     acrossRowsRef.current = acrossRows;
+    sharePageRef.current = sharePage;
   });
 
   const show = useCallback((next: ColumnDragState | null) => {
     setState(next);
-    if (acrossRowsRef.current) publishPageDrag(next);
+    if (sharePageRef.current) publishPageDrag(next);
   }, []);
 
   const measure = useCallback((x: number, y: number): ColumnDropTarget | null => {
@@ -304,7 +312,7 @@ export function useColumnDrag({ containerRef, onDrop, acrossRows = false }: {
   useEffect(() => () => {
     if (!session.current) return;
     session.current = null;
-    if (acrossRowsRef.current) publishPageDrag(null);
+    if (sharePageRef.current) publishPageDrag(null);
   }, []);
 
   return { state, start, previewRef };
