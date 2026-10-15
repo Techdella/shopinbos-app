@@ -16,8 +16,8 @@ test("leaving with unsaved edits asks: save and leave, leave without saving, kee
   assert.match(builder, /role="alertdialog"/);
   for (const words of ["Save and leave", "Leave without saving", "Keep editing"]) assert.match(builder, new RegExp(`tx\\("${words}"\\)`));
   // Save and leave only goes once the save worked; leaving without saving drops the browser copy.
-  assert.match(builder, /const ok = await b\.save\(\{ quiet: true \}\);\s*setLeaveSaving\(false\);\s*if \(ok\) router\.push\(leaving\);/);
-  assert.match(builder, /b\.forgetUnsaved\(\);\s*router\.push\(leaving\);/);
+  assert.match(builder, /const ok = await b\.save\(\{ quiet: true \}\);\s*setLeaveSaving\(false\);\s*if \(ok\) go\(leaving\);/);
+  assert.match(builder, /b\.forgetUnsaved\(\);\s*go\(leaving\);/);
   // Closing the tab still warns.
   assert.match(hook, /addEventListener\("beforeunload"/);
 });
@@ -47,4 +47,25 @@ test("words: the new builder words in all five languages", () => {
     const t = tFor(locale, "builder");
     for (const key of keys) assert.notEqual(t(`ed.${key}`), `ed.${key}`, `${locale} ${key}`);
   }
+});
+
+test("browser Back asks too; closing the tab sends the save with keepalive", () => {
+  assert.match(builder, /addEventListener\("popstate", onPop\)/);
+  assert.match(builder, /if \(dirtyRef\.current\) \{[\s\S]*?setLeaving\("back"\);/);
+  assert.match(builder, /window\.history\.go\(-2\)/);
+  assert.match(hook, /keepalive: true/);
+  assert.match(hook, /body\.length > 60_000/, "over the browser's 64 KB keepalive cap the browser copy covers it");
+});
+
+test("inline text editing in the 2026 themes: builder only, a box over the words, Enter saves, Esc cancels", () => {
+  const boutique = read("src/components/storefront/boutique/BoutiqueStorefront.tsx");
+  const inline = read("src/components/storefront/boutique/InlineTextEditor.tsx");
+  // Never on a live store: wrap() returns before any editing for live and demo pages.
+  assert.match(boutique, /if \(live \|\| props\.demo\) return <div key=\{section\.id\}>\{node\}<\/div>;\s*const selected/);
+  assert.match(boutique, /<InlineTextEditor/);
+  assert.match(read("src/components/storefront/TemplateStorefrontSurface.tsx"), /onUpdateSectionCopy=\{props\.onUpdateSectionCopy\}/);
+  assert.match(inline, /event\.key === "Escape"[\s\S]*?finish\(false\)/);
+  assert.match(inline, /event\.key === "Enter"[\s\S]*?finish\(true\)/);
+  assert.match(inline, /const scale = /, "sized for the builder's scaled page");
+  assert.doesNotMatch(inline, /contentEditable/, "the page itself is never edited by the browser");
 });

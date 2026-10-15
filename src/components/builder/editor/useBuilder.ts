@@ -229,6 +229,7 @@ export function useBuilder() {
 
   // An autosave that failed isn't retried for the same content; the next edit (or Save) tries again.
   const failedKey = useRef<string | null>(null);
+  const pageHidden = useRef(false);
 
   const save = useCallback(async (options: { quiet?: boolean } = {}) => {
     const snapshot = draftRef.current;
@@ -278,6 +279,30 @@ export function useBuilder() {
     window.addEventListener("online", retry);
     return () => window.removeEventListener("online", retry);
   }, [dirty, save]);
+
+  // Closing or hiding the tab: browsers don't let a page show its own box then, so the save is sent right away
+  // with keepalive (the browser finishes it after the page is gone; it caps such requests at 64 KB, so a larger
+  // store relies on the browser copy above). Switching tabs just saves early.
+  useEffect(() => {
+    if (!dirty) return;
+    const flush = () => {
+      if (document.visibilityState !== "hidden" && !pageHidden.current) return;
+      const snapshot = draftRef.current;
+      if (!snapshot) return;
+      const body = JSON.stringify({ snapshot });
+      if (body.length > 60_000) return;
+      void fetch("/api/store/editor", { method: "PATCH", headers: { "Content-Type": "application/json" }, body, keepalive: true })
+        .then((response) => { if (response.ok) setSavedKey(snapshotKey(snapshot)); })
+        .catch(() => undefined);
+    };
+    const onPageHide = () => { pageHidden.current = true; flush(); };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [dirty]);
 
   /** Leaving without saving: the unsaved edits are dropped for good (no "brought back" next time). */
   const forgetUnsaved = useCallback(() => writeBackup(store.slug, null), [store.slug]);

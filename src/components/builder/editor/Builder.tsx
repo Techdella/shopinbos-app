@@ -308,19 +308,49 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     router.push(destination);
   }, [b, router]);
 
+  // The browser's back button: an extra history entry catches it, so unsaved edits get the same question.
+  // "back" as the destination means "go where Back was going" (two steps: past the catch entry and the editor).
+  const dirtyRef = useRef(b.dirty);
+  dirtyRef.current = b.dirty;
+  const passBack = useRef(false);
+  useEffect(() => {
+    window.history.pushState({ ...(window.history.state ?? {}), editorGuard: true }, "", window.location.href);
+    const onPop = () => {
+      if (passBack.current) return;
+      if (dirtyRef.current) {
+        window.history.pushState({ ...(window.history.state ?? {}), editorGuard: true }, "", window.location.href);
+        setLeaving("back");
+        return;
+      }
+      passBack.current = true;
+      window.history.back();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const go = useCallback((destination: string) => {
+    if (destination === "back") {
+      passBack.current = true;
+      window.history.go(-2);
+    } else {
+      router.push(destination);
+    }
+  }, [router]);
+
   const saveAndLeave = useCallback(async () => {
     if (!leaving) return;
     setLeaveSaving(true);
     const ok = await b.save({ quiet: true });
     setLeaveSaving(false);
-    if (ok) router.push(leaving);
-  }, [b, leaving, router]);
+    if (ok) go(leaving);
+  }, [b, go, leaving]);
 
   const leaveWithoutSaving = useCallback(() => {
     if (!leaving) return;
     b.forgetUnsaved();
-    router.push(leaving);
-  }, [b, leaving, router]);
+    go(leaving);
+  }, [b, go, leaving]);
 
   // Pick up where they stopped: the page and section they were on come back next time.
   const placeKey = b.store.slug ? `shopinbos:editor-place:${b.store.slug}` : null;
