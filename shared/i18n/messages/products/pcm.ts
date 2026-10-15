@@ -167,6 +167,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cat.loading": "We dey load categories…",
   "cat.empty": "No categories yet",
   "cat.emptySub": "Categories dey help arrange your products and make customers fit browse by type.",
+  "import.optionalColumns": "Optional: description, costPrice, compareAtPrice, stock, sku, barcode, category, brand, status and images. Other columns (like color or size) go turn product details.",
+  "import.photos": "Product photos (optional)",
+  "import.photosHelp": "Put photo links for images column, or upload the photos here and write each file name for the images column (separate many with |). Photo wey get the same name as product SKU or name go match automatically.",
+  "import.choosePhotos": "Choose photos",
+  "import.photosChosen": "{count, plural, one {# photo don choose} other {# photos don choose}}",
+  "import.photosFrom": "JPG, PNG, WebP or GIF, reach 10MB each",
+  "import.uploadingPhotos": "E dey upload photos {done} of {total}…",
+  "import.photoFailed": "Photo {name} no fit upload: {reason}",
+  "import.withImages": "{count, plural, one {# product get photos} other {# products get photos}}",
 };
 
 export default pcm;
