@@ -9,6 +9,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   products: "Kayayyaki",
   "orders-all": "Duk orders",
   "orders-new": "Rubuta sayarwa",
+  "payment-links": "Payment links",
+  "link-in-bio": "Link in bio",
   "inbox-messages": "Duk hirarraki",
   "inbox-partners": "Suppliers da delivery",
   "inbox-forms": "Saƙonnin fom",

@@ -18,6 +18,7 @@ import { LEGAL_TOOL_SPECS } from "./legal-specs.ts";
 import { PRODUCTS_TOOL_SPECS } from "./products-specs.ts";
 import { ADS_TOOL_SPECS } from "./ads-specs.ts";
 import { CATALOG_TOOL_SPECS } from "./catalog-specs.ts";
+import { PAYLINKS_TOOL_SPECS } from "./paylinks-specs.ts";
 
 const DAY = 86_400_000;
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
@@ -201,6 +202,7 @@ export const PEGGY_TOOL_SPECS = {
   ...PRODUCTS_TOOL_SPECS,
   ...ADS_TOOL_SPECS,
   ...CATALOG_TOOL_SPECS,
+  ...PAYLINKS_TOOL_SPECS,
 } as const;
 
 export type PeggyToolName = keyof typeof PEGGY_TOOL_SPECS;

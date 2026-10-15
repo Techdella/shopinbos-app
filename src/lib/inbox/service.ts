@@ -439,7 +439,7 @@ async function maybeAutoReply(conversationId: string) {
 
   if (decision.kind === "chatbot") {
     const history = await db.inboxMessage.findMany({ where: { conversationId, direction: { in: ["inbound", "outbound"] }, status: { not: "failed" } }, orderBy: { createdAt: "desc" }, take: 12, select: { direction: true, body: true } });
-    const answer = await chatbotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })));
+    const answer = await chatbotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })), { channel: "livechat", conversationId: conversation.id });
     await sendReply({ ...base, body: answer.reply, authorName: `${bot.name} (chatbot)`, meta: { bot: true, source: answer.source } });
     if (answer.handoff) await handOff(conversation.storeId, conversation.id, conversation.tags, lastInbound?.body ?? "");
     return;
@@ -501,6 +501,7 @@ async function maybeWhatsAppBot(
     replyId: typeof replyId === "string" ? replyId : null,
     phone: conversation.externalThreadId,
     firstMessage: earlierOutbound === 0,
+    conversationId: conversation.id,
   });
   void markWhatsAppRead(connected.credentials, lastInbound.externalId).catch(() => null);
 

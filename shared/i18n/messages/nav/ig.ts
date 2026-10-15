@@ -9,6 +9,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   products: "Ngwaahịa",
   "orders-all": "Orders niile",
   "orders-new": "Dee ihe i rere",
+  "payment-links": "Payment links",
+  "link-in-bio": "Link in bio",
   "inbox-messages": "Mkparịta ụka niile",
   "inbox-partners": "Suppliers na delivery",
   "inbox-forms": "Ozi si na fọm",

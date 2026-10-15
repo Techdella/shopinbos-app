@@ -67,6 +67,7 @@ import domain from "./messages/domain/index.ts";
 import marketplace from "./messages/marketplace/index.ts";
 import shipping from "./messages/shipping/index.ts";
 import payments from "./messages/payments/index.ts";
+import paylinks from "./messages/paylinks/index.ts";
 import customers from "./messages/customers/index.ts";
 import products from "./messages/products/index.ts";
 import orders from "./messages/orders/index.ts";
@@ -141,6 +142,7 @@ export const CATALOGS = {
   marketplace,
   shipping,
   payments,
+  paylinks,
   customers,
   products,
   orders,

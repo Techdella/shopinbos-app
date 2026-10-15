@@ -9,6 +9,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   products: "Products",
   "orders-all": "All the orders",
   "orders-new": "Write down sale",
+  "payment-links": "Payment links",
+  "link-in-bio": "Link in bio",
   "inbox-messages": "All the chats",
   "inbox-partners": "Suppliers and delivery",
   "inbox-forms": "Form messages",
