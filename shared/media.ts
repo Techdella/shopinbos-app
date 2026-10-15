@@ -113,3 +113,11 @@ export function aiImageOwner(path: string): string | null {
   const match = /^(?:generated|enhanced|logos|banners)\/([A-Za-z0-9_-]{6,64})\//.exec(path);
   return match ? match[1]! : null;
 }
+
+export type AiCreationKind = "logo" | "image" | "edit" | "banner";
+
+/** What Rex made, from the picture's storage path (Rex's History > Creations). */
+export function aiCreationKind(path: string | null | undefined): AiCreationKind {
+  const folder = (path ?? "").split("/")[0];
+  return folder === "logos" ? "logo" : folder === "banners" ? "banner" : folder === "enhanced" ? "edit" : "image";
+}

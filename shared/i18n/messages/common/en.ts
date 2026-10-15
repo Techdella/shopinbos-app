@@ -68,6 +68,21 @@ const en = {
   "chats.loading": "Opening…",
   "chats.failed": "Couldn't load your chats. Try again.",
   "chats.delete": "Delete “{title}”",
+  "chats.tabChats": "Chats",
+  "chats.tabMade": "Creations",
+  "chats.made.all": "All",
+  "chats.made.logo": "Logos",
+  "chats.made.image": "Pictures",
+  "chats.kind.logo": "Logo",
+  "chats.kind.image": "Picture",
+  "chats.kind.edit": "Edited photo",
+  "chats.kind.banner": "Banner",
+  "chats.kind.video": "Video",
+  "chats.useWithRex": "Use with Rex",
+  "chats.download": "Download",
+  "chats.brandKit": "Brand kit",
+  "chats.madeEmpty": "Nothing made yet. Logos and pictures Rex makes show up here.",
+  "chats.allMedia": "See everything in Media",
 } satisfies Record<string, string>;
 
 export default en;

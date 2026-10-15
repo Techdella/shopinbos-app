@@ -188,7 +188,7 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
   const lines = cart.items;
 
   return (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={basePath} title="Bag" bagCount={cart.count} wishlistCount={wishlistOn ? wishlist.productIds.length : undefined} showWishlist={wishlistOn}>
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={basePath} title="Bag" bagCount={cart.count} wishlistCount={wishlistOn ? wishlist.productIds.length : undefined} showWishlist={wishlistOn}>
       <p className="sr-only" role="status" aria-live="polite">{notice}</p>
       <PageTitle theme={theme} sub={cart.loaded && lines.length ? `${cart.count} ${cart.count === 1 ? "item" : "items"}` : undefined}>Your bag</PageTitle>
 

@@ -37,6 +37,7 @@ export function RexChat({
   onUndo,
   onOpenPreview,
   undoingId,
+  attachRequest,
 }: {
   messages: ChatMessage[];
   busy: boolean;
@@ -54,6 +55,8 @@ export function RexChat({
   onUndo: (undoTo: string) => Promise<boolean>;
   onOpenPreview: (page: string | null) => void;
   undoingId: string | null;
+  /** A picture to attach to the chat box (History > Creations > Use with Rex); `n` makes repeats count. */
+  attachRequest?: { url: string; n: number } | null;
 }) {
   const t = useT("builder", "common");
   const [text, setText] = useState(initialText ?? "");
@@ -78,6 +81,13 @@ export function RexChat({
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
   }, [initialText]);
+
+  useEffect(() => {
+    if (!attachRequest) return;
+    setPhotos((prev) => (prev.includes(attachRequest.url) ? prev : [...prev, attachRequest.url].slice(-MAX_PHOTOS)));
+    setText((current) => current || t("rex.ch.photoPrompt"));
+    inputRef.current?.focus();
+  }, [attachRequest, t]);
 
   const blocked = busy || Boolean(disabledReason);
   const fresh = !messages.some((message) => message.role === "seller");

@@ -186,6 +186,7 @@ const en = {
   "logo.usingIt": "Saved as your store logo",
   "logo.seeStore": "See it on my store",
   "logo.brandKit": "Brand kit",
+  "logo.howShows": "Logo size and style on my store",
   "logo.dashboard": "Dashboard",
   "logo.moreLike": "More like this",
   "logo.newIdeas": "New ideas",

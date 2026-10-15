@@ -69,6 +69,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "chats.loading": "Ọ na-emepe…",
   "chats.failed": "Enweghị ike ibuga mkparịta ụka gị. Nwaa ọzọ.",
   "chats.delete": "Hichapụ “{title}”",
+  "chats.tabChats": "Mkparịta ụka",
+  "chats.tabMade": "Ihe e mepụtara",
+  "chats.made.all": "Niile",
+  "chats.made.logo": "Akara",
+  "chats.made.image": "Foto",
+  "chats.kind.logo": "Akara",
+  "chats.kind.image": "Foto",
+  "chats.kind.edit": "Foto edeziri",
+  "chats.kind.banner": "Ọkọlọtọ",
+  "chats.kind.video": "Vidiyo",
+  "chats.useWithRex": "Jiri ya na Rex",
+  "chats.download": "Budata",
+  "chats.brandKit": "Ngwa akara",
+  "chats.madeEmpty": "Ọ dịbeghị ihe e mepụtara. Akara na foto Rex mere ga-apụta ebe a.",
+  "chats.allMedia": "Hụ ihe niile na Media",
 };
 
 export default ig;

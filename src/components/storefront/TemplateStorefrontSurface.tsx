@@ -13,6 +13,7 @@ import { readShopperInfo } from "@/lib/storefront/shopper-info";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
+import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
@@ -3274,14 +3275,18 @@ function ClassicTemplateSurface({
             className="flex min-w-0 items-center gap-3 text-left"
             title={isEditor ? "Click to replace logo" : undefined}
           >
-            {store.logoUrl
-              ? <img src={store.logoUrl} alt="" className="h-10 w-10 rounded-[12px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-              : <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>}
-            <div>
-              <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
-                {String(headerCopy.logoText ?? store.name)}
-              </div>
-            </div>
+            {store.logoUrl ? (
+              <StoreBrandMark store={store} name={String(headerCopy.logoText ?? store.name)} nameClassName="text-[21px] font-medium tracking-[0.08em]" nameStyle={{ color: theme.ink, fontFamily: theme.headingFont }} />
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>
+                <div>
+                  <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
+                    {String(headerCopy.logoText ?? store.name)}
+                  </div>
+                </div>
+              </>
+            )}
           </button>
           <nav className={`hidden min-w-0 flex-1 flex-wrap items-center ${headerLayout === "centered" ? "justify-start" : "justify-center"} gap-1 md:flex`}>
             {[...navLinks, ...utilityLinks.filter((pageType) => !navLinks.includes(pageType))].map((pageType) => (

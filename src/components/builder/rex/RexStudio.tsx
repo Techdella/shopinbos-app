@@ -172,6 +172,8 @@ export function RexStudio(props: RexStudioProps) {
       .slice(-MAX_HISTORY);
   }
 
+  const [attachRequest, setAttachRequest] = useState<{ url: string; n: number } | null>(null);
+
   function rexSays(message: Omit<Extract<ChatMessage, { role: "rex" }>, "id" | "role">) {
     setMessages((prev) => [...prev, { id: nextId(), role: "rex", ...message }]);
   }
@@ -402,7 +404,7 @@ export function RexStudio(props: RexStudioProps) {
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <CreditsBadge compact />
-            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} />
+            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} creations onUseCreation={(url) => setAttachRequest({ url, n: Date.now() })} />
             <div ref={toolsRef} className="relative hidden sm:block">
               <button
                 type="button"
@@ -473,6 +475,7 @@ export function RexStudio(props: RexStudioProps) {
             onUndo={undo}
             onOpenPreview={showPreview}
             undoingId={undoingId}
+            attachRequest={attachRequest}
           />
         </section>
 

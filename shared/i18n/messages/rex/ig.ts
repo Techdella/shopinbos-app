@@ -183,6 +183,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "logo.usingIt": "Echekwala dị ka logo ụlọ ahịa gị",
   "logo.seeStore": "Lee ya n'ụlọ ahịa m",
   "logo.brandKit": "Ngwa akara",
+  "logo.howShows": "Nha na ụdị akara n'ụlọ ahịa m",
   "logo.dashboard": "Dashboard",
   "logo.moreLike": "Ndị ọzọ dị ka nke a",
   "logo.newIdeas": "Echiche ọhụrụ",

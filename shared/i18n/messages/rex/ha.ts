@@ -183,6 +183,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "logo.usingIt": "An ajiye a matsayin tambarin shagonka",
   "logo.seeStore": "Duba shi a shagona",
   "logo.brandKit": "Kayan alama",
+  "logo.howShows": "Girma da salon tambari a shagona",
   "logo.dashboard": "Dashboard",
   "logo.moreLike": "Ƙari kamar wannan",
   "logo.newIdeas": "Sababbin ra'ayoyi",

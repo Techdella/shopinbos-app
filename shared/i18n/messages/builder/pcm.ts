@@ -1490,6 +1490,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rex.br.icon": "Logo icon",
   "rex.br.favicon": "Favicon",
   "rex.br.print": "Print studio",
+  "rex.br.display": "Store header",
   "rex.br.useIcon": "Use am as logo icon",
   "rex.br.useFavicon": "Use am as favicon",
   "rex.br.openPrint": "Open am and print",

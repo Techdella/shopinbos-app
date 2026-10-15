@@ -28,7 +28,7 @@ export type RexCard =
     }
   | {
       type: "brand";
-      kind: "book" | "icon" | "favicon" | "print";
+      kind: "book" | "icon" | "favicon" | "print" | "display";
       title: string;
       summary: string;
       href: string;

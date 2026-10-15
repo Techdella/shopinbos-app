@@ -301,6 +301,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
               <li className="flex flex-wrap items-center gap-2">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-canvas text-[12px] font-extrabold">2</span>
                 <Link href="/studio?preview=1" className={nextLink}><Icon name="eye" size={14} /> {t("logo.seeStore")}</Link>
+                <Link href="/home/brand-kit#logo-display" className={nextLink}><Icon name="layers" size={14} /> {t("logo.howShows")}</Link>
                 <Link href="/home/brand-kit" className={nextLink}><Icon name="tag" size={14} /> {t("logo.brandKit")}</Link>
                 <Link href="/home" className={nextLink}><Icon name="home" size={14} /> {t("logo.dashboard")}</Link>
               </li>
