@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { useT } from "@/components/i18n/I18nProvider";
+import { useEditorT } from "@/components/builder/editor/i18n";
 
 // The store's real home page, drawn by the same renderer shoppers get, at desktop width and scaled down to
 // fit the card. It's a picture: no clicks, no focus, hidden from screen readers (the card says what it is).
@@ -23,6 +24,8 @@ export function StorePreviewCard({
   label: string;
 }) {
   const t = useT("store");
+  // Drawn in editor mode: any canvas hints (empty images, sample labels) in the seller's language.
+  const { editorText } = useEditorT();
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState<number | null>(null);
 
@@ -52,7 +55,7 @@ export function StorePreviewCard({
             className="pointer-events-none absolute left-0 top-0 origin-top-left select-none"
             style={{ width: RENDER_WIDTH, transform: `scale(${scale})` }}
           >
-            <TemplateStorefrontSurface store={store} snapshot={snapshot} mode="editor" device="desktop" selectedPage="home" />
+            <TemplateStorefrontSurface store={store} snapshot={snapshot} mode="editor" device="desktop" selectedPage="home" editorText={editorText} />
           </div>
         )}
       </div>

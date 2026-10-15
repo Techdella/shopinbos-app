@@ -555,14 +555,40 @@ test("builder-only canvas hints are in the seller's language, and never reach th
   const surface = read("../src/components/storefront/TemplateStorefrontSurface.tsx");
   assert.match(surface, /const say: EditorText = isEditor && editorText \? editorText : englishText;/);
   assert.match(surface, /data-editor-hint=\{hint \? say\(/);
+  // Payday countdown: the builder's note is whole sentences; the shopper-facing heading and timer stay as they were.
+  assert.match(storefront, /\{editor \? <p className="mt-1 text-\[12px\] opacity-60">\{paydayNote\(config, say\)\}<\/p> : null\}/);
+  assert.match(storefront, /editor=\{!live && !props\.demo\} say=\{say\} \/>/);
+  assert.doesNotMatch(storefront, />Payday: \{config\.rule/);
+  // Classic themes: image placeholders (drawn outside the surface) read the words from its provider; the section
+  // toolbar, guides, insert handles and logo hint go through say.
+  assert.match(surface, /<SurfaceEditorText\.Provider value=\{say\}>/);
+  assert.match(surface, /\{label \?\? say\("Click to replace image"\)\}/);
+  assert.match(surface, /const text = label \?\? say\("Click to replace image"\);/);
+  assert.doesNotMatch(surface, /[^(]"Click to replace/, "no untranslated replace hints");
+  assert.doesNotMatch(surface, /\n\s*Editor preview\n/);
+  assert.doesNotMatch(surface, /\["(?:Edit|Change Style|Delete|Save)", on/, "toolbar labels are translated");
+  assert.doesNotMatch(surface, /aria-label\^="Add section"/, "the insert handles' hover doesn't depend on English labels");
+  for (const english of ["Edit", "Change Style", "Duplicate", "Up", "Down", "Hide", "Delete", "Save"]) assert.ok(en[`ed.${english}`], `toolbar: "${english}" has a builder key`);
+  // Other editor-mode previews of a seller's own store use the builder's words too (theme previews are demos: no hints).
+  for (const file of ["../src/components/builder/rex/RexPreview.tsx", "../src/app/home/store/StorePreviewCard.tsx"]) {
+    const source = read(file);
+    assert.match(source, /const \{ editorText \} = useEditorT\(\);/, `${file}: builder translator`);
+    assert.match(source, /editorText=\{editorText\}/, `${file}: passed to the surface`);
+  }
+  assert.match(read("../src/components/builder/editor/i18n.ts"), /t\.dynamic\(`ed\.\$\{english\}`, english, vars\)/);
   // The live store never passes the builder's words.
-  assert.doesNotMatch(read("../src/app/s/[slug]/StorefrontClient.tsx"), /editorText/);
+  const client = read("../src/app/s/[slug]/StorefrontClient.tsx");
+  assert.doesNotMatch(client, /editorText|useEditorT/);
 
   // Without the builder's words: the English, placeholders and plurals filled.
   return import("../src/components/storefront/editor-text.ts").then(({ englishText }) => {
     assert.equal(englishText("Welcome to {store}", { store: "Ada's" }), "Welcome to Ada's");
     assert.equal(englishText("every {days, plural, one {# day} other {# days}}", { days: 1 }), "every 1 day");
     assert.equal(englishText("every {days, plural, one {# day} other {# days}}", { days: 3 }), "every 3 days");
+    // The payday note reads as it did before it became whole sentences.
+    assert.equal(englishText("Payday: the {day} (Friday before if it's a weekend); runs until Sunday.", { day: 25, days: 3 }), "Payday: the 25 (Friday before if it's a weekend); runs until Sunday.");
+    assert.equal(englishText("Payday: the {day}; runs {days, plural, one {# day} other {# days}}.", { day: 28, days: 3 }), "Payday: the 28; runs 3 days.");
+    assert.equal(englishText("Payday: last Friday of the month; runs {days, plural, one {# day} other {# days}}.", { day: 25, days: 1 }), "Payday: last Friday of the month; runs 1 day.");
   });
 });
 
