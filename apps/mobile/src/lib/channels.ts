@@ -2,7 +2,7 @@ import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import { api, API_URL } from "./api";
 import { supabase } from "./supabase";
-import { connectOutcome, connectStartUrl, type CardState, type ConnectOutcome, type LivePlatform } from "./channels-pure";
+import { connectOutcome, connectStartUrl, type CardState, type ConnectOutcome, type EmailSetupLite, type LivePlatform } from "./channels-pure";
 
 // Sell everywhere (web /channels): GET /api/app/sales-channels for the cards, POST/DELETE
 // /api/app/sales-channels/<platform> for Try again, Tell me when it's ready and Disconnect. Connect runs the web's
@@ -62,3 +62,13 @@ export async function connectChannel(platform: Exclude<LivePlatform, "whatsapp">
   const result = await WebBrowser.openAuthSessionAsync(connectStartUrl(API_URL, platform, returnUrl, token), returnUrl);
   return result.type === "success" ? connectOutcome(result.url, platform) : "dismissed";
 }
+
+// ─── Email (web Inbox → Email) ───────────────────────────────────────────────
+// GET shows what's connected; DELETE disconnects (Gmail is signed out at Google, an own domain is removed).
+// Connecting Gmail or an own domain runs on the web (GMAIL_CONNECT_PATH / EMAIL_SETUP_PATH in channels-pure.ts).
+
+export type { EmailSetupLite };
+
+export const fetchEmailSetup = () => api<EmailSetupLite>("/api/app/inbox/email");
+
+export const disconnectEmail = () => api<EmailSetupLite>("/api/app/inbox/email", { method: "DELETE" });

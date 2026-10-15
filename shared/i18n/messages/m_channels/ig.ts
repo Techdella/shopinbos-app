@@ -42,6 +42,23 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "post.title": "Post & share",
   "post.sub": "Dee post gbasara ngwaahịa gị ma kesaa ya ebe niile. Ọ na-emepe na browser gị",
   openFailed: "Anyị enweghị ike imepe sign-in. Lelee network gị ma nwaa ọzọ.",
+  "email.title": "Email n'Inbox gị",
+  "email.name": "Email",
+  "email.sub": "Ndị ahịa ga-enweta email site n'adreesị gị. Azịza ha ga-abata na Chats.",
+  "email.off": "Ejikọbeghị ya.",
+  "email.attention": "Email gị chọrọ nlele. Mepee ya na web ka ịhazi ya.",
+  "email.gmailExpired": "Mbanye Gmail gị agwụla, ya mere email enweghị ike ịpụ. Jikọọ Gmail ọzọ.",
+  "email.domainWaiting": "{domain} ka na-akwado. Ọ nwere ike were ruo otu awa.",
+  "email.gmail": "Jikọọ Gmail",
+  "email.gmailAgain": "Jikọọ Gmail ọzọ",
+  "email.gmailHint": "Ọ ga-emepe Google na browser gị. Mgbe ọ kwuru na ejikọọla Gmail, mechie ya ka ị laghachi.",
+  "email.gmailNotReady": "Agbanyebeghị ijikọ Gmail na Shopinbos.",
+  "email.domain": "Jiri email na domain nke gị",
+  "email.confirm": "Kwụsị izipu email site n'adreesị a? Mkparịta ụka gị ga-anọgide n'Inbox gị.",
+  "email.disconnected": "Ewepụla email.",
+  "email.domainTitle": "Hazie email domain gị na ihuenyo buru ibu",
+  "email.domainBody": "Email dị ka hello@yourshop.com chọrọ ka etinye ntọala ole na ole na domain gị. Ọ dị mfe na kọmputa, mana ị nwekwara ike imepe ya na ekwentị a. Ma ọ bụ jụọ anyị, anyị ga-ahazi ya maka gị.",
+  "email.askUs": "Jụọ anyị ka anyị hazie ya",
 };
 
 export default ig;

@@ -42,6 +42,23 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "post.title": "Post & share",
   "post.sub": "Write post about your products and share am everywhere. E go open for your browser",
   openFailed: "We no fit open the sign-in. Check your network, then try again.",
+  "email.title": "Email for your Inbox",
+  "email.name": "Email",
+  "email.sub": "Customers go get emails from your address. Their reply go enter Chats.",
+  "email.off": "E never connect.",
+  "email.attention": "Your email need small check. Open am for web to fix am.",
+  "email.gmailExpired": "Your Gmail sign-in don expire, so emails no fit comot. Connect Gmail again.",
+  "email.domainWaiting": "{domain} still dey get ready. E fit take up to one hour.",
+  "email.gmail": "Connect Gmail",
+  "email.gmailAgain": "Connect Gmail again",
+  "email.gmailHint": "E go open Google for your browser. When e talk say Gmail don connect, close am come back.",
+  "email.gmailNotReady": "Connecting Gmail never on for Shopinbos yet.",
+  "email.domain": "Use your own domain email",
+  "email.confirm": "Stop to send email from this address? Your chats go still dey your Inbox.",
+  "email.disconnected": "Email don disconnect.",
+  "email.domainTitle": "Set up your domain email for bigger screen",
+  "email.domainBody": "Email like hello@yourshop.com need some settings for your domain. E easy pass for computer, but you fit open am for this phone too. Or ask us make we set am up.",
+  "email.askUs": "Ask us make we set am up",
 };
 
 export default pcm;
