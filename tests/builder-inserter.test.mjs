@@ -170,6 +170,117 @@ test("layout rows: add, edit, reorder, copy and remove elements; presets never l
   assert.equal(rows[0].label, "Welcome");
 });
 
+test("layout rows: drag and drop moves elements within and between columns", () => {
+  const cols = (section) => layout.normaliseLayoutRow(section).cells.map((cell) => cell.elements.map((element) => element.id));
+  const build = (columns) => {
+    let row = layout.newLayoutRowSection("dnd", columns.length === 3 ? "3" : "50-50");
+    columns.forEach((list, column) => list.forEach((id) => { row = layout.addLayoutElement(row, column, layout.newLayoutElement("text", id)); }));
+    return row;
+  };
+  const row = build([["a", "b", "c", "d"], ["x"], []]);
+
+  // Same column: toIndex is the gap as drawn, so moving down skips the element's own spot.
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "a", 0, 2))[0], ["b", "a", "c", "d"], "drop between b and c");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "a", 0, 4))[0], ["b", "c", "d", "a"], "drop at the end");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "d", 0, 0))[0], ["d", "a", "b", "c"], "drop at the top");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "c", 0, 1))[0], ["a", "c", "b", "d"], "moving up needs no adjustment");
+  assert.equal(layout.moveLayoutElement(row, "b", 0, 1), row, "dropping just above itself changes nothing");
+  assert.equal(layout.moveLayoutElement(row, "b", 0, 2), row, "dropping just below itself changes nothing");
+
+  // Across columns, including an empty one.
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "b", 1, 0)), [["a", "c", "d"], ["b", "x"], []]);
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "b", 1, 1)), [["a", "c", "d"], ["x", "b"], []]);
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "x", 2, 0)), [["a", "b", "c", "d"], [], ["x"]], "an empty column takes a drop");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "x", 0, 2)), [["a", "b", "x", "c", "d"], [], []]);
+
+  // Clamping and bad input.
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "a", 1, 99))[1], ["x", "a"], "an index past the end goes last");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "x", 0, -5))[0], ["x", "a", "b", "c", "d"], "a negative index goes first");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "a", 9, 0))[2], ["a"], "a column past the last is the last");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "x", -1, 1))[0], ["a", "x", "b", "c", "d"], "a negative column is the first");
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "x", 0.9, 1.7))[0], ["a", "x", "b", "c", "d"], "fractions are truncated");
+  assert.equal(layout.moveLayoutElement(row, "nope", 1, 0), row, "an unknown id is a no-op");
+  assert.equal(layout.moveLayoutElement(row, "a", Number.NaN, 0), row);
+  assert.equal(layout.moveLayoutElement(row, "a", 1, Number.POSITIVE_INFINITY), row);
+
+  // Nothing is lost, copied or renamed; the original isn't touched.
+  const moved = layout.moveLayoutElement(row, "c", 2, 0);
+  const all = cols(moved).flat();
+  assert.deepEqual([...all].sort(), ["a", "b", "c", "d", "x"]);
+  assert.equal(new Set(all).size, all.length, "ids stay unique");
+  assert.deepEqual(layout.findLayoutElement(moved, "c").element, layout.findLayoutElement(row, "c").element, "the element keeps its content");
+  assert.deepEqual(cols(row), [["a", "b", "c", "d"], ["x"], []], "the input section is unchanged");
+  assert.deepEqual(moved.items.map((cell) => cell.id), row.items.map((cell) => cell.id), "columns keep their ids");
+
+  // A full column refuses elements from elsewhere but still reorders its own.
+  const full = build([Array.from({ length: layout.MAX_ELEMENTS_PER_COLUMN }, (_, i) => `f${i}`), ["y"]]);
+  assert.equal(layout.moveLayoutElement(full, "y", 0, 0), full);
+  assert.equal(layout.canMoveLayoutElementTo(full, "y", 0), false);
+  assert.equal(layout.canMoveLayoutElementTo(full, "f1", 0), true);
+  assert.equal(layout.canMoveLayoutElementTo(full, "f1", 1), true);
+  assert.equal(layout.canMoveLayoutElementTo(full, "nope", 1), false);
+  assert.deepEqual(cols(layout.moveLayoutElement(full, "f0", 0, 3))[0].slice(0, 3), ["f1", "f2", "f0"]);
+
+  // The up / down buttons are the same move, one step at a time.
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "b", "down"))[0], ["a", "c", "b", "d"]);
+  assert.deepEqual(cols(layout.moveLayoutElement(row, "b", "up"))[0], ["b", "a", "c", "d"]);
+  assert.equal(layout.moveLayoutElement(row, "d", "down"), row);
+});
+
+test("layout rows: drop geometry picks the column and the gap under the pointer", () => {
+  const side = [{ left: 0, top: 0, right: 100, bottom: 300 }, { left: 120, top: 0, right: 220, bottom: 80 }];
+  assert.equal(layout.nearestDropColumn(side, 50, 10), 0);
+  assert.equal(layout.nearestDropColumn(side, 150, 200), 1, "below a short column still targets it");
+  assert.equal(layout.nearestDropColumn(side, 112, 10), 1, "in the gap: the nearer column");
+  assert.equal(layout.nearestDropColumn([], 0, 0), -1);
+  // Phones stack the columns, so the pointer's height decides.
+  const stacked = [{ left: 0, top: 0, right: 390, bottom: 200 }, { left: 0, top: 214, right: 390, bottom: 260 }, { left: 0, top: 274, right: 390, bottom: 370 }];
+  assert.equal(layout.nearestDropColumn(stacked, 100, 100), 0);
+  assert.equal(layout.nearestDropColumn(stacked, 100, 240), 1);
+  assert.equal(layout.nearestDropColumn(stacked, 100, 500), 2);
+  // A 2 × 2 grid: the box in the pointer's column, on the nearer row.
+  const grid = [{ left: 0, top: 0, right: 100, bottom: 100 }, { left: 120, top: 0, right: 220, bottom: 100 }, { left: 0, top: 120, right: 100, bottom: 220 }, { left: 120, top: 120, right: 220, bottom: 220 }];
+  assert.equal(layout.nearestDropColumn(grid, 150, 50), 1);
+  assert.equal(layout.nearestDropColumn(grid, 50, 200), 2);
+  assert.equal(layout.nearestDropColumn(grid, 150, 112), 3, "between rows: the nearer box");
+  assert.equal(layout.dropIndexAt([], 10), 0, "an empty column: the only gap");
+  assert.equal(layout.dropIndexAt([50, 150, 250], 10), 0);
+  assert.equal(layout.dropIndexAt([50, 150, 250], 160), 2);
+  assert.equal(layout.dropIndexAt([50, 150, 250], 999), 3);
+});
+
+test("layout rows: drag and drop is wired into the canvas and the panel, never the live store", () => {
+  const row = read("../src/components/storefront/boutique/blocks/LayoutRow.tsx");
+  assert.match(row, /useColumnDrag\(/, "the canvas uses the shared drag hook");
+  assert.match(row, /const canDrag = Boolean\(canEdit && editing\?\.onMoveElement\)/, "drag handles only while editing");
+  assert.match(row, /data-drop-column=/);
+  const hook = read("../src/components/storefront/boutique/blocks/useColumnDrag.ts");
+  assert.match(hook, /event\.key === "Escape"/, "Escape cancels a drag");
+  assert.match(hook, /pointercancel/, "touch cancels are handled");
+  assert.match(hook, /nearestDropColumn\(/);
+  assert.match(hook, /dropIndexAt\(/);
+  const field = read("../src/components/builder/editor/LayoutColumnsField.tsx");
+  assert.match(field, /useColumnDrag\(/, "the panel's lists share it");
+  assert.match(field, /aria-label=\{t\("edk.moveToColumn"/, "keyboard users get a Move to column control");
+  const builder = read("../src/components/builder/editor/Builder.tsx");
+  assert.match(builder, /onMoveElement=\{editing \?/, "no dragging in theme previews or the store preview");
+  assert.match(builder, /aria-live="polite"/, "moves are announced");
+  const storefront = read("../src/components/storefront/boutique/BoutiqueStorefront.tsx");
+  assert.match(storefront, /const editing = live \|\| props\.demo \? undefined :/);
+  for (const key of ["edk.movedTo", "edk.columnFull", "edk.moveToColumn", "ed.Move to", "ed.Drag to move"]) assert.ok(en[key], `${key} has English words`);
+});
+
+test("layout rows: the inspector panel never scrolls sideways", () => {
+  const field = read("../src/components/builder/editor/LayoutColumnsField.tsx");
+  assert.doesNotMatch(field, /(^|\s|")-m[xlr]?-\d/, "no negative margins");
+  assert.match(field, /className="mt-3 grid min-w-0 grid-cols-1 gap-3"/, "the column list is one shrinkable track, so a long product name can't widen it");
+  assert.match(field, /grid min-w-0 grid-cols-4 gap-1\.5/, "preset tiles: four shrinkable tiles a row");
+  assert.match(field, /<span className="min-w-0 truncate">\{name\}<\/span>/, "element names truncate");
+  const inspector = read("../src/components/builder/editor/Inspector.tsx");
+  assert.match(inspector, /overflow-y-auto overflow-x-hidden px-4 pb-4 pt-2/, "the panel body clips sideways overflow");
+  assert.doesNotMatch(inspector, /scrollIntoView\(\{ block: "center"/, "focusing a field scrolls the panel up or down only");
+});
+
 test("layout rows: inspector fields, element catalogue and where the row is offered", () => {
   for (const theme of ["breeze", "noir", "plain"]) {
     const full = schema.sectionSchema("layout-row", "boutique", theme);

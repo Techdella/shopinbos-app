@@ -291,15 +291,85 @@ export function updateLayoutElement(section: TemplateSectionNode, elementId: str
   return withCells(section, cells.map((cell) => ({ ...cell, elements: cell.elements.map((element) => (element.id === elementId ? normaliseLayoutElement({ ...element, ...changes, id: element.id, type: element.type }, element.id) ?? element : element)) })));
 }
 
-export function moveLayoutElement(section: TemplateSectionNode, elementId: string, direction: "up" | "down"): TemplateSectionNode {
+/**
+ * Moves an element one step up or down inside its column, or (with a column and an index) to any spot in any column:
+ * `toIndex` is the gap in the target column as it is now drawn (0 = above the first element, `length` = at the end),
+ * which is what a drop line between elements points at. Within one column, dropping just above or below the element
+ * itself changes nothing. Out-of-range columns and indexes are clamped; an unknown id, a full target column or a move
+ * that changes nothing returns the same section object, so callers can skip the commit.
+ */
+export function moveLayoutElement(section: TemplateSectionNode, elementId: string, direction: "up" | "down"): TemplateSectionNode;
+export function moveLayoutElement(section: TemplateSectionNode, elementId: string, toColumn: number, toIndex: number): TemplateSectionNode;
+export function moveLayoutElement(section: TemplateSectionNode, elementId: string, target: "up" | "down" | number, toIndex?: number): TemplateSectionNode {
   const found = findLayoutElement(section, elementId);
   if (!found) return section;
-  const to = found.index + (direction === "up" ? -1 : 1);
-  if (to < 0 || to >= found.count) return section;
+  if (target === "up" || target === "down") {
+    const to = found.index + (target === "up" ? -1 : 1);
+    if (to < 0 || to >= found.count) return section;
+    // One step down is the gap below the next element.
+    return moveLayoutElement(section, elementId, found.cellIndex, target === "up" ? to : to + 1);
+  }
+  if (typeof target !== "number" || typeof toIndex !== "number" || !Number.isFinite(target) || !Number.isFinite(toIndex)) return section;
   const cells = cellsOf(section);
-  const elements = [...cells[found.cellIndex]!.elements];
-  [elements[found.index], elements[to]] = [elements[to]!, elements[found.index]!];
-  return withCells(section, cells.map((cell, index) => (index === found.cellIndex ? { ...cell, elements } : cell)));
+  const column = Math.min(Math.max(0, Math.trunc(target)), cells.length - 1);
+  const destination = cells[column]!.elements;
+  let index = Math.min(Math.max(0, Math.trunc(toIndex)), destination.length);
+  if (column === found.cellIndex) {
+    // The element leaves its own spot first, so every gap below it moves up by one.
+    if (index > found.index) index -= 1;
+    if (index === found.index) return section;
+  } else if (destination.length >= MAX_ELEMENTS_PER_COLUMN) {
+    return section;
+  }
+  const next = cells.map((cell) => ({ ...cell, elements: cell.elements.filter((element) => element.id !== found.element.id) }));
+  next[column]!.elements.splice(index, 0, found.element);
+  return withCells(section, next);
+}
+
+/** Can `elementId` go to `toColumn` at all (false when it's unknown or that column is full)? */
+export function canMoveLayoutElementTo(section: TemplateSectionNode, elementId: string, toColumn: number): boolean {
+  const found = findLayoutElement(section, elementId);
+  if (!found || !Number.isFinite(toColumn)) return false;
+  const cells = cellsOf(section);
+  const column = Math.min(Math.max(0, Math.trunc(toColumn)), cells.length - 1);
+  return column === found.cellIndex || cells[column]!.elements.length < MAX_ELEMENTS_PER_COLUMN;
+}
+
+// ─── Drag and drop geometry (the builder) ────────────────────────────────────
+
+export interface DropRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * The column under (or nearest to) a pointer: columns side by side, stacked on phones, or in a grid. Columns whose
+ * width spans the pointer win (a short column still takes a drop below its last element); among them, and when the
+ * pointer is in a gap between columns, the nearest one. -1: none.
+ */
+export function nearestDropColumn(rects: DropRect[], x: number, y: number): number {
+  let best = -1;
+  let bestDistance = Infinity;
+  const spanning = rects.some((rect) => x >= rect.left && x <= rect.right);
+  rects.forEach((rect, index) => {
+    if (spanning && (x < rect.left || x > rect.right)) return;
+    const dx = Math.max(rect.left - x, 0, x - rect.right);
+    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+    const distance = dx * dx + dy * dy;
+    if (distance < bestDistance) {
+      best = index;
+      bestDistance = distance;
+    }
+  });
+  return best;
+}
+
+/** The gap a pointer points at in a column, from the vertical middles of its elements (top to bottom). */
+export function dropIndexAt(middles: number[], y: number): number {
+  const index = middles.findIndex((middle) => y < middle);
+  return index === -1 ? middles.length : index;
 }
 
 export function removeLayoutElement(section: TemplateSectionNode, elementId: string): TemplateSectionNode {

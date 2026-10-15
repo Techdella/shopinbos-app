@@ -119,6 +119,7 @@ interface TemplateStorefrontSurfaceProps {
   selectedElementId?: string | null;
   onSelectElement?: (sectionId: string, elementId: string) => void;
   onAddToColumn?: (sectionId: string, columnIndex: number) => void;
+  onMoveElement?: (sectionId: string, elementId: string, toColumn: number, toIndex: number) => void;
 }
 
 function hexToRgb(hex: string) {
@@ -798,6 +799,7 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       selectedElementId={props.selectedElementId}
       onSelectElement={props.onSelectElement}
       onAddToColumn={props.onAddToColumn}
+      onMoveElement={props.onMoveElement}
     />
   );
 }

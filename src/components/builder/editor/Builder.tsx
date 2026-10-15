@@ -21,9 +21,13 @@ import {
 import {
   LAYOUT_ROW_KIND,
   addLayoutElement,
+  canMoveLayoutElementTo,
   findLayoutElement,
+  layoutElementLabel,
+  moveLayoutElement,
   newLayoutElement,
   newLayoutRowSection,
+  normaliseLayoutRow,
   type ColumnPresetId,
   type LayoutElementType,
 } from "@/components/storefront/boutique/blocks/layout-logic";
@@ -126,6 +130,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   /** Where "Leave" was going while the save-or-lose prompt is open. */
   const [leaving, setLeaving] = useState<string | null>(null);
   const [leaveSaving, setLeaveSaving] = useState(false);
+  /** Read out to screen readers (moves of elements in rows and columns). `n` makes a repeat of the same words count. */
+  const [announcement, setAnnouncement] = useState<{ text: string; n: number }>({ text: "", n: 0 });
   const insertSearchRef = useRef<HTMLInputElement>(null);
 
   const snapshot = preview?.snapshot ?? draft;
@@ -256,6 +262,31 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setSelectedElementId(element.id);
     setFocusField(`element:${element.id}`);
   }, [editSection, select]);
+
+  // Drag and drop (canvas or panel), up / down and "Move to": one undoable change, read out to screen readers.
+  // `select` keeps the moved element picked (canvas drops and "Move to"); up / down leave the selection alone.
+  const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean }) => {
+    const section = sections.find((entry) => entry.id === sectionId);
+    if (!section) return;
+    const view = normaliseLayoutRow(section);
+    const columnLabel = (at: number) => (view.preset.id.startsWith("grid") ? t("edk.boxN", { n: at + 1 }) : t("edk.columnN", { n: at + 1 }));
+    const say = (text: string) => setAnnouncement((current) => ({ text, n: current.n + 1 }));
+    const next = moveLayoutElement(section, elementId, column, index);
+    if (next === section) {
+      if (findLayoutElement(section, elementId) && !canMoveLayoutElementTo(section, elementId, column)) {
+        say(t("edk.columnFull", { column: columnLabel(Math.min(Math.max(0, Math.trunc(column)), view.cells.length - 1)) }));
+      }
+      return;
+    }
+    editSection(sectionId, (current) => moveLayoutElement(current, elementId, column, index));
+    if (options?.select) {
+      if (selectedId !== sectionId) select(sectionId);
+      setSelectedElementId(elementId);
+      setFocusField(`element:${elementId}`);
+    }
+    const placed = findLayoutElement(next, elementId);
+    if (placed) say(t("edk.movedTo", { name: tx(layoutElementLabel(placed.element)), column: columnLabel(placed.cellIndex), n: placed.index + 1 }));
+  }, [editSection, sections, select, selectedId, t, tx]);
 
   const insertLayout = useCallback((preset: ColumnPresetId) => {
     const section = newLayoutRowSection(newId(LAYOUT_ROW_KIND), preset);
@@ -579,6 +610,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       selectedElementId={editing ? selectedElementId : null}
       onSelectElement={editing ? (sectionId, elementId) => { select(sectionId); setSelectedElementId(elementId); setFocusField(`element:${elementId}`); } : undefined}
       onAddToColumn={canvasOverlay ? (sectionId, column) => { select(sectionId); setCanvasInsert({ type: "column", sectionId, column }); } : undefined}
+      onMoveElement={editing ? (sectionId, elementId, column, index) => moveElement(sectionId, elementId, column, index, { select: true }) : undefined}
       cartCount={0}
     />
   ) : null;
@@ -650,6 +682,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       selectedElementId={selectedElementId}
       onSelectElement={setSelectedElementId}
       onAddLayoutElement={(column, type) => selected && addElementToColumn(selected.id, column, type)}
+      onMoveLayoutElement={(elementId, column, index, options) => selected && moveElement(selected.id, elementId, column, index, options)}
     />
   ) : null;
 
@@ -819,6 +852,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   return (
     <div className="fixed inset-0 z-[500] flex flex-col bg-white font-app text-app-ink">
+      <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement.text}{announcement.n % 2 ? " " : ""}</p>
       <TopBar
         themeName={preview ? preview.name : draft?.templateName ?? tx("Your store")}
         status={b.status}
