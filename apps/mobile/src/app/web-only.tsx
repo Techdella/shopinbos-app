@@ -11,12 +11,18 @@ import { colors } from "@/theme";
 // can open it there (signed in) or ask us to do it. Without it, admin accounts land here: the admin panel is web only.
 
 // title and body are m_shop keys. The admin screen below stays in English (admin only).
-const TOOLS: Record<string, { title: "webOnly.look.title"; body: "webOnly.look.body"; path: string; ask: string }> = {
+const TOOLS: Record<string, { title: `webOnly.${"look" | "bio"}.title`; body: `webOnly.${"look" | "bio"}.body`; path: string; ask?: string }> = {
   look: {
     title: "webOnly.look.title",
     body: "webOnly.look.body",
     path: "/home/editor",
     ask: "/rex",
+  },
+  // Link in bio colours, photo and the blocks the phone doesn't edit (app/link-in-bio.tsx).
+  bio: {
+    title: "webOnly.bio.title",
+    body: "webOnly.bio.body",
+    path: "/home/social/link-in-bio",
   },
 };
 
@@ -37,7 +43,7 @@ export default function WebOnly() {
           <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 16, lineHeight: 23, maxWidth: 340 }}>{t(tool.body)}</T>
         </View>
         <PillButton title={t("openInBrowser")} onPress={() => void openWeb(tool.path)} />
-        <LinkButton title={t("webOnly.askRex")} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} />
+        {tool.ask ? <LinkButton title={t("webOnly.askRex")} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} /> : null}
       </SafeAreaView>
     );
   }

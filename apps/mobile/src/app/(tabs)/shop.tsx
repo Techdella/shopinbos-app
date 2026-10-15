@@ -39,6 +39,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     title: "Get paid and deliver",
     links: [
       { id: "payments", label: "Payments and payouts", icon: "coin", path: "app:/payments", hint: "How customers pay you, and money sent to your bank" },
+      { id: "paymentLinks", label: "Payment links", icon: "link", path: "app:/payment-links", hint: "A link a customer opens from a chat to pay" },
       { id: "delivery", label: "Delivery", icon: "truck", path: "app:/delivery", hint: "Where you deliver and the price" },
       { id: "partners", label: "Partner messages", icon: "users", path: "app:/partners", hint: "Suppliers and delivery partners" },
     ],
@@ -49,6 +50,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     links: [
       { id: "marketing", label: "Marketing", icon: "megaphone", path: "app:/marketing", hint: "Campaigns, discount codes and ads" },
       { id: "reviews", label: "Reviews", icon: "star", path: "app:/reviews", hint: "What customers say, and asking for more" },
+      { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
       { id: "rex", label: "Rex Studio", icon: "sparkle", path: "app:/rex", hint: "Pictures, logo and words for your shop" },
       { id: "domain", label: "Domain", icon: "store", path: "app:/ask-us?what=web-address", hint: "Your own name like yourshop.com. We set it up for you" },
     ],
