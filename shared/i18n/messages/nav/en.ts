@@ -39,6 +39,7 @@ const en = {
   "your-store": "Your store",
   "rex-studio": "Rex Studio",
   "brand-kit": "Brand kit",
+  media: "Media",
   templates: "Templates",
   domain: "Domain",
   editor: "Edit your store",

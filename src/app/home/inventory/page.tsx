@@ -42,6 +42,7 @@ export default async function InventoryPage() {
           soldStock: true,
           incomingStock: true,
           lowStockThreshold: true,
+          trackStock: true,
           images: true,
           retailPrice: true,
           currency: true,
@@ -58,9 +59,11 @@ export default async function InventoryPage() {
     : [];
 
   const totalProducts = products.length;
-  const outOfStock = products.filter((p) => p.currentStock <= 0).length;
-  const lowStock = products.filter((p) => p.currentStock > 0 && p.currentStock <= p.lowStockThreshold).length;
-  const merchantFulfilled = products.filter((p) => p.fulfillmentType === "merchant_fulfilled");
+  // Only counted stock can run low or out ("Track stock" on the product); dropship products use the supplier's.
+  const counted = products.filter((p) => p.trackStock && p.fulfillmentType !== "dropship");
+  const outOfStock = counted.filter((p) => p.currentStock <= 0).length;
+  const lowStock = counted.filter((p) => p.currentStock > 0 && p.currentStock <= p.lowStockThreshold).length;
+  const merchantFulfilled = counted.filter((p) => p.fulfillmentType === "merchant_fulfilled");
   const totalUnits = merchantFulfilled.reduce((sum, p) => sum + p.currentStock, 0);
 
   return (
@@ -104,7 +107,8 @@ export default async function InventoryPage() {
             const source = isDropship && p.supplierProduct?.supplier?.displayName
               ? p.supplierProduct.supplier.displayName
               : isDropship ? t("inv.supplier") : t("list.ownStock");
-            const count = isDropship ? supplierStock : p.currentStock;
+            const untracked = !isDropship && !p.trackStock;
+            const count = isDropship ? supplierStock : untracked ? null : p.currentStock;
             return (
               <ListRow key={p.id} href={`/products/${p.id}`}>
                 <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
@@ -115,15 +119,15 @@ export default async function InventoryPage() {
                       <div className="truncate text-[13px] text-app-ink-soft">{[p.sku, source].filter(Boolean).join(" · ")}</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-app-ink-soft xl:contents">
-                      <span>{isDropship ? <Pill tone="muted">{t("list.dropship")}</Pill> : <Pill tone={status.tone} dot>{t(status.label)}</Pill>}</span>
+                      <span>{isDropship ? <Pill tone="muted">{t("list.dropship")}</Pill> : untracked ? <Pill tone="muted">{t("stock.notTracked")}</Pill> : <Pill tone={status.tone} dot>{t(status.label)}</Pill>}</span>
                       <span>{isDropship ? "—" : t("inv.reserved", { count: p.reservedStock })}</span>
                       <span>{t("list.sold", { count: p.soldStock })}</span>
                       <span className={cx(!isDropship && p.incomingStock > 0 && "font-bold text-app-success")}>
                         {!isDropship && p.incomingStock > 0 ? t("inv.coming", { count: p.incomingStock }) : "—"}
                       </span>
                     </div>
-                    <div className={cx("text-[15px] font-extrabold md:text-right", !isDropship && p.currentStock <= p.lowStockThreshold && "text-app-accent-ink")}>
-                      {count ?? "—"} <span className="text-[12.5px] font-semibold text-app-ink-soft">{isDropship ? t("inv.atSupplier") : t("inv.inStock")}</span>
+                    <div className={cx("text-[15px] font-extrabold md:text-right", !isDropship && !untracked && p.currentStock <= p.lowStockThreshold && "text-app-accent-ink")}>
+                      {count ?? "—"} {untracked ? null : <span className="text-[12.5px] font-semibold text-app-ink-soft">{isDropship ? t("inv.atSupplier") : t("inv.inStock")}</span>}
                     </div>
                   </div>
                 </div>

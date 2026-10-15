@@ -303,7 +303,7 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         <MediaLibraryDialog
           open={libraryOpen}
           onClose={() => setLibraryOpen(false)}
-          onSelect={([asset]) => asset && setDialog({ kind: "image", src: asset.url, alt: asset.name ?? "", caption: "", editing: false })}
+          onSelect={([asset]) => asset && setDialog({ kind: "image", src: asset.url, alt: asset.alt ?? asset.name ?? "", caption: "", editing: false })}
         />
         <ToolButton label={t("rte.addYoutube")} icon="play" onClick={() => setDialog({ kind: "youtube", url: "" })} />
         <ToolButton label={t("rte.addTable")} icon="grid" active={state.table} onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />

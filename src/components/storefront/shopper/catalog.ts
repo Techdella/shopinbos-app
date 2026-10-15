@@ -1,6 +1,7 @@
 // Product helpers shared by the storefront themes, the product page and the shopper bottom nav.
 
 import { isColourOption, normalizeVariants, totalVariantStock } from "../../../../shared/product-variants.ts";
+import { listingSoldOut, type ShopperStock } from "../../../../shared/product-stock.ts";
 
 export interface ShopperVariant {
   id?: string;
@@ -33,6 +34,8 @@ export interface ShopperProduct {
   tags?: string[];
   relatedProductIds?: string[];
   supplierProduct?: { stockQuantity?: number | null } | null;
+  /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when the seller doesn't track it. */
+  stock?: ShopperStock | null;
 }
 
 export function readVariants(value: unknown): ShopperVariant[] {
@@ -93,18 +96,28 @@ export function variantLabel(variant: ShopperVariant) {
   return [variant.color, variant.size].filter(Boolean).join(" / ") || variant.name || variant.sku || "Option";
 }
 
-/** Units left when the seller tracks stock (variant stock, or the supplier's stock for dropship); null otherwise. */
-export function unitsLeft(product: Pick<ShopperProduct, "variants" | "supplierProduct">) {
+/**
+ * Units left when stock is tracked: the product's tracked stock, else its versions' own counts, else the supplier's
+ * stock for dropship; null otherwise (and for tracked products that keep selling at 0).
+ */
+export function unitsLeft(product: Pick<ShopperProduct, "variants" | "supplierProduct" | "stock">) {
+  if (product.stock) return product.stock.continueSelling ? null : product.stock.left;
   const tracked = totalVariantStock(normalizeVariants(product.variants));
   if (tracked !== null) return Math.max(0, tracked);
   const supplier = product.supplierProduct?.stockQuantity;
   return typeof supplier === "number" ? supplier : null;
 }
 
-/** "Only 3 left" only when stock is tracked and genuinely low. */
-export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "supplierProduct">) {
+/** "Only 3 left" only when stock is tracked and genuinely low (the seller's low-stock level, else 5). */
+export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "supplierProduct" | "stock">) {
   const left = unitsLeft(product);
-  return left !== null && left > 0 && left <= 5 ? `Only ${left} left` : null;
+  const lowAt = product.stock?.lowAt ?? 5;
+  return left !== null && left > 0 && left <= lowAt ? `Only ${left} left` : null;
+}
+
+/** A card's "Sold out" badge: tracked stock (or the supplier's for dropship) at 0, with no backorders. */
+export function soldOutLabel(product: Pick<ShopperProduct, "supplierProduct" | "stock">) {
+  return listingSoldOut(product) ? "Sold out" : null;
 }
 
 export function productColours(product: Pick<ShopperProduct, "variants">) {

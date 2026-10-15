@@ -1,7 +1,9 @@
 // Pure helpers for the advanced builder: undo history, section moves, the page list and the insert catalogue.
-// No runtime imports, so tests/behaviour.test.mjs can load this file directly with Node's type stripping.
+// Only relative .ts runtime imports, so tests/behaviour.test.mjs can load this file directly with Node's type stripping.
 
 import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from "@/lib/store-templates";
+import { STORE_BLOCKS, newStoreBlockSection, type BlockCategory, type BlockIcon } from "../../storefront/boutique/blocks/block-catalog.ts";
+import { LAYOUT_ROW_KIND, layoutElementLabel, newLayoutRowSection, normaliseLayoutRow } from "../../storefront/boutique/blocks/layout-logic.ts";
 
 // ─── Undo history ────────────────────────────────────────────────────────────
 
@@ -186,6 +188,71 @@ export function insertSection(sections: TemplateSectionNode[], section: Template
   return next;
 }
 
+// ─── Canvas insert spots ─────────────────────────────────────────────────────
+
+/** A "+" spot on the builder canvas: between two sections the shopper sees, never above the header or below the footer. */
+export interface InsertSlot {
+  key: string;
+  /** Where the new section lands in the page's full section list (hidden sections included). */
+  index: number;
+  /** Section drawn just above the spot (the last header section for the first spot), or null. */
+  afterId: string | null;
+  /** Section the new one goes before (a body section or the footer), or null for the end of the page. */
+  beforeId: string | null;
+}
+
+/** First and last positions a body section may take: after every header section, before the first footer. */
+export function insertBounds(sections: Array<Pick<TemplateSectionNode, "kind">>) {
+  let min = 0;
+  sections.forEach((section, index) => { if (sectionGroup(section.kind) === "header") min = index + 1; });
+  const footer = sections.findIndex((section) => sectionGroup(section.kind) === "footer");
+  const max = footer === -1 ? sections.length : Math.max(min, footer);
+  return { min, max };
+}
+
+export function clampInsertIndex(sections: Array<Pick<TemplateSectionNode, "kind">>, index: number) {
+  const { min, max } = insertBounds(sections);
+  const whole = Number.isFinite(index) ? Math.round(index) : max;
+  return Math.min(max, Math.max(min, whole));
+}
+
+/** Puts a body section at `index`, kept between the header and the footer. */
+export function insertSectionAt(sections: TemplateSectionNode[], section: TemplateSectionNode, index: number) {
+  const next = [...sections];
+  next.splice(clampInsertIndex(sections, index), 0, section);
+  return next;
+}
+
+/** The canvas "+" spots of a page, top to bottom: one above each visible body section and one at the end. */
+export function insertSlots(sections: TemplateSectionNode[]): InsertSlot[] {
+  const shown = (section: TemplateSectionNode) => section.visible !== false;
+  const body = sections.filter((section) => shown(section) && sectionGroup(section.kind) !== "header" && sectionGroup(section.kind) !== "footer");
+  const header = sections.filter((section) => shown(section) && sectionGroup(section.kind) === "header");
+  const footer = sections.find((section) => sectionGroup(section.kind) === "footer") ?? null;
+  const { max } = insertBounds(sections);
+  const slots: InsertSlot[] = [];
+  for (let i = 0; i <= body.length; i += 1) {
+    const before = body[i] ?? null;
+    const after = body[i - 1] ?? header[header.length - 1] ?? null;
+    slots.push({
+      key: `slot:${before?.id ?? "end"}`,
+      index: before ? sections.indexOf(before) : max,
+      afterId: after?.id ?? null,
+      beforeId: before?.id ?? footer?.id ?? null,
+    });
+  }
+  return slots;
+}
+
+/** The spot right below a section (the floating toolbar's "Add below"); null for the footer. */
+export function slotBelow(sections: TemplateSectionNode[], id: string): InsertSlot | null {
+  const section = sections.find((entry) => entry.id === id);
+  if (!section || sectionGroup(section.kind) === "footer") return null;
+  const slots = insertSlots(sections);
+  if (sectionGroup(section.kind) === "header") return slots[0] ?? null;
+  return slots.find((slot) => slot.afterId === id) ?? null;
+}
+
 // ─── Snapshot helpers ────────────────────────────────────────────────────────
 
 export function findPage(snapshot: StoreEditorSnapshot | null, pageType: string): TemplatePageSeed | null {
@@ -284,6 +351,14 @@ function itemLabel(item: Record<string, unknown>, index: number) {
 
 /** The blocks shown under a section in the sections tree, in reading order. */
 export function sectionBlocks(section: TemplateSectionNode): SectionBlockRow[] {
+  if (section.kind === LAYOUT_ROW_KIND) {
+    return normaliseLayoutRow(section).cells.flatMap((cell) => cell.elements.map((element): SectionBlockRow => ({
+      id: `${section.id}:${element.id}`,
+      label: layoutElementLabel(element),
+      icon: element.type === "image" || element.type === "video" ? "image" : element.type === "button" ? "button" : element.type === "heading" || element.type === "text" ? "text" : "item",
+      field: `element:${element.id}`,
+    })));
+  }
   const copy = sectionCopy(section);
   const rows: SectionBlockRow[] = [];
   for (const entry of COPY_BLOCKS) {
@@ -381,9 +456,11 @@ export type RendererKind = "boutique" | "classic";
 export interface InsertItem {
   kind: string;
   label: string;
-  group: "Header" | "Banners" | "Products" | "Story" | "Grow";
+  group: "Header" | BlockCategory;
   hint: string;
   renderers: RendererKind[];
+  /** Ready-made blocks show their own icon in the Insert panel. */
+  icon?: BlockIcon;
 }
 
 const BOTH: RendererKind[] = ["boutique", "classic"];
@@ -411,9 +488,11 @@ export const INSERT_CATALOG: InsertItem[] = [
   { kind: "scratch-card", label: "Scratch card", group: "Grow", hint: "Shoppers scratch to reveal a mystery discount.", renderers: BOTH },
   { kind: "reward-progress", label: "Reward progress", group: "Grow", hint: "How close the bag is to free delivery and rewards.", renderers: BOTH },
   { kind: "loyalty-banner", label: "Loyalty points", group: "Grow", hint: "How points work, the tiers and a balance check.", renderers: BOTH },
+  // Ready-made blocks for the 2026 themes (src/components/storefront/boutique/blocks/block-catalog.ts).
+  ...STORE_BLOCKS.map((block): InsertItem => ({ kind: block.kind, label: block.label, group: block.category, hint: block.description, renderers: ["boutique"], icon: block.icon })),
 ];
 
-export const INSERT_GROUP_ORDER: InsertItem["group"][] = ["Header", "Banners", "Products", "Story", "Grow"];
+export const INSERT_GROUP_ORDER: InsertItem["group"][] = ["Header", "Banners", "Products", "Trust", "Story", "Grow", "Extras"];
 
 /** Sections that fit the spot: header sections only into the header (and only when missing), body sections elsewhere. */
 export function insertOptions(input: { renderer: RendererKind; target: SectionGroup; existingKinds: string[]; query?: string }) {
@@ -434,6 +513,7 @@ export function insertOptions(input: { renderer: RendererKind; target: SectionGr
 }
 
 export function insertLabel(kind: string) {
+  if (kind === LAYOUT_ROW_KIND) return "Columns";
   return INSERT_CATALOG.find((item) => item.kind === kind)?.label ?? kind.replace(/-/g, " ");
 }
 
@@ -447,6 +527,9 @@ export function newBoutiqueSection(kind: string, id: string): TemplateSectionNod
     blocks: [{ id: `${id}-copy`, type: "copy", content: copy }],
     ...extra,
   });
+  const block = newStoreBlockSection(kind, id);
+  if (block) return block;
+  if (kind === LAYOUT_ROW_KIND) return newLayoutRowSection(id);
   switch (kind) {
     case "announcement-bar":
       return make("Announcement bar", { text: "" }, { settings: { source: "store-settings" } });

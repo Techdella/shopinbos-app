@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import { PillButton, Spinner, cx } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
-import type { MediaKind } from "@shared/media";
+import { mediaLabel, type MediaKind } from "@shared/media";
 import { acceptFor, chooseFile, listMyMedia, removeFromMyMedia, uploadToMyMedia, type MediaAssetView } from "./media-client";
 
 // "My media": a grid of the person's pictures (newest first) with search and an upload button. A bottom sheet on
@@ -215,7 +215,7 @@ function LibrarySheet({ onClose, onSelect, multiple = false, accept = "image", t
                 {items.map((asset) => {
                   const on = picked.some((entry) => entry.url === asset.url);
                   const sourceKey = SOURCE_KEYS[asset.source as keyof typeof SOURCE_KEYS];
-                  const label = asset.name || (sourceKey ? t(sourceKey) : asset.kind === "video" ? t("lib.video") : t("lib.picture"));
+                  const label = mediaLabel(asset) || (sourceKey ? t(sourceKey) : asset.kind === "video" ? t("lib.video") : t("lib.picture"));
                   return (
                     <li key={asset.id || asset.url}>
                       <button

@@ -5,8 +5,10 @@ import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBilling
 import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { createBlankEditorSnapshot, isBoutiqueTheme, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
 import { migrateSnapshot } from "@/lib/store-templates/section-content";
+import { normalizeChrome, propagateChrome } from "@/lib/store-templates/chrome";
 import { heroDefaultLayout } from "./section-schema";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import type { ShopperStock } from "@shared/product-stock";
 import { useEditorT } from "./i18n";
 import {
   canRedo,
@@ -30,6 +32,30 @@ export interface BuilderProduct {
   avgRating?: number;
   reviewCount?: number;
   category?: { id: string; name: string; slug: string } | null;
+  /** Product page fields, so the builder's product page preview shows the real product. */
+  compareAtPrice?: number | null;
+  variants?: unknown;
+  variantOptions?: unknown;
+  productType?: string | null;
+  productDetails?: unknown;
+  relatedProductIds?: string[];
+  tags?: string[];
+  sku?: string | null;
+  longDescription?: string | null;
+  specifications?: unknown;
+  faqs?: unknown;
+  careInstructions?: string | null;
+  shippingInfo?: string | null;
+  returnPolicy?: string | null;
+  warranty?: string | null;
+  supportInfo?: string | null;
+  videoUrl?: string | null;
+  /** Tracked stock as shoppers see it (shared/product-stock.ts); null when not tracked. */
+  stock?: ShopperStock | null;
+  supplierProduct?: { stockQuantity?: number | null } | null;
+  /** The product's own page layout / sections (product-override.ts). */
+  pageLayout?: unknown;
+  lowStockThreshold?: number | null;
 }
 
 export interface BuilderStore {
@@ -133,7 +159,8 @@ export function useBuilder() {
       });
       // Older saves are upgraded in memory (slides get their own words, renamed layouts…); the published copy is
       // upgraded the same way so the upgrade alone never shows as unpublished changes.
-      const upgrade = (snapshot: StoreEditorSnapshot | null) => migrateSnapshot(snapshot, { heroDefault: snapshot ? heroDefaultLayout(isBoutiqueTheme(snapshot.templateId) ? "boutique" : "classic", snapshot.templateId) : undefined });
+      // Older saves could also carry a different header or footer per page: every page now shares the home page's.
+      const upgrade = (snapshot: StoreEditorSnapshot | null) => normalizeChrome(migrateSnapshot(snapshot, { heroDefault: snapshot ? heroDefaultLayout(isBoutiqueTheme(snapshot.templateId) ? "boutique" : "classic", snapshot.templateId) : undefined }));
       const nextDraft = upgrade((json.data.draft as StoreEditorSnapshot | null | undefined) ?? null);
       resetDraft(nextDraft && Array.isArray(nextDraft.pages) ? nextDraft : null);
       setPublished(upgrade((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
@@ -148,11 +175,14 @@ export function useBuilder() {
     void load();
   }, [load]);
 
-  /** Every edit goes through here so it can be undone. Edits sharing a key (typing in one field) merge. */
+  /**
+   * Every edit goes through here so it can be undone. Edits sharing a key (typing in one field) merge. The header,
+   * announcement bar and footer are shared by every page, so changing them on one page changes them everywhere.
+   */
   const commit = useCallback((updater: (snapshot: StoreEditorSnapshot) => StoreEditorSnapshot, key?: string) => {
     setHistory((current) => {
       if (!current.present) return current;
-      const next = updater(current.present);
+      const next = propagateChrome(current.present, updater(current.present));
       if (next === current.present) return current;
       return pushHistory(current, { ...next, updatedAt: new Date().toISOString() }, { key: key ?? null });
     });
@@ -260,10 +290,12 @@ export function useBuilder() {
     });
     const json = await response.json().catch(() => null) as { data?: { draft?: StoreEditorSnapshot | null }; error?: { message?: string } } | null;
     if (!response.ok || !json?.data?.draft) throw new Error(json?.error?.message ?? tx("Rex's change couldn't be applied."));
-    const next = json.data.draft;
+    // An older saved draft can still hold per-page headers; the builder always works on the shared one.
+    const next = normalizeChrome(json.data.draft);
     // Kept undoable: Undo takes the store back to before Rex's change (and autosaves that).
     setHistory((current) => pushHistory(current, next));
-    setSavedKey(snapshotKey(next));
+    // What the server holds; when normalising changed it, autosave stores the shared version.
+    setSavedKey(snapshotKey(json.data.draft));
   }, [persist, savedKey]);
 
   const surfaceStore: SurfaceStore = useMemo(() => ({
@@ -285,6 +317,27 @@ export function useBuilder() {
       avgRating: product.avgRating,
       reviewCount: product.reviewCount,
       category: product.category ?? null,
+      compareAtPrice: product.compareAtPrice ?? null,
+      variants: product.variants,
+      variantOptions: product.variantOptions,
+      productType: product.productType,
+      productDetails: product.productDetails,
+      relatedProductIds: product.relatedProductIds,
+      tags: product.tags,
+      sku: product.sku,
+      longDescription: product.longDescription,
+      specifications: product.specifications,
+      faqs: product.faqs,
+      careInstructions: product.careInstructions,
+      shippingInfo: product.shippingInfo,
+      returnPolicy: product.returnPolicy,
+      warranty: product.warranty,
+      supportInfo: product.supportInfo,
+      videoUrl: product.videoUrl,
+      stock: product.stock ?? null,
+      supplierProduct: product.supplierProduct ?? null,
+      pageLayout: product.pageLayout,
+      lowStockThreshold: product.lowStockThreshold,
     })),
   }), [store]);
 

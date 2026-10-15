@@ -6,6 +6,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
 import { gaMeasurementId } from "@/lib/security/html";
 import { saveSellerBusinessAddress, saveStoreDetails } from "@/lib/seller-settings.server";
+import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -334,13 +335,17 @@ export async function savePeggyMemory(formData: FormData) {
 export async function saveStoreSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
   // Rules shared with the phone app (/api/app/settings/profile): src/lib/seller-settings.server.ts.
+  // A new web address needs the seller to tick "I understand" (the form shows what happens to the old one).
+  const slugInput = String(formData.get("slug") || "");
+  const confirmed = formData.get("confirmSlugChange") === "yes";
   const saved = await saveStoreDetails(user.id, {
     name: String(formData.get("storeName") || ""),
-    slug: String(formData.get("slug") || ""),
+    slug: confirmed ? slugInput : "",
     description: String(formData.get("description") || ""),
     city: String(formData.get("city") || ""),
   });
   if (!saved) redirect("/builder?firstRun=1");
+  if (saved.error) redirect(`/home/settings?tab=Store&error=${encodeURIComponent(saved.error)}`);
 
   redirect("/home/settings?saved=true&tab=Store");
 }
@@ -366,19 +371,16 @@ export async function saveBusinessAddress(formData: FormData) {
 
 export async function saveStoreDomainSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
-  const store = await db.store.findUnique({ where: { userId: user.id } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!store) redirect("/builder?firstRun=1");
 
-  const slug = slugify(String(formData.get("slug") || store.slug));
-
   // A custom domain is never set here: it goes live only after ownership is verified (/api/domains/connect
-  // then /api/domains/verify), so a "customDomain" field in this form is ignored.
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      slug: slug || store.slug,
-    },
-  });
+  // then /api/domains/verify), so a "customDomain" field in this form is ignored. The web address change is
+  // the same checked, rate-limited move as in Settings (the old address keeps redirecting).
+  if (formData.get("confirmSlugChange") === "yes") {
+    const moved = await changeStoreSlug(store.id, String(formData.get("slug") || ""));
+    if (!moved.ok) redirect(`/home/domain?error=${encodeURIComponent(moved.message)}`);
+  }
 
   redirect("/home/domain?saved=true");
 }
@@ -403,7 +405,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       description,
       city,
       country,
-      brandSettings: mergeBrandSettings(store.brandSettings, {
+      brandSettings: mergeBrandSettings((name !== store.name ? clearStaleShopNames(store.brandSettings, store.name) : null) ?? store.brandSettings, {
         tagline,
         brandKit: {
           primaryColor: primary,
@@ -412,6 +414,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       }),
     },
   });
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name);
 
   redirect("/home/brand-kit?saved=true");
 }

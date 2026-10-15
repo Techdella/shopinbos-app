@@ -17,8 +17,18 @@ export interface ChromeStore {
   country?: string | null;
 }
 
-export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean };
-/** A plain link (legal pages live on their own URLs, not ?page=). */
+/** A store page (lives at its own address: /about, /shop). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
+export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean; href?: string };
+
+/** Ordinary clicks switch page in place; Ctrl/⌘/Shift/middle clicks keep the browser's own link behaviour. */
+function pageLinkClick(link: ChromeLink) {
+  return (event: React.MouseEvent<HTMLElement>) => {
+    if (link.href && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    event.preventDefault();
+    link.onSelect();
+  };
+}
+/** A plain link to another route (legal pages, policies). */
 export type ChromeHref = { key: string; label: string; href: string };
 
 export function AnnouncementBar({ text, look }: { text: string | null; look: BoutiqueLook }) {
@@ -30,10 +40,15 @@ export function AnnouncementBar({ text, look }: { text: string | null; look: Bou
   );
 }
 
-function Logo({ store, logoText, look, onHome, centred }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean }) {
+function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean }) {
   return (
-    <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: look.tokens.ink, cursor: "pointer" }} aria-label={`${store.name} home`}>
-      <StoreBrandMark store={store} name={logoText} nameClassName="text-[22px] leading-none @3xl:text-[24px]" nameStyle={{ fontFamily: look.logoFont, ...look.logoStyle }} />
+    <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: "inherit", cursor: "pointer" }} aria-label={`${store.name} home`}>
+      <StoreBrandMark
+        store={store}
+        name={logoText}
+        nameClassName={bold ? "text-[24px] leading-none @3xl:text-[28px]" : "text-[22px] leading-none @3xl:text-[24px]"}
+        nameStyle={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}
+      />
     </button>
   );
 }
@@ -109,6 +124,7 @@ export function BoutiqueHeader({
   wishlistCount,
   cartLabel,
   centred,
+  bold = false,
 }: {
   store: ChromeStore;
   logoText: string;
@@ -125,6 +141,8 @@ export function BoutiqueHeader({
   wishlistCount: number;
   cartLabel: string;
   centred: boolean;
+  /** "Bold" header: an inverted bar (ink background) with a heavy uppercase shop name. */
+  bold?: boolean;
 }) {
   const t = look.tokens;
   const nav = (
@@ -133,16 +151,16 @@ export function BoutiqueHeader({
         link.key === "products" ? (
           <ShopMenu key={link.key} look={look} categories={categories} onShopAll={onShopAll} onCategory={onCategory} />
         ) : (
-          <button
+          <a
             key={link.key}
-            type="button"
-            onClick={link.onSelect}
+            href={link.href ?? "#"}
+            onClick={pageLinkClick(link)}
             aria-current={link.current ? "page" : undefined}
             className="border-0 bg-transparent px-1 py-2"
             style={{ color: "inherit", cursor: "pointer", textDecoration: link.current ? "underline" : "none", textUnderlineOffset: 6, ...look.navStyle }}
           >
             {link.label}
-          </button>
+          </a>
         ),
       )}
     </nav>
@@ -166,7 +184,7 @@ export function BoutiqueHeader({
           type="button"
           onClick={onBag}
           className="ml-1 inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13.5px] font-semibold"
-          style={{ borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
+          style={bold ? { borderColor: t.paperBg, color: t.ink, background: t.paperBg, cursor: "pointer" } : { borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
           aria-label={`${cartLabel}, ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
         >
           <span className="bq-only-wide" aria-hidden>{cartLabel}</span>
@@ -180,16 +198,16 @@ export function BoutiqueHeader({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b" style={{ background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
+    <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
         <div className="bq-wrap grid min-h-[68px] py-1.5 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0">{nav}</div>
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred />
+          <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred bold={bold} />
           {tools}
         </div>
       ) : (
         <div className="bq-wrap flex min-h-[68px] py-1.5 items-center justify-between gap-4">
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} />
+          <Logo store={store} logoText={logoText} look={look} onHome={onHome} bold={bold} />
           {nav}
           {tools}
         </div>
@@ -234,9 +252,9 @@ export function BoutiqueFooter({
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
               {links.map((link) => (
                 <li key={link.key}>
-                  <button type="button" onClick={link.onSelect} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
+                  <a href={link.href ?? "#"} onClick={pageLinkClick(link)} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
                     {link.label}
-                  </button>
+                  </a>
                 </li>
               ))}
               {onTrackOrder ? (

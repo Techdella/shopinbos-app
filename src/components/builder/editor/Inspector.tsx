@@ -23,6 +23,9 @@ import {
 import type { BuilderProduct } from "./useBuilder";
 import { FieldShell, IconButton, inputClass, Menu, MenuItem, PillGroup, textareaClass } from "./ui";
 import { useEditorT } from "./i18n";
+import { moveInOrder, toggleInOrder } from "@/components/storefront/boutique/pdp/pdp-logic";
+import { LAYOUT_ROW_KIND, type LayoutElementType } from "@/components/storefront/boutique/blocks/layout-logic";
+import { LayoutColumnsField } from "./LayoutColumnsField";
 
 export type SectionAction = "duplicate" | "up" | "down" | "hide" | "remove";
 
@@ -53,6 +56,10 @@ export interface InspectorProps {
   onAddBlock: (blockId: string) => void;
   onClose?: () => void;
   compact?: boolean;
+  /** Rows and columns: the element picked on the canvas or in the panel. */
+  selectedElementId?: string | null;
+  onSelectElement?: (elementId: string | null) => void;
+  onAddLayoutElement?: (columnIndex: number, type: LayoutElementType) => void;
 }
 
 function writeTarget(section: TemplateSectionNode, target: FieldTarget, value: unknown): TemplateSectionNode {
@@ -179,7 +186,7 @@ export function Inspector(props: InspectorProps) {
             ))}
           </div>
         ))}
-        {props.tab === "settings" && schema.addable.length ? (
+        {props.tab === "settings" && schema.addable.length && section.kind !== LAYOUT_ROW_KIND ? (
           <div className="mt-2 border-t border-app-line pt-3">
             <h3 className="pb-2 text-[14px] font-bold text-app-ink">{tx("Add block")}</h3>
             <div className="flex flex-wrap gap-2">
@@ -273,6 +280,19 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
     case "text":
     case "textarea": {
       const value = str(readTarget(section, field.target));
+      // The header's shop name follows the store name from Settings unless the seller types a different one.
+      if (field.id === "logoText") {
+        return (
+          <FieldShell id={id} label={field.label} help={tx("Leave empty to use your store name.")}>
+            <input id={id} className={inputClass} value={value} placeholder={props.storeName} onChange={(event) => set(event.target.value)} />
+            {value.trim() && value.trim() !== props.storeName ? (
+              <button type="button" onClick={() => set("")} className="mt-1.5 justify-self-start border-0 bg-transparent p-0 text-[12.5px] font-bold text-app-ink underline underline-offset-2">
+                {t("edk.useStoreName", { name: props.storeName })}
+              </button>
+            ) : null}
+          </FieldShell>
+        );
+      }
       return (
         <FieldShell id={id} label={field.label} help={field.help}>
           {field.type === "text"
@@ -398,10 +418,21 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
         </FieldShell>
       );
     }
+    case "image": {
+      // One picture or video stored at the field's target (ready-made blocks keep their items for other lists).
+      const value = str(readTarget(section, field.target));
+      return (
+        <div className="py-2">
+          <MediaPicker compact label={tx(field.label)} help={tx(field.help)} accept={field.accept === "media" ? "any" : "image"} value={value} onChange={(url) => set(url ?? "")} />
+        </div>
+      );
+    }
     case "repeater":
       return <RepeaterField field={field} section={section} sectionKey={sectionKey} {...props} />;
     case "badge":
       return <BadgeField label={field.label} help={field.help} />;
+    case "order":
+      return <OrderField field={field} value={readTarget(section, field.target)} onChange={set} />;
     case "note":
       return <p className="my-2 rounded-[12px] bg-app-canvas px-3 py-2.5 text-[12.5px] leading-5 text-app-ink-soft">{tx(field.label)}</p>;
     case "media":
@@ -414,9 +445,52 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
       return <ImageBlocksField section={section} sectionKey={sectionKey} {...props} />;
     case "items":
       return <ItemsField section={section} sectionKey={sectionKey} {...props} />;
+    case "layoutColumns":
+      return (
+        <LayoutColumnsField
+          section={section}
+          onChange={props.onChange}
+          products={props.products}
+          selectedElementId={props.selectedElementId ?? null}
+          onSelectElement={(elementId) => props.onSelectElement?.(elementId)}
+          onAddElement={(columnIndex, type) => props.onAddLayoutElement?.(columnIndex, type)}
+          renderLink={(link) => <LinkControl label={link.label} value={link.value} onChange={link.onChange} products={props.products} pageTypes={props.pageTypes} />}
+        />
+      );
     default:
       return null;
   }
+}
+
+/** Ordered on/off list (product page blocks): shown parts first, in order, with up/down; hidden parts below. */
+function OrderField({ field, value, onChange }: { field: Extract<SchemaField, { type: "order" }>; value: unknown; onChange: (value: string[]) => void }) {
+  const allowed = field.options.map((option) => option.value);
+  const shown = Array.isArray(value) ? value.map(String).filter((entry, index, all) => allowed.includes(entry) && all.indexOf(entry) === index) : field.fallback;
+  const hidden = allowed.filter((entry) => !shown.includes(entry));
+  const { tx } = useEditorT();
+  const label = (id: string) => tx(field.options.find((option) => option.value === id)?.label ?? id);
+  return (
+    <FieldShell label={field.label} help={field.help}>
+      <ul className="grid gap-1.5" aria-label={tx(field.label)}>
+        {[...shown, ...hidden].map((id) => {
+          const on = shown.includes(id);
+          const at = shown.indexOf(id);
+          return (
+            <li key={id} className={cx("flex min-h-10 items-center gap-2 rounded-[10px] border px-2.5", on ? "border-app-line bg-white" : "border-dashed border-app-line bg-app-canvas")}>
+              <Toggle on={on} onChange={(next: boolean) => onChange(toggleInOrder(shown, id, next, field.fallback))} label={`Show ${label(id).toLowerCase()}`} />
+              <span className={cx("min-w-0 flex-1 truncate text-[13px] font-semibold", on ? "text-app-ink" : "text-app-ink-soft")}>{label(id)}</span>
+              {on ? (
+                <>
+                  <IconButton icon="arrowUp" label={`Move ${label(id).toLowerCase()} up`} disabled={at === 0} onClick={() => onChange(moveInOrder(shown, id, -1))} className="h-8 w-8" size={14} />
+                  <IconButton icon="arrowDown" label={`Move ${label(id).toLowerCase()} down`} disabled={at === shown.length - 1} onClick={() => onChange(moveInOrder(shown, id, 1))} className="h-8 w-8" size={14} />
+                </>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </FieldShell>
+  );
 }
 
 type FieldProps = InspectorProps & { section: TemplateSectionNode; sectionKey: (field: string) => string };
@@ -775,6 +849,12 @@ function RepeaterField({ field, section, ...props }: FieldProps & { field: Extra
             </div>
           </FieldShell>
         );
+      case "number":
+        return (
+          <FieldShell label={itemField.label} help={itemField.help}>
+            <input type="number" inputMode="decimal" min={itemField.min} max={itemField.max} className={inputClass} value={str(item[itemField.key])} placeholder={itemField.placeholder} onChange={(event) => update(index, { [itemField.key]: event.target.value }, itemField.key)} aria-label={t("edk.blockField", { label, n: index + 1 })} />
+          </FieldShell>
+        );
       case "link":
         return <LinkControl label={itemField.label} help={itemField.help} value={readSlideLink(item[itemField.key], section.settings)} onChange={(link) => update(index, { [itemField.key]: link }, itemField.key)} products={props.products} pageTypes={props.pageTypes} />;
       default:
@@ -840,7 +920,11 @@ function ImageBlocksField({ section, ...props }: FieldProps) {
       <h3 className="pb-1 pt-3 text-[14px] font-bold text-app-ink">{tx("Images")}</h3>
       {blocks.map((block, index) => (
         <div key={block.id} data-field={`image:${block.id}`} className="mb-2 rounded-[14px] border border-app-line p-2.5">
-          <MediaPicker compact accept="any" label={t("edk.imageLink", { n: index + 1 })} value={str(block.content.originalSrc)} onChange={(url) => update(block.id, "originalSrc", url)} />
+          <MediaPicker compact accept="any" label={t("edk.imageLink", { n: index + 1 })} value={str(block.content.originalSrc)} onChange={(url, asset) => {
+            update(block.id, "originalSrc", url);
+            // A picture from the library brings its alt text along when this block has none yet.
+            if (asset?.alt && !str(block.content.alt)) update(block.id, "alt", asset.alt);
+          }} />
           <FieldShell label="Alt text" help="Describes the image for people who can't see it.">
             <input className={inputClass} value={str(block.content.alt)} onChange={(event) => update(block.id, "alt", event.target.value)} aria-label={t("edk.imageAlt", { n: index + 1 })} />
           </FieldShell>
