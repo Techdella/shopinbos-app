@@ -45,7 +45,7 @@ export function ShopTheLook({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-12">
       <style>{`.bqb-look{display:grid;gap:24px}@container bq (min-width:760px){.bqb-look{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px;align-items:center}.bqb-look[data-side="right"] .bqb-look-img{order:2}}.bqb-pin{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:999px;display:grid;place-items:center;cursor:pointer;border:0;padding:0;box-shadow:0 0 0 6px rgba(255,255,255,.35),0 4px 12px rgba(0,0,0,.25)}@media (prefers-reduced-motion: no-preference){.bqb-pin::after{content:"";position:absolute;inset:-6px;border-radius:999px;border:2px solid rgba(255,255,255,.7);animation:bqb-pulse 2.2s ease-out infinite}}@keyframes bqb-pulse{from{transform:scale(.7);opacity:1}to{transform:scale(1.5);opacity:0}}`}</style>
-      {sample ? <SampleLabel look={look} /> : null}
+      {sample ? <SampleLabel look={look} say={ctx.say} /> : null}
       <div className="bqb-look" data-side={side}>
         <div className="bqb-look-img relative" style={{ aspectRatio: "4 / 5" }}>
           <span className="bq-media absolute inset-0 block" style={{ borderRadius: look.cardRadius }}>

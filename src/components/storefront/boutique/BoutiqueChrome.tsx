@@ -9,6 +9,7 @@ import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { BoutiqueLook } from "./look";
 import { StoreBrandMark } from "../StoreBrandMark";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy } from "@shared/placeholder-copy";
+import { englishText, type EditorText } from "../editor-text";
 
 export interface ChromeStore {
   name: string;
@@ -240,6 +241,7 @@ export function BoutiqueFooter({
   legalLinks = [],
   showLogo = true,
   editor = false,
+  say = englishText,
 }: {
   store: ChromeStore;
   look: BoutiqueLook;
@@ -253,6 +255,8 @@ export function BoutiqueFooter({
   showLogo?: boolean;
   /** In the builder: an empty or placeholder summary shows as a dashed "edit me" hint instead. */
   editor?: boolean;
+  /** The builder's words for that hint (English when absent). */
+  say?: EditorText;
 }) {
   const t = look.tokens;
   const shown = editor ? (summary ?? "").trim() : footerSummaryForShoppers(summary, { name: store.name, description: store.description, tagline: brandTagline(store.brandSettings) });
@@ -274,7 +278,7 @@ export function BoutiqueFooter({
             {line ? <p className="mt-2 text-[13.5px]" style={{ color: t.muted }}>{shopper.whatsappNumber ? <a href={`https://wa.me/${shopper.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">{line}</a> : line}</p> : null}
             {summaryHint ? (
               <p className="mt-2 rounded-[8px] border border-dashed px-2.5 py-1.5 text-[12.5px] leading-5" style={{ borderColor: t.border, color: t.muted }}>
-                {shown ? <><span style={{ opacity: 0.6 }}>{shown}</span><br />Shoppers won&apos;t see this placeholder. Write your own line in the footer settings.</> : "Add a line about your store in the footer settings. Until then shoppers see your store description."}
+                {shown ? <><span style={{ opacity: 0.6 }}>{shown}</span><br />{say("Shoppers won't see this placeholder. Write your own line in the footer settings.")}</> : say("Add a line about your store in the footer settings. Until then shoppers see your store description.")}
               </p>
             ) : shown ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{shown}</p> : null}
           </div>

@@ -274,8 +274,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setFocusField(`element:${element.id}`);
   }, [editSection, select]);
 
-  // The canvas hints inside rows and columns, in the seller's language (storefront code has no builder catalog).
-  const layoutText = useCallback((english: string, vars?: Record<string, string | number>) => t.dynamic(`ed.${english}`, english, vars), [t]);
+  // Hints drawn on the canvas (rows and columns, empty blocks, samples), in the seller's language: storefront code
+  // has no builder catalog.
+  const editorText = useCallback((english: string, vars?: Record<string, string | number>) => t.dynamic(`ed.${english}`, english, vars), [t]);
 
   // Drag and drop (canvas or panel), up / down and "Move to": one undoable change, read out to screen readers.
   // `select` keeps the moved element picked (canvas drops and "Move to"); up / down leave the selection alone.
@@ -666,7 +667,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       onSelectElement={editing ? (sectionId, elementId) => { select(sectionId); setSelectedElementId(elementId); setFocusField(`element:${elementId}`); } : undefined}
       onAddToColumn={canvasOverlay ? (sectionId, column) => { select(sectionId); setCanvasInsert({ type: "column", sectionId, column }); } : undefined}
       onMoveElement={editing ? (sectionId, elementId, column, index, toSectionId) => moveElement(sectionId, elementId, column, index, { select: true, toSectionId }) : undefined}
-      layoutText={editing ? layoutText : undefined}
+      editorText={editorText}
       cartCount={0}
     />
   ) : null;

@@ -2,7 +2,7 @@
 // Pure logic only (Node strips the types); the React parts are checked through their source where it matters.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 const logic = await import("../src/components/builder/editor/editor-logic.ts");
 const schema = await import("../src/components/builder/editor/section-schema.ts");
@@ -493,16 +493,77 @@ test("layout rows: floating drop targets don't move the page, and the canvas hin
   assert.match(field, /data-drop-overlay=""/);
 
   // Canvas words: English fallbacks in the storefront, the builder's language passed in.
-  assert.match(row, /export const englishText: LayoutRowText/);
   assert.match(row, /const say = \(editor && editing\?\.text\) \|\| englishText;/, "shoppers never get the builder's words");
   assert.doesNotMatch(row, /title="Drag to move"|"Add element"\}|`Column \$\{|aria-label=\{`Edit /, "no hard-coded English labels left on the canvas");
-  for (const english of [...row.matchAll(/say\("([^"]+)"/g)].map((match) => match[1])) assert.ok(en[`ed.${english}`], `"${english}" has a builder key`);
-  for (const english of [...row.matchAll(/placeholder\("([^"]+)"\)/g)].map((match) => match[1])) assert.ok(en[`ed.${english}`], `hint "${english}" has a builder key`);
   const builder = read("../src/components/builder/editor/Builder.tsx");
   assert.match(builder, /t\.dynamic\(`ed\.\$\{english\}`, english, vars\)/);
-  assert.match(builder, /layoutText=\{editing \? layoutText : undefined\}/);
-  assert.match(read("../src/components/storefront/TemplateStorefrontSurface.tsx"), /layoutText=\{props\.layoutText\}/);
-  assert.match(read("../src/components/storefront/boutique/BoutiqueStorefront.tsx"), /text: props\.layoutText/);
+  assert.match(builder, /editorText=\{editorText\}/);
+  assert.match(read("../src/components/storefront/TemplateStorefrontSurface.tsx"), /editorText=\{props\.editorText\}/);
+  assert.match(read("../src/components/storefront/boutique/BoutiqueStorefront.tsx"), /text: say \}/);
+});
+
+/** The double-quoted texts handed to say(…), ctx.say(…), editorHint(…) and placeholder(…) calls in a source file. */
+function hintTexts(source) {
+  const texts = [];
+  for (const match of source.matchAll(/\b(?:say|editorHint|placeholder)\(/g)) {
+    let depth = 1;
+    let at = match.index + match[0].length;
+    let quote = null;
+    let literal = "";
+    for (; at < source.length && depth > 0; at += 1) {
+      const char = source[at];
+      if (quote) {
+        if (char === "\\") { literal += source[at + 1]; at += 1; }
+        else if (char === quote) { if (quote === '"' && / /.test(literal)) texts.push(literal); quote = null; }
+        else literal += char;
+      } else if (char === '"' || char === "'" || char === "`") { quote = char; literal = ""; }
+      else if (char === "(") depth += 1;
+      else if (char === ")") depth -= 1;
+    }
+  }
+  return texts;
+}
+
+test("builder-only canvas hints are in the seller's language, and never reach the live store", () => {
+  const blocks = readdirSync(new URL("../src/components/storefront/boutique/blocks/", import.meta.url)).filter((file) => file.endsWith(".tsx")).map((file) => `../src/components/storefront/boutique/blocks/${file}`);
+  const files = [...blocks, "../src/components/storefront/boutique/BoutiqueStorefront.tsx", "../src/components/storefront/boutique/BoutiqueChrome.tsx", "../src/components/storefront/TemplateStorefrontSurface.tsx"];
+  let count = 0;
+  for (const file of files) {
+    for (const english of hintTexts(read(file))) {
+      count += 1;
+      assert.ok(en[`ed.${english}`], `${file.split("/").pop()}: "${english}" has a builder key`);
+    }
+  }
+  assert.ok(count > 60, `hints found (${count})`);
+
+  // The listed hints go through the translator; no English left inline.
+  const block = (name) => read(`../src/components/storefront/boutique/blocks/${name}.tsx`);
+  assert.match(read("../src/components/storefront/boutique/blocks/shared.tsx"), /say: EditorText;/, "every block gets the translator");
+  assert.match(read("../src/components/storefront/boutique/blocks/shared.tsx"), /\{children \?\? say\("Sample\. Only you see this until you add your own\."\)\}/);
+  for (const name of ["PressLogos", "ReviewCarousel", "ShopTheLook", "ShoppableStory"]) assert.match(block(name), /<SampleLabel look=\{look\} say=\{ctx\.say\} \/>/, `${name}: the default sample label is translated`);
+  for (const name of ["CompareTable", "FounderStory", "UgcGrid", "VideoHero"]) assert.doesNotMatch(block(name), /<SampleLabel look=\{look\}>[A-Z]/, `${name}: no English sample label`);
+  assert.doesNotMatch(block("CompareTable"), />Add details \(/);
+  assert.doesNotMatch(block("RecentlyViewed"), /\? "Preview: |sample = "Sample/);
+  assert.doesNotMatch(block("PromoPopup"), /\n\s*Pop-up preview\./);
+  const storefront = read("../src/components/storefront/boutique/BoutiqueStorefront.tsx");
+  assert.match(storefront, /const say: EditorText = !live && !props\.demo && props\.editorText \? props\.editorText : englishText;/, "the live store and theme previews keep English");
+  assert.match(storefront, /editorHint,\n\s*say,/);
+  assert.match(storefront, /\{say\(message, vars\)\}/, "every editor hint is translated");
+  assert.doesNotMatch(storefront, /opacity: 0\.55 \}\}>Announcement shows/);
+  assert.match(storefront, /say=\{say\} \/>/, "the footer's edit-me hint");
+  assert.match(read("../src/components/storefront/boutique/BoutiqueChrome.tsx"), /say\("Shoppers won't see this placeholder/);
+  const surface = read("../src/components/storefront/TemplateStorefrontSurface.tsx");
+  assert.match(surface, /const say: EditorText = isEditor && editorText \? editorText : englishText;/);
+  assert.match(surface, /data-editor-hint=\{hint \? say\(/);
+  // The live store never passes the builder's words.
+  assert.doesNotMatch(read("../src/app/s/[slug]/StorefrontClient.tsx"), /editorText/);
+
+  // Without the builder's words: the English, placeholders and plurals filled.
+  return import("../src/components/storefront/editor-text.ts").then(({ englishText }) => {
+    assert.equal(englishText("Welcome to {store}", { store: "Ada's" }), "Welcome to Ada's");
+    assert.equal(englishText("every {days, plural, one {# day} other {# days}}", { days: 1 }), "every 1 day");
+    assert.equal(englishText("every {days, plural, one {# day} other {# days}}", { days: 3 }), "every 3 days");
+  });
 });
 
 test("layout rows: other rows as drop targets in the panel, hidden rows as drop strips on the canvas", () => {

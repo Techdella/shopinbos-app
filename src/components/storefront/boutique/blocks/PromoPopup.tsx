@@ -172,7 +172,9 @@ export function PromoPopup({ ctx }: { ctx: BlockContext }) {
     return (
       <div className="bq-wrap py-8">
         <p className="m-0 mb-3 text-[12.5px]" style={{ color: look.tokens.muted }}>
-          Pop-up preview. Shoppers see it {str(settings.trigger) === "delay" ? `after ${delay} seconds` : "when they move to leave the page on a computer"}{str(settings.trigger) === "delay" ? "" : ` (after ${delay} seconds on phones)`}, at most every {frequency} {frequency === 1 ? "day" : "days"}, and never after signing up.
+          {str(settings.trigger) === "delay"
+            ? ctx.say("Pop-up preview. Shoppers see it after {seconds} seconds, at most every {days, plural, one {# day} other {# days}}, and never after signing up.", { seconds: delay, days: frequency })
+            : ctx.say("Pop-up preview. Shoppers see it when they move to leave the page on a computer (after {seconds} seconds on phones), at most every {days, plural, one {# day} other {# days}}, and never after signing up.", { seconds: delay, days: frequency })}
         </p>
         <div className="mx-auto max-w-[620px] shadow-lg" style={{ borderRadius: Math.max(look.cardRadius, 10) }}>
           <SignupCard ctx={ctx} titleId={titleId} live={false} />

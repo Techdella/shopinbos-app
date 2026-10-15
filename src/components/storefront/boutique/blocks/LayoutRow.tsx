@@ -33,6 +33,7 @@ import { BlockProductCard, ItemLink, itemLink, Paragraphs, type BlockContext } f
 import { DragGhost } from "./DragGhost";
 import { useColumnDrag, usePageColumnDrag } from "./useColumnDrag";
 import { isPlaceholderCopy } from "@shared/placeholder-copy";
+import { englishText, type EditorText } from "../../editor-text";
 
 export interface LayoutRowEditing {
   selectedElementId?: string | null;
@@ -47,11 +48,8 @@ export interface LayoutRowEditing {
   text?: LayoutRowText;
 }
 
-/** English text (with {placeholders}) → the builder's language, placeholders filled. */
-export type LayoutRowText = (english: string, vars?: Record<string, string | number>) => string;
-
-/** Without the builder's words: the English itself, placeholders filled. */
-export const englishText: LayoutRowText = (english, vars) => (vars ? english.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match)) : english);
+/** English text (with {placeholders}) → the builder's language, placeholders filled (see editor-text.ts). */
+export type LayoutRowText = EditorText;
 
 const EDIT_BLUE = "#2F66F6";
 const FULL_RED = "#E5484D";

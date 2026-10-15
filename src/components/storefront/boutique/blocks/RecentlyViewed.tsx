@@ -44,7 +44,7 @@ export function RecentlyViewed({ ctx }: { ctx: BlockContext }) {
   let sample: string | null = null;
   if (!list.length && ctx.editor) {
     list = ctx.products.slice(0, Math.min(4, limit));
-    sample = "Sample. Each shopper sees the products they looked at.";
+    sample = ctx.say("Sample. Each shopper sees the products they looked at.");
   }
   if (!list.length) return null;
   return <ProductRow ctx={ctx} title={str(ctx.copy.title) || "Recently viewed"} list={list} sample={sample} />;
@@ -59,5 +59,5 @@ export function AlsoLike({ ctx }: { ctx: BlockContext }) {
   const fallback = boolSetting(ctx.settings.fallbackBest, true);
   const list = seeds.length || fallback || ctx.editor ? recommendProducts(seeds, ctx.products, limit) : [];
   if (!list.length) return ctx.editorHint("Recommendations show here once you add products.");
-  return <ProductRow ctx={ctx} title={str(ctx.copy.title) || "You may also like"} list={list} sample={ctx.editor && !seeds.length ? "Preview: new visitors see best sellers; returning shoppers see picks based on their bag and views." : null} />;
+  return <ProductRow ctx={ctx} title={str(ctx.copy.title) || "You may also like"} list={list} sample={ctx.editor && !seeds.length ? ctx.say("Preview: new visitors see best sellers; returning shoppers see picks based on their bag and views.") : null} />;
 }
