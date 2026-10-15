@@ -24,7 +24,7 @@ export interface ShopperProduct {
   retailPrice: number;
   compareAtPrice?: number | null;
   currency: string;
-  category?: { id: string; name: string; slug: string } | null;
+  category?: { id: string; name: string; slug: string; imageUrl?: string | null } | null;
   avgRating?: number;
   reviewCount?: number;
   variants?: unknown;

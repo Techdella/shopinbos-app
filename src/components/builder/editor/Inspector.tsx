@@ -25,6 +25,7 @@ import { FieldShell, IconButton, inputClass, Menu, MenuItem, PillGroup, textarea
 import { useEditorT } from "./i18n";
 import { LogoField } from "./LogoField";
 import { FaqStyleThumb } from "./FaqStyleThumb";
+import { ShopLayoutThumb } from "./ShopLayoutThumb";
 import { moveInOrder, toggleInOrder } from "@/components/storefront/boutique/pdp/pdp-logic";
 import { LAYOUT_ROW_KIND, type LayoutElementType } from "@/components/storefront/boutique/blocks/layout-logic";
 import { LayoutColumnsField } from "./LayoutColumnsField";
@@ -111,7 +112,7 @@ export function Inspector(props: InspectorProps) {
 
   const schema = sectionSchema(section.kind, props.renderer, props.themeId);
   const groups = (props.tab === "settings" ? schema.settings : schema.style)
-    .map((group) => ({ ...group, fields: group.fields.filter((field) => fieldVisible(section, field)) }))
+    .map((group) => ({ ...group, fields: group.fields.filter((field) => fieldVisible(section, field, page?.pageType)) }))
     .filter((group) => group.fields.length);
   const key = (field: string) => `${section.id}:${field}`;
   // Every edit goes through the same in-memory upgrade as loading, so switching a hero to slides shows each
@@ -347,7 +348,7 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
           <div role="radiogroup" aria-label={tx(field.label)} className="grid grid-cols-2 gap-2">
             {field.options.map((option) => (
               <button key={option.value} type="button" role="radio" aria-checked={value === option.value} onClick={() => set(option.value)} className={cx("rounded-[12px] border p-2.5 text-left", value === option.value ? "border-[#2F66F6] bg-[#EAF0FF]" : "border-app-line hover:border-app-line-strong")}>
-                {field.thumbs === "faq" ? <FaqStyleThumb value={option.value} /> : null}
+                {field.thumbs === "faq" ? <FaqStyleThumb value={option.value} /> : field.thumbs === "shop" ? <ShopLayoutThumb value={option.value} /> : null}
                 <span className="block text-[13px] font-semibold text-app-ink">{tx(option.label)}</span>
                 {option.hint ? <span className="mt-0.5 block text-[11.5px] leading-4 text-app-ink-soft">{tx(option.hint)}</span> : null}
               </button>

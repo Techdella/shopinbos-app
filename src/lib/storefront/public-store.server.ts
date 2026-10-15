@@ -42,7 +42,8 @@ function storeSelect(productStatuses: readonly string[]) {
         compareAtPrice: true,
         currency: true,
         fulfillmentType: true,
-        category: { select: { id: true, name: true, slug: true } },
+        // imageUrl: the shop page's category tiles fall back to the category's own picture.
+        category: { select: { id: true, name: true, slug: true, imageUrl: true } },
         variants: true,
         supplierProduct: { select: { stockQuantity: true, moq: true } },
         // Already public on each product page; the store blocks use them for "You may also like" and the

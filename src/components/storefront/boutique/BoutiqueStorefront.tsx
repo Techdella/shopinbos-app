@@ -28,6 +28,9 @@ import { samplePdpProduct } from "./pdp/sample-product";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
+import { ShopBrowser } from "../shopper/ShopBrowser";
+import { readShopLayoutOptions, withGroup, type ShopSort } from "../shopper/shop-browse";
+import { useShopQuery } from "../shopper/useShopQuery";
 import { GameSection } from "../gamification/GameSection";
 import { HeroSlider, slideAlign } from "../HeroSlider";
 import { readHeroSlides, readProductLimit, readSlideLink, readSlideTiming, type HeroSlide, type SlideLink } from "@/lib/store-templates/section-content";
@@ -178,14 +181,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const basePath = props.storeBasePath ?? "";
   const [sheet, setSheet] = useState<ShopperSheet>(live && props.initialQuery ? "search" : null);
   const [inline, setInline] = useState<(InlineEdit & { sectionId: string; container: HTMLElement }) | null>(null);
-  const [filter, setFilter] = useState<{ category: string; collection: string; q: string; sort: string }>({ category: "all", collection: "", q: "", sort: "featured" });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  // /shop?category=bags (old category links, the product page's category menu) opens the shop filtered.
-  useEffect(() => {
-    if (!live) return;
-    const category = new URLSearchParams(window.location.search).get("category")?.trim();
-    if (category) setFilter((prev) => ({ ...prev, category: category.slice(0, 80) }));
-  }, [live]);
   const [faqQuery, setFaqQuery] = useState<Record<string, string>>({});
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
@@ -195,6 +191,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const uid = useId();
 
   const current = normalizePage(props.currentPage);
+  // The shop's filters. On a live store they live in the address (/shop?category=bags&sort=price-low), so the
+  // product page's category links, shared links and Back all land on the same filtered shop.
+  const { query: filter, update: setFilter } = useShopQuery({ live, onShopPage: current === "products" });
   const page = findStorefrontPage(snapshot.pages, current) ?? snapshot.pages.find((entry) => entry.pageType === "home") ?? snapshot.pages[0];
   // Builder: the checkout page is previewed as the real checkout, which has its own slim header (CheckoutPreview), so
   // the store's announcement bar, header and footer aren't drawn around it (the live checkout doesn't show them).
@@ -232,12 +231,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   }
 
   function shopCategory(slug: string) {
-    setFilter((prev) => ({ ...prev, category: slug, collection: "" }));
+    setFilter((prev) => withGroup(prev, { kind: "category", key: slug }));
     go("products");
   }
 
   function shopCollection(id: string) {
-    setFilter((prev) => ({ ...prev, collection: id, category: "all" }));
+    setFilter((prev) => withGroup(prev, { kind: "collection", key: id }));
     go("products");
   }
 
@@ -345,7 +344,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         onSubmit={(event) => {
           event.preventDefault();
           const q = String(new FormData(event.currentTarget).get("q") ?? "").trim();
-          setFilter((prev) => ({ ...prev, q, category: "all", collection: "" }));
+          setFilter((prev) => ({ ...withGroup(prev, null), q }));
           go("products");
         }}
       >
@@ -982,12 +981,34 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function shopGrid(section: TemplateSectionNode) {
     const copy = copyOf(section);
-    const options = readShopGridOptions(section.settings);
     const card = cardOptions(section);
+    // The layouts picked under "Shop page style"; sections without one keep the classic grid below, as before.
+    const browse = readShopLayoutOptions(section.settings);
+    if (browse.layout !== "classic") {
+      return (
+        <ShopBrowser
+          products={products}
+          collections={shopper.collections}
+          options={browse}
+          query={filter}
+          onQuery={setFilter}
+          title={text(copy.title) || "Shop all"}
+          renderTitle={(id, label) => <SectionTitle look={look} id={id}>{label}</SectionTitle>}
+          renderTile={(product, i) => (
+            <ProductTile product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 4} {...card} />
+          )}
+          palette={{ ink: t.ink, muted: t.muted, border: t.border, paper: t.paperBg, raised: look.raised, accent: t.accent, ctaBg: t.ctaBg, ctaText: t.ctaText, headingFont: look.headingFont, buttonRadius: look.buttonRadius, cardRadius: look.cardRadius }}
+          formatPrice={(amount) => formatStoreMoney(amount, store.currency)}
+          editor={!live}
+          wrapClassName="bq-wrap"
+        />
+      );
+    }
+    const options = readShopGridOptions(section.settings);
     const collection = shopper.collections.find((entry) => entry.id === filter.collection);
     let list = searchProducts(products, filter.q);
     if (collection) list = list.filter((product) => collection.productIds.includes(product.id));
-    else if (filter.category !== "all") list = list.filter((product) => product.category?.slug === filter.category);
+    else if (filter.category) list = list.filter((product) => product.category?.slug === filter.category);
     if (filter.sort === "price-low") list = [...list].sort((a, b) => a.retailPrice - b.retailPrice);
     if (filter.sort === "price-high") list = [...list].sort((a, b) => b.retailPrice - a.retailPrice);
     if (filter.sort === "rating") list = bestSellers(list);
@@ -1010,7 +1031,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const sort = (
       <label className={`flex items-center gap-2 text-[13.5px] ${sidebar ? "w-full" : ""}`} style={{ color: t.muted }}>
         Sort
-        <select value={filter.sort} onChange={(event) => setFilter((prev) => ({ ...prev, sort: event.target.value }))} className={`h-11 rounded-full border bg-transparent px-3 text-[14px] ${sidebar ? "min-w-0 flex-1" : ""}`} style={{ borderColor: t.border, color: t.ink }}>
+        <select value={filter.sort || "featured"} onChange={(event) => setFilter((prev) => ({ ...prev, sort: event.target.value as ShopSort }), "push")} className={`h-11 rounded-full border bg-transparent px-3 text-[14px] ${sidebar ? "min-w-0 flex-1" : ""}`} style={{ borderColor: t.border, color: t.ink }}>
           <option value="featured">Newest</option>
           <option value="rating">Best rated</option>
           <option value="price-low">Price: low to high</option>
@@ -1021,9 +1042,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const hasGroups = categories.length > 0 || shopper.collections.length > 0;
     const chips = hasGroups ? (
       <div className={sidebar ? "grid gap-0.5" : "flex gap-2 overflow-x-auto pb-1"} role="group" aria-label="Filter by category">
-        {chip("all", sidebar ? "All products" : "All", filter.category === "all" && !filter.collection, () => setFilter((prev) => ({ ...prev, category: "all", collection: "" })))}
-        {shopper.collections.map((entry) => chip(`c-${entry.id}`, entry.name, filter.collection === entry.id, () => setFilter((prev) => ({ ...prev, collection: entry.id, category: "all" }))))}
-        {categories.map((entry) => chip(entry.slug, entry.name, filter.category === entry.slug && !filter.collection, () => setFilter((prev) => ({ ...prev, category: entry.slug, collection: "" }))))}
+        {chip("all", sidebar ? "All products" : "All", !filter.category && !filter.collection, () => setFilter((prev) => withGroup(prev, null), "push"))}
+        {shopper.collections.map((entry) => chip(`c-${entry.id}`, entry.name, filter.collection === entry.id, () => setFilter((prev) => withGroup(prev, { kind: "collection", key: entry.id }), "push")))}
+        {categories.map((entry) => chip(entry.slug, entry.name, filter.category === entry.slug && !filter.collection, () => setFilter((prev) => withGroup(prev, { kind: "category", key: entry.slug }), "push")))}
       </div>
     ) : null;
     const tile = (product: ShopperProduct, i: number) => (
@@ -1088,7 +1109,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         ) : null}
       </div>
     );
-    const title = <SectionTitle look={look} id={headingId}>{collection?.name ?? (filter.category !== "all" ? categories.find((entry) => entry.slug === filter.category)?.name : null) ?? (text(copy.title) || "Shop all")}</SectionTitle>;
+    const title = <SectionTitle look={look} id={headingId}>{collection?.name ?? (filter.category ? categories.find((entry) => entry.slug === filter.category)?.name : null) ?? (text(copy.title) || "Shop all")}</SectionTitle>;
     if (sidebar) {
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-8">
@@ -1615,7 +1636,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           links={links}
           categories={categories}
           onHome={() => go("home")}
-          onShopAll={() => { setFilter((prev) => ({ ...prev, category: "all", collection: "" })); go("products"); }}
+          onShopAll={() => { setFilter((prev) => withGroup(prev, null)); go("products"); }}
           onCategory={shopCategory}
           onSearch={live ? () => setSheet("search") : () => undefined}
           onWishlist={live ? (props.onToggleWishlist ? () => setSheet("wishlist") : undefined) : () => undefined}

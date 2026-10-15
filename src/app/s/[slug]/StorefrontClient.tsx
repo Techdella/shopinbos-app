@@ -16,6 +16,7 @@ import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { needsOptions, unitsLeft } from "@/components/storefront/shopper/catalog";
+import { SHOP_QUERY_KEYS } from "@/components/storefront/shopper/shop-browse";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { readCartSettings } from "@shared/cart-checkout";
 import { normalizeStorefrontPageKey, storefrontPageHref, storefrontPageKeyFromLocation } from "@shared/storefront-pages";
@@ -598,8 +599,8 @@ export function StorefrontClient({
       const params = new URLSearchParams(window.location.search);
       params.delete("page");
       if (page !== "products") {
-        params.delete("category");
-        params.delete("sort");
+        // The shop's filters (category, price, sort…) belong to the shop page only.
+        for (const key of SHOP_QUERY_KEYS) params.delete(key);
         params.delete("q");
       }
       const next = storefrontPageHref(storeBasePath, page, params);
