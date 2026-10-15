@@ -171,9 +171,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "import.photos": "Product photos (optional)",
   "import.photosHelp": "Put photo links for images column, or upload the photos here and write each file name for the images column (separate many with |). Photo wey get the same name as product SKU or name go match automatically.",
   "import.choosePhotos": "Choose photos",
-  "import.photosChosen": "{count, plural, one {# photo don choose} other {# photos don choose}}",
-  "import.photosFrom": "JPG, PNG, WebP or GIF, reach 10MB each",
-  "import.uploadingPhotos": "E dey upload photos {done} of {total}…",
+  "import.photosChosen": "{count, plural, one {You don choose # photo} other {You don choose # photos}}",
+  "import.photosFrom": "JPG, PNG, WebP or GIF, each one no pass 10MB",
+  "import.uploadingPhotos": "Dey upload photos {done} of {total}…",
   "import.photoFailed": "Photo {name} no fit upload: {reason}",
   "import.withImages": "{count, plural, one {# product get photos} other {# products get photos}}",
 };

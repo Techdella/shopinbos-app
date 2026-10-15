@@ -88,8 +88,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "page.remove": "Yọ ọ́ kúrò",
   "page.removeAsk": "Yọ èyí kúrò nínú media rẹ?",
   "page.removeWarn": "Àwọn ọjà, ojú-ìwé àti email tó ti ń lò ó yóò máa fi hàn síbẹ̀. O kàn kò ní rí i níbí mọ́.",
-  "page.removeYes": "Bẹ́ẹ̀ ni, yọ ọ́",
-  "page.removeNo": "Fi sílẹ̀",
+  "page.removeYes": "Bẹ́ẹ̀ ni, yọ ọ́ kúrò",
+  "page.removeNo": "Má yọ ọ́",
 };
 
 export default yo;

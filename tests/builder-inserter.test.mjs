@@ -270,6 +270,138 @@ test("layout rows: drag and drop is wired into the canvas and the panel, never t
   for (const key of ["edk.movedTo", "edk.columnFull", "edk.moveToColumn", "ed.Move to", "ed.Drag to move"]) assert.ok(en[key], `${key} has English words`);
 });
 
+test("layout rows: elements move between rows / columns sections of a page in one change", () => {
+  const cols = (section) => layout.normaliseLayoutRow(section).cells.map((cell) => cell.elements.map((element) => element.id));
+  const build = (id, columns) => {
+    let row = layout.newLayoutRowSection(id, columns.length === 3 ? "3" : columns.length === 1 ? "1" : "50-50");
+    columns.forEach((list, column) => list.forEach((elementId) => { row = layout.addLayoutElement(row, column, layout.newLayoutElement("text", elementId)); }));
+    return row;
+  };
+  const page = [node("hero", "hero-split"), build("r1", [["a", "b"], ["c"]]), node("story", "story-split"), build("r2", [["x"], []])];
+  const snapshot = JSON.stringify(page);
+  const byId = (list, id) => list.find((section) => section.id === id);
+
+  // Into another row: removed from the first, inserted at the gap in the second, in one new page.
+  let move = layout.moveElementAcrossRows(page, "r1", "b", "r2", 0, 0);
+  assert.notEqual(move.sections, page);
+  assert.equal(move.reason, undefined);
+  assert.deepEqual([move.elementId, move.column, move.index], ["b", 0, 0]);
+  assert.deepEqual(cols(byId(move.sections, "r1")), [["a"], ["c"]]);
+  assert.deepEqual(cols(byId(move.sections, "r2")), [["b", "x"], []]);
+  assert.equal(move.sections[0], page[0], "other sections are the same objects");
+  assert.equal(move.sections[2], page[2]);
+  assert.deepEqual(layout.findLayoutElement(byId(move.sections, "r2"), "b").element, layout.findLayoutElement(page[1], "b").element, "content comes along");
+  assert.equal(JSON.stringify(page), snapshot, "the input page is untouched (undo keeps the old one)");
+
+  move = layout.moveElementAcrossRows(page, "r1", "a", "r2", 1, 5);
+  assert.deepEqual(cols(byId(move.sections, "r2")), [["x"], ["a"]], "an empty column takes it; indexes clamp");
+  move = layout.moveElementAcrossRows(page, "r2", "x", "r1", 9, 1);
+  assert.deepEqual([move.column, move.index], [1, 1], "a column past the last is the last");
+  assert.deepEqual(cols(byId(move.sections, "r1")), [["a", "b"], ["c", "x"]]);
+  assert.deepEqual(cols(byId(move.sections, "r2")), [[], []]);
+
+  // The same section: moveLayoutElement's rules.
+  move = layout.moveElementAcrossRows(page, "r1", "a", "r1", 1, 0);
+  assert.deepEqual(cols(byId(move.sections, "r1")), [["b"], ["a", "c"]]);
+  assert.deepEqual(cols(byId(move.sections, "r1")), cols(layout.moveLayoutElement(page[1], "a", 1, 0)));
+  assert.equal(move.sections[3], page[3]);
+  move = layout.moveElementAcrossRows(page, "r1", "a", "r1", 0, 1);
+  assert.equal(move.sections, page, "dropping next to itself changes nothing");
+  assert.equal(move.reason, "unchanged");
+
+  // No-ops: the same array back, with a reason.
+  for (const [args, why] of [
+    [["nope", "a", "r2", 0, 0], "unknown source row"],
+    [["r1", "a", "nope", 0, 0], "unknown target row"],
+    [["r1", "a", "story", 0, 0], "not a rows / columns section"],
+    [["r1", "zzz", "r2", 0, 0], "unknown element"],
+    [["r1", "x", "r2", 0, 0], "the element is in another row"],
+    [["r1", "a", "r2", Number.NaN, 0], "bad column"],
+    [["r1", "a", "r2", 0, Number.POSITIVE_INFINITY], "bad index"],
+  ]) {
+    const result = layout.moveElementAcrossRows(page, ...args);
+    assert.equal(result.sections, page, why);
+    assert.equal(result.reason, "unknown", why);
+    assert.equal(result.elementId, null, why);
+  }
+
+  // A full target column refuses, with nothing removed from the source.
+  const fullRow = build("full", [Array.from({ length: layout.MAX_ELEMENTS_PER_COLUMN }, (_, i) => `f${i}`), []]);
+  const withFull = [page[1], fullRow];
+  move = layout.moveElementAcrossRows(withFull, "r1", "a", "full", 0, 0);
+  assert.equal(move.sections, withFull);
+  assert.equal(move.reason, "full");
+  assert.equal(layout.canMoveElementAcrossRows(withFull, "r1", "a", "full", 0), false);
+  assert.equal(layout.canMoveElementAcrossRows(withFull, "r1", "a", "full", 1), true);
+  assert.equal(layout.canMoveElementAcrossRows(withFull, "r1", "nope", "full", 1), false);
+  assert.equal(layout.canMoveElementAcrossRows(withFull, "r1", "a", "r1", 1), true);
+  assert.deepEqual(cols(byId(layout.moveElementAcrossRows(withFull, "r1", "a", "full", 1, 0).sections, "full"))[1], ["a"]);
+  assert.equal(layout.moveElementAcrossRows([fullRow], "full", "f0", "full", 0, 5).sections.length, 1, "a full column still reorders its own");
+
+  // Ids stay unique on the page: a taken id gets -2, -3…, and the result says which.
+  const clash = [build("p", [["dup"], []]), build("q", [["dup", "dup-2"]]), build("s", [["dup-3"]])];
+  move = layout.moveElementAcrossRows(clash, "p", "dup", "q", 0, 2);
+  assert.equal(move.elementId, "dup-4");
+  assert.deepEqual(cols(byId(move.sections, "q")), [["dup", "dup-2", "dup-4"]]);
+  assert.deepEqual(cols(byId(move.sections, "p")), [[], []]);
+  const all = move.sections.flatMap((section) => cols(section).flat());
+  assert.equal(new Set(all).size, all.length);
+  assert.equal(layout.findLayoutElement(byId(move.sections, "q"), move.elementId).index, 2, "the returned id finds the element");
+  // A column id of the target row counts as taken too.
+  const cellClash = [build("p", [["q-col-1"]]), build("q", [[], []])];
+  assert.equal(layout.moveElementAcrossRows(cellClash, "p", "q-col-1", "q", 1, 0).elementId, "q-col-1-2");
+  // An id unique on the page is kept.
+  assert.equal(layout.moveElementAcrossRows(clash, "s", "dup-3", "p", 1, 0).elementId, "dup-3");
+});
+
+test("layout rows: drag geometry across rows and the floating preview's position", () => {
+  const rows = [{ left: 0, top: 0, right: 400, bottom: 200 }, { left: 0, top: 500, right: 400, bottom: 700 }, { left: 0, top: 710, right: 400, bottom: 900 }];
+  assert.equal(layout.pickDropRow(rows, 100, 100, 0), 0);
+  assert.equal(layout.pickDropRow(rows, 100, 600, 0), 1, "over another row: that row");
+  assert.equal(layout.pickDropRow(rows, 100, 215, 1), 0, "just outside a row's edge still counts");
+  assert.equal(layout.pickDropRow(rows, 100, 350, 2), 2, "over another kind of section: the own row");
+  assert.equal(layout.pickDropRow(rows, 100, 705, 2), 2, "between touching rows: a tie keeps the own row");
+  assert.equal(layout.pickDropRow(rows, 100, 702, 2), 1, "else the nearer row");
+  assert.equal(layout.pickDropRow(rows, 900, 100, 1), 1, "far to the side: the own row");
+  assert.equal(layout.pickDropRow([], 0, 0, 0), -1);
+  assert.equal(layout.pickDropRow(rows, 100, 350, -1), 0, "an unknown own row falls back to the first");
+
+  const size = { width: 200, height: 50 };
+  const viewport = { width: 1000, height: 800 };
+  assert.deepEqual(layout.dragPreviewPosition(100, 100, size, viewport), { left: 118, top: 118 }, "below and right of the pointer");
+  assert.deepEqual(layout.dragPreviewPosition(900, 100, size, viewport), { left: 682, top: 118 }, "flips left at the right edge");
+  assert.deepEqual(layout.dragPreviewPosition(100, 780, size, viewport), { left: 118, top: 712 }, "flips up at the bottom");
+  assert.deepEqual(layout.dragPreviewPosition(5, 5, { width: 300, height: 300 }, { width: 200, height: 200 }), { left: 4, top: 4 }, "never off screen");
+  assert.deepEqual(layout.dragPreviewPosition(100, 100, size, viewport, 0), { left: 100, top: 100 });
+});
+
+test("layout rows: cross-row drops and the drag preview are wired, builder only", () => {
+  const row = read("../src/components/storefront/boutique/blocks/LayoutRow.tsx");
+  assert.match(row, /acrossRows: true/, "canvas rows take drops from each other");
+  assert.match(row, /data-drop-row=\{canDrag \? section\.id : undefined\}/, "only while editing");
+  assert.match(row, /usePageColumnDrag\(\)/);
+  assert.match(row, /<DragGhost /);
+  const hook = read("../src/components/storefront/boutique/blocks/useColumnDrag.ts");
+  assert.match(hook, /pickDropRow\(/);
+  assert.match(hook, /dragPreviewPosition\(/);
+  assert.match(hook, /requestAnimationFrame\(onFrame\)/, "the preview moves once per frame");
+  assert.match(hook, /prefers-reduced-motion: reduce/);
+  const ghost = read("../src/components/storefront/boutique/blocks/DragGhost.tsx");
+  assert.match(ghost, /createPortal\(/, "in a portal, outside the scaled canvas frame");
+  assert.match(ghost, /pointerEvents: "none"/);
+  assert.match(ghost, /maxWidth: 240/);
+  assert.match(ghost, /prefers-reduced-motion:no-preference/);
+  assert.match(read("../src/components/builder/editor/Canvas.tsx"), /data-drop-scope=""/);
+  const field = read("../src/components/builder/editor/LayoutColumnsField.tsx");
+  assert.match(field, /<DragGhost /);
+  assert.match(field, /edk\.rowNamed/, "Move to lists the other rows");
+  assert.match(read("../src/components/builder/editor/Inspector.tsx"), /pageSections=\{props\.page\?\.sections\}/);
+  const builder = read("../src/components/builder/editor/Builder.tsx");
+  assert.match(builder, /moveElementAcrossRows\(/);
+  assert.match(builder, /edk\.movedToRow/, "cross-row moves are announced");
+  for (const key of ["edk.rowN", "edk.rowNamed", "edk.rowColumn", "edk.movedToRow", "ed.This row"]) assert.ok(en[key], `${key} has English words`);
+});
+
 test("layout rows: the inspector panel never scrolls sideways", () => {
   const field = read("../src/components/builder/editor/LayoutColumnsField.tsx");
   assert.doesNotMatch(field, /(^|\s|")-m[xlr]?-\d/, "no negative margins");
