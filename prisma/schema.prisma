@@ -402,6 +402,31 @@ model StoreFormSubmission {
   @@index([email])
 }
 
+// Forms filled on shopinbos.com (WordPress): newsletter, WhatsApp tips, guide downloads, tool results, contact.
+// The website posts each one to /api/public/website-leads, signed with WEBSITE_LEADS_SECRET. Admin: /admin/leads.
+model WebsiteLead {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  kind       String
+  name       String?
+  email      String?
+  phone      String?
+  message    String?
+  source     String   @default("")
+  pageUrl    String?
+  consent    Boolean  @default(false)
+  payload    Json     @default("{}")
+  status     String   @default("new")
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([kind, createdAt])
+  @@index([email])
+  @@index([phone])
+}
+
 // ─── Supplier ─────────────────────────────────────────────────────────────────
 
 model Supplier {

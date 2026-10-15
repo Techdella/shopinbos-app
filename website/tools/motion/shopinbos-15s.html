@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:B;src:url('../../wp-content/themes/shopinbos/assets/fonts/bricolage-grotesque-latin.woff2');font-weight:200 800}
+@font-face{font-family:J;src:url('../../wp-content/themes/shopinbos/assets/fonts/plus-jakarta-sans-latin.woff2');font-weight:200 800}
+*{box-sizing:border-box;margin:0}
+body{width:1280px;height:720px;overflow:hidden;background:#FFF6F1;font-family:J,sans-serif;color:#16141F}
+.d{font-family:B,sans-serif;font-weight:800;letter-spacing:-.025em}
+.sc{position:absolute;inset:0;opacity:0;animation:fadeIO var(--len) var(--at) both}
+@keyframes fadeIO{0%{opacity:0}6%{opacity:1}92%{opacity:1}100%{opacity:0}}
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}
+@keyframes slideL{from{opacity:0;transform:translateX(80px)}to{opacity:1;transform:none}}
+.a{opacity:0;animation:up .7s cubic-bezier(.2,.8,.2,1) forwards}
+.p{opacity:0;animation:pop .6s cubic-bezier(.2,1.4,.3,1) forwards}
+.blob{position:absolute;border-radius:999px;filter:blur(1px)}
+.grad{background:linear-gradient(90deg,#FF6A2B,#E8457A 55%,#7B5CFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.phone{position:absolute;width:300px;height:600px;border-radius:44px;background:#16141F;padding:12px;box-shadow:0 50px 90px -40px rgba(22,20,31,.6)}
+.scr{width:100%;height:100%;border-radius:34px;background:#fff;overflow:hidden;position:relative;padding:54px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border-radius:20px;box-shadow:0 24px 50px -26px rgba(22,20,31,.45);padding:14px 16px}
+.logo{height:26px}
+.ch{width:84px;height:84px;border-radius:24px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 20px 40px -24px rgba(22,20,31,.5)}
+.ch img{width:44px;height:44px}
+</style></head><body>
+<!-- 1: sell everywhere 0-3.4s -->
+<div class="sc" style="--at:0s;--len:3.4s">
+ <div class="blob" style="width:520px;height:520px;background:#FFE27A;right:-120px;top:-160px;opacity:.6"></div>
+ <img class="logo a" src="../../wp-content/themes/shopinbos/assets/img/logo-dark.png" style="position:absolute;left:90px;top:80px;animation-delay:.1s">
+ <div class="d a" style="position:absolute;left:90px;top:200px;font-size:88px;line-height:1;width:720px;animation-delay:.25s">Sell <span class="grad">everywhere</span><br>from one app.</div>
+ <div style="position:absolute;right:120px;top:190px;display:grid;grid-template-columns:repeat(2,84px);gap:22px">
+  <div class="ch p" style="animation-delay:.6s"><img src="../../wp-content/themes/shopinbos/assets/img/brands/whatsapp.svg"></div>
+  <div class="ch p" style="animation-delay:.8s"><img src="../../wp-content/themes/shopinbos/assets/img/brands/instagram.svg"></div>
+  <div class="ch p" style="animation-delay:1s"><img src="../../wp-content/themes/shopinbos/assets/img/brands/tiktok.svg"></div>
+  <div class="ch p" style="animation-delay:1.2s"><img src="../../wp-content/themes/shopinbos/assets/img/brands/facebook.svg"></div>
+  <div class="ch p" style="animation-delay:1.4s"><img src="../../wp-content/themes/shopinbos/assets/img/brands/google.svg"></div>
+  <div class="ch p" style="animation-delay:1.6s;background:#FF6A2B"><img src="../../wp-content/themes/shopinbos/assets/img/icon-white.png" style="width:34px;height:auto"></div>
+ </div>
+</div>
+<!-- 2: order + Peggy 3.2-7.4s -->
+<div class="sc" style="--at:3.2s;--len:4.2s;background:#F6F5F9">
+ <div class="d a" style="position:absolute;left:90px;top:150px;font-size:64px;line-height:1.02;width:560px;animation-delay:3.4s">Orders come in.<br><span style="color:#0C4A44">Peggy</span> answers.</div>
+ <p class="a" style="position:absolute;left:92px;top:320px;font-size:24px;color:#6B6779;width:520px;line-height:1.5;animation-delay:3.7s">In English or Pidgin, while you sleep.</p>
+ <div class="phone" style="right:170px;top:60px"><div class="scr" style="background:#E7F3EF">
+  <div class="card a" style="animation-delay:3.8s;align-self:flex-start;max-width:85%;border-radius:18px 18px 18px 4px;font-size:15px">How much for the tan tote? Una dey deliver Lekki?</div>
+  <div class="card a" style="animation-delay:4.6s;align-self:flex-end;max-width:88%;background:#0C4A44;color:#fff;border-radius:18px 18px 4px 18px;font-size:15px">Yes o! Tan tote na ₦28,000. Delivery to Lekki na ₦2,500, e go reach today. 🙌<div style="font-size:11px;opacity:.7;margin-top:6px">Peggy · Shopinbos</div></div>
+  <div class="card p" style="animation-delay:5.6s;display:flex;gap:12px;align-items:center;margin-top:auto"><span style="width:40px;height:40px;border-radius:12px;background:#E2F5EA;display:flex;align-items:center;justify-content:center;color:#16794A;font-weight:800">₦</span><span style="display:flex;flex-direction:column"><b style="font-size:13px;color:#6B6779">New order · Paid</b><b class="d" style="font-size:26px">₦30,500</b></span></div>
+ </div></div>
+</div>
+<!-- 3: delivery 7.2-11s -->
+<div class="sc" style="--at:7.2s;--len:3.8s;background:#16141F;color:#fff">
+ <div class="d a" style="position:absolute;left:90px;top:160px;font-size:64px;line-height:1.02;width:520px;animation-delay:7.4s">Riders deliver.<br><span style="color:#8BE3D3">Code checked.</span></div>
+ <p class="a" style="position:absolute;left:92px;top:330px;font-size:24px;color:#C9C6D3;width:500px;line-height:1.5;animation-delay:7.7s">Pay on delivery with a 4-digit code. Cash in by 6pm.</p>
+ <div style="position:absolute;right:110px;top:110px;width:480px;height:420px;border-radius:32px;background:#E3EEFD;overflow:hidden">
+  <svg width="480" height="420" viewBox="0 0 480 420" style="position:absolute;inset:0"><path id="r" d="M60 340 C 160 300, 140 160, 250 170 S 380 90, 420 70" fill="none" stroke="#16141F" stroke-width="5" stroke-dasharray="10 10" opacity=".35"/>
+  <circle r="14" fill="#FF6A2B"><animateMotion dur="2.6s" begin="7.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".4 0 .2 1"><mpath href="#r"/></animateMotion></circle>
+  <circle cx="420" cy="70" r="10" fill="#16794A"/></svg>
+  <div class="card p" style="position:absolute;left:24px;bottom:24px;color:#16141F;animation-delay:9.6s;display:flex;gap:12px;align-items:center"><b style="font-size:16px">Delivered</b><span style="background:#16141F;color:#fff;border-radius:10px;padding:6px 10px;font-weight:800;letter-spacing:.2em">4821</span></div>
+ </div>
+</div>
+<!-- 4: Friday payout 10.8-14.2s -->
+<div class="sc" style="--at:10.8s;--len:3.4s;background:#0C4A44;color:#fff">
+ <div class="blob" style="width:420px;height:420px;background:#8BE3D3;left:-120px;bottom:-180px;opacity:.25"></div>
+ <p class="a" style="position:absolute;left:0;right:0;top:190px;text-align:center;font-size:26px;color:#8BE3D3;animation-delay:11s">Paid to your bank every Friday</p>
+ <div class="d p" id="amt" style="position:absolute;left:0;right:0;top:240px;text-align:center;font-size:150px;animation-delay:11.2s">₦412,600</div>
+ <p class="a" style="position:absolute;left:0;right:0;top:450px;text-align:center;font-size:24px;color:#C9F2EA;animation-delay:11.6s">54 orders this week</p>
+</div>
+<!-- 5: end card 14-17s -->
+<div class="sc" style="--at:14s;--len:3.2s;animation-name:fadeIn;background:#FFF6F1">
+ <img class="a" src="../../wp-content/themes/shopinbos/assets/img/c/peggy-wave.webp" style="position:absolute;right:170px;bottom:0;height:420px;animation-delay:14.4s">
+ <img class="logo a" src="../../wp-content/themes/shopinbos/assets/img/logo-dark.png" style="position:absolute;left:90px;top:120px;animation-delay:14.1s">
+ <div class="d a" style="position:absolute;left:90px;top:200px;font-size:84px;line-height:1;width:640px;animation-delay:14.2s">Start your shop <span class="grad">free</span>.</div>
+ <div class="a" style="position:absolute;left:90px;top:410px;display:inline-flex;align-items:center;min-height:68px;padding:0 34px;border-radius:999px;background:#FF6A2B;color:#fff;font-weight:800;font-size:26px;animation-delay:14.6s">shopinbos.com</div>
+</div>
+<style>@keyframes fadeIn{0%{opacity:0}8%{opacity:1}100%{opacity:1}}</style>
+<script>
+// count up the payout
+window.seek=function(ms){
+ document.getAnimations().forEach(function(a){a.pause();a.currentTime=ms;});
+ var svg=document.querySelector('svg'); if(svg&&svg.pauseAnimations){svg.pauseAnimations();svg.setCurrentTime(ms/1000);}
+ var k=Math.max(0,Math.min(1,(ms-11200)/1200)),v=Math.round(412600*(1-Math.pow(1-k,3)));
+ document.getElementById('amt').textContent='₦'+v.toLocaleString('en-NG');
+};
+</script>
+</body></html>

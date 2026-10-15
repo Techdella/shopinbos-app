@@ -1,0 +1,60 @@
+name: Website deploy (Hostinger)
+
+# Uploads the Shopinbos theme and plugin to Hostinger over SSH, then flushes rewrites and cache.
+# Run it from the Actions tab ("Run workflow"), choosing staging or production.
+#
+# Secrets, per GitHub environment (Settings > Environments > staging / production):
+#   HOSTINGER_SSH_HOST   e.g. 123.45.67.89 (hPanel > Advanced > SSH Access)
+#   HOSTINGER_SSH_PORT   usually 65002
+#   HOSTINGER_SSH_USER   e.g. u123456789
+#   HOSTINGER_SSH_KEY    private key whose public half is added in hPanel > SSH Access > SSH keys
+#   HOSTINGER_WP_PATH    e.g. domains/shopinbos.com/public_html
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to deploy
+        type: choice
+        options: [ staging, production ]
+        default: staging
+      setup:
+        description: Run "wp shopinbos setup" after uploading (builds pages, help, guides)
+        type: boolean
+        default: true
+
+concurrency:
+  group: website-deploy-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+
+      - name: PHP syntax
+        run: find website/wp-content -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: SSH key
+        env:
+          KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_hostinger && chmod 600 ~/.ssh/id_hostinger
+          ssh-keyscan -p "${PORT:-65002}" "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload theme and plugin
+        env:
+          SSH_TARGET: ${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          WP_PATH: ${{ secrets.HOSTINGER_WP_PATH }}
+          SSH_KEY_FILE: ~/.ssh/id_hostinger
+          RUN_SETUP: ${{ inputs.setup && '1' || '' }}
+        run: website/bin/deploy.sh

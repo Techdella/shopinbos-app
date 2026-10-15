@@ -1,0 +1,443 @@
+<?php
+/**
+ * Seed content: the legal documents (canvas v7, Legal board). Drafts for legal review.
+ * [slug, title, lead, summary lines, [[heading, [paragraphs], in short], ...], contact email]
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+function sib_seed_legal_markup( array $summary, array $sections ): string {
+	$out = sib_seed_b( 'legal-summary', [ 'items' => implode( "\n", $summary ) ] );
+	foreach ( $sections as [ $heading, $paras, $short ] ) {
+		$out .= sib_block_group_open( 'lgl-sec', 'section' ) . sib_block_h( 2, esc_html( $heading ), '' );
+		foreach ( $paras as $para ) {
+			$out .= sib_block_p( esc_html( $para ) );
+		}
+		$out .= sib_block_p( '<strong>' . esc_html__( 'In short:', 'shopinbos' ) . '</strong> ' . esc_html( $short ), 'in-short' ) . sib_block_group_close( 'section' );
+	}
+	return $out;
+}
+
+function sib_seed_legal_docs(): array {
+	$extra = (array) json_decode( (string) file_get_contents( __DIR__ . '/legal-extra.json' ), true );
+	return array_merge( sib_seed_legal_core(), $extra );
+}
+
+/** The first seven documents; the rest are in legal-extra.json. */
+function sib_seed_legal_core(): array {
+	return json_decode( <<<'JSON'
+[
+ [
+  "terms",
+  "Terms of service",
+  "These terms are the agreement between you and Shopinbos when you use our app and website to sell.",
+  [
+   "You own your shop, your products and your customers.",
+   "You pay the plan you choose. Payouts go to your bank every Friday.",
+   "Rex and Peggy help, but you decide what gets published or sent.",
+   "You can leave any time and take your data with you."
+  ],
+  [
+   [
+    "Who we are",
+    [
+     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Tech Della Solutions Ltd, which runs Shopinbos.",
+     "By creating an account or using Shopinbos, you agree to these terms. If you use Shopinbos for a business, you agree on behalf of that business."
+    ],
+    "This is an agreement between you and our company in Lagos."
+   ],
+   [
+    "Your account",
+    [
+     "You sign in with a code sent to your phone or email. Keep your phone and email safe, because anyone with them can get into your account.",
+     "You must be at least 18 years old. One person can run more than one shop, and you can add staff with their own sign-in."
+    ],
+    "Protect your phone. You must be 18 or older."
+   ],
+   [
+    "Selling on Shopinbos",
+    [
+     "You are the seller of every order in your store. Your products, descriptions, photos and prices must be accurate, legal and in naira, and must follow our Seller rules.",
+     "You keep ownership of everything you upload. You give us permission to show it, store it and share it with the services that run your store, only so we can provide Shopinbos to you."
+    ],
+    "You are responsible for what you sell. Your content stays yours."
+   ],
+   [
+    "Fees and payouts",
+    [
+     "You pay the plan you choose on our Pricing page, plus the payment and delivery fees shown there. We tell you at least 30 days before any fee changes.",
+     "Payments are processed by Paystack. Your balance is paid to your bank every Friday, or when you withdraw. For dropship orders, your share is held until 48 hours after delivery in case of returns.",
+     "If we see signs of fraud or a payment dispute, we may hold the money involved while we check. We will tell you why and how long it should take."
+    ],
+    "You get paid every Friday. We tell you before prices change, and if we ever need to hold money."
+   ],
+   [
+    "Rex, Peggy and other AI features",
+    [
+     "Rex and Peggy use artificial intelligence to draft store pages, replies, captions and ads. They can make mistakes. You are responsible for what you publish and send, and you can turn automatic replies off at any time.",
+     "We do not use your customers’ private messages to train public AI models."
+    ],
+    "The AI helps, you stay in charge."
+   ],
+   [
+    "Suppliers and delivery partners",
+    [
+     "Suppliers and delivery partners on Shopinbos are independent businesses. We check their registration documents before they join, but we do not make or ship their products ourselves.",
+     "If something goes wrong with a supplier or a delivery, report it in the app within 48 hours and we will help settle it using our dispute process."
+    ],
+    "Partners are checked, independent businesses. Report problems within 48 hours."
+   ],
+   [
+    "Ending your account",
+    [
+     "You can close your account at any time from Settings and download your products, orders and customer list first.",
+     "We may pause or close an account that breaks these terms or our Seller rules. Except in cases of fraud or danger to others, we will warn you first and give you time to fix the problem."
+    ],
+    "You can leave any time. We warn you before closing your account, except for fraud."
+   ],
+   [
+    "Our responsibility to you",
+    [
+     "We work hard to keep Shopinbos running, but we cannot promise it will never go down. If we are responsible for a loss, our total liability is limited to the fees you paid us in the 12 months before it happened.",
+     "Nothing in these terms limits any responsibility that Nigerian law, including the Federal Competition and Consumer Protection Act, does not allow us to limit."
+    ],
+    "Our liability is limited to what you paid us in the last year, except where the law says otherwise."
+   ],
+   [
+    "Disputes and the law",
+    [
+     "These terms are governed by the laws of the Federal Republic of Nigeria. If we disagree, we will first try to settle it through our support team. If that does not work, either of us may refer it to mediation at the Lagos Multi-Door Courthouse, and then to the courts of Lagos State."
+    ],
+    "Nigerian law applies. Talk to us first, then mediation, then the Lagos courts."
+   ],
+   [
+    "Changes to these terms",
+    [
+     "If we change these terms, we will tell you in the app and on WhatsApp at least 30 days before the change takes effect. If you keep using Shopinbos after that, the new terms apply."
+    ],
+    "We give you 30 days’ notice of changes."
+   ]
+  ],
+  "legal@shopinbos.com"
+ ],
+ [
+  "privacy",
+  "Privacy policy",
+  "This policy explains what personal data we collect, why, who we share it with, and the rights you have under the Nigeria Data Protection Act 2023.",
+  [
+   "We collect only what we need to run your shop and pay you.",
+   "Your customers’ data is yours. We only process it to run your store.",
+   "We never sell personal data.",
+   "You can see, correct, download or delete your data at any time."
+  ],
+  [
+   [
+    "Who is responsible for your data",
+    [
+     "Tech Della Solutions Ltd (RC 7038770) is the data controller for information about you as a seller, supplier or delivery partner. For your customers’ details, you are the controller and we process them for you, under these terms and the Nigeria Data Protection Act 2023 (NDPA).",
+     "You can reach our Data Protection Officer at privacy@shopinbos.com."
+    ],
+    "We look after your data. You look after your customers’ data, and we help."
+   ],
+   [
+    "What we collect",
+    [
+     "Account details: your name, phone number, email, business name and, for payouts, your bank details and BVN verification result.",
+     "Shop details: products, prices, orders, messages with customers and delivery addresses.",
+     "Device and usage details: the app version, device type, approximate location and the pages you use, to keep Shopinbos secure and working well."
+    ],
+    "Your account, your shop, and basic device information."
+   ],
+   [
+    "Why we use it",
+    [
+     "To run your store, take payments, arrange deliveries and pay you. To prevent fraud and meet our legal duties, including tax and anti-money-laundering rules. To improve Shopinbos. And, only if you agree, to send you tips and offers."
+    ],
+    "To run Shopinbos, keep it safe and follow the law. Marketing only with your OK."
+   ],
+   [
+    "AI processing",
+    [
+     "When you use Rex or Peggy, the text and images involved are processed by our AI service providers under contracts that stop them from using your data to train their own public models. You can turn Peggy’s automatic replies off at any time."
+    ],
+    "AI providers process your data for you only, not for their own training."
+   ],
+   [
+    "Who we share it with",
+    [
+     "Payment providers such as Paystack, to take payments and make payouts. Delivery partners, who receive only the buyer’s name, phone number and address needed for a delivery. Suppliers, who receive shipping details for dropship orders. Service providers who host our systems. Authorities, when the law requires it.",
+     "We never sell personal data."
+    ],
+    "Only the people who need it to complete an order. We never sell it."
+   ],
+   [
+    "Where it is stored and for how long",
+    [
+     "Your data is stored on secure servers, some of which may be outside Nigeria. When data leaves Nigeria, we use the safeguards the NDPA requires.",
+     "We keep account data while your account is open. We keep financial records for 6 years after an order, as Nigerian law requires, and delete or anonymise everything else within 90 days of you closing your account."
+    ],
+    "Stored securely. Kept only as long as needed."
+   ],
+   [
+    "Your rights",
+    [
+     "You can ask to see, correct, download or delete your personal data, or object to how we use it. Most of this you can do yourself in Settings. For anything else, email privacy@shopinbos.com and we will reply within 30 days.",
+     "If you are not happy with our answer, you can complain to the Nigeria Data Protection Commission."
+    ],
+    "See it, fix it, download it, delete it. Complain to the NDPC if we get it wrong."
+   ]
+  ],
+  "privacy@shopinbos.com"
+ ],
+ [
+  "refunds",
+  "Refunds and returns",
+  "How refunds and returns work for people who buy from Shopinbos stores, and for Shopinbos plans.",
+  [
+   "Each shop sets its own return policy, but every shop must meet our minimum standard.",
+   "Wrong or damaged items can be reported within 48 hours with a photo.",
+   "With pay on delivery, check the parcel before you give the rider your code.",
+   "Approved refunds reach you within 5 working days."
+  ],
+  [
+   [
+    "Buying from a Shopinbos store",
+    [
+     "Each shop sets its own return policy, shown on the product page and in your receipt. Every shop must at least accept returns for items that are wrong, damaged or not as described."
+    ],
+    "Each shop has its own policy, with a minimum standard."
+   ],
+   [
+    "Reporting a problem",
+    [
+     "Report a problem within 48 hours of delivery using the link in your receipt or by replying on WhatsApp. Add a photo of the item and the packaging. The seller has 24 hours to respond before we step in."
+    ],
+    "Report within 48 hours with a photo."
+   ],
+   [
+    "Pay on delivery",
+    [
+     "When you pay on delivery, you get a 4-digit code. Check the parcel before you give the code to the rider. If the item is wrong, you can refuse it and you will not be charged."
+    ],
+    "Check first. Give the code only when you are happy."
+   ],
+   [
+    "How refunds are paid",
+    [
+     "Approved refunds go back to the way you paid: to your card, your bank account for transfers, or your bank account for pay on delivery. Refunds arrive within 5 working days of approval."
+    ],
+    "Back to how you paid, within 5 working days."
+   ],
+   [
+    "Dropship orders",
+    [
+     "Some products are shipped directly by a supplier. Returns go back to the supplier, using a free return label the seller sends you. You do not pay for returning a wrong or damaged item."
+    ],
+    "Free returns for wrong or damaged dropship items."
+   ],
+   [
+    "Shopinbos plans",
+    [
+     "Monthly plans are not refunded, but you can cancel any time and keep your plan until the end of the month. Yearly plans can be refunded in full within 14 days of payment, and part-refunded for unused months after that."
+    ],
+    "Cancel monthly any time. Yearly plans: full refund within 14 days."
+   ]
+  ],
+  "legal@shopinbos.com"
+ ],
+ [
+  "cookies",
+  "Cookies",
+  "Cookies are small files that help our website and stores work. Here is what we use and how to control them.",
+  [
+   "We use essential cookies to keep you signed in and your basket working.",
+   "Analytics cookies only run if you say yes.",
+   "We do not use advertising cookies without your consent."
+  ],
+  [
+   [
+    "Essential cookies",
+    [
+     "These keep you signed in, remember what is in your basket and keep payments secure. The site does not work without them, so they cannot be turned off."
+    ],
+    "Needed for the site to work."
+   ],
+   [
+    "Preference cookies",
+    [
+     "These remember choices like your language, so lessons open in Pidgin if that is what you picked."
+    ],
+    "Remember your choices."
+   ],
+   [
+    "Analytics cookies",
+    [
+     "If you agree, we use these to count visits and see which pages help people most. The data is grouped and does not tell us who you are."
+    ],
+    "Only with your OK."
+   ],
+   [
+    "Store owners’ cookies",
+    [
+     "Sellers can add tools like the Meta Pixel or Google Analytics to their stores. These only run after a shopper accepts them in the cookie banner."
+    ],
+    "Shop tracking tools wait for your consent."
+   ],
+   [
+    "Changing your choice",
+    [
+     "Use “Cookie settings” at the bottom of any page to change your choice at any time."
+    ],
+    "Change it any time."
+   ]
+  ],
+  "legal@shopinbos.com"
+ ],
+ [
+  "seller-rules",
+  "Seller rules",
+  "The rules every shop on Shopinbos follows, so buyers can trust every store.",
+  [
+   "Sell only legal, genuine products.",
+   "Describe items honestly and deliver what you show.",
+   "Message customers only when they have asked to hear from you.",
+   "Treat buyers, riders and suppliers with respect."
+  ],
+  [
+   [
+    "Things you cannot sell",
+    [
+     "Anything illegal in Nigeria. Fake or copied branded goods. Prescription medicines. Weapons and ammunition. Adult content. Items that need NAFDAC or SON approval when you do not have it. Live animals."
+    ],
+    "Nothing illegal, fake or dangerous."
+   ],
+   [
+    "Honest listings",
+    [
+     "Use real photos of what you sell, or the supplier’s photos for dropship items. Show the full price in naira, including any charges, before checkout. Deliver within the time you promise."
+    ],
+    "What they see is what they get."
+   ],
+   [
+    "Messaging customers",
+    [
+     "Send broadcasts only to people who have agreed to hear from you, and include a way to stop. Do not buy contact lists."
+    ],
+    "No spam."
+   ],
+   [
+    "Respect",
+    [
+     "No insults, threats or discrimination towards buyers, riders, suppliers or our team."
+    ],
+    "Be decent."
+   ],
+   [
+    "If a rule is broken",
+    [
+     "We may remove a product, pause your store or close your account, depending on how serious it is. Except for fraud or danger to others, we warn you first and tell you how to fix it."
+    ],
+    "We warn first, except for fraud."
+   ]
+  ],
+  "legal@shopinbos.com"
+ ],
+ [
+  "supplier-terms",
+  "Supplier terms",
+  "Extra terms for businesses that list products for Shopinbos shops to sell. These apply together with our Terms of service.",
+  [
+   "Listing is free. We keep 5% of each sale.",
+   "Ship dropship orders within 3 days, with the shop’s label.",
+   "You are paid after delivery and the 48-hour return window."
+  ],
+  [
+   [
+    "Joining",
+    [
+     "You need CAC registration, a business bank account in the same name, and stock you can ship within 3 days. We check your documents before your products go live."
+    ],
+    "Registered business, real stock."
+   ],
+   [
+    "Listing products",
+    [
+     "Keep your prices, stock and photos up to date. If stock runs out, mark it in the portal straight away so shops stop selling it."
+    ],
+    "Keep stock accurate."
+   ],
+   [
+    "Shipping dropship orders",
+    [
+     "Accept or decline each order within 24 hours. Ship within 3 days using the shop’s label and no marketing of your own inside the parcel."
+    ],
+    "Ship fast, under the shop’s name."
+   ],
+   [
+    "Fees and payment",
+    [
+     "Listing is free. Shopinbos keeps 5% of each sale. Your share is paid to your bank every Friday after delivery and the 48-hour return window."
+    ],
+    "5% per sale, paid Fridays."
+   ],
+   [
+    "Returns and quality",
+    [
+     "You accept returns for wrong, damaged or not-as-described items. If too many orders are returned or late, we may pause your listings while we work with you to fix it."
+    ],
+    "Quality keeps your listings live."
+   ]
+  ],
+  "legal@shopinbos.com"
+ ],
+ [
+  "delivery-partner-terms",
+  "Delivery partner terms",
+  "Extra terms for delivery companies and riders who take jobs from Shopinbos shops. These apply together with our Terms of service.",
+  [
+   "Joining is free. We keep 8% of each delivery fee.",
+   "Cash from pay on delivery is paid in by 6pm the same day.",
+   "Lost or damaged parcels are covered by your goods-in-transit insurance."
+  ],
+  [
+   [
+    "Joining",
+    [
+     "Delivery companies need CAC registration, goods-in-transit insurance and riders with checked papers. Riders joining directly need a valid ID, a roadworthy bike and a guarantor."
+    ],
+    "Registered, insured, checked."
+   ],
+   [
+    "Taking jobs",
+    [
+     "Accept or decline each job in the app. Once accepted, pick up within the time shown and keep the buyer updated through the app."
+    ],
+    "Accept, pick up on time, keep people updated."
+   ],
+   [
+    "Pay on delivery",
+    [
+     "Collect payment only with the buyer’s 4-digit code. Pay all cash into your Shopinbos virtual account by 6pm the same day."
+    ],
+    "Code first, cash in by 6pm."
+   ],
+   [
+    "Fees and payment",
+    [
+     "Joining is free. Shopinbos keeps 8% of each delivery fee. Payouts go to your company bank account weekly, with a statement for every job."
+    ],
+    "8% per job, paid weekly."
+   ],
+   [
+    "Lost or damaged parcels",
+    [
+     "You are responsible for parcels from pickup until delivery. Claims are paid through your goods-in-transit insurance, and we help you with the paperwork."
+    ],
+    "Your insurance covers losses."
+   ]
+  ],
+  "legal@shopinbos.com"
+ ]
+]
+JSON, true );
+}
