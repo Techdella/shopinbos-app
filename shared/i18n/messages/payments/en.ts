@@ -280,6 +280,7 @@ const en = {
   "cr.topUp": "Top up",
   "cr.fromPlan": "From your plan",
   "cr.outLine": "You're out of credits. Your free daily allowance still works; buy a pack to keep going after it.",
+  "sm.credits": "100 AI credits every month",
 } satisfies Record<string, string>;
 
 export default en;

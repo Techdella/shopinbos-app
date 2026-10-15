@@ -282,6 +282,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.topUp": "Top up",
   "cr.fromPlan": "From your plan",
   "cr.outLine": "Your credits don finish. Your free daily allowance still dey work; buy pack to continue after am.",
+  "sm.credits": "100 AI credits every month",
 };
 
 export default pcm;

@@ -30,6 +30,7 @@ export function CreditsClient({
   allowance,
   result,
   resultError,
+  returnTo = "/home/credits",
 }: {
   initial: Overview;
   packs: CreditPack[];
@@ -37,6 +38,8 @@ export function CreditsClient({
   allowance: Array<{ kind: string; label: string; used: number; limit: number }> | null;
   result: "paid" | "failed" | "pending" | null;
   resultError: string | null;
+  /** The page Paystack brings the buyer back to (this page). */
+  returnTo?: string;
 }) {
   const t = useT("payments");
   const locale = useLocale();
@@ -52,7 +55,7 @@ export function CreditsClient({
     setBuying(pack.id);
     setError(null);
     try {
-      const data = (await send("POST", "/api/app/credits/checkout", { packId: pack.id, autoTopUp: autoOnBuy, returnTo: "/home/credits" })) as { authorizationUrl: string };
+      const data = (await send("POST", "/api/app/credits/checkout", { packId: pack.id, autoTopUp: autoOnBuy, returnTo })) as { authorizationUrl: string };
       window.location.assign(data.authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("cr.failed"));

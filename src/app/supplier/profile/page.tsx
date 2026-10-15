@@ -1,4 +1,5 @@
 import { updateSupplierProfile } from "@/app/actions/supplier";
+import { creditBalance } from "@/lib/ai/credits.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
@@ -90,6 +91,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
             userEmail={billingEmail(user)}
             userName={user.name}
             aiCredits={aiCredits}
+            creditBalance={await creditBalance(user.id)}
             productCount={workspace.metrics.productCount}
           />
         ) : (

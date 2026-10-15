@@ -1,4 +1,6 @@
 import { requireRole } from "@/lib/server-auth";
+import { redirect } from "next/navigation";
+import { getCurrentAppUser } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
@@ -18,6 +20,8 @@ export async function generateMetadata() {
 
 // AI credits: what's left, the packs to buy (Paystack), auto top-up from a saved card, and past purchases.
 export default async function CreditsPage({ searchParams }: { searchParams: Promise<{ credits?: string; error?: string }> }) {
+  const current = await getCurrentAppUser();
+  if (current?.role === "supplier") redirect("/supplier/credits");
   const user = await requireRole(["seller"], "/login");
   const [t, workspace, overview, plan, query] = await Promise.all([
     getT("payments"),

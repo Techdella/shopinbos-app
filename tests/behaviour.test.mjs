@@ -2708,3 +2708,11 @@ test("Plans put their AI credits into the same balance Rex and Peggy spend", asy
   assert.equal(c.planCreditGrant("PLN_unknown"), null);
   assert.equal(c.planCreditGrant(null), null);
 });
+
+test("Suppliers buy and are pointed to AI credits in their own portal", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.creditsUrlFor("supplier"), "/supplier/credits");
+  assert.equal(c.creditsUrlFor("seller"), "/home/credits");
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0, "/supplier/credits"), /\/supplier\/credits/);
+  assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
+});
