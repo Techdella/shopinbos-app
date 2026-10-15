@@ -15,7 +15,7 @@ const SAMPLE_CSV = [
 
 const PHOTO_UPLOADS_AT_ONCE = 3;
 
-type ImportResult = { imported: number; withImages?: number; errors: string[] };
+type ImportResult = { imported: number; withImages?: number; errors: string[]; notices?: string[] };
 
 /** Uploads the chosen photos to the media library; returns { "file.jpg": url } plus per-file problems. */
 async function uploadPhotos(files: File[], onProgress: (done: number) => void) {
@@ -118,6 +118,9 @@ export function ImportForm() {
           <div className="text-[16px] font-extrabold text-app-success">
             {t("import.complete", { count: result.imported })}
           </div>
+          {result.notices?.map((notice, i) => (
+            <div key={i} className="text-[13.5px] font-bold text-app-ink">{notice}</div>
+          ))}
           {!!result.withImages && (
             <div className="text-[13.5px] text-app-success">{t("import.withImages", { count: result.withImages })}</div>
           )}

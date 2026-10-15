@@ -72,10 +72,13 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   let imported = 0;
   let withImages = 0;
   const errors: string[] = [];
+  // Checkout always charges in the store's currency, so products are priced in it too.
+  const storeCurrency = store.currency || "NGN";
+  const otherCurrencies = new Set<string>();
 
   for (let i = 0; i < rows.length; i++) {
     const rowLabel = `Row ${i + 2}`;
-    const product = mapImportRow(rows[i] ?? {}, store.currency || "NGN");
+    const product = mapImportRow(rows[i] ?? {}, storeCurrency);
     if ("error" in product) {
       errors.push(`${rowLabel}: ${product.error}`);
       continue;
@@ -107,7 +110,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
           retailPrice: product.retailPrice,
           costPrice: product.costPrice,
           compareAtPrice: product.compareAtPrice,
-          currency: product.currency,
+          currency: storeCurrency,
           currentStock: product.currentStock,
           sku: product.sku,
           barcode: product.barcode,
@@ -121,11 +124,17 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       });
       imported++;
       if (images.length) withImages++;
+      if (product.currency !== storeCurrency) otherCurrencies.add(product.currency);
     } catch (e: any) {
       errors.push(`${rowLabel}: ${e?.message ?? "error"}`);
     }
   }
 
+  const notices: string[] = [];
+  if (otherCurrencies.size) {
+    notices.push(`Prices in ${[...otherCurrencies].join(", ")} were imported as ${storeCurrency} amounts, the currency your store sells in. Check them before going live.`);
+  }
+
   if (imported) await markCatalogDirty(store.id);
-  return ok({ imported, withImages, errors });
+  return ok({ imported, withImages, errors, notices });
 });
