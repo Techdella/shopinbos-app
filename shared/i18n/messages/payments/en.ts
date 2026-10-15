@@ -274,6 +274,7 @@ const en = {
   "cr.kind.voice": "A voiceover",
   "cr.kind.image": "A picture or photo edit",
   "cr.kind.build": "A whole store build",
+  "cr.kind.video": "A finished video (reel)",
   "cr.cost": "{count, plural, one {# credit} other {# credits}}",
   "cr.today": "Today's allowance",
   "cr.settingsLine": "{count, plural, one {# credit left} other {# credits left}}. Buy more so Rex and Peggy keep going after today's allowance.",

@@ -8,6 +8,7 @@ import { providerSchema } from "../peggy/pure.ts";
 import { FIELD_TYPES, TEMPLATE_IDS } from "../../cms/fields.ts";
 import { PRINT_KINDS, QR_TARGETS } from "../../../../shared/print-labels.ts";
 import { LOGO_SIZES, LOGO_STYLES } from "../../../../shared/store-logo.ts";
+import { MUSIC_MOODS, REEL_TEMPLATE_IDS, VOICE_GENDERS } from "../../../../shared/video-style.ts";
 
 export { providerSchema };
 
@@ -171,11 +172,17 @@ export const REX_TOOL_SPECS = {
   },
   make_product_video: {
     kind: "write",
-    description: "Prepare a short vertical product reel (Instagram, TikTok, WhatsApp status): picks the product's photos and writes the captions, voiceover and end card. The seller opens it in the video studio, where it is recorded in their browser.",
+    description:
+      "Prepare a short vertical product reel (Instagram, TikTok, WhatsApp status) in the store's brand colours and logo: picks the product's photos (or pictures you just made or the seller attached), can first clean them up into reel shots (cut out, studio backdrop or branded ad shot; each costs a picture), picks a template, a Nigerian-accent female or male voice and background music, and writes the captions, voiceover and end card. The seller opens it in the video studio, previews it and records it in their browser.",
     schema: z
       .object({
         product: product("The product to make a reel for"),
         language: z.enum(REX_VIDEO_LANGUAGES).nullable().describe("Language for the captions and voiceover; null for Pidgin"),
+        template: z.enum(REEL_TEMPLATE_IDS).nullable().describe("float = product floating on a soft brand backdrop (premium), bold = giant word behind the product (food, fashion), pop = brand-colour cards with round wipes (fun), words = fast word punches between photos (sales, launches), grid = collage of photos (a range), classic = full-screen slideshow; null for Rex's pick"),
+        shots: z.enum(["original", "cutout", "studio", "brand"]).nullable().describe("original = use the photos as they are; cutout = remove backgrounds (best for float, bold, pop); studio = clean studio backdrop in the brand colour; brand = branded ad shots with the logo; null for original"),
+        photos: z.array(z.string().trim().max(2000).regex(HTTPS_URL)).max(6).nullable().describe("Pictures to use instead of the product's own photos: ones you just made in this chat or the seller attached; null for the product's photos"),
+        voice: z.enum(VOICE_GENDERS).nullable().describe("female or male voice (both Nigerian accent); null for female"),
+        music: z.enum(MUSIC_MOODS.map((mood) => mood.id) as [string, ...string[]]).nullable().describe("afrobeats, amapiano, upbeat, chill or luxury background music; null to match the template"),
       })
       .strict(),
   },

@@ -124,11 +124,13 @@ export async function editImage({
   sourceUrl,
   prompt,
   transparent = false,
+  size = "1024x1024",
   path,
 }: {
   sourceUrl: string;
   prompt: string;
   transparent?: boolean;
+  size?: ImageSize;
   path: string;
 }): Promise<string> {
   const openai = getOpenAIClient();
@@ -137,7 +139,7 @@ export async function editImage({
     model: OPENAI_IMAGE_MODEL,
     image: await loadSourceImage(sourceUrl, "source"),
     prompt,
-    size: "1024x1024",
+    size,
     output_format: "webp",
     ...(transparent ? { background: "transparent" as const } : {}),
   });

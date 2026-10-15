@@ -1,5 +1,6 @@
 "use client";
 
+import { MUSIC_MOODS, reelTemplate } from "@shared/video-style";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -263,7 +264,7 @@ function VideoCard({ card }: { card: Extract<RexCard, { type: "video" }> } & Rex
   const router = useRouter();
   function open() {
     try {
-      window.sessionStorage.setItem(REX_REEL_HANDOFF_KEY, JSON.stringify({ productId: card.product.id, language: card.language, script: card.script, at: Date.now() }));
+      window.sessionStorage.setItem(REX_REEL_HANDOFF_KEY, JSON.stringify({ productId: card.product.id, language: card.language, script: card.script, template: card.template, gender: card.voice, music: card.music, photos: card.product.photos, at: Date.now() }));
     } catch {
       // Without storage the studio still opens on the product; the seller presses "Write it" there.
     }
@@ -283,6 +284,11 @@ function VideoCard({ card }: { card: Extract<RexCard, { type: "video" }> } & Rex
       </ol>
       <p className="m-0 mt-3 text-[13.5px] leading-[1.5]"><span className="font-bold">{t("rex.cd.voiceover")}</span> {card.script.voiceover}</p>
       <p className="m-0 mt-1 text-[13.5px]"><span className="font-bold">{t("rex.cd.endCard")}</span> {card.script.cta}</p>
+      {card.template ? (
+        <p className="m-0 mt-1 text-[13px] text-app-ink-soft">
+          {t("rex.cd.reelStyle", { template: reelTemplate(card.template).name, voice: card.voice === "male" ? t("rex.cd.voiceMale") : t("rex.cd.voiceFemale"), music: MUSIC_MOODS.find((mood) => mood.id === card.music)?.name ?? "" })}
+        </p>
+      ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" className={primary} onClick={open}>
           <Icon name="play" size={15} /> {t("rex.cd.openVideo")}

@@ -9,6 +9,8 @@ import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-bo
 import { bookToThemeTokens } from "@shared/brand-book";
 import { PRINT_SPECS } from "@shared/print-labels";
 import { readLogoDisplay } from "@shared/store-logo";
+import { defaultMood, reelTemplate, type ReelTemplateId } from "@shared/video-style";
+import { makeReelShot } from "@/lib/ai/reel-shots.server";
 import { loadBrandContext } from "@/lib/ai/brand-context.server";
 import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
@@ -269,9 +271,38 @@ const VIDEO_LANGUAGE_NOTE: Record<VideoLanguage, string> = {
 
 async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_product_video">): Promise<RexToolOutput> {
   const product = await findProduct(ctx, input.product);
-  const photos = product.images.filter(Boolean).slice(0, MAX_PHOTOS);
-  if (!photos.length) throw new RexToolError(`${product.name} has no photos, and a reel is made from photos. Ask the seller to add some, or make one with generate_product_image and save it first.`);
+  const own = (input.photos ?? []).filter((url) => isOwnImageUrl(url));
+  let photos = (own.length ? own : product.images.filter(Boolean)).slice(0, MAX_PHOTOS);
+  if (!photos.length) throw new RexToolError(`${product.name} has no photos, and a reel is made from photos. Ask the seller to add some, or make one with generate_product_image and pass it in photos.`);
   const language = input.language ?? "pidgin";
+  const template: ReelTemplateId = input.template ?? (input.shots === "cutout" ? "float" : input.shots === "brand" ? "words" : "pop");
+
+  // Clean the photos up into reel shots first (each is a picture), keeping any that don't come back.
+  let shotNote = "";
+  if (input.shots && input.shots !== "original") {
+    const look = input.shots;
+    const brand = await loadBrandContext(ctx.storeId);
+    const sources = photos.slice(0, 4).filter((url) => isOwnImageUrl(url));
+    const made: string[] = [];
+    for (const [n, source] of sources.entries()) {
+      try {
+        await meter(ctx, "image");
+      } catch (error) {
+        if (!made.length) throw error;
+        shotNote = ` Stopped after ${made.length} shot(s): ${error instanceof Error ? error.message : "allowance used up"}`;
+        break;
+      }
+      try {
+        made.push(await makeReelShot({ userId: ctx.userId, source, look, product: product.name, brand, n }));
+      } catch (error) {
+        if (error instanceof ImageUnavailableError) throw new RexToolError(`${error.message} The reel can still use the photos as they are (shots: original).`);
+        console.error("[rex] reel shot failed", error);
+        made.push(source);
+      }
+    }
+    if (made.length) photos = made;
+    shotNote ||= ` Made ${made.length} ${look} shot(s) for it.`;
+  }
   const price = money(product.retailPrice);
   await meter(ctx, "text");
   const fallback = fallbackScript(product.name, price, language, photos.length);
@@ -288,8 +319,8 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
   });
   const script = normaliseScript(firstJsonObject(raw?.text ?? null), fallback, photos.length);
   return {
-    content: `Prepared a ${photos.length}-photo reel for ${product.name} in ${language}. Captions: ${script.captions.join(" / ")}. Voiceover: ${script.voiceover}. The seller taps "Open in video studio" to record it in their browser and save it to the product.${raw ? "" : " (The writer was offline, so this is the starter script.)"}`,
-    card: { type: "video", product: { id: product.id, name: product.name, photos }, language, script },
+    content: `Prepared a ${photos.length}-shot "${reelTemplate(template).name}" reel for ${product.name} in ${language}, ${input.voice ?? "female"} Nigerian voice, ${input.music ?? defaultMood(template)} music, in the store's brand colours and logo.${shotNote} Captions: ${script.captions.join(" / ")}. Voiceover: ${script.voiceover}. The seller taps "Open in video studio" to preview it, change the voice (theirs, ElevenLabs or none) or music, and record it in their browser; a finished video uses one of the day's free videos, then credits.${raw ? "" : " (The writer was offline, so this is the starter script.)"}`,
+    card: { type: "video", product: { id: product.id, name: product.name, photos }, language, script, template, voice: input.voice ?? "female", music: input.music ?? defaultMood(template) },
   };
 }
 

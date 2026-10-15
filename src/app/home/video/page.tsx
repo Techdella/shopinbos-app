@@ -5,6 +5,9 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { VideoStudio } from "./VideoStudio";
 import { getT } from "@/lib/i18n/server";
+import { loadBrandContext } from "@/lib/ai/brand-context.server";
+import { elevenLabsReady } from "@/lib/ai/elevenlabs.server";
+import { reelBrand } from "@shared/video-style";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -25,6 +28,7 @@ export default async function VideoStudioPage({ searchParams }: { searchParams: 
         select: { id: true, name: true, retailPrice: true, images: true, description: true, videoUrl: true },
       })
     : [];
+  const brand = store ? await loadBrandContext(store.id).catch(() => null) : null;
   const storeHost = store ? buildStorefrontUrl(store, "/").replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
 
   return (
@@ -38,6 +42,8 @@ export default async function VideoStudioPage({ searchParams }: { searchParams: 
         storeName={store?.name ?? t("myShop")}
         storeHost={storeHost}
         initialProductId={product ?? null}
+        brand={reelBrand(brand?.colours ?? null, store?.logoUrl ?? brand?.logoUrl ?? null)}
+        elevenLabs={elevenLabsReady()}
         products={products.map((item) => ({
           id: item.id,
           name: item.name,
