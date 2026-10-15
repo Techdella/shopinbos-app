@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardHead, Pill } from "@/components/app-kit";
@@ -288,8 +289,8 @@ export function BlocksTab(props: EditorProps) {
   const badges = of("badge");
   const base = `/api/app/campaigns/${campaign.id}/blocks`;
   const toggle = (block: CampaignBlockDTO) => (on: boolean) => void save(`${base}/${block.id}`, "PATCH", { enabled: on });
-  const removeBlock = (block: CampaignBlockDTO) => () => {
-    if (window.confirm(t("blocks.confirmRemove"))) void save(`${base}/${block.id}`, "DELETE", undefined);
+  const removeBlock = (block: CampaignBlockDTO) => async () => {
+    if (await confirmDialog({ message: t("blocks.confirmRemove"), tone: "danger" })) void save(`${base}/${block.id}`, "DELETE", undefined);
   };
   const add = (type: string, settings?: Record<string, unknown>) => void save(base, "POST", { type, ...(settings ? { settings } : {}) });
   const popupForm = popup ? campaign.popupForms.find((form) => form.id === popup.settings.formId) : undefined;

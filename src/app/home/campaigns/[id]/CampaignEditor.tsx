@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -36,7 +37,7 @@ export function CampaignEditor({ initial, store, serverNow }: { initial: Campaig
   const save = useCallback(
     async (path: string, method: string, body?: unknown, options: { confirmLive?: boolean } = {}) => {
       // Editing a live campaign changes the store straight away: say so first.
-      if (options.confirmLive !== false && campaignIsRunning(campaign) && !window.confirm(t("confirm.liveEdit"))) return null;
+      if (options.confirmLive !== false && campaignIsRunning(campaign) && !(await confirmDialog({ message: t("confirm.liveEdit"), tone: "warning" }))) return null;
       setBusy(true);
       setError(null);
       setSaved(null);
@@ -58,7 +59,7 @@ export function CampaignEditor({ initial, store, serverNow }: { initial: Campaig
 
   async function lifecycle(action: string) {
     setError(null);
-    if (action === "end-now" && !window.confirm(t("confirm.endNow", { name: campaign.name }))) return;
+    if (action === "end-now" && !(await confirmDialog({ message: t("confirm.endNow", { name: campaign.name }), tone: "warning" }))) return;
     if (action === "duplicate") {
       setBusy(true);
       try {

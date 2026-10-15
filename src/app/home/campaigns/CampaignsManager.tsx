@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -169,8 +170,8 @@ export function CampaignsManager({ campaigns, total, tab, presets, serverNow, st
 
   async function onAction(campaign: CampaignSummary, action: string) {
     setError(null);
-    if (action === "end-now" && !window.confirm(t("confirm.endNow", { name: campaign.name }))) return;
-    if (action === "delete" && !window.confirm(t("confirm.delete", { name: campaign.name }))) return;
+    if (action === "end-now" && !(await confirmDialog({ message: t("confirm.endNow", { name: campaign.name }), tone: "warning" }))) return;
+    if (action === "delete" && !(await confirmDialog({ message: t("confirm.delete", { name: campaign.name }), tone: "danger" }))) return;
     setBusy(campaign.id);
     try {
       if (action === "preview") await openCampaignPreview(campaign.id);
