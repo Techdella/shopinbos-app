@@ -1505,6 +1505,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rex.br.icon": "Alamar tambari",
   "rex.br.favicon": "Favicon",
   "rex.br.print": "Situdiyon bugawa",
+  "rex.br.packaging": "Packaging",
+  "rex.br.openPackaging": "Buɗe design ɗin",
   "rex.br.display": "Kan shago",
   "rex.br.useIcon": "Yi amfani a matsayin alamar tambari",
   "rex.br.useFavicon": "Yi amfani a matsayin favicon",

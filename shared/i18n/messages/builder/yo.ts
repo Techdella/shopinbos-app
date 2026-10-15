@@ -1505,6 +1505,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rex.br.icon": "Àmì lógò",
   "rex.br.favicon": "Favicon",
   "rex.br.print": "Ilé-ìtẹ̀wé",
+  "rex.br.packaging": "Packaging",
+  "rex.br.openPackaging": "Ṣí design náà",
   "rex.br.display": "Orí ilé ìtajà",
   "rex.br.useIcon": "Lò ó bí àmì lógò",
   "rex.br.useFavicon": "Lò ó bí favicon",
