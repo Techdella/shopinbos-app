@@ -22,6 +22,8 @@ import {
 } from "@/lib/storefront/shopper-info";
 import { bestSellers, productCategories, relatedProducts, searchProducts, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
+import { resolveMenu } from "../StoreMenu";
+import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
 import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
@@ -1639,11 +1641,20 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   // ─── Chrome ────────────────────────────────────────────────────────────────
 
-  const navKeys = (Array.isArray(headerCopy.navLinks) ? (headerCopy.navLinks as unknown[]) : ["home", "products", "about", "contact"])
-    .map((entry) => normalizePage(String(entry)))
-    .filter((entry, index, all) => PAGE_LABELS[entry] && (entry === "home" || pageTypes.has(entry)) && all.indexOf(entry) === index);
   const pageHref = (key: string) => (live ? storefrontPageHref(basePath, key) ?? undefined : undefined);
-  const links: ChromeLink[] = navKeys.map((key) => ({ key, label: PAGE_LABELS[key]!, onSelect: () => go(key), current: current === key, href: pageHref(key) }));
+  const menu = resolveMenu(readMenu(headerCopy), {
+    hasPage: (key) => Boolean(PAGE_LABELS[key]) && pageTypes.has(key),
+    pageLabel: (key) => PAGE_LABELS[key],
+    pageHref,
+    goPage: go,
+    categories,
+    categoryHref: (slug) => (live ? storefrontPageHref(basePath, "products", new URLSearchParams({ category: slug })) ?? undefined : undefined),
+    goCategory: shopCategory,
+    products,
+    productHref: (id) => (live ? getPublicStorefrontPath(basePath, `/product/${id}`) : undefined),
+    goProduct: openProduct,
+    current,
+  });
   const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
@@ -1655,7 +1666,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const editorStyle: React.CSSProperties = live ? {} : { minHeight: "100%" };
 
   return (
-    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} style={{ ...lookVars(look), ...editorStyle }} onClick={live ? undefined : () => props.onSelectSection?.(null)}>
+    <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} data-floating-nav={showNav && live ? "" : undefined} style={{ ...lookVars(look), ...editorStyle }} onClick={live ? undefined : () => props.onSelectSection?.(null)}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to products</a>
       {announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live || props.demo ? null : (
@@ -1666,11 +1677,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           store={store}
           logoText={logoText}
           look={look}
-          links={links}
-          categories={categories}
+          menu={menu}
+          menuStyle={menuStyleOf(headerSection.settings?.menuStyle)}
+          mobileMenu={mobileMenuStyleOf(headerSection.settings?.mobileMenu)}
+          mobileExtra={live ? [{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }] : undefined}
+          interactive={live}
           onHome={() => go("home")}
-          onShopAll={() => { setFilter((prev) => withGroup(prev, null)); go("products"); }}
-          onCategory={shopCategory}
           onSearch={live ? () => setSheet("search") : () => undefined}
           onWishlist={live ? (props.onToggleWishlist ? () => setSheet("wishlist") : undefined) : () => undefined}
           onBag={live ? props.onOpenCart : () => undefined}

@@ -593,7 +593,13 @@ export function navColors(look: BoutiqueLook): Partial<ShopperNavColors> {
 /** Scoped CSS for the 2026 themes. Container queries, so editor phone previews lay out like real phones. */
 export const BOUTIQUE_CSS = `
 /* width:100% — a size container has no intrinsic width, so inside a flex row or any shrink-to-fit parent it would collapse. */
-.bq{container-type:inline-size;container-name:bq;width:100%;min-width:0;flex:1 1 auto;min-height:100%;-webkit-font-smoothing:antialiased}
+.bq{container-type:inline-size;container-name:bq;width:100%;min-width:0;flex:1 1 auto;min-height:100%;-webkit-font-smoothing:antialiased;overflow-x:clip}
+.bq-burger{display:inline-grid;margin-left:-8px}
+/* The floating phone bar (ShopperBottomNav, phones only) never covers the footer's last row ("Built with Shopinbos"). */
+@media (max-width: 767px){
+  .bq[data-floating-nav] .bq-footer{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+  .bq[data-floating-nav]:has(.bq-footer) .bq-page{padding-bottom:24px}
+}
 .bq *{box-sizing:border-box}
 .bq a{color:inherit;text-decoration:none}
 .bq :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--bq-accent);outline-offset:3px}

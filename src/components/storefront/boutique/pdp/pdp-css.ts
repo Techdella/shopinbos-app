@@ -3,7 +3,10 @@
 
 export const PDP_CSS = `
 .bq-pdp2{--pdp-gap:20px}
-.bq-pdp2-main{display:grid;gap:var(--pdp-gap)}
+.bq-pdp2-main{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--pdp-gap)}
+/* One column that never grows past the screen: the tab row and long words scroll or wrap inside it. */
+.bq-pdp2-blocks{display:grid;grid-template-columns:minmax(0,1fr)}
+.bq-pdp2-blocks > *{min-width:0}
 .bq-pdp2-media,.bq-pdp2-info{min-width:0}
 .bq-pdp2-gal{display:grid;gap:10px}
 .bq-pdp2-viewer{position:relative}
@@ -25,7 +28,8 @@ export const PDP_CSS = `
 .bq-pdp2-acc summary::-webkit-details-marker{display:none}
 .bq-pdp2-acc[open] .bq-pdp2-chev{transform:rotate(180deg)}
 .bq-pdp2-chev{transition:transform .2s}
-.bq-pdp2-reviews{display:grid;gap:24px}
+.bq-pdp2-reviews{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.bq-pdp2-reviews p{overflow-wrap:anywhere}
 @media (hover:hover) and (pointer:fine){
   .bq-pdp2-zoom{cursor:zoom-in}
   .bq-pdp2-zoom:hover img{transform:scale(1.9);transform-origin:var(--zx,50%) var(--zy,50%)}
