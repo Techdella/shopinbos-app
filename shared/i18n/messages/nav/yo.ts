@@ -180,6 +180,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "tab.logistics.jobs": "Iṣẹ́",
   "tab.logistics.riders": "Rider",
   "tab.logistics.earnings": "Owó",
+  "credits.title": "Kírẹ́dítì AI",
+  "credits.aria": "{count, plural, other {Kírẹ́dítì AI # ló kù}}. Ṣí i láti fi kún un.",
+  "credits.short": "kírẹ́dítì",
+  "credits.added": "A ti gba owó náà. Kírẹ́dítì rẹ ti wọlé.",
+  "credits.pending": "Paystack ṣì ń jẹ́rìí rẹ̀. Kírẹ́dítì rẹ yóò hàn láìpẹ́.",
+  "credits.notPaid": "Owó náà kò lọ, a kò gba nǹkan.",
+  "credits.failed": "A kò lè bẹ̀rẹ̀ ìsanwó náà. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "credits.autoOn": "Àfikún aládàáṣe wà",
+  "credits.freeToday": "Ọ̀fẹ́ lórí ètò rẹ lónìí",
+  "credits.replies": "Ìdáhùn Rex àti Peggy",
+  "credits.pictures": "Àwòrán",
+  "credits.how": "Nígbà tí ìpín ọ̀fẹ́ òní bá tán, kírẹ́dítì ni yóò san fún ìbéèrè kọ̀ọ̀kan.",
+  "credits.topUp": "Fi kún un",
+  "credits.autoOnBuy": "Fi kún un fún mi láìfọwọ́kàn nígbà tí kírẹ́dítì bá tán (ẹ̀mẹ́ta lójúmọ́ jù lọ)",
+  "credits.manage": "Ṣàkóso kírẹ́dítì àti ìtàn",
 };
 
 export default yo;

@@ -279,6 +279,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.cost": "{count, plural, other {kiredit #}}",
   "cr.today": "Kason yau",
   "cr.settingsLine": "{count, plural, other {Kiredit # sun rage}}. Sayi ƙari don Rex da Peggy su ci gaba.",
+  "cr.topUp": "Ƙara",
+  "cr.fromPlan": "Daga tsarinka",
 };
 
 export default ha;

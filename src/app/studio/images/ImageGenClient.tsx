@@ -1,5 +1,6 @@
 "use client";
 
+import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
@@ -91,6 +92,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
       setError(t("studio.offline"));
     } finally {
       setLoading(false);
+      creditsChanged();
     }
   };
 
@@ -347,7 +349,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
         {note && <Notice>{note}</Notice>}
         {error && <Notice>{error}</Notice>}
         {error.includes("/home/credits") ? (
-          <Link href="/home/credits" className="inline-flex min-h-[44px] w-fit items-center gap-1.5 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">
+          <Link href="/home/credits" onClick={(event) => { if (openTopUp()) event.preventDefault(); }} className="inline-flex min-h-[44px] w-fit items-center gap-1.5 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">
             <Icon name="sparkle" size={15} /> {t("img.buyCredits")}
           </Link>
         ) : null}

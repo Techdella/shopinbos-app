@@ -144,7 +144,7 @@ export function CreditsClient({
                     <span className="block text-[12.5px] text-app-ink-soft">{new Date(row.createdAt).toLocaleDateString(locale === "en" ? "en-NG" : undefined, { day: "numeric", month: "short", year: "numeric" })}</span>
                   </span>
                   <span className="text-right">
-                    <span className="block font-bold">{naira(row.naira)}</span>
+                    <span className="block font-bold">{row.packId.startsWith("plan:") ? t("cr.fromPlan") : naira(row.naira)}</span>
                     <span className={cx("block text-[12.5px]", row.status === "paid" ? "text-app-success" : "text-app-danger")}>{row.status === "paid" ? t("cr.statusPaid") : t("cr.statusFailed")}</span>
                   </span>
                 </li>

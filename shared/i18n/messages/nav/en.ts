@@ -181,6 +181,21 @@ const en = {
   "tab.logistics.jobs": "Jobs",
   "tab.logistics.riders": "Riders",
   "tab.logistics.earnings": "Money",
+  "credits.title": "AI credits",
+  "credits.aria": "{count, plural, one {# AI credit left} other {# AI credits left}}. Open to top up.",
+  "credits.short": "credits",
+  "credits.added": "Payment received. Your credits are in.",
+  "credits.pending": "Paystack is still confirming. Your credits will show in a moment.",
+  "credits.notPaid": "The payment didn't go through, so nothing was charged.",
+  "credits.failed": "Couldn't start the payment. Try again.",
+  "credits.autoOn": "Auto top-up on",
+  "credits.freeToday": "Free on your plan today",
+  "credits.replies": "Rex & Peggy replies",
+  "credits.pictures": "Pictures",
+  "credits.how": "When today's free allowance runs out, credits pay for each request.",
+  "credits.topUp": "Top up",
+  "credits.autoOnBuy": "Top me up automatically when credits run out (max 3 times a day)",
+  "credits.manage": "Manage credits and history",
 } satisfies Record<string, string>;
 
 export default en;

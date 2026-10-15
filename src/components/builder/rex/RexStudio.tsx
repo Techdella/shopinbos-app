@@ -16,6 +16,7 @@ import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
 import { RexChat } from "./RexChat";
 import { guessRexJob, type RexJob } from "@shared/rex-progress";
 import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
+import { CreditsBadge, creditsChanged } from "@/components/credits/CreditsBadge";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
@@ -229,6 +230,7 @@ export function RexStudio(props: RexStudioProps) {
         rexSays({ text: error instanceof Error ? error.message : t("rex.st.buildFailed"), tone: "error" });
       } finally {
         setBusy(null);
+        creditsChanged();
       }
       return;
     }
@@ -252,6 +254,7 @@ export function RexStudio(props: RexStudioProps) {
       rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error" });
     } finally {
       setBusy(null);
+      creditsChanged();
     }
   }
 
@@ -398,6 +401,7 @@ export function RexStudio(props: RexStudioProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <CreditsBadge compact />
             <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} />
             <div ref={toolsRef} className="relative hidden sm:block">
               <button

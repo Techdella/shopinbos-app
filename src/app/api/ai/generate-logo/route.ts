@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { creditBalance } from "@/lib/ai/credits.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { aiConfigured, getOpenAIClient } from "@/lib/ai/client";
-import { db } from "@/lib/db/client";
 import { generateImage } from "@/lib/ai/images";
 import { meterAi } from "@/lib/ai/usage";
 import { drawLogoOptions, LOGO_STYLES } from "@/lib/ai/rex/logo";
@@ -33,6 +33,6 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     return NextResponse.json({ error: { code: "generation_failed", message: `Logo generation failed. (${failures.join("; ")})` } }, { status: 500 });
   }
 
-  const credits = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
-  return NextResponse.json({ logos, creditsRemaining: credits?.aiCredits ?? 0 });
+  const credits = await creditBalance(user.id);
+  return NextResponse.json({ logos, creditsRemaining: credits });
 });

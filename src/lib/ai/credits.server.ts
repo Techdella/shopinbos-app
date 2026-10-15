@@ -6,7 +6,7 @@ import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { readSavedAuthorization, savedAuthorization } from "@/lib/domains/billing-pure";
-import { CREDIT_PACKS, CREDIT_REFERENCE_PREFIX, creditPack, packKobo, shouldAutoTopUp } from "@shared/ai-credits";
+import { CREDIT_PACKS, CREDIT_REFERENCE_PREFIX, WELCOME_CREDITS, creditPack, packKobo, planCreditGrant, shouldAutoTopUp } from "@shared/ai-credits";
 
 // Buying AI credits and spending them (rules in shared/ai-credits.ts).
 //
@@ -25,9 +25,23 @@ export interface CreditOverview {
   purchases: Array<{ reference: string; packId: string; credits: number; naira: number; status: string; auto: boolean; createdAt: string }>;
 }
 
+/**
+ * The seller's credit account, opened on first use with the welcome credits. Every balance read and write goes
+ * through here, so a new account never shows 0 on one screen and 5 on another.
+ */
+export async function ensureCreditAccount(userId: string) {
+  try {
+    return await db.aiCreditAccount.upsert({ where: { userId }, create: { userId, balance: WELCOME_CREDITS }, update: {} });
+  } catch (error) {
+    // Two first requests at once: the other one opened the account.
+    if ((error as { code?: string }).code === "P2002") return db.aiCreditAccount.findUniqueOrThrow({ where: { userId } });
+    throw error;
+  }
+}
+
 export async function creditOverview(userId: string): Promise<CreditOverview> {
   const [account, purchases] = await Promise.all([
-    db.aiCreditAccount.findUnique({ where: { userId } }),
+    ensureCreditAccount(userId),
     db.aiCreditPurchase.findMany({ where: { userId, status: { not: "pending" } }, orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
   const card = readSavedAuthorization(account?.authorization);
@@ -41,8 +55,30 @@ export async function creditOverview(userId: string): Promise<CreditOverview> {
 }
 
 export async function creditBalance(userId: string) {
-  const account = await db.aiCreditAccount.findUnique({ where: { userId }, select: { balance: true } }).catch(() => null);
+  const account = await ensureCreditAccount(userId).catch(() => null);
   return account?.balance ?? 0;
+}
+
+/**
+ * Adds a paid plan's credits to the balance, once per Paystack reference (plan upgrade payment or renewal
+ * invoice). Returns the credits added (0 when this reference was already counted or the plan has none).
+ */
+export async function grantPlanCredits(userId: string, planCode: string | null | undefined, reference: string) {
+  const grant = planCreditGrant(planCode);
+  if (!grant) return 0;
+  await ensureCreditAccount(userId);
+  try {
+    await db.$transaction([
+      db.aiCreditPurchase.create({
+        data: { reference: `${CREDIT_REFERENCE_PREFIX}plan-${reference}`, userId, packId: `plan:${planCode}`, credits: grant.credits, amountKobo: 0, status: "paid", paidAt: new Date() },
+      }),
+      db.aiCreditAccount.update({ where: { userId }, data: { balance: { increment: grant.credits } } }),
+    ]);
+    return grant.credits;
+  } catch (error) {
+    if ((error as { code?: string }).code === "P2002") return 0;
+    throw error;
+  }
 }
 
 /** Starts a Paystack checkout for a pack; returns the page to send the seller to. */
@@ -98,13 +134,14 @@ export async function completeCreditPurchase(reference: string): Promise<"paid" 
     throw new CreditError("That payment doesn't match this credit purchase. Contact support if you were charged.");
   }
   const card = row.saveCard ? savedAuthorization(verified.authorization, customer) : null;
+  await ensureCreditAccount(row.userId);
   await db.$transaction(async (tx) => {
     const moved = await tx.aiCreditPurchase.updateMany({ where: { reference, status: "pending" }, data: { status: "paid", paidAt: new Date(), error: null } });
     if (moved.count !== 1) return;
     const remember = card?.reusable ? { authorization: asJson(card), autoTopUp: true, autoPackId: row.packId } : {};
     await tx.aiCreditAccount.upsert({
       where: { userId: row.userId },
-      create: { userId: row.userId, balance: row.credits, ...remember },
+      create: { userId: row.userId, balance: WELCOME_CREDITS + row.credits, ...remember },
       update: { balance: { increment: row.credits }, ...remember },
     });
   });
@@ -121,7 +158,7 @@ export async function setAutoTopUp(userId: string, input: { enabled: boolean; pa
   }
   return db.aiCreditAccount.upsert({
     where: { userId },
-    create: { userId, autoTopUp: false, autoPackId: pack.id },
+    create: { userId, balance: WELCOME_CREDITS, autoTopUp: false, autoPackId: pack.id },
     update: { autoTopUp: input.enabled, autoPackId: pack.id },
   });
 }
@@ -175,6 +212,7 @@ async function autoTopUp(userId: string, need: number): Promise<boolean> {
  * Returns the balance left, or null when there weren't enough credits.
  */
 export async function spendCredits(userId: string, cost: number): Promise<number | null> {
+  await ensureCreditAccount(userId);
   const take = () => db.aiCreditAccount.updateMany({ where: { userId, balance: { gte: cost } }, data: { balance: { decrement: cost } } });
   let taken = await take();
   if (taken.count !== 1 && (await autoTopUp(userId, cost))) taken = await take();
