@@ -25,6 +25,9 @@ import { SupplierSwitchCard } from "@/components/settings/SupplierSwitchCard";
 import { switchSettings } from "@shared/order-parts";
 import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
 import { getT } from "@/lib/i18n/server";
+import { StoreAddressFields } from "@/components/seller-settings/StoreAddressFields";
+import { getPlatformRootDomain } from "@/lib/domains/storefront";
+import { slugCooldownDaysLeft } from "@shared/store-address";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +77,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
 
 
   const storeName = store?.name ?? "Your Store";
-  const storeUrl = store?.slug ? `${store.slug}.shopinbos.shop` : undefined;
   const storeLogoUrl = store?.logoUrl;
   const initials = user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
   const pendingInvites = (brandSettings.pendingInvites ?? []) as string[];
@@ -110,17 +112,13 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                   <Card className="p-5">
                     <CardHead title={t("details.title")} />
                     <div className="mt-4 grid gap-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="min-w-0">
-                          <label htmlFor="storeName" className={FIELD_LABEL}>{t("details.name")}</label>
-                          <input id="storeName" name="storeName" className={FIELD_INPUT} defaultValue={storeName} />
-                        </div>
-                        <div className="min-w-0">
-                          <label htmlFor="slug" className={FIELD_LABEL}>{t("details.slug")}</label>
-                          <input id="slug" name="slug" className={FIELD_INPUT} defaultValue={store?.slug ?? ""} />
-                          {storeUrl && <p className={`${FIELD_HELP} truncate`}>{t("details.address", { url: storeUrl })}</p>}
-                        </div>
-                      </div>
+                      <StoreAddressFields
+                        name={storeName}
+                        slug={store?.slug ?? ""}
+                        rootDomain={getPlatformRootDomain()}
+                        live={store?.status === "active"}
+                        daysLeft={slugCooldownDaysLeft(store?.slugChangedAt)}
+                      />
                       <div>
                         <label htmlFor="tagline" className={FIELD_LABEL}>{t("details.tagline")}</label>
                         <input id="tagline" name="tagline" className={FIELD_INPUT} defaultValue={typeof brandSettings.tagline === "string" ? brandSettings.tagline : ""} />

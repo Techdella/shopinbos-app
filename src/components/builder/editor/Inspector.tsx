@@ -273,6 +273,19 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
     case "text":
     case "textarea": {
       const value = str(readTarget(section, field.target));
+      // The header's shop name follows the store name from Settings unless the seller types a different one.
+      if (field.id === "logoText") {
+        return (
+          <FieldShell id={id} label={field.label} help={tx("Leave empty to use your store name.")}>
+            <input id={id} className={inputClass} value={value} placeholder={props.storeName} onChange={(event) => set(event.target.value)} />
+            {value.trim() && value.trim() !== props.storeName ? (
+              <button type="button" onClick={() => set("")} className="mt-1.5 justify-self-start border-0 bg-transparent p-0 text-[12.5px] font-bold text-app-ink underline underline-offset-2">
+                {t("edk.useStoreName", { name: props.storeName })}
+              </button>
+            ) : null}
+          </FieldShell>
+        );
+      }
       return (
         <FieldShell id={id} label={field.label} help={field.help}>
           {field.type === "text"

@@ -42,8 +42,9 @@ export async function generateMetadata({ params, searchParams }: Props & { searc
   return storeHomeMetadata(store, buildStorefrontUrl({ slug: storeRef.slug, customDomain: normalizeDomain(decodeURIComponent(domain)) }), google || undefined);
 }
 
-export default async function CustomDomainStorefrontPage({ params }: Props) {
+export default async function CustomDomainStorefrontPage({ params, searchParams }: Props & { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { domain } = await params;
+  const requestedPage = (await searchParams).page;
   const storeRef = await getStoreByCustomDomain(domain);
   if (!storeRef) notFound();
 
@@ -56,5 +57,5 @@ export default async function CustomDomainStorefrontPage({ params }: Props) {
   if (view.access === "closed") return <StoreClosedPage store={view.brand} basePath={storeBasePath} path={null} />;
   if (view.access === "preview") return <PreviewClient store={view.store} storeBasePath={storeBasePath} live={false} />;
 
-  return <StorefrontClient store={view.store} storeBasePath={storeBasePath} />;
+  return <StorefrontClient store={view.store} storeBasePath={storeBasePath} initialPage={typeof requestedPage === "string" ? requestedPage : undefined} />;
 }

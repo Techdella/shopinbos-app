@@ -556,6 +556,7 @@ const en = {
   "edk.whatsappOn": "Shoppers can message you on WhatsApp ({number}) from the contact page and every product page.",
   "edk.workingOn": "Working on {name}",
   "edk.yourStore": "your store",
+  "edk.useStoreName": "Use your store name ({name})",
   "ed.Apps add a section to your home page. Move it, edit it or hide it like any other section.": "Apps add a section to your home page. Move it, edit it or hide it like any other section.",
   "ed.Apps work with the newer themes. Pick one in Themes to use reviews and the countdown timer.": "Apps work with the newer themes. Pick one in Themes to use reviews and the countdown timer.",
   "ed.Apps add sections to your home page. This store doesn't have a home page yet.": "Apps add sections to your home page. This store doesn't have a home page yet.",

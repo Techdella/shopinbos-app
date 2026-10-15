@@ -92,7 +92,8 @@ function section(
 function blankHeader(storeName: string) {
   return section("blank-header", "header", "Header", [
     block("blank-header-copy", "copy", {
-      logoText: storeName,
+      // Empty: the header shows the store name from Settings, and follows it when it changes.
+      logoText: "",
       navLinks: ["home", "products", "about", "contact"],
       utilityLinks: ["cart"],
       cartLabel: "Cart",

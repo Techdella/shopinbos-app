@@ -1261,9 +1261,18 @@ function ClassicTemplateSurface({
     navigate(nextAction);
   }
 
-  function openProduct(product: RenderProduct) {
-    setSelectedProductId(product.mappedStoreProductId ?? product.id);
+  /** On a live store a real product opens at its own address (/product/<id>), like boutique themes. */
+  function openProductPage(productId: string) {
+    if (mode === "live" && store.storeProducts.some((entry) => entry.id === productId)) {
+      window.location.assign(getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(productId)}`));
+      return;
+    }
+    setSelectedProductId(productId);
     navigate("product");
+  }
+
+  function openProduct(product: RenderProduct) {
+    openProductPage(product.mappedStoreProductId ?? product.id);
   }
 
   async function submitStoreForm(type: "contact" | "newsletter") {
@@ -1358,10 +1367,7 @@ function ClassicTemplateSurface({
         const openLink = (link: HeroSlide["link"]) => {
           if (link.type === "product") {
             const product = store.storeProducts.find((entry) => entry.id === link.value);
-            if (product) {
-              setSelectedProductId(product.id);
-              navigate("product");
-            }
+            if (product) openProductPage(product.id);
             return;
           }
           if (link.type === "url") {
@@ -3279,7 +3285,7 @@ function ClassicTemplateSurface({
               : <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>}
             <div>
               <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
-                {String(headerCopy.logoText ?? store.name)}
+                {String(headerCopy.logoText ?? "").trim() || store.name}
               </div>
             </div>
           </button>

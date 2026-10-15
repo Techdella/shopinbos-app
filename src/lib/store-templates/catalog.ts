@@ -287,7 +287,8 @@ function buildHeaderSection(source: TemplateSourceRecord): TemplateSectionNode {
       utilityLinks: nav.utilityLinks,
       cartLabel: "Cart",
       ctaLabel: nav.ctaLabel || (source.category === "food" ? "Shop groceries" : "Shop now"),
-      logoText: nav.logoText,
+      // Empty so the seller's store name shows, never the theme's demo brand.
+      logoText: "",
     }),
   ]);
 }

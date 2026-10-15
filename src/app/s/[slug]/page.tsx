@@ -113,8 +113,9 @@ function buildJsonLd(store: StoreData) {
   return [organization, website, ...products];
 }
 
-export default async function StorefrontPage({ params }: Props) {
+export default async function StorefrontPage({ params, searchParams }: Props & { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { slug } = await params;
+  const requestedPage = (await searchParams).page;
   const view = await resolveStorefront(slug);
   if (view.access === "missing") notFound();
 
@@ -153,7 +154,7 @@ export default async function StorefrontPage({ params }: Props) {
         />
       ))}
 
-      <StorefrontClient store={store} storeBasePath={storeBasePath} />
+      <StorefrontClient store={store} storeBasePath={storeBasePath} initialPage={typeof requestedPage === "string" ? requestedPage : undefined} />
     </>
   );
 }

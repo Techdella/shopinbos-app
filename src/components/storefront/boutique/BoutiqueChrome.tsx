@@ -14,7 +14,17 @@ export interface ChromeStore {
   country?: string | null;
 }
 
-export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean };
+/** A store page (lives on /?page=<key>). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
+export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean; href?: string };
+
+/** Ordinary clicks switch page in place; Ctrl/⌘/Shift/middle clicks keep the browser's own link behaviour. */
+function pageLinkClick(link: ChromeLink) {
+  return (event: React.MouseEvent<HTMLElement>) => {
+    if (link.href && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    event.preventDefault();
+    link.onSelect();
+  };
+}
 /** A plain link (legal pages live on their own URLs, not ?page=). */
 export type ChromeHref = { key: string; label: string; href: string };
 
@@ -133,16 +143,16 @@ export function BoutiqueHeader({
         link.key === "products" ? (
           <ShopMenu key={link.key} look={look} categories={categories} onShopAll={onShopAll} onCategory={onCategory} />
         ) : (
-          <button
+          <a
             key={link.key}
-            type="button"
-            onClick={link.onSelect}
+            href={link.href ?? "#"}
+            onClick={pageLinkClick(link)}
             aria-current={link.current ? "page" : undefined}
             className="border-0 bg-transparent px-1 py-2"
             style={{ color: "inherit", cursor: "pointer", textDecoration: link.current ? "underline" : "none", textUnderlineOffset: 6, ...look.navStyle }}
           >
             {link.label}
-          </button>
+          </a>
         ),
       )}
     </nav>
@@ -234,9 +244,9 @@ export function BoutiqueFooter({
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
               {links.map((link) => (
                 <li key={link.key}>
-                  <button type="button" onClick={link.onSelect} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
+                  <a href={link.href ?? "#"} onClick={pageLinkClick(link)} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
                     {link.label}
-                  </button>
+                  </a>
                 </li>
               ))}
               {onTrackOrder ? (

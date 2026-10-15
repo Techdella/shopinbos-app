@@ -105,6 +105,8 @@ interface Props {
   onSelectPage?: (page: string) => void;
   selectedSectionId?: string | null;
   onSelectSection?: (sectionId: string | null) => void;
+  /** The ?page= the shopper asked for, so the server renders that page rather than flashing home first. */
+  initialPage?: string;
 }
 
 const velourFallbackImages = [
@@ -554,6 +556,7 @@ export function StorefrontClient({
   onSelectPage,
   selectedSectionId,
   onSelectSection,
+  initialPage,
 }: Props) {
   const templateRootRef = useRef<HTMLDivElement>(null);
   // Capture ?sib_c from email campaign links (no-op in the editor preview).
@@ -566,7 +569,7 @@ export function StorefrontClient({
   // Sellers can turn wishlists off; hearts and the wishlist tab then disappear on the live store.
   const wishlistOn = previewMode || cartSettings.wishlist;
   // Live storefronts own the current page so the phone bottom nav can go Home, and ?page= / ?q= links work.
-  const [livePage, setLivePage] = useState("home");
+  const [livePage, setLivePage] = useState(() => (initialPage && /^[a-z-]{2,20}$/.test(initialPage) ? initialPage : "home"));
   const [initialQuery, setInitialQuery] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (previewMode) return;
@@ -576,9 +579,35 @@ export function StorefrontClient({
     const q = params.get("q")?.trim();
     if (q) setInitialQuery(q.slice(0, 80));
   }, [previewMode]);
+  // Back/Forward move between the pages a shopper opened (each one is its own /?page= address).
+  useEffect(() => {
+    if (previewMode) return;
+    const onPop = () => {
+      const requested = new URLSearchParams(window.location.search).get("page");
+      setLivePage(requested && /^[a-z-]{2,20}$/.test(requested) ? requested : "home");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [previewMode]);
   function selectLivePage(page: string) {
     setLivePage(page);
-    if (page === "home") window.scrollTo({ top: 0 });
+    if (!previewMode) {
+      // Every page gets its own address (/?page=about), so it can be shared, bookmarked and refreshed.
+      const params = new URLSearchParams(window.location.search);
+      const current = params.get("page") || "home";
+      if (page === "home") params.delete("page");
+      else params.set("page", page);
+      if (page !== "products") {
+        params.delete("category");
+        params.delete("sort");
+        params.delete("q");
+      }
+      const query = params.toString();
+      const next = `${window.location.pathname}${query ? `?${query}` : ""}`;
+      if (current !== page) window.history.pushState({ page }, "", next);
+      else window.history.replaceState({ page }, "", next);
+    }
+    window.scrollTo({ top: 0 });
   }
 
   const snapshot = useMemo(() => {

@@ -2739,3 +2739,26 @@ test("product CSV import reads loose headers, photo links and uploaded photo nam
   assert.deepEqual(imp.mapImportRow({ name: "", price: "10" }, "NGN"), { error: "missing name" });
   assert.deepEqual(imp.splitImageCell("https://x.example/w_10,h_10/a.jpg, b.png,c.webp"), ["https://x.example/w_10,h_10/a.jpg", "b.png", "c.webp"]);
 });
+
+test("store web address: normalized, reserved names refused, 30-day limit, old addresses redirect to the same page", async () => {
+  const a = await import("../shared/store-address.ts");
+  assert.equal(a.normalizeStoreSlug("Ada's Fabrics & Co."), "adas-fabrics-co");
+  assert.equal(a.normalizeStoreSlug("  Café Lagos  "), "cafe-lagos");
+  assert.match(a.storeSlugShapeProblem("ab", new Set()), /at least 3/);
+  assert.match(a.storeSlugShapeProblem("admin", new Set(["admin"])), /reserved/);
+  assert.equal(a.storeSlugShapeProblem("rexi", new Set(["admin"])), null);
+
+  const now = new Date("2026-10-28T12:00:00Z");
+  assert.equal(a.slugCooldownDaysLeft(null, now), 0);
+  assert.equal(a.slugCooldownDaysLeft(new Date("2026-10-27T12:00:00Z"), now), 29);
+  assert.equal(a.slugCooldownDaysLeft(new Date("2026-09-01T12:00:00Z"), now), 0);
+
+  assert.deepEqual(a.nextPreviousSlugs(["older"], "old", "new"), ["old", "older"]);
+  assert.deepEqual(a.nextPreviousSlugs(["new", "older"], "old", "new"), ["old", "older"], "taking back an old address drops it from the list");
+  assert.equal(a.nextPreviousSlugs(["a", "b", "c", "d", "e"], "old", "new").length, a.PREVIOUS_SLUGS_KEPT);
+
+  assert.equal(a.renamedStoreTarget({ host: "joanna.mybos.store", path: "/product/abc?x=1", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), "https://rexi.mybos.store/product/abc?x=1");
+  assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna/cart", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi/cart");
+  assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna?page=about", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi?page=about");
+  assert.equal(a.renamedStoreTarget({ host: "other.mybos.store", path: "/", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), null);
+});
