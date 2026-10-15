@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { creditBalance } from "@/lib/ai/credits.server";
 import { withSeller } from "@/lib/auth/middleware";
-import { db } from "@/lib/db/client";
 import { ImageUnavailableError, isOwnImageUrl, MAX_REFERENCES, normaliseImageSize } from "@/lib/ai/images";
 import { loadSellerBrandContext } from "@/lib/ai/brand-context.server";
 import { makeBrandImage } from "@/lib/ai/brand-image.server";
-import { meterAi } from "@/lib/ai/usage";
+import { aiAllowanceToday, meterAi } from "@/lib/ai/usage";
+import { db } from "@/lib/db/client";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -40,13 +41,16 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       referenceUrls: references,
       path: `generated/${user.id}/${Date.now()}`,
     });
-    const credits = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
+    const plan = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
+    const [credits, allowance] = await Promise.all([creditBalance(user.id), aiAllowanceToday(user.id, plan?.aiCredits)]);
+    const pictures = allowance?.find((row) => row.kind === "image") ?? null;
     return NextResponse.json({
+      pictures: pictures ? { used: pictures.used, limit: pictures.limit } : null,
       image: { url: result.url, size, style: body.style ?? null },
       usedLogo: result.usedLogo,
       usedReferences: result.usedReferences,
       logoProblem: result.logoProblem,
-      creditsRemaining: credits?.aiCredits ?? 0,
+      creditsRemaining: credits,
     });
   } catch (error) {
     const status = error instanceof ImageUnavailableError ? 503 : 500;

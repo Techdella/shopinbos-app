@@ -16,6 +16,7 @@ import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
 import { RexChat } from "./RexChat";
 import { guessRexJob, type RexJob } from "@shared/rex-progress";
 import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
+import { CreditsBadge, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
@@ -171,6 +172,8 @@ export function RexStudio(props: RexStudioProps) {
       .slice(-MAX_HISTORY);
   }
 
+  const [attachRequest, setAttachRequest] = useState<{ url: string; n: number } | null>(null);
+
   function rexSays(message: Omit<Extract<ChatMessage, { role: "rex" }>, "id" | "role">) {
     setMessages((prev) => [...prev, { id: nextId(), role: "rex", ...message }]);
   }
@@ -229,6 +232,7 @@ export function RexStudio(props: RexStudioProps) {
         rexSays({ text: error instanceof Error ? error.message : t("rex.st.buildFailed"), tone: "error" });
       } finally {
         setBusy(null);
+        creditsChanged();
       }
       return;
     }
@@ -244,14 +248,15 @@ export function RexStudio(props: RexStudioProps) {
       const messagesForRex = [...past, { role: "user" as const, content: [request, ...attachedNote].join("\n") }];
       const result = await askRex({ messages: messagesForRex, imageUrls });
       if (result.draft) takeDraft(result.draft, result.versions);
-      rexSays({ text: result.text, cards: result.cards });
+      rexSays({ text: result.text, cards: result.cards, ...(result.creditsNeeded ? { buyCredits: true } : {}) });
       // Rex changed the store or was asked to show it: open the preview on the page he worked on.
       const storeCard = [...result.cards].reverse().find((card) => card.type === "store" || card.type === "preview");
       if (result.draft || storeCard) showPreview(storeCard && "page" in storeCard ? storeCard.page : null);
     } catch (error) {
-      rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error" });
+      rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
     } finally {
       setBusy(null);
+      creditsChanged();
     }
   }
 
@@ -398,7 +403,8 @@ export function RexStudio(props: RexStudioProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} />
+            <CreditsBadge compact />
+            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} creations onUseCreation={(url) => setAttachRequest({ url, n: Date.now() })} />
             <div ref={toolsRef} className="relative hidden sm:block">
               <button
                 type="button"
@@ -469,6 +475,7 @@ export function RexStudio(props: RexStudioProps) {
             onUndo={undo}
             onOpenPreview={showPreview}
             undoingId={undoingId}
+            attachRequest={attachRequest}
           />
         </section>
 

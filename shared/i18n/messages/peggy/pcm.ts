@@ -39,6 +39,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "neverAlone": "She no dey send message, post anything or start ads by herself; e dey save them as draft make you check.",
   "didThis": "Peggy do this one",
   "askRex": "Ask Rex: {request}",
+  "buyCredits": "Buy AI credits",
 };
 
 export default pcm;

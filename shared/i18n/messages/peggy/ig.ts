@@ -39,6 +39,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "neverAlone": "Ọ naghị eziga ozi, bipụta posts ma ọ bụ malite ads n'onwe ya; ọ na-echekwa ha dị ka draft ka ị lelee ha.",
   "didThis": "Peggy mere nke a",
   "askRex": "Jụọ Rex: {request}",
+  "buyCredits": "Zụta kredit AI",
 };
 
 export default ig;

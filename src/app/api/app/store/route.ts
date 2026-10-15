@@ -4,16 +4,14 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { mergeBrandSettings, slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
+import { clearStaleShopNames, clearStaleShopNamesInStorePages, isStoreSlugTaken } from "@/lib/store-address.server";
+import { refreshLogoVariants } from "@/lib/logo-variants.server";
 
 async function uniqueStoreSlug(baseName: string, userId: string, currentStoreId?: string) {
   const base = slugify(baseName) || "store";
   const ownedSlug = `${base}-${userId.slice(0, 6)}`;
-  const existing = await db.store.findUnique({
-    where: { slug: base },
-    select: { id: true },
-  });
-
-  if (!existing || existing.id === currentStoreId) return base;
+  // Another store's old addresses stay theirs (they redirect), so they count as taken too.
+  if (!(await isStoreSlugTaken(base, currentStoreId))) return base;
   return ownedSlug;
 }
 
@@ -135,14 +133,19 @@ export const PATCH = withSeller(async (req: NextRequest, { user }: { user: AuthU
         updateData.brandSettings = mergeBrandSettings(store.brandSettings, body[key] as Record<string, unknown>);
       } else if (key === "name" && typeof body[key] === "string") {
         const name = body[key].trim();
-        if (name) {
-          updateData.name = name;
-          updateData.slug = await uniqueStoreSlug(name, user.id, store.id);
-        }
+        // Renaming never moves the store's web address (that would break every link already shared); the
+        // address changes only through Settings › Store web name, which keeps the old one redirecting.
+        if (name && name !== store.name) updateData.name = name;
       } else if (typeof body[key] === "string" || typeof body[key] === "boolean" || body[key] === null) {
         updateData[key] = body[key];
       }
     }
+  }
+
+  // Header "Shop name" fields that still say the old name follow the new one.
+  if (updateData.name) {
+    const cleared = clearStaleShopNames(updateData.brandSettings ?? store.brandSettings, store.name);
+    if (cleared) updateData.brandSettings = cleared;
   }
 
   if ("customDomain" in body) {
@@ -165,6 +168,9 @@ export const PATCH = withSeller(async (req: NextRequest, { user }: { user: AuthU
     where: { id: store.id },
     data: updateData as any,
   });
+  if (updateData.name) await clearStaleShopNamesInStorePages(store.id, store.name);
+  // A new logo is measured for dark headers and footers (and gets its re-inked version when it can).
+  if ("logoUrl" in updateData && updateData.logoUrl !== store.logoUrl) await refreshLogoVariants(store.id, user.id, updateData.logoUrl as string | null);
 
   return ok(updated);
 });

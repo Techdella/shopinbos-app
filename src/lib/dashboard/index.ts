@@ -46,7 +46,7 @@ export async function getSellerDashboard(userId: string, now = new Date()) {
       where: { storeId: store.id, status: { not: "archived" } },
       orderBy: { soldStock: "desc" },
       take: 200,
-      select: { id: true, name: true, images: true, retailPrice: true, currentStock: true, lowStockThreshold: true, soldStock: true },
+      select: { id: true, name: true, images: true, retailPrice: true, currentStock: true, lowStockThreshold: true, soldStock: true, trackStock: true },
     }),
     countSafely(db.message.count({ where: { read: false, senderId: { not: userId }, conversation: { OR: [{ participant1Id: userId }, { participant2Id: userId }] } } })),
     countSafely(db.message.count({ where: { createdAt: { gte: today }, senderId: { not: userId }, conversation: { OR: [{ participant1Id: userId }, { participant2Id: userId }] } } })),

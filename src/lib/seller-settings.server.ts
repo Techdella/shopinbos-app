@@ -1,5 +1,6 @@
 import "server-only";
 
+import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { readBusinessAddress } from "@/lib/email/shell";
@@ -10,22 +11,30 @@ import { cleanBusinessAddress, type BusinessAddressKey, type ProfilePatch } from
 
 /**
  * Shop name, web address, description and city (web Settings › Store details). A missing or empty name, slug or
- * city keeps the current one; a missing description keeps it, an empty one clears it. Returns false without a store.
+ * city keeps the current one; a missing description keeps it, an empty one clears it. Saves the store's details. The name never changes the web address; a different `slug` is an explicit address
+ * change (changeStoreSlug: validated, rate-limited, the old address keeps redirecting). Returns false without a
+ * store, or { error } when the new address can't be used (the other fields are still saved).
  */
-export async function saveStoreDetails(userId: string, input: { name?: string; slug?: string; description?: string; city?: string }) {
+export async function saveStoreDetails(userId: string, input: { name?: string; slug?: string; description?: string; city?: string }): Promise<false | { error?: string }> {
   const store = await db.store.findUnique({ where: { userId } });
   if (!store) return false;
+  const name = input.name?.trim() || store.name;
+  const renamedSettings = name !== store.name ? clearStaleShopNames(store.brandSettings, store.name) : null;
   await db.store.update({
     where: { id: store.id },
     data: {
-      name: input.name?.trim() || store.name,
-      slug: input.slug?.trim() || store.slug,
+      name,
       description: input.description === undefined ? store.description : input.description.trim(),
       city: (input.city?.trim() || store.city || "").trim(),
-      brandSettings: mergeBrandSettings(store.brandSettings, {}),
+      brandSettings: mergeBrandSettings(renamedSettings ?? store.brandSettings, {}),
     },
   });
-  return true;
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name);
+  if (input.slug?.trim() && input.slug.trim() !== store.slug) {
+    const moved = await changeStoreSlug(store.id, input.slug);
+    if (!moved.ok) return { error: moved.message };
+  }
+  return {};
 }
 
 /**

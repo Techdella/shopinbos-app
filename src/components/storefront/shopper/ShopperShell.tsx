@@ -7,6 +7,8 @@ import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { StoreFootnote } from "./StoreFooterBadges";
+import { StoreBrandMark } from "../StoreBrandMark";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { ShopperTheme } from "./theme";
 
 // Frame for the bag, wishlist, checkout and order pages: the store's name and colours, a way back to
@@ -16,6 +18,7 @@ export function ShopperShell({
   theme,
   storeName,
   logoUrl,
+  brandSettings,
   basePath,
   title,
   bagCount,
@@ -27,6 +30,8 @@ export function ShopperShell({
   theme: ShopperTheme;
   storeName: string;
   logoUrl?: string | null;
+  /** For the logo icon, how the header shows the brand and the logo for dark backgrounds (Brand kit). */
+  brandSettings?: unknown;
   basePath: string;
   title?: string;
   bagCount?: number;
@@ -45,10 +50,9 @@ export function ShopperShell({
         Skip to content
       </a>
       <header className="sticky top-[var(--sb-preview-h,0px)] z-30 border-b backdrop-blur" style={{ background: `${theme.headerBg}F2`, borderColor: theme.border }}>
-        <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-10">
+        <div className="flex min-h-16 py-1.5 items-center gap-3 px-4 sm:px-6 lg:px-10">
           <Link href={getPublicStorefrontPath(basePath, "/")} className="flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">
-            {logoUrl ? <img src={logoUrl} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-[10px] object-cover" /> : null}
-            <span className="truncate text-[17px] font-semibold" style={{ fontFamily: theme.heading, color: theme.headerText }}>{storeName}</span>
+            <StoreBrandMark store={{ logoUrl, brandSettings }} name={storeName} background={theme.headerBg} nameClassName="text-[17px] font-semibold" nameStyle={{ fontFamily: theme.heading, color: theme.headerText }} />
           </Link>
           {title ? <span className="hidden truncate text-[14px] sm:inline" style={{ color: theme.muted }}>/ {title}</span> : null}
           <nav aria-label="Shopping" className="ml-auto flex items-center gap-1.5">

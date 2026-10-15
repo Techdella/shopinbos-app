@@ -38,6 +38,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "stock.soldOut": "Ọ gwụla",
   "stock.left": "{count} fọdụrụ",
   "stock.inStock": "{count} dị n'aka",
+  "stock.notTracked": "Anaghị agụ ya",
   "list.featured": "A pụtara ìhè",
   "list.hiddenFromStore": "Ezoro ezo na store",
   "list.sold": "E rere {count}",

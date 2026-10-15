@@ -245,6 +245,10 @@ export const StoreProductCreateSchema = z.object({
   currentStock: z.number().int().min(0).default(0),
   reservedStock: z.number().int().min(0).default(0),
   lowStockThreshold: z.number().int().min(0).default(10),
+  // "Track stock" (shared/product-stock.ts). Left out on create: on when a count above 0 (or per-version counts) is
+  // given; left out on edit: switched on when a count above 0 is sent (see stockTrackingFor).
+  trackStock: z.boolean().optional(),
+  continueSellingWhenOut: z.boolean().optional(),
   // Page builder
   pageVariant: ProductPageVariantSchema.default("shopify"),
   pageLayout: jsonObject().default({}),
@@ -278,6 +282,8 @@ export const InventoryUpdateSchema = z.object({
   incomingStock: z.number().int().min(0).optional(),
   damagedStock: z.number().int().min(0).optional(),
   lowStockThreshold: z.number().int().min(0).optional(),
+  // Left out: switched on when a count above 0 is set (setting a count means counting it).
+  trackStock: z.boolean().optional(),
   note: z.string().max(500).optional(),
 });
 

@@ -392,12 +392,14 @@ export interface PeggyStockProduct {
   lowStockThreshold: number;
   soldStock: number;
   status: string;
+  /** false: not tracked (never low). */
+  trackStock?: boolean;
 }
 
 /** Products at or below their own low-stock level, best sellers and emptiest first. */
 export function lowStockProducts<T extends PeggyStockProduct>(products: T[]): T[] {
   return products
-    .filter((p) => p.status !== "archived" && p.currentStock <= p.lowStockThreshold)
+    .filter((p) => p.status !== "archived" && p.trackStock !== false && p.currentStock <= p.lowStockThreshold)
     .sort((a, b) => b.soldStock - a.soldStock || a.currentStock - b.currentStock);
 }
 

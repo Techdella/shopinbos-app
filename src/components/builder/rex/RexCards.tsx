@@ -323,6 +323,49 @@ function MarketingCard({ card }: { card: Extract<RexCard, { type: "marketing" }>
   );
 }
 
+/** Rex's brand work: the style book, a new logo icon or favicon (with "Use it"), or labels set up in the Print studio. */
+function BrandCard({ card }: { card: Extract<RexCard, { type: "brand" }> } & RexCardHandlers) {
+  const t = useT("builder", "common");
+  const confirm = useConfirm();
+  const icon = card.kind === "print" ? "tag" : card.kind === "book" ? "book" : "image";
+  return (
+    <section className={shell} aria-label={card.title}>
+      <div className="flex items-start gap-3">
+        {card.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={card.image} alt={card.title} className={cx("h-20 w-20 shrink-0 rounded-[16px] border border-app-line", card.kind === "display" ? "bg-white object-contain p-1.5" : "object-cover")} />
+        ) : (
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-app-peach"><Icon name={icon} size={17} /></span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="m-0 text-[12.5px] font-bold text-app-ink-soft">{t(`rex.br.${card.kind}`)}</p>
+          <h3 className="m-0 text-[15px] font-extrabold leading-tight">{card.title}</h3>
+          <p className="m-0 mt-1 text-[13.5px] leading-[1.45] text-app-ink-soft">{card.summary}</p>
+          {card.swatches?.length ? (
+            <div className="mt-2 flex gap-1.5">
+              {card.swatches.map((colour, index) => <span key={`${colour}-${index}`} title={colour} className="h-6 w-6 rounded-full border border-app-line" style={{ background: colour }} />)}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(card.kind === "icon" || card.kind === "favicon") && card.image && !confirm.done ? (
+          <button type="button" className={primary} disabled={Boolean(confirm.busy)} onClick={() => void confirm.run("use", { action: "set_brand_asset", kind: card.kind as "icon" | "favicon", url: card.image! })}>
+            {confirm.busy ? <Spinner className="h-4 w-4" /> : <Icon name="check" size={15} />} {card.kind === "icon" ? t("rex.br.useIcon") : t("rex.br.useFavicon")}
+          </button>
+        ) : null}
+        <Link href={card.href} className={card.kind === "print" || card.kind === "book" ? primary : secondary}>
+          {card.kind === "print" ? t("rex.br.openPrint") : card.kind === "book" ? t("rex.br.openBook") : t("rex.br.openKit")}
+        </Link>
+        {card.image && card.kind !== "display" ? (
+          <a href={card.image} target="_blank" rel="noopener noreferrer" download className={secondary}><Icon name="download" size={15} /> {t("rex.cd.download")}</a>
+        ) : null}
+      </div>
+      <Outcome {...confirm} />
+    </section>
+  );
+}
+
 function HealthCard({ card, onAsk, busy }: { card: Extract<RexCard, { type: "health" }> } & RexCardHandlers) {
   const t = useT("builder", "common");
   return (
@@ -377,6 +420,8 @@ export function RexCardView({ card, ...handlers }: { card: RexCard } & RexCardHa
       return <VideoCard card={card} {...handlers} />;
     case "marketing":
       return <MarketingCard card={card} {...handlers} />;
+    case "brand":
+      return <BrandCard card={card} {...handlers} />;
     case "health":
       return <HealthCard card={card} {...handlers} />;
     case "preview":

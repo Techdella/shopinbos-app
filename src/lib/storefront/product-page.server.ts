@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import {
   BOUTIQUE_TEMPLATE_MANIFESTS,
   createSnapshotFromTemplate,
+  getTemplateManifest,
   isBoutiqueTheme,
   type BoutiqueThemeId,
   type StoreEditorSnapshot,
@@ -14,6 +15,7 @@ import { loadShopperInfo } from "./shopper-info.server";
 import type { StorefrontShopperInfo } from "./shopper-info";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
+import { forShoppers } from "@shared/product-stock";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
 
@@ -36,6 +38,23 @@ export function boutiqueSnapshotFor(themeId: BoutiqueThemeId, brandSettings: unk
   const published = record(record(settings.editor).published) as unknown as StoreEditorSnapshot;
   if (published && published.templateId === themeId && Array.isArray(published.pages)) return published;
   const manifest = BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === themeId)!;
+  const snapshot = createSnapshotFromTemplate(manifest);
+  const tokens = record(settings.themeTokens);
+  if (Object.keys(tokens).length) snapshot.themeTokens = { ...snapshot.themeTokens, ...(tokens as Partial<ThemeTokenSet>) };
+  return snapshot;
+}
+
+/**
+ * The snapshot a classic (pre-2026) store's product page reads its product page settings and theme colours from: the
+ * published editor snapshot, else the chosen template with the store's saved colours. Null when neither exists.
+ */
+export function classicSnapshotFor(brandSettings: unknown): StoreEditorSnapshot | null {
+  const settings = record(brandSettings);
+  const published = record(record(settings.editor).published) as unknown as StoreEditorSnapshot;
+  if (published && typeof published.templateId === "string" && !isBoutiqueTheme(published.templateId) && Array.isArray(published.pages) && published.themeTokens) return published;
+  const templateId = resolveStoreTemplateId(brandSettings);
+  const manifest = templateId && !isBoutiqueTheme(templateId) ? getTemplateManifest(templateId) : null;
+  if (!manifest) return null;
   const snapshot = createSnapshotFromTemplate(manifest);
   const tokens = record(settings.themeTokens);
   if (Object.keys(tokens).length) snapshot.themeTokens = { ...snapshot.themeTokens, ...(tokens as Partial<ThemeTokenSet>) };
@@ -83,6 +102,13 @@ const catalogSelect = {
   productType: true,
   tags: true,
   supplierProduct: { select: { stockQuantity: true } },
+  // Stock as shoppers see it (forShoppers turns these into `stock` and drops the raw counts).
+  fulfillmentType: true,
+  trackStock: true,
+  continueSellingWhenOut: true,
+  currentStock: true,
+  reservedStock: true,
+  lowStockThreshold: true,
 } as const;
 
 /**
@@ -111,6 +137,11 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
         returnPolicy: true,
         productDetails: true,
         relatedProductIds: true,
+        supportInfo: true,
+        faqs: true,
+        videoUrl: true,
+        // The seller's own layout / sections for this product (product-override.ts), when they chose any.
+        pageLayout: true,
       },
     }),
   ]);
@@ -150,8 +181,10 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const { status: _status, brandSettings, ...rest } = store;
   void _status;
   const publicStore = { ...rest, brandSettings: publicBrandSettings(brandSettings) };
-  const { status: _productStatus, ...publicProduct } = product;
+  const { status: _productStatus, ...productRow } = product;
   void _productStatus;
+  const publicProduct = forShoppers(productRow);
+  const shopperCatalog = catalog.map((entry) => forShoppers(entry));
 
   return {
     store: publicStore,
@@ -165,9 +198,9 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     avgRating,
     reviewCount,
     ratingCounts,
-    catalog,
+    catalog: shopperCatalog,
     // "Customers also like": the seller's picks (up to 8), else the closest products in the store.
-    related: relatedProducts(publicProduct, catalog),
+    related: relatedProducts(publicProduct, shopperCatalog),
     shopper: shopper as StorefrontShopperInfo,
     themeId: isBoutiqueTheme(templateId) ? templateId : null,
   };
@@ -196,7 +229,7 @@ export const loadStoreChrome = cache(async (slug: string) => {
     themeId: templateId,
     snapshot: boutiqueSnapshotFor(templateId, brandSettings),
     store: { ...rest, brandSettings: publicBrandSettings(brandSettings) },
-    catalog,
+    catalog: catalog.map((entry) => forShoppers(entry)),
     shopper: shopper as StorefrontShopperInfo,
   };
 });

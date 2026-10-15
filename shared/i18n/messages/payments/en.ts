@@ -243,9 +243,9 @@ const en = {
   "cr.buySub": "Pay once with card, bank transfer or USSD through Paystack. Credits don't expire.",
   "cr.badge.medium": "Most popular",
   "cr.badge.large": "Best value",
-  "cr.pack.small": "Small chops",
-  "cr.pack.medium": "Market day",
-  "cr.pack.large": "Owambe size",
+  "cr.pack.small": "Quick top-up",
+  "cr.pack.medium": "Business pack",
+  "cr.pack.large": "Power pack",
   "cr.credits": "credits",
   "cr.each": "{price} per credit",
   "cr.buyPack": "Buy for {price}",
@@ -277,6 +277,10 @@ const en = {
   "cr.cost": "{count, plural, one {# credit} other {# credits}}",
   "cr.today": "Today's allowance",
   "cr.settingsLine": "{count, plural, one {# credit left} other {# credits left}}. Buy more so Rex and Peggy keep going after today's allowance.",
+  "cr.topUp": "Top up",
+  "cr.fromPlan": "From your plan",
+  "cr.outLine": "You're out of credits. Your free daily allowance still works; buy a pack to keep going after it.",
+  "sm.credits": "100 AI credits every month",
 } satisfies Record<string, string>;
 
 export default en;

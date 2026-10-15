@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { readOrderChannel } from "@/hooks/useCampaignAttribution";
+import { rememberRecentlyViewed } from "@/lib/storefront/recently-viewed";
 
 // Storefront funnel beacons for /home/analytics: product views, add to bag and checkout started.
 // Counts only, deduplicated per browser session so a refresh doesn't double count.
@@ -29,10 +30,12 @@ export function trackStoreEvent(storeSlug: string, type: StoreEvent, productId?:
   }).catch(() => null);
 }
 
-/** Counts one product view per product per session. */
+/** Counts one product view per product per session, and remembers it on this device for "Recently viewed". */
 export function useStoreProductView(storeSlug: string, productId: string | null | undefined) {
   useEffect(() => {
-    if (storeSlug && productId) trackStoreEvent(storeSlug, "product_view", productId);
+    if (!storeSlug || !productId) return;
+    trackStoreEvent(storeSlug, "product_view", productId);
+    rememberRecentlyViewed(storeSlug, productId);
   }, [storeSlug, productId]);
 }
 

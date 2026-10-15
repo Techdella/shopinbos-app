@@ -69,6 +69,21 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "chats.loading": "E dey open…",
   "chats.failed": "Chats no load. Try again.",
   "chats.delete": "Delete “{title}”",
+  "chats.tabChats": "Chats",
+  "chats.tabMade": "Wetin Rex make",
+  "chats.made.all": "All",
+  "chats.made.logo": "Logos",
+  "chats.made.image": "Pictures",
+  "chats.kind.logo": "Logo",
+  "chats.kind.image": "Picture",
+  "chats.kind.edit": "Photo wey dem edit",
+  "chats.kind.banner": "Banner",
+  "chats.kind.video": "Video",
+  "chats.useWithRex": "Use am with Rex",
+  "chats.download": "Download",
+  "chats.brandKit": "Brand kit",
+  "chats.madeEmpty": "Nothing don make yet. Logos and pictures wey Rex make go show here.",
+  "chats.allMedia": "See everything for Media",
 };
 
 export default pcm;

@@ -69,6 +69,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "chats.loading": "Ana buɗewa…",
   "chats.failed": "An kasa loda hirarrakinka. Sake gwadawa.",
   "chats.delete": "Share “{title}”",
+  "chats.tabChats": "Hirarraki",
+  "chats.tabMade": "Abubuwan da aka yi",
+  "chats.made.all": "Duka",
+  "chats.made.logo": "Tambura",
+  "chats.made.image": "Hotuna",
+  "chats.kind.logo": "Tambari",
+  "chats.kind.image": "Hoto",
+  "chats.kind.edit": "Hoton da aka gyara",
+  "chats.kind.banner": "Tuta",
+  "chats.kind.video": "Bidiyo",
+  "chats.useWithRex": "Yi amfani da shi tare da Rex",
+  "chats.download": "Sauke",
+  "chats.brandKit": "Kayan alama",
+  "chats.madeEmpty": "Ba a yi komai ba tukuna. Tambura da hotunan da Rex ya yi za su bayyana a nan.",
+  "chats.allMedia": "Duba komai a Media",
 };
 
 export default ha;

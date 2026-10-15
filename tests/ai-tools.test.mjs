@@ -330,6 +330,11 @@ globalThis.__aiMocks = {
     generateImage: record("generateImage", "https://proj.supabase.co/storage/v1/object/public/brand/new.webp"),
   },
   "@/lib/ai/brand-context.server": { loadBrandContext: async () => null },
+  "@/lib/ai/brand-book.server": {
+    BrandBookError: class BrandBookError extends Error {},
+    draftBrandBook: record("draftBrandBook", { paletteName: "Lagos Sunset", tagline: "Good things, well made", colours: { primary: "#E2541B", secondary: "#0E2A38", accent: "#F2A93B", background: "#FAF7F1", surface: "#FFFFFF", text: "#16141F" }, typography: { headings: "Fraunces", body: "Inter", style: "serif", note: "x" }, voice: { traits: ["warm"] } }),
+    saveBrandBook: record("saveBrandBook", (storeId, book) => ({ ...book, updatedAt: "2026-10-15" })),
+  },
   "@/lib/ai/brand-image.server": {
     makeBrandImage: record("makeBrandImage", { url: "https://proj.supabase.co/storage/v1/object/public/brand/new.webp", usedLogo: false, usedReferences: 0, logoProblem: null }),
   },
@@ -456,6 +461,10 @@ const REX_VALID = {
   draft_email_template: { brief: "A welcome email", name: null },
   improve_email_copy: { template: "Welcome", instruction: "Warmer" },
   cms_write_item: { collection: "Blog", brief: "How to tie a gele", title: null },
+  create_brand_book: { direction: null, applyColours: null },
+  make_brand_icon: { kind: "favicon" },
+  set_logo_display: { style: "logo", size: "large" },
+  make_print_labels: { kind: "tag", products: ["pa1"], headline: "Handmade in Lagos", note: null, qr: "product", copies: 2 },
 };
 
 test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggled ids", () => {
@@ -929,4 +938,23 @@ test("AI routes that spend money are metered", () => {
     assert.match(source, /meterAi\(user\.id/, `${route} is metered`);
   }
   assert.match(readFileSync(new URL("../src/app/api/app/peggy/route.ts", import.meta.url), "utf8"), /meterAi\(user\.id, "text"\)/);
+});
+
+test("Rex brand tools: style book, icon from the logo, labels in the print studio", async () => {
+  useDb();
+  calls.length = 0;
+  const book = await runRex("create_brand_book", { direction: "earthy", applyColours: null });
+  assert.equal(book.card.type, "brand");
+  assert.equal(book.card.kind, "book");
+  assert.equal(book.card.href, "/home/brand-kit/book");
+  assert.equal(called("draftBrandBook")[0].args[0], "store-A", "always the seller's own store");
+  assert.match(book.content, /colours are unchanged/, "colours only change when asked");
+
+  const labels = await runRex("make_print_labels", REX_VALID.make_print_labels);
+  assert.equal(labels.card.kind, "print");
+  assert.match(labels.card.href, /^\/home\/labels\/studio\?kind=tag&products=pa1/);
+  await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: ["pb1"] }), RexToolError, "shop B's product");
+  await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: null }), /for products/);
+  assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "favicon", url: "https://proj.supabase.co/storage/v1/object/public/brand/f.webp" }).ok, true);
+  assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "logo", url: "https://proj.supabase.co/x.webp" }).ok, false, "the logo is changed with set_logo");
 });

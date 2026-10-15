@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { creditBalance, spendCredits } from "@/lib/ai/credits.server";
-import { creditCost, outOfCreditsMessage } from "@shared/ai-credits";
+import { creditCost, creditsUrlFor, outOfCreditsMessage } from "@shared/ai-credits";
 
 /** Where a seller buys AI credits. */
 export const CREDITS_URL = "/home/credits";
@@ -45,7 +45,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
   try {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [user, used] = await Promise.all([
-      db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }),
+      db.user.findUnique({ where: { id: userId }, select: { aiCredits: true, role: true } }),
       db.aiUsage.aggregate({ where: { userId, kind, createdAt: { gte: since } }, _sum: { units: true } }),
     ]);
     const limit = dailyLimit(kind, user?.aiCredits);
@@ -59,7 +59,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
       if (left === null) {
         const balance = await creditBalance(userId);
         return NextResponse.json(
-          { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(`${limit} ${KIND_WORD[kind]}`, cost, balance), buyUrl: CREDITS_URL, cost, balance } },
+          { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(`${limit} ${KIND_WORD[kind]}`, cost, balance), buyUrl: creditsUrlFor(user?.role), cost, balance } },
           { status: 402 },
         );
       }

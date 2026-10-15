@@ -15,7 +15,7 @@ import { isRexWriteTool, parseRexToolInput, providerSchema, REX_TOOL_NAMES, REX_
 import type { RexCard, RexReply } from "./cards";
 import { loadStudioStore } from "./studio-edit.server";
 import { loadHealthFacts, studioDraft, themeNameFor } from "./studio.server";
-import { MarketingError, REX_TOOL_RUNNERS, RexToolError, type RexToolContext } from "./tools";
+import { MarketingError, REX_TOOL_RUNNERS, RexCreditsError, RexToolError, type RexToolContext } from "./tools";
 
 // Rex's agent loop over Claude (Messages API, manual tool loop) and OpenAI (Responses API, function tools),
 // shaped like Peggy's (src/lib/ai/peggy/agent.ts). The preferred provider runs first; if it fails or refuses
@@ -37,6 +37,8 @@ Your tools:
 - Marketing: create_segment, create_campaign (saved as a draft, never sent), create_automation (saved switched off).
 - Email design: draft_email_template designs an email (photo, products, discount code, button) saved as a draft template the seller edits in the email builder; improve_email_copy rewrites a saved template into a new draft copy.
 - Content (like Wix CMS): cms_create_collection sets up a collection (blog, size guide, recipe book, course, FAQ, lookbook, team, events, or blank with the fields the seller describes); cms_write_item writes an item in one as a draft for the seller to publish in Content (/home/cms).
+- Brand: create_brand_book writes the brand style book (colours from the logo, fonts, voice, logo and photo rules; printable at /home/brand-kit/book; applyColours puts the colours on the draft); make_brand_icon makes the square logo icon or the favicon from the logo (the seller taps to use it); set_logo_display changes how the brand shows in the store header (full logo, logo icon or name, with or without the name beside it, small/medium/large; live at once). When a seller says the logo looks too small, use set_logo_display (a larger size, and "logo" alone when the logo already has the name in it).
+- Print: make_print_labels sets up hang tags, price and barcode labels, QR stickers, package labels or thank-you cards in the Print studio (real barcodes and QR codes; print on A4 or a label printer, download, or email to a print shop). Order shipping labels are at /home/labels.
 - Look up: list_products (ids, photos, descriptions), store_health (score and the biggest gaps).
 
 How to work:
@@ -64,6 +66,7 @@ interface RunState {
   cards: RexCard[];
   wrote: boolean;
   deadline: number;
+  creditsNeeded?: boolean;
 }
 
 class ProviderRefused extends Error {}
@@ -89,6 +92,7 @@ async function runTool(state: RunState, name: string, rawInput: unknown): Promis
     if (isRexWriteTool(tool) || REX_TOOL_SPECS[tool].kind === "image") state.wrote = true;
     return { content: output.content, isError: false };
   } catch (error) {
+    if (error instanceof RexCreditsError) state.creditsNeeded = true;
     if (error instanceof RexToolError || error instanceof MarketingError) return { content: error.message, isError: true };
     console.error(`[rex] tool ${tool} failed`, error);
     return { content: "That didn't work because of a problem on our side. Nothing was changed by this step. Tell the seller to try again shortly.", isError: true };
@@ -265,7 +269,7 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
   const history = turns.slice(0, -1).map((turn) => ({ role: turn.role, content: turn.content.slice(0, 4000) }));
   const ctx: RexToolContext = { userId, storeId: store.id, storeName: store.name, attachments, newPhotos, history, draft: null, versions: null };
   const state: RunState = { ctx, cards: [], wrote: false, deadline: Date.now() + RUN_BUDGET_MS };
-  const reply = (text: string): RexReply => ({ text, cards: state.cards, draft: ctx.draft, versions: ctx.versions });
+  const reply = (text: string): RexReply => ({ text, cards: state.cards, draft: ctx.draft, versions: ctx.versions, ...(state.creditsNeeded ? { creditsNeeded: true } : {}) });
 
   for (const provider of providerOrder()) {
     // Seeing the photos helps; if the provider can't fetch them, try once more with their links only.

@@ -1,5 +1,6 @@
 "use client";
 
+import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
@@ -56,8 +57,10 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<{ url: string; style: string | null; size: string; usedLogo: boolean } | null>(null);
   const [error, setError] = useState("");
+  const [needCredits, setNeedCredits] = useState(false);
   const [note, setNote] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
+  const [pictures, setPictures] = useState<{ used: number; limit: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // "…with my logo" or "branded" turns the logo on, until the seller sets the switch themselves.
@@ -70,6 +73,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
     if (!p) return;
     setLoading(true);
     setError("");
+    setNeedCredits(false);
     setNote("");
     setImage(null);
     try {
@@ -81,16 +85,19 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
       const data = await res.json();
       if (!res.ok) {
         setError(data.error?.message ?? t("img.failed"));
+        setNeedCredits(isCreditsError(data.error?.code));
         return;
       }
       setImage({ ...data.image, usedLogo: Boolean(data.usedLogo) });
       if (data.logoProblem === "no_logo") setNote(t("img.noLogoNote"));
       if (data.logoProblem === "unreadable") setNote(t("img.badLogoNote"));
       setCredits(data.creditsRemaining ?? null);
+      setPictures(data.pictures ?? null);
     } catch {
       setError(t("studio.offline"));
     } finally {
       setLoading(false);
+      creditsChanged();
     }
   };
 
@@ -103,6 +110,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
     }
     setUploading(true);
     setError("");
+    setNeedCredits(false);
     try {
       for (const file of Array.from(files)) {
         if (room <= 0) break;
@@ -286,7 +294,12 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
           <PillButton tone="accent" size="md" className="mt-5 w-full" onClick={() => void generateImage()} disabled={loading || uploading || !prompt.trim()}>
             {loading ? <><Spinner /> {t("img.making")}</> : <><Icon name="sparkle" size={16} /> {t("img.make")}</>}
           </PillButton>
-          {credits !== null && <p className="mb-0 mt-2 text-center text-[13px] text-app-ink-soft">{t("studio.credits", { count: credits })}</p>}
+          {credits !== null && (
+            <p className="mb-0 mt-2 text-center text-[13px] text-app-ink-soft">
+              {pictures ? `${t("logo.freeUsed", { used: pictures.used, limit: pictures.limit })} · ` : ""}
+              {t("studio.credits", { count: credits })}
+            </p>
+          )}
         </section>
 
         <section className="rounded-[22px] border border-app-line bg-white p-5">
@@ -346,11 +359,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
 
         {note && <Notice>{note}</Notice>}
         {error && <Notice>{error}</Notice>}
-        {error.includes("/home/credits") ? (
-          <Link href="/home/credits" className="inline-flex min-h-[44px] w-fit items-center gap-1.5 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">
-            <Icon name="sparkle" size={15} /> {t("img.buyCredits")}
-          </Link>
-        ) : null}
+        {error && needCredits ? <BuyCreditsButton className="min-h-[44px] px-5 text-[14px]" label={t("img.buyCredits")} /> : null}
       </div>
     </div>
   );

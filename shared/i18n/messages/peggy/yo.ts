@@ -39,6 +39,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "neverAlone": "Kì í fi ìfiránṣẹ́ ránṣẹ́, kì í gbé post jáde, kì í sì bẹ̀rẹ̀ ads fúnra rẹ̀; ó máa ń fi wọ́n pamọ́ bí draft kí o lè yẹ̀ wọ́n wò.",
   "didThis": "Peggy ló ṣe èyí",
   "askRex": "Béèrè lọ́wọ́ Rex: {request}",
+  "buyCredits": "Ra kírẹ́dítì AI",
 };
 
 export default yo;

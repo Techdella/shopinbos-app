@@ -4,6 +4,7 @@ import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { removeFileByPublicUrl, uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
 import { isInLibrary, recordMedia } from "@/lib/media/library.server";
 import { identityImageProblem, logoLabelFor, type IdentityImageKind } from "@shared/identity-images";
+import { refreshLogoVariants } from "@/lib/logo-variants.server";
 
 // The person's photo and their business logo, read and changed in one place so the app shell, profile pages,
 // storefront and marketplace all show the same picture.
@@ -73,6 +74,7 @@ export async function setIdentityImage(user: Owner, kind: IdentityImageKind, fil
   if (owner.kind === "store") {
     url = file ? (await uploadFileServer("brand", file, uploadPath(`logos/store/${owner.id}`, file))).publicUrl : null;
     await db.store.update({ where: { id: owner.id }, data: { logoUrl: url } });
+    await refreshLogoVariants(owner.id, user.id, url);
   } else if (owner.kind === "supplier") {
     url = file ? (await uploadFileServer("supplier-logos", file, uploadPath(`supplier-logos/${owner.id}`, file))).publicUrl : null;
     await db.supplier.update({ where: { id: owner.id }, data: { logoUrl: url } });

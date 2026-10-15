@@ -8,15 +8,26 @@ import { rememberStoreVisitor } from "@/hooks/useStoreVisitor";
 import type { StoreEditorSnapshot, TemplateBlockNode, TemplateSectionNode } from "@/lib/store-templates";
 import { getTemplateManifest, isBoutiqueTheme } from "@/lib/store-templates";
 import { normalizeImage } from "@/lib/store-templates/images";
+import { normalizeChrome } from "@/lib/store-templates/chrome";
 import { getThemeOverrides } from "@/lib/store-templates/themes";
 import { readShopperInfo } from "@/lib/storefront/shopper-info";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
+import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
-import { itemMediaUrl, readCountdownEnd, readHeroSlides, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
+import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
+import { findStorefrontPage } from "@shared/storefront-pages";
+import type { BoutiqueProductDetail } from "@/components/storefront/boutique/BoutiqueProductView";
+import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
+import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
+import { readClassicPdpSettings } from "@/components/storefront/boutique/pdp/classic-pdp";
+import { samplePdpProduct } from "@/components/storefront/boutique/pdp/sample-product";
+import { relatedProducts } from "@/components/storefront/shopper/catalog";
+import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 
 export interface SurfaceProduct {
   id: string;
@@ -31,6 +42,8 @@ export interface SurfaceProduct {
   compareAtPrice?: number | null;
   variants?: unknown;
   supplierProduct?: { stockQuantity?: number | null } | null;
+  /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when not tracked. */
+  stock?: ShopperStock | null;
 }
 
 export interface SurfaceStore {
@@ -60,6 +73,8 @@ interface RenderProduct {
   mappedStoreProductId: string | null;
   avgRating?: number;
   reviewCount?: number;
+  /** Tracked stock (or the supplier's) at 0: the card says "Sold out" and can't be added. */
+  soldOut?: boolean;
 }
 
 type CommerceButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "text" | "gradient" | "floating" | "sticky";
@@ -96,6 +111,10 @@ interface TemplateStorefrontSurfaceProps {
   onToggleWishlist?: (productId: string) => void;
   /** ?q= from the storefront URL (search sheet on the 2026 themes). */
   initialQuery?: string;
+  /** Builder, 2026 themes: elements inside rows and columns (layout-row sections). */
+  selectedElementId?: string | null;
+  onSelectElement?: (sectionId: string, elementId: string) => void;
+  onAddToColumn?: (sectionId: string, columnIndex: number) => void;
 }
 
 function hexToRgb(hex: string) {
@@ -127,13 +146,6 @@ function blockPanelStyle(variant: unknown, theme: ReturnType<typeof themeFor>) {
     return { background: theme.cardBg, borderColor: theme.border, borderRadius: 14 };
   }
   return { background: theme.cardBg, borderColor: theme.border, borderRadius: theme.radius };
-}
-
-function optionButtonClass(variant: unknown) {
-  const value = String(variant ?? "pill");
-  if (value === "list") return "w-full rounded-[10px] border px-4 py-3 text-left text-[13px] font-semibold";
-  if (value === "swatch") return "grid min-h-10 min-w-10 place-items-center rounded-full border px-3 py-2 text-[12px] font-semibold";
-  return "rounded-full border px-4 py-2 text-[13px] font-semibold";
 }
 
 function formatMoney(currency: string, amount: number) {
@@ -466,6 +478,7 @@ function resolveProductItems(items: Array<Record<string, unknown>> | undefined, 
         mappedStoreProductId: mapped.id,
         avgRating: (mapped as any).avgRating,
         reviewCount: (mapped as any).reviewCount,
+        soldOut: listingSoldOut(mapped),
       };
     }
 
@@ -647,10 +660,11 @@ function ProductCard({
   mode: "live" | "editor";
 }) {
   const addHandler =
-    mode === "live" && product.purchasable && onAddToCart
+    mode === "live" && product.purchasable && !product.soldOut && onAddToCart
       ? () => onAddToCart(product.id)
       : undefined;
   const canAdd = Boolean(addHandler);
+  const addLabel = (label: string) => (product.soldOut ? "Sold out" : label);
   const wished = wishlistProductIds.includes(product.id);
   const isPremium = theme.templateStyle === "editorial" || theme.templateStyle === "runway";
 
@@ -667,6 +681,9 @@ function ProductCard({
     >
       <div className={`relative overflow-hidden ${isPremium ? "h-[340px] rounded-[6px] bg-[#F3EFE9]" : theme.templateStyle === "marketplace" ? "h-[210px]" : "h-[260px]"}`}>
         {renderImage(product.imageUrl, product.title, product.color, "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105")}
+        {product.soldOut ? (
+          <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: theme.ink, color: "#fff" }}>Sold out</span>
+        ) : null}
         {mode === "live" && product.purchasable && onToggleWishlist ? (
           <button
             type="button"
@@ -692,7 +709,7 @@ function ProductCard({
               disabled={!canAdd}
               className="w-full rounded-[4px] bg-black/90 px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur disabled:cursor-default disabled:opacity-70"
             >
-              Add to bag
+              {addLabel("Add to bag")}
             </button>
           </div>
         ) : null}
@@ -731,7 +748,7 @@ function ProductCard({
             className="w-full rounded-full px-5 py-3 text-[13px] font-semibold disabled:cursor-default disabled:opacity-60"
             style={{ background: theme.ctaBg, color: theme.ctaText }}
           >
-            Add to cart
+            {addLabel("Add to cart")}
           </button>
         </div> : null}
       </div>
@@ -745,13 +762,16 @@ function ProductCard({
  */
 export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps) {
   const [ownPage, setOwnPage] = useState(props.selectedPage ?? "home");
-  const themeId = props.snapshot.templateId;
-  if (!isBoutiqueTheme(themeId)) return <ClassicTemplateSurface {...props} />;
+  // Every page shows the same announcement bar, header and footer (the home page's, for older saves that kept a
+  // different copy per page). Same object back when the snapshot is already consistent.
+  const snapshot = useMemo(() => normalizeChrome(props.snapshot), [props.snapshot]);
+  const themeId = snapshot.templateId;
+  if (!isBoutiqueTheme(themeId)) return <ClassicTemplateSurface {...props} snapshot={snapshot} />;
   return (
     <BoutiqueStorefront
       themeId={themeId}
       store={props.store}
-      snapshot={props.snapshot}
+      snapshot={snapshot}
       storeBasePath={props.storeBasePath}
       mode={props.mode ?? "live"}
       device={props.device ?? "desktop"}
@@ -767,6 +787,9 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       wishlistProductIds={props.wishlistProductIds ?? []}
       onToggleWishlist={props.onToggleWishlist}
       initialQuery={props.initialQuery}
+      selectedElementId={props.selectedElementId}
+      onSelectElement={props.onSelectElement}
+      onAddToColumn={props.onAddToColumn}
     />
   );
 }
@@ -801,6 +824,9 @@ function ClassicTemplateSurface({
   onToggleWishlist,
 }: TemplateStorefrontSurfaceProps) {
   const theme = useMemo(() => themeFor(snapshot), [snapshot]);
+  // The product page is the shared one (BoutiquePdp) in this template's colours, fonts and shape.
+  const pdpLook = useMemo(() => classicLook(snapshot.templateId, snapshot.themeTokens), [snapshot.templateId, snapshot.themeTokens]);
+  const shopperInfo = useMemo(() => readShopperInfo(store.shopper), [store.shopper]);
   const [internalPage, setInternalPage] = useState(selectedPage ?? "home");
   const [openFaq, setOpenFaq] = useState(0);
   const [hoveredSectionId, setHoveredSectionId] = useState<string | null>(null);
@@ -818,7 +844,7 @@ function ClassicTemplateSurface({
 
   const currentPage = selectedPage ?? internalPage;
   const policyLinks = mode === "live" ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath ?? "", legalPagePath(link.key)) })) : [];
-  const page = snapshot.pages.find((entry) => entry.pageType === currentPage) ?? snapshot.pages[0];
+  const page = findStorefrontPage(snapshot.pages, currentPage) ?? snapshot.pages[0];
   const sections = page?.sections.filter((entry) => entry.visible !== false) ?? [];
 
   const announcement = sections.find((entry) => entry.kind === "announcement-bar");
@@ -1262,9 +1288,18 @@ function ClassicTemplateSurface({
     navigate(nextAction);
   }
 
-  function openProduct(product: RenderProduct) {
-    setSelectedProductId(product.mappedStoreProductId ?? product.id);
+  /** On a live store a real product opens at its own address (/product/<id>), like boutique themes. */
+  function openProductPage(productId: string) {
+    if (mode === "live" && store.storeProducts.some((entry) => entry.id === productId)) {
+      window.location.assign(getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(productId)}`));
+      return;
+    }
+    setSelectedProductId(productId);
     navigate("product");
+  }
+
+  function openProduct(product: RenderProduct) {
+    openProductPage(product.mappedStoreProductId ?? product.id);
   }
 
   async function submitStoreForm(type: "contact" | "newsletter") {
@@ -1359,10 +1394,7 @@ function ClassicTemplateSurface({
         const openLink = (link: HeroSlide["link"]) => {
           if (link.type === "product") {
             const product = store.storeProducts.find((entry) => entry.id === link.value);
-            if (product) {
-              setSelectedProductId(product.id);
-              navigate("product");
-            }
+            if (product) openProductPage(product.id);
             return;
           }
           if (link.type === "url") {
@@ -1578,6 +1610,21 @@ function ClassicTemplateSurface({
                 </div>
               </div>
             </div>
+            {heroLayout === "carousel-cards" ? (
+              // Collection cards in a row that scrolls sideways.
+              <div className="flex min-h-[420px] snap-x snap-mandatory items-end gap-4 overflow-x-auto px-5 py-8 sm:px-8 lg:min-h-[560px]" style={{ background: theme.cardBg }} role="region" aria-label="Collections. Scroll sideways for more." tabIndex={0}>
+                {(support.length ? support : [lead]).map((item, index) => (
+                  <div key={`${kindSection.id}-card-${index}`} role="button" tabIndex={0} onClick={() => navigate("products")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate("products"); }} className="group relative h-[78%] min-h-[320px] w-[min(280px,75%)] shrink-0 snap-start overflow-hidden rounded-[22px] bg-white text-left shadow-[0_18px_48px_rgba(0,0,0,.12)]">
+                    {editableItemImage(kindSection.id, item, index + 1, String(item?.title ?? "Collection"), String(item?.color ?? theme.accent), "absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105")}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                    <div className="absolute inset-x-4 bottom-4 text-white">
+                      <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont }}>{String(item?.title ?? "Collection")}</div>
+                      {item?.subtitle ? <div className="mt-1 text-[12.5px] text-white/80">{String(item.subtitle)}</div> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="grid min-h-[560px] grid-rows-2">
               <div role="button" tabIndex={0} onClick={() => navigate("products")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate("products"); }} className="group relative overflow-hidden text-left">
                 {editableItemImage(
@@ -1612,10 +1659,39 @@ function ClassicTemplateSurface({
                 ))}
               </div>
             </div>
+            )}
           </section>
         );
       }
       const heroImageBlock = findImageBlock(kindSection);
+      if (heroLayout === "text-overlay") {
+        // The words sit over the main picture, full width.
+        return (
+          <section key={kindSection.id} className="relative min-h-[560px] overflow-hidden lg:min-h-[640px]" style={{ background: theme.heroBg }}>
+            <div className="absolute inset-0">
+              {heroImageBlock
+                ? renderImageBlock(heroImageBlock, "h-full w-full object-cover", String(lead?.title ?? store.name), String(lead?.color ?? theme.heroBg))
+                : editableItemImage(kindSection.id, lead, 0, String(lead?.title ?? store.name), String(lead?.color ?? theme.heroBg), "h-full w-full object-cover")}
+            </div>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+            <div className="relative mx-auto flex min-h-[560px] max-w-[1320px] flex-col justify-end px-5 py-14 sm:px-8 lg:min-h-[640px] lg:py-20">
+              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/75">
+                {editableCopy(kindSection.id, "eyebrow", copy.eyebrow, store.name)}
+              </div>
+              <h1 className="mt-4 max-w-[820px] text-[clamp(44px,7vw,96px)] font-semibold leading-[0.95] tracking-[-0.05em] text-white" style={{ fontFamily: theme.headingFont }}>
+                {editableCopy(kindSection.id, "title", copy.title, `Welcome to ${store.name}`)}
+              </h1>
+              <p className="mt-5 max-w-[56ch] text-[15px] leading-8 text-white/80 sm:text-[17px]">
+                {editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View story")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
+              </div>
+            </div>
+          </section>
+        );
+      }
       return (
         <section
           key={kindSection.id}
@@ -1854,13 +1930,16 @@ function ClassicTemplateSurface({
           </section>
         );
       }
-      if (kindSection.settings?.layout === "masonry") {
+      // The lookbook's "Editorial mosaic" uses the same mixed-height tiles; its pictures open the shop.
+      const lookbookMosaic = kindSection.kind === "lookbook-grid" && kindSection.settings?.layout === "editorial-mosaic";
+      if (kindSection.settings?.layout === "masonry" || lookbookMosaic) {
+        const openTile = (item: Record<string, unknown>) => (lookbookMosaic ? navigate("products") : navigateCategory(item));
         return (
           <section key={kindSection.id} className="mx-auto max-w-[1320px] px-5 py-12 sm:px-8">
-            <SectionHeading eyebrow="Browse" title={String(copy.title ?? "Shop categories")} body={typeof copy.body === "string" ? copy.body : undefined} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
+            <SectionHeading eyebrow={lookbookMosaic ? "Lookbook" : "Browse"} title={String(copy.title ?? (lookbookMosaic ? "The lookbook" : "Shop categories"))} body={typeof copy.body === "string" ? copy.body : undefined} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               {categoryItems.map((item, index) => (
-                <div key={`${kindSection.id}-masonry-${index}`} role="button" tabIndex={0} onClick={() => navigateCategory(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigateCategory(item); }} className="group overflow-hidden rounded-[24px] border bg-white" style={{ borderColor: theme.border }}>
+                <div key={`${kindSection.id}-masonry-${index}`} role="button" tabIndex={0} onClick={() => openTile(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openTile(item); }} className="group overflow-hidden rounded-[24px] border bg-white" style={{ borderColor: theme.border }}>
                   <div className={index % 3 === 0 ? "h-[360px]" : "h-[230px]"}>
                     {editableItemImage(kindSection.id, item, index, String(item.title ?? "Category"), String(item.color ?? theme.accent), "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105")}
                   </div>
@@ -1947,7 +2026,8 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "featured-products") {
-      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8));
+      // "How many products" always applies once the seller sets it; unset, the shop page shows every product.
+      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, readOptionalProductLimit(kindSection.settings) ?? (currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8)));
       const isPremiumProducts = kindSection.settings?.layout === "premium-product-cards";
       // "Products per row on computers" (2, 3 or 4); without a choice the template's own grid is kept.
       const columnClass = ({ "2": "xl:grid-cols-2", "3": "xl:grid-cols-3", "4": "xl:grid-cols-4" } as Record<string, string>)[String(kindSection.settings?.columns ?? "")];
@@ -1956,7 +2036,7 @@ function ClassicTemplateSurface({
           <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
             <SectionHeading eyebrow="Featured" title={String(copy.title ?? "Featured collection")} body={typeof copy.body === "string" ? copy.body : undefined} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
             <div className="mt-8 grid gap-5">
-              {products.slice(0, 5).map((product, index) => (
+              {products.slice(0, readOptionalProductLimit(kindSection.settings) ?? 5).map((product, index) => (
                 <article key={product.id} className="grid overflow-hidden border bg-white md:grid-cols-[220px_1fr_auto]" style={{ borderColor: theme.border, borderRadius: theme.templateStyle === "marketplace" ? 6 : theme.radius }}>
                   <div role="button" tabIndex={0} onClick={() => openProduct(product)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openProduct(product); }} className="h-[220px] cursor-pointer md:h-full">
                     {renderImage(product.imageUrl, product.title, product.color, "h-full w-full object-cover")}
@@ -2162,58 +2242,46 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "product-detail") {
+      // The shared product page (same layouts and builder settings as the 2026 themes) in this template's look. The
+      // builder shows a sample product until the store has one, so the product page can still be designed.
       const mapped = (selectedProductId ? store.storeProducts.find((product) => product.id === selectedProductId) : null) ?? store.storeProducts[0];
-      const title = mapped?.name ?? String(copy.title ?? "Featured product");
-      const body = mapped?.description ?? String(copy.body ?? "Product details and buying options.");
-      const price = mapped ? formatMoney(mapped.currency, mapped.retailPrice) : String(copy.priceLabel ?? "NGN 0");
-      const image = mapped?.images[0];
+      const product: BoutiqueProductDetail | undefined = mapped ?? (isEditor ? samplePdpProduct(snapshot.templateId, store.currency) : undefined);
+      if (!product) return null;
+      const live = mode === "live" && Boolean(mapped);
+      const pageSections = page?.sections ?? [];
+      const relatedSection = pageSections.find((entry) => entry.kind === "featured-products" && entry.settings?.source === "related");
+      const relatedTitle = String(relatedSection?.blocks.find((entry) => entry.type === "copy")?.content?.title ?? "").trim();
+      const settings = readClassicPdpSettings(kindSection, { relatedFallback: relatedTitle });
+      const addLine = () => onAddToCart?.(product.id);
       return (
-        <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
-          <div className="grid gap-8 rounded-[34px] border bg-white p-5 lg:grid-cols-[1.05fr_0.95fr] lg:p-7" style={{ borderColor: theme.border }}>
-            <div className="grid gap-4 md:grid-cols-[0.22fr_1fr]">
-              <div className="hidden gap-3 md:grid">
-                {[0, 1, 2].map((index) => (
-                  <div key={index} className="h-24 overflow-hidden rounded-[18px] border" style={{ borderColor: theme.border }}>
-                    {renderImage(image, title, theme.accent, "h-full w-full object-cover")}
-                  </div>
-                ))}
-              </div>
-              <div className="overflow-hidden rounded-[28px]">
-                {renderImage(image, title, theme.accent, "h-[480px] w-full object-cover")}
-              </div>
-            </div>
-            <div className="flex flex-col justify-center">
-              <div className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.accent }}>{String(copy.eyebrow ?? "Product detail")}</div>
-              <h1 className="mt-3 text-[clamp(32px,5vw,58px)] font-semibold leading-none tracking-[-0.05em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{title}</h1>
-              <div className="mt-4 text-[24px] font-semibold" style={{ color: theme.ink }}>{price}</div>
-              <p className="mt-5 text-[15px] leading-8" style={{ color: theme.muted }}>{body}</p>
-              <div className="mt-6 grid gap-4">
-                {(kindSection.items ?? []).map((item, index) => {
-                  const values = Array.isArray(item.values) ? item.values : [];
-                  return (
-                    <div key={`${kindSection.id}-variant-${index}`}>
-                      <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.muted }}>{String(item.label ?? "Option")}</div>
-                      <div className={String(item.variant ?? "pill") === "list" ? "grid gap-2" : "flex flex-wrap gap-2"}>
-                        {values.map((value) => (
-                          <button key={String(value)} type="button" className={optionButtonClass(item.variant)} style={{ borderColor: theme.border, color: theme.ink, background: String(item.variant ?? "") === "swatch" ? rgba(theme.accent, 0.1) : theme.paperBg }}>{String(value)}</button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <button type="button" onClick={mapped && mode === "live" ? () => onAddToCart?.(mapped.id) : undefined} className="rounded-full px-7 py-3.5 text-[14px] font-semibold" style={{ background: theme.ctaBg, color: theme.ctaText }}>Add to cart</button>
-                <button type="button" onClick={() => mapped && mode === "live" ? onToggleWishlist?.(mapped.id) : navigate("wishlist")} className="rounded-full border px-7 py-3.5 text-[14px] font-semibold" style={{ borderColor: theme.border, color: theme.ink }}>Save to wishlist</button>
-              </div>
-              <div className="mt-6 grid gap-2 text-[13px]" style={{ color: theme.muted }}>
-                <span>Secure payment at checkout</span>
-                <span>Delivery options calculated by location</span>
-                <span>Returns and support policies ready</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <ClassicPdp
+          key={kindSection.id}
+          product={product}
+          look={pdpLook}
+          settings={settings}
+          shopper={shopperInfo}
+          storeName={store.name}
+          currency={store.currency}
+          reviews={[]}
+          avgRating={product.avgRating ?? 0}
+          reviewCount={product.reviewCount ?? 0}
+          related={relatedProducts(product, store.storeProducts)}
+          onOpenRelated={openProductPage}
+          catalog={store.storeProducts}
+          wishlistIds={wishlistProductIds}
+          onToggleWishlist={live ? onToggleWishlist : undefined}
+          onAddToBag={live ? addLine : undefined}
+          onBuyNow={live ? () => { addLine(); navigate("checkout"); } : undefined}
+          reviewSlug={live ? store.slug : undefined}
+          interactive={live}
+          crumbs={[
+            { label: "Home", onSelect: () => navigate("home") },
+            { label: "Shop", onSelect: () => navigate("products") },
+            ...(product.category ? [{ label: product.category.name, onSelect: () => navigateCategory({ slug: product.category!.slug }) }] : []),
+            { label: product.name },
+          ]}
+          notice={mapped ? undefined : "Sample product. Your own products show here once you add them."}
+        />
       );
     }
 
@@ -2234,6 +2302,7 @@ function ClassicTemplateSurface({
               mappedStoreProductId: product.id,
               avgRating: product.avgRating,
               reviewCount: product.reviewCount,
+              soldOut: listingSoldOut(product),
             }))
         : resolveProductItems(kindSection.items, store);
       if (!isCart && layout === "drawer") {
@@ -2278,7 +2347,8 @@ function ClassicTemplateSurface({
       return (
         <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
           <SectionHeading eyebrow={isCart ? "Cart" : "Wishlist"} title={String(copy.title ?? (isCart ? "Your cart" : "Saved for later"))} body={String(copy.body ?? "")} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
-          <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+          {/* "Minimal": one slim column, the summary under the items. */}
+          <div className={layout === "minimal" ? "mx-auto mt-6 grid max-w-[720px] gap-5" : "mt-6 grid gap-5 lg:grid-cols-[1fr_360px]"}>
             <div className="grid gap-3">
               {items.map((product) => (
                 <div key={product.id} className="grid grid-cols-[96px_1fr_auto] gap-4 rounded-[24px] border bg-white p-3" style={{ borderColor: theme.border }}>
@@ -2409,10 +2479,10 @@ function ClassicTemplateSurface({
             ink={theme.ink}
             muted={theme.muted}
           />
-          <div className={`mt-6 grid gap-5 ${layout === "magazine" ? "md:grid-cols-[1.4fr_0.8fr_0.8fr]" : layout === "minimal" ? "md:grid-cols-2" : layout === "lookbook-journal" ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
+          <div className={`mt-6 grid gap-5 ${layout === "magazine" ? "md:grid-cols-[1.4fr_0.8fr_0.8fr]" : layout === "minimal" ? "md:grid-cols-2" : layout === "lookbook-journal" ? "md:grid-cols-2 lg:grid-cols-4" : layout === "story-stack" ? "mx-auto max-w-[980px]" : "md:grid-cols-3"}`}>
             {(kindSection.items ?? []).map((item, index) => (
-              <article key={`${kindSection.id}-${index}`} className="overflow-hidden border bg-white" style={{ borderColor: theme.border, borderRadius: layout === "lookbook-journal" ? 6 : theme.radius }}>
-                <div className={layout === "lookbook-journal" ? "h-72" : "h-44"}>{editableItemImage(kindSection.id, item, index, String(item.title ?? "Post"), String(item.color ?? theme.accent), "h-full w-full object-cover")}</div>
+              <article key={`${kindSection.id}-${index}`} className={`overflow-hidden border bg-white ${layout === "story-stack" ? "md:grid md:grid-cols-[320px_1fr]" : ""}`} style={{ borderColor: theme.border, borderRadius: layout === "lookbook-journal" ? 6 : theme.radius }}>
+                <div className={layout === "lookbook-journal" ? "h-72" : layout === "story-stack" ? "h-56 md:h-full md:min-h-[220px]" : "h-44"}>{editableItemImage(kindSection.id, item, index, String(item.title ?? "Post"), String(item.color ?? theme.accent), "h-full w-full object-cover")}</div>
                 <div className="px-5 py-5">
                   <div className="font-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: theme.accent }}>
                     {String(item.category ?? "Story")} - {String(item.readTime ?? "3 min read")}
@@ -2638,6 +2708,36 @@ function ClassicTemplateSurface({
           ? "A thoughtful storefront for quality products, clear delivery details, helpful support, and a checkout flow customers can trust."
           : "Highlight the services, guarantees, and details customers need before they buy.",
       );
+      if (isStory && storyLayout === "text-first") {
+        // Copy-led: the words take most of the width, one picture beside them, points underneath.
+        return (
+          <section key={kindSection.id} className="px-5 py-20 sm:px-8" style={{ background: theme.paperBg }}>
+            <div className="mx-auto grid max-w-[1240px] gap-10 lg:grid-cols-[1.4fr_0.6fr] lg:items-start">
+              <div className={imageSide === "left" ? "lg:order-last" : ""}>
+                <div className="font-mono text-[12px] uppercase tracking-[0.28em]" style={{ color: theme.accent }}>{cleanCustomerCopy(copy.eyebrow, "Brand story")}</div>
+                <h2 className="mt-4 max-w-[820px] text-[40px] font-semibold leading-[1.02] sm:text-[58px]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{title}</h2>
+                <p className="mt-6 max-w-[720px] whitespace-pre-line text-[18px] leading-9" style={{ color: theme.muted }}>{body}</p>
+                {(kindSection.items ?? []).length > 0 ? (
+                  <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                    {(kindSection.items ?? []).slice(0, 3).map((item, index) => {
+                      const clean = cleanStoryItem(item, index);
+                      return (
+                        <div key={`${kindSection.id}-${index}`} className={String(item.variant ?? "") === "soft" ? "border px-4 py-4 text-[13px] leading-6" : "border-t pt-5 text-[13px] leading-6"} style={String(item.variant ?? "") === "soft" ? blockPanelStyle(item.variant, theme) : { borderColor: theme.border }}>
+                          <div className="text-[13px] font-bold uppercase tracking-[0.1em]" style={{ color: theme.ink }}>{clean.title}</div>
+                          <div className="mt-3" style={{ color: theme.muted }}>{clean.body}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+              <div className="h-[420px] overflow-hidden rounded-[6px] lg:h-[520px]">
+                {renderImage(storyImage, title, theme.accent, "h-full w-full object-cover")}
+              </div>
+            </div>
+          </section>
+        );
+      }
       return (
         <section key={kindSection.id} className="px-5 py-20 sm:px-8" style={{ background: isStory ? theme.heroBg : theme.paperBg }}>
           <div className="mx-auto grid max-w-[1320px] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
@@ -3275,14 +3375,18 @@ function ClassicTemplateSurface({
             className="flex min-w-0 items-center gap-3 text-left"
             title={isEditor ? "Click to replace logo" : undefined}
           >
-            {store.logoUrl
-              ? <img src={store.logoUrl} alt="" className="h-10 w-10 rounded-[12px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-              : <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>}
-            <div>
-              <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
-                {String(headerCopy.logoText ?? store.name)}
-              </div>
-            </div>
+            {store.logoUrl ? (
+              <StoreBrandMark store={store} background={theme.paperBg} name={String(headerCopy.logoText ?? "").trim() || store.name} nameClassName="text-[21px] font-medium tracking-[0.08em]" nameStyle={{ color: theme.ink, fontFamily: theme.headingFont }} />
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>
+                <div>
+                  <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
+                    {String(headerCopy.logoText ?? "").trim() || store.name}
+                  </div>
+                </div>
+              </>
+            )}
           </button>
           <nav className={`hidden min-w-0 flex-1 flex-wrap items-center ${headerLayout === "centered" ? "justify-start" : "justify-center"} gap-1 md:flex`}>
             {[...navLinks, ...utilityLinks.filter((pageType) => !navLinks.includes(pageType))].map((pageType) => (
@@ -3388,7 +3492,11 @@ function ClassicTemplateSurface({
       {footer ? sectionWrap(footer.id, <footer style={{ background: theme.heroBg, borderTop: `1px solid ${rgba(theme.border, 0.15)}` }}>
         {footer.settings?.layout === "minimal-footer" ? (
           <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-5 px-5 py-8 sm:px-8">
-            <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+            {footer.settings?.showLogo !== false ? (
+              <StoreLogo store={store} background={theme.heroBg} alt={store.name} className="block h-11 w-auto max-w-[180px] rounded-[8px]" fallback={<div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>} />
+            ) : (
+              <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+            )}
             <div className="flex flex-wrap gap-4 text-[12px]" style={{ color: rgba(theme.heroText, 0.72) }}>
               {navLinks.slice(0, 5).map((pageType) => <button key={`footer-min-${pageType}`} type="button" onClick={() => navigate(pageType)}>{pageLabel(pageType)}</button>)}
             </div>
@@ -3396,7 +3504,11 @@ function ClassicTemplateSurface({
         ) : (
           <div className={`mx-auto grid max-w-[1240px] gap-8 px-5 py-12 sm:px-8 ${footer.settings?.layout === "mega-footer" ? "lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]" : "lg:grid-cols-[1.3fr_0.8fr_0.8fr]"}`}>
             <div>
-              <div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+              {footer.settings?.showLogo !== false ? (
+                <StoreLogo store={store} background={theme.heroBg} alt={store.name} className="block h-14 w-auto max-w-[220px] rounded-[8px]" fallback={<div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>} />
+              ) : (
+                <div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+              )}
               <p className="mt-3 max-w-[400px] text-[13px] leading-7" style={{ color: rgba(theme.heroText, 0.7) }}>
                 {cleanCustomerCopy(footerCopy.summary, "Discover curated products, delivered with care.")}
               </p>

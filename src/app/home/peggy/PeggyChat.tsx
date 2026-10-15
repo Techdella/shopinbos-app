@@ -1,5 +1,6 @@
 "use client";
 
+import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,8 @@ interface Turn {
   actions?: PeggyAction[];
   /** Error notes are shown but not sent back to Peggy. */
   failed?: boolean;
+  /** Show "Buy credits" under it (the allowance and credits ran out). */
+  buyCredits?: boolean;
 }
 
 interface Stats {
@@ -114,16 +117,17 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
       });
-      const body = (await response.json().catch(() => null)) as { data?: { text: string; actions?: PeggyAction[] }; error?: { message?: string } } | null;
-      if (!response.ok || !body?.data) throw new Error(body?.error?.message ?? t("err.answer"));
+      const body = (await response.json().catch(() => null)) as { data?: { text: string; actions?: PeggyAction[] }; error?: { code?: string; message?: string } } | null;
+      if (!response.ok || !body?.data) throw Object.assign(new Error(body?.error?.message ?? t("err.answer")), { code: body?.error?.code });
       const data = body.data;
       setTurns((current) => [...current, { role: "assistant", content: data.text, actions: data.actions ?? [] }]);
       // Her changes show up on the other pages straight away.
       if (data.actions?.length) router.refresh();
     } catch (error) {
-      setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? error.message : t("err.short") }]);
+      setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? error.message : t("err.short"), buyCredits: isCreditsError((error as { code?: string }).code) }]);
     } finally {
       setBusy(false);
+      creditsChanged();
       inputRef.current?.focus();
     }
   }
@@ -172,6 +176,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
             {turns.map((turn, index) => (
               <div key={index} className="flex flex-col gap-2">
                 <Bubble role={turn.role} content={turn.content} failed={turn.failed} />
+                {turn.buyCredits ? <BuyCreditsButton className="self-start" label={t("buyCredits")} /> : null}
                 {turn.actions?.map((action, actionIndex) => <ActionCard key={actionIndex} action={action} />)}
               </div>
             ))}
@@ -293,6 +298,8 @@ function LinkedText({ text }: { text: string }) {
                 <Icon name="sparkle" size={14} className="shrink-0" />
                 <span className="truncate">{t("askRex", { request: ask.length > 60 ? `${ask.slice(0, 57)}…` : ask })}</span>
               </Link>
+            ) : path === "/home/credits" ? (
+              <BuyCreditsButton className="my-1 min-h-0 px-3.5 py-1.5 text-[13px]" label={t("buyCredits")} />
             ) : (
               <Link href={path} className="font-bold text-app-ink underline underline-offset-2">{path}</Link>
             )}

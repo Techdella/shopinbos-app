@@ -1,6 +1,7 @@
 // Media library rules (pure, no imports): which files can be uploaded, how a library query is read, who may see or
-// remove an asset, and which pasted links count as a picture. Used by /api/upload, /api/app/media, the web picker
-// (src/components/media) and the phone app. Tests: tests/media-library.test.mjs.
+// remove an asset, which pasted links count as a picture, and how a title / alt text is cleaned. Used by /api/upload,
+// /api/app/media, the web picker (src/components/media), the Media page (/home/media) and the phone app.
+// Tests: tests/media-library.test.mjs, tests/behaviour.test.mjs.
 
 export const MEDIA_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"] as const;
 export const MEDIA_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg"] as const;
@@ -8,6 +9,8 @@ export const MEDIA_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MEDIA_MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 export const MEDIA_PAGE_SIZE = 40;
 export const MEDIA_MAX_PAGE_SIZE = 60;
+export const MEDIA_TITLE_MAX = 120;
+export const MEDIA_ALT_MAX = 300;
 
 export type MediaKind = "image" | "video";
 /** Where a library entry came from. upload = added by the person; the rest are found in their store. */
@@ -18,6 +21,10 @@ export interface MediaAssetView {
   url: string;
   kind: MediaKind;
   name: string | null;
+  /** The person's own name for it (Media page). */
+  title: string | null;
+  /** What the picture shows, for screen readers and search engines. */
+  alt: string | null;
   width: number | null;
   height: number | null;
   bytes: number | null;
@@ -112,4 +119,35 @@ export function mediaDisplayName(fileName: unknown): string | null {
 export function aiImageOwner(path: string): string | null {
   const match = /^(?:generated|enhanced|logos|banners)\/([A-Za-z0-9_-]{6,64})\//.exec(path);
   return match ? match[1]! : null;
+}
+
+export type AiCreationKind = "logo" | "image" | "edit" | "banner";
+
+/** What Rex made, from the picture's storage path (Rex's History > Creations). */
+export function aiCreationKind(path: string | null | undefined): AiCreationKind {
+  const folder = (path ?? "").split("/")[0];
+  return folder === "logos" ? "logo" : folder === "banners" ? "banner" : folder === "enhanced" ? "edit" : "image";
+}
+
+/**
+ * A title or alt text as saved: control characters, line breaks and angle brackets become spaces, runs of spaces
+ * collapse, ends are trimmed, and it is cut to `max`. Empty (or not a string) is null, which clears it.
+ */
+export function cleanMediaText(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.replace(/[\u0000-\u001f\u007f<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, max).trim();
+  return text || null;
+}
+
+/** What to call an entry on screen: its title, else its file / product name, else null (the caller picks a word). */
+export function mediaLabel(asset: { title?: string | null; name?: string | null }): string | null {
+  return asset.title?.trim() || asset.name?.trim() || null;
+}
+
+/** "840 KB", "2.4 MB" (empty when unknown). */
+export function mediaSizeLabel(bytes: number | null | undefined): string {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

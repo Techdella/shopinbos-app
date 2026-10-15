@@ -771,8 +771,9 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(productForm, /uploadVariantImages/);
   assert.match(productForm, /Create category/);
   assert.match(productForm, /<Mascot who="peggy"/);
-  assert.match(productDetail, /Variant details/);
-  assert.match(productDetail, /selectedVariantFields/);
+  // Classic stores render the shared product page, which shows the chosen version's own details.
+  assert.match(productDetail, /<ClassicPdp/);
+  assert.match(read("src/components/storefront/boutique/pdp/BoutiquePdp.tsx"), /selected\?\.customFields/);
   assert.match(homeApps, /redirect\("\/home\/marketing"\)/);
 });
 
@@ -864,7 +865,7 @@ test("2026 storefront themes are selectable templates with the shared shopper jo
   const client = read("src/app/s/[slug]/StorefrontClient.tsx");
   const productPage = read("src/app/s/[slug]/product/[productId]/page.tsx");
   const domainProductPage = read("src/app/_domain/[domain]/product/[productId]/page.tsx");
-  const productView = read("src/components/storefront/boutique/BoutiqueProductView.tsx");
+  const productView = read("src/components/storefront/boutique/BoutiqueProductView.tsx") + read("src/components/storefront/boutique/pdp/BoutiquePdp.tsx");
   const publicStore = read("src/app/api/public/store/[slug]/route.ts");
   const lookup = read("src/app/api/public/store/[slug]/orders/lookup/route.ts");
 

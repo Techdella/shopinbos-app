@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { BoutiqueProductPage } from "@/components/storefront/boutique/BoutiqueProductPage";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { boutiqueSnapshotFor, type ProductPageData } from "@/lib/storefront/product-page.server";
+import { boutiqueSnapshotFor, classicSnapshotFor, type ProductPageData } from "@/lib/storefront/product-page.server";
+import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
+import { classicBuyNowOnly, classicCartButtonLabel, classicPdpSettingsForSnapshot } from "@/components/storefront/boutique/pdp/classic-pdp";
+import type { ThemeTokenSet } from "@/lib/store-templates";
+import { resolveThemeTokens } from "@/lib/store-templates/themes";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { scriptSafeJson } from "@/lib/security/html";
 import { normalizeVariants, priceRange } from "@shared/product-variants";
+import { listingSoldOut } from "@shared/product-stock";
 
 // Shared by /s/[slug]/product/[productId] and custom-domain product pages.
 
@@ -38,7 +43,7 @@ function productJsonLd(data: ProductPageData, url: string) {
   const { product, store } = data;
   const variants = normalizeVariants(product.variants).filter((variant) => variant.enabled);
   const tracked = variants.filter((variant) => variant.stock !== null);
-  const inStock = tracked.length ? tracked.some((variant) => (variant.stock ?? 0) > 0) : true;
+  const inStock = !listingSoldOut(product) && (tracked.length ? tracked.some((variant) => (variant.stock ?? 0) > 0) || Boolean(product.stock?.continueSelling) : true);
   const range = priceRange(variants, product.retailPrice);
   return {
     "@context": "https://schema.org",
@@ -102,20 +107,48 @@ export function ProductPageView({ data, storeBasePath, canonical }: { data: Prod
     );
   }
 
+  // Classic templates render the same product page as the 2026 themes, in the classic theme's colours and fonts, with
+  // the product page settings from the store's published snapshot.
+  const brandSettings = record(data.store.brandSettings);
+  const snapshot = classicSnapshotFor(data.store.brandSettings);
+  const cartConfig = brandSettings.cartConfig;
+  const pdpSettings = classicPdpSettingsForSnapshot(snapshot, { addToBagFallback: classicCartButtonLabel(cartConfig) });
+  const look = classicLook(snapshot?.templateId ?? "", snapshot?.themeTokens ?? fallbackTokens(brandSettings.palette));
+
   return (
     <>
       {jsonLd}
       <ProductDetailClient
-        store={{ ...data.store, brandSettings: record(data.store.brandSettings) }}
+        store={{ ...data.store, brandSettings }}
         product={data.product}
         reviews={data.reviews}
         avgRating={data.avgRating}
         reviewCount={data.reviewCount}
-        ratingCounts={data.ratingCounts}
         storeBasePath={storeBasePath}
         catalog={data.catalog}
         related={data.related}
+        shopper={data.shopper}
+        settings={pdpSettings}
+        look={look}
+        buyNowOnly={classicBuyNowOnly(cartConfig)}
       />
     </>
   );
+}
+
+/** Colours for a classic store with no template on record: its saved palette (older stores), else the default theme. */
+function fallbackTokens(palette: unknown): ThemeTokenSet {
+  const own = record(palette);
+  const pick = (key: string, fallback: string) => (typeof own[key] === "string" && own[key] ? (own[key] as string) : fallback);
+  const base = resolveThemeTokens("");
+  return {
+    ...base,
+    accent: pick("accent", "#c9a96e"),
+    ctaBg: pick("accent", "#c9a96e"),
+    ctaText: "#FFFFFF",
+    paperBg: pick("paperBg", "#faf8f5"),
+    cardBg: "#FFFFFF",
+    ink: pick("ink", "#0c0c0c"),
+    border: pick("border", "#e8e2d9"),
+  };
 }

@@ -39,7 +39,7 @@ export async function buildSellerSnapshot(userId: string, now = new Date()) {
         where: { storeId, status: { not: "archived" } },
         orderBy: { createdAt: "desc" },
         take: 500,
-        select: { id: true, name: true, status: true, retailPrice: true, currency: true, currentStock: true, lowStockThreshold: true, soldStock: true, fulfillmentType: true },
+        select: { id: true, name: true, status: true, retailPrice: true, currency: true, currentStock: true, lowStockThreshold: true, soldStock: true, fulfillmentType: true, trackStock: true },
       }),
       [],
     ),

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BuyCreditsButton } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Mascot, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -37,6 +37,7 @@ export function RexChat({
   onUndo,
   onOpenPreview,
   undoingId,
+  attachRequest,
 }: {
   messages: ChatMessage[];
   busy: boolean;
@@ -54,6 +55,8 @@ export function RexChat({
   onUndo: (undoTo: string) => Promise<boolean>;
   onOpenPreview: (page: string | null) => void;
   undoingId: string | null;
+  /** A picture to attach to the chat box (History > Creations > Use with Rex); `n` makes repeats count. */
+  attachRequest?: { url: string; n: number } | null;
 }) {
   const t = useT("builder", "common");
   const [text, setText] = useState(initialText ?? "");
@@ -78,6 +81,13 @@ export function RexChat({
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
   }, [initialText]);
+
+  useEffect(() => {
+    if (!attachRequest) return;
+    setPhotos((prev) => (prev.includes(attachRequest.url) ? prev : [...prev, attachRequest.url].slice(-MAX_PHOTOS)));
+    setText((current) => current || t("rex.ch.photoPrompt"));
+    inputRef.current?.focus();
+  }, [attachRequest, t]);
 
   const blocked = busy || Boolean(disabledReason);
   const fresh = !messages.some((message) => message.role === "seller");
@@ -210,11 +220,7 @@ export function RexChat({
                           </button>
                         </div>
                       ) : null}
-                      {message.text.includes("/home/credits") ? (
-                        <Link href="/home/credits" className="mt-3 inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline">
-                          <Icon name="sparkle" size={14} /> {t("rex.ch.buyCredits")}
-                        </Link>
-                      ) : null}
+                      {message.buyCredits || message.text.includes("Buy AI credits") ? <BuyCreditsButton className="mt-3 min-h-[36px] text-[13px]" label={t("rex.ch.buyCredits")} /> : null}
                       {message.offer ? (
                         <button
                           type="button"

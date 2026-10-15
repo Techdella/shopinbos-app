@@ -170,6 +170,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "Delivery 48 nínú 50 dé lásìkò ní ọ̀sẹ̀ yìí: on-time rate 96%.",
   "api-key.short": "Kóòdù àṣírí tó ń jẹ́ kí app mìíràn ṣiṣẹ́ pẹ̀lú account Shopinbos rẹ.",
   "api-key.example": "Lẹ̀ ẹ́ sínú dispatch software rẹ, kí o sì pa á mọ́ bí password.",
+  "media.short": "Gbogbo àwòrán àti fídíò ìtajà rẹ, ní ibì kan láti fún wọn lórúkọ, ṣàlàyé wọn, kí o sì tún lò wọ́n.",
+  "media.example": "Yan àwòrán Ankara oṣù tó kọjá fún àsíá tuntun dípò kí o tún gbé e sókè.",
 };
 
 export default yo;

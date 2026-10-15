@@ -622,6 +622,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "company-profile.4.sub": "Fi àwọn irinṣẹ́ tí o kò tíì lò pamọ́. Mú wọn padà nígbàkúùgbà.",
   "company-profile.5.caption": "Gba verification láti ibí.",
   "company-profile.5.sub": "Verification wà nínú company settings rẹ. Àwọn partner tó ti verify ń rí order púpọ̀ sí i.",
+  "media.title": "Àwọn àwòrán",
+  "media.cta": "Ṣí àwọn àwòrán mi",
+  "media.1.caption": "Gbogbo àwòrán ìtajà rẹ, ní ibì kan.",
+  "media.1.sub": "Àwòrán ọjà, àmì rẹ, àsíá àti àwọn àpẹẹrẹ Rex máa ń dé síbí fúnra wọn.",
+  "media.2.caption": "Gbé e sókè lẹ́ẹ̀kan, lò ó níbikíbi.",
+  "media.2.sub": "Yan àwòrán kan náà fún ọjà, àsíá tàbí àròkọ búlọ́ọ̀gì. Kò sí gbígbé sókè lẹ́ẹ̀mejì.",
+  "media.3.caption": "Àkọlé àfidípò ń ran Google lọ́wọ́ láti rí ọ.",
+  "media.3.sub": "Sọ ohun tí àwòrán kọ̀ọ̀kan fi hàn, bí “Aṣọ Ankara pupa”. Àwọn ẹ̀rọ ìwádìí ń kà á.",
+  "media.4.caption": "Da ìjápọ̀ kọ pẹ̀lú ìfọwọ́kàn kan.",
+  "media.4.sub": "Lẹ ìjápọ̀ àwòrán sínú WhatsApp, ímeèlì tàbí ibikíbi tí o ti ń tà.",
+  "media.5.caption": "Rí i padà kíákíá.",
+  "media.5.sub": "Fún àwọn àwòrán ní àkọlé, lẹ́yìn náà wá wọn pẹ̀lú orúkọ tàbí ṣàlẹ̀ àwòrán àti fídíò.",
 };
 
 export default yo;

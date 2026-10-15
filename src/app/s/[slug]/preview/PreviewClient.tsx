@@ -14,9 +14,11 @@ interface PreviewClientProps {
   storeBasePath: string;
   /** False while the store isn't open to shoppers (only its owner gets this far). */
   live: boolean;
+  /** The store page the address names (/about), shown first. */
+  initialPage?: string;
 }
 
-export function PreviewClient({ store, storeBasePath, live }: PreviewClientProps) {
+export function PreviewClient({ store, storeBasePath, live, initialPage }: PreviewClientProps) {
   const [draft, setDraft] = useState<StoreEditorSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +56,7 @@ export function PreviewClient({ store, storeBasePath, live }: PreviewClientProps
 
   return (
     <PreviewFrame variant={!live ? "not-live" : draft ? "draft" : "published"}>
-      <StorefrontClient store={store} storeBasePath={storeBasePath} previewSnapshot={draft} previewMode={false} ownerPreview={!live} />
+      <StorefrontClient store={store} storeBasePath={storeBasePath} previewSnapshot={draft} previewMode={false} ownerPreview={!live} initialPage={initialPage} />
     </PreviewFrame>
   );
 }

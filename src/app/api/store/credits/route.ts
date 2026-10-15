@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
-import { db } from "@/lib/db/client";
+import { creditBalance } from "@/lib/ai/credits.server";
 
+// The seller's spendable AI credits (same number as /home/credits and Settings > Billing).
 export const GET = withSeller(async (_req, { user }) => {
-  const dbUser = await db.user.findUnique({
-    where: { id: user.id },
-    select: { aiCredits: true },
-  });
-  return NextResponse.json({ credits: dbUser?.aiCredits ?? 0 });
+  return NextResponse.json({ credits: await creditBalance(user.id) });
 });
