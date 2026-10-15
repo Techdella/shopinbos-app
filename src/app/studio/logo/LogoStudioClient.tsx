@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaFile, useMediaLibrary } from "@/components/media/useMediaLibrary";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { uploadStudioPhoto } from "@/components/builder/rex/api";
@@ -33,6 +34,7 @@ interface Batch {
 // chosen one. Earlier rounds stay on the page so nothing is lost.
 export function LogoStudioClient({ storeName, about = "", currentLogo = null }: { storeName: string; about?: string; currentLogo?: string | null }) {
   const t = useT("rex");
+  const media = useMediaLibrary();
   const [businessName, setBusinessName] = useState(storeName);
   const [description, setDescription] = useState(about);
   const [paletteHint, setPaletteHint] = useState("");
@@ -91,7 +93,24 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
   }
 
   /** Photos (or stills from a video) the seller gives Rex as inspiration: an old sign, packaging, logos they like. */
-  async function addInspiration(files: FileList | null) {
+  /** Opens the media library first (it uploads new files too); videos there become a few stills. */
+  async function addInspirationFromMedia() {
+    const picked = await media.open({ multiple: true, accept: "any" });
+    if (!picked.length) return;
+    const room = MAX_INSPIRATION - inspiration.length;
+    const pictures = picked.filter((asset) => asset.kind !== "video").slice(0, Math.max(0, room));
+    setInspiration((prev) => [...prev, ...pictures.filter((asset) => !prev.some((item) => item.url === asset.url)).map((asset) => ({ url: asset.url, fromVideo: false }))]);
+    const videos = picked.filter((asset) => asset.kind === "video");
+    if (videos.length) {
+      try {
+        await addInspiration(await Promise.all(videos.map(mediaFile)));
+      } catch {
+        // The handler shows its own error.
+      }
+    }
+  }
+
+  async function addInspiration(files: FileList | File[] | null) {
     if (!files?.length) return;
     let room = MAX_INSPIRATION - inspiration.length;
     if (room <= 0) return;
@@ -227,7 +246,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
                 {inspiration.length < MAX_INSPIRATION ? (
                   <button
                     type="button"
-                    onClick={() => fileRef.current?.click()}
+                    onClick={() => void addInspirationFromMedia()}
                     disabled={uploading || loading !== null}
                     className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-dashed border-app-line-strong bg-white px-4 text-[13px] font-bold hover:border-app-ink disabled:opacity-50"
                   >
@@ -235,6 +254,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
                   </button>
                 ) : null}
                 <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" multiple className="sr-only" tabIndex={-1} onChange={(e) => void addInspiration(e.target.files)} />
+              {media.dialog}
               </div>
             </div>
             <PillButton tone="accent" size="md" className="w-full" onClick={() => void generate()} disabled={loading !== null || uploading || !businessName.trim()}>

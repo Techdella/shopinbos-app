@@ -24,6 +24,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "photoN": "Foto {n}",
   "removePhoto": "Wepụ foto {n}",
   "addPhoto": "+ Foto",
+  "pickPhotos": "Họrọ foto maka reel gị",
   "photosTip": "Foto atọ na-eme reel dị mma. Ruo {max}.",
   "whatPeggySays": "3. Okwu",
   "product": "Ngwaahịa",

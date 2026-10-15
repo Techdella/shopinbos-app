@@ -24,6 +24,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "photoN": "Photo {n}",
   "removePhoto": "Remove photo {n}",
   "addPhoto": "+ Photo",
+  "pickPhotos": "Choose photos for your reel",
   "photosTip": "Three photos dey make better reel. Reach {max}.",
   "whatPeggySays": "3. Wetin e go talk",
   "product": "Product",

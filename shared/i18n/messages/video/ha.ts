@@ -24,6 +24,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "photoN": "Hoto {n}",
   "removePhoto": "Cire hoto {n}",
   "addPhoto": "+ Hoto",
+  "pickPhotos": "Zaɓi hotuna don reel ɗinka",
   "photosTip": "Hotuna uku suna yin reel mai kyau. Har zuwa {max}.",
   "whatPeggySays": "3. Kalmomi",
   "product": "Kaya",

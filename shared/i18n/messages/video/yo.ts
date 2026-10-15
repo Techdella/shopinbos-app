@@ -24,6 +24,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "photoN": "Fọ́tò {n}",
   "removePhoto": "Yọ fọ́tò {n} kúrò",
   "addPhoto": "+ Fọ́tò",
+  "pickPhotos": "Yan fọ́tò fún reel rẹ",
   "photosTip": "Fọ́tò mẹ́ta máa ń ṣe reel tó dára. Títí dé {max}.",
   "whatPeggySays": "3. Ọ̀rọ̀",
   "product": "Ọjà",

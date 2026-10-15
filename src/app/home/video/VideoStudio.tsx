@@ -24,7 +24,7 @@ import {
 import { CREDIT_COST } from "@shared/ai-credits";
 import { loadReelImage, previewMusic, reelSupported, renderReel, type ReelResult } from "@/lib/video/render-reel";
 import { uploadFile } from "@/lib/supabase/storage";
-import { uploadStudioPhoto } from "@/components/builder/rex/api";
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { REX_REEL_HANDOFF_KEY } from "@/lib/ai/rex/cards";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -118,7 +118,7 @@ export function VideoStudio({
   const [result, setResult] = useState<(ReelResult & { url: string }) | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [supported, setSupported] = useState(true);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const media = useMediaLibrary();
   const voiceCache = useRef(new Map<string, ArrayBuffer>());
   const stopSound = useRef<(() => void) | null>(null);
   const product = products.find((item) => item.id === productId) ?? null;
@@ -189,23 +189,14 @@ export function VideoStudio({
     setResult(null);
   }
 
-  /** Photos are uploaded straight away, so Rex can work on them and the reel can be remade later. */
-  async function addFiles(files: FileList | null) {
-    if (!files?.length) return;
-    setStep("uploading");
-    setNotice(null);
-    try {
-      const room = MAX_PHOTOS - photos.length;
-      for (const file of Array.from(files).filter((item) => item.type.startsWith("image/")).slice(0, room)) {
-        const url = await uploadStudioPhoto(file);
-        setPhotos((list) => [...list, { key: url, src: url }].slice(0, MAX_PHOTOS));
-      }
-      setResult(null);
-    } catch (error) {
-      setNotice({ tone: "error", text: error instanceof Error ? error.message : t("err.upload") });
-    } finally {
-      setStep("idle");
-    }
+  /** Photos come from the media library (which also uploads new ones), so the reel can be remade later. */
+  async function addFromMedia() {
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) return;
+    const picked = await media.open({ multiple: true, accept: "image", title: t("pickPhotos") });
+    if (!picked.length) return;
+    setPhotos((list) => [...list, ...picked.filter((asset) => !list.some((photo) => photo.src === asset.url)).map((asset) => ({ key: asset.url, src: asset.url }))].slice(0, MAX_PHOTOS));
+    setResult(null);
   }
 
   async function writeScript() {
@@ -440,12 +431,12 @@ export function VideoStudio({
               </div>
             ))}
             {photos.length < MAX_PHOTOS && (
-              <button type="button" disabled={step === "uploading"} onClick={() => fileInput.current?.click()} className="grid aspect-[9/16] place-items-center rounded-[12px] border-2 border-dashed border-app-line-strong text-[13px] font-bold text-app-ink-soft">
+              <button type="button" disabled={step === "uploading"} onClick={() => void addFromMedia()} className="grid aspect-[9/16] place-items-center rounded-[12px] border-2 border-dashed border-app-line-strong text-[13px] font-bold text-app-ink-soft">
                 {step === "uploading" ? <Spinner className="h-5 w-5" /> : t("addPhoto")}
               </button>
             )}
           </div>
-          <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(event) => { void addFiles(event.target.files); event.target.value = ""; }} />
+          {media.dialog}
           <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{t("photosTip", { max: MAX_PHOTOS })}</p>
 
           <div className="mt-4 rounded-[16px] bg-app-canvas p-4">

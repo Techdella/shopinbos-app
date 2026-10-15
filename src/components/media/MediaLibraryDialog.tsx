@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { PillButton, Spinner, cx } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
 import { mediaLabel, type MediaKind } from "@shared/media";
-import { acceptFor, chooseFile, listMyMedia, removeFromMyMedia, uploadToMyMedia, type MediaAssetView } from "./media-client";
+import { acceptFor, chooseFile, chooseFiles, listMyMedia, removeFromMyMedia, uploadToMyMedia, type MediaAssetView } from "./media-client";
 
 // "My media": a grid of the person's pictures (newest first) with search and an upload button. A bottom sheet on
 // phones, a centred dialog from sm up. Picks one (tap, then "Use this picture") or several (`multiple`).
@@ -121,18 +121,19 @@ function LibrarySheet({ onClose, onSelect, multiple = false, accept = "image", t
   };
 
   const upload = async () => {
-    const file = await chooseFile(acceptFor(accept));
-    if (!file) return;
+    const files = multiple ? await chooseFiles(acceptFor(accept)) : [await chooseFile(acceptFor(accept))].filter((file): file is File => Boolean(file));
+    if (!files.length) return;
     setUploading(true);
     setMessage(null);
     try {
-      const asset = await uploadToMyMedia(file, accept);
+      const uploaded: MediaAssetView[] = [];
+      for (const file of files) uploaded.push(await uploadToMyMedia(file, accept));
       if (!multiple) {
-        finish([asset]);
+        finish(uploaded);
         return;
       }
-      setItems((current) => [asset, ...current.filter((entry) => entry.url !== asset.url)]);
-      setPicked((current) => [...current, asset]);
+      setItems((current) => [...uploaded, ...current.filter((entry) => !uploaded.some((asset) => asset.url === entry.url))]);
+      setPicked((current) => [...current, ...uploaded.filter((asset) => !current.some((entry) => entry.url === asset.url))]);
     } catch (error) {
       setMessage({ tone: "error", text: error instanceof Error ? error.message : t("field.uploadFailed") });
     } finally {

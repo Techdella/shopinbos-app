@@ -24,6 +24,7 @@ const en = {
   "photoN": "Photo {n}",
   "removePhoto": "Remove photo {n}",
   "addPhoto": "+ Photo",
+  "pickPhotos": "Choose photos for your reel",
   "photosTip": "Three photos make a good reel. Up to {max}.",
   "whatPeggySays": "3. Words",
   "product": "Product",

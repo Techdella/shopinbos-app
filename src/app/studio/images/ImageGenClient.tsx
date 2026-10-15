@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaFile, useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -46,6 +47,7 @@ interface Reference {
 // off, photos or a video they add are references, and the ideas come from their own products.
 export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeName: string; brand: ImageBrand | null; ideas: string[] }) {
   const t = useT("rex");
+  const media = useMediaLibrary();
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState<"1024x1024" | "1792x1024" | "1024x1792">("1024x1024");
   const [style, setStyle] = useState<"vivid" | "natural">("vivid");
@@ -101,7 +103,24 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
     }
   };
 
-  async function addFiles(files: FileList | null) {
+  /** Opens the media library first (it uploads new files too); videos there become a few stills. */
+  async function addFilesFromMedia() {
+    const picked = await media.open({ multiple: true, accept: "any" });
+    if (!picked.length) return;
+    const room = MAX_REFS - refs.length;
+    const pictures = picked.filter((asset) => asset.kind !== "video").slice(0, Math.max(0, room));
+    setRefs((prev) => [...prev, ...pictures.filter((asset) => !prev.some((item) => item.url === asset.url)).map((asset) => ({ url: asset.url, fromVideo: false }))]);
+    const videos = picked.filter((asset) => asset.kind === "video");
+    if (videos.length) {
+      try {
+        await addFiles(await Promise.all(videos.map(mediaFile)));
+      } catch {
+        // The handler shows its own error.
+      }
+    }
+  }
+
+  async function addFiles(files: FileList | File[] | null) {
     if (!files?.length) return;
     let room = MAX_REFS - refs.length;
     if (room <= 0) {
@@ -234,7 +253,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
               {refs.length < MAX_REFS ? (
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => void addFilesFromMedia()}
                   disabled={uploading || loading}
                   className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-dashed border-app-line-strong px-4 text-[13.5px] font-bold hover:bg-app-canvas disabled:opacity-50"
                 >
@@ -242,6 +261,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
                 </button>
               ) : null}
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" multiple className="sr-only" tabIndex={-1} onChange={(e) => void addFiles(e.target.files)} />
+              {media.dialog}
             </div>
             {productPhotos.length ? (
               <div className="mt-3">
