@@ -1,4 +1,7 @@
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
+import { BrandAssetsPanel } from "./BrandAssets";
+import { readBrandAssets } from "@shared/brand-assets";
+import { readBrandBook } from "@shared/brand-book";
 import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
@@ -61,6 +64,7 @@ export default async function BrandKitPage() {
   const serif = tokens?.headingStyle === "serif";
   const initial = store.name.trim().charAt(0).toUpperCase() || "S";
   const fileBase = store.slug || "logo";
+  const hasBook = Boolean(readBrandBook((store.brandSettings as Record<string, unknown> | null)?.styleBook));
 
   return (
     <SellerPage
@@ -72,6 +76,7 @@ export default async function BrandKitPage() {
         <>
           <UploadLogoButton hasLogo={Boolean(store.logoUrl)} />
           <PillLink href="/home/brand-kit/sheet" icon="document">{t("bk.sheet")}</PillLink>
+          <PillLink href="/home/brand-kit/book" icon="document">{t("ba.bookTitle")}</PillLink>
           <PillLink href="/studio/logo" tone="ink" icon="sparkle">{t("bk.newLogo")}</PillLink>
         </>
       }
@@ -112,6 +117,18 @@ export default async function BrandKitPage() {
               {t("bk.caption")}{store.logoUrl ? "" : ` · ${t("bk.captionNoLogo")}`}
             </figcaption>
           </figure>
+
+          <BrandAssetsPanel initial={readBrandAssets(store)} storeName={store.name} accent={accent} fileBase={fileBase} />
+
+          <Card className="p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="m-0 text-[17px] font-extrabold">{t("ba.bookTitle")}</h2>
+                <p className="m-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">{hasBook ? t("ba.bookReady") : t("ba.bookEmpty")}</p>
+              </div>
+              <PillLink href="/home/brand-kit/book" tone="ink" icon={hasBook ? "document" : "sparkle"}>{hasBook ? t("ba.bookOpen") : t("ba.bookMake")}</PillLink>
+            </div>
+          </Card>
 
           <Card className="p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -187,6 +204,12 @@ export default async function BrandKitPage() {
                 {store.logoUrl ? (
                   <DownloadLogoButton url={store.logoUrl} fileName={`${fileBase}-logo`} label={t("bk.download")} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-60" />
                 ) : null}
+              </FileRow>
+              <FileRow icon="document" title={t("ba.bookTitle")} sub={hasBook ? t("bk.printPdf") : t("ba.bookShort")}>
+                <PillLink href="/home/brand-kit/book" size="sm">{t("bk.open")}</PillLink>
+              </FileRow>
+              <FileRow icon="tag" title={t("ba.printTitle")} sub={t("ba.printSub")}>
+                <PillLink href="/home/labels/studio" size="sm">{t("bk.open")}</PillLink>
               </FileRow>
               <FileRow icon="document" title={t("bk.sheet")} sub={t("bk.printPdf")}>
                 <PillLink href="/home/brand-kit/sheet" size="sm">{t("bk.open")}</PillLink>

@@ -1484,6 +1484,15 @@ const en = {
   "rex.cd.addPick": "Add",
   "rex.cd.noProducts": "You have no products yet. Add one first, then come back.",
   "rex.ch.buyCredits": "Buy AI credits",
+  "rex.br.book": "Style book",
+  "rex.br.icon": "Logo icon",
+  "rex.br.favicon": "Favicon",
+  "rex.br.print": "Print studio",
+  "rex.br.useIcon": "Use as logo icon",
+  "rex.br.useFavicon": "Use as favicon",
+  "rex.br.openPrint": "Open and print",
+  "rex.br.openBook": "Open style book",
+  "rex.br.openKit": "Brand kit",
 } satisfies Record<string, string>;
 
 export default en;

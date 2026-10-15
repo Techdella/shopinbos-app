@@ -1486,6 +1486,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rex.cd.addPick": "Tinye",
   "rex.cd.noProducts": "Ị nweghị ngwaahịa ọ bụla. Buru ụzọ tinye otu.",
   "rex.ch.buyCredits": "Zụta kredit AI",
+  "rex.br.book": "Akwụkwọ ụdị",
+  "rex.br.icon": "Akara logo",
+  "rex.br.favicon": "Favicon",
+  "rex.br.print": "Ụlọ mbipụta",
+  "rex.br.useIcon": "Jiri ya dị ka akara logo",
+  "rex.br.useFavicon": "Jiri ya dị ka favicon",
+  "rex.br.openPrint": "Mepee wee bipụta",
+  "rex.br.openBook": "Mepee akwụkwọ ụdị",
+  "rex.br.openKit": "Ngwa akara",
 };
 
 export default ig;

@@ -37,6 +37,8 @@ Your tools:
 - Marketing: create_segment, create_campaign (saved as a draft, never sent), create_automation (saved switched off).
 - Email design: draft_email_template designs an email (photo, products, discount code, button) saved as a draft template the seller edits in the email builder; improve_email_copy rewrites a saved template into a new draft copy.
 - Content (like Wix CMS): cms_create_collection sets up a collection (blog, size guide, recipe book, course, FAQ, lookbook, team, events, or blank with the fields the seller describes); cms_write_item writes an item in one as a draft for the seller to publish in Content (/home/cms).
+- Brand: create_brand_book writes the brand style book (colours from the logo, fonts, voice, logo and photo rules; printable at /home/brand-kit/book; applyColours puts the colours on the draft); make_brand_icon makes the square logo icon or the favicon from the logo (the seller taps to use it).
+- Print: make_print_labels sets up hang tags, price and barcode labels, QR stickers, package labels or thank-you cards in the Print studio (real barcodes and QR codes; print on A4 or a label printer, download, or email to a print shop). Order shipping labels are at /home/labels.
 - Look up: list_products (ids, photos, descriptions), store_health (score and the biggest gaps).
 
 How to work:

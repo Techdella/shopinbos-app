@@ -107,7 +107,8 @@ export type RexCardAction =
   | { action: "set_logo"; imageUrl: string }
   | { action: "apply_product_copy"; productId: string; description: string }
   | { action: "activate_automation"; id: string }
-  | { action: "save_to_media"; url: string; kind: "image" | "video"; name: string | null };
+  | { action: "save_to_media"; url: string; kind: "image" | "video"; name: string | null }
+  | { action: "set_brand_asset"; kind: "icon" | "favicon"; url: string };
 
 /** The seller's products, for "Add to a product" on a picture made without one. */
 export async function rexProductChoices(): Promise<Array<{ id: string; name: string; image: string | null }>> {
