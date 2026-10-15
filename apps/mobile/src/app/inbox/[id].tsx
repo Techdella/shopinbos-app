@@ -6,7 +6,8 @@ import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Chip, Notice, T } from "@/components/ui";
 import { fetchThread, sendInboxMessage, setConversationStatus, type InboxMessage } from "@/lib/inbox";
-import { NO_REPLY_CHANNELS, shortTime } from "@/lib/inbox-pure";
+import { channelLabel, NO_REPLY_CHANNELS, repliesByEmail, replySubject, shortTime } from "@/lib/inbox-pure";
+import { AppIcon } from "@/components/icons";
 import { useLoad } from "@/lib/useLoad";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
@@ -49,6 +50,10 @@ export default function InboxThread() {
   const data = thread.data;
   const conversation = data?.conversation;
   const canReply = conversation ? !NO_REPLY_CHANNELS.includes(conversation.channel) : false;
+  // Email (and contact-form) replies go out as an email from the seller's address, with "Re: <subject>".
+  const byEmail = conversation ? repliesByEmail(conversation.channel) : false;
+  const subjectOut = byEmail ? replySubject(conversation?.subject) : null;
+  const channelName = conversation ? channelLabel(conversation.channel, t) : "";
 
   async function send() {
     const body = draft.trim();
@@ -88,9 +93,12 @@ export default function InboxThread() {
     <>
       <View style={{ flex: 1 }}>
         <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{conversation?.name ?? t("thread.conversation")}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
-          {conversation ? [conversation.channelLabel, conversation.contactPhone ?? conversation.contactEmail ?? conversation.contactHandle].filter(Boolean).join(" · ") : " "}
-        </T>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          {byEmail ? <AppIcon name="mail" size={14} color={colors.inkSoft} /> : null}
+          <T style={{ flex: 1, color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
+            {conversation ? [channelName, conversation.contactPhone ?? conversation.contactEmail ?? conversation.contactHandle].filter(Boolean).join(" · ") : " "}
+          </T>
+        </View>
       </View>
     </>
   );
@@ -108,10 +116,18 @@ export default function InboxThread() {
             onChange={setDraft}
             onSend={() => void send()}
             busy={sending}
-            placeholder={!canReply || mode === "note" ? t("thread.notePlaceholder") : conversation?.channelLabel ? t("thread.replyOn", { channel: conversation.channelLabel }) : t("thread.replyHere")}
+            placeholder={!canReply || mode === "note" ? t("thread.notePlaceholder") : byEmail ? t("thread.emailPlaceholder") : channelName ? t("thread.replyOn", { channel: channelName }) : t("thread.replyHere")}
             above={
               <>
                 {error ? <Notice>{error}</Notice> : null}
+                {byEmail && canReply && mode === "reply" ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <AppIcon name="mail" size={14} color={colors.inkSoft} />
+                    <T style={{ flex: 1, color: colors.inkSoft, fontSize: 14 }} numberOfLines={2}>
+                      {subjectOut ? t("thread.emailGoesAs", { subject: subjectOut }) : t("thread.emailGoes")}
+                    </T>
+                  </View>
+                ) : null}
                 {snoozing ? (
                   <View style={{ gap: 6 }}>
                     <T weight="bold" style={{ fontSize: 15 }}>{t("thread.snoozeTitle")}</T>
@@ -141,7 +157,7 @@ export default function InboxThread() {
                   </View>
                 ) : null}
                 {canReply ? null : (
-                  <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("thread.cantReply", { channel: conversation?.channelLabel ?? "" })}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("thread.cantReply", { channel: channelName })}</T>
                 )}
               </>
             }
@@ -151,7 +167,12 @@ export default function InboxThread() {
     >
       {thread.loading && !data ? <LoadingBlock /> : null}
       {thread.error && !data ? <ErrorState message={thread.error} onRetry={() => void thread.reload()} /> : null}
-      {conversation?.subject ? <T weight="bold" style={{ color: colors.inkSoft }}>{conversation.subject}</T> : null}
+      {conversation?.subject ? (
+        <View style={{ gap: 2, backgroundColor: colors.surface, borderRadius: radii.card, borderWidth: 1, borderColor: colors.line, padding: 12 }}>
+          <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("thread.subject")}</T>
+          <T weight="bold" style={{ fontSize: 15 }}>{conversation.subject}</T>
+        </View>
+      ) : null}
       {conversation?.status === "snoozed" && conversation.snoozedUntil ? <Notice tone="info">{t("thread.hiddenUntil", { when: formatDate(conversation.snoozedUntil, locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }) })}</Notice> : null}
       {data && !data.messages.length ? <T style={{ color: colors.inkSoft, textAlign: "center" }}>{t("thread.noMessages")}</T> : null}
       {data?.messages.map((message) => (

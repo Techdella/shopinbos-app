@@ -55,6 +55,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "expiry.3days": "3 days",
   "expiry.week": "1 week",
   "expiry.month": "1 month",
+  "link.seasonal": "Seasonal campaigns",
+  "link.seasonalHint": "Sales with countdown for Black Friday, Christmas and more",
   "link.templates": "Email templates",
   "link.templatesHint": "Ready-made emails for sales, new stock and thank-yous",
   "link.subscribers": "Subscribers",

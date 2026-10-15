@@ -26,6 +26,21 @@ export function channelLabel(channel: string, t?: { dynamic(key: string, fallbac
   return t ? t.dynamic(`channel.${channel in CHANNEL_LABELS ? channel : "other"}`, english) : english;
 }
 
+/** Channels whose replies go out as an email (a contact form's answer goes to the customer's email too). */
+export function repliesByEmail(channel: string) {
+  return channel === "email" || channel === "form";
+}
+
+/**
+ * The subject a reply goes out with, as the web sends it (src/lib/inbox/channels/email.ts): "Re: <subject>",
+ * left as is when it already starts with "Re:". Null when the conversation has no subject.
+ */
+export function replySubject(subject: string | null | undefined): string | null {
+  const clean = (subject ?? "").trim();
+  if (!clean) return null;
+  return /^re:/i.test(clean) ? clean : `Re: ${clean}`;
+}
+
 export type InboxView = "open" | "unread" | "snoozed" | "closed";
 
 interface Filterable {
@@ -35,6 +50,7 @@ interface Filterable {
   name: string;
   preview: string;
   sub: string | null;
+  subject?: string | null;
 }
 
 /** The list for one view ("Open", "Unread", "Snoozed", "Done"), one channel ("" = all) and a search. */
@@ -46,7 +62,7 @@ export function filterInbox<T extends Filterable>(items: T[], filters: { view: I
     if (filters.view === "open" && item.status !== "open") return false;
     if (filters.view === "snoozed" && item.status !== "snoozed") return false;
     if (filters.view === "closed" && item.status !== "closed") return false;
-    if (q && ![item.name, item.preview, item.sub ?? ""].join(" ").toLowerCase().includes(q)) return false;
+    if (q && ![item.name, item.preview, item.sub ?? "", item.subject ?? ""].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
 }

@@ -130,6 +130,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bot.faqs": "Ajụjụ na azịza",
   "bot.faqsCount": "Ajụjụ na azịza ({count})",
   "bot.faqsHint": "Gbanwee ha ma nwalee Peggy na browser gị",
+  "list.email": "Email",
+  "list.emailHint": "Gụọ ma zaa email ndị ahịa ebe a",
+  "thread.subject": "Isiokwu",
+  "thread.emailPlaceholder": "Dee azịza email gị",
+  "thread.emailGoesAs": "Ọ ga-apụ dị ka email: {subject}",
+  "thread.emailGoes": "Ọ ga-apụ dị ka email nye onye ahịa",
 };
 
 export default ig;

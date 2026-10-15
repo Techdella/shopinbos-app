@@ -1,6 +1,7 @@
 import type { EditableVariantRow, ProductKind } from "@shared/product-edit";
 import type { ProductTypeKey } from "@shared/product-types";
 import { api } from "./api";
+import type { CategoryLite, StoreCategory } from "./categories-pure";
 
 // One product in the seller's shop, for the product editor (app/product/[id].tsx).
 //   GET    /api/app/store-products/[id]   the product, its variants and (dropship) the supplier and cost
@@ -36,7 +37,23 @@ export interface EditProduct {
     supplierStock: number;
     sale: { shopperPays: number; supplierGets: number; fee: number; keep: number; keepPct: number };
   } | null;
+  /** Its category (older servers leave these out). Saved as categoryId; the server can't clear it. */
+  categoryId?: string | null;
+  category?: { id: string; name: string } | null;
 }
+
+// ─── Categories (web /home/categories) ───────────────────────────────────────
+//   GET  /api/store/categories   the shop's categories (the ones its products use) with product counts
+//   GET  /api/public/categories  every category (they're shared by all shops), for the picker
+//   POST /api/app/categories     a new category ({ name }), as the web's new-product form makes one
+
+export type { StoreCategory };
+
+export const fetchStoreCategories = () => api<StoreCategory[]>("/api/store/categories");
+
+export const fetchAllCategories = () => api<CategoryLite[]>("/api/public/categories");
+
+export const createCategory = (name: string) => api<CategoryLite & { slug: string }>("/api/app/categories", { method: "POST", json: { name } });
 
 export const fetchEditProduct = (id: string) => api<EditProduct>(`/api/app/store-products/${encodeURIComponent(id)}`);
 

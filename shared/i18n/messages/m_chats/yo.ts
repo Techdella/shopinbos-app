@@ -130,6 +130,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bot.faqs": "Ìbéèrè àti ìdáhùn",
   "bot.faqsCount": "Ìbéèrè àti ìdáhùn ({count})",
   "bot.faqsHint": "Yí wọn padà kí o sì dán Peggy wò nínú browser rẹ",
+  "list.email": "Email",
+  "list.emailHint": "Ka àwọn email oníbàárà kí o sì dáhùn níbí",
+  "thread.subject": "Àkọlé",
+  "thread.emailPlaceholder": "Kọ èsì email rẹ",
+  "thread.emailGoesAs": "Yóò jáde bí email: {subject}",
+  "thread.emailGoes": "Yóò jáde bí email sí oníbàárà",
 };
 
 export default yo;

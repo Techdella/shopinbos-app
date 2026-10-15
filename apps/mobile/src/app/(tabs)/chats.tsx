@@ -7,7 +7,7 @@ import { ChipRow, EmptyState, ErrorState, Initials, LinkRow, LoadingBlock } from
 import { TabScreen } from "@/components/TabScreen";
 import { Card, Chip, Field, Mascot, PillButton, Segmented, T } from "@/components/ui";
 import { fetchInbox, type InboxListItem } from "@/lib/inbox";
-import { channelLabel, channelsInUse, filterInbox, shortTime, type InboxView } from "@/lib/inbox-pure";
+import { channelLabel, channelsInUse, filterInbox, repliesByEmail, shortTime, type InboxView } from "@/lib/inbox-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
@@ -86,7 +86,7 @@ export default function Chats() {
           <Pressable
             key={item.key}
             accessibilityRole="button"
-            accessibilityLabel={item.unread ? t("list.itemUnread", { name: item.name, channel: channelLabel(item.channel, t), count: item.unread }) : `${item.name}, ${channelLabel(item.channel, t)}`}
+            accessibilityLabel={`${item.unread ? t("list.itemUnread", { name: item.name, channel: channelLabel(item.channel, t), count: item.unread }) : `${item.name}, ${channelLabel(item.channel, t)}`}${item.subject ? `, ${item.subject}` : ""}`}
             onPress={() => open(item)}
             style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12, opacity: pressed ? 0.8 : 1 })}
           >
@@ -96,8 +96,10 @@ export default function Chats() {
                 <T weight={item.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{item.name}</T>
                 <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.at, new Date(), t)}</T>
               </View>
+              {item.subject ? <T weight={item.unread ? "bold" : "semibold"} style={{ fontSize: 15 }} numberOfLines={1}>{item.subject}</T> : null}
               <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{item.preview || t("list.noMessages")}</T>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                {repliesByEmail(item.channel) ? <AppIcon name="mail" size={14} color={colors.inkSoft} /> : null}
                 <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? t("partners.partner") : channelLabel(item.channel, t)}</T>
                 {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 13, color: colors.accentInk }}>· {t("view.snoozed")}</T> : null}
               </View>
@@ -114,6 +116,7 @@ export default function Chats() {
       <Card style={{ marginTop: 18, paddingVertical: 2 }}>
         <LinkRow first icon="users" label={t("partners.title")} hint={t("list.partnersHint")} onPress={() => router.push("/partners")} />
         <LinkRow icon="clock" label={t("list.autoReplies")} hint={t("list.autoRepliesHint")} onPress={() => router.push("/inbox/auto-replies")} />
+        <LinkRow icon="mail" label={t("list.email")} hint={t("list.emailHint")} onPress={() => router.push("/channels")} />
         <LinkRow icon="chat" label={t("list.connect")} hint={t("list.connectHint")} onPress={() => router.push({ pathname: "/ask-us", params: { what: "channels" } })} />
       </Card>
     </TabScreen>

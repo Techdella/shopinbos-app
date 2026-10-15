@@ -42,6 +42,23 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "post.title": "Post & share",
   "post.sub": "Kọ post nípa àwọn ọjà rẹ kí o pín in káàkiri. Yóò ṣí nínú browser rẹ",
   openFailed: "A kò lè ṣí sign-in. Ṣàyẹ̀wò network rẹ kí o tún gbìyànjú.",
+  "email.title": "Email nínú Inbox rẹ",
+  "email.name": "Email",
+  "email.sub": "Àwọn oníbàárà á gba email láti àdírẹ́sì rẹ. Èsì wọn á wọ inú Chats.",
+  "email.off": "Kò tíì so pọ̀.",
+  "email.attention": "Email rẹ nílò àyẹ̀wò. Ṣí i lórí web láti ṣàtúnṣe rẹ̀.",
+  "email.gmailExpired": "Ìwọlé Gmail rẹ ti parí, nítorí náà email kò lè jáde. So Gmail pọ̀ lẹ́ẹ̀kan sí i.",
+  "email.domainWaiting": "{domain} ṣì ń múra sílẹ̀. Ó lè gba tó wákàtí kan.",
+  "email.gmail": "So Gmail pọ̀",
+  "email.gmailAgain": "So Gmail pọ̀ lẹ́ẹ̀kan sí i",
+  "email.gmailHint": "Yóò ṣí Google nínú browser rẹ. Tí ó bá sọ pé Gmail ti so pọ̀, pa á dé láti padà wá.",
+  "email.gmailNotReady": "A kò tíì tan sísopọ̀ Gmail fún Shopinbos.",
+  "email.domain": "Lo email lórí domain tìrẹ",
+  "email.confirm": "Dá fífi email ránṣẹ́ láti àdírẹ́sì yìí dúró? Àwọn ìjíròrò rẹ yóò wà nínú Inbox rẹ.",
+  "email.disconnected": "A ti yọ email kúrò.",
+  "email.domainTitle": "Ṣètò email domain rẹ lórí ojú ìbòjú tó tóbi",
+  "email.domainBody": "Email bí hello@yourshop.com nílò àwọn ètò díẹ̀ lórí domain rẹ. Ó rọrùn lórí kọ̀ǹpútà, ṣùgbọ́n o lè ṣí i lórí fóònù yìí náà. Tàbí bi wá, a ó ṣètò rẹ̀ fún ọ.",
+  "email.askUs": "Bi wá kí a ṣètò rẹ̀",
 };
 
 export default yo;

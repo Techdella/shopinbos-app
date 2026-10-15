@@ -13,6 +13,8 @@ export interface InboxListItem {
   channel: InboxChannel;
   name: string;
   sub: string | null;
+  /** Email and contact-form conversations: the subject line (older servers leave it out). */
+  subject?: string | null;
   preview: string;
   at: string;
   unread: number;

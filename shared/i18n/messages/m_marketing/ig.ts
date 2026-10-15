@@ -55,6 +55,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "expiry.3days": "Ụbọchị 3",
   "expiry.week": "Izu 1",
   "expiry.month": "Ọnwa 1",
+  "link.seasonal": "Campaigns oge ememe",
+  "link.seasonalHint": "Mbelata nwere elekere ngụda maka Black Friday, Krismas na ndị ọzọ",
   "link.templates": "Email templates",
   "link.templatesHint": "Email ndị a kwadebere maka ahịa, ngwaahịa ọhụrụ na ekele",
   "link.subscribers": "Subscribers",
