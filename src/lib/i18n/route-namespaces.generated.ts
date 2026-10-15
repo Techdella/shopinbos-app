@@ -143,7 +143,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/social/tiktok", ["common","nav","ui"]],
   ["/home/social/whatsapp", ["common","nav","ui"]],
   ["/home/start", ["auth","common","glossary","help","home","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
-  ["/home/store", ["auth","builder","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],
+  ["/home/store", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],
   ["/home/tax", ["common","nav","ui"]],
   ["/home/taxes", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/video", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification","video"]],

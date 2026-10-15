@@ -570,7 +570,10 @@ test("builder-only canvas hints are in the seller's language, and never reach th
   assert.doesNotMatch(surface, /aria-label\^="Add section"/, "the insert handles' hover doesn't depend on English labels");
   for (const english of ["Edit", "Change Style", "Duplicate", "Up", "Down", "Hide", "Delete", "Save"]) assert.ok(en[`ed.${english}`], `toolbar: "${english}" has a builder key`);
   // Other editor-mode previews of a seller's own store use the builder's words too (theme previews are demos: no hints).
-  for (const file of ["../src/components/builder/rex/RexPreview.tsx", "../src/app/home/store/StorePreviewCard.tsx"]) {
+  // The store-home thumbnail stays English on purpose: it's a scaled-down, aria-hidden picture, and translating it
+  // would load the whole builder catalogue on /home/store.
+  assert.doesNotMatch(read("../src/app/home/store/StorePreviewCard.tsx"), /useEditorT/);
+  for (const file of ["../src/components/builder/rex/RexPreview.tsx"]) {
     const source = read(file);
     assert.match(source, /const \{ editorText \} = useEditorT\(\);/, `${file}: builder translator`);
     assert.match(source, /editorText=\{editorText\}/, `${file}: passed to the surface`);
