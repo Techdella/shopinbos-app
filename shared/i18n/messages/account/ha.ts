@@ -184,6 +184,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "img.addLogo": "Saka logo",
   "img.uploading": "Ana lodawa…",
   "img.removing": "Ana cirewa…",
+  "details.nameHelp": "Canza sunan store ɗinka ba ya canza adireshinka na yanar gizo.",
+  "details.slugLocked": "Adireshinka na yanar gizo ya canza kwanan nan. Za ka iya sake canza shi nan da {days, plural, one {kwana #} other {kwanaki #}}.",
+  "details.slugWarnTitle": "Kana canza adireshin store ɗinka na yanar gizo",
+  "details.slugWarnLive": "Store ɗinka zai koma daga {old} zuwa {new}. Masu saye da suka buɗe tsohon adireshin za a tura su zuwa sabon, amma ka sabunta links da ka raba (bio na Instagram, status na WhatsApp, takardun talla, tallace-tallace) ka kuma faɗa wa kwastomominka na yau da kullum. Sau ɗaya kawai za ka iya canza adireshinka cikin kowane kwanaki {days}.",
+  "details.slugWarnDraft": "Store ɗinka zai koma daga {old} zuwa {new}. Duk wanda ya buɗe tsohon adireshin za a tura shi zuwa sabon. Da zarar store ɗinka ya fara aiki, sau ɗaya kawai za ka iya canza adireshinka cikin kowane kwanaki {days}.",
+  "details.slugConfirm": "Na fahimta. Matsar da store ɗina zuwa {new}",
 };
 
 export default ha;

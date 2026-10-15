@@ -167,6 +167,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cat.loading": "À ń gbé àwọn ẹ̀ka wá…",
   "cat.empty": "Kò sí ẹ̀ka síbẹ̀",
   "cat.emptySub": "Àwọn ẹ̀ka ń ṣèrànwọ́ láti ṣètò àwọn ọjà rẹ, wọ́n sì ń jẹ́ kí oníbàárà wò wọ́n gẹ́gẹ́ bí irú.",
+  "import.optionalColumns": "Kò pọn dandan: description, costPrice, compareAtPrice, stock, sku, barcode, category, brand, status àti images. Àwọn kọ́lọ́ọ̀mù míì (bí color tàbí size) máa di àlàyé ọjà.",
+  "import.photos": "Fọ́tò ọjà (kò pọn dandan)",
+  "import.photosHelp": "Fi link fọ́tò sínú kọ́lọ́ọ̀mù images, tàbí gbé àwọn fọ́tò sókè níbí kí o sì kọ orúkọ fáìlì kọ̀ọ̀kan sínú kọ́lọ́ọ̀mù images (ya ọ̀pọ̀ sọ́tọ̀ pẹ̀lú |). Fọ́tò tí a sọ ní orúkọ SKU tàbí orúkọ ọjà kan máa bá a mu fúnra rẹ̀.",
+  "import.choosePhotos": "Yan fọ́tò",
+  "import.photosChosen": "{count, plural, one {A ti yan fọ́tò #} other {A ti yan fọ́tò #}}",
+  "import.photosFrom": "JPG, PNG, WebP tàbí GIF, tó 10MB ọ̀kọ̀ọ̀kan",
+  "import.uploadingPhotos": "Ó ń gbé fọ́tò sókè {done} nínú {total}…",
+  "import.photoFailed": "A kò lè gbé fọ́tò {name} sókè: {reason}",
+  "import.withImages": "{count, plural, one {Ọjà # ní fọ́tò} other {Ọjà # ní fọ́tò}}",
 };
 
 export default yo;

@@ -167,6 +167,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cat.loading": "Anyị na-ebuli ụdị…",
   "cat.empty": "Enweghị ụdị ugbu a",
   "cat.emptySub": "Ụdị na-enyere aka hazie ngwaahịa gị ma mee ka ndị ahịa chọgharịa site n'ụdị.",
+  "import.optionalColumns": "Ọ bụghị iwu: description, costPrice, compareAtPrice, stock, sku, barcode, category, brand, status na images. Kọlụm ndị ọzọ (dịka agba ma ọ bụ nha) ga-aghọ nkọwa ngwaahịa.",
+  "import.photos": "Foto ngwaahịa (ọ bụghị iwu)",
+  "import.photosHelp": "Tinye links foto na kọlụm images, ma ọ bụ bulite foto ebe a ma dee aha faịlụ ọ bụla na kọlụm images (kewaa ọtụtụ site na |). A na-ejikọ foto nwere aha SKU ma ọ bụ aha ngwaahịa na ya n'onwe ya.",
+  "import.choosePhotos": "Họrọ foto",
+  "import.photosChosen": "{count, plural, one {Ahọrọla foto #} other {Ahọrọla foto #}}",
+  "import.photosFrom": "JPG, PNG, WebP ma ọ bụ GIF, ruo 10MB nke ọ bụla",
+  "import.uploadingPhotos": "Na-ebulite foto {done} n'ime {total}…",
+  "import.photoFailed": "Enweghị ike ibulite foto {name}: {reason}",
+  "import.withImages": "{count, plural, one {Ngwaahịa # nwere foto} other {Ngwaahịa # nwere foto}}",
 };
 
 export default ig;
