@@ -55,6 +55,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "expiry.3days": "Ọjọ́ 3",
   "expiry.week": "Ọ̀sẹ̀ 1",
   "expiry.month": "Oṣù 1",
+  "link.seasonal": "Campaigns ìgbà ọdún",
+  "link.seasonalHint": "Ọjà títà pẹ̀lú aago ìkàsẹ̀yìn fún Black Friday, Kérésìmesì àti bẹ́ẹ̀ bẹ́ẹ̀ lọ",
   "link.templates": "Àwọn email template",
   "link.templatesHint": "Email tí a ti ṣe sílẹ̀ fún títà, ọjà tuntun àti ọpẹ́",
   "link.subscribers": "Subscribers",

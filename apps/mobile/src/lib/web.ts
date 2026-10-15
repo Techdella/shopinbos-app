@@ -49,6 +49,7 @@ const APP_SCREENS: Record<string, string> = {
   "/home/settings": "/settings",
   "/channels": "/channels",
   "/home/marketing/subscribers": "/marketing/subscribers",
+  "/home/campaigns": "/campaigns",
 };
 
 /** Opens a web-app path, but in the app when the app has that screen (orders, inbox, find products, reviews…). */
@@ -60,6 +61,8 @@ export function openPath(path: string) {
   if (product && product[1] !== "new") return router.push({ pathname: "/product/[id]", params: { id: product[1] } });
   const legal = pathname.match(/^\/home\/legal\/([\w-]+)$/);
   if (legal) return router.push({ pathname: "/legal/[key]", params: { key: legal[1] } });
+  const campaign = pathname.match(/^\/home\/campaigns\/([\w-]+)$/);
+  if (campaign) return router.push({ pathname: "/campaigns/[id]", params: { id: campaign[1] } });
   if (pathname === "/home/reviews/request") return router.push("/reviews/ask" as never);
   const conversation = path.match(/^\/home\/messages\?(?:.*&)?c=([\w-]+)/);
   if (conversation) return router.push({ pathname: "/inbox/[id]", params: { id: conversation[1] } });

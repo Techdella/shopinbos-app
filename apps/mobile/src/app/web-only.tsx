@@ -11,17 +11,23 @@ import { colors } from "@/theme";
 // can open it there (signed in) or ask us to do it. Without it, admin accounts land here: the admin panel is web only.
 
 // title and body are m_shop keys. The admin screen below stays in English (admin only).
-const TOOLS: Record<string, { title: "webOnly.look.title"; body: "webOnly.look.body"; path: string; ask: string }> = {
+// A path's ":id" is filled from ?id= (e.g. one seasonal campaign's look and blocks); `ask` is optional.
+const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.campaign.title"; body: "webOnly.look.body" | "webOnly.campaign.body"; path: string; ask?: string }> = {
   look: {
     title: "webOnly.look.title",
     body: "webOnly.look.body",
     path: "/home/editor",
     ask: "/rex",
   },
+  campaign: {
+    title: "webOnly.campaign.title",
+    body: "webOnly.campaign.body",
+    path: "/home/campaigns/:id",
+  },
 };
 
 export default function WebOnly() {
-  const { what } = useLocalSearchParams<{ what?: string }>();
+  const { what, id } = useLocalSearchParams<{ what?: string; id?: string }>();
   const tool = what ? TOOLS[String(what)] : undefined;
   const t = useT("m_shop", "m_ui");
 
@@ -36,8 +42,8 @@ export default function WebOnly() {
           <T weight="extrabold" style={{ fontSize: 24, textAlign: "center", letterSpacing: -0.4 }} accessibilityRole="header">{t(tool.title)}</T>
           <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 16, lineHeight: 23, maxWidth: 340 }}>{t(tool.body)}</T>
         </View>
-        <PillButton title={t("openInBrowser")} onPress={() => void openWeb(tool.path)} />
-        <LinkButton title={t("webOnly.askRex")} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} />
+        <PillButton title={t("openInBrowser")} onPress={() => void openWeb(tool.path.replace(":id", encodeURIComponent(String(id ?? ""))))} />
+        {tool.ask ? <LinkButton title={t("webOnly.askRex")} style={{ marginTop: 6 }} onPress={() => router.push(tool.ask as never)} /> : null}
       </SafeAreaView>
     );
   }

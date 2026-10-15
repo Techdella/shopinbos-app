@@ -4,6 +4,8 @@ import type en from "./en.ts";
 const yo: Partial<Record<keyof typeof en, string>> = {
   "webOnly.look.title": "Yí theme rẹ padà lórí ojú-iboju tó tóbi",
   "webOnly.look.body": "Yíyí theme, àwọ̀, àwòrán àti ètò ṣọ́ọ̀bù rẹ padà rọrùn jù lórí kọ̀ǹpútà tàbí tablet. O ṣì lè ṣí i lórí fóònù yìí. Tàbí ní kí Rex yí i padà fún ọ.",
+  "webOnly.campaign.title": "Yí ìrísí campaign padà lórí ojú-iboju tó tóbi",
+  "webOnly.campaign.body": "Yíyí àwọ̀, àsíá, pop-up àti badges campaign yìí padà rọrùn jù lórí kọ̀ǹpútà tàbí tablet. O ṣì lè ṣí i lórí fóònù yìí.",
   "webOnly.askRex": "Ní kí Rex ṣe é",
   "legal.title": "Àwọn ojú-ewé òfin",
   "legal.sub": "Àwọn ojú-ewé ìdápadà, ìpamọ́ àti òfin rẹ. Tẹ ọ̀kan láti ṣàtúnṣe rẹ̀ lórí web.",
@@ -34,6 +36,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.partners.hint": "Supplier àti delivery partner",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaign, kóòdù ẹ̀dínwó àti ads",
+  "link.campaigns.label": "Campaigns ìgbà ọdún",
+  "link.campaigns.hint": "Black Friday, Kérésìmesì àti bẹ́ẹ̀ bẹ́ẹ̀ lọ, pẹ̀lú aago ìkàsẹ̀yìn",
   "link.reviews.label": "Àwọn review",
   "link.reviews.hint": "Ohun tí oníbàárà ń sọ, àti bíbéèrè fún síi",
   "link.rex.label": "Rex Studio",

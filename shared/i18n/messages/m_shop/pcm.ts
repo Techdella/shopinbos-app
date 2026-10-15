@@ -4,6 +4,8 @@ import type en from "./en.ts";
 const pcm: Partial<Record<keyof typeof en, string>> = {
   "webOnly.look.title": "Change your theme for bigger screen",
   "webOnly.look.body": "To change your theme, colours, pictures and how your shop arrange dey easy for computer or tablet. You fit still open am for this phone. Or ask Rex make e change am for you.",
+  "webOnly.campaign.title": "Change the campaign look for bigger screen",
+  "webOnly.campaign.body": "To change the colours, banners, pop-up and badges of this campaign dey easy for computer or tablet. You fit still open am for this phone.",
   "webOnly.askRex": "Make Rex do am",
   "legal.title": "Legal pages",
   "legal.sub": "Your returns, privacy and terms pages. Tap one make you edit am for web.",
@@ -34,6 +36,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.partners.hint": "Suppliers and delivery partners",
   "link.marketing.label": "Marketing",
   "link.marketing.hint": "Campaigns, discount codes and ads",
+  "link.campaigns.label": "Seasonal campaigns",
+  "link.campaigns.hint": "Black Friday, Christmas and more, with countdown",
   "link.reviews.label": "Reviews",
   "link.reviews.hint": "Wetin customers talk, and to ask for more",
   "link.rex.label": "Rex Studio",
