@@ -257,9 +257,12 @@ export function BoutiquePdp(props: Props) {
             </button>
           ) : null}
         </div>
-        <button type="button" className="bq-btn min-h-[50px] w-full" style={look.softButton} disabled={soldOut || !interactive} onClick={() => props.onBuyNow?.(item())}>
-          {settings.labels.buyNow}
-        </button>
+        {/* No separate Buy now when the main button already checks out (stores selling with one Buy now button). */}
+        {props.onBuyNow || editor ? (
+          <button type="button" className="bq-btn min-h-[50px] w-full" style={look.softButton} disabled={soldOut || !interactive} onClick={() => props.onBuyNow?.(item())}>
+            {settings.labels.buyNow}
+          </button>
+        ) : null}
       </div>
     ),
     actions: () => (

@@ -155,3 +155,72 @@ test("the builder's product page section edits the PDP settings with theme defau
   for (const id of ["stickyBar", "zoom", "breadcrumbs", "trustDelivery", "trustPayOnDelivery", "trustReturns", "trustCustomText", "buyNowLabel", "relatedTitle", "recentTitle", "reviewsTitle"]) assert.ok(byId[id], id);
   assert.ok(schema.sectionSchema("product-detail", "classic").settings.length > 0, "classic templates keep their own product section settings");
 });
+
+// ─── Classic templates use the same product page ─────────────────────────────
+
+const classic = await import("../src/components/storefront/boutique/pdp/classic-pdp.ts");
+
+const classicSection = (settings = {}, copy = {}) => ({ kind: "product-detail", settings, blocks: [{ type: "copy", content: copy }] });
+
+test("classic product layouts map onto the shared product page layouts", () => {
+  assert.deepEqual(classic.classicPdpDefaults("gallery-left"), { layout: "classic", gallery: "thumbs-left", details: "accordion" });
+  assert.equal(classic.classicPdpDefaults("split").layout, "classic");
+  assert.equal(classic.classicPdpDefaults("split").gallery, "thumbs-bottom");
+  assert.equal(classic.classicPdpDefaults("minimal").layout, "compact");
+  assert.equal(classic.classicPdpDefaults("sticky-summary").layout, "gallery-stack");
+  // Sections saved with no layout, or one the builder never offered (seeded "premium-product-detail"), start as the default.
+  for (const value of [undefined, "", "premium-product-detail", 42]) {
+    assert.equal(classic.classicProductLayout(value), "gallery-left");
+    assert.equal(classic.classicPdpDefaults(value).layout, "classic");
+  }
+});
+
+test("classic product page settings: the seller's explicit choice wins over the classic layout", () => {
+  const sticky = classic.readClassicPdpSettings(classicSection({ layout: "sticky-summary" }));
+  assert.equal(sticky.layout, "gallery-stack");
+  assert.equal(sticky.gallery, "thumbs-bottom");
+  assert.deepEqual(sticky.buyBox, pdp.DEFAULT_BUY_BLOCKS, "everything else uses the shared defaults");
+
+  const picked = classic.readClassicPdpSettings(classicSection({ layout: "sticky-summary", pdpLayout: "editorial", galleryStyle: "slider", detailsStyle: "tabs", buyBox: ["buttons", "price"], stickyBar: false }));
+  assert.equal(picked.layout, "editorial");
+  assert.equal(picked.gallery, "slider");
+  assert.equal(picked.details, "tabs");
+  assert.deepEqual(picked.buyBox, ["buttons", "price"]);
+  assert.equal(picked.stickyBar, false);
+  assert.equal(classic.readClassicPdpSettings(classicSection({ layout: "minimal", pdpLayout: "nonsense" })).layout, "compact", "unknown values are ignored");
+  assert.equal(classic.readClassicPdpSettings(null).layout, "classic");
+
+  // Add-to-bag wording: the product page setting, else the store's cart setting, else the shared default.
+  assert.equal(classic.readClassicPdpSettings(classicSection({}, { addToBagLabel: "Grab it" }), { addToBagFallback: "Add to basket" }).labels.addToBag, "Grab it");
+  assert.equal(classic.readClassicPdpSettings(classicSection(), { addToBagFallback: "Add to basket" }).labels.addToBag, "Add to basket");
+  assert.equal(classic.readClassicPdpSettings(classicSection()).labels.addToBag, "Add to bag");
+  assert.equal(classic.classicCartButtonLabel({ addToCartLabel: "basket" }), "Add to basket");
+  assert.equal(classic.classicCartButtonLabel(undefined), "Add to cart");
+  assert.equal(classic.classicCartButtonLabel({ addToCartLabel: "weird" }), "Add to cart");
+  assert.equal(classic.classicBuyNowOnly({ addToCartLabel: "buy_now" }), true);
+  assert.equal(classic.classicBuyNowOnly({}), false);
+
+  // From a whole snapshot: the product page's product-detail section and its related heading.
+  const snap = classic.classicPdpSettingsForSnapshot(productPage({ layout: "split", pageBlocks: ["reviews"] }, {}, "Pairs well with"));
+  assert.equal(snap.layout, "classic");
+  assert.deepEqual(snap.sections, ["reviews"]);
+  assert.equal(snap.labels.related, "Pairs well with");
+  assert.equal(classic.classicPdpSettingsForSnapshot(null).layout, "classic");
+});
+
+test("the classic builder's product section edits the same product page settings", () => {
+  const sec = (settings = {}) => ({ id: "p", kind: "product-detail", name: "Product", visible: true, blocks: [{ id: "c", type: "copy", content: {} }], settings });
+  const cases = [[undefined, "classic", "thumbs-left"], ["gallery-left", "classic", "thumbs-left"], ["split", "classic", "thumbs-bottom"], ["minimal", "compact", "thumbs-bottom"], ["sticky-summary", "gallery-stack", "thumbs-bottom"], ["premium-product-detail", "classic", "thumbs-left"]];
+  for (const [layout, expected, gallery] of cases) {
+    const settings = layout ? { layout } : {};
+    const shown = schema.visibleFields(sec(settings), "classic");
+    const fields = Object.fromEntries(shown.map((field) => [field.id, field]));
+    assert.equal(fields.pdpLayout.fallback, expected, `${layout}: layout shown`);
+    assert.equal(fields.galleryStyle.fallback, gallery, `${layout}: photos shown`);
+    assert.equal(fields.pdpLayout.fallback, classic.readClassicPdpSettings(sec(settings)).layout, "the panel shows what the page draws");
+    assert.equal(new Set(shown.map((field) => field.id)).size, shown.length, `${layout}: one of each field`);
+    for (const id of ["buyBox", "pageBlocks", "zoom", "stickyBar", "detailsStyle", "addToBagLabel", "trustDelivery", "trustCustomText"]) assert.ok(fields[id], `${layout}: ${id}`);
+    assert.ok(!fields.layout, "the old classic style cards are gone");
+  }
+  assert.deepEqual(schema.sectionSchema("product-detail", "classic").addable, [], "product options come from each product now");
+});

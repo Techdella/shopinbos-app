@@ -11,13 +11,15 @@ import {
   PDP_PAGE_BLOCKS,
   pdpThemeDefaults,
 } from "../../storefront/boutique/pdp/pdp-logic.ts";
-import type { FieldGroup } from "./section-schema";
+import { CLASSIC_DEFAULT_PRODUCT_LAYOUT, CLASSIC_PDP_DEFAULTS, CLASSIC_PRODUCT_LAYOUTS } from "../../storefront/boutique/pdp/classic-pdp.ts";
+import type { FieldGroup, SchemaField, When } from "./section-schema";
 
 const copy = (key: string) => ({ scope: "copy" as const, key });
 const setting = (key: string) => ({ scope: "settings" as const, key });
 
-export function pdpSchemaGroups(themeId: string): FieldGroup[] {
-  const theme = pdpThemeDefaults(themeId);
+/** `defaults`: the layout, photos and details style shown until the seller picks one (else the theme's own). */
+export function pdpSchemaGroups(themeId: string, defaults?: { layout: string; gallery: string; details: string }): FieldGroup[] {
+  const theme = defaults ?? pdpThemeDefaults(themeId);
   return [
     { fields: [
       { id: "note", type: "note", label: "These settings apply to every product page. Photos, prices, sizes and details come from each product." },
@@ -51,4 +53,34 @@ export function pdpSchemaGroups(themeId: string): FieldGroup[] {
       { id: "trustCustomText", type: "text", label: "Your own badge", target: copy("trustCustomText"), placeholder: "e.g. 100% original", help: "Only promise what you really offer." },
     ] },
   ];
+}
+
+/**
+ * The same fields for classic templates (readClassicPdpSettings in classic-pdp.ts). Their starting layout, photos and
+ * details style follow the section's saved classic `layout`, so a field whose default differs between classic layouts
+ * is listed once per default and only shows (`when`) for the classic layouts that start from it.
+ */
+export function classicPdpSchemaGroups(): FieldGroup[] {
+  const variants = CLASSIC_PRODUCT_LAYOUTS.map((layout) => ({ layout, groups: pdpSchemaGroups("", CLASSIC_PDP_DEFAULTS[layout]) }));
+  return variants[0]!.groups.map((group, g) => ({
+    ...group,
+    fields: group.fields.flatMap((field, f): SchemaField[] => {
+      const byFallback = new Map<string, { field: SchemaField; layouts: string[] }>();
+      for (const variant of variants) {
+        const own = variant.groups[g]!.fields[f]!;
+        const key = JSON.stringify((own as { fallback?: unknown }).fallback ?? null);
+        const entry = byFallback.get(key) ?? { field: own, layouts: [] };
+        entry.layouts.push(variant.layout);
+        byFallback.set(key, entry);
+      }
+      if (byFallback.size === 1) return [field];
+      return [...byFallback.values()].map(({ field: own, layouts }) => {
+        // The copy for the default classic layout also covers sections saved with no (or an unknown) layout.
+        const when: When = layouts.includes(CLASSIC_DEFAULT_PRODUCT_LAYOUT)
+          ? { scope: "settings", key: "layout", notIn: CLASSIC_PRODUCT_LAYOUTS.filter((layout) => !layouts.includes(layout)), fallback: CLASSIC_DEFAULT_PRODUCT_LAYOUT }
+          : { scope: "settings", key: "layout", in: layouts, fallback: CLASSIC_DEFAULT_PRODUCT_LAYOUT };
+        return { ...own, when };
+      });
+    }),
+  }));
 }
