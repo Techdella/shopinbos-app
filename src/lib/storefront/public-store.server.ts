@@ -5,6 +5,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { publicBrandSettings } from "@shared/public-brand-settings";
 import { readPaymentBadges, type PaymentBadgeKey } from "@shared/payment-badges";
 import { showsShopinbosBadge } from "@/lib/store-badges";
+import { forShoppers } from "@shared/product-stock";
 import { loadShopperInfo } from "./shopper-info.server";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason, storefrontAccess, type StoreUnavailableReason } from "./store-visibility";
 
@@ -50,6 +51,12 @@ function storeSelect(productStatuses: readonly string[]) {
         tags: true,
         productDetails: true,
         specifications: true,
+        // Turned into `stock` by forShoppers (the raw counts never reach shoppers).
+        trackStock: true,
+        continueSellingWhenOut: true,
+        currentStock: true,
+        reservedStock: true,
+        lowStockThreshold: true,
       },
       orderBy: { createdAt: "desc" as const },
     },
@@ -102,7 +109,8 @@ async function shapePublicStore(row: StoreRow) {
   void _userId;
   const reviews = await reviewStats(store.storeProducts.map((product) => product.id));
   const storeProducts = store.storeProducts.map((product) => ({
-    ...product,
+    // Tracked stock as `stock`, version counts only where they apply (shared/product-stock.ts).
+    ...forShoppers(product),
     avgRating: reviews.get(product.id)?.avgRating ?? 0,
     reviewCount: reviews.get(product.id)?.count ?? 0,
   }));

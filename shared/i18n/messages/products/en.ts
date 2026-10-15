@@ -36,6 +36,7 @@ const en = {
   "stock.soldOut": "Sold out",
   "stock.left": "{count} left",
   "stock.inStock": "{count} in stock",
+  "stock.notTracked": "Stock not tracked",
   "list.featured": "Featured",
   "list.hiddenFromStore": "Hidden from store",
   "list.sold": "{count} sold",

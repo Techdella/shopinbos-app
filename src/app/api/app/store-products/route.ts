@@ -6,6 +6,7 @@ import { StoreProductCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
+import { stockTrackingFor } from "@shared/product-stock";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const sp = req.nextUrl.searchParams;
@@ -53,9 +54,14 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     ? Math.round(((retailPrice - costPrice) / retailPrice) * 100)
     : null;
 
+  // "Track stock": the seller's choice, else on when they gave a count (or versions with their own counts).
+  const versionTotal = typeof fields.data.currentStock === "number" ? fields.data.currentStock : undefined;
+  const trackStock = stockTrackingFor({ trackStock: rest.trackStock, currentStock: versionTotal ?? rest.currentStock, variantsCounted: versionTotal !== undefined });
+
   const product = await db.storeProduct.create({
     data: {
       ...rest,
+      trackStock,
       storeId: store.id,
       userId: user.id,
       retailPrice,

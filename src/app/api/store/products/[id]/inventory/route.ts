@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { InventoryUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { stockTrackingFor } from "@shared/product-stock";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const store = await db.store.findUnique({ where: { userId } });
@@ -34,10 +35,13 @@ export const PATCH = withSeller(async (
 
   const store = await db.store.findUnique({ where: { userId: user.id } });
 
+  // Setting a count above 0 switches "Track stock" on unless the seller says otherwise.
+  const trackStock = stockTrackingFor({ trackStock: stockFields.trackStock, currentStock: newStock }, { trackStock: product.trackStock });
+
   const [updated] = await db.$transaction([
     db.storeProduct.update({
       where: { id: params.id },
-      data: stockFields,
+      data: { ...stockFields, ...(trackStock !== undefined ? { trackStock } : {}) },
     }),
     ...(stockChange !== 0
       ? [

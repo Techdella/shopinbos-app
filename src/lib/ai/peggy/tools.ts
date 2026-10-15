@@ -98,7 +98,7 @@ async function storeProducts(ctx: PeggyToolContext) {
     where: { storeId: ctx.store.id, status: { not: "archived" } },
     orderBy: { createdAt: "desc" },
     take: 1000,
-    select: { id: true, name: true, status: true, retailPrice: true, costPrice: true, currentStock: true, lowStockThreshold: true, soldStock: true, description: true, images: true },
+    select: { id: true, name: true, status: true, retailPrice: true, costPrice: true, currentStock: true, lowStockThreshold: true, soldStock: true, trackStock: true, description: true, images: true },
   });
 }
 
@@ -281,6 +281,8 @@ async function updateProduct(ctx: PeggyToolContext, input: PeggyToolInput<"updat
   const stockChange = input.stock !== null ? input.stock - product.currentStock : 0;
   if (input.stock !== null && stockChange !== 0) {
     data.currentStock = input.stock;
+    // Giving a product a count means counting it: checkout then sells only what is there.
+    if (input.stock > 0) data.trackStock = true;
     changes.push(`stock ${product.currentStock} → ${input.stock}`);
   }
   if (input.status !== null && input.status !== product.status) {

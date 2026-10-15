@@ -3,7 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Notice, PillButton, cx } from "@/components/app-ui";
+import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
+import {
+  DEFAULT_BUY_BLOCKS,
+  DEFAULT_PAGE_BLOCKS,
+  PDP_BUY_BLOCKS,
+  PDP_LAYOUT_OPTIONS,
+  PDP_PAGE_BLOCKS,
+  toggleInOrder,
+  type PdpBuyBlock,
+  type PdpLayout,
+  type PdpPageBlock,
+} from "@/components/storefront/boutique/pdp/pdp-logic";
+import { readProductPageOverride, writeProductPageOverride } from "@/components/storefront/boutique/pdp/product-override";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
 import { SeoTab } from "@/components/seo/SeoTab";
@@ -64,8 +76,10 @@ interface Product {
   currentStock: number;
   reservedStock: number;
   lowStockThreshold: number;
-  pageVariant: string;
-  enabledModules: string[];
+  trackStock?: boolean;
+  continueSellingWhenOut?: boolean;
+  /** This product's own page layout / parts (product-override.ts). */
+  pageLayout?: unknown;
   seoTitle: string | null;
   seoDescription: string | null;
   category: { id: string; name: string } | null;
@@ -118,40 +132,9 @@ const FULFILLMENT_OPTIONS = [
   { value: "wholesale_stocked", label: "Wholesale stock" },
 ];
 
-const PAGE_VARIANTS = [
-  { value: "shopify", label: "Shopify" },
-  { value: "amazon", label: "Amazon" },
-  { value: "luxury", label: "Luxury" },
-  { value: "minimal", label: "Minimal" },
-  { value: "marketplace", label: "Marketplace" },
-  { value: "fashion", label: "Fashion" },
-  { value: "mobile_first", label: "Mobile first" },
-];
-
-const ALL_MODULES = [
-  { value: "image_gallery", label: "Image gallery" },
-  { value: "zoom", label: "Zoom" },
-  { value: "video", label: "Video" },
-  { value: "360_view", label: "360° view" },
-  { value: "variants", label: "Variants" },
-  { value: "size_selector", label: "Size selector" },
-  { value: "color_selector", label: "Colour selector" },
-  { value: "quantity", label: "Quantity" },
-  { value: "price", label: "Price" },
-  { value: "discount", label: "Discount" },
-  { value: "stock_status", label: "Stock status" },
-  { value: "delivery_estimate", label: "Delivery estimate" },
-  { value: "wishlist", label: "Wishlist" },
-  { value: "share", label: "Share" },
-  { value: "related_products", label: "Related products" },
-  { value: "reviews", label: "Reviews" },
-  { value: "description", label: "Description" },
-  { value: "specifications", label: "Specifications" },
-  { value: "faqs", label: "FAQs" },
-  { value: "supplier_info", label: "Supplier info" },
-  { value: "return_policy", label: "Return policy" },
-  { value: "trust_badges", label: "Trust badges" },
-];
+// The product page tab chooses this product's own layout and parts over the store's Product page settings (builder).
+// The older "page variant" (Shopify, Amazon…) and module checkboxes were never read by any storefront; they are no
+// longer shown or saved (product-override.ts explains why their saved defaults are ignored).
 
 type SpecItem = { id: string; name: string; value: string };
 type FaqItem = { id: string; question: string; answer: string };
@@ -237,10 +220,16 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [relatedIds, setRelatedIds] = useState<string[]>(product?.relatedProductIds ?? []);
   const [peggyNote, setPeggyNote] = useState("");
 
-  const [pageVariant, setPageVariant] = useState(product?.pageVariant ?? "shopify");
-  const [enabledModules, setEnabledModules] = useState<string[]>(product?.enabledModules ?? [
-    "image_gallery", "price", "quantity", "stock_status", "description", "reviews",
-  ]);
+  // "Track stock": off = never sold out, the count isn't used. Products from before the switch were backfilled.
+  const [trackStock, setTrackStock] = useState(Boolean(product?.trackStock));
+  const [continueSelling, setContinueSelling] = useState(Boolean(product?.continueSellingWhenOut));
+
+  // This product's own page: null = the store's Product page settings (builder) for that part.
+  const [pageOverride] = useState(() => readProductPageOverride(product?.pageLayout));
+  const [pageLayoutChoice, setPageLayoutChoice] = useState<PdpLayout | null>(pageOverride.layout);
+  const [buyBoxChoice, setBuyBoxChoice] = useState<PdpBuyBlock[] | null>(pageOverride.buyBox);
+  const [sectionsChoice, setSectionsChoice] = useState<PdpPageBlock[] | null>(pageOverride.sections);
+  const customParts = buyBoxChoice !== null || sectionsChoice !== null;
 
   /** A new main price: versions that simply followed it follow it again. */
   function changeRetailPrice(next: string) {
@@ -253,7 +242,11 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   }
 
   const basePrice = Number.isFinite(parseFloat(retailPrice)) ? parseFloat(retailPrice) : null;
-  const countsStock = inventoryType === "seller";
+  // Dropship products sell the supplier's stock; every other kind can be counted when the seller turns it on.
+  const canTrack = inventoryType !== "dropshipping" && fulfillmentType !== "dropship";
+  const tracking = canTrack && trackStock;
+  // Sizes / colours get their own counts only for the seller's own stock, and only while it is tracked.
+  const countsStock = inventoryType === "seller" && tracking;
   const variantStock = countsStock ? totalVariantStock(variants) : null;
   const usableOptions = options.filter((option) => option.name.trim() && option.values.length);
 
@@ -347,8 +340,10 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
     setSalesChannels((prev) => prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]);
   };
 
-  const toggleModule = (mod: string) => {
-    setEnabledModules((prev) => prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod]);
+  /** "Use store settings" or "Choose for this product" for the parts of the page (starting from everything on). */
+  const setCustomParts = (custom: boolean) => {
+    setBuyBoxChoice(custom ? [...DEFAULT_BUY_BLOCKS] : null);
+    setSectionsChoice(custom ? [...DEFAULT_PAGE_BLOCKS] : null);
   };
 
   const addSpec = () => setSpecs((prev) => [...prev, { id: uid(), name: "", value: "" }]);
@@ -398,9 +393,11 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       featured,
       currentStock: variantStock ?? (parseInt(currentStock) || 0),
       reservedStock: parseInt(reservedStock) || 0,
-      lowStockThreshold: parseInt(lowStockThreshold) || 10,
-      pageVariant,
-      enabledModules,
+      lowStockThreshold: Number.isFinite(parseInt(lowStockThreshold)) ? Math.max(0, parseInt(lowStockThreshold)) : 10,
+      trackStock: tracking,
+      continueSellingWhenOut: tracking && continueSelling,
+      // Only what the seller chose here overrides the store's product page settings.
+      pageLayout: writeProductPageOverride({ layout: pageLayoutChoice, buyBox: buyBoxChoice, sections: sectionsChoice }),
       seoTitle: seo.metaTitle.slice(0, 70) || undefined,
       seoDescription: seo.metaDescription.slice(0, 160) || undefined,
       // Type, details, versions and related products (the API checks and normalizes them).
@@ -438,8 +435,9 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   };
 
 
-  const stockNumber = parseInt(currentStock);
-  const thresholdNumber = parseInt(lowStockThreshold);
+  const stockNumber = variantStock ?? (parseInt(currentStock) || 0);
+  const thresholdNumber = parseInt(lowStockThreshold) || 0;
+  const availableNumber = stockNumber - Math.max(0, parseInt(reservedStock) || 0);
 
   return (
     <div className="grid gap-4">
@@ -688,27 +686,57 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                 )}
               </Section>
 
-              <Section title="Stock" sub="Track how many you have.">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="In stock" hint={variantStock !== null ? t("stock.fromOptions") : undefined}>
-                    <input value={variantStock ?? currentStock} onChange={(e) => setCurrentStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} disabled={variantStock !== null} />
-                  </Field>
-                  <Field label="Reserved">
-                    <input value={reservedStock} onChange={(e) => setReservedStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
-                  </Field>
-                  <Field label="Warn me when below">
-                    <input value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
-                  </Field>
-                </div>
-                {stockNumber > 0 && (
-                  <p className="m-0 flex items-center gap-2 text-[14px]">
-                    <span aria-hidden className={cx("h-2 w-2 rounded-full", stockNumber <= thresholdNumber ? "bg-app-accent" : "bg-app-success")} />
-                    {stockNumber <= thresholdNumber ? (
-                      <span className="font-bold text-app-accent-ink">{currentStock} left, below your warning level</span>
-                    ) : (
-                      <span className="text-app-ink-soft">{currentStock} available ({stockNumber - parseInt(reservedStock)} after reservations)</span>
-                    )}
+              <Section title="Stock" sub="Count how many you have, so shoppers can't buy more than you can send.">
+                {!canTrack ? (
+                  <p className="m-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">
+                    Dropship products sell your supplier&apos;s stock. When the supplier runs out, shoppers see Sold out.
                   </p>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-4 rounded-[16px] bg-app-canvas p-4">
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-bold">Track stock</span>
+                        <span className="block text-[13px] text-app-ink-soft">
+                          {tracking
+                            ? "Shoppers can buy up to what you have. At 0 it shows Sold out, and each order takes from the count."
+                            : "Off: this product never sells out and orders don't change any count. Turn on to count it."}
+                        </span>
+                      </span>
+                      <Toggle on={tracking} onChange={setTrackStock} label="Track stock" />
+                    </div>
+                    {tracking ? (
+                      <>
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          <Field label="Quantity in stock" hint={variantStock !== null ? t("stock.fromOptions") : undefined}>
+                            <input value={variantStock ?? currentStock} onChange={(e) => setCurrentStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} disabled={variantStock !== null} />
+                          </Field>
+                          <Field label="Set aside" hint="Not for sale online (kept for a customer, display…)">
+                            <input value={reservedStock} onChange={(e) => setReservedStock(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
+                          </Field>
+                          <Field label="Low stock alert at" hint={`You get an alert, and shoppers see "Only ${thresholdNumber > 0 ? thresholdNumber : 5} left", at this count.`}>
+                            <input value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} type="number" inputMode="numeric" className={field.input} min={0} />
+                          </Field>
+                        </div>
+                        <p className="m-0 flex items-center gap-2 text-[14px]">
+                          <span aria-hidden className={cx("h-2 w-2 rounded-full", availableNumber <= 0 ? "bg-app-danger" : availableNumber <= thresholdNumber ? "bg-app-accent" : "bg-app-success")} />
+                          {availableNumber <= 0 ? (
+                            <span className="font-bold text-app-danger">{continueSelling ? "Out of stock: shoppers can still order (you keep selling)" : "Sold out: shoppers can't buy it until you add more"}</span>
+                          ) : availableNumber <= thresholdNumber ? (
+                            <span className="font-bold text-app-accent-ink">{availableNumber} for sale, at or below your alert level</span>
+                          ) : (
+                            <span className="text-app-ink-soft">{availableNumber} for sale</span>
+                          )}
+                        </p>
+                        <label className="flex cursor-pointer items-start gap-3 rounded-[16px] border border-app-line p-4">
+                          <input type="checkbox" checked={continueSelling} onChange={(e) => setContinueSelling(e.target.checked)} className={cx(field.checkbox, "mt-0.5")} />
+                          <span>
+                            <span className="block text-[14px] font-bold">Keep selling when out of stock</span>
+                            <span className="block text-[13px] text-app-ink-soft">Shoppers can still order at 0 (the count goes below 0). Use it only if you can restock quickly.</span>
+                          </span>
+                        </label>
+                      </>
+                    ) : null}
+                  </>
                 )}
               </Section>
 
@@ -814,38 +842,77 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                 <RelatedPicker products={storeProducts.filter((entry) => entry.id !== product?.id)} value={relatedIds} onChange={setRelatedIds} />
               </Section>
 
-              <Section title="Page layout" sub="Choose a layout for this product's page.">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7" role="radiogroup" aria-label="Page layout">
-                  {PAGE_VARIANTS.map((v) => (
-                    <button
-                      key={v.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={pageVariant === v.value}
-                      onClick={() => setPageVariant(v.value)}
-                      className={cx(
-                        "min-h-[48px] rounded-[14px] border px-3 py-3 text-center text-[14px] font-bold transition",
-                        pageVariant === v.value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong",
-                      )}
-                    >
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-              </Section>
+              <p className="m-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">
+                Every product page follows your store&apos;s product page settings (Edit your store, then the Product page). Change them
+                here only when this product needs something different, for example a bigger gallery or no reviews yet.
+              </p>
 
-              <Section title="Page sections" sub="Turn parts of the product page on or off.">
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                  {ALL_MODULES.map((mod) => {
-                    const on = enabledModules.includes(mod.value);
+              <Section title="Page layout" sub="How photos and the buying panel sit on this product's page.">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5" role="radiogroup" aria-label="Page layout">
+                  {[{ value: null, label: "Store default", hint: "Same layout as your other products." }, ...PDP_LAYOUT_OPTIONS].map((option) => {
+                    const on = pageLayoutChoice === option.value;
                     return (
-                      <label key={mod.value} className={cx("flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-[14px] border px-3 text-[14px]", on ? "border-app-ink bg-app-canvas font-bold" : "border-app-line bg-white")}>
-                        <input type="checkbox" checked={on} onChange={() => toggleModule(mod.value)} className={field.checkbox} />
-                        {mod.label}
-                      </label>
+                      <button
+                        key={option.value ?? "store"}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setPageLayoutChoice(option.value)}
+                        className={cx(
+                          "min-h-[48px] rounded-[14px] border px-4 py-3 text-left transition",
+                          on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong",
+                        )}
+                      >
+                        <span className="block text-[14px] font-bold">{option.label}</span>
+                        <span className={cx("mt-0.5 block text-[12.5px] leading-5", on ? "text-white/80" : "text-app-ink-soft")}>{option.hint}</span>
+                      </button>
                     );
                   })}
                 </div>
+              </Section>
+
+              <Section title="Page sections" sub="Which parts show on this product's page.">
+                <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Page sections">
+                  {[
+                    { custom: false, label: "Store default", hint: "The parts your store shows on every product page." },
+                    { custom: true, label: "Choose for this product", hint: "Turn parts on or off just for this product." },
+                  ].map((option) => {
+                    const on = customParts === option.custom;
+                    return (
+                      <button
+                        key={String(option.custom)}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setCustomParts(option.custom)}
+                        className={cx(
+                          "min-h-[48px] rounded-[14px] border px-4 py-3 text-left transition",
+                          on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white hover:border-app-line-strong",
+                        )}
+                      >
+                        <span className="block text-[14px] font-bold">{option.label}</span>
+                        <span className={cx("mt-0.5 block text-[12.5px] leading-5", on ? "text-white/80" : "text-app-ink-soft")}>{option.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {customParts ? (
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <PartToggles
+                      legend="Buying panel"
+                      hint="The product name always shows. Parts with nothing to show (no reviews, no sizes) stay hidden."
+                      options={PDP_BUY_BLOCKS}
+                      value={buyBoxChoice ?? DEFAULT_BUY_BLOCKS}
+                      onToggle={(id, show) => setBuyBoxChoice((list) => toggleInOrder(list ?? DEFAULT_BUY_BLOCKS, id, show, DEFAULT_BUY_BLOCKS))}
+                    />
+                    <PartToggles
+                      legend="Below the product"
+                      options={PDP_PAGE_BLOCKS}
+                      value={sectionsChoice ?? DEFAULT_PAGE_BLOCKS}
+                      onToggle={(id, show) => setSectionsChoice((list) => toggleInOrder(list ?? DEFAULT_PAGE_BLOCKS, id, show, DEFAULT_PAGE_BLOCKS))}
+                    />
+                  </div>
+                ) : null}
               </Section>
             </>
           )}
@@ -891,6 +958,25 @@ function Section({ title, sub, action, children }: { title: string; sub?: string
       </div>
       {children}
     </section>
+  );
+}
+
+/** On/off checkboxes for parts of the product page (the order stays the store's). */
+function PartToggles<T extends string>({ legend, hint, options, value, onToggle }: { legend: string; hint?: string; options: Array<{ value: T; label: string }>; value: readonly T[]; onToggle: (id: T, show: boolean) => void }) {
+  return (
+    <fieldset className="m-0 grid gap-2 border-0 p-0">
+      <legend className={field.label}>{legend}</legend>
+      {options.map((option) => {
+        const on = value.includes(option.value);
+        return (
+          <label key={option.value} className={cx("flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-[14px] border px-3 text-[14px]", on ? "border-app-ink bg-app-canvas font-bold" : "border-app-line bg-white")}>
+            <input type="checkbox" checked={on} onChange={(event) => onToggle(option.value, event.target.checked)} className={field.checkbox} />
+            {option.label}
+          </label>
+        );
+      })}
+      {hint ? <span className={cx(field.hint, "block")}>{hint}</span> : null}
+    </fieldset>
   );
 }
 

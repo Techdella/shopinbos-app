@@ -9,6 +9,7 @@ import { resolveThemeTokens } from "@/lib/store-templates/themes";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { scriptSafeJson } from "@/lib/security/html";
 import { normalizeVariants, priceRange } from "@shared/product-variants";
+import { listingSoldOut } from "@shared/product-stock";
 
 // Shared by /s/[slug]/product/[productId] and custom-domain product pages.
 
@@ -42,7 +43,7 @@ function productJsonLd(data: ProductPageData, url: string) {
   const { product, store } = data;
   const variants = normalizeVariants(product.variants).filter((variant) => variant.enabled);
   const tracked = variants.filter((variant) => variant.stock !== null);
-  const inStock = tracked.length ? tracked.some((variant) => (variant.stock ?? 0) > 0) : true;
+  const inStock = !listingSoldOut(product) && (tracked.length ? tracked.some((variant) => (variant.stock ?? 0) > 0) || Boolean(product.stock?.continueSelling) : true);
   const range = priceRange(variants, product.retailPrice);
   return {
     "@context": "https://schema.org",

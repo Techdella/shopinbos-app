@@ -4,6 +4,7 @@ import type { BoutiqueProductViewProps } from "../BoutiqueProductView";
 import { BOUTIQUE_CSS, lookVars } from "../look";
 import { BoutiquePdp } from "./BoutiquePdp";
 import type { PdpSettings } from "./pdp-logic";
+import { applyProductPageOverride, readProductPageOverride } from "./product-override";
 
 type Props = BoutiqueProductViewProps & { settings: PdpSettings; className?: string };
 
@@ -12,10 +13,12 @@ type Props = BoutiqueProductViewProps & { settings: PdpSettings; className?: str
  * root gives it the container queries and theme variables BoutiquePdp is styled with; `look` comes from classicLook().
  */
 export function ClassicPdp({ className, ...props }: Props) {
+  // A product's own page settings (product form) win over the store's, as on boutique themes.
+  const settings = applyProductPageOverride(props.settings, readProductPageOverride(props.product.pageLayout));
   return (
     <div className={`bq ${className ?? ""}`} data-classic-pdp="" style={{ ...lookVars(props.look), minHeight: 0 }}>
       <style>{BOUTIQUE_CSS}</style>
-      <BoutiquePdp key={props.product.id} {...props} />
+      <BoutiquePdp key={props.product.id} {...props} settings={settings} />
     </div>
   );
 }

@@ -639,8 +639,16 @@ model StoreProduct {
   incomingStock     Int             @default(0)
   damagedStock      Int             @default(0)
   lowStockThreshold Int             @default(10)
+  // Explicit stock tracking (shared/product-stock.ts). Off: the product is never sold out and checkout takes no
+  // stock (the count, if any, is ignored). On: shoppers can buy up to currentStock - reservedStock (and each
+  // version's own count). Dropship products always use the supplier's stock instead.
+  trackStock             Boolean    @default(false)
+  // Tracked products only: keep selling at 0 (backorder); the count may then go below zero.
+  continueSellingWhenOut Boolean    @default(false)
 
   // Product page builder
+  // Per-product page settings: { override: true, layout?, buyBox?, sections? } overrides the store's product page
+  // settings (src/components/storefront/boutique/pdp/product-override.ts). Without the marker: store default.
   pageLayout        Json            @default("{}")
   pageVariant       ProductPageVariant @default(shopify)
   descriptionBuilder Json           @default("{}")

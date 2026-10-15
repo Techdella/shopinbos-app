@@ -38,6 +38,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "stock.soldOut": "Ó ti tán",
   "stock.left": "{count} ló kù",
   "stock.inStock": "{count} wà nílẹ̀",
+  "stock.notTracked": "A kò ka iye rẹ̀",
   "list.featured": "A gbé e jáde",
   "list.hiddenFromStore": "Ó farapamọ́ nínú store",
   "list.sold": "{count} ti tà",
