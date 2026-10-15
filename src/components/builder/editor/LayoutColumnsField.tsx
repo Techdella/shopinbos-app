@@ -3,9 +3,9 @@
 // Inspector part of a rows / columns / grid section: the column preset (as pictures) and each column's elements,
 // which can be added, picked, edited, moved (up / down, "Move to" another column or another rows / columns section of
 // the page, or dragged by their grip within and between the column lists, like on the canvas), copied and removed.
-// While an element is dragged, an "Other rows" list appears below the columns: every other rows / columns section of
-// the page (hidden ones too, marked) with its columns as small drop targets (full ones red); a drop there is the same
-// move as "Move to", and the panel then shows the row it landed in.
+// While an element is dragged, an "Other rows" box floats at the bottom of the panel (over the columns, so nothing
+// moves): every other rows / columns section of the page (hidden ones too, marked) with its columns as small drop
+// targets (full ones red); a drop there is the same move as "Move to", and the panel then shows the row it landed in.
 // Selection is shared with the canvas.
 // Everything here shrinks to the panel's width (min-w-0, one minmax(0,1fr) track): a long product name in a select
 // must never widen the panel, or the panel scrolls sideways and every field after this one is cut off on the left.
@@ -253,12 +253,15 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
         })}
       </div>
       {dragging && otherRows.length ? (
-        // Shown only mid-drag: drop on a column of another row to move the element there (to the end of it).
-        <div role="group" aria-label={tx("Other rows")} className="mt-3 min-w-0 rounded-[12px] border border-dashed border-[#2F66F6]/50 bg-[#F5F8FF] p-2">
-          <p className="m-0 px-1 pb-1.5 text-[12px] font-bold text-app-ink-soft">{tx("Other rows")}</p>
+        // Shown only mid-drag: drop on a column of another row to move the element there (to the end of it). It floats
+        // at the bottom of the panel's visible area (a zero-height sticky anchor, the box growing upwards over the
+        // columns), so nothing in the panel moves when a drag starts; a long list scrolls inside it.
+        <div className="pointer-events-none sticky bottom-0 z-30 h-0 min-w-0">
+          <div role="group" aria-label={tx("Other rows")} data-drop-overlay="" className="pointer-events-auto absolute inset-x-0 bottom-2 max-h-[45vh] min-w-0 overflow-y-auto overscroll-contain rounded-[12px] border border-[#2F66F6]/60 bg-[#F5F8FF] p-2 shadow-[0_10px_30px_rgba(22,20,31,.22)]">
+          <p className="m-0 px-1 pb-1.5 text-[12px] font-bold text-app-ink">{tx("Other rows")}</p>
           <div className="grid min-w-0 grid-cols-1 gap-2">
             {otherRows.map((row) => (
-              <div key={row.id} data-drop-row={row.id} className={cx("min-w-0 rounded-[10px] border border-app-line bg-white p-1.5", row.hidden && "opacity-80")}>
+              <div key={row.id} data-drop-row={row.id} className={cx("min-w-0 rounded-[10px] border bg-white p-1.5", row.hidden ? "border-dashed border-app-line-strong" : "border-app-line")}>
                 <p className="m-0 flex min-w-0 items-center gap-1 truncate px-1 pb-1 text-[12.5px] font-semibold text-app-ink">
                   {row.hidden ? <Icon name="eye" size={13} className="shrink-0 text-app-ink-soft" /> : null}
                   <span className="min-w-0 truncate">{rowName(row)}</span>
@@ -276,8 +279,8 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
                         className={cx(
                           "min-w-0 truncate rounded-[8px] border px-2 py-1.5 text-center text-[12px] font-semibold",
                           cell.full
-                            ? cx("border-[#E5484D]/60 text-[#E5484D]", on ? "cursor-not-allowed bg-[#FDECEC] ring-1 ring-[#E5484D]" : "opacity-70")
-                            : on ? "border-[#2F66F6] bg-[#EAF0FF] text-[#2F66F6] ring-1 ring-[#2F66F6]" : "border-dashed border-[#2F66F6]/50 text-[#2F66F6]",
+                            ? cx("border-[#E5484D]/60 text-[#C42F35]", on ? "cursor-not-allowed bg-[#FDECEC] ring-1 ring-[#E5484D]" : "bg-white")
+                            : on ? "border-[#2F66F6] bg-[#EAF0FF] text-[#2453D4] ring-1 ring-[#2F66F6]" : "border-dashed border-[#2F66F6]/60 bg-white text-[#2453D4]",
                         )}
                       >
                         {cell.full ? t("edk.columnFull", { column: label }) : label}
@@ -287,6 +290,7 @@ export function LayoutColumnsField(props: LayoutColumnsFieldProps) {
                 </div>
               </div>
             ))}
+          </div>
           </div>
         </div>
       ) : null}

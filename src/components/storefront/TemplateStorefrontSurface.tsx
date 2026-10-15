@@ -122,6 +122,8 @@ interface TemplateStorefrontSurfaceProps {
   onSelectElement?: (sectionId: string, elementId: string) => void;
   onAddToColumn?: (sectionId: string, columnIndex: number) => void;
   onMoveElement?: (sectionId: string, elementId: string, toColumn: number, toIndex: number, toSectionId?: string) => void;
+  /** The builder's words for the rows / columns hints on the canvas: English text in, the seller's language out. */
+  layoutText?: (english: string, vars?: Record<string, string | number>) => string;
 }
 
 function hexToRgb(hex: string) {
@@ -802,6 +804,7 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       onSelectElement={props.onSelectElement}
       onAddToColumn={props.onAddToColumn}
       onMoveElement={props.onMoveElement}
+      layoutText={props.layoutText}
     />
   );
 }

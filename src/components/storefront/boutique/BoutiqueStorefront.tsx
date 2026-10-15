@@ -37,8 +37,8 @@ import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
 import { faqAnswer, faqSectionStyle } from "./faq/faq-logic";
 import { FaqList } from "./faq/FaqList";
-import { LAYOUT_ROW_KIND, drawnSections, isHiddenLayoutRow } from "./blocks/layout-logic";
-import { HiddenLayoutRowDrop, LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
+import { LAYOUT_ROW_KIND, drawnSections, groupHiddenRows, isHiddenLayoutRow } from "./blocks/layout-logic";
+import { HiddenLayoutRowDrops, LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
 import { shopperCopy } from "@shared/placeholder-copy";
 import { CheckoutPreview } from "../checkout/CheckoutPreview";
 import { checkoutNavLinks, readCheckoutPageSettings } from "../checkout/checkout-layout";
@@ -87,6 +87,8 @@ export interface BoutiqueStorefrontProps {
   onSelectElement?: LayoutRowEditing["onSelectElement"];
   onAddToColumn?: LayoutRowEditing["onAddToColumn"];
   onMoveElement?: LayoutRowEditing["onMoveElement"];
+  /** The builder's words for the rows / columns hints on the canvas (English when absent). */
+  layoutText?: LayoutRowEditing["text"];
 }
 
 const PAGE_LABELS: Record<string, string> = { home: "Home", products: "Shop", about: "About", contact: "Contact", faq: "FAQ", wishlist: "Wishlist" };
@@ -1508,7 +1510,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   function render(section: TemplateSectionNode): React.ReactNode {
     if (isStoreBlock(section.kind)) return <StoreBlock ctx={blockContext(section)} />;
     if (section.kind === LAYOUT_ROW_KIND) {
-      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn, onMoveElement: props.onMoveElement };
+      const editing = live || props.demo ? undefined : { selectedElementId: props.selectedElementId, onSelectElement: props.onSelectElement, onAddToColumn: props.onAddToColumn, onMoveElement: props.onMoveElement, text: props.layoutText };
       return <LayoutRow ctx={blockContext(section)} editing={editing} />;
     }
     switch (section.kind) {
@@ -1631,7 +1633,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         />
       )) : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>
-        {content.map((section) => (isHiddenLayoutRow(section) ? <HiddenLayoutRowDrop key={section.id} section={section} /> : wrap(section, render(section))))}
+        {groupHiddenRows(content).map((entry) => ("hidden" in entry ? <HiddenLayoutRowDrops key={`hidden:${entry.hidden[0]!.id}`} sections={entry.hidden} text={props.layoutText} /> : wrap(entry.section, render(entry.section))))}
         {/* Builder: room for the "Add your first section" button on an empty page. */}
         {!live && !props.demo && shownContent.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>

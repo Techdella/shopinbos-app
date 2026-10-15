@@ -7,7 +7,10 @@
 // dragging works the same when they stack on phones. An element can also be dragged into any other rows / columns
 // section on the page: while one is dragged, every row outlines its columns, and a small copy of it follows the pointer.
 // Hidden rows aren't drawn, except as a slim labelled strip (HiddenLayoutRowDrop) while a drag is in progress, so they
-// can take drops too; the element stays hidden with its row.
+// can take drops too; the element stays hidden with its row. The strip floats over the boundary between sections
+// (HiddenLayoutRowDrops: a zero-height anchor in the row's place), so nothing on the page moves when a drag starts.
+// Storefront code has no builder catalog: the builder passes its words in (`text`, English with {placeholders} in,
+// the seller's language out); without it the canvas hints stay English.
 
 import { useRef } from "react";
 import type React from "react";
@@ -40,7 +43,15 @@ export interface LayoutRowEditing {
    * was dropped into another rows / columns section on the page, that section's id.
    */
   onMoveElement?: (sectionId: string, elementId: string, toColumn: number, toIndex: number, toSectionId?: string) => void;
+  /** The builder's words for the canvas hints and labels (see LayoutRowText). */
+  text?: LayoutRowText;
 }
+
+/** English text (with {placeholders}) → the builder's language, placeholders filled. */
+export type LayoutRowText = (english: string, vars?: Record<string, string | number>) => string;
+
+/** Without the builder's words: the English itself, placeholders filled. */
+export const englishText: LayoutRowText = (english, vars) => (vars ? english.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match)) : english);
 
 const EDIT_BLUE = "#2F66F6";
 const FULL_RED = "#E5484D";
@@ -82,11 +93,11 @@ function justify(element: LayoutElement) {
   return element.align === "center" ? "center" : element.align === "right" ? "flex-end" : "flex-start";
 }
 
-function ElementView({ ctx, element, dark }: { ctx: BlockContext; element: LayoutElement; dark: boolean }) {
+function ElementView({ ctx, element, dark, say }: { ctx: BlockContext; element: LayoutElement; dark: boolean; say: LayoutRowText }) {
   const { look, editor } = ctx;
   const t = look.tokens;
   const muted = dark ? "rgba(255,255,255,.75)" : t.muted;
-  const placeholder = (message: string) => (editor ? <div className="rounded-[10px] border border-dashed px-3 py-4 text-center text-[12.5px]" style={{ borderColor: dark ? "rgba(255,255,255,.35)" : t.border, color: muted }}>{message}</div> : null);
+  const placeholder = (message: string) => (editor ? <div className="rounded-[10px] border border-dashed px-3 py-4 text-center text-[12.5px]" style={{ borderColor: dark ? "rgba(255,255,255,.35)" : t.border, color: muted }}>{say(message)}</div> : null);
   switch (element.type) {
     case "heading": {
       const words = str(element.text);
@@ -105,7 +116,7 @@ function ElementView({ ctx, element, dark }: { ctx: BlockContext; element: Layou
     }
     case "image": {
       const url = str(element.imageUrl);
-      if (!url) return editor ? <div className="bq-media grid place-items-center" style={{ aspectRatio: RATIOS[String(element.ratio)] ?? "16 / 10", borderRadius: look.cardRadius, color: t.muted }}><span className="flex items-center gap-1.5 text-[12.5px]"><Icon name="image" size={15} /> Add a picture in the panel</span></div> : null;
+      if (!url) return editor ? <div className="bq-media grid place-items-center" style={{ aspectRatio: RATIOS[String(element.ratio)] ?? "16 / 10", borderRadius: look.cardRadius, color: t.muted }}><span className="flex items-center gap-1.5 text-[12.5px]"><Icon name="image" size={15} /> {say("Add a picture in the panel")}</span></div> : null;
       const ratio = RATIOS[String(element.ratio)];
       return ratio
         ? <div className="bq-media" style={{ aspectRatio: ratio, borderRadius: look.cardRadius }}><img src={url} alt={str(element.alt)} loading="lazy" decoding="async" /></div>
@@ -192,9 +203,11 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
   const canDrag = Boolean(canEdit && editing?.onMoveElement);
   const dragging = canDrag && pageDrag?.moved ? pageDrag : null;
   const dragged = canDrag && drag.state?.moved ? view.cells.flatMap((cell) => cell.elements).find((element) => element.id === drag.state?.id) : undefined;
+  // Only the builder passes its words; shoppers get the store's own text.
+  const say = (editor && editing?.text) || englishText;
 
   return (
-    <section aria-label={section.name || "Columns"} data-drop-row={canDrag ? section.id : undefined} style={{ background, color: dark ? t.paperBg : t.ink, paddingTop: pad, paddingBottom: pad }}>
+    <section aria-label={section.name || say("Columns")} data-drop-row={canDrag ? section.id : undefined} style={{ background, color: dark ? t.paperBg : t.ink, paddingTop: pad, paddingBottom: pad }}>
       <style>{canDrag ? ROW_CSS + GRIP_CSS : ROW_CSS}</style>
       <div ref={rowRef} className="bq-wrap bql-row" style={rowStyle}>
         {view.cells.map((cell, columnIndex) => {
@@ -222,7 +235,7 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
           >
             {target && !full ? <div aria-hidden className="pointer-events-none absolute inset-x-0 z-20 h-[3px] rounded-full" style={{ top: target.top - 1.5, background: EDIT_BLUE, boxShadow: "0 0 0 2px rgba(255,255,255,.85)" }} /> : null}
             {cell.elements.map((element) => {
-              const body = <ElementView ctx={ctx} element={element} dark={dark} />;
+              const body = <ElementView ctx={ctx} element={element} dark={dark} say={say} />;
               if (!canEdit) return <div key={element.id} className="min-w-0">{body}</div>;
               const selected = editing?.selectedElementId === element.id;
               return (
@@ -232,7 +245,7 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
                   data-drop-item={canDrag ? "" : undefined}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Edit ${layoutElementMeta(element.type)?.label ?? "element"}`}
+                  aria-label={say("Edit {name}", { name: say(layoutElementMeta(element.type)?.label ?? "Element") })}
                   aria-pressed={selected}
                   className="bql-el relative min-w-0 rounded-[6px]"
                   style={{ outline: selected ? "2px solid #2F66F6" : "1px dashed transparent", outlineOffset: 4, cursor: "pointer", opacity: dragging && dragging.from === section.id && dragging.id === element.id ? 0.35 : undefined }}
@@ -254,7 +267,7 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
                   {canDrag ? (
                     <span
                       aria-hidden
-                      title="Drag to move"
+                      title={say("Drag to move")}
                       className="bql-grip absolute z-10 grid h-6 w-6 place-items-center rounded-[7px] text-white shadow-[0_2px_8px_rgba(22,20,31,.25)]"
                       style={{ top: -14, left: -14, background: EDIT_BLUE, cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
                       onPointerDown={(event) => drag.start(event, element.id)}
@@ -270,8 +283,8 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
               <button
                 type="button"
                 data-column-add={`${section.id}:${columnIndex}`}
-                aria-label={`Add an element to column ${columnIndex + 1}`}
-                title="Add an element"
+                aria-label={say("Add an element to column {n}", { n: columnIndex + 1 })}
+                title={say("Add an element")}
                 onClick={(event) => {
                   event.stopPropagation();
                   editing.onAddToColumn?.(section.id, columnIndex);
@@ -279,44 +292,67 @@ export function LayoutRow({ ctx, editing }: { ctx: BlockContext; editing?: Layou
                 className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-dashed text-[12.5px] font-semibold transition hover:opacity-100"
                 style={{ minHeight: cell.elements.length ? 34 : 96, borderColor: dark ? "rgba(255,255,255,.4)" : "#2F66F6", color: dark ? "#fff" : "#2F66F6", background: "transparent", opacity: cell.elements.length ? 0.55 : 0.9, cursor: "pointer" }}
               >
-                <Icon name="plus" size={14} /> {cell.elements.length ? "" : "Add element"}
+                <Icon name="plus" size={14} /> {cell.elements.length ? "" : say("Add element")}
               </button>
             ) : null}
           </div>
           );
         })}
       </div>
-      {dragged ? <DragGhost previewRef={drag.previewRef} label={layoutElementLabel(dragged)} thumb={<GhostThumb element={dragged} />} /> : null}
+      {dragged ? <DragGhost previewRef={drag.previewRef} label={say(layoutElementLabel(dragged))} thumb={<GhostThumb element={dragged} />} /> : null}
     </section>
   );
 }
 
+// Darker than the outlines, so the strip's small words read clearly on white (WCAG AA).
+const STRIP_INK = "#4A4857";
+const STRIP_BLUE = "#2453D4";
+const STRIP_RED = "#C42F35";
+
 /**
- * A hidden rows / columns section on the builder's canvas: nothing, except while an element is being dragged there.
- * Then a slim, dimmed strip in the row's place ("Hidden row: <name> — drop here") with its columns as compact drop
- * targets (full ones red). The drop itself is handled by the dragged element's own row, like any other row's.
+ * Hidden rows / columns sections on the builder's canvas (one, or several in a row of the page): nothing, except while
+ * an element is being dragged. Then each one shows as a strip ("Hidden row: <name> — drop here") with its columns as
+ * compact drop targets (full ones red). The strips float over the boundary between the sections around them, from a
+ * zero-height anchor in their place, so nothing on the page moves when a drag starts; their box is data-drop-overlay,
+ * so the drag measures them as drawn and prefers them when the pointer is right over them. The drop itself is handled
+ * by the dragged element's own row, like any other row's.
  */
-export function HiddenLayoutRowDrop({ section }: { section: TemplateSectionNode }) {
+export function HiddenLayoutRowDrops({ sections, text }: { sections: TemplateSectionNode[]; text?: LayoutRowText }) {
+  const drag = usePageColumnDrag();
+  if (!drag?.moved || !sections.length) return null;
+  return (
+    <div data-hidden-rows="" style={{ position: "relative", height: 0 }}>
+      <div data-drop-overlay="" style={{ position: "absolute", left: 0, right: 0, top: 0, transform: "translateY(-50%)", zIndex: 40, display: "grid", gap: 6 }}>
+        {sections.map((section) => <HiddenLayoutRowDrop key={section.id} section={section} text={text} />)}
+      </div>
+    </div>
+  );
+}
+
+/** One hidden row's strip, inside HiddenLayoutRowDrops. */
+export function HiddenLayoutRowDrop({ section, text }: { section: TemplateSectionNode; text?: LayoutRowText }) {
   const drag = usePageColumnDrag();
   if (!drag?.moved) return null;
+  const say = text ?? englishText;
   const view = normaliseLayoutRow(section);
-  const name = section.name || "Columns";
+  const name = section.name || say("Columns");
   const grid = view.preset.id.startsWith("grid");
   return (
     <section
-      aria-label={`Hidden row: ${name}`}
+      aria-label={say("Hidden row: {name}", { name })}
       data-drop-row={section.id}
       data-hidden-row=""
-      style={{ padding: "10px 0", background: "repeating-linear-gradient(135deg, rgba(22,20,31,.035) 0 8px, transparent 8px 16px)", borderTop: "1px dashed rgba(22,20,31,.18)", borderBottom: "1px dashed rgba(22,20,31,.18)", opacity: 0.85 }}
+      style={{ padding: "8px 0", background: "rgba(255,255,255,.97)", borderTop: "1px dashed rgba(22,20,31,.3)", borderBottom: "1px dashed rgba(22,20,31,.3)", boxShadow: "0 6px 20px rgba(22,20,31,.16)" }}
     >
       <div className="bq-wrap">
-        <p className="m-0 mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "#5B5966" }}>
-          <Icon name="eye" size={14} /> <span className="truncate">Hidden row: {name} — drop here</span>
+        <p className="m-0 mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: STRIP_INK }}>
+          <Icon name="eye" size={14} /> <span className="truncate">{say("Hidden row: {name} — drop here", { name })}</span>
         </p>
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(view.cells.length, 6)}, minmax(0, 1fr))`, gap: 8 }}>
           {view.cells.map((cell, columnIndex) => {
             const target = drag.target?.row === section.id && drag.target.column === columnIndex;
             const full = cell.elements.length >= MAX_ELEMENTS_PER_COLUMN;
+            const column = grid ? say("Box {n}", { n: columnIndex + 1 }) : say("Column {n}", { n: columnIndex + 1 });
             return (
               <div
                 key={cell.id}
@@ -324,14 +360,14 @@ export function HiddenLayoutRowDrop({ section }: { section: TemplateSectionNode 
                 data-drop-append=""
                 className="grid min-w-0 place-items-center truncate rounded-[8px] px-2 text-[12px] font-semibold"
                 style={{
-                  minHeight: 36,
-                  border: target ? `2px solid ${full ? FULL_RED : EDIT_BLUE}` : `1px dashed ${full ? FULL_RED : "rgba(47,102,246,.5)"}`,
-                  background: target ? (full ? "rgba(229,72,77,.08)" : "rgba(47,102,246,.08)") : "rgba(255,255,255,.7)",
-                  color: full ? FULL_RED : EDIT_BLUE,
+                  minHeight: 32,
+                  border: target ? `2px solid ${full ? FULL_RED : EDIT_BLUE}` : `1px dashed ${full ? FULL_RED : "rgba(47,102,246,.6)"}`,
+                  background: target ? (full ? "#FDEDED" : "#EDF2FF") : "#fff",
+                  color: full ? STRIP_RED : STRIP_BLUE,
                   cursor: target && full ? "not-allowed" : undefined,
                 }}
               >
-                {grid ? `Box ${columnIndex + 1}` : `Column ${columnIndex + 1}`}{full ? " · full" : ""}
+                {full ? say("{column} · full", { column }) : column}
               </div>
             );
           })}

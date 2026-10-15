@@ -397,7 +397,7 @@ test("layout rows: cross-row drops and the drag preview are wired, builder only"
   assert.match(field, /edk\.rowNamed/, "Move to lists the other rows");
   assert.match(read("../src/components/builder/editor/Inspector.tsx"), /pageSections=\{props\.page\?\.sections\}/);
   const builder = read("../src/components/builder/editor/Builder.tsx");
-  assert.match(builder, /moveElementAcrossRows\(/);
+  assert.match(builder, /applyElementMove\(/);
   assert.match(builder, /edk\.movedToRow/, "cross-row moves are announced");
   for (const key of ["edk.rowN", "edk.rowNamed", "edk.rowColumn", "edk.movedToRow", "ed.This row"]) assert.ok(en[key], `${key} has English words`);
 });
@@ -424,13 +424,85 @@ test("layout rows: a refused move says why, so the builder never announces a mov
   assert.equal(layout.moveElementAcrossRows(page, "r1", "a", "r2", 1, 0).missing, undefined);
 
   const builder = read("../src/components/builder/editor/Builder.tsx");
-  assert.match(builder, /rowMoveOutcome\(result\)/, "moveElement checks the outcome before announcing");
-  assert.match(builder, /options\?: \{ select\?: boolean; toSectionId\?: string \}\): boolean =>/, "moveElement says whether it moved");
   assert.match(builder, /edk\.rowGone/);
   assert.match(builder, /edk\.elementGone/);
   assert.match(builder, /edk\.movedToHiddenRow/, "a move into a hidden row says the row is hidden");
-  assert.match(builder, /sectionsRef\.current/, "the move is checked against the page as it is when the drop lands");
   for (const key of ["edk.rowGone", "edk.elementGone", "edk.notMoved", "edk.movedToHiddenRow", "edk.hiddenRow", "ed.Other rows"]) assert.ok(en[key], `${key} has English words`);
+});
+
+test("layout rows: the announcement comes from the move the commit really made", () => {
+  const build = (id, columns) => {
+    let row = layout.newLayoutRowSection(id, columns.length === 1 ? "1" : "50-50");
+    columns.forEach((list, column) => list.forEach((elementId) => { row = layout.addLayoutElement(row, column, layout.newLayoutElement("text", elementId)); }));
+    return row;
+  };
+  const full = Array.from({ length: layout.MAX_ELEMENTS_PER_COLUMN }, (_, i) => `f${i}`);
+  const request = { fromSectionId: "r1", elementId: "a", toSectionId: "r2", column: 0, index: 0 };
+  // The drop was aimed at this page…
+  const aimed = [build("r1", [["a"], []]), build("r2", [["x"], []])];
+  const ok = layout.applyElementMove(aimed, request);
+  assert.equal(ok.outcome, "moved");
+  assert.notEqual(ok.next, aimed);
+  assert.equal(ok.move.elementId, "a");
+  // …but by the time the commit runs the page has changed: each of these moves nothing, and says why.
+  const newer = {
+    full: [aimed[0], build("r2", [full, []])],
+    "row-gone": [aimed[0]],
+    "element-gone": [build("r1", [[], ["b"]]), aimed[1]],
+  };
+  for (const [want, page] of Object.entries(newer)) {
+    const ran = layout.applyElementMove(page, request);
+    assert.equal(ran.outcome, want);
+    assert.equal(ran.next, page, `${want}: the very same page, so the commit records no change`);
+    assert.equal(ran.move.elementId, null);
+  }
+  assert.equal(layout.applyElementMove(aimed, { ...request, toSectionId: "r1", column: 0, index: 1 }).outcome, "unchanged");
+
+  // The builder runs the move inside the commit, records it, and reads it out (and selects) only after it was drawn.
+  const builder = read("../src/components/builder/editor/Builder.tsx");
+  assert.match(builder, /editSections\(\(list\) => \{\s*const applied = applyElementMove\(list, record\.request\);/, "the move runs on the page the commit sees");
+  assert.match(builder, /record\.ran = \{ before: list, outcome: applied\.outcome, move: applied\.move \};/);
+  assert.match(builder, /setMoveToken\(record\.token\)/);
+  assert.match(builder, /record\.token <= moveToken/, "the effect reads only moves whose commit was drawn");
+  assert.match(builder, /\}, \[moveToken, select, selectedId, t, tx\]\);/);
+  assert.doesNotMatch(builder, /moveElementAcrossRows\(/, "no separate check that could go stale before the commit");
+});
+
+test("layout rows: floating drop targets don't move the page, and the canvas hints are translated", () => {
+  // Floating rows win when the pointer is right over them, even over another row.
+  const rows = [{ left: 0, top: 0, right: 400, bottom: 300 }, { left: 0, top: 260, right: 400, bottom: 320 }, { left: 0, top: 400, right: 400, bottom: 600 }];
+  assert.equal(layout.pickDropRow(rows, 100, 280, 0), 0, "without overlays a tie keeps the own row");
+  assert.equal(layout.pickDropRow(rows, 100, 280, 0, 24, [false, true, false]), 1, "the floating strip over the row wins");
+  assert.equal(layout.pickDropRow(rows, 100, 250, 0, 24, [false, true, false]), 0, "just outside it, the normal rules");
+  assert.equal(layout.pickDropRow(rows, 100, 500, 0, 24, [false, true, false]), 2);
+  assert.equal(layout.pickDropRow([rows[1], rows[1]], 100, 280, 0, 24, [true, true]), 1, "overlapping floats: the one drawn on top");
+
+  const hiddenRow = (id) => ({ ...layout.newLayoutRowSection(id, "1"), visible: false });
+  const page = [node("hero", "hero-split"), hiddenRow("h1"), hiddenRow("h2"), node("story", "story-split"), hiddenRow("h3")];
+  assert.deepEqual(layout.groupHiddenRows(page).map((entry) => ("hidden" in entry ? entry.hidden.map((section) => section.id) : entry.section.id)), ["hero", ["h1", "h2"], "story", ["h3"]], "hidden rows in a row share one floating stack");
+
+  const row = read("../src/components/storefront/boutique/blocks/LayoutRow.tsx");
+  assert.match(row, /export function HiddenLayoutRowDrops/);
+  assert.match(row, /position: "relative", height: 0/, "a zero-height anchor in the row's place");
+  assert.match(row, /data-drop-overlay="" style=\{\{ position: "absolute"/, "the strips float over the page");
+  const hook = read("../src/components/storefront/boutique/blocks/useColumnDrag.ts");
+  assert.match(hook, /closest<HTMLElement>\("\[data-drop-overlay\]"\)/, "floating rows are measured as drawn");
+  assert.match(hook, /pickDropRow\(rects, x, y, rows\.indexOf\(own\), undefined, boxes\.map\(Boolean\)\)/);
+  const field = read("../src/components/builder/editor/LayoutColumnsField.tsx");
+  assert.match(field, /sticky bottom-0 z-30 h-0/, "the panel's Other rows box floats at the bottom of the panel");
+  assert.match(field, /data-drop-overlay=""/);
+
+  // Canvas words: English fallbacks in the storefront, the builder's language passed in.
+  assert.match(row, /export const englishText: LayoutRowText/);
+  assert.match(row, /const say = \(editor && editing\?\.text\) \|\| englishText;/, "shoppers never get the builder's words");
+  assert.doesNotMatch(row, /title="Drag to move"|"Add element"\}|`Column \$\{|aria-label=\{`Edit /, "no hard-coded English labels left on the canvas");
+  for (const english of [...row.matchAll(/say\("([^"]+)"/g)].map((match) => match[1])) assert.ok(en[`ed.${english}`], `"${english}" has a builder key`);
+  for (const english of [...row.matchAll(/placeholder\("([^"]+)"\)/g)].map((match) => match[1])) assert.ok(en[`ed.${english}`], `hint "${english}" has a builder key`);
+  const builder = read("../src/components/builder/editor/Builder.tsx");
+  assert.match(builder, /t\.dynamic\(`ed\.\$\{english\}`, english, vars\)/);
+  assert.match(builder, /layoutText=\{editing \? layoutText : undefined\}/);
+  assert.match(read("../src/components/storefront/TemplateStorefrontSurface.tsx"), /layoutText=\{props\.layoutText\}/);
+  assert.match(read("../src/components/storefront/boutique/BoutiqueStorefront.tsx"), /text: props\.layoutText/);
 });
 
 test("layout rows: other rows as drop targets in the panel, hidden rows as drop strips on the canvas", () => {
@@ -471,7 +543,7 @@ test("layout rows: other rows as drop targets in the panel, hidden rows as drop 
   const storefront = read("../src/components/storefront/boutique/BoutiqueStorefront.tsx");
   assert.match(storefront, /const hiddenRowDrops = !live && !props\.demo && Boolean\(props\.onMoveElement\);/, "never on the live store or previews");
   assert.match(storefront, /drawnSections\(page\?\.sections \?\? \[\], hiddenRowDrops\)/);
-  assert.match(storefront, /<HiddenLayoutRowDrop /);
+  assert.match(storefront, /<HiddenLayoutRowDrops /);
   const row = read("../src/components/storefront/boutique/blocks/LayoutRow.tsx");
   assert.match(row, /export function HiddenLayoutRowDrop/);
   assert.match(row, /if \(!drag\?\.moved\) return null;/, "invisible outside a drag");

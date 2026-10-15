@@ -489,6 +489,24 @@ export function rowMoveOutcome(move: RowMove): RowMoveOutcome {
   return "unchanged";
 }
 
+export interface ElementMoveRequest {
+  fromSectionId: string;
+  elementId: string;
+  toSectionId: string;
+  column: number;
+  index: number;
+}
+
+/**
+ * The builder's move as its commit runs it: on the page as it is at that moment (which can be newer than the page the
+ * drop was aimed at), with what it came to. `next` is the very same array unless something moved, so the builder can
+ * announce (and select) from `outcome` once the change has really happened, never from an earlier check.
+ */
+export function applyElementMove(sections: TemplateSectionNode[], request: ElementMoveRequest): { next: TemplateSectionNode[]; outcome: RowMoveOutcome; move: RowMove } {
+  const move = moveElementAcrossRows(sections, request.fromSectionId, request.elementId, request.toSectionId, request.column, request.index);
+  return { next: move.sections, outcome: rowMoveOutcome(move), move };
+}
+
 /** Can `elementId` (in `fromSectionId`) go to that column of `toSectionId`? False when either is unknown or the column is full. */
 export function canMoveElementAcrossRows(sections: TemplateSectionNode[], fromSectionId: string, elementId: string, toSectionId: string, toColumn: number): boolean {
   const from = sections.find((section) => section?.id === fromSectionId && section.kind === LAYOUT_ROW_KIND);
@@ -505,8 +523,16 @@ export function canMoveElementAcrossRows(sections: TemplateSectionNode[], fromSe
  * The row a pointer is over while dragging on the canvas: the row whose box (grown by `reach` pixels) holds the
  * pointer, the nearest one when grown boxes overlap, the dragged element's own row (`own`) on a tie. Outside every
  * row it stays the own row, so a drop over another kind of section still lands where it did before. -1: no rows.
+ * Rows flagged in `overlays` float over the page (a hidden row's strip, the panel's "Other rows" box): one the pointer
+ * is right over wins outright (the last one, drawn on top, when they overlap).
  */
-export function pickDropRow(rows: DropRect[], x: number, y: number, own: number, reach = 24): number {
+export function pickDropRow(rows: DropRect[], x: number, y: number, own: number, reach = 24, overlays?: readonly boolean[]): number {
+  if (overlays) {
+    for (let index = rows.length - 1; index >= 0; index -= 1) {
+      const rect = rows[index]!;
+      if (overlays[index] && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return index;
+    }
+  }
   let best = -1;
   let bestDistance = Infinity;
   rows.forEach((rect, index) => {
@@ -596,4 +622,19 @@ export function isHiddenLayoutRow(section: Pick<TemplateSectionNode, "kind" | "v
  */
 export function drawnSections<T extends Pick<TemplateSectionNode, "kind" | "visible">>(sections: T[], withHiddenRows = false): T[] {
   return sections.filter((section) => section.visible !== false || (withHiddenRows && isHiddenLayoutRow(section)));
+}
+
+/**
+ * The sections in drawing order, with hidden rows / columns sections that follow each other gathered into one entry:
+ * the builder draws each run as one stack of drop strips floating over that spot of the page.
+ */
+export function groupHiddenRows<T extends Pick<TemplateSectionNode, "kind" | "visible">>(sections: T[]): Array<{ section: T } | { hidden: T[] }> {
+  const out: Array<{ section: T } | { hidden: T[] }> = [];
+  for (const section of sections) {
+    const last = out[out.length - 1];
+    if (!isHiddenLayoutRow(section)) out.push({ section });
+    else if (last && "hidden" in last) last.hidden.push(section);
+    else out.push({ hidden: [section] });
+  }
+  return out;
 }
