@@ -19,6 +19,7 @@ import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
 import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 import { findStorefrontPage } from "@shared/storefront-pages";
+import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 
 export interface SurfaceProduct {
   id: string;
@@ -33,6 +34,8 @@ export interface SurfaceProduct {
   compareAtPrice?: number | null;
   variants?: unknown;
   supplierProduct?: { stockQuantity?: number | null } | null;
+  /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when not tracked. */
+  stock?: ShopperStock | null;
 }
 
 export interface SurfaceStore {
@@ -62,6 +65,8 @@ interface RenderProduct {
   mappedStoreProductId: string | null;
   avgRating?: number;
   reviewCount?: number;
+  /** Tracked stock (or the supplier's) at 0: the card says "Sold out" and can't be added. */
+  soldOut?: boolean;
 }
 
 type CommerceButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "text" | "gradient" | "floating" | "sticky";
@@ -468,6 +473,7 @@ function resolveProductItems(items: Array<Record<string, unknown>> | undefined, 
         mappedStoreProductId: mapped.id,
         avgRating: (mapped as any).avgRating,
         reviewCount: (mapped as any).reviewCount,
+        soldOut: listingSoldOut(mapped),
       };
     }
 
@@ -649,10 +655,11 @@ function ProductCard({
   mode: "live" | "editor";
 }) {
   const addHandler =
-    mode === "live" && product.purchasable && onAddToCart
+    mode === "live" && product.purchasable && !product.soldOut && onAddToCart
       ? () => onAddToCart(product.id)
       : undefined;
   const canAdd = Boolean(addHandler);
+  const addLabel = (label: string) => (product.soldOut ? "Sold out" : label);
   const wished = wishlistProductIds.includes(product.id);
   const isPremium = theme.templateStyle === "editorial" || theme.templateStyle === "runway";
 
@@ -669,6 +676,9 @@ function ProductCard({
     >
       <div className={`relative overflow-hidden ${isPremium ? "h-[340px] rounded-[6px] bg-[#F3EFE9]" : theme.templateStyle === "marketplace" ? "h-[210px]" : "h-[260px]"}`}>
         {renderImage(product.imageUrl, product.title, product.color, "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105")}
+        {product.soldOut ? (
+          <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: theme.ink, color: "#fff" }}>Sold out</span>
+        ) : null}
         {mode === "live" && product.purchasable && onToggleWishlist ? (
           <button
             type="button"
@@ -694,7 +704,7 @@ function ProductCard({
               disabled={!canAdd}
               className="w-full rounded-[4px] bg-black/90 px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur disabled:cursor-default disabled:opacity-70"
             >
-              Add to bag
+              {addLabel("Add to bag")}
             </button>
           </div>
         ) : null}
@@ -733,7 +743,7 @@ function ProductCard({
             className="w-full rounded-full px-5 py-3 text-[13px] font-semibold disabled:cursor-default disabled:opacity-60"
             style={{ background: theme.ctaBg, color: theme.ctaText }}
           >
-            Add to cart
+            {addLabel("Add to cart")}
           </button>
         </div> : null}
       </div>
@@ -2292,6 +2302,7 @@ function ClassicTemplateSurface({
               mappedStoreProductId: product.id,
               avgRating: product.avgRating,
               reviewCount: product.reviewCount,
+              soldOut: listingSoldOut(product),
             }))
         : resolveProductItems(kindSection.items, store);
       if (!isCart && layout === "drawer") {

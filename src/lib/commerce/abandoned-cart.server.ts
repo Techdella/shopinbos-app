@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
+import { isDropshipProduct, storeAvailable, storeStockMode } from "@/lib/commerce/stock-holds";
 import { seedDefaultAbandonedCartAutomation } from "@/lib/automations/defaults";
 import {
   cartSubtotal,
@@ -129,14 +130,24 @@ export async function restoreAbandonedCart(storeId: string, token: string): Prom
   const saved = sanitizeLines(event.items);
   const products = await db.storeProduct.findMany({
     where: { storeId, id: { in: [...new Set(saved.map((line) => line.productId))] }, status: "published" },
-    select: { id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true },
+    select: {
+      id: true, name: true, images: true, retailPrice: true, variants: true,
+      currentStock: true, reservedStock: true, trackStock: true, continueSellingWhenOut: true,
+      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true } },
+    },
   });
   const byId = new Map(products.map((product) => [product.id, product]));
   const items: CartLine[] = [];
   const unavailable: string[] = [];
   for (const line of saved) {
     const product = byId.get(line.productId);
-    if (!product || product.currentStock <= 0) {
+    // What can still be bought: the supplier's stock (dropship), what is left of tracked stock, else no limit.
+    const left = !product
+      ? 0
+      : isDropshipProduct(product)
+        ? product.supplierProduct!.status === "published" ? product.supplierProduct!.stockQuantity : 0
+        : storeStockMode(product) === "strict" ? storeAvailable(product) : null;
+    if (!product || (left !== null && left <= 0)) {
       unavailable.push(line.name);
       continue;
     }
@@ -144,8 +155,7 @@ export async function restoreAbandonedCart(storeId: string, token: string): Prom
       ...line,
       price: linePrice(product.retailPrice, product.variants, line.variant),
       image: line.image ?? product.images[0],
-      maxQuantity: product.currentStock,
-      quantity: clampQuantity(line.quantity, product.currentStock),
+      ...(left !== null ? { maxQuantity: left, quantity: clampQuantity(line.quantity, left) } : {}),
     });
   }
 

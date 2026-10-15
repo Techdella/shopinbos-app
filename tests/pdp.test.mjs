@@ -1,6 +1,9 @@
 // Behaviour tests for the 2026 themes' product page: settings with theme defaults, savings, stock, badges, rails.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 const pdp = await import("../src/components/storefront/boutique/pdp/pdp-logic.ts");
 const schema = await import("../src/components/builder/editor/section-schema.ts");
@@ -70,16 +73,35 @@ test("savings percent only shows for a genuine discount", () => {
 });
 
 test("stock status uses tracked stock only", () => {
+  const tracked = (left, lowAt = 5, continueSelling = false) => ({ left, lowAt, continueSelling });
   assert.deepEqual(pdp.stockStatus({ soldOut: true }), { tone: "out", text: "Sold out" });
   assert.deepEqual(pdp.stockStatus({ variantStock: 3 }), { tone: "low", text: "Only 3 left" });
   assert.deepEqual(pdp.stockStatus({ variantStock: 40 }), { tone: "in", text: "In stock" });
   assert.deepEqual(pdp.stockStatus({ variantStock: 0 }), { tone: "out", text: "Sold out" });
-  assert.equal(pdp.stockStatus({ currentStock: 0 }), null, "new products default to 0 and aren't sold out");
-  assert.deepEqual(pdp.stockStatus({ currentStock: 8, lowStockThreshold: 10 }), { tone: "low", text: "Only 8 left" });
-  assert.deepEqual(pdp.stockStatus({ currentStock: 8 }), { tone: "in", text: "In stock" }, "default threshold is 5");
-  assert.deepEqual(pdp.stockStatus({ currentStock: 9, lowStockThreshold: 50 }), { tone: "low", text: "Only 9 left" }, "threshold is capped at 10");
-  assert.deepEqual(pdp.stockStatus({ supplierStock: 2, currentStock: 100 }), { tone: "low", text: "Only 2 left" });
+  assert.equal(pdp.stockStatus({ stock: null }), null, "untracked products never say anything about stock");
   assert.equal(pdp.stockStatus({}), null);
+  assert.deepEqual(pdp.stockStatus({ stock: tracked(0) }), { tone: "out", text: "Sold out" }, "tracked at 0 is sold out");
+  assert.deepEqual(pdp.stockStatus({ stock: tracked(8, 10) }), { tone: "low", text: "Only 8 left" }, "at or below the seller's level");
+  assert.deepEqual(pdp.stockStatus({ stock: tracked(10, 10) }), { tone: "low", text: "Only 10 left" });
+  assert.deepEqual(pdp.stockStatus({ stock: tracked(11, 10) }), { tone: "in", text: "In stock" });
+  assert.deepEqual(pdp.stockStatus({ stock: tracked(8) }), { tone: "in", text: "In stock" }, "default level is 5");
+  assert.deepEqual(pdp.stockStatus({ stock: tracked(40), variantStock: 2 }), { tone: "low", text: "Only 2 left" }, "a version's own count wins");
+  assert.deepEqual(pdp.stockStatus({ supplierStock: 2, stock: tracked(100) }), { tone: "low", text: "Only 2 left" }, "dropship uses the supplier's stock");
+  assert.equal(pdp.stockStatus({ stock: tracked(0, 5, true) }), null, "keep selling at 0: no sold out line");
+});
+
+test("availability: what can be bought and how many", () => {
+  const tracked = (left, lowAt = 5, continueSelling = false) => ({ left, lowAt, continueSelling });
+  assert.deepEqual(pdp.pdpAvailability({ stock: null }), { tone: "untracked", text: null, canBuy: true, maxQuantity: null });
+  assert.deepEqual(pdp.pdpAvailability({ stock: tracked(0) }), { tone: "out", text: "Sold out", canBuy: false, maxQuantity: 0 });
+  assert.equal(pdp.pdpAvailability({ stock: tracked(3) }).maxQuantity, 3, "the quantity stepper stops at what is left");
+  assert.equal(pdp.pdpAvailability({ stock: tracked(30) }).maxQuantity, 30);
+  assert.equal(pdp.pdpAvailability({ soldOut: true, stock: tracked(30) }).canBuy, false, "a switched-off or sold-out version can't be bought");
+  const backorder = pdp.pdpAvailability({ stock: tracked(0, 5, true) });
+  assert.equal(backorder.canBuy, true, "keep selling when out of stock");
+  assert.equal(backorder.maxQuantity, null);
+  assert.deepEqual(pdp.pdpAvailability({ stock: tracked(2, 5, true) }), { tone: "low", text: "Only 2 left", canBuy: true, maxQuantity: null });
+  assert.equal(pdp.pdpAvailability({ supplierStock: 0, stock: tracked(9, 5, true) }).canBuy, false, "dropship never oversells the supplier");
 });
 
 test("detail panels hide when the product has nothing for them", () => {
@@ -154,4 +176,160 @@ test("the builder's product page section edits the PDP settings with theme defau
   assert.deepEqual(byId.addToBagLabel.target, { scope: "copy", key: "addToBagLabel" });
   for (const id of ["stickyBar", "zoom", "breadcrumbs", "trustDelivery", "trustPayOnDelivery", "trustReturns", "trustCustomText", "buyNowLabel", "relatedTitle", "recentTitle", "reviewsTitle"]) assert.ok(byId[id], id);
   assert.ok(schema.sectionSchema("product-detail", "classic").settings.length > 0, "classic templates keep their own product section settings");
+});
+
+// ─── One product's own page settings over the store's ─────────────────────────
+
+const override = await import("../src/components/storefront/boutique/pdp/product-override.ts");
+
+test("product page settings merge: theme default, then store settings, then the product's own choice", () => {
+  const theme = pdp.readPdpSettings(null, "plug");
+  assert.equal(theme.layout, "compact", "theme default");
+  const store = pdp.pdpSettingsForSnapshot(productPage({ pdpLayout: "editorial", pageBlocks: ["details", "related"], buyBox: ["price", "buttons", "actions"] }), "plug");
+  assert.equal(store.layout, "editorial", "store settings beat the theme");
+
+  const none = override.readProductPageOverride({ override: true });
+  assert.equal(override.applyProductPageOverride(store, none), store, "no choices: the store's settings as they are");
+
+  const layoutOnly = override.applyProductPageOverride(store, override.readProductPageOverride({ override: true, layout: "gallery-stack" }));
+  assert.equal(layoutOnly.layout, "gallery-stack", "the product's layout beats the store's");
+  assert.deepEqual(layoutOnly.sections, store.sections, "parts it didn't choose stay the store's");
+  assert.deepEqual(layoutOnly.buyBox, store.buyBox);
+
+  const parts = override.applyProductPageOverride(store, override.readProductPageOverride({ override: true, sections: ["details", "reviews"], buyBox: ["buttons", "price", "stock"] }));
+  assert.equal(parts.layout, "editorial");
+  assert.deepEqual(parts.sections, ["details", "reviews"], "related hidden for this product; reviews shown although the store hides them");
+  assert.deepEqual(parts.buyBox, ["price", "stock", "buttons"], "the store's order is kept, shown parts come back near their default place");
+  assert.equal(parts.zoom, store.zoom, "everything else is the store's");
+});
+
+test("older saved page settings without the marker never override the store", () => {
+  for (const legacy of [{}, null, undefined, "shopify", { layout: "editorial" }, { sections: [] }, { override: "yes", layout: "compact" }]) {
+    assert.deepEqual(override.readProductPageOverride(legacy), override.NO_OVERRIDE, JSON.stringify(legacy));
+  }
+  const store = pdp.readPdpSettings(null, "breeze");
+  assert.deepEqual(override.applyProductPageOverride(store, override.readProductPageOverride({ sections: ["details"] })).sections, store.sections, "the wishlist and rails stay on existing products");
+  const junk = override.readProductPageOverride({ override: true, layout: "huge", buyBox: ["price", "nope", "price"], sections: "x" });
+  assert.deepEqual(junk, { layout: null, buyBox: ["price"], sections: null }, "unknown layouts and parts are dropped");
+  assert.deepEqual(override.readProductPageOverride({ override: true, sections: [] }).sections, [], "hiding every part below is a real choice");
+});
+
+test("the product form saves only what the seller chose, with the marker", () => {
+  assert.deepEqual(override.writeProductPageOverride(override.NO_OVERRIDE), { override: true });
+  const saved = override.writeProductPageOverride({ layout: "compact", buyBox: null, sections: ["details"] });
+  assert.deepEqual(saved, { override: true, layout: "compact", sections: ["details"] });
+  assert.deepEqual(override.readProductPageOverride(JSON.parse(JSON.stringify(saved))), { layout: "compact", buyBox: null, sections: ["details"] });
+  assert.equal(override.hasProductPageOverride(override.readProductPageOverride(saved)), true);
+  assert.equal(override.hasProductPageOverride(override.readProductPageOverride({ override: true })), false);
+});
+
+test("the live product route, the builder preview and the product form use the override", () => {
+  const view = read("src/components/storefront/boutique/BoutiqueProductView.tsx");
+  assert.match(view, /applyProductPageOverride\(props\.settings \?\? readPdpSettings\(null, props\.look\.id\), override\)/);
+  assert.match(read("src/lib/storefront/product-page.server.ts"), /pageLayout: true/);
+  assert.match(read("src/app/api/store/editor/route.ts"), /pageLayout: true/);
+  const form = read("src/app/components/ProductForm.tsx");
+  assert.match(form, /pageLayout: writeProductPageOverride\(/);
+  assert.doesNotMatch(form, /enabledModules|setPageVariant/, "the old page variant and module checkboxes are gone");
+});
+
+// ─── Stock tracking ───────────────────────────────────────────────────────────
+
+const stock = await import("../shared/product-stock.ts");
+const holds = await import("../src/lib/commerce/stock-holds.ts");
+
+test("shoppers only see tracked stock: available is in stock minus set aside", () => {
+  assert.equal(stock.shopperStock({ trackStock: false, currentStock: 9 }), null, "untracked: no stock at all");
+  assert.deepEqual(stock.shopperStock({ trackStock: true, currentStock: 9, reservedStock: 2, lowStockThreshold: 3 }), { left: 7, lowAt: 3, continueSelling: false });
+  assert.deepEqual(stock.shopperStock({ trackStock: true, currentStock: -2, continueSellingWhenOut: true }), { left: 0, lowAt: 5, continueSelling: true }, "oversold counts show as 0");
+  assert.equal(stock.availableStock({ currentStock: 5, reservedStock: -3 }), 5, "a negative set-aside counts as none");
+
+  const row = { id: "p", trackStock: false, continueSellingWhenOut: false, currentStock: 0, reservedStock: 0, lowStockThreshold: 10, fulfillmentType: "merchant_fulfilled", variants: [{ id: "a", options: { Size: "S" }, stock: 0 }], supplierProduct: { stockQuantity: 50, moq: 1 } };
+  const shaped = stock.forShoppers(row);
+  assert.equal(shaped.stock, null);
+  assert.equal("currentStock" in shaped || "reservedStock" in shaped || "trackStock" in shaped, false, "raw counts never reach shoppers");
+  assert.equal(shaped.variants[0].stock, null, "an untracked product's versions are never sold out");
+  assert.equal(shaped.supplierProduct.stockQuantity, null, "only dropship products sell the supplier's stock");
+  assert.equal(shaped.supplierProduct.moq, 1);
+  const trackedRow = stock.forShoppers({ ...row, trackStock: true, currentStock: 4 });
+  assert.deepEqual(trackedRow.stock, { left: 4, lowAt: 10, continueSelling: false });
+  assert.equal(trackedRow.variants[0].stock, 0, "tracked versions keep their own counts");
+  const dropship = stock.forShoppers({ ...row, trackStock: true, fulfillmentType: "dropship" });
+  assert.equal(dropship.stock, null);
+  assert.equal(dropship.supplierProduct.stockQuantity, 50);
+  assert.equal(dropship.variants[0].stock, null);
+});
+
+test("cards: Sold out only for tracked stock at 0 (or the supplier's) without backorders", () => {
+  assert.equal(stock.listingSoldOut({ stock: null }), false);
+  assert.equal(stock.listingSoldOut({ stock: { left: 0, lowAt: 5, continueSelling: false } }), true);
+  assert.equal(stock.listingSoldOut({ stock: { left: 0, lowAt: 5, continueSelling: true } }), false);
+  assert.equal(stock.listingSoldOut({ stock: { left: 1, lowAt: 5, continueSelling: false } }), false);
+  assert.equal(stock.listingSoldOut({ supplierProduct: { stockQuantity: 0 } }), true);
+  assert.equal(stock.listingSoldOut({ supplierProduct: { stockQuantity: null }, stock: null }), false);
+  assert.match(read("src/components/storefront/boutique/ProductTile.tsx"), /soldOutLabel\(product\)/);
+  assert.match(read("src/components/storefront/TemplateStorefrontSurface.tsx"), /soldOut: listingSoldOut\(mapped\)/);
+});
+
+test("saving: the seller's choice wins, else a count above 0 switches tracking on", () => {
+  assert.equal(stock.stockTrackingFor({ trackStock: false, currentStock: 9 }), false);
+  assert.equal(stock.stockTrackingFor({ currentStock: 9 }), true, "a new product with a count is tracked");
+  assert.equal(stock.stockTrackingFor({ currentStock: 0 }), false, "a new product without one isn't");
+  assert.equal(stock.stockTrackingFor({ currentStock: 0, variantsCounted: true }), true, "versions with their own counts");
+  assert.equal(stock.stockTrackingFor({ currentStock: 5 }, { trackStock: false }), true, "the phone sets a count: start counting");
+  assert.equal(stock.stockTrackingFor({ currentStock: 0 }, { trackStock: true }), undefined, "0 never switches tracking off by itself");
+  assert.equal(stock.stockTrackingFor({}, { trackStock: false }), undefined);
+  assert.equal(stock.stockTrackingFor({ trackStock: false }, { trackStock: true }), false);
+});
+
+test("checkout refuses more than is left of tracked products, with a clear message", () => {
+  const own = (extra) => ({ id: "own", name: "Ankara dress", currentStock: 5, reservedStock: 1, trackStock: true, fulfillmentType: "merchant_fulfilled", ...extra });
+  const q = (n) => new Map([["own", n]]);
+  assert.deepEqual(holds.stockShortfallDetails([own()], q(4)), [], "4 of 5 - 1 set aside is fine");
+  assert.deepEqual(holds.stockShortfallDetails([own()], q(5)), [{ name: "Ankara dress", available: 4 }], "set-aside units can't be sold");
+  assert.deepEqual(holds.stockShortfallDetails([own({ trackStock: false, currentStock: 0 })], q(50)), [], "untracked: no limit");
+  assert.deepEqual(holds.stockShortfallDetails([own({ continueSellingWhenOut: true, currentStock: 0 })], q(3)), [], "keep selling when out of stock");
+  assert.deepEqual(holds.stockShortfallDetails([own({ trackStock: undefined, currentStock: 2, reservedStock: 0 })], q(3)), [{ name: "Ankara dress", available: 2 }], "callers that don't read the switch stay strict");
+  assert.equal(holds.stockShortfallMessage([{ name: "Ankara dress", available: 2 }]), "Sorry, only 2 of Ankara dress are left. Lower the quantity in your bag and try again.");
+  assert.equal(holds.stockShortfallMessage([{ name: "Tote", available: 1 }]), "Sorry, only 1 of Tote is left. Lower the quantity in your bag and try again.");
+  assert.equal(holds.stockShortfallMessage([{ name: "Tote", available: 0 }]), "Sorry, Tote is sold out. Remove it from your bag and try again.");
+  assert.equal(holds.stockShortfallMessage([]), "");
+
+  // What checkout takes: strict holds as before; untracked only counts the sale; backorders may go below 0.
+  const built = holds.buildStockHolds([own(), own({ id: "u", name: "Free", trackStock: false }), own({ id: "b", name: "Back", continueSellingWhenOut: true })], new Map([["own", 1], ["u", 2], ["b", 3]]), new Map([["u", [{ id: "v", quantity: 2, name: "Free · S" }]]]));
+  assert.deepEqual(built, [
+    { source: "store", productId: "own", quantity: 1, name: "Ankara dress" },
+    { source: "store", productId: "u", quantity: 2, name: "Free", mode: "off" },
+    { source: "store", productId: "b", quantity: 3, name: "Back", mode: "oversell" },
+  ], "untracked products carry no version counts");
+  assert.deepEqual(holds.parseStockHold(JSON.parse(JSON.stringify(built))), built, "the mode survives saving on the order");
+  assert.equal(holds.holdTotals(built).store.get("u").mode, "off");
+  assert.equal(holds.holdTotals([{ source: "store", productId: "x", quantity: 1, name: "Old" }]).store.get("x").mode, "strict", "older saved holds are strict");
+
+  const pricing = read("src/lib/commerce/pricing.server.ts");
+  assert.match(pricing, /stockShortfallDetails\(products, quantities\)/);
+  assert.match(pricing, /storeStockMode\(product\) !== "off"/, "untracked products' versions aren't counted");
+  const reserve = read("src/lib/commerce/stock.server.ts");
+  assert.match(reserve, /"currentStock" - GREATEST\("reservedStock", 0\) >= \$\{quantity\}/, "the conditional decrement leaves set-aside units alone");
+  assert.match(reserve, /if \(mode === "off"\)/);
+});
+
+test("stock tracking migration is additive, backfills once and is not applied by code", () => {
+  const sql = read("docs/migrations/2026-10-30-product-track-stock.sql");
+  assert.match(sql, /Run BEFORE deploying/);
+  assert.match(sql, /IF NOT EXISTS \(\s*SELECT 1 FROM information_schema\.columns/);
+  assert.match(sql, /ADD COLUMN "trackStock" BOOLEAN NOT NULL DEFAULT false/);
+  assert.match(sql, /SET "trackStock" = true\s+WHERE "currentStock" > 0/);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "continueSellingWhenOut" BOOLEAN NOT NULL DEFAULT false/);
+  assert.doesNotMatch(sql, /DROP |DELETE /);
+  const schemaText = read("prisma/schema.prisma");
+  assert.match(schemaText, /trackStock\s+Boolean\s+@default\(false\)/);
+  assert.match(schemaText, /continueSellingWhenOut\s+Boolean\s+@default\(false\)/);
+});
+
+test("product import tracks stock only when the row has a count", async () => {
+  const imp = await import("../shared/product-import.ts");
+  assert.equal(imp.mapImportRow({ name: "Tote", price: "5000", stock: "12" }, "NGN").trackStock, true);
+  assert.equal(imp.mapImportRow({ name: "Tote", price: "5000", stock: "0" }, "NGN").trackStock, true, "0 typed in the sheet means sold out");
+  assert.equal(imp.mapImportRow({ name: "Tote", price: "5000" }, "NGN").trackStock, false);
 });

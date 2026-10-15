@@ -17,11 +17,13 @@ type ProductRow = {
   inventoryType: string;
   currentStock: number;
   lowStockThreshold: number;
+  trackStock: boolean;
 };
 
 const isLive = (p: ProductRow) => p.status === "active" || p.status === "published";
 const isDropship = (p: ProductRow) => p.fulfillmentType === "dropship" || p.inventoryType === "dropshipping";
-const isLow = (p: ProductRow) => !isDropship(p) && p.currentStock <= p.lowStockThreshold;
+// Only counted stock ("Track stock") can run low; untracked products never sell out.
+const isLow = (p: ProductRow) => !isDropship(p) && p.trackStock && p.currentStock <= p.lowStockThreshold;
 
 // Old links used ?status=active|draft|archived; they map onto the new chips.
 const FILTERS: Array<{ key: "all" | "live" | "draft" | "low_stock" | "dropship" | "archived"; test: (p: ProductRow) => boolean }> = [
@@ -87,6 +89,7 @@ export default async function ProductsPage({
       inventoryType: true,
       currentStock: true,
       lowStockThreshold: true,
+      trackStock: true,
       soldStock: true,
       supplierStock: true,
       variants: true,
@@ -191,10 +194,12 @@ export default async function ProductsPage({
         <ListCard>
           {products.map((p) => {
             const dropship = isDropship(p);
-            const stock = {
-              low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
-              label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
-            };
+            const stock = !p.trackStock
+              ? { low: false, label: t("stock.notTracked") }
+              : {
+                  low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
+                  label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
+                };
             const variants = variantCount(p.variants);
             const detail = [variants > 0 ? t("list.variants", { count: variants }) : p.category?.name ?? p.sku, dropship ? t("list.dropship") : t("list.ownStock")].filter(Boolean).join(" · ");
             const statusPill = isLive(p) ? (

@@ -223,7 +223,7 @@ test("checkout: stock per version is held, taken and given back", () => {
 
   const stock = read("src/lib/commerce/stock.server.ts");
   assert.match(stock, /FOR UPDATE/, "the product row is locked while its versions change");
-  assert.match(stock, /changeVariantStock\(tx, holds, -1\)/);
+  assert.match(stock, /changeVariantStock\(tx, holds, -1, oversell\)/);
   assert.match(stock, /changeVariantStock\(tx, holds, 1\)/);
 });
 

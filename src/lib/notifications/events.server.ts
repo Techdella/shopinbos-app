@@ -73,7 +73,7 @@ export function notifyStockAfterSale(storeId: string, productIds: string[]) {
     if (!ids.length) return;
     const [store, products] = await Promise.all([
       db.store.findUnique({ where: { id: storeId }, select: { userId: true } }),
-      db.storeProduct.findMany({ where: { id: { in: ids }, storeId, inventoryType: "seller" }, select: { id: true, name: true, currentStock: true, lowStockThreshold: true } }),
+      db.storeProduct.findMany({ where: { id: { in: ids }, storeId, inventoryType: "seller", trackStock: true }, select: { id: true, name: true, currentStock: true, lowStockThreshold: true } }),
     ]);
     if (!store) return;
     const day = new Date().toISOString().slice(0, 10);

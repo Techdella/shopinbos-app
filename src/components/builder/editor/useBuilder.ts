@@ -8,6 +8,7 @@ import { migrateSnapshot } from "@/lib/store-templates/section-content";
 import { normalizeChrome, propagateChrome } from "@/lib/store-templates/chrome";
 import { heroDefaultLayout } from "./section-schema";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import type { ShopperStock } from "@shared/product-stock";
 import { useEditorT } from "./i18n";
 import {
   canRedo,
@@ -49,7 +50,11 @@ export interface BuilderProduct {
   warranty?: string | null;
   supportInfo?: string | null;
   videoUrl?: string | null;
-  currentStock?: number | null;
+  /** Tracked stock as shoppers see it (shared/product-stock.ts); null when not tracked. */
+  stock?: ShopperStock | null;
+  supplierProduct?: { stockQuantity?: number | null } | null;
+  /** The product's own page layout / sections (product-override.ts). */
+  pageLayout?: unknown;
   lowStockThreshold?: number | null;
 }
 
@@ -329,7 +334,9 @@ export function useBuilder() {
       warranty: product.warranty,
       supportInfo: product.supportInfo,
       videoUrl: product.videoUrl,
-      currentStock: product.currentStock,
+      stock: product.stock ?? null,
+      supplierProduct: product.supplierProduct ?? null,
+      pageLayout: product.pageLayout,
       lowStockThreshold: product.lowStockThreshold,
     })),
   }), [store]);

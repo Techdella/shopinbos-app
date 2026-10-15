@@ -5,6 +5,7 @@ import type { ShopperProduct } from "../shopper/catalog";
 import type { BoutiqueLook } from "./look";
 import { BoutiquePdp } from "./pdp/BoutiquePdp";
 import { readPdpSettings, type PdpSettings } from "./pdp/pdp-logic";
+import { applyProductPageOverride, hasProductPageOverride, readProductPageOverride } from "./pdp/product-override";
 
 export interface ProductReviewEntry {
   id: string;
@@ -29,9 +30,10 @@ export interface BoutiqueProductDetail extends ShopperProduct {
   faqs?: unknown;
   videoUrl?: string | null;
   tags?: string[];
-  currentStock?: number | null;
   lowStockThreshold?: number | null;
   productDetails?: unknown;
+  /** The product's own layout / sections (pdp/product-override.ts); legacy values without the marker are ignored. */
+  pageLayout?: unknown;
 }
 
 export interface AddToBagInput {
@@ -77,6 +79,10 @@ export interface BoutiqueProductViewProps {
 
 /** The 2026 themes' product page (live route and builder preview). Layout and blocks come from `settings`. */
 export function BoutiqueProductView(props: BoutiqueProductViewProps) {
-  const settings = props.settings ?? readPdpSettings(null, props.look.id);
-  return <BoutiquePdp key={props.product.id} {...props} settings={settings} />;
+  // Theme defaults → the store's product page settings → this product's own choices (its product form).
+  const override = readProductPageOverride(props.product.pageLayout);
+  const settings = applyProductPageOverride(props.settings ?? readPdpSettings(null, props.look.id), override);
+  // In the builder, say why this product's page may not follow the store settings being edited.
+  const notice = props.notice ?? (!props.interactive && hasProductPageOverride(override) ? "This product has its own layout or sections (set on its product form). Your changes here apply to every other product." : undefined);
+  return <BoutiquePdp key={props.product.id} {...props} settings={settings} notice={notice} />;
 }

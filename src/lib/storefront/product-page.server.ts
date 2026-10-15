@@ -14,6 +14,7 @@ import { loadShopperInfo } from "./shopper-info.server";
 import type { StorefrontShopperInfo } from "./shopper-info";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
+import { forShoppers } from "@shared/product-stock";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
 
@@ -83,6 +84,13 @@ const catalogSelect = {
   productType: true,
   tags: true,
   supplierProduct: { select: { stockQuantity: true } },
+  // Stock as shoppers see it (forShoppers turns these into `stock` and drops the raw counts).
+  fulfillmentType: true,
+  trackStock: true,
+  continueSellingWhenOut: true,
+  currentStock: true,
+  reservedStock: true,
+  lowStockThreshold: true,
 } as const;
 
 /**
@@ -114,8 +122,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
         supportInfo: true,
         faqs: true,
         videoUrl: true,
-        currentStock: true,
-        lowStockThreshold: true,
+        // The seller's own layout / sections for this product (product-override.ts), when they chose any.
+        pageLayout: true,
       },
     }),
   ]);
@@ -155,8 +163,10 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const { status: _status, brandSettings, ...rest } = store;
   void _status;
   const publicStore = { ...rest, brandSettings: publicBrandSettings(brandSettings) };
-  const { status: _productStatus, ...publicProduct } = product;
+  const { status: _productStatus, ...productRow } = product;
   void _productStatus;
+  const publicProduct = forShoppers(productRow);
+  const shopperCatalog = catalog.map((entry) => forShoppers(entry));
 
   return {
     store: publicStore,
@@ -170,9 +180,9 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     avgRating,
     reviewCount,
     ratingCounts,
-    catalog,
+    catalog: shopperCatalog,
     // "Customers also like": the seller's picks (up to 8), else the closest products in the store.
-    related: relatedProducts(publicProduct, catalog),
+    related: relatedProducts(publicProduct, shopperCatalog),
     shopper: shopper as StorefrontShopperInfo,
     themeId: isBoutiqueTheme(templateId) ? templateId : null,
   };
@@ -201,7 +211,7 @@ export const loadStoreChrome = cache(async (slug: string) => {
     themeId: templateId,
     snapshot: boutiqueSnapshotFor(templateId, brandSettings),
     store: { ...rest, brandSettings: publicBrandSettings(brandSettings) },
-    catalog,
+    catalog: catalog.map((entry) => forShoppers(entry)),
     shopper: shopper as StorefrontShopperInfo,
   };
 });

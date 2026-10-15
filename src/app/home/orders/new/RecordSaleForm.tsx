@@ -15,7 +15,7 @@ interface CatalogProduct {
   name: string;
   price: number;
   image: string | null;
-  stock: number;
+  stock: number | null;
 }
 
 interface Line {
@@ -136,7 +136,7 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-bold">{product.name}</span>
-                    <span className="block text-[12.5px] text-app-ink-soft">{naira(product.price)} · {product.stock > 0 ? t("sale.inStock", { count: product.stock }) : t("sale.soldOut")}</span>
+                    <span className="block text-[12.5px] text-app-ink-soft">{naira(product.price)}{product.stock === null ? null : <> · {product.stock > 0 ? t("sale.inStock", { count: product.stock }) : t("sale.soldOut")}</>}</span>
                   </span>
                   <span className="text-[13px] font-extrabold text-app-accent-ink">{t("sale.add")}</span>
                 </button>

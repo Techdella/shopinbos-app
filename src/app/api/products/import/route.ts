@@ -112,6 +112,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
           compareAtPrice: product.compareAtPrice,
           currency: storeCurrency,
           currentStock: product.currentStock,
+          trackStock: product.trackStock,
           sku: product.sku,
           barcode: product.barcode,
           weight: product.weight,

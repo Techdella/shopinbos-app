@@ -114,6 +114,8 @@ export interface ImportedProduct {
   compareAtPrice: number | null;
   currency: string;
   currentStock: number;
+  /** A stock column with a number in it: the count is tracked ("Track stock" on). */
+  trackStock: boolean;
   sku: string | null;
   barcode: string | null;
   weight: number | null;
@@ -167,6 +169,7 @@ export function mapImportRow(row: Record<string, string | undefined>, fallbackCu
     compareAtPrice: number(values.compareAtPrice),
     currency,
     currentStock: stock === null ? 0 : Math.max(0, Math.round(stock)),
+    trackStock: stock !== null,
     sku: values.sku?.slice(0, 100) ?? null,
     barcode: values.barcode?.slice(0, 100) ?? null,
     weight: number(values.weight),

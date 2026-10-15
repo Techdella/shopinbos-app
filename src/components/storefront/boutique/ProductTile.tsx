@@ -4,7 +4,7 @@ import Link from "next/link";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
-import { lowStockLabel, productColours, type ShopperProduct } from "../shopper/catalog";
+import { lowStockLabel, productColours, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import type { BoutiqueLook } from "./look";
 
 interface Props {
@@ -33,7 +33,8 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
   const rating = showRating && product.avgRating && product.avgRating > 0 && product.reviewCount ? { average: product.avgRating, count: product.reviewCount } : null;
   const large = size === "large";
   const colours = productColours(product);
-  const low = lowStockLabel(product);
+  const soldOut = soldOutLabel(product);
+  const low = soldOut ?? lowStockLabel(product);
   const compareAt = product.compareAtPrice && product.compareAtPrice > product.retailPrice ? product.compareAtPrice : null;
   const dark = look.dark;
 
@@ -55,7 +56,7 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
       )}
       {second ? <img src={second} alt="" width={480} height={600} loading="lazy" decoding="async" className="bq-tile-alt" aria-hidden /> : null}
       {low ? (
-        <span className="absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: dark ? "#000" : "#fff", color: dark ? look.tokens.accent : "#B4441E" }}>
+        <span className="absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={soldOut ? { background: look.tokens.ink, color: dark ? "#0A0A0A" : "#fff" } : { background: dark ? "#000" : "#fff", color: dark ? look.tokens.accent : "#B4441E" }}>
           {low}
         </span>
       ) : null}
@@ -114,6 +115,7 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
   const quickAdd = onQuickAdd ? (
     <button
       type="button"
+      disabled={Boolean(soldOut)}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
@@ -121,9 +123,9 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
       }}
       className="bq-btn mt-2.5 w-full"
       style={{ minHeight: 40, fontSize: 13.5, background: look.tokens.ctaBg, color: look.tokens.ctaText, border: `1.5px solid ${look.tokens.ctaBg}` }}
-      aria-label={`Add ${product.name} to bag`}
+      aria-label={soldOut ? `${product.name} is sold out` : `Add ${product.name} to bag`}
     >
-      <Icon name="bag" size={15} aria-hidden /> Add to bag
+      {soldOut ? "Sold out" : <><Icon name="bag" size={15} aria-hidden /> Add to bag</>}
     </button>
   ) : null;
 

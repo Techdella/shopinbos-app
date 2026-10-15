@@ -4,6 +4,7 @@
 // Pure (only a relative import of another pure module), so the behaviour tests load it directly.
 
 import { formatStoreMoney, freeDeliveryEverywhereOver, freeDeliveryPromise, type StorefrontShopperInfo } from "../../../../lib/storefront/shopper-info.ts";
+import { stockAvailability, type Availability, type ShopperStock } from "../../../../../shared/product-stock.ts";
 
 export type PdpLayout = "classic" | "gallery-stack" | "editorial" | "compact";
 export type PdpGalleryStyle = "thumbs-left" | "thumbs-bottom" | "slider";
@@ -268,23 +269,18 @@ export interface StockStatus {
 }
 
 /**
- * Stock line for the buy box. Only tracked stock counts: a variant's stock, the supplier's stock (dropship) or the
- * product's own count when it is above zero (new products default to 0, and checkout doesn't block on it).
+ * Whether the chosen product / version can be bought, the most one bag line may hold, and the buy box's stock line.
+ * Only tracked stock counts (shared/product-stock.ts): the product's own when the seller tracks it (`stock`, with
+ * versions' own counts), the supplier's for dropship. `soldOut`: the chosen version is off or at 0.
  */
-export function stockStatus(input: { soldOut?: boolean; variantStock?: number | null; supplierStock?: number | null; currentStock?: number | null; lowStockThreshold?: number | null }): StockStatus | null {
-  if (input.soldOut) return { tone: "out", text: "Sold out" };
-  const tracked = typeof input.variantStock === "number"
-    ? input.variantStock
-    : typeof input.supplierStock === "number"
-      ? input.supplierStock
-      : typeof input.currentStock === "number" && input.currentStock > 0
-        ? input.currentStock
-        : null;
-  if (tracked === null) return null;
-  if (tracked <= 0) return { tone: "out", text: "Sold out" };
-  const threshold = Math.min(10, Math.max(1, typeof input.lowStockThreshold === "number" && input.lowStockThreshold > 0 ? input.lowStockThreshold : 5));
-  if (tracked <= threshold) return { tone: "low", text: `Only ${tracked} left` };
-  return { tone: "in", text: "In stock" };
+export function pdpAvailability(input: { soldOut?: boolean; variantStock?: number | null; supplierStock?: number | null; stock?: ShopperStock | null }): Availability {
+  return stockAvailability({ versionSoldOut: input.soldOut, variantStock: input.variantStock, supplierStock: input.supplierStock, stock: input.stock });
+}
+
+/** Stock line for the buy box ("Sold out", "Only 3 left", "In stock"); null when stock isn't tracked. */
+export function stockStatus(input: Parameters<typeof pdpAvailability>[0]): StockStatus | null {
+  const availability = pdpAvailability(input);
+  return availability.tone !== "untracked" && availability.text ? { tone: availability.tone, text: availability.text } : null;
 }
 
 export interface SpecRow {
